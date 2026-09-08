@@ -1,5 +1,11 @@
 # 🎮 R-Shop
 
+> **Fork preparation:** Google Drive on-demand storage and fresh independent
+> metadata, rating overlays, and metadata-backed filters are specified but **not
+> implemented yet**. Start with the [authoritative specification](docs/SPECIFICATION.md),
+> [staged plan](docs/IMPLEMENTATION_PLAN.md), and
+> [implementation status](docs/IMPLEMENTATION_STATUS.md).
+
 **The fastest way to turn your retro library into a console-like experience on Android.**
 
 R-Shop is a controller-first game manager for Android handhelds and TVs. Connect your local folders, RomM server, or network shares, and browse your collection through a polished UI that feels closer to an eShop than a file browser.
