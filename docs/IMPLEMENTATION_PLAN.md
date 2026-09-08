@@ -1,11 +1,12 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 1.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 2.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Preparation is authorized and is the current endpoint. Stages S1-S6 describe
-future implementation, not work performed by writing this plan. Once that scope
-is authorized, proceed through it without new routine stage-approval gates.
+Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S7
+without new routine approval gates. Provider account setup is new; fixtures do
+not replace the required live evidence. The user selected Top 25 per console as
+the final offline sample; S7 applies the reviewed, cloud-verified migration.
 
 ## S0 — Fork and specification preparation
 
@@ -144,9 +145,33 @@ Depends on: S1-S5, including all required live acceptance evidence.
 - Commit tested work and update the ledger. Release/deployment is a distinct
   authorized outcome; do not auto-publish an APK at each stage.
 
-Evidence: requirement-by-requirement pass/fail with commands, fixture identifiers,
-source commit and device/build identity; zero unresolved required blockers and
-deferrals. Public evidence must not contain private inventories or credentials.
+Evidence: requirement-by-requirement pass/fail for feature stages S1-S6 with
+commands, fixture identifiers, source commit and device/build identity. S7 is
+still required before overall completion. Public evidence must not contain
+private inventories or credentials.
+
+## S7 — Live metadata pass and reviewed Thor migration
+
+Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
+QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
+
+- Run the fresh full metadata pass and record real coverage/match/rating results.
+  Establish defensible Top-25 retention per console; no fabricated scores or
+  automatic deletion of unresolved games. Count canonical games, retain bundles.
+- Prove Drive restoration on the Thor, inventory exact SD files and cloud
+  IDs/version/digests, and build a private keep/remove/preserve manifest.
+- Preserve saves/BIOS/settings, uncertain paths and files without identical
+  recoverable cloud copies. Revalidate at execution; journal per-file results.
+- Apply the exact reviewed removals only after recovery gates pass, ensuring
+  external sync will not refill them and archival profiles remain unchanged.
+- Verify retained sets, bytes/free space, save safety, and restore a removed
+  test game via R-Shop before returning it to the intended retention state.
+- Reconcile the entire specification including migration, commit verified code
+  and sanitized evidence only. No public release is implied.
+
+Evidence: bounded migration fault/restart/identity-change tests, private live
+manifest, fresh metadata coverage, Top-25 retention audit, before/after space,
+actual recovery proof and zero unresolved required blockers/deferrals.
 
 ## Source extension map (baseline, not implemented classes)
 
@@ -162,6 +187,30 @@ deferrals. Public evidence must not contain private inventories or credentials.
 | Card data/UI | `lib/providers/game_providers.dart`; `lib/widgets/base_game_card.dart`; `lib/features/library/library_screen.dart` | Cached scores must reach every card caller |
 | Filters | `lib/features/game_list/logic/filter_state.dart`, `game_list_controller.dart`; `lib/features/library/library_screen.dart` | Existing filters are separate; share metadata query semantics before adding UI controls |
 | Details | `lib/features/game_detail/widgets/game_info_card.dart`, `metadata_badges.dart` | Explain source/scale/staleness and modified-game identity |
+
+### S1 switch and identity-boundary inventory
+
+The 2026-09-08 review found 27 source/provider enum switches across 14 files.
+S2 must update both configuration layers, not merely add a provider enum value:
+
+- Models: `models/config/source.dart`, `provider_config.dart`, `app_config.dart`.
+- Services: `config_parser.dart`, `source_resolver.dart`, `sources_notifier.dart`,
+  `provider_factory.dart`, `remote_folder_scanner.dart`.
+- UI/shared presentation: `core/util/source_color.dart`,
+  `features/settings/sources_screen.dart`,
+  `features/sources/manual_source_add_screen.dart`, and onboarding's
+  `widgets/welcome_chooser_step.dart`, `widgets/provider_form.dart`,
+  `onboarding_state.dart`.
+
+Also update source health and persisted folder-ID corrections. `GameItem` and
+`DownloadItem` currently lack exact artifact references. The existing
+`UnifiedGameService` and `GameMergeHelper` merge filenames, the game cache has
+`UNIQUE(systemSlug, filename)`, and queue IDs use system name plus filename.
+These are **required integration changes**, not equivalence evidence for Drive
+files. Preserve scoped IDs through all of them. A failed/incomplete refresh must
+not reach `LibrarySyncService` as a complete orphan-deleting snapshot.
+`DownloadService.resolveDownload` is the existing request-time authorization seam.
+The new standalone models/store do not by themselves satisfy those runtime gates.
 
 ## Verification operating procedure
 
@@ -203,3 +252,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | QA-02 | S6 | Existing-provider regressions and combined live workflow |
 | QA-03 | S1 | Privacy/authorization/signing gates, rechecked at S6 |
 | QA-04 | S6 | Full-spec reconciliation; no unresolved required gaps |
+| MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |

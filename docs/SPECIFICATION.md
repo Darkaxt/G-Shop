@@ -1,8 +1,8 @@
 # Google Drive and metadata expansion
 
-Authoritative specification, revision 1, 2026-09-08.
+Authoritative specification, revision 2, 2026-09-08.
 
-Status: prepared for implementation; no feature implementation is claimed.
+Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
 `d615f87277617cbf3a12a6445b3c71d42cf72539`.
 
@@ -14,10 +14,14 @@ emulator use, and explicitly remove owned local installations without changing
 the cloud originals or saves. The primary target is an Android handheld with an
 SD card (AYN Thor); existing R-Shop sources must remain usable.
 
-The current request authorizes creating the fork and preparing this
-Specification-Gated Implementation. It does not authorize implementing the two
-features, running a full scrape, creating OAuth applications, transferring games,
-installing an APK, cleaning an SD card, or releasing software in this turn.
+The user authorized implementation after preparation with "go ahead then" on
+2026-09-08. Implement and verify the two features through the staged plan.
+Google and ScreenScraper access are entirely new setup; do not assume existing
+credentials. Account consent remains user-controlled. Required live tests and a
+fresh metadata pass are part of acceptance; no release is authorized. The user
+also requested a final live SD-library migration retaining a small offline
+sample: Top 25 games per console. This is a one-time reviewed migration, not
+automatic eviction or permission to modify the cloud archive.
 
 User decisions incorporated:
 
@@ -443,6 +447,42 @@ scope labels, empty/unrated results, clear/restore, manual shelves and identical
 logic in library/per-system views. Overlays and filters ship in the same UI stage
 after META-07 has passed, rather than requiring a second metadata implementation.
 
+## 6a. Final live migration
+
+### MIGRATE-01 — Fresh metadata and Top-25 offline sample on AYN Thor
+
+After integrated feature verification, perform the fresh collection-wide metadata
+pass and live on-demand round trip on the actual Thor. Keep the best 25 canonical
+games per console as the offline sample, using the same validated overall-score
+and identity rules as META-05/META-07. Preserve required disc/bundle members; do
+not count each disc as a game or add uncapped translation/hack/tag bonuses. Fewer
+than 25 games are valid for smaller collections. An incomplete/untrustworthy
+ranking cannot justify deleting unranked games; report and defer that console
+until its retention set is defensible.
+
+Inventory exact existing SD ROM paths and prove each removal candidate has an
+identical, complete, readable cloud artifact (stable provider ID/version and
+matching cryptographic digest), with a tested restore route for its format.
+Do not upload, replace or delete H:/Drive originals. Existing unmanaged ROMs need
+deliberate identity-checked adoption or an equally strict one-time migration
+manifest; never infer ownership from a directory name. Revalidate local and cloud
+identity immediately before each removal. Preserve changed files, unknown files,
+missing cloud copies, saves, BIOS, emulator configuration and unrelated content.
+
+Produce a private reviewed keep/remove/preserve manifest with game counts and
+bytes; execute only its exact eligible paths after recovery and ranking gates
+pass. Keep a durable per-file journal for interruption/restart. No recursive
+game-folder wipes. Arrange the existing external sync policy so it cannot silently
+refill removed games, without changing archival download profiles or broadening
+this into a LoLSuite rewrite. Verify actual retained sets, free space and a restore
+of a removed test game through R-Shop, then return that test to its planned state.
+
+Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
+identities, all bundle members, before/after space, saved-data preservation and
+cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion
+requires no unresolved required migration work; do not call a partial cleanup
+complete or publish private inventories in Git.
+
 ## 7. Quality and delivery requirements
 
 ### QA-01 — Deterministic resource-safe verification
@@ -483,7 +523,8 @@ blockers/deferrals. Preparation completion is not feature completion.
 - Streaming ROM content directly into emulators; games are downloaded first.
 - Google Drive uploads, remote deletion, public share-link download workarounds.
 - Android CHD/media conversion, a general downloader rewrite, or new ROM sites.
-- Automatic SD-card pruning/eviction, rewriting LoLSuite, or changing Top lists.
+- Automatic ongoing SD-card eviction, rewriting LoLSuite, or changing archival
+  Top lists. The explicit one-time Top-25 device migration is in scope.
 - Reusing outdated scraped files as the new metadata baseline.
 - A recommendation engine or replacement for curated archive/device Top lists.
   Metadata-backed browsing filters and the score-source remediation required by

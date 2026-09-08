@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multicast_dns/multicast_dns.dart';
 import 'package:retro_eshop/services/network_discovery_service.dart';
 
 void main() {
@@ -54,17 +57,41 @@ void main() {
   });
 
   group('NetworkDiscoveryService', () {
+    test('unsupported multicast is nonfatal and stops its client', () async {
+      final client = _UnsupportedMulticastClient();
+      final results =
+          await NetworkDiscoveryService(client: client).discover().toList();
+      expect(results, isEmpty);
+      expect(client.stopped, isTrue);
+    });
+
     test('completes without crashing on a network without mDNS responders',
         () async {
-      // Best-effort smoke test: in a sandboxed test runner there's no
-      // multicast responder, so the stream should simply finish empty.
+      // This opens real LAN sockets; run explicitly with --tags live.
       final service = NetworkDiscoveryService();
       final results = await service
           .discover(timeout: const Duration(milliseconds: 500))
-          .toList()
-          .timeout(const Duration(seconds: 6),
-              onTimeout: () => <DiscoveredHost>[]);
+          .toList();
       expect(results, isA<List<DiscoveredHost>>());
-    });
+    }, tags: ['live']);
   });
+}
+
+class _UnsupportedMulticastClient extends MDnsClient {
+  bool stopped = false;
+
+  @override
+  Future<void> start(
+      {InternetAddress? listenAddress,
+      InternetAddress? mDnsAddress,
+      int mDnsPort = 5353,
+      NetworkInterfacesFactory? interfacesFactory,
+      Function? onError}) async {
+    throw const OSError('Unsupported multicast socket option', 10042);
+  }
+
+  @override
+  void stop() {
+    stopped = true;
+  }
 }

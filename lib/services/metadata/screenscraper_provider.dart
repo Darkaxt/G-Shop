@@ -1,0 +1,821 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+
+import '../../models/scraped_metadata.dart';
+import 'metadata_credentials.dart';
+import 'metadata_provider.dart';
+
+/// Standalone ScreenScraper API v2 access. API contract and system IDs were
+/// checked against https://www.screenscraper.fr/webapi2.php on 2026-09-08.
+/// Live acceptance still requires this fork's legitimate developer authorization.
+class ScreenScraperProvider implements MetadataProvider {
+  final Dio _dio;
+  final Future<ScreenScraperDeveloperCredentials?> Function() _readDeveloper;
+  final Future<ScreenScraperUserCredentials?> Function() _readUser;
+  final DateTime Function() _clock;
+  static const maxResponseBytes = 4 * 1024 * 1024;
+
+  /// Explicit app-system mappings. DSi has no distinct verified mapping here;
+  /// narrower variants (e.g. WonderSwan Color) need a specific assignment in S4.
+  /// Unsupported systems are never inferred from filenames or provider parents.
+  static const platformIds = <String, int>{
+    'nes': 3,
+    'snes': 4,
+    'n64': 14,
+    'gc': 13,
+    'wii': 16,
+    'wiiu': 18,
+    'switch': 225,
+    'gb': 9,
+    'gbc': 10,
+    'gba': 12,
+    'nds': 15,
+    'virtualboy': 11,
+    'fds': 106,
+    'n3ds': 17,
+    'psx': 57,
+    'ps2': 58,
+    'ps3': 59,
+    'psp': 61,
+    'psvita': 62,
+    'mastersystem': 2,
+    'megadrive': 1,
+    'gamegear': 21,
+    'segacd': 20,
+    'sega32x': 19,
+    'dreamcast': 23,
+    'saturn': 22,
+    'sg1000': 109,
+    'tg16': 31,
+    'tgcd': 114,
+    'ngp': 25,
+    'neogeocd': 70,
+    'wonderswan': 45,
+    'colecovision': 48,
+    'intellivision': 115,
+    'vectrex': 102,
+    'msx': 113,
+    'amstradcpc': 65,
+    'channelf': 80,
+    'odyssey2': 104,
+    'jaguar': 27,
+    'atari2600': 26,
+    'atari5200': 40,
+    'atari7800': 41,
+    'lynx': 28,
+    'jaguarcd': 171,
+    'atarist': 42,
+    'pcfx': 72,
+    'c64': 66,
+    'vic20': 73,
+    'amiga': 64,
+    'zxspectrum': 76,
+    'oric': 131,
+    'x68000': 79,
+    'x1': 220,
+    'fmtowns': 253,
+    'cdi': 133,
+    '3do': 29,
+    'appleii': 86,
+    'ngage': 30,
+    'arcadia2001': 94,
+    'arcade': 75,
+    'dos': 135,
+    'gameandwatch': 52,
+    'tic80': 222,
+    'pico8': 234,
+  };
+
+  /// Inject only the transport, not a shared Dio with credential-logging
+  /// interceptors. Requests use a fixed HTTPS origin and never follow redirects.
+  ScreenScraperProvider({
+    HttpClientAdapter? httpClientAdapter,
+    required Future<ScreenScraperDeveloperCredentials?> Function()
+        readDeveloperCredentials,
+    required Future<ScreenScraperUserCredentials?> Function()
+        readUserCredentials,
+    DateTime Function()? clock,
+  })  : _readDeveloper = readDeveloperCredentials,
+        _readUser = readUserCredentials,
+        _clock = clock ?? DateTime.now,
+        _dio = Dio(BaseOptions(
+            baseUrl: 'https://api.screenscraper.fr/api2/',
+            followRedirects: false,
+            responseType: ResponseType.stream,
+            validateStatus: (_) => true)) {
+    if (httpClientAdapter != null) {
+      _dio.httpClientAdapter = httpClientAdapter;
+    }
+  }
+
+  @override
+  String get providerId => 'screenscraper';
+
+  @override
+  MetadataProviderCapabilities get capabilities =>
+      const MetadataProviderCapabilities(
+        fields: {
+          'title',
+          'description',
+          'genres',
+          'releaseDate',
+          'developer',
+          'publisher',
+          'artwork',
+          'screenshots',
+          'rating'
+        },
+        verifiedIdLookup: true,
+        rawRomLookup: true,
+        titleSearch: true,
+        documentedVoteCounts: false,
+      );
+
+  @override
+  Future<MetadataLookupResult> lookup(MetadataLookupRequest request,
+      {CancelToken? cancelToken}) async {
+    if (cancelToken?.isCancelled == true) {
+      return _result(MetadataLookupStatus.cancelled);
+    }
+    final platform = platformIds[request.platformId];
+    if (platform == null) {
+      return _result(MetadataLookupStatus.unsupportedPlatform);
+    }
+    if (request.gameId.isEmpty ||
+        request.editionId.isEmpty ||
+        request.refreshGeneration < 0 ||
+        request.title.trim().isEmpty ||
+        (request.verifiedProviderGameId != null &&
+            !_positiveId(request.verifiedProviderGameId))) {
+      return _result(MetadataLookupStatus.invalidRequest);
+    }
+    final identifier = request.romIdentifier;
+    final raw = identifier != null &&
+            identifier.kind != RomIdentifierKind.container &&
+            !_containerFilename(identifier.filename)
+        ? identifier
+        : null;
+    if (raw != null && !_validIdentifier(raw)) {
+      return _result(MetadataLookupStatus.invalidRequest);
+    }
+
+    try {
+      final developer = await _readDeveloper();
+      final user = await _readUser();
+      if (cancelToken?.isCancelled == true) {
+        return _result(MetadataLookupStatus.cancelled);
+      }
+      if (developer?.isConfigured != true || user?.isConfigured != true) {
+        return _result(MetadataLookupStatus.setupRequired);
+      }
+      final byId = request.verifiedProviderGameId != null;
+      final query = <String, dynamic>{
+        'devid': developer!.developerId,
+        'devpassword': developer.developerPassword,
+        'softname': developer.softwareName,
+        'ssid': user!.username,
+        'sspassword': user.password,
+        'output': 'json',
+        'systemeid': '$platform',
+        if (byId) 'gameid': request.verifiedProviderGameId,
+        if (!byId && raw != null) ...{
+          'romtype': raw.kind == RomIdentifierKind.rawIso ? 'iso' : 'rom',
+          'romnom': raw.filename,
+          'romtaille': '${raw.sizeBytes}',
+          if (raw.crc32 != null) 'crc': raw.crc32!.toUpperCase(),
+          if (raw.md5 != null) 'md5': raw.md5!.toLowerCase(),
+          if (raw.sha1 != null) 'sha1': raw.sha1!.toLowerCase(),
+        },
+        if (!byId && raw == null) 'recherche': request.title,
+      };
+      final response = await _dio.get<ResponseBody>(
+          byId || raw != null ? 'jeuInfos.php' : 'jeuRecherche.php',
+          queryParameters: query,
+          cancelToken: cancelToken);
+      final status = response.statusCode ?? 0;
+      if (status != 200) {
+        await response.data?.stream.listen((_) {}).cancel();
+        return _httpFailure(status, response.headers.value('retry-after'));
+      }
+      final bytes = BytesBuilder(copy: false);
+      final body = response.data;
+      if (body == null) {
+        return _result(MetadataLookupStatus.invalidResponse);
+      }
+      await for (final chunk in body.stream) {
+        if (bytes.length + chunk.length > maxResponseBytes) {
+          return _result(MetadataLookupStatus.invalidResponse);
+        }
+        bytes.add(chunk);
+      }
+      if (cancelToken?.isCancelled == true) {
+        return _result(MetadataLookupStatus.cancelled);
+      }
+      final payload = _map(jsonDecode(utf8.decode(bytes.takeBytes())));
+      final data = _map(payload?['response']);
+      if (data == null) {
+        return _result(MetadataLookupStatus.invalidResponse);
+      }
+      final quota = _quota(_map(data['ssuser']));
+      final List<Map<String, dynamic>> games;
+      if (byId || raw != null) {
+        final game = _map(data['jeu']);
+        if (game == null) {
+          return _result(MetadataLookupStatus.invalidResponse, quota: quota);
+        }
+        games = [game];
+      } else {
+        if (data['jeux'] is! List || (data['jeux'] as List).length > 30) {
+          return _result(MetadataLookupStatus.invalidResponse, quota: quota);
+        }
+        games = _maps(data['jeux']);
+      }
+      final candidates = <MetadataLookupCandidate>[];
+      Map<String, dynamic>? matched;
+      for (final game in games) {
+        final id = _text(game['id']);
+        if (!_positiveId(id) ||
+            _text(_map(game['systeme'])?['id']) != '$platform') {
+          continue;
+        }
+        if (byId && id != request.verifiedProviderGameId) {
+          continue;
+        }
+        if (!byId && raw != null && !_matchesIdentifier(game, raw)) {
+          continue;
+        }
+        if (!_compatibleRelease(game, request)) {
+          continue;
+        }
+        final titles = _localized(game['noms'], dimension: 'region');
+        if (titles.isEmpty && _text(game['nom']) != null) {
+          titles.add(MetadataText(text: _text(game['nom'])!));
+        }
+        if (titles.isEmpty) {
+          continue;
+        }
+        final titleMatched = titles.any((title) =>
+            _normalizeTitle(title.text) == _normalizeTitle(request.title));
+        candidates.add(MetadataLookupCandidate(
+            providerGameId: id!,
+            platformId: request.platformId,
+            titles: titles,
+            titleMatched: titleMatched,
+            evidence: byId
+                ? 'verifiedProviderId'
+                : raw != null
+                    ? 'rawRomHashAndSize'
+                    : titleMatched
+                        ? 'platformAndTitle'
+                        : 'providerTitleCandidate'));
+        matched = game;
+      }
+      if (candidates.isEmpty) {
+        return _result(MetadataLookupStatus.unmatched, quota: quota);
+      }
+      if (candidates.length > 1) {
+        return _result(MetadataLookupStatus.ambiguous,
+            candidates: candidates, quota: quota);
+      }
+      // An API note belongs to the game. A ROM's hack/trad flag cannot turn that
+      // game score into a rating of a patch. S4 owns project-level corrections.
+      final official = request.contentTags.length == 1 &&
+          request.contentTags.single.toLowerCase() == 'official';
+      final rom = _rom(matched!);
+      final modifiedRom = ['hack', 'trad', 'demo', 'unl', 'beta']
+          .any((key) => _text(rom?[key]) == '1');
+      if ((!byId && raw == null) ||
+          !official ||
+          modifiedRom ||
+          request.baseProviderGameId != null ||
+          request.revision?.isNotEmpty == true ||
+          _text(matched['notgame']) == 'true') {
+        return _result(MetadataLookupStatus.needsReview,
+            candidates: candidates, quota: quota);
+      }
+      final record = _record(matched, request, candidates.single);
+      return MetadataLookupResult(
+          status: MetadataLookupStatus.matched,
+          record: record,
+          candidates: candidates,
+          quota: quota,
+          message: 'Metadata matched; rating confidence is unassessed.');
+    } on MetadataCredentialStorageException {
+      return _result(MetadataLookupStatus.setupRequired);
+    } on DioException catch (error) {
+      return _result(error.type == DioExceptionType.cancel ||
+              cancelToken?.isCancelled == true
+          ? MetadataLookupStatus.cancelled
+          : MetadataLookupStatus.unavailable);
+    } on FormatException {
+      return _result(MetadataLookupStatus.invalidResponse);
+    } catch (_) {
+      // Do not expose plugin, transport or parser diagnostics containing secrets.
+      return _result(cancelToken?.isCancelled == true
+          ? MetadataLookupStatus.cancelled
+          : MetadataLookupStatus.invalidResponse);
+    }
+  }
+
+  MetadataRecord _record(Map<String, dynamic> game,
+      MetadataLookupRequest request, MetadataLookupCandidate candidate) {
+    final fetched = _clock().toUtc();
+    final descriptions =
+        _localized(game['synopses'] ?? game['synopsis'], dimension: 'langue');
+    final releaseDates = _localized(game['dates'], dimension: 'region');
+    final developer = _text(game['developpeur']);
+    final publisher = _text(game['editeur']);
+    final genres = _maps(game['genres'])
+        .map((genre) => MetadataGenre(
+            providerGenreId: _text(genre['id']) ?? '',
+            names: _localized(genre['noms'], dimension: 'langue')))
+        .where((genre) =>
+            genre.providerGenreId.isNotEmpty && genre.names.isNotEmpty)
+        .toList();
+    final media = _mediaEntries(game['medias'])
+        .map((entry) => _mediaEntry(entry,
+            providerGameId: candidate.providerGameId,
+            providerPlatformId: platformIds[request.platformId]!))
+        .whereType<MetadataMedia>()
+        .toList();
+    final score = SourcedRating.parse(
+        sourceId: providerId,
+        sourceLabel: 'ScreenScraper',
+        providerGameId: candidate.providerGameId,
+        rawValue: _text(game['note']),
+        scaleMinimum: 0,
+        scaleMaximum: 20,
+        kind: RatingKind.unknownAggregate,
+        retrievedAt: fetched);
+    final fields = <String>{
+      'title',
+      if (descriptions.isNotEmpty) 'description',
+      if (releaseDates.isNotEmpty) 'releaseDate',
+      if (developer != null) 'developer',
+      if (publisher != null) 'publisher',
+      if (genres.isNotEmpty) 'genres',
+      if (media.isNotEmpty) 'media',
+      if (score != null) 'rating'
+    };
+    return MetadataRecord(
+        gameId: request.gameId,
+        editionId: request.editionId,
+        platformId: request.platformId,
+        providerId: providerId,
+        providerGameId: candidate.providerGameId,
+        retrievedAt: fetched,
+        refreshGeneration: request.refreshGeneration,
+        matchMethod: candidate.evidence,
+        titles: candidate.titles,
+        descriptions: descriptions,
+        releaseDates: releaseDates,
+        developer: developer,
+        publisher: publisher,
+        genres: genres,
+        media: media,
+        ratings: score == null ? [] : [score],
+        fieldProvenance: {
+          for (final field in fields)
+            field: MetadataFieldProvenance(
+                providerId: providerId,
+                providerGameId: candidate.providerGameId,
+                field: field,
+                retrievedAt: fetched)
+        });
+  }
+
+  MetadataLookupResult _httpFailure(int status, String? retryAfter) => _result(
+      switch (status) {
+        400 => MetadataLookupStatus.invalidRequest,
+        401 => MetadataLookupStatus.authenticationRequired,
+        403 || 426 => MetadataLookupStatus.developerAccessRequired,
+        404 => MetadataLookupStatus.unmatched,
+        429 => MetadataLookupStatus.throttled,
+        430 || 431 => MetadataLookupStatus.quotaExceeded,
+        _ => MetadataLookupStatus.unavailable,
+      },
+      retryAfter: status == 429 ? _retryAfter(retryAfter) : null);
+
+  Duration? _retryAfter(String? value) {
+    final seconds = int.tryParse(value ?? '');
+    if (seconds != null && seconds >= 0) {
+      return Duration(seconds: seconds);
+    }
+    if (value != null) {
+      try {
+        final remaining = HttpDate.parse(value).difference(_clock().toUtc());
+        return remaining.isNegative ? Duration.zero : remaining;
+      } on HttpException {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  static MetadataLookupResult _result(MetadataLookupStatus status,
+          {List<MetadataLookupCandidate> candidates = const [],
+          MetadataQuota? quota,
+          Duration? retryAfter}) =>
+      MetadataLookupResult(
+          status: status,
+          candidates: candidates,
+          quota: quota,
+          retryAfter: retryAfter,
+          message: switch (status) {
+            MetadataLookupStatus.setupRequired =>
+              'Configure ScreenScraper developer authorization and user access.',
+            MetadataLookupStatus.authenticationRequired =>
+              'ScreenScraper account access is required.',
+            MetadataLookupStatus.developerAccessRequired =>
+              'ScreenScraper application authorization requires attention.',
+            MetadataLookupStatus.quotaExceeded =>
+              'ScreenScraper quota is exhausted. Resume when provider access resets.',
+            MetadataLookupStatus.throttled =>
+              'ScreenScraper requests are throttled. Respect the provider delay.',
+            MetadataLookupStatus.unsupportedPlatform =>
+              'This platform has no verified ScreenScraper mapping.',
+            MetadataLookupStatus.invalidRequest =>
+              'The metadata identification request is incomplete or invalid.',
+            MetadataLookupStatus.invalidResponse =>
+              'ScreenScraper returned an invalid or oversized metadata response.',
+            MetadataLookupStatus.unavailable =>
+              'ScreenScraper is unavailable. Metadata can be retried later.',
+            MetadataLookupStatus.cancelled => 'Metadata lookup cancelled.',
+            MetadataLookupStatus.ambiguous =>
+              'Several candidates require identity review.',
+            MetadataLookupStatus.needsReview =>
+              'Verify game and edition ownership before publishing this metadata.',
+            MetadataLookupStatus.unmatched =>
+              'No candidate satisfies the platform and identity evidence.',
+            MetadataLookupStatus.matched => 'Metadata matched.',
+          });
+
+  static bool _positiveId(String? id) =>
+      id != null && RegExp(r'^[1-9][0-9]*$').hasMatch(id);
+
+  static bool _containerFilename(String name) =>
+      RegExp(r'\.(zip|7z|rar|chd|rvz|wua|cso|zso|pbp|nsz|xcz)$',
+              caseSensitive: false)
+          .hasMatch(name);
+
+  static bool _validIdentifier(MetadataRomIdentifier identifier) {
+    if (identifier.sizeBytes <= 0 ||
+        identifier.filename.isEmpty ||
+        identifier.filename.contains(RegExp(r'[/\\:\x00]'))) {
+      return false;
+    }
+    final values = {
+      8: identifier.crc32,
+      32: identifier.md5,
+      40: identifier.sha1
+    };
+    return values.values.any((value) => value != null) &&
+        values.entries.every((entry) =>
+            entry.value == null ||
+            RegExp('^[0-9a-fA-F]{${entry.key}}\$').hasMatch(entry.value!));
+  }
+
+  static bool _matchesIdentifier(
+      Map<String, dynamic> game, MetadataRomIdentifier identifier) {
+    final rom = _rom(game);
+    if (rom == null ||
+        _nonnegativeInt(rom['romsize']) != identifier.sizeBytes) {
+      return false;
+    }
+    return {
+      'romcrc': identifier.crc32,
+      'rommd5': identifier.md5,
+      'romsha1': identifier.sha1
+    }.entries.every((entry) =>
+        entry.value == null ||
+        _text(rom[entry.key])?.toLowerCase() == entry.value!.toLowerCase());
+  }
+
+  static bool _compatibleRelease(
+      Map<String, dynamic> game, MetadataLookupRequest request) {
+    final rom = _rom(game);
+    if (request.region != null) {
+      final romRegions = _text(rom?['romregions']);
+      final regions = romRegions
+              ?.split(',')
+              .map((region) => _region(region.trim()))
+              .toSet() ??
+          _localized(game['dates'], dimension: 'region')
+              .map((value) => _region(value.region ?? ''))
+              .toSet();
+      if (!regions.contains(_region(request.region!))) {
+        return false;
+      }
+    }
+    if (request.language != null) {
+      final languages = _text(rom?['romlangues'])
+          ?.split(',')
+          .map((value) => value.trim().toLowerCase());
+      if (languages?.contains(request.language!.toLowerCase()) != true) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static String _region(String value) => switch (value.toLowerCase()) {
+        'usa' => 'us',
+        'japan' || 'japon' => 'jp',
+        'europe' => 'eu',
+        'world' => 'wor',
+        'france' => 'fr',
+        _ => value.toLowerCase(),
+      };
+
+  static String _normalizeTitle(String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'[\s\-_:!?.\x27\x22,()]+'), '');
+
+  static MetadataMedia? _mediaEntry(Map<String, dynamic> entry,
+      {required String providerGameId, required int providerPlatformId}) {
+    final url = _text(entry['url']);
+    final type = _text(entry['type']);
+    if (url == null || type == null) {
+      return null;
+    }
+    final region = _text(entry['region']);
+    final memberIndex = entry['memberIndex'] as int?;
+    final reference = _mediaReference(url,
+        providerGameId: providerGameId,
+        providerPlatformId: providerPlatformId,
+        expectedType: type,
+        expectedRegion: region,
+        expectedMemberIndex: memberIndex);
+    if (reference != null) {
+      return MetadataMedia(
+          type: reference.mediaType,
+          region: reference.region,
+          memberIndex: reference.memberIndex,
+          providerReference: reference);
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !MetadataMedia.isSafeDirectUrl(url) ||
+        !(uri.host == 'screenscraper.fr' ||
+            uri.host.endsWith('.screenscraper.fr'))) {
+      return null;
+    }
+    return MetadataMedia(
+        type: type, url: url, region: region, memberIndex: memberIndex);
+  }
+
+  static ScreenScraperMediaReference? _mediaReference(String url,
+      {required String providerGameId,
+      required int providerPlatformId,
+      required String expectedType,
+      String? expectedRegion,
+      int? expectedMemberIndex}) {
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host != 'api.screenscraper.fr' ||
+        uri.port != 443 ||
+        uri.path != '/api2/mediaJeu.php' ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasFragment) {
+      return null;
+    }
+    final parameters = uri.queryParametersAll;
+    const documentedKeys = {
+      'devid',
+      'devpassword',
+      'softname',
+      'ssid',
+      'sspassword',
+      'crc',
+      'md5',
+      'sha1',
+      'systemeid',
+      'jeuid',
+      'media',
+      'mediaformat',
+      'maxwidth',
+      'maxheight',
+      'outputformat'
+    };
+    if (parameters.keys.any((key) => !documentedKeys.contains(key)) ||
+        parameters.values.any((values) => values.length != 1)) {
+      return null;
+    }
+    final game = parameters['jeuid']?.single;
+    final platform = parameters['systemeid']?.single;
+    final selector = parameters['media']?.single;
+    if (game != providerGameId ||
+        platform != '$providerPlatformId' ||
+        selector == null) {
+      return null;
+    }
+    final match = RegExp(
+            r'^([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*)(?:\(([a-z]{2,3})([1-9][0-9]*)?\))?$')
+        .firstMatch(selector);
+    if (match == null ||
+        match.group(1) != expectedType ||
+        (expectedRegion != null && match.group(2) != expectedRegion)) {
+      return null;
+    }
+    final memberIndex =
+        match.group(3) == null ? null : int.tryParse(match.group(3)!);
+    if ((match.group(3) != null && memberIndex == null) ||
+        (expectedMemberIndex != null && memberIndex != expectedMemberIndex)) {
+      return null;
+    }
+    // Copy only identifiers. Original URL, developer/account values, checksum
+    // query fields and presentation options never enter the metadata record.
+    return ScreenScraperMediaReference(
+        providerGameId: providerGameId,
+        providerPlatformId: providerPlatformId,
+        mediaType: match.group(1)!,
+        region: match.group(2),
+        memberIndex: memberIndex);
+  }
+
+  /// API v2 documents both individual fields and grouped media objects at
+  /// webapi2.php (medias, media_wheels, media_boitiers, media_supports, etc.).
+  /// Traverse only those named groups; unrelated objects are not URL sources.
+  static Iterable<Map<String, dynamic>> _mediaEntries(Object? value) sync* {
+    if (value is List) {
+      yield* _maps(value);
+      return;
+    }
+    final media = _map(value);
+    if (media == null) {
+      return;
+    }
+    const singles = {
+      'media_screenshot': 'ss',
+      'media_fanart': 'fanart',
+      'media_video': 'video',
+      'media_marquee': 'marquee',
+      'media_screenmarquee': 'screenmarquee'
+    };
+    for (final field in singles.entries) {
+      final url = _text(media[field.key]);
+      if (url != null) {
+        yield {'type': field.value, 'url': url};
+      }
+    }
+    const groups = [
+      (path: 'media_wheels', prefix: 'media_wheel_', type: 'wheel'),
+      (
+        path: 'media_wheelscarbon',
+        prefix: 'media_wheelcarbon_',
+        type: 'wheel-carbon'
+      ),
+      (
+        path: 'media_wheelssteel',
+        prefix: 'media_wheelsteel_',
+        type: 'wheel-steel'
+      ),
+      (
+        path: 'media_boitiers.media_boitiers_texture',
+        prefix: 'media_boitier_texture_',
+        type: 'box-texture'
+      ),
+      (
+        path: 'media_boitiers.media_boitiers_2d',
+        prefix: 'media_boitier_2d_',
+        type: 'box-2D'
+      ),
+      (
+        path: 'media_boitiers.media_boitiers_3d',
+        prefix: 'media_boitier_3d_',
+        type: 'box-3D'
+      ),
+      (
+        path: 'media_supports.media_supports_texture',
+        prefix: 'media_support_texture_',
+        type: 'support-texture'
+      ),
+      (
+        path: 'media_supports.media_supports_2d',
+        prefix: 'media_support_2d_',
+        type: 'support-2D'
+      ),
+      (path: 'media_flyer', prefix: 'media_flyer_', type: 'flyer'),
+      (
+        path: 'media_bezels.media_bezel4-3',
+        prefix: 'media_bezel4-3_',
+        type: 'bezel4-3'
+      ),
+      (
+        path: 'media_bezels.media_bezel16-9',
+        prefix: 'media_bezel16-9_',
+        type: 'bezel16-9'
+      ),
+      (
+        path: 'media_bezels.media_bezel16-10',
+        prefix: 'media_bezel16-10_',
+        type: 'bezel16-10'
+      ),
+    ];
+    for (final group in groups) {
+      Map<String, dynamic>? nested = media;
+      for (final key in group.path.split('.')) {
+        nested = _map(nested?[key]);
+      }
+      if (nested == null) {
+        continue;
+      }
+      for (final entry in nested.entries) {
+        if (!entry.key.startsWith(group.prefix)) {
+          continue;
+        }
+        final regionAndMember = RegExp(r'^([a-z]{2,3})([1-9][0-9]*)?$')
+            .firstMatch(entry.key.substring(group.prefix.length));
+        final url = _text(entry.value);
+        if (url == null || regionAndMember == null) {
+          continue;
+        }
+        final memberIndex = regionAndMember.group(2) == null
+            ? null
+            : int.tryParse(regionAndMember.group(2)!);
+        if (regionAndMember.group(2) != null && memberIndex == null) {
+          continue;
+        }
+        yield {
+          'type': group.type,
+          'region': regionAndMember.group(1),
+          if (memberIndex != null) 'memberIndex': memberIndex,
+          'url': url
+        };
+      }
+    }
+  }
+
+  static MetadataQuota? _quota(Map<String, dynamic>? data) => data == null
+      ? null
+      : MetadataQuota(
+          maxThreads: _nonnegativeInt(data['maxthreads']),
+          requestsToday: _nonnegativeInt(data['requeststoday']),
+          maxRequestsPerDay: _nonnegativeInt(data['maxrequestsperday']),
+          maxRequestsPerMinute: _nonnegativeInt(data['maxrequestsperdmin']),
+          unmatchedToday: _nonnegativeInt(data['requestskotoday']),
+          maxUnmatchedPerDay: _nonnegativeInt(data['maxrequestskoperday']));
+
+  static int? _nonnegativeInt(Object? value) {
+    final parsed = int.tryParse(_text(value) ?? '');
+    return parsed != null && parsed >= 0 ? parsed : null;
+  }
+
+  static Map<String, dynamic>? _map(Object? value) =>
+      value is Map<String, dynamic> ? value : null;
+  static List<Map<String, dynamic>> _maps(Object? value) =>
+      value is List ? value.whereType<Map<String, dynamic>>().toList() : [];
+  static String? _text(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return _text(value['text']);
+    }
+    if (value is! String && value is! num && value is! bool) {
+      return null;
+    }
+    final text = value.toString();
+    return text.trim().isEmpty ? null : text;
+  }
+
+  static Map<String, dynamic>? _rom(Map<String, dynamic> game) {
+    final rom = _map(game['rom']);
+    if (rom == null) {
+      return null;
+    }
+    if (rom.containsKey('romsize') || rom.containsKey('romfilename')) {
+      return rom;
+    }
+    final children = rom.values.whereType<Map<String, dynamic>>().toList();
+    return children.length == 1 ? children.single : null;
+  }
+
+  static List<MetadataText> _localized(Object? value,
+      {required String dimension}) {
+    if (value is List) {
+      return _maps(value)
+          .where((entry) => _text(entry['text']) != null)
+          .map((entry) => MetadataText(
+              text: _text(entry['text'])!,
+              region: dimension == 'region' ? _text(entry['region']) : null,
+              language: dimension == 'langue' ? _text(entry['langue']) : null))
+          .toList();
+    }
+    if (value is Map<String, dynamic>) {
+      return value.entries
+          .where((entry) => _text(entry.value) != null)
+          .map((entry) {
+        final locale = entry.key.split('_').last;
+        return MetadataText(
+            text: _text(entry.value)!,
+            region: dimension == 'region' ? locale : null,
+            language: dimension == 'langue' ? locale : null);
+      }).toList();
+    }
+    return [];
+  }
+
+  @override
+  void close() => _dio.close();
+}

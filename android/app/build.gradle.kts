@@ -29,7 +29,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.retro.rshop"
+        // Keep the fork separate from the installed upstream app and its data.
+        applicationId = "com.darkaxt.rshop"
+        manifestPlaceholders["appLabel"] = "R-Shop Drive"
 
         // Version values are pulled from pubspec.yaml automatically
         minSdk = flutter.minSdkVersion
@@ -50,6 +52,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appLabel"] = "R-Shop Drive Dev"
+        }
         release {
             signingConfig = if (keyPropertiesFile.exists()) {
                 signingConfigs.getByName("release")

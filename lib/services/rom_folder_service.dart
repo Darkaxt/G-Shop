@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 import '../models/system_model.dart';
 
 class FolderInfo {
@@ -122,7 +123,7 @@ class RomFolderService {
             count++;
           }
         } else if (entity is Directory && depth < _maxScanDepth) {
-          final name = entity.path.split('/').last;
+          final name = p.basename(entity.path);
           if (name.startsWith('.')) continue;
           count += await _countGamesRecursive(entity, depth + 1);
         }
@@ -146,7 +147,7 @@ class RomFolderService {
       final results = <({String name, int fileCount})>[];
       await for (final entity in baseDir.list()) {
         if (entity is Directory) {
-          final name = entity.path.split('/').last;
+          final name = p.basename(entity.path);
           if (name.startsWith('.')) continue;
           final count = await _countGamesRecursive(entity, 1);
           results.add((name: name, fileCount: count));

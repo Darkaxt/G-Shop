@@ -5,10 +5,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-- Authorized now: fork and specification-gated preparation only.
-- Feature implementation: not started.
+- Authorized now: implementation (2026-09-08, "go ahead then").
+- Feature implementation: S1 in progress; no stage acceptance claimed.
+- Google Cloud and ScreenScraper developer access are new setup, as confirmed
+  by the user. No provider credentials or successful live access is assumed.
+- Existing SD-library migration was missing from the implementation scope.
+  User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
+  live recovery and fresh metadata/rating verification. No deletion before those
+  gates; saves/BIOS/settings and uncertain/unrecoverable files are preserved.
 - Live account setup, full scraping, ROM transfer, SD removal, APK installation
-  and releases: not performed during preparation.
+  and releases: not performed, including the S1 foundation work.
 - Old scraped metadata: explicitly rejected as the new trusted baseline.
 - Metadata-backed best-rated-N and content/genre filters: required in this scope.
   User clarified that the overlay suggestion did not waive the recommended shared
@@ -40,18 +46,88 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
-| S0 | Prepared | Fork parent/base verified; 23 unique requirements mapped; documentation links checked; independent review reconciled | No preparation-design gaps; verify final commit/publication at handoff |
-| S1 | Not started | None | All six assigned requirements await implementation and setup |
+| S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
+| S1 | In progress | Additive v14 store, exact identities/mappings, native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; fixture checks below | Normal runtime wiring and native package proof still required; Google/ScreenScraper account setup and live acceptance not available |
 | S2 | Not started | None | DRIVE-02, DRIVE-03 |
 | S3 | Not started | None | DRIVE-04, DRIVE-05, DRIVE-06 |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
+| S7 | Not started | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 
 No feature requirement is marked satisfied by documentation. No implementation
 stage has passed, so the future requirement backlog must not be reported as zero
 remaining work. There are no dropped requirements or scheduled required deferrals
-outside the six implementation stages.
+outside the seven implementation stages. Revision 2 has 24 requirements; the
+23-requirement count below describes the completed revision-1 preparation.
+
+### S1 foundation checkpoint (2026-09-08)
+
+- Implementation branch: `codex/drive-metadata-implementation`. See Git history
+  for its verified checkpoint commit; this is not a claim of completed features.
+- Installed official checksum-verified Flutter 3.47.2 / Dart 3.13.2 in
+  `D:\Tools\flutter`; Pub cache in `D:\Tools\pub-cache`. No global SDK/PATH change.
+  `intl` 0.20.3 satisfies this Flutter localization dependency; the app lockfile is
+  now tracked. A moved Cupertino transition class needed an explicit import.
+- New game/edition/remote-artifact records and mappings are separate from legacy
+  filename data. v14 tables are additive. Real v13 upgrade/reopen fixtures retain
+  legacy files and anonymous scores, but do not promote old scores into fresh data.
+- Metadata persistence rejects stale generations, mismatched assigned provider
+  IDs, and mismatched game/edition/platform. Changing identity invalidates the
+  old metadata binding without discarding the old evidence; a title-only rename
+  does not invalidate it.
+- Native authorization serializes account operations and invalidates pending
+  consent on sign-out. Tests cover readonly scope, cancellation, renewal,
+  redaction and account isolation. Review reproduced and fixed Android's
+  background lightweight-auth UI possibility and cold-start revoke no-op claim.
+  The current adapter requires explicit Connect after a process restart; S2 must
+  expose this state and not show account UI from queue workers.
+- ScreenScraper uses independent developer/user credentials, a private bounded
+  streaming client and fixed HTTPS origin without redirects/log interceptors.
+  It reports setup/quota/error states, retains provenance and treats title-only
+  or modified-game matches conservatively. Ratings remain unapproved for Top
+  membership until S4's reception gate. Authenticated artwork is persisted as
+  credential-free typed selectors, not credential-bearing URLs; S4 must still
+  implement authenticated resolution and caching.
+- The source-switch/filename-identity audit is recorded in the plan. Models and
+  isolated adapters are not yet exposed through normal Sources, catalogue,
+  persistent queue, details or discovery UI. RomM behavior remains unchanged.
+- Fork Android IDs are isolated from upstream: debug `com.darkaxt.rshop.debug`,
+  future release `com.darkaxt.rshop`. Existing local debug certificate inspected;
+  no keystore replaced. No APK compiled/inspected/installed, so source configuration
+  is not native package or device proof. Setup is in [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md).
+- Tests ran in one workload at a time. Targeted baseline/storage/config checks:
+  148 passed. The first full run passed 1,703 and failed four existing Windows
+  cases: slash-only folder basename parsing and real multicast socket options.
+  Replaced the two basename splits with the platform path library; reproduced
+  the OSError with an injected client and handled that specific startup failure.
+  Marked the real LAN smoke test `live`, removing its timeout-to-empty success
+  workaround. All 19 affected offline tests then passed; no production timeout,
+  retry loop or queue workaround was added.
+- Final integrated command `flutter test --no-pub --concurrency=1 --exclude-tags
+  live --reporter expanded`: **1,707 passed**, exit 0. After the final two
+  brace-only lint corrections, the nine store/actual-migration tests passed again.
+  No real account access is included in that result.
+- Fresh `flutter analyze --no-pub`: **zero errors**, but exit 1 for four existing
+  diagnostics outside the feature files: `cacheExtent` deprecations in the two
+  grids, `unawaited_return_in_try_block` in `cover_preload_service.dart`, and the
+  local naming lint in `l10n_completeness_test.dart`. Analysis is **not reported
+  fully green**; reconcile these before S6 acceptance rather than suppress them.
+- Final 24-requirement/24-owner mapping and scoped local Markdown links verified;
+  Git whitespace check passed. These checks verify the foundation checkpoint,
+  not S1 live acceptance or S2-S7 implementation.
+- Transactional cleanup removed the SDK download ZIP and generated test output
+  (1,987,705,293 reported bytes), plus empty fixture directories. Installed SDK
+  and dependency cache retained; no ROM/cloud/device files were removed.
+
+| S1 requirement | Established foundation | Still required for acceptance |
+| --- | --- | --- |
+| CORE-01 | Separate metadata/artifact store; legacy cache unchanged | Actual catalogue, queue and installation residency wiring |
+| CORE-02 | Scoped IDs, edition/disc evidence, explicit platform mappings | IDs survive every S2 merge/cache/queue boundary and user corrections |
+| CORE-03 | Additive v13-to-v14 database migration and restart tests | Integrated source/config/queue migration and S6 regression proof |
+| DRIVE-01 | Native-plugin adapter and deterministic authorization fixtures | Setup UI, real consent/cancel/renew/revoke and account proof on Thor |
+| META-02 | Functional independent API adapter/secure credential store fixtures | Legitimate developer/user setup, live authenticated lookup and UI wiring |
+| QA-03 | Redaction tests and separate package/signer plan | Actual APK identity/secure-storage/privacy and provider-consent proof |
 
 ### Preparation verification (2026-09-08)
 
@@ -73,9 +149,9 @@ outside the six implementation stages.
 
 | Dependency | Stage / requirements | Resolution and gate |
 | --- | --- | --- |
-| Implementation authorization | Before S1 | Preparation-only is the current endpoint; later implementation instruction activates the plan |
-| Flutter/Android toolchain | S1 / CORE-03, QA-01 | Locate compatible installed SDK, then capture fresh baseline test results |
-| Google application configuration and consent | S1 / DRIVE-01, QA-03 | Confirm account-owned client configuration, package/signer and consent; no copied secrets or cloud setup in preparation |
+| Implementation authorization | Before S1 | Satisfied: explicit "go ahead then" on 2026-09-08 |
+| Flutter/Android toolchain | S1 / CORE-03, QA-01 | Flutter 3.47.2/Dart 3.13.2 and host tests established; native build/device proof still required |
+| Google application configuration and consent | S1 / DRIVE-01, QA-03 | New account-owned project/client setup required; package/signer plan documented, no copied secrets |
 | ScreenScraper application authorization | S1 / META-02 | Obtain legitimate developer access for this fork; existing RetroBat user credentials do not establish application authorization |
 | ScreenScraper user access/quota | S1 / META-02 | User enters or explicitly authorizes account setup; verify capabilities and redact all request diagnostics |
 | Credible overall-score basis | S4 / META-05, META-07 | Validate reception/sample support; if insufficient, integrate a legitimate aggregate-score source before Top acceptance |

@@ -10,11 +10,12 @@ import '../models/game_item.dart';
 import '../models/game_metadata_info.dart';
 import '../models/ra_models.dart';
 import '../utils/ra_name_matcher.dart';
+import 'library_store.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 13;
+  static const int _dbVersion = 14;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -43,6 +44,7 @@ class DatabaseService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await LibrarySchema.install(db);
     await db.execute('''
       CREATE TABLE $_tableName (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,6 +143,10 @@ class DatabaseService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 14) {
+      // onUpgrade itself is transactional; keep new identity tables additive.
+      await LibrarySchema.install(db);
+    }
     // Each migration step is wrapped in a transaction so a partial failure
     // (e.g. disk full) doesn't leave the DB in a half-migrated state.
     // Note: SQLite DDL (ALTER TABLE) is transactional in SQLite.

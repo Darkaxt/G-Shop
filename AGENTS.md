@@ -6,10 +6,9 @@ metadata-backed filters.
 
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.
-- The current authorized deliverable is fork/specification preparation only.
-  Feature implementation and live account/device setup have not started.
-  When the user authorizes implementation, use the staged plan without adding
-  routine approval gates. The plan cannot weaken the specification.
+- Implementation was authorized after preparation on 2026-09-08. Use the staged
+  plan without adding routine approval gates. The plan cannot weaken the
+  specification. Live provider credentials are new setup, not available access.
 - Preserve upstream behavior, licenses, and existing user data. Work on
   `codex/` branches. No forced pushes or unrelated refactoring.
 - Google Drive is read-only. Do not publish ROMs, private library inventories,

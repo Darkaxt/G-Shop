@@ -69,6 +69,11 @@ class NetworkDiscoveryService {
       } on SocketException catch (e) {
         debugPrint('NetworkDiscoveryService: mDNS start failed: $e');
         return;
+      } on OSError catch (e) {
+        // Windows multicast socket-option failures surface as OSError rather
+        // than SocketException. Discovery is optional; finally still stops it.
+        debugPrint('NetworkDiscoveryService: mDNS unavailable: $e');
+        return;
       }
 
       final deadline = DateTime.now().add(timeout);

@@ -1,10 +1,13 @@
 # 🎮 R-Shop
 
-> **Fork preparation:** Google Drive on-demand storage and fresh independent
-> metadata, rating overlays, and metadata-backed filters are specified but **not
-> implemented yet**. Start with the [authoritative specification](docs/SPECIFICATION.md),
+> **Fork implementation in progress:** Google Drive on-demand storage and fresh
+> metadata, rating overlays, and metadata-backed filters are **not ready for use**.
+> Identity, authorization and metadata foundations are being implemented; normal
+> source/queue/UI integration and live acceptance remain. Start with the
+> [authoritative specification](docs/SPECIFICATION.md),
 > [staged plan](docs/IMPLEMENTATION_PLAN.md), and
-> [implementation status](docs/IMPLEMENTATION_STATUS.md).
+> [implementation status](docs/IMPLEMENTATION_STATUS.md), and
+> [development setup](docs/DEVELOPMENT_SETUP.md).
 
 **The fastest way to turn your retro library into a console-like experience on Android.**
 
