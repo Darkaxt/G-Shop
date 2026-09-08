@@ -43,7 +43,7 @@ void main() {
 
   testWidgets('native SQLite v13 migration and reopen retain legacy identities',
       (_) async {
-    await verifyLibraryV13Migration();
+    await verifyLibraryMigration();
     binding.reportData!['native_sqlite_migration'] = 'passed';
   });
 

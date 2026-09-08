@@ -198,15 +198,33 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   Future<void> setMappingsForSource(
     String sourceId,
     Map<String, String> mappingsBySystemId,
+    {String? targetBasePath}
   ) async {
     final cleaned = <String, String>{
       for (final e in mappingsBySystemId.entries)
         if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
     };
+    final existingSystemIds = _cachedConfig.systems.map((s) => s.id).toSet();
+    final addedSystems = targetBasePath == null
+        ? const <SystemConfig>[]
+        : [
+            for (final systemId in cleaned.keys)
+              if (!existingSystemIds.contains(systemId))
+                for (final model in SystemModel.supportedSystems)
+                  if (model.id == systemId)
+                    SystemConfig(
+                      id: model.id,
+                      name: model.name,
+                      targetFolder: '$targetBasePath/${model.id}',
+                      providers: const [],
+                      autoExtract: model.isZipped,
+                    ),
+          ];
     await _writeAndPublish(
       state.sources,
       replaceMappingsForSource: sourceId,
       addMappings: {sourceId: cleaned},
+      addSystems: addedSystems,
     );
   }
 
@@ -486,6 +504,11 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
         return s.host == p.host && s.port == p.port;
       case SourceType.local:
         return false;
+      case SourceType.drive:
+        return p.type == ProviderType.drive &&
+            p.sourceId == s.id &&
+            p.drive?.accountId == s.drive?.accountId &&
+            p.drive?.rootFolderId == s.drive?.rootFolderId;
     }
   }
 
@@ -495,4 +518,3 @@ class SourcesNotifier extends StateNotifier<SourcesState> {
   @visibleForTesting
   AppConfig get debugCachedConfig => _cachedConfig;
 }
-

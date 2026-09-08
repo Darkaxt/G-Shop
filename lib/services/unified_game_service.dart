@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
@@ -7,19 +8,35 @@ import '../models/config/system_config.dart';
 import '../utils/network_constants.dart';
 import '../models/game_item.dart';
 import 'provider_factory.dart';
+import 'drive/drive_runtime.dart';
 
 class UnifiedGameService {
   final Duration? syncTimeout;
+  final Future<List<GameItem>> Function(ProviderConfig, SystemConfig)? fetchProviderGames;
+  final Future<void> Function(ProviderConfig)? prepareDrive;
+  /// Only enable for a service whose lifetime is one multi-system sync session.
+  /// Long-lived UI services refresh independently on every fetch invocation.
+  final bool shareDrivePreparation;
+  final Map<String, Future<void>> _drivePreparations = {};
 
-  UnifiedGameService({this.syncTimeout});
+  UnifiedGameService({this.syncTimeout, this.fetchProviderGames, this.shareDrivePreparation = false,
+    Future<void> Function(ProviderConfig)? prepareDrive})
+      : prepareDrive = prepareDrive ?? (fetchProviderGames == null
+          ? ((config) => DriveRuntime.instance.refreshConfig(config)) : null);
+
+  /// Source scope to pass to cache publication only AFTER this system's fetch
+  /// succeeds. Configuration by itself never proves a complete traversal.
+  static Set<String> configuredDriveSourceIds(SystemConfig system) => system.providers
+      .where((provider) => provider.type == ProviderType.drive)
+      .map((provider) => provider.sourceId)
+      .whereType<String>()
+      .toSet();
 
   /// Fetches games for a system from its configured providers.
   ///
-  /// In failover mode (default), providers are tried in priority order and the
-  /// first successful result is returned.
-  ///
-  /// In merge mode, all providers are attempted and results are combined,
-  /// deduplicating by filename (higher-priority provider wins).
+  /// Providers are combined in priority order. Legacy providers deduplicate
+  /// by filename; exact artifacts only deduplicate the same scoped provider ID.
+  /// Drive failures reject publication of the entire system refresh.
   Future<List<GameItem>> fetchGamesForSystem(
     SystemConfig system, {
     @Deprecated('merge mode is always on; flag is ignored') bool? merge,
@@ -32,25 +49,43 @@ class UnifiedGameService {
 
   Future<List<GameItem>> _fetchMerged(SystemConfig system) async {
     final results = <String, GameItem>{};
+    final preparations = shareDrivePreparation
+        ? _drivePreparations : <String, Future<void>>{};
     var successes = 0;
 
     for (final providerConfig in system.providers) {
       try {
-        final provider = ProviderFactory.getProvider(providerConfig);
-        final timeout = _timeoutFor(providerConfig);
-        final games = await provider.fetchGames(system).timeout(
-              timeout,
+        if (providerConfig.type == ProviderType.drive && prepareDrive != null) {
+          final key = jsonEncode([providerConfig.sourceId, providerConfig.drive?.accountId, providerConfig.drive?.rootFolderId]);
+          await preparations.putIfAbsent(key, () => prepareDrive!(providerConfig));
+        }
+        final fetch = fetchProviderGames?.call(providerConfig, system) ??
+            ProviderFactory.getProvider(providerConfig).fetchGames(system);
+        // Drive traversal owns its completion/checkpoint boundary. An outer
+        // timer must not publish a partial system while traversal continues.
+        final games = providerConfig.type == ProviderType.drive ? await fetch : await fetch.timeout(
+              _timeoutFor(providerConfig),
               onTimeout: () =>
                   throw TimeoutException('Server not responding'),
             );
+        if (providerConfig.type == ProviderType.drive) {
+          for (final game in games) {
+            final id = game.remoteArtifact?.id;
+            if (id == null || id.providerId != 'drive' ||
+                id.sourceId != providerConfig.sourceId ||
+                id.accountId != providerConfig.drive?.accountId) {
+              throw StateError('Drive catalogue returned an unscoped artifact');
+            }
+          }
+        }
         successes++;
 
         for (final game in games) {
-          if (results.containsKey(game.filename)) {
+          if (results.containsKey(game.identityKey)) {
             // Same ROM from a lower-priority provider — store as alternative source
-            if (game.providerConfig != null) {
-              final existing = results[game.filename]!;
-              results[game.filename] = existing.copyWith(
+            if (game.providerConfig != null && game.remoteArtifact == null) {
+              final existing = results[game.identityKey]!;
+              results[game.identityKey] = existing.copyWith(
                 alternativeSources: [
                   ...existing.alternativeSources,
                   AlternativeSource(
@@ -61,10 +96,13 @@ class UnifiedGameService {
               );
             }
           } else {
-            results[game.filename] = game;
+            results[game.identityKey] = game;
           }
         }
       } catch (e) {
+        // A successful second provider cannot establish deletion of any Drive
+        // entries when that source failed. Preserve the prior system snapshot.
+        if (providerConfig.type == ProviderType.drive) rethrow;
         debugPrint('Provider failed: $e');
         continue;
       }

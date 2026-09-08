@@ -10,6 +10,7 @@ import '../../../models/ra_models.dart';
 import '../../../models/system_model.dart';
 import '../../../providers/app_providers.dart';
 import '../../../providers/download_providers.dart';
+import '../../../services/download_queue_manager.dart';
 import '../../../utils/image_helper.dart';
 import '../../../widgets/base_game_card.dart';
 import '../../../widgets/selection_aware_item.dart';
@@ -220,7 +221,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
     final isInstalled = widget.installedCache[displayName] ?? false;
     final isFavorite = widget.favorites.contains(displayName);
     final providerLabel = first.providerConfig?.shortLabel;
-    final raMatch = widget.raMatches[first.filename];
+    final raMatch = first.remoteArtifact == null ? widget.raMatches[first.filename] : null;
 
     // Source dot — look up the contributing Source by its id (set by
     // SourceResolver when it synthesised this provider). Falls back to
@@ -262,7 +263,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
     }
 
     // Download status for first variant
-    final gameId = '${widget.system.name}_${first.filename}';
+    final gameId = DownloadQueueManager.idFor(first, widget.system);
     final dlStatus = ref.watch(
       downloadStatusForGameProvider((gameId: gameId)),
     );
@@ -273,7 +274,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
         selectedIndexNotifier: widget.selectedIndexNotifier,
         index: index,
         builder: (isSelected) => BaseGameCard(
-          displayName: displayName,
+          displayName: first.displayName,
           coverUrls: coverUrls,
           cachedUrl: cachedUrl,
           variantCount: variants.length,

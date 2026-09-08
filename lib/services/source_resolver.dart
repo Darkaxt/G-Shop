@@ -97,6 +97,8 @@ class SourceResolver {
         return pt == ProviderType.web;
       case SourceType.local:
         return false;
+      case SourceType.drive:
+        return pt == ProviderType.drive;
     }
   }
 
@@ -111,6 +113,10 @@ class SourceResolver {
         return s.host == p.host && s.port == p.port;
       case SourceType.local:
         return false;
+      case SourceType.drive:
+        return s.id == p.sourceId &&
+            s.drive?.accountId == p.drive?.accountId &&
+            s.drive?.rootFolderId == p.drive?.rootFolderId;
     }
   }
 
@@ -171,6 +177,15 @@ class SourceResolver {
         return ProviderConfig(
           type: ProviderType.web, // placeholder; never resolved in practice
           priority: entry.effectivePriority,
+          managedBySource: true,
+          sourceId: source.id,
+        );
+      case SourceType.drive:
+        return ProviderConfig(
+          type: ProviderType.drive,
+          priority: entry.effectivePriority,
+          path: mapping?.remotePath,
+          drive: source.drive,
           managedBySource: true,
           sourceId: source.id,
         );

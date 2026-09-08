@@ -17,5 +17,7 @@ Color sourceDotColorFor(Source source) {
       return Colors.tealAccent;
     case SourceType.local:
       return Colors.white70;
+    case SourceType.drive:
+      return Colors.blueAccent;
   }
 }

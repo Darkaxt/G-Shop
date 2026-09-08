@@ -49,8 +49,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | In progress | Additive v14 store, exact identities/mappings, native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Normal runtime wiring still required; Google/ScreenScraper account setup and live provider acceptance not available |
-| S2 | Not started | None | DRIVE-02, DRIVE-03 |
+| S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
+| S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
 | S3 | Not started | None | DRIVE-04, DRIVE-05, DRIVE-06 |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
@@ -194,6 +194,84 @@ outside the seven implementation stages. Revision 2 has 24 requirements; the
 This checkpoint adds device evidence for foundations only. S1 acceptance and
 S2-S7 remain unfinished; it does not authorize skipping the cloud recovery,
 fresh rating/metadata or exact-file gates before Top-25 SD migration.
+
+### Drive catalogue and runtime checkpoint (2026-09-09)
+
+- Work remains on `codex/drive-metadata-implementation`; see the corresponding
+  Git checkpoint. This is implementation progress, not completed Drive support.
+- Added fixed-origin metadata-only Drive v3 GETs with request-time account-bound
+  authorization, one rejected-token renewal, bounded response pages and sanitized
+  errors. No media, export, mutation or redirect-following method is exposed by
+  the catalogue API.
+- SQLite refresh generations persist page entries and cursor advancement in the
+  same transaction. Only successful traversal/folder-boundary revalidation swaps
+  the active snapshot. Failed or cancelled refreshes retain the old catalogue;
+  restart resumes unfinished pages. Structural changes, deleted discovered
+  folders and invalid cursors invalidate only the pending generation so a new
+  explicit refresh can recover. Readers reject a replaced generation instead of
+  accepting a partial empty page. No installation table is changed.
+- Normal Sources/onboarding now offer Drive setup, actual folder-ID selection,
+  explicit console mappings, refresh, health, Connect/configure, Disconnect and
+  Revoke. Unknown/unsupported mappings are not activated by a guess. Excluded
+  shortcut/Workspace/Shared Drive records are counted without following targets.
+  Disconnect cancels and awaits all owned refresh operations and native sign-out;
+  it retains source configuration, catalogue and local files.
+- Additive v15 migration preserves existing row IDs and legacy references while
+  allowing duplicate filenames under different exact remote IDs. Exact identity
+  survives game/queue JSON, cache/upsert/rename, source merge, favorites/shelves,
+  card/detail reconstruction and queue IDs. Filename-only artwork/metadata and
+  installed-file matches cannot assign an unrelated local namesake to Drive.
+- A successful system fetch explicitly identifies the Drive source scopes whose
+  cache entries can be removed. This permits a verified catalogue to fall from
+  100 entries to zero, without weakening the legacy incomplete-scan safeguard or
+  granting deletion authority for failed/other sources. Controller callbacks and
+  sync markers now follow the awaited database commit. A changed version/size/
+  checksum refreshes the UI even when file ID and name have not changed.
+- A multi-system sync shares one source preparation for its own lifetime; ordinary
+  later refreshes do not reuse a completed/failed preparation forever. Drive
+  failures prevent the mixed system result from being published as complete.
+- Drive payloads and filename-based local removal remain explicitly gated until
+  S3 provides verified streaming, durable publication and owned installations.
+  These are required unfinished work, not a working download claim. Canonical
+  game/edition matching and fresh metadata/rating query integration remain S4;
+  English setup labels/controller refinement remain S5.
+- Targeted cache/controller/identity/sync verification after the final authority
+  fix: **157 passed**, exit 0. Setup widgets: **3 passed**, exit 0. Fresh-config
+  and ambiguous-alias mapping widgets: **2 passed**, exit 0. Both actual v13 and
+  v14 upgrade/reopen paths passed, including preservation of an existing v14
+  canonical identity. The shared native fixture entry point now targets v15;
+  that revised fixture has host proof only until the next native run.
+- Final `flutter test --no-pub --concurrency=1 --exclude-tags live --reporter
+  expanded`: **1,771 passed**, exit 0 (2 min 16 s), after the last source and
+  fixture edits. The prior full run had 1,770 passes before adding the separate
+  v14 upgrade case. Native/real-provider tests were not included.
+- Full `flutter analyze --no-pub` retains four pre-existing non-error findings:
+  the two grid `cacheExtent` deprecations, the cover-preload await warning and the
+  localization-test naming lint. No new findings remain; analysis is not fully
+  green and these four remain required S6 remediation. No suppression was added.
+- Two early compile-only probes briefly overlapped during scaffolding; both
+  failing processes were collected before behavioral verification. Subsequent
+  targeted/full tests and analysis were serialized and agents ran no workloads.
+  Recorded final-run samples showed a single Flutter test tree around 1 GiB
+  aggregate working set; this is a sample, not a measured peak or a hard cap.
+- ADB again returned `device` for the intended Thor. This checkpoint has no new
+  APK build/install, OAuth consent, live provider inventory, ROM transfer, fresh
+  metadata pass or SD deletion. The earlier native foundation proof is separate.
+- Reviewed transactional cleanup removed 476 task-generated entries and reported
+  104,701,164 bytes reclaimed. Only the registered `build` and S2 temporary-test
+  roots were included; the ticket reached `applied` with no residual errors.
+  Source, SDK/dependency caches and device/cloud files were not cleanup targets.
+- The final requirement-map check found 24 requirements and exactly 24 owner
+  rows, with no missing, unexpected or duplicate entries. Git whitespace checks
+  passed. These static checks do not replace the remaining live acceptance gates.
+
+| Requirement boundary | Established here | Remaining acceptance |
+| --- | --- | --- |
+| CORE-02/03 | Exact runtime/cache/queue identity and v13/v14-to-v15 migration fixtures | Canonical game/edition grouping, owned installations and integrated relaunch proof |
+| DRIVE-01 | Normal connection/disconnect/revoke UI and controlled runtime exit | Account-owned client setup and live consent/renew/revoke/two-account proof |
+| DRIVE-02 | Rooted paginated transactional catalogue, explicit mappings and recovery fixtures | Real selected-folder inventory and target-device navigation proof |
+| DRIVE-03 | Normal source/factory/health integration and identity-safe persistent queue entries | S3 verified payload lane and mixed-source live queue lifecycle |
+| QA-01/02/03/04 | Bounded fixtures, main-owned verification lane, scoped review and explicit ledger | Full integrated feature, resource, privacy and device gates through S6/S7 |
 
 ### Preparation verification (2026-09-08)
 

@@ -10,10 +10,15 @@ import '../utils/network_constants.dart';
 import 'native_smb_service.dart';
 
 class RemoteFolderEntry {
+  final String? id;
   final String name;
 
-  const RemoteFolderEntry({required this.name});
+  const RemoteFolderEntry({this.id, required this.name});
 }
+
+typedef DriveFolderSnapshotLoader = Future<List<RemoteFolderEntry>> Function(
+  ProviderConfig config,
+);
 
 /// Lightweight service that lists only top-level directories from a remote
 /// provider. Unlike the full providers which recurse 3 levels deep to find
@@ -25,6 +30,7 @@ class RemoteFolderScanner {
     ProviderConfig config, {
     NativeSmbService? smbService,
     Dio? dio,
+    DriveFolderSnapshotLoader? driveSnapshotLoader,
   }) async {
     switch (config.type) {
       case ProviderType.smb:
@@ -35,6 +41,13 @@ class RemoteFolderScanner {
         return _scanWeb(config, dio);
       case ProviderType.romm:
         throw StateError('RemoteFolderScanner does not support RomM');
+      case ProviderType.drive:
+        if (driveSnapshotLoader == null) {
+          throw StateError(
+            'Drive folder discovery requires a published catalogue snapshot',
+          );
+        }
+        return driveSnapshotLoader(config);
     }
   }
 

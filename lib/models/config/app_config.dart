@@ -137,13 +137,14 @@ AppConfig _migrateLegacyToV3(List<SystemConfig> legacySystems) {
         port: provider.port,
         share: provider.share,
         path: provider.path,
+        drive: provider.drive,
       );
       final key = probe.connectionKey;
 
       var source = sourcesByKey[key];
       if (source == null) {
         source = Source(
-          id: nextSourceId(probe.type, key),
+          id: provider.sourceId ?? nextSourceId(probe.type, key),
           name: _deriveName(provider),
           type: probe.type,
           url: provider.url,
@@ -152,6 +153,7 @@ AppConfig _migrateLegacyToV3(List<SystemConfig> legacySystems) {
           share: provider.share,
           path: provider.path,
           auth: provider.auth,
+          drive: provider.drive,
           autoMap: probe.type.supportsAutoMap,
           priority: provider.priority,
           knownPlatforms: probe.type.supportsAutoMap &&
@@ -224,6 +226,8 @@ SourceType _typeFromProvider(ProviderType t) {
       return SourceType.ftp;
     case ProviderType.web:
       return SourceType.web;
+    case ProviderType.drive:
+      return SourceType.drive;
   }
 }
 
@@ -237,6 +241,8 @@ String _deriveName(ProviderConfig p) {
       return p.host ?? 'SMB';
     case ProviderType.ftp:
       return p.host ?? 'FTP';
+    case ProviderType.drive:
+      return 'Google Drive';
   }
 }
 
@@ -251,5 +257,7 @@ String _legacyRemotePath(ProviderConfig p) {
       return uri?.path ?? '';
     case ProviderType.romm:
       return '';
+    case ProviderType.drive:
+      return p.path ?? '';
   }
 }

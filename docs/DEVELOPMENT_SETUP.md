@@ -70,13 +70,28 @@ access; the selected-folder boundary is additionally enforced by the application
 not by that scope. Public distribution needs its own verification review under
 [Google's scope guidance](https://developers.google.com/workspace/drive/api/guides/api-specific-auth).
 
-S1 implements the injected native adapter, not the final setup UI. Tokens are
-ephemeral and diagnostics sanitized. Queue requests must never open account UI:
+The source-integration checkpoint exposes Google Drive in normal Sources and
+onboarding. Enter the public web client ID, explicitly Connect, navigate the
+native-app folder picker, choose the actual library folder, and save the source.
+Refresh publishes its ID-based catalogue; Map folders assigns observed folders to
+supported consoles. Unique known aliases are suggestions, not assignments to
+unsupported systems. Unknown/ambiguous mappings require an explicit choice.
+Disconnect and Revoke are labelled app-wide because the native account session
+is shared by all Drive sources; neither removes source settings or local files.
+These screens have host fixtures, not yet live account/controller acceptance.
+
+Tokens are ephemeral and diagnostics sanitized. Queue requests never open account UI:
 after process restart the current adapter requires an explicit Connect action;
 within a connected session it can renew authorization silently. A different
 account cannot satisfy an account-bound source. Disconnect/revoke is app-wide,
 not implicit source deletion; a cold process cannot claim remote revocation
 without reconnecting the account first.
+
+The S2 catalogue/queue checkpoint still deliberately blocks Drive payload transfer
+and local removal until S3's verified transfer/installation lane is integrated.
+It does not claim a cached filename is an installed game or use ordinary HTTP
+fallback to bypass version, checksum and ownership checks. S3 must remove these
+implementation gates by delivering the required verified behavior.
 
 Still required: actual consent, cancel/denial, renewal/reconnect, account isolation
 and revoke proof on the Thor. Mocked native-platform tests do not satisfy these.

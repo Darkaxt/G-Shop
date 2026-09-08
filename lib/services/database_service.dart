@@ -8,14 +8,16 @@ import 'package:sqflite/sqflite.dart';
 import '../models/config/provider_config.dart';
 import '../models/game_item.dart';
 import '../models/game_metadata_info.dart';
+import '../models/library_identity.dart';
 import '../models/ra_models.dart';
 import '../utils/ra_name_matcher.dart';
 import 'library_store.dart';
+import 'drive/drive_catalogue.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 14;
+  static const int _dbVersion = 15;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -45,6 +47,7 @@ class DatabaseService {
 
   Future<void> _onCreate(Database db, int version) async {
     await LibrarySchema.install(db);
+    await DriveCatalogueSchema.install(db);
     await db.execute('''
       CREATE TABLE $_tableName (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +61,9 @@ class DatabaseService {
         thumb_hash TEXT,
         has_thumbnail INTEGER NOT NULL DEFAULT 0,
         is_folder INTEGER NOT NULL DEFAULT 0,
-        alternative_sources TEXT
+        alternative_sources TEXT,
+        artifact_key TEXT,
+        remote_artifact TEXT
       )
     ''');
 
@@ -75,8 +80,9 @@ class DatabaseService {
     ''');
 
     await db.execute('''
-      CREATE UNIQUE INDEX idx_games_system_filename ON $_tableName (systemSlug, filename)
+      CREATE UNIQUE INDEX idx_games_system_filename ON $_tableName (systemSlug, filename) WHERE artifact_key IS NULL
     ''');
+    await db.execute('CREATE UNIQUE INDEX idx_games_system_artifact ON $_tableName (systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
 
     // RetroAchievements tables
     await db.execute('''
@@ -297,6 +303,20 @@ class DatabaseService {
             'ALTER TABLE $_tableName ADD COLUMN alternative_sources TEXT');
       });
     }
+    if (oldVersion < 15) {
+      await migrateGameArtifactIdentity(db);
+      await DriveCatalogueSchema.install(db);
+    }
+  }
+
+  /// Additive migration: old row IDs and all filename-based references survive.
+  /// Exact objects use a second unique key and never collide with legacy rows.
+  static Future<void> migrateGameArtifactIdentity(DatabaseExecutor db) async {
+    await db.execute('ALTER TABLE games ADD COLUMN artifact_key TEXT');
+    await db.execute('ALTER TABLE games ADD COLUMN remote_artifact TEXT');
+    await db.execute('DROP INDEX idx_games_system_filename');
+    await db.execute('CREATE UNIQUE INDEX idx_games_system_filename ON games (systemSlug, filename) WHERE artifact_key IS NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_games_system_artifact ON games (systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
   }
 
   Future<void> saveGames(
@@ -304,6 +324,7 @@ class DatabaseService {
     List<GameItem> games, {
     bool deleteOrphans = false,
     bool forceDeleteOrphans = false,
+    Set<String> authoritativeDriveSourceIds = const {},
   }) async {
     final db = await database;
     await db.transaction((txn) async {
@@ -313,46 +334,55 @@ class DatabaseService {
       if (deleteOrphans || forceDeleteOrphans) {
         final existing = await txn.query(
           _tableName,
-          columns: ['filename'],
+          columns: ['id', 'filename', 'artifact_key', 'remote_artifact'],
           where: 'systemSlug = ?',
           whereArgs: [systemSlug],
         );
-        final existingFiles =
-            existing.map((r) => r['filename'] as String).toSet();
-        final incomingFiles = games.map((g) => g.filename).toSet();
+        String rowKey(Map<String, Object?> row) => row['artifact_key'] == null
+            ? 'legacy:${row['filename']}' : 'artifact:${row['artifact_key']}';
+        final existingFiles = existing.map(rowKey).toSet();
+        final incomingFiles = games.map((g) => g.identityKey).toSet();
 
         final orphans = existingFiles.difference(incomingFiles);
         if (orphans.isNotEmpty) {
           // Safety: if incoming data looks incomplete, skip deletion to prevent
           // data loss from partial fetches (e.g. RomM timeout mid-pagination).
           // forceDeleteOrphans bypasses this for authoritative sources (local scan).
-          if (!forceDeleteOrphans &&
+          final guardIncompleteSnapshot = !forceDeleteOrphans &&
               existingFiles.length >= 10 &&
-              incomingFiles.length < existingFiles.length ~/ 2) {
+              incomingFiles.length < existingFiles.length ~/ 2;
+          if (guardIncompleteSnapshot) {
             debugPrint(
-              'saveGames($systemSlug): BLOCKED orphan deletion — '
+              'saveGames($systemSlug): guarding non-authoritative orphan deletion — '
               'incoming ${incomingFiles.length} vs existing ${existingFiles.length}. '
               'Looks like incomplete fetch data.',
             );
-          } else {
-            final orphanList = orphans.toList();
-            for (var i = 0; i < orphanList.length; i += 100) {
-              final chunk = orphanList.skip(i).take(100).toList();
-              final placeholders = List.filled(chunk.length, '?').join(',');
-              await txn.rawDelete(
-                'DELETE FROM $_tableName WHERE systemSlug = ? AND filename IN ($placeholders)',
-                [systemSlug, ...chunk],
-              );
-              // Cascade: remove orphaned metadata and RA matches
-              await txn.rawDelete(
-                'DELETE FROM game_metadata WHERE system_slug = ? AND filename IN ($placeholders)',
-                [systemSlug, ...chunk],
-              );
-              await txn.rawDelete(
-                'DELETE FROM ra_matches WHERE system_slug = ? AND game_filename IN ($placeholders)',
-                [systemSlug, ...chunk],
-              );
-            }
+          }
+          final orphanList = existing.where((row) =>
+              orphans.contains(rowKey(row)) &&
+              (forceDeleteOrphans || (row['artifact_key'] != null
+                  ? _isAuthoritativeDriveOrphan(row, authoritativeDriveSourceIds)
+                  : !guardIncompleteSnapshot))).toList();
+          for (var i = 0; i < orphanList.length; i += 100) {
+            final chunk = orphanList.skip(i).take(100).toList();
+            final placeholders = List.filled(chunk.length, '?').join(',');
+            await txn.rawDelete(
+              'DELETE FROM $_tableName WHERE systemSlug = ? AND id IN ($placeholders)',
+              [systemSlug, ...chunk.map((row) => row['id'])],
+            );
+            // Only legacy orphan rows own these historical filename keys.
+            final legacyNames = chunk.where((row) => row['artifact_key'] == null)
+                .map((row) => row['filename']).toList();
+            if (legacyNames.isEmpty) continue;
+            final legacyPlaceholders = List.filled(legacyNames.length, '?').join(',');
+            await txn.rawDelete(
+              'DELETE FROM game_metadata WHERE system_slug = ? AND filename IN ($legacyPlaceholders)',
+              [systemSlug, ...legacyNames],
+            );
+            await txn.rawDelete(
+              'DELETE FROM ra_matches WHERE system_slug = ? AND game_filename IN ($legacyPlaceholders)',
+              [systemSlug, ...legacyNames],
+            );
           }
         }
       }
@@ -360,10 +390,14 @@ class DatabaseService {
       // 2. Upsert incoming games — preserves cover_url and has_thumbnail
       final batch = txn.batch();
       for (final game in games) {
+        final conflictTarget = game.remoteArtifact == null
+            ? '(systemSlug, filename) WHERE artifact_key IS NULL'
+            : '(systemSlug, artifact_key) WHERE artifact_key IS NOT NULL';
         batch.rawInsert('''
-          INSERT INTO $_tableName (systemSlug, filename, displayName, url, region, cover_url, provider_config, has_thumbnail, is_folder, alternative_sources)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(systemSlug, filename) DO UPDATE SET
+          INSERT INTO $_tableName (systemSlug, filename, displayName, url, region, cover_url, provider_config, has_thumbnail, is_folder, alternative_sources, artifact_key, remote_artifact)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT$conflictTarget DO UPDATE SET
+            filename = excluded.filename,
             displayName = excluded.displayName,
             url = excluded.url,
             region = excluded.region,
@@ -371,7 +405,8 @@ class DatabaseService {
             provider_config = excluded.provider_config,
             has_thumbnail = MAX(has_thumbnail, excluded.has_thumbnail),
             is_folder = excluded.is_folder,
-            alternative_sources = excluded.alternative_sources
+            alternative_sources = excluded.alternative_sources,
+            remote_artifact = excluded.remote_artifact
         ''', [
           systemSlug,
           game.filename,
@@ -388,10 +423,33 @@ class DatabaseService {
               ? null
               : jsonEncode(
                   game.alternativeSources.map((a) => a.toJson()).toList()),
+          game.remoteArtifact?.id.key,
+          game.remoteArtifact == null ? null : jsonEncode(game.remoteArtifact!.toJson()),
         ]);
       }
       await batch.commit(noResult: true);
     });
+  }
+
+  /// Completeness is supplied explicitly by a successfully completed fetch.
+  /// Neither the number of incoming games nor the existence of an artifact ID
+  /// establishes authority to delete another source's cache entries.
+  static bool _isAuthoritativeDriveOrphan(
+      Map<String, Object?> row, Set<String> authoritativeSourceIds) {
+    if (authoritativeSourceIds.isEmpty || row['remote_artifact'] == null ||
+        row['artifact_key'] == null) {
+      return false;
+    }
+    try {
+      final artifact = RemoteArtifact.fromJson(
+          jsonDecode(row['remote_artifact'] as String) as Map<String, dynamic>);
+      return artifact.id.providerId == 'drive' &&
+          artifact.id.key == row['artifact_key'] &&
+          authoritativeSourceIds.contains(artifact.id.sourceId);
+    } catch (_) {
+      // A malformed record is not evidence for removal.
+      return false;
+    }
   }
 
   Future<Map<String, int>> getGameCountsPerSystem() async {
@@ -426,7 +484,7 @@ class DatabaseService {
     await db.update(
       _tableName,
       {'cover_url': coverUrl},
-      where: 'filename = ?',
+      where: 'filename = ? AND artifact_key IS NULL',
       whereArgs: [filename],
     );
   }
@@ -440,7 +498,7 @@ class DatabaseService {
     await db.update(
       _tableName,
       {'has_thumbnail': hasThumbnail ? 1 : 0},
-      where: 'filename = ?',
+      where: 'filename = ? AND artifact_key IS NULL',
       whereArgs: [filename],
     );
   }
@@ -457,7 +515,7 @@ class DatabaseService {
         final chunk = filenames.skip(i).take(100).toList();
         final placeholders = List.filled(chunk.length, '?').join(',');
         await txn.rawUpdate(
-          'UPDATE $_tableName SET has_thumbnail = ? WHERE filename IN ($placeholders)',
+          'UPDATE $_tableName SET has_thumbnail = ? WHERE artifact_key IS NULL AND filename IN ($placeholders)',
           [value, ...chunk],
         );
       }
@@ -473,7 +531,7 @@ class DatabaseService {
         final chunk = filenames.skip(i).take(100).toList();
         final placeholders = List.filled(chunk.length, '?').join(',');
         await txn.rawUpdate(
-          'UPDATE $_tableName SET cover_url = ? WHERE filename IN ($placeholders)',
+          'UPDATE $_tableName SET cover_url = ? WHERE artifact_key IS NULL AND filename IN ($placeholders)',
           [coverUrl, ...chunk],
         );
       }
@@ -534,6 +592,7 @@ class DatabaseService {
               isFolder: (map['is_folder'] as int?) == 1,
               alternativeSources: _decodeAlternativeSources(
                   map['alternative_sources'] as String?),
+              remoteArtifact: map['remote_artifact'] == null ? null : RemoteArtifact.fromJson(jsonDecode(map['remote_artifact'] as String) as Map<String, dynamic>),
             ))
         .toList();
   }
@@ -579,39 +638,42 @@ class DatabaseService {
     final pattern = '%"source_id":"$sourceId"%';
     final rows = await db.query(
       _tableName,
-      columns: ['systemSlug', 'filename'],
+      columns: ['id', 'systemSlug', 'filename', 'artifact_key'],
       where: 'provider_config LIKE ?',
       whereArgs: [pattern],
     );
 
-    final installedFilenames = <(String, String)>[];
-    final orphanFilenames = <(String, String)>[];
+    final installedRows = <int>[];
+    final orphanRows = <int>[];
     for (final row in rows) {
       final slug = row['systemSlug'] as String;
       final filename = row['filename'] as String;
       final folder = systemTargetFolders[slug];
-      if (folder != null && _isFilenameOnDisk(folder, filename)) {
-        installedFilenames.add((slug, filename));
+      // Exact remote references never acquire installation ownership merely
+      // because a local filename exists. This only removes their cache row;
+      // installation records and local files remain untouched.
+      if (row['artifact_key'] == null && folder != null && _isFilenameOnDisk(folder, filename)) {
+        installedRows.add(row['id'] as int);
       } else {
-        orphanFilenames.add((slug, filename));
+        orphanRows.add(row['id'] as int);
       }
     }
 
     int detached = 0;
     int deleted = 0;
     await db.transaction((txn) async {
-      for (final (slug, filename) in installedFilenames) {
+      for (final id in installedRows) {
         detached += await txn.rawUpdate(
-          'UPDATE $_tableName SET provider_config = NULL, url = NULL '
-          'WHERE systemSlug = ? AND filename = ?',
-          [slug, filename],
+          "UPDATE $_tableName SET provider_config = NULL, url = '' "
+          'WHERE id = ?',
+          [id],
         );
       }
-      for (final (slug, filename) in orphanFilenames) {
+      for (final id in orphanRows) {
         deleted += await txn.delete(
           _tableName,
-          where: 'systemSlug = ? AND filename = ?',
-          whereArgs: [slug, filename],
+          where: 'id = ?',
+          whereArgs: [id],
         );
       }
     });
@@ -649,7 +711,7 @@ class DatabaseService {
     await db.transaction((txn) async {
       await txn.delete(
         _tableName,
-        where: 'systemSlug = ? AND filename = ?',
+        where: 'systemSlug = ? AND filename = ? AND artifact_key IS NULL',
         whereArgs: [systemSlug, filename],
       );
       // Cascade: remove orphaned metadata and RA matches

@@ -1,4 +1,6 @@
-enum ProviderType { web, smb, ftp, romm }
+import 'drive_source_config.dart';
+
+enum ProviderType { web, smb, ftp, romm, drive }
 
 class AuthConfig {
   final String? user;
@@ -87,6 +89,7 @@ class ProviderConfig {
   final String? share;
   final String? path;
   final AuthConfig? auth;
+  final DriveSourceConfig? drive;
   final int? platformId;
   final String? platformName;
 
@@ -110,12 +113,13 @@ class ProviderConfig {
     this.port,
     this.share,
     this.path,
-    this.auth,
+    AuthConfig? auth,
+    this.drive,
     this.platformId,
     this.platformName,
     this.managedBySource = false,
     this.sourceId,
-  });
+  }) : auth = type == ProviderType.drive ? null : auth;
 
   factory ProviderConfig.fromJson(Map<String, dynamic> json) {
     return ProviderConfig(
@@ -126,8 +130,14 @@ class ProviderConfig {
       port: json['port'] as int?,
       share: json['share'] as String?,
       path: json['path'] as String?,
-      auth: json['auth'] != null
+      auth: _typeFromJson(json) == ProviderType.drive
+          ? null
+          : json['auth'] != null
           ? AuthConfig.fromJson(json['auth'] as Map<String, dynamic>)
+          : null,
+      drive: _typeFromJson(json) == ProviderType.drive &&
+              json['drive'] is Map<String, dynamic>
+          ? DriveSourceConfig.fromJson(json['drive'] as Map<String, dynamic>)
           : null,
       platformId: json['platform_id'] as int?,
       platformName: json['platform_name'] as String?,
@@ -145,7 +155,8 @@ class ProviderConfig {
       if (port != null) 'port': port,
       if (share != null) 'share': share,
       if (path != null) 'path': path,
-      if (auth != null) 'auth': auth!.toJson(),
+      if (type != ProviderType.drive && auth != null) 'auth': auth!.toJson(),
+      if (type == ProviderType.drive && drive != null) 'drive': drive!.toJson(),
       if (platformId != null) 'platform_id': platformId,
       if (platformName != null) 'platform_name': platformName,
       if (managedBySource) 'managed_by_source': true,
@@ -164,6 +175,7 @@ class ProviderConfig {
       if (port != null) 'port': port,
       if (share != null) 'share': share,
       if (path != null) 'path': path,
+      if (type == ProviderType.drive && drive != null) 'drive': drive!.toJson(),
       if (platformId != null) 'platform_id': platformId,
       if (platformName != null) 'platform_name': platformName,
       // Source provenance must survive the auth-stripped round-trip so
@@ -184,6 +196,8 @@ class ProviderConfig {
         return 'FTP';
       case ProviderType.romm:
         return 'RomM';
+      case ProviderType.drive:
+        return 'DRIVE';
     }
   }
 
@@ -197,6 +211,8 @@ class ProviderConfig {
       case ProviderType.ftp:
       case ProviderType.smb:
         return host ?? '';
+      case ProviderType.drive:
+        return drive?.isConfigured == true ? 'Google Drive' : '';
     }
   }
 
@@ -227,6 +243,17 @@ class ProviderConfig {
         final uri = Uri.tryParse(url!);
         if (uri == null || !uri.hasScheme) return 'Invalid URL';
         break;
+      case ProviderType.drive:
+        if (sourceId == null || sourceId!.trim().isEmpty) {
+          return 'Source ID is required for Drive provider';
+        }
+        if (drive == null || !drive!.isConfigured) {
+          return 'Account, root folder, and public OAuth client ID are required for Drive provider';
+        }
+        if (path == null || path!.trim().isEmpty) {
+          return 'Mapped folder ID is required for Drive provider';
+        }
+        break;
     }
     return null;
   }
@@ -252,11 +279,14 @@ class ProviderConfig {
   }
 
   /// True if this provider has no credentials configured.
-  bool get needsAuth => auth == null ||
-      ((auth!.user?.isEmpty ?? true) &&
-       (auth!.pass?.isEmpty ?? true) &&
-       (auth!.apiKey?.isEmpty ?? true) &&
-       (auth!.clientToken?.isEmpty ?? true));
+  bool get needsAuth {
+    if (type == ProviderType.drive) return drive?.isConfigured != true;
+    return auth == null ||
+        ((auth!.user?.isEmpty ?? true) &&
+            (auth!.pass?.isEmpty ?? true) &&
+            (auth!.apiKey?.isEmpty ?? true) &&
+            (auth!.clientToken?.isEmpty ?? true));
+  }
 
   /// Finds a [ProviderConfig] in [providers] that matches this config's type
   /// and connection details (host/url/share), ignoring auth credentials.
@@ -274,6 +304,18 @@ class ProviderConfig {
           }
         case ProviderType.ftp:
           if (p.host?.toLowerCase() == host?.toLowerCase()) {
+            return p;
+          }
+        case ProviderType.drive:
+          final candidate = p.drive;
+          final target = drive;
+          if (sourceId != null &&
+              sourceId!.isNotEmpty &&
+              p.sourceId == sourceId &&
+              candidate != null &&
+              target != null &&
+              candidate.accountId == target.accountId &&
+              candidate.rootFolderId == target.rootFolderId) {
             return p;
           }
       }
@@ -312,6 +354,7 @@ class ProviderConfig {
     String? share,
     String? path,
     AuthConfig? auth,
+    DriveSourceConfig? drive,
     int? platformId,
     String? platformName,
     bool? managedBySource,
@@ -326,10 +369,15 @@ class ProviderConfig {
       share: share ?? this.share,
       path: path ?? this.path,
       auth: auth ?? this.auth,
+      drive: drive ?? this.drive,
       platformId: platformId ?? this.platformId,
       platformName: platformName ?? this.platformName,
       managedBySource: managedBySource ?? this.managedBySource,
       sourceId: sourceId ?? this.sourceId,
     );
   }
+
+  static ProviderType _typeFromJson(Map<String, dynamic> json) =>
+      ProviderType.values.asNameMap()[json['type'] as String? ?? 'web'] ??
+      ProviderType.web;
 }

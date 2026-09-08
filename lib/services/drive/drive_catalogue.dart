@@ -1,0 +1,373 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:sqflite/sqflite.dart';
+
+import 'drive_api.dart';
+
+class DriveCatalogueException implements Exception {
+  final String code;
+  const DriveCatalogueException(this.code);
+  @override
+  String toString() => 'Drive catalogue: $code';
+}
+
+class DriveCatalogueEntry {
+  final DriveFile file;
+  final String displayPath;
+  DriveCatalogueEntry(this.file, this.displayPath);
+}
+
+class DriveCatalogueSchema {
+  static Future<void> install(DatabaseExecutor db) async {
+    await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_state (
+      scope TEXT PRIMARY KEY, active INTEGER, pending INTEGER,
+      next_generation INTEGER NOT NULL
+    )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_entries (
+      scope TEXT NOT NULL, generation INTEGER NOT NULL, file_id TEXT NOT NULL,
+      parent_id TEXT, display_path TEXT NOT NULL, is_folder INTEGER NOT NULL,
+      record_json TEXT NOT NULL, PRIMARY KEY(scope, generation, file_id)
+    )''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS drive_catalogue_parent
+      ON drive_catalogue_entries(scope, generation, parent_id)''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_work (
+      scope TEXT NOT NULL, generation INTEGER NOT NULL, file_id TEXT NOT NULL,
+      page_token TEXT, done INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY(scope, generation, file_id)
+    )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_pages (
+      scope TEXT NOT NULL, generation INTEGER NOT NULL, file_id TEXT NOT NULL,
+      page_token TEXT NOT NULL, PRIMARY KEY(scope, generation, file_id, page_token)
+    )''');
+  }
+}
+
+/// A refresh writes page-sized transactions into an unpublished generation.
+/// Cursor advancement and its entries commit together; publication is a single
+/// pointer swap after traversal and folder-boundary revalidation. Old snapshots
+/// remain readable on every failure. No installation table is ever modified.
+class DriveCatalogue {
+  final Future<Database> _database;
+  DriveCatalogue(this._database);
+
+  static String scopeKey(
+          String sourceId, String accountId, String rootFolderId) =>
+      jsonEncode([sourceId, accountId, rootFolderId]);
+
+  void _cancelled(CancelToken? token) {
+    if (token?.isCancelled == true) {
+      throw const DriveCatalogueException('cancelled');
+    }
+  }
+
+  Future<void> refresh(
+      {required String sourceId,
+      required String accountId,
+      required String rootFolderId,
+      required DriveCatalogueApi api,
+      bool restart = false,
+      CancelToken? cancelToken}) async {
+    if ([sourceId, accountId, rootFolderId].any((s) => s.isEmpty) ||
+        rootFolderId == 'root') {
+      throw const DriveCatalogueException('invalidRootIdentity');
+    }
+    _cancelled(cancelToken);
+    final root = await api.getFile(rootFolderId, cancelToken: cancelToken);
+    if (!root.isFolder || root.id != rootFolderId) {
+      throw const DriveCatalogueException('unsupportedRoot');
+    }
+    final db = await _database;
+    final scope = scopeKey(sourceId, accountId, rootFolderId);
+    final generation = await db.transaction((txn) async {
+      _cancelled(cancelToken);
+      final rows = await txn.query('drive_catalogue_state',
+          where: 'scope = ?', whereArgs: [scope]);
+      final previous = rows.isEmpty ? null : rows.single;
+      final pending = previous?['pending'] as int?;
+      if (pending != null && !restart) return pending;
+      final generation = previous?['next_generation'] as int? ?? 1;
+      await _discardInactive(txn, scope, previous?['active'] as int?);
+      await txn.insert(
+          'drive_catalogue_state',
+          {
+            'scope': scope,
+            'active': previous?['active'],
+            'pending': generation,
+            'next_generation': generation + 1,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      await _put(txn, scope, generation, root, null, '');
+      return generation;
+    });
+    try {
+      while (true) {
+        _cancelled(cancelToken);
+        final work = await db.rawQuery(
+            '''SELECT w.*, e.record_json, e.display_path
+          FROM drive_catalogue_work w JOIN drive_catalogue_entries e
+          ON e.scope=w.scope AND e.generation=w.generation AND e.file_id=w.file_id
+          WHERE w.scope=? AND w.generation=? AND w.done=0 ORDER BY w.rowid LIMIT 1''',
+            [scope, generation]);
+        if (work.isEmpty) break;
+        final row = work.single;
+        final parent = DriveFile.fromJson(
+            jsonDecode(row['record_json'] as String) as Map<String, dynamic>);
+        _sameFolder(
+            parent, await api.getFile(parent.id, cancelToken: cancelToken));
+        final cursor = row['page_token'] as String?;
+        final page = await api.listChildren(parent.id,
+            pageToken: cursor, cancelToken: cancelToken);
+        _cancelled(cancelToken);
+        await db.transaction((txn) async {
+          await _requirePending(txn, scope, generation);
+          final current = await txn.query('drive_catalogue_work',
+              where: 'scope=? AND generation=? AND file_id=?',
+              whereArgs: [scope, generation, parent.id]);
+          if (current.single['done'] != 0 ||
+              current.single['page_token'] != cursor) {
+            throw const DriveCatalogueException('concurrentRefresh');
+          }
+          final repeated = await txn.query('drive_catalogue_pages',
+              where: 'scope=? AND generation=? AND file_id=? AND page_token=?',
+              whereArgs: [
+                scope,
+                generation,
+                parent.id,
+                page.nextPageToken ?? ''
+              ],
+              limit: 1);
+          if (page.nextPageToken != null &&
+              (page.nextPageToken == cursor || repeated.isNotEmpty)) {
+            throw const DriveCatalogueException('repeatedPageToken');
+          }
+          await txn.insert('drive_catalogue_pages', {
+            'scope': scope,
+            'generation': generation,
+            'file_id': parent.id,
+            'page_token': cursor ?? '',
+          });
+          for (final file in page.files) {
+            // Every edge must have come from this exact parent. A shortcut is
+            // retained as an unsupported record, never substituted with its target.
+            if (file.parents.length != 1 ||
+                file.parents.single != parent.id ||
+                file.id == rootFolderId ||
+                file.trashed) {
+              throw const DriveCatalogueException('invalidParent');
+            }
+            final exists = await txn.query('drive_catalogue_entries',
+                columns: ['file_id'],
+                where: 'scope=? AND generation=? AND file_id=?',
+                whereArgs: [scope, generation, file.id],
+                limit: 1);
+            if (exists.isNotEmpty) {
+              throw const DriveCatalogueException('duplicateOrMovedEntry');
+            }
+            final path = row['display_path'] as String;
+            await _put(txn, scope, generation, file, parent.id,
+                path.isEmpty ? file.name : '$path/${file.name}');
+          }
+          await txn.update(
+              'drive_catalogue_work',
+              {
+                'page_token': page.nextPageToken,
+                'done': page.nextPageToken == null ? 1 : 0
+              },
+              where: 'scope=? AND generation=? AND file_id=?',
+              whereArgs: [scope, generation, parent.id]);
+          _cancelled(cancelToken);
+        });
+      }
+      // The provider does not offer a subtree-wide snapshot transaction. Check
+      // every observed folder again to reject a moved ancestor before publishing;
+      // transfers must still revalidate the individual file's current lineage.
+      var offset = 0;
+      while (true) {
+        final folders = await db.query('drive_catalogue_entries',
+            columns: ['record_json'],
+            where: 'scope=? AND generation=? AND is_folder=1',
+            whereArgs: [scope, generation],
+            orderBy: 'file_id',
+            limit: 100,
+            offset: offset);
+        if (folders.isEmpty) break;
+        for (final row in folders) {
+          _cancelled(cancelToken);
+          final expected = DriveFile.fromJson(
+              jsonDecode(row['record_json'] as String) as Map<String, dynamic>);
+          _sameFolder(expected,
+              await api.getFile(expected.id, cancelToken: cancelToken));
+        }
+        offset += folders.length;
+      }
+      await db.transaction((txn) async {
+        _cancelled(cancelToken);
+        await _requirePending(txn, scope, generation);
+        await txn.update(
+            'drive_catalogue_state', {'active': generation, 'pending': null},
+            where: 'scope=?', whereArgs: [scope]);
+        await _discardInactive(txn, scope, generation);
+        await txn.delete('drive_catalogue_work',
+            where: 'scope=? AND generation=?', whereArgs: [scope, generation]);
+        await txn.delete('drive_catalogue_pages',
+            where: 'scope=? AND generation=?', whereArgs: [scope, generation]);
+        _cancelled(cancelToken);
+      });
+    } on DriveCatalogueException catch (error) {
+      if (!{'cancelled', 'concurrentRefresh', 'supersededRefresh'}
+          .contains(error.code)) {
+        await _invalidatePending(db, scope, generation);
+      }
+      rethrow;
+    } on DriveApiException catch (error) {
+      if (error.issue == DriveApiIssue.invalidPageToken ||
+          error.issue == DriveApiIssue.notFound) {
+        // Invalid server cursors cannot be resumed. Forget only the unpublished
+        // generation; next explicit refresh starts clean, with no hidden retry.
+        await _invalidatePending(db, scope, generation);
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _invalidatePending(Database db, String scope, int generation) =>
+      db.transaction((txn) async {
+        // Compare-and-clear so an old refresh cannot invalidate a newer job.
+        await txn.update('drive_catalogue_state', {'pending': null},
+            where: 'scope=? AND pending=?', whereArgs: [scope, generation]);
+      });
+
+  void _sameFolder(DriveFile expected, DriveFile actual) {
+    if (!actual.isFolder ||
+        expected.id != actual.id ||
+        expected.name != actual.name ||
+        jsonEncode(expected.parents) != jsonEncode(actual.parents)) {
+      throw const DriveCatalogueException('folderChanged');
+    }
+  }
+
+  Future<void> _requirePending(
+      DatabaseExecutor db, String scope, int generation) async {
+    final state = await db.query('drive_catalogue_state',
+        columns: ['pending'], where: 'scope=?', whereArgs: [scope]);
+    if (state.isEmpty || state.single['pending'] != generation) {
+      throw const DriveCatalogueException('supersededRefresh');
+    }
+  }
+
+  Future<void> _put(DatabaseExecutor db, String scope, int generation,
+      DriveFile file, String? parentId, String path) async {
+    await db.insert('drive_catalogue_entries', {
+      'scope': scope,
+      'generation': generation,
+      'file_id': file.id,
+      'parent_id': parentId,
+      'display_path': path,
+      'is_folder': file.isFolder ? 1 : 0,
+      'record_json': jsonEncode(file.toJson())
+    });
+    if (file.isFolder) {
+      await db.insert('drive_catalogue_work', {
+        'scope': scope,
+        'generation': generation,
+        'file_id': file.id,
+      });
+    }
+  }
+
+  Future<void> _discardInactive(
+      DatabaseExecutor db, String scope, int? keep) async {
+    for (final table in [
+      'drive_catalogue_entries',
+      'drive_catalogue_work',
+      'drive_catalogue_pages'
+    ]) {
+      await db.delete(table,
+          where: keep == null ? 'scope=?' : 'scope=? AND generation!=?',
+          whereArgs: keep == null ? [scope] : [scope, keep]);
+    }
+  }
+
+  Future<int?> activeGeneration(
+      {required String sourceId,
+      required String accountId,
+      required String rootFolderId}) async {
+    final db = await _database;
+    final state = await db.query('drive_catalogue_state',
+        columns: ['active'],
+        where: 'scope=?',
+        whereArgs: [scopeKey(sourceId, accountId, rootFolderId)]);
+    return state.isEmpty ? null : state.single['active'] as int?;
+  }
+
+  Future<DriveFile> requireFolder(
+      {required String sourceId,
+      required String accountId,
+      required String rootFolderId,
+      required String folderId,
+      required int generation}) async {
+    final db = await _database;
+    final scope = scopeKey(sourceId, accountId, rootFolderId);
+    final rows = await db.rawQuery(
+        '''SELECT e.record_json FROM drive_catalogue_entries e
+      JOIN drive_catalogue_state s ON s.scope=e.scope AND s.active=e.generation
+      WHERE e.scope=? AND e.generation=? AND e.file_id=? AND e.is_folder=1''',
+        [scope, generation, folderId]);
+    if (rows.isEmpty) throw const DriveCatalogueException('mappingUnavailable');
+    return DriveFile.fromJson(jsonDecode(rows.single['record_json'] as String)
+        as Map<String, dynamic>);
+  }
+
+  /// Paged descendants of an observed folder ID, never a path-prefix match.
+  Future<List<DriveCatalogueEntry>> entries(
+      {required String sourceId,
+      required String accountId,
+      required String rootFolderId,
+      required String folderId,
+      int limit = 500,
+      int offset = 0,
+      int? generation}) async {
+    if (limit < 1 || limit > 1000 || offset < 0) {
+      throw ArgumentError('Invalid catalogue page');
+    }
+    final db = await _database;
+    final scope = scopeKey(sourceId, accountId, rootFolderId);
+    return db.transaction((txn) async {
+      if (generation != null) {
+        final state = await txn.query('drive_catalogue_state',
+            columns: ['active'], where: 'scope=?', whereArgs: [scope]);
+        if (state.isEmpty || state.single['active'] != generation) {
+          throw const DriveCatalogueException('snapshotChanged');
+        }
+      }
+      final rows =
+          await txn.rawQuery('''WITH RECURSIVE descendants(file_id) AS (
+      SELECT e.file_id FROM drive_catalogue_entries e JOIN drive_catalogue_state s ON s.scope=e.scope
+      WHERE e.scope=? AND e.generation=COALESCE(?,s.active) AND e.file_id=? AND e.is_folder=1
+      UNION ALL SELECT e.file_id FROM drive_catalogue_entries e JOIN descendants d ON e.parent_id=d.file_id
+      JOIN drive_catalogue_state s ON s.scope=e.scope WHERE e.scope=? AND e.generation=COALESCE(?,s.active)
+    ) SELECT e.record_json, e.display_path FROM drive_catalogue_entries e
+      JOIN descendants d ON d.file_id=e.file_id JOIN drive_catalogue_state s ON s.scope=e.scope
+      WHERE e.scope=? AND e.generation=COALESCE(?,s.active) AND e.file_id!=?
+      ORDER BY e.file_id LIMIT ? OFFSET ?''', [
+        scope,
+        generation,
+        folderId,
+        scope,
+        generation,
+        scope,
+        generation,
+        folderId,
+        limit,
+        offset
+      ]);
+      return rows
+          .map((r) => DriveCatalogueEntry(
+              DriveFile.fromJson(jsonDecode(r['record_json'] as String)
+                  as Map<String, dynamic>),
+              r['display_path'] as String))
+          .toList();
+    });
+  }
+}

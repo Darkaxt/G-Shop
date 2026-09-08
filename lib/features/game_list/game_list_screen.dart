@@ -378,7 +378,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     if (variants == null || variants.length != 1) return;
 
     ref.read(feedbackServiceProvider).tick();
-    ref.read(favoriteGamesProvider.notifier).toggleFavorite(variants.first.filename);
+    ref.read(favoriteGamesProvider.notifier).toggleFavorite(variants.first.selectionKey);
   }
 
   void _handleAddToShelf() {
@@ -393,7 +393,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final game = variants.first;
     final shelves = ref.read(customShelvesProvider);
     final availableShelves = shelves
-        .where((s) => !s.containsGame(game.filename, game.displayName, widget.system.id))
+        .where((s) => !s.containsGame(game.selectionKey, game.displayName, widget.system.id))
         .toList();
     if (availableShelves.isEmpty) return;
 
@@ -402,7 +402,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       ref: ref,
       shelves: availableShelves,
       onSelect: (shelfId) {
-        ref.read(customShelvesProvider.notifier).addGameToShelf(shelfId, game.filename);
+        ref.read(customShelvesProvider.notifier).addGameToShelf(shelfId, game.selectionKey);
       },
     );
   }
@@ -421,7 +421,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     if (idx < 0 || idx >= state.filteredGroups.length) return false;
     final variants = state.filteredGroupedGames[state.filteredGroups[idx]];
     if (variants == null || variants.length != 1) return false;
-    return ref.read(favoriteGamesProvider).contains(variants.first.filename);
+    return ref.read(favoriteGamesProvider).contains(variants.first.selectionKey);
   }
 
   bool _canAddToShelf() {
@@ -433,7 +433,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final variants = state.filteredGroupedGames[state.filteredGroups[idx]];
     if (variants == null || variants.isEmpty) return false;
     final game = variants.first;
-    return shelves.any((s) => !s.containsGame(game.filename, game.displayName, widget.system.id));
+    return shelves.any((s) => !s.containsGame(game.selectionKey, game.displayName, widget.system.id));
   }
 
   List<QuickMenuItem?> _buildQuickMenuItems() {
@@ -691,7 +691,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     ));
     final favorites = <String>{};
     for (final entry in state.filteredGroupedGames.entries) {
-      if (entry.value.any((v) => favoriteFilenames.contains(v.filename))) {
+      if (entry.value.any((v) => favoriteFilenames.contains(v.selectionKey))) {
         favorites.add(entry.key);
       }
     }
@@ -822,4 +822,3 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     );
   }
 }
-

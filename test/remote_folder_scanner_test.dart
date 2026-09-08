@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:retro_eshop/models/config/provider_config.dart';
+import 'package:retro_eshop/models/config/drive_source_config.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/local_folder_matcher.dart';
 import 'package:retro_eshop/services/remote_folder_scanner.dart';
@@ -44,6 +45,56 @@ void main() {
         priority: 0,
         host: '',
       );
+      expect(
+        () => RemoteFolderScanner.scanTopLevel(config),
+        throwsStateError,
+      );
+    });
+
+    test('Drive folder discovery only consumes an injected catalogue snapshot',
+        () async {
+      const config = ProviderConfig(
+        type: ProviderType.drive,
+        priority: 0,
+        sourceId: 'drive-source',
+        path: 'mapped-folder-id',
+        drive: DriveSourceConfig(
+          accountId: 'account-id',
+          rootFolderId: 'root-folder-id',
+          serverClientId: 'client-id',
+        ),
+      );
+      var calls = 0;
+
+      final result = await RemoteFolderScanner.scanTopLevel(
+        config,
+        driveSnapshotLoader: (received) async {
+          calls++;
+          expect(received, same(config));
+          return const [
+            RemoteFolderEntry(id: 'folder-a', name: 'SNES'),
+            RemoteFolderEntry(id: 'folder-b', name: 'Mega Drive'),
+          ];
+        },
+      );
+
+      expect(calls, 1);
+      expect(result.map((e) => e.id), ['folder-a', 'folder-b']);
+    });
+
+    test('Drive discovery refuses to perform an implicit network traversal', () {
+      const config = ProviderConfig(
+        type: ProviderType.drive,
+        priority: 0,
+        sourceId: 'drive-source',
+        path: 'mapped-folder-id',
+        drive: DriveSourceConfig(
+          accountId: 'account-id',
+          rootFolderId: 'root-folder-id',
+          serverClientId: 'client-id',
+        ),
+      );
+
       expect(
         () => RemoteFolderScanner.scanTopLevel(config),
         throwsStateError,

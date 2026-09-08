@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -5,10 +6,13 @@ import 'package:retro_eshop/features/game_list/logic/game_list_controller.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/config/system_config.dart';
 import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/services/library_sync_service.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/services/unified_game_service.dart';
+import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -18,6 +22,7 @@ class FakeDatabaseService extends DatabaseService {
   List<GameItem>? savedGames;
   String? savedSystemSlug;
   bool? lastDeleteOrphans;
+  Set<String>? lastAuthoritativeDriveSourceIds;
   List<GameItem> cachedGames = [];
   bool hasCacheResult = false;
   final List<String> batchCoverFilenames = [];
@@ -31,10 +36,11 @@ class FakeDatabaseService extends DatabaseService {
   Future<List<GameItem>> getGames(String systemSlug) async => cachedGames;
 
   @override
-  Future<void> saveGames(String systemSlug, List<GameItem> games, {bool deleteOrphans = false, bool forceDeleteOrphans = false}) async {
+  Future<void> saveGames(String systemSlug, List<GameItem> games, {bool deleteOrphans = false, bool forceDeleteOrphans = false, Set<String> authoritativeDriveSourceIds = const {}}) async {
     savedSystemSlug = systemSlug;
     savedGames = games;
     lastDeleteOrphans = deleteOrphans || forceDeleteOrphans;
+    lastAuthoritativeDriveSourceIds = Set.of(authoritativeDriveSourceIds);
   }
 
   @override
@@ -62,6 +68,37 @@ class FakeUnifiedGameService extends UnifiedGameService {
     bool? merge,
   }) async {
     return result;
+  }
+}
+
+class ControlledCommitDatabaseService extends FakeDatabaseService {
+  final entered = Completer<void>();
+  final allowCommit = Completer<void>();
+  bool committed = false;
+
+  @override
+  Future<void> saveGames(String systemSlug, List<GameItem> games, {
+    bool deleteOrphans = false,
+    bool forceDeleteOrphans = false,
+    Set<String> authoritativeDriveSourceIds = const {},
+  }) async {
+    entered.complete();
+    await allowCommit.future;
+    await super.saveGames(systemSlug, games,
+        deleteOrphans: deleteOrphans, forceDeleteOrphans: forceDeleteOrphans,
+        authoritativeDriveSourceIds: authoritativeDriveSourceIds);
+    committed = true;
+  }
+}
+
+class ControlledBackgroundGameService extends UnifiedGameService {
+  final requested = Completer<void>();
+  final response = Completer<List<GameItem>>();
+
+  @override
+  Future<List<GameItem>> fetchGamesForSystem(SystemConfig system, {bool? merge}) {
+    requested.complete();
+    return response.future;
   }
 }
 
@@ -130,6 +167,19 @@ GameItem _game(String filename, {String url = '', String? displayName}) {
   );
 }
 
+Future<void> waitUntilLoaded(GameListController controller) {
+  final completion = Completer<void>();
+  void onStateChanged() {
+    if (!controller.state.isLoading && !completion.isCompleted) {
+      controller.removeListener(onStateChanged);
+      completion.complete();
+    }
+  }
+  controller.addListener(onStateChanged);
+  onStateChanged();
+  return completion.future;
+}
+
 /// Creates a controller that has already loaded the given [games].
 /// Uses a FakeUnifiedGameService that returns [games] and waits for loadGames.
 Future<({
@@ -156,10 +206,7 @@ Future<({
     storage: storage,
   );
 
-  // Wait for loadGames() to settle (polling handles CPU-loaded test suites)
-  for (var i = 0; i < 100 && c.state.isLoading; i++) {
-    await Future.delayed(Duration.zero);
-  }
+  await waitUntilLoaded(c);
 
   return (controller: c, db: db, storage: storage, service: service);
 }
@@ -169,6 +216,109 @@ Future<({
 // ---------------------------------------------------------------------------
 
 void main() {
+  for (final useCache in [false, true]) {
+    test('${useCache ? 'background' : 'foreground'} save notification waits for committed Drive snapshot', () async {
+      LibrarySyncService.clearFreshness();
+      final db = ControlledCommitDatabaseService()
+        ..hasCacheResult = useCache
+        ..cachedGames = [exactGame('cached-file')];
+      final service = FakeUnifiedGameService();
+      final notified = Completer<void>();
+      var committedAtNotification = false;
+      final controller = GameListController(system: _nes, targetFolder: '/nonexistent/nes',
+        systemConfig: _config(providers: const [ProviderConfig(type: ProviderType.drive, priority: 0, sourceId: 'source')]),
+        unifiedService: service, databaseService: db)
+        ..onGamesSaved = () {
+          committedAtNotification = db.committed;
+          notified.complete();
+        };
+      try {
+        await db.entered.future;
+        expect(notified.isCompleted, isFalse);
+        expect(db.savedGames, isNull);
+        db.allowCommit.complete();
+        await notified.future;
+        expect(committedAtNotification, isTrue);
+        expect(db.savedGames, isEmpty);
+        expect(db.lastAuthoritativeDriveSourceIds, {'source'});
+      } finally {
+        controller.dispose();
+      }
+    });
+  }
+  test('successful empty Drive fetch forwards explicit source authority to cache', () async {
+    final r = await createController(config: _config(providers: const [
+      ProviderConfig(type: ProviderType.drive, priority: 0, sourceId: 'source'),
+    ]));
+    expect(r.db.savedGames, isEmpty);
+    expect(r.db.lastAuthoritativeDriveSourceIds, {'source'});
+    r.controller.dispose();
+  });
+
+  test('failed Drive background refresh preserves large cached snapshot without saving', () async {
+    LibrarySyncService.clearFreshness();
+    final cached = List.generate(100, (i) => exactGame('file-$i'));
+    final db = FakeDatabaseService()..hasCacheResult = true..cachedGames = cached;
+    final service = UnifiedGameService(fetchProviderGames: (_, system) async => throw StateError('Drive refresh failed'));
+    final controller = GameListController(system: _nes, targetFolder: '/nonexistent/nes',
+      systemConfig: _config(providers: const [ProviderConfig(type: ProviderType.drive, priority: 0, sourceId: 'source')]),
+      unifiedService: service, databaseService: db);
+    final failed = Completer<void>();
+    void onStateChanged() {
+      if (controller.state.isOffline && !failed.isCompleted) failed.complete();
+    }
+    controller.addListener(onStateChanged);
+    onStateChanged();
+    try {
+      await failed.future;
+      expect(controller.state.allGames, hasLength(100));
+      expect(db.savedGames, isNull);
+      expect(db.lastAuthoritativeDriveSourceIds, isNull);
+    } finally {
+      controller.removeListener(onStateChanged);
+      controller.dispose();
+    }
+  });
+  for (final change in <String, dynamic>{
+    'version': 'v2',
+    'sizeBytes': 43,
+    'providerChecksums': {'md5': 'changed-checksum'},
+  }.entries) {
+    test('background refresh publishes changed ${change.key} for the same artifact', () async {
+      LibrarySyncService.clearFreshness();
+      final oldGame = exactGame('same-file');
+      final changedArtifact = RemoteArtifact.fromJson({
+        ...oldGame.remoteArtifact!.toJson(),
+        change.key: change.value,
+      });
+      final changedGame = oldGame.copyWith(remoteArtifact: changedArtifact);
+      final db = FakeDatabaseService()
+        ..hasCacheResult = true
+        ..cachedGames = [oldGame];
+      final service = ControlledBackgroundGameService();
+      final saved = Completer<void>();
+      final controller = GameListController(
+        system: _nes,
+        targetFolder: '/nonexistent/nes',
+        systemConfig: _config(),
+        unifiedService: service,
+        databaseService: db,
+      )..onGamesSaved = saved.complete;
+      try {
+        await service.requested.future;
+        expect(controller.state.allGames.single.remoteArtifact!.toJson(), oldGame.remoteArtifact!.toJson());
+        service.response.complete([changedGame]);
+        await saved.future;
+        expect(db.savedGames!.single.remoteArtifact!.toJson(), changedArtifact.toJson());
+        expect(controller.state.allGames.single.remoteArtifact!.toJson(), changedArtifact.toJson());
+        expect(controller.state.groupedGames.values.single.single.remoteArtifact!.toJson(), changedArtifact.toJson());
+        expect(controller.state.filteredGroupedGames.values.single.single.remoteArtifact!.toJson(), changedArtifact.toJson());
+        expect(controller.state.allGames.single.identityKey, oldGame.identityKey);
+      } finally {
+        controller.dispose();
+      }
+    });
+  }
   group('GameListState basics', () {
     test('default state', () {
       const state = GameListState();
@@ -195,6 +345,13 @@ void main() {
   });
 
   group('Grouping', () {
+    test('exact objects remain independent and local namesakes are not installed proof', () async {
+      final r = await createController(games: [exactGame('a'), exactGame('b'), exactGame('a', account: 'account-b')], installedFilenames: {'Game.nes'});
+      expect(r.controller.state.groupedGames, hasLength(3));
+      expect(r.controller.state.groupedGames.values.every((games) => games.length == 1), isTrue);
+      expect(r.controller.state.installedCache.values.every((installed) => !installed), isTrue);
+      r.controller.dispose();
+    });
     test('games with same displayName land in same group', () async {
       final r = await createController(games: [
         _game('Mario (USA).zip', url: 'http://r/m1.zip'),
@@ -569,7 +726,11 @@ void main() {
         _game('Zelda (USA).zip', url: 'http://r/z.zip'),
       ]);
       var notifyCount = 0;
-      r.controller.addListener(() => notifyCount++);
+      final notification = Completer<void>();
+      r.controller.addListener(() {
+        notifyCount++;
+        if (!notification.isCompleted) notification.complete();
+      });
       final baseline = notifyCount;
 
       // Rapid-fire thumbnail updates
@@ -581,8 +742,8 @@ void main() {
       // Timer hasn't fired yet — should batch
       expect(notifyCount, baseline);
 
-      // Wait for debounce timer
-      await Future.delayed(const Duration(milliseconds: 150));
+      // Wait for the actual batched notification, independently of wall time.
+      await notification.future;
       expect(notifyCount, baseline + 1);
       r.controller.dispose();
     });
@@ -624,8 +785,7 @@ void main() {
         databaseService: db,
         storage: storage,
       );
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+      await waitUntilLoaded(c);
 
       expect(c.state.activeFilters.selectedRegions, contains('USA'));
       // USA filter active → only Mario (USA) passes, Zelda (Europe) filtered out
@@ -659,8 +819,7 @@ void main() {
         databaseService: db,
         storage: storage,
       );
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+      await waitUntilLoaded(c);
 
       // Should not crash, filters should be empty
       expect(c.state.activeFilters.isEmpty, true);
@@ -680,8 +839,7 @@ void main() {
         databaseService: db,
         storage: null,
       );
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+      await waitUntilLoaded(c);
 
       // Should not crash even without storage
       c.toggleRegionFilter('USA');
@@ -702,8 +860,7 @@ void main() {
         databaseService: db,
         storage: storage,
       );
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+      await waitUntilLoaded(c);
 
       expect(c.state.isLocalOnly, true);
       // Non-existent folder → empty games

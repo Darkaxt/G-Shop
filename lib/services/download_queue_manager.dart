@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/config/app_config.dart';
+import '../models/config/provider_config.dart';
 import '../models/download_item.dart';
 import '../models/game_item.dart';
 import '../models/system_model.dart';
@@ -147,7 +148,7 @@ class DownloadQueueManager extends ChangeNotifier {
 
   Future<void> _switchToAlternativeSource(String id) async {
     final item = _state.getDownloadById(id);
-    if (item == null) return;
+    if (item == null || item.game.remoteArtifact != null) return;
 
     final alts = item.game.alternativeSources;
     if (alts.isEmpty) return;
@@ -195,7 +196,7 @@ class DownloadQueueManager extends ChangeNotifier {
   }
 
   String addToQueue(GameItem game, SystemModel system, String targetFolder, {bool autoExtract = false}) {
-    final id = _generateId(game, system);
+    final id = idFor(game, system);
 
     final existing = _state.getDownloadById(id);
     if (existing != null && !existing.isFinished) {
@@ -314,10 +315,8 @@ class DownloadQueueManager extends ChangeNotifier {
       final queuedItems = _state.queuedItems;
       if (queuedItems.isEmpty) return;
 
-      final availableSlots = _state.maxConcurrent - _state.activeCount;
-      final itemsToStart = queuedItems.take(availableSlots);
-
-      for (final item in itemsToStart) {
+      for (final item in queuedItems) {
+        if (!_state.canStartNewDownload()) break;
         // Re-check item is still queued before starting
         final current = _state.getDownloadById(item.id);
         if (current == null || current.status != DownloadStatus.queued) continue;
@@ -329,6 +328,14 @@ class DownloadQueueManager extends ChangeNotifier {
   }
 
   Future<void> _startDownload(DownloadItem item) async {
+    // Exact artifacts require S3's verified transfer/publication contract.
+    // In particular, filename existence must never imply their completion.
+    if (item.game.remoteArtifact != null || item.game.providerConfig?.type == ProviderType.drive) {
+      _updateItem(item.id, status: DownloadStatus.error,
+          error: 'Verified remote artifact transfers are not configured.');
+      _persistQueue();
+      return;
+    }
     _updateItem(item.id, status: DownloadStatus.downloading);
     _updateForegroundService();
 
@@ -554,7 +561,10 @@ class DownloadQueueManager extends ChangeNotifier {
     }
   }
 
-  String _generateId(GameItem game, SystemModel system) {
+  static String idFor(GameItem game, SystemModel system) {
+    if (game.remoteArtifact != null) {
+      return 'artifact:${jsonEncode([system.id, game.remoteArtifact!.id.key])}';
+    }
     return '${system.name}_${game.filename}';
   }
 

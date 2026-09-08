@@ -13,6 +13,7 @@ import '../../core/responsive/responsive.dart';
 import '../../core/util/source_color.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/config/app_config.dart';
+import '../../models/library_identity.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/config/source.dart';
 import '../../models/custom_shelf.dart';
@@ -281,6 +282,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         coverUrl: row['cover_url'] as String?,
         systemSlug: systemSlug,
         providerConfig: providerConfig,
+        remoteArtifact: row['remote_artifact'] == null ? null : RemoteArtifact.fromJson(jsonDecode(row['remote_artifact'] as String) as Map<String, dynamic>),
         hasThumbnail: (row['has_thumbnail'] as int?) == 1,
       ));
     }
@@ -292,6 +294,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       filename: e.filename,
       displayName: e.displayName,
       url: e.url,
+      remoteArtifact: e.remoteArtifact,
     )).toList();
     ref.read(favoriteGamesProvider.notifier).migrateIfNeeded(allGameItems);
     final migratedFavorites = ref.read(favoriteGamesProvider).toSet();
@@ -355,7 +358,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           );
         case 2: // Favorites
           games =
-              games.where((g) => _favoriteIds.contains(g.filename)).toList();
+              games.where((g) => _favoriteIds.contains(g.selectionKey)).toList();
       }
     }
 
@@ -404,7 +407,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     final allGameRecords = _allGames
         .map((g) => (
-              filename: g.filename,
+              filename: g.selectionKey,
               displayName: g.displayName,
               systemSlug: g.systemSlug,
             ))
@@ -413,7 +416,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final filenames = shelf.resolveFilenames(allGameRecords);
     final lookup = <String, LibraryEntry>{};
     for (final g in _allGames) {
-      lookup[g.filename] = g;
+      lookup[g.selectionKey] = g;
     }
 
     final games = <LibraryEntry>[];
@@ -602,6 +605,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       url: entry.url,
       cachedCoverUrl: entry.coverUrl,
       providerConfig: entry.providerConfig,
+      remoteArtifact: entry.remoteArtifact,
     );
 
     final isLocalOnly = systemConfig == null || systemConfig.providers.isEmpty;
@@ -667,7 +671,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Future<void> _onCoverFound(String url, LibraryEntry entry) async {
     await DatabaseService().updateGameCover(entry.filename, url);
-    final idx = _allGames.indexWhere((g) => g.filename == entry.filename);
+    final idx = _allGames.indexWhere((g) => g.selectionKey == entry.selectionKey);
     if (idx >= 0) {
       _allGames[idx] = LibraryEntry(
         filename: entry.filename,
@@ -677,6 +681,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         coverUrl: url,
         systemSlug: entry.systemSlug,
         providerConfig: entry.providerConfig,
+        remoteArtifact: entry.remoteArtifact,
         hasThumbnail: entry.hasThumbnail,
       );
     }
@@ -690,7 +695,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         entry.filename,
         hasThumbnail: true,
       );
-      final idx = _allGames.indexWhere((g) => g.filename == entry.filename);
+      final idx = _allGames.indexWhere((g) => g.selectionKey == entry.selectionKey);
       if (idx >= 0) {
         _allGames[idx] = LibraryEntry(
           filename: entry.filename,
@@ -700,6 +705,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           coverUrl: entry.coverUrl,
           systemSlug: entry.systemSlug,
           providerConfig: entry.providerConfig,
+          remoteArtifact: entry.remoteArtifact,
           hasThumbnail: true,
         );
       }
@@ -773,7 +779,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       shelf.id,
       _grabbedIndex,
       targetIndex,
-      resolvedOrder: _filteredGames.map((g) => g.filename).toList(),
+      resolvedOrder: _filteredGames.map((g) => g.selectionKey).toList(),
     );
     _shelves = ref.read(customShelvesProvider);
     _applyFilters();
@@ -788,7 +794,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Future<void> _createShelf() async {
     final allGameRecords = _allGames.map((g) => (
-      filename: g.filename,
+      filename: g.selectionKey,
       displayName: g.displayName,
       systemSlug: g.systemSlug,
     )).toList();
@@ -812,7 +818,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final shelf = _activeShelf;
     if (shelf == null) return;
     final allGameRecords = _allGames.map((g) => (
-      filename: g.filename,
+      filename: g.selectionKey,
       displayName: g.displayName,
       systemSlug: g.systemSlug,
     )).toList();
@@ -843,7 +849,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final entry = _filteredGames[_currentIndex];
     final availableShelves = _shelves
         .where((s) => !s.containsGame(
-            entry.filename, entry.displayName, entry.systemSlug))
+            entry.selectionKey, entry.displayName, entry.systemSlug))
         .toList();
     if (availableShelves.isEmpty) return;
     showShelfPickerDialog(
@@ -851,7 +857,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ref: ref,
       shelves: availableShelves,
       onSelect: (shelfId) {
-        ref.read(customShelvesProvider.notifier).addGameToShelf(shelfId, entry.filename);
+        ref.read(customShelvesProvider.notifier).addGameToShelf(shelfId, entry.selectionKey);
         _shelves = ref.read(customShelvesProvider);
         _applyFilters();
       },
@@ -868,10 +874,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     );
     if (matchesFilter) {
       // Filter-matched: must explicitly exclude so filter doesn't re-add it
-      ref.read(customShelvesProvider.notifier).excludeGameFromShelf(shelf.id, entry.filename);
+      ref.read(customShelvesProvider.notifier).excludeGameFromShelf(shelf.id, entry.selectionKey);
     } else {
       // Truly manual: just remove from manualGameIds, no exclusion needed
-      ref.read(customShelvesProvider.notifier).removeGameFromShelf(shelf.id, entry.filename);
+      ref.read(customShelvesProvider.notifier).removeGameFromShelf(shelf.id, entry.selectionKey);
     }
     _shelves = ref.read(customShelvesProvider);
     _applyFilters();
@@ -881,7 +887,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     if (_currentIndex < 0 || _currentIndex >= _filteredGames.length) return;
     final entry = _filteredGames[_currentIndex];
     ref.read(feedbackServiceProvider).tick();
-    ref.read(favoriteGamesProvider.notifier).toggleFavorite(entry.filename);
+    ref.read(favoriteGamesProvider.notifier).toggleFavorite(entry.selectionKey);
     _favoriteIds = ref.read(favoriteGamesProvider).toSet();
     _applyFilters();
   }
@@ -920,9 +926,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ),
       if (_filteredGames.isNotEmpty) ...[
         QuickMenuItem(
-          label: _favoriteIds.contains(_filteredGames[_currentIndex].filename)
+          label: _favoriteIds.contains(_filteredGames[_currentIndex].selectionKey)
               ? l.common_unfavorite : l.common_favorite,
-          icon: _favoriteIds.contains(_filteredGames[_currentIndex].filename)
+          icon: _favoriteIds.contains(_filteredGames[_currentIndex].selectionKey)
               ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           shortcutHint: '−',
           onSelect: _handleFavorite,
@@ -947,7 +953,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           onSelect: _editShelf,
         ),
       if (_filteredGames.isNotEmpty && _shelves.any((s) => !s.containsGame(
-          _filteredGames[_currentIndex].filename,
+          _filteredGames[_currentIndex].selectionKey,
           _filteredGames[_currentIndex].displayName,
           _filteredGames[_currentIndex].systemSlug)))
         QuickMenuItem(
@@ -995,6 +1001,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // --- Count helpers ---
 
   bool _isGameInstalled(LibraryEntry entry) {
+    // Exact cloud files require an installation manifest, not a namesake.
+    if (entry.remoteArtifact != null) return false;
     final filename = entry.filename;
     if (_installedFiles.contains(filename)) return true;
     // Strip archive extension for extracted ROM match
@@ -1047,7 +1055,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ).length;
 
   int get _favoritesCount =>
-      _allGames.where((g) => _favoriteIds.contains(g.filename)).length;
+      _allGames.where((g) => _favoriteIds.contains(g.selectionKey)).length;
 
   // --- Build ---
 
@@ -1198,7 +1206,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   int _shelfGameCount(CustomShelf shelf) {
     final allGameRecords = _allGames
         .map((g) => (
-              filename: g.filename,
+              filename: g.selectionKey,
               displayName: g.displayName,
               systemSlug: g.systemSlug,
             ))
@@ -1291,7 +1299,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         itemBuilder: (context, index) {
         final entry = _filteredGames[index];
         final isInstalled = _isGameInstalled(entry);
-        final isFavorite = _favoriteIds.contains(entry.filename);
+        final isFavorite = _favoriteIds.contains(entry.selectionKey);
 
         final coverUrls = _coverUrlCache[index] ?? const [];
 
@@ -1304,7 +1312,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         final systemColor =
             systemModel?.accentColor ?? Colors.grey;
 
-        final raMatch = _raMatches[entry.filename];
+        final raMatch = _raMatches[entry.selectionKey];
 
         // Source dot lookup — entry.providerConfig is rehydrated from
         // the games DB; if it was synthesised by SourceResolver it
@@ -1467,4 +1475,3 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     return labels[slug] ?? slug.toUpperCase();
   }
 }
-

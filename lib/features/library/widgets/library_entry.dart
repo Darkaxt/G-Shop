@@ -1,4 +1,5 @@
 import '../../../models/config/provider_config.dart';
+import '../../../models/library_identity.dart';
 
 class LibraryEntry {
   final String filename;
@@ -9,6 +10,8 @@ class LibraryEntry {
   final String systemSlug;
   final ProviderConfig? providerConfig;
   final bool hasThumbnail;
+  final RemoteArtifact? remoteArtifact;
+  String get selectionKey => remoteArtifact == null ? filename : 'artifact:${remoteArtifact!.id.key}';
 
   const LibraryEntry({
     required this.filename,
@@ -19,5 +22,6 @@ class LibraryEntry {
     required this.systemSlug,
     this.providerConfig,
     this.hasThumbnail = false,
+    this.remoteArtifact,
   });
 }

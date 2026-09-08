@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/config/app_config.dart';
+import '../models/config/provider_config.dart';
 import '../models/config/system_config.dart';
 import '../models/game_item.dart';
 import '../models/system_model.dart';
@@ -121,7 +122,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
     var completed = 0;
     final failures = <String, String>{};
     final perSystem = <String, int>{};
@@ -161,7 +162,9 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
             games = remoteGames;
           }
           await db.saveGames(systemConfig.id, games,
-              deleteOrphans: true, forceDeleteOrphans: true);
+              deleteOrphans: true,
+              forceDeleteOrphans: systemConfig.providers.every((p) => p.type != ProviderType.drive),
+              authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
           perSystem[systemConfig.id] = games.length;
           totalGames += games.length;
         }
@@ -251,7 +254,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
     var completed = 0;
     final failures = <String, String>{};
     final perSystem = <String, int>{};
@@ -288,7 +291,8 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
           } else {
             games = remoteGames;
           }
-          await db.saveGames(systemConfig.id, games, deleteOrphans: true);
+          await db.saveGames(systemConfig.id, games, deleteOrphans: true,
+              authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
           perSystem[systemConfig.id] = games.length;
           totalGames += games.length;
         }
@@ -353,7 +357,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
     var completed = 0;
     var totalGames = 0;
     final failures = <String, String>{};
@@ -394,7 +398,8 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
             systemConfig.targetFolder,
           );
           games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-          await db.saveGames(systemConfig.id, games, deleteOrphans: true);
+          await db.saveGames(systemConfig.id, games, deleteOrphans: true,
+              authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
         }
 
         perSystem[systemConfig.id] = games.length;
@@ -484,7 +489,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
 
     await _syncOneSystem(systemConfig, systemId, db, gameService);
 
@@ -566,7 +571,9 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
           games = remoteGames;
         }
         await db.saveGames(systemConfig.id, games,
-            deleteOrphans: true, forceDeleteOrphans: true);
+            deleteOrphans: true,
+            forceDeleteOrphans: systemConfig.providers.every((p) => p.type != ProviderType.drive),
+            authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
       }
 
       final perSystem = Map<String, int>.of(state.gamesPerSystem);

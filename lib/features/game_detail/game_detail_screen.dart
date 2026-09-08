@@ -369,7 +369,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (allShelves.isEmpty) return;
     final addable = allShelves
         .where((s) => !s.containsGame(
-            variant.filename, variant.displayName, widget.system.id))
+            variant.selectionKey, variant.displayName, widget.system.id))
         .toList();
     if (addable.isNotEmpty) {
       // Show shelves where the game can still be added
@@ -379,14 +379,14 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         shelves: addable,
         onSelect: (shelfId) {
           ref.read(customShelvesProvider.notifier)
-              .addGameToShelf(shelfId, variant.filename);
+              .addGameToShelf(shelfId, variant.selectionKey);
         },
       );
     } else {
       // Game is in all shelves — offer removal
       final containingShelves = allShelves
           .where((s) => s.containsGame(
-              variant.filename, variant.displayName, widget.system.id))
+              variant.selectionKey, variant.displayName, widget.system.id))
           .toList();
       showShelfPickerDialog(
         context: context,
@@ -400,10 +400,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           );
           if (matchesFilter) {
             ref.read(customShelvesProvider.notifier)
-                .excludeGameFromShelf(shelfId, variant.filename);
+                .excludeGameFromShelf(shelfId, variant.selectionKey);
           } else {
             ref.read(customShelvesProvider.notifier)
-                .removeGameFromShelf(shelfId, variant.filename);
+                .removeGameFromShelf(shelfId, variant.selectionKey);
           }
         },
       );
@@ -428,13 +428,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (controller.state.isOverlayOpen) return;
 
     ref.read(feedbackServiceProvider).tick();
-    ref.read(favoriteGamesProvider.notifier).toggleFavorite(controller.selectedVariant.filename);
+    ref.read(favoriteGamesProvider.notifier).toggleFavorite(controller.selectedVariant.selectionKey);
   }
 
   void _tryNavigateToAchievements() {
     final raMatches =
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
-    final raMatch = raMatches[_controller?.selectedVariant.filename];
+    final raMatch = raMatches[_controller?.selectedVariant.selectionKey];
     if (raMatch != null && raMatch.raGameId != null) {
       _navigateToAchievements(raMatch);
     }
@@ -488,17 +488,17 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (controller == null) return [];
     final variant = controller.selectedVariant;
     final metadata = GameMetadata.parse(variant.filename);
-    final isFavorite = ref.read(favoriteGamesProvider).contains(variant.filename);
+    final isFavorite = ref.read(favoriteGamesProvider).contains(variant.selectionKey);
     final hasDownloads = ref.read(hasQueueItemsProvider);
     final hasAlternatives = variant.alternativeSources.isNotEmpty;
-    final variantFilenames = widget.variants.map((v) => v.filename).join('\n');
+    final variantFilenames = widget.variants.map((v) => v.selectionKey).join('\n');
     final richMetadata = ref.read(groupMetadataProvider(
       (filenames: variantFilenames, systemSlug: widget.system.id),
     )).valueOrNull;
     final hasDetails = richMetadata?.hasContent ?? false;
     final raMatches =
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
-    final raMatch = raMatches[variant.filename];
+    final raMatch = raMatches[variant.selectionKey];
     return [
       QuickMenuItem(
         label: isFavorite ? L.of(context).common_unfavorite : L.of(context).common_favorite,
@@ -544,7 +544,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           final allShelves = ref.read(customShelvesProvider);
           final addable = allShelves
               .where((s) => !s.containsGame(
-                  variant.filename, variant.displayName, widget.system.id))
+                  variant.selectionKey, variant.displayName, widget.system.id))
               .toList();
           if (addable.isNotEmpty) {
             return QuickMenuItem(
@@ -557,7 +557,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                   shelves: addable,
                   onSelect: (shelfId) {
                     ref.read(customShelvesProvider.notifier)
-                        .addGameToShelf(shelfId, variant.filename);
+                        .addGameToShelf(shelfId, variant.selectionKey);
                   },
                 );
               },
@@ -565,7 +565,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           } else {
             final containing = allShelves
                 .where((s) => s.containsGame(
-                    variant.filename, variant.displayName, widget.system.id))
+                    variant.selectionKey, variant.displayName, widget.system.id))
                 .toList();
             return QuickMenuItem(
               label: L.of(context).gameDetail_removeFromShelf,
@@ -583,10 +583,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                     );
                     if (matchesFilter) {
                       ref.read(customShelvesProvider.notifier)
-                          .excludeGameFromShelf(shelfId, variant.filename);
+                          .excludeGameFromShelf(shelfId, variant.selectionKey);
                     } else {
                       ref.read(customShelvesProvider.notifier)
-                          .removeGameFromShelf(shelfId, variant.filename);
+                          .removeGameFromShelf(shelfId, variant.selectionKey);
                     }
                   },
                 );
@@ -675,13 +675,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final GameMetadataFull fileMetadata =
         GameMetadata.parse(selectedVariant.filename);
     final isMultiRom = widget.variants.length > 1;
-    final isFavorite = ref.watch(favoriteGamesProvider).contains(controller.selectedVariant.filename);
+    final isFavorite = ref.watch(favoriteGamesProvider).contains(controller.selectedVariant.selectionKey);
     final raMatches =
         ref.watch(raMatchesForSystemProvider(widget.system.id)).value ?? {};
-    final raMatch = raMatches[selectedVariant.filename];
+    final raMatch = raMatches[selectedVariant.selectionKey];
 
     // Fetch rich metadata
-    final variantFilenames = widget.variants.map((v) => v.filename).join('\n');
+    final variantFilenames = widget.variants.map((v) => v.selectionKey).join('\n');
     final gameMetadata = ref.watch(groupMetadataProvider(
       (filenames: variantFilenames, systemSlug: widget.system.id),
     ));
@@ -1277,7 +1277,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           : [controller.selectedVariant];
 
       for (final variant in variantsToCheck) {
-        final gameId = '${widget.system.name}_${variant.filename}';
+        final gameId = DownloadQueueManager.idFor(variant, widget.system);
         final dlStatus = ref.watch(
           downloadStatusForGameProvider((gameId: gameId)),
         );
@@ -1321,7 +1321,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     required bool isFocused,
   }) {
     final isFavorite = ref.watch(favoriteGamesProvider)
-        .contains(controller.selectedVariant.filename);
+        .contains(controller.selectedVariant.selectionKey);
 
     final hasShelves = ref.watch(customShelvesProvider).isNotEmpty;
     final shareEnabled = state.isVariantInstalled && !state.isSharing;

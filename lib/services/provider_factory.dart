@@ -1,6 +1,7 @@
 import '../models/config/provider_config.dart';
 import 'native_smb_service.dart';
 import 'providers/ftp_provider.dart';
+import 'providers/drive_provider.dart';
 import 'providers/romm_provider.dart';
 import 'providers/smb_provider.dart';
 import 'providers/web_provider.dart';
@@ -23,6 +24,8 @@ class ProviderFactory {
         return FtpProvider(config);
       case ProviderType.romm:
         return RommProvider(config);
+      case ProviderType.drive:
+        return DriveProvider(config);
     }
   }
 }

@@ -10,5 +10,7 @@ void main() {
   });
   test(
       'real v13 upgrade and reopen preserve source rows and anonymous legacy rating',
-      verifyLibraryV13Migration);
+      () => verifyLibraryMigration());
+  test('real v14 upgrade preserves existing identity and legacy cache rows',
+      () => verifyLibraryMigration(previousVersion: 14));
 }

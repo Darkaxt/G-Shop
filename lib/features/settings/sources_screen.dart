@@ -19,11 +19,17 @@ import '../../services/romm_api_service.dart';
 import '../../services/romm_pairing_service.dart';
 import '../../services/romm_platform_matcher.dart';
 import '../../services/sources_notifier.dart';
+import '../../services/drive/drive_runtime.dart';
+import '../../services/drive/drive_api.dart';
+import '../../services/drive/drive_authorization.dart';
+import '../../services/drive/drive_catalogue.dart';
 import '../../widgets/console_hud.dart';
 import '../../widgets/console_notification.dart';
 import '../onboarding/widgets/romm_legacy_login_screen.dart';
 import '../pairing/qr_pairing_screen.dart';
 import '../sources/manual_source_add_screen.dart';
+import '../sources/drive_source_mappings_screen.dart';
+import '../sources/drive_source_setup_screen.dart';
 import '../sources/source_mappings_screen.dart';
 
 /// Verwaltungs-Screen für alle gepairten / konfigurierten [Source]s.
@@ -209,9 +215,117 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
       await _addRommSource();
     } else if (option.type == SourceType.romm && option.isLegacy) {
       await _addRommLegacy();
+    } else if (option.type == SourceType.drive) {
+      await _addDriveSource();
     } else {
       await _addManualSource(option.type);
     }
+  }
+
+  Future<void> _addDriveSource() async {
+    final source = await Navigator.of(context).push<Source?>(
+      MaterialPageRoute(builder: (_) => const DriveSourceSetupScreen()),
+    );
+    if (!mounted || source == null) return;
+    await _refreshDriveSource(source, closeActions: false);
+    if (!mounted) return;
+    ref.invalidate(bootstrappedConfigProvider);
+    ref.invalidate(gamesProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusFor(source.id).requestFocus();
+      _initialFocusClaimed = true;
+    });
+  }
+
+  Future<void> _configureDriveSource(Source source) async {
+    setState(() => _activeActionsSource = null);
+    final updated = await Navigator.of(context).push<Source?>(
+      MaterialPageRoute(
+        builder: (_) => DriveSourceSetupScreen(
+          initialSource: source,
+          onSave: (value) =>
+              ref.read(sourcesProvider.notifier).updateSource(value),
+        ),
+      ),
+    );
+    if (!mounted || updated == null) return;
+    await _refreshDriveSource(updated, closeActions: false);
+  }
+
+  Future<void> _refreshDriveSource(
+    Source source, {
+    bool closeActions = true,
+  }) async {
+    if (closeActions && mounted) {
+      setState(() => _activeActionsSource = null);
+    }
+    try {
+      await DriveRuntime.instance.refreshSource(source);
+      if (!mounted) return;
+      final unsupported = await DriveRuntime.instance.unsupportedCounts(source);
+      if (!mounted) return;
+      ref.read(sourceHealthProvider.notifier).markValid(source.id);
+      ref.invalidate(gamesProvider);
+      ref.read(gameDbChangedProvider.notifier).state++;
+      showSuccessNotification(
+        context,
+        ref,
+        message: unsupported.isEmpty
+            ? 'Refreshed ${source.name}'
+            : 'Refreshed ${source.name} — ${_unsupportedSummary(unsupported)} excluded; no targets followed',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showErrorNotification(
+        context,
+        ref,
+        message: _safeDriveError(error),
+      );
+    }
+  }
+
+  Future<void> _disconnectDrive({required bool revoke}) async {
+    if (mounted) setState(() => _activeActionsSource = null);
+    try {
+      await DriveRuntime.instance.disconnect(revoke: revoke);
+      if (!mounted) return;
+      final driveSourceIds = ref
+          .read(sourcesProvider)
+          .sources
+          .where((source) => source.type == SourceType.drive)
+          .map((source) => source.id);
+      ref.read(sourceHealthProvider.notifier).markUnknown(driveSourceIds);
+      showSuccessNotification(
+        context,
+        ref,
+        message: revoke
+            ? 'Revoked Google Drive access for this app'
+            : 'Disconnected Google Drive for all Drive sources',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showErrorNotification(
+        context,
+        ref,
+        message: _safeDriveError(error),
+      );
+    }
+  }
+
+  String _safeDriveError(Object error) {
+    if (error is DriveApiException ||
+        error is DriveAuthorizationException ||
+        error is DriveCatalogueException) {
+      return error.toString();
+    }
+    return 'Google Drive connection unavailable';
+  }
+
+  String _unsupportedSummary(Map<String, int> counts) {
+    final entries = counts.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return entries.map((entry) => '${entry.value} ${entry.key}').join(', ');
   }
 
   Future<void> _addManualSource(SourceType type) async {
@@ -432,7 +546,11 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
   Future<void> _editMappings(Source source) async {
     setState(() => _activeActionsSource = null);
     final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => SourceMappingsScreen(source: source)),
+      MaterialPageRoute(
+        builder: (_) => source.type == SourceType.drive
+            ? DriveSourceMappingsScreen(source: source)
+            : SourceMappingsScreen(source: source),
+      ),
     );
     if (!mounted) return;
     if (saved == true) {
@@ -505,6 +623,14 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen>
                 onRepair: () => _repairSource(_activeActionsSource!),
                 onEditMappings: () =>
                     _editMappings(_activeActionsSource!),
+                onRefreshDrive: () =>
+                    _refreshDriveSource(_activeActionsSource!),
+                onConfigureDrive: () =>
+                    _configureDriveSource(_activeActionsSource!),
+                onDisconnectDrive: () =>
+                    _disconnectDrive(revoke: false),
+                onRevokeDrive: () =>
+                    _disconnectDrive(revoke: true),
               ),
             if (_showTypePicker)
               _SourceTypePickerOverlay(
@@ -735,6 +861,8 @@ class _SourceCard extends ConsumerWidget {
         return Colors.tealAccent;
       case SourceType.local:
         return Colors.white70;
+      case SourceType.drive:
+        return Colors.blueAccent;
     }
   }
 
@@ -750,6 +878,8 @@ class _SourceCard extends ConsumerWidget {
         return Icons.public;
       case SourceType.local:
         return Icons.sd_card;
+      case SourceType.drive:
+        return Icons.add_to_drive;
     }
   }
 
@@ -982,6 +1112,10 @@ class _SourceActionsOverlay extends ConsumerStatefulWidget {
     required this.onRemove,
     required this.onRepair,
     required this.onEditMappings,
+    required this.onRefreshDrive,
+    required this.onConfigureDrive,
+    required this.onDisconnectDrive,
+    required this.onRevokeDrive,
   });
 
   final Source source;
@@ -990,6 +1124,10 @@ class _SourceActionsOverlay extends ConsumerStatefulWidget {
   final VoidCallback onRemove;
   final VoidCallback onRepair;
   final VoidCallback onEditMappings;
+  final VoidCallback onRefreshDrive;
+  final VoidCallback onConfigureDrive;
+  final VoidCallback onDisconnectDrive;
+  final VoidCallback onRevokeDrive;
 
   @override
   ConsumerState<_SourceActionsOverlay> createState() =>
@@ -1018,6 +1156,31 @@ class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
           icon: Icons.tune,
           label: l.sources_editMappings,
           onActivate: widget.onEditMappings,
+        ),
+      if (src.type == SourceType.drive)
+        _OverlayAction(
+          icon: Icons.refresh,
+          label: 'Refresh catalogue',
+          onActivate: widget.onRefreshDrive,
+        ),
+      if (src.type == SourceType.drive)
+        _OverlayAction(
+          icon: Icons.settings_outlined,
+          label: 'Connect / configure',
+          onActivate: widget.onConfigureDrive,
+        ),
+      if (src.type == SourceType.drive)
+        _OverlayAction(
+          icon: Icons.logout,
+          label: 'Disconnect Google Drive (all Drive sources)',
+          onActivate: widget.onDisconnectDrive,
+        ),
+      if (src.type == SourceType.drive)
+        _OverlayAction(
+          icon: Icons.link_off,
+          label: 'Revoke Google Drive access (all Drive sources)',
+          destructive: true,
+          onActivate: widget.onRevokeDrive,
         ),
       _OverlayAction(
         icon: src.enabled ? Icons.toggle_off : Icons.toggle_on,
@@ -1288,6 +1451,12 @@ class _SourceTypePickerOverlayState
       label: l.sources_sourceTypeRommLegacy,
       hint: l.onboarding_legacyLoginSubtitle,
       isLegacy: true,
+    ),
+    _TypeOption(
+      type: SourceType.drive,
+      icon: Icons.add_to_drive,
+      label: 'Google Drive',
+      hint: 'Private read-only folder via native Google authorization',
     ),
     _TypeOption(
       type: SourceType.smb,

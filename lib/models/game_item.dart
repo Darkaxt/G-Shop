@@ -1,5 +1,6 @@
 import '../utils/game_metadata.dart';
 import 'config/provider_config.dart';
+import 'library_identity.dart';
 
 class AlternativeSource {
   final String url;
@@ -30,6 +31,17 @@ class GameItem {
   final bool hasThumbnail;
   final bool isFolder;
   final List<AlternativeSource> alternativeSources;
+  final RemoteArtifact? remoteArtifact;
+
+  /// Exact file identity is independent of title, location and current version.
+  /// Legacy providers retain their existing filename grouping.
+  String get identityKey => remoteArtifact == null
+      ? 'legacy:$filename'
+      : 'artifact:${remoteArtifact!.id.key}';
+
+  /// Retains existing favorites/shelves keys for all legacy records.
+  String get selectionKey => remoteArtifact == null ? filename : identityKey;
+  String get groupKey => remoteArtifact == null ? displayName : identityKey;
 
   const GameItem({
     required this.filename,
@@ -40,6 +52,7 @@ class GameItem {
     this.hasThumbnail = false,
     this.isFolder = false,
     this.alternativeSources = const [],
+    this.remoteArtifact,
   });
 
   GameItem copyWith({
@@ -49,6 +62,7 @@ class GameItem {
     bool? hasThumbnail,
     bool? isFolder,
     List<AlternativeSource>? alternativeSources,
+    RemoteArtifact? remoteArtifact,
   }) {
     return GameItem(
       filename: filename,
@@ -59,6 +73,7 @@ class GameItem {
       hasThumbnail: hasThumbnail ?? this.hasThumbnail,
       isFolder: isFolder ?? this.isFolder,
       alternativeSources: alternativeSources ?? this.alternativeSources,
+      remoteArtifact: remoteArtifact ?? this.remoteArtifact,
     );
   }
 
@@ -74,6 +89,7 @@ class GameItem {
           : null,
       hasThumbnail: json['hasThumbnail'] as bool? ?? false,
       isFolder: json['isFolder'] as bool? ?? false,
+      remoteArtifact: json['remoteArtifact'] == null ? null : RemoteArtifact.fromJson((json['remoteArtifact'] as Map).cast<String, dynamic>()),
     );
   }
 
@@ -85,6 +101,7 @@ class GameItem {
         if (providerConfig != null) 'providerConfig': providerConfig!.toJson(),
         if (hasThumbnail) 'hasThumbnail': hasThumbnail,
         if (isFolder) 'isFolder': isFolder,
+        if (remoteArtifact != null) 'remoteArtifact': remoteArtifact!.toJson(),
       };
 
   /// Re-injects auth credentials from system providers into games loaded
@@ -114,8 +131,9 @@ class GameItem {
       other is GameItem &&
           filename == other.filename &&
           url == other.url &&
+          remoteArtifact?.id == other.remoteArtifact?.id &&
           isFolder == other.isFolder;
 
   @override
-  int get hashCode => Object.hash(filename, url, isFolder);
+  int get hashCode => Object.hash(filename, url, isFolder, remoteArtifact?.id);
 }

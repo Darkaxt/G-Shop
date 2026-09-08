@@ -1,3 +1,4 @@
+import 'drive_source_config.dart';
 import 'provider_config.dart';
 
 /// Top-level kinds of content sources R-Shop knows how to talk to.
@@ -6,7 +7,7 @@ import 'provider_config.dart';
 /// directory listing (Myrient and friends). RomM is treated as its own
 /// type because it self-describes its platforms via the `/api/platforms`
 /// endpoint and therefore supports auto-mapping.
-enum SourceType { romm, smb, ftp, web, local }
+enum SourceType { romm, smb, ftp, web, local, drive }
 
 extension SourceTypeX on SourceType {
   /// Whether this source can advertise its own platform list — `true` only
@@ -27,6 +28,8 @@ extension SourceTypeX on SourceType {
         return 'WEB';
       case SourceType.local:
         return 'LOCAL';
+      case SourceType.drive:
+        return 'DRIVE';
     }
   }
 }
@@ -104,6 +107,7 @@ class Source {
   final String? share; // smb
   final String? path; // local
   final AuthConfig? auth;
+  final DriveSourceConfig? drive;
 
   // --- Behaviour ---
 
@@ -149,14 +153,15 @@ class Source {
     this.port,
     this.share,
     this.path,
-    this.auth,
+    AuthConfig? auth,
+    this.drive,
     this.autoMap = false,
     this.priority = 100,
     this.enabled = true,
     this.borrowed = false,
     this.tokenExpiresAt,
     this.knownPlatforms = const {},
-  });
+  }) : auth = type == SourceType.drive ? null : auth;
 
   factory Source.fromJson(Map<String, dynamic> json) {
     DateTime? exp;
@@ -175,8 +180,14 @@ class Source {
       port: json['port'] as int?,
       share: json['share'] as String?,
       path: json['path'] as String?,
-      auth: json['auth'] != null
+      auth: typeFromJson(json) == SourceType.drive
+          ? null
+          : json['auth'] != null
           ? AuthConfig.fromJson(json['auth'] as Map<String, dynamic>)
+          : null,
+      drive: typeFromJson(json) == SourceType.drive &&
+              json['drive'] is Map<String, dynamic>
+          ? DriveSourceConfig.fromJson(json['drive'] as Map<String, dynamic>)
           : null,
       autoMap: json['auto_map'] as bool? ?? false,
       priority: json['priority'] as int? ?? 100,
@@ -199,7 +210,8 @@ class Source {
       if (port != null) 'port': port,
       if (share != null) 'share': share,
       if (path != null) 'path': path,
-      if (auth != null) 'auth': auth!.toJson(),
+      if (type != SourceType.drive && auth != null) 'auth': auth!.toJson(),
+      if (type == SourceType.drive && drive != null) 'drive': drive!.toJson(),
       'auto_map': autoMap,
       'priority': priority,
       'enabled': enabled,
@@ -242,6 +254,8 @@ class Source {
         return 'ftp|${host?.toLowerCase()}|$port';
       case SourceType.local:
         return 'local|$path';
+      case SourceType.drive:
+        return 'drive|${drive?.accountId}|${drive?.rootFolderId}';
     }
   }
 
@@ -272,6 +286,10 @@ class Source {
         return host ?? name;
       case SourceType.local:
         return path ?? name;
+      case SourceType.drive:
+        return drive?.isConfigured == true
+            ? 'Read-only account'
+            : 'Setup required';
     }
   }
 
@@ -285,6 +303,7 @@ class Source {
     String? share,
     String? path,
     AuthConfig? auth,
+    DriveSourceConfig? drive,
     bool? autoMap,
     int? priority,
     bool? enabled,
@@ -302,6 +321,7 @@ class Source {
       share: share ?? this.share,
       path: path ?? this.path,
       auth: auth ?? this.auth,
+      drive: drive ?? this.drive,
       autoMap: autoMap ?? this.autoMap,
       priority: priority ?? this.priority,
       enabled: enabled ?? this.enabled,
@@ -310,4 +330,8 @@ class Source {
       knownPlatforms: knownPlatforms ?? this.knownPlatforms,
     );
   }
+
+  static SourceType typeFromJson(Map<String, dynamic> json) =>
+      SourceType.values.asNameMap()[json['type'] as String? ?? 'romm'] ??
+      SourceType.romm;
 }

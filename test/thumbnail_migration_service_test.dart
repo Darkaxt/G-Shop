@@ -23,7 +23,8 @@ Future<Database> _createTestDb() async {
             provider_config TEXT,
             thumb_hash TEXT,
             has_thumbnail INTEGER NOT NULL DEFAULT 0,
-            is_folder INTEGER NOT NULL DEFAULT 0
+            is_folder INTEGER NOT NULL DEFAULT 0,
+            artifact_key TEXT
           )
         ''');
         await db.execute('CREATE INDEX idx_systemSlug ON games (systemSlug)');

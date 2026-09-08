@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/config/source.dart';
+import '../models/config/provider_config.dart';
 import '../models/system_model.dart';
 import '../services/romm_api_service.dart';
 import '../services/romm_platform_matcher.dart';
+import '../services/providers/drive_provider.dart';
+import '../services/source_provider.dart';
 
 enum SourceHealth { unknown, checking, valid, invalid }
 
@@ -59,24 +62,45 @@ class SourceHealthResult {
 }
 
 class SourceHealthNotifier extends StateNotifier<SourceHealthState> {
-  SourceHealthNotifier() : super(const SourceHealthState());
+  SourceHealthNotifier({
+    Future<SourceConnectionResult> Function(Source source)? driveHealthCheck,
+  })  : _driveHealthCheck = driveHealthCheck ?? _checkDrive,
+        super(const SourceHealthState());
 
-  /// Check all enabled RomM sources in parallel. Uses `fetchPlatforms`
-  /// instead of `testConnection` so it both validates the token AND
-  /// discovers new platforms in a single HTTP call.
+  final Future<SourceConnectionResult> Function(Source source)
+      _driveHealthCheck;
+
+  static Future<SourceConnectionResult> _checkDrive(Source source) {
+    return DriveProvider(
+      ProviderConfig(
+        type: ProviderType.drive,
+        priority: source.priority,
+        sourceId: source.id,
+        drive: source.drive,
+      ),
+    ).testConnection();
+  }
+
+  /// Check enabled RomM and Drive sources. RomM uses `fetchPlatforms`
+  /// so it validates the token and discovers platforms in one request. Drive
+  /// performs a non-interactive read of its configured root and never opens an
+  /// account picker or contributes numeric auto-map platform IDs.
   ///
   /// Returns a map of sourceId → discovered platforms for sources that
   /// responded successfully, so callers can update knownPlatforms and
   /// auto-create missing SystemConfigs.
   Future<Map<String, Map<String, int>>> checkAll(List<Source> sources) async {
-    final rommSources = sources
-        .where((s) => s.type == SourceType.romm && s.enabled && s.url != null)
+    final checkableSources = sources
+        .where((s) =>
+            s.enabled &&
+            ((s.type == SourceType.romm && s.url != null) ||
+                s.type == SourceType.drive))
         .toList();
 
-    if (rommSources.isEmpty) return const {};
+    if (checkableSources.isEmpty) return const {};
 
     final checking = Map<String, SourceHealth>.from(state.statuses);
-    for (final s in rommSources) {
+    for (final s in checkableSources) {
       checking[s.id] = SourceHealth.checking;
     }
     state = state.copyWith(statuses: checking);
@@ -85,8 +109,19 @@ class SourceHealthNotifier extends StateNotifier<SourceHealthState> {
     final allSystemIds = SystemModel.supportedSystems.map((s) => s.id);
 
     final results = await Future.wait(
-      rommSources.map((s) async {
+      checkableSources.map((s) async {
         try {
+          if (s.type == SourceType.drive) {
+            final checked = await _driveHealthCheck(s);
+            return MapEntry(
+              s.id,
+              checked.success
+                  ? const SourceHealthResult.valid(null)
+                  : SourceHealthResult.invalid(
+                      checked.error ?? 'Google Drive connection unavailable',
+                    ),
+            );
+          }
           final platforms =
               await api.fetchPlatforms(s.url!, auth: s.auth);
           final known = RommPlatformMatcher.buildKnownPlatforms(
@@ -138,6 +173,16 @@ class SourceHealthNotifier extends StateNotifier<SourceHealthState> {
       statuses: {...state.statuses, sourceId: SourceHealth.valid},
       errors: errors,
     );
+  }
+
+  void markUnknown(Iterable<String> sourceIds) {
+    final statuses = Map<String, SourceHealth>.from(state.statuses);
+    final errors = Map<String, String>.from(state.errors);
+    for (final sourceId in sourceIds) {
+      statuses[sourceId] = SourceHealth.unknown;
+      errors.remove(sourceId);
+    }
+    state = state.copyWith(statuses: statuses, errors: errors);
   }
 }
 

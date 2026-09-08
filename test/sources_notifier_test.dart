@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
+import 'package:retro_eshop/models/config/drive_source_config.dart';
 import 'package:retro_eshop/models/config/source.dart';
 import 'package:retro_eshop/models/config/system_config.dart';
 import 'package:retro_eshop/services/config_storage_service.dart';
@@ -60,6 +61,41 @@ Source _romm({
 }
 
 void main() {
+  group('SourcesNotifier — Drive mappings', () {
+    test('creates newly mapped supported systems from an empty config', () async {
+      final storage = _storageInTempDir();
+      final notifier = SourcesNotifier(storage);
+      await notifier.ready;
+      const source = Source(
+        id: 'drive-source',
+        name: 'Drive',
+        type: SourceType.drive,
+        drive: DriveSourceConfig(
+          accountId: 'account',
+          rootFolderId: 'root-folder',
+          serverClientId: 'client-id',
+        ),
+      );
+      await notifier.addSource(source);
+
+      await notifier.setMappingsForSource(
+        source.id,
+        const {'snes': 'observed-folder-id'},
+        targetBasePath: '/roms',
+      );
+
+      final saved = await storage.loadConfig();
+      final system = saved!.systemById('snes');
+      expect(system, isNotNull);
+      expect(system!.targetFolder, '/roms/snes');
+      expect(system.manualMappings.single.sourceId, source.id);
+      expect(system.manualMappings.single.remotePath, 'observed-folder-id');
+      expect(system.providers.single.type, ProviderType.drive);
+      expect(system.providers.single.sourceId, source.id);
+      expect(system.providers.single.path, 'observed-folder-id');
+    });
+  });
+
   group('SourcesNotifier — bootstrap', () {
     test('starts in loading state and resolves to empty list when no config',
         () async {

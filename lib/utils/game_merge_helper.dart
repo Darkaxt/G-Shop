@@ -18,6 +18,8 @@ class GameMergeHelper {
     // (e.g. "Game.zip" -> "Game.iso"), so we can skip redundant local entries.
     final remoteTargetNames = <String>{};
     for (final game in remoteGames) {
+      // A local namesake is not proof that an exact remote object is installed.
+      if (game.remoteArtifact != null) continue;
       final targetName = RomManager.getTargetFilename(game, system);
       if (targetName != game.filename) {
         remoteTargetNames.add(targetName);
@@ -35,7 +37,7 @@ class GameMergeHelper {
     // Merge: remote wins on filename collision (has URL, cover, provider info)
     final byFilename = <String, GameItem>{};
     for (final game in remoteGames) {
-      byFilename[game.filename] = game;
+      byFilename[game.identityKey] = game;
     }
     for (final game in localGames) {
       if (remoteTargetNames.contains(game.filename)) {
@@ -43,12 +45,12 @@ class GameMergeHelper {
             '(matches remote archive target)');
         continue;
       }
-      if (byFilename.containsKey(game.filename)) {
+      if (byFilename.containsKey(game.identityKey)) {
         debugPrint('GameMergeHelper: local "${game.filename}" '
             'shadowed by remote with same filename');
         continue;
       }
-      byFilename[game.filename] = game;
+      byFilename[game.identityKey] = game;
     }
 
     return byFilename.values.toList()

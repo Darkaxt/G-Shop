@@ -186,9 +186,10 @@ class FavoriteGamesNotifier extends StateNotifier<List<String>> {
     // Build displayName → filenames map
     final nameToFilenames = <String, List<String>>{};
     for (final game in allGames) {
+      if (game.remoteArtifact != null) continue;
       nameToFilenames
           .putIfAbsent(game.displayName, () => [])
-          .add(game.filename);
+          .add(game.selectionKey);
     }
 
     final migrated = <String>{};
@@ -446,4 +447,3 @@ final storageInfoProvider =
     FutureProvider.autoDispose.family<StorageInfo?, String>(
   (ref, path) => DiskSpaceService.getFreeSpace(path),
 );
-

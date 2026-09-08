@@ -12,9 +12,15 @@ import '../../../providers/game_providers.dart';
 import '../../../services/romm_api_service.dart';
 import '../../../services/romm_pairing_service.dart';
 import '../../../services/romm_platform_matcher.dart';
+import '../../../services/drive/drive_runtime.dart';
+import '../../../services/drive/drive_api.dart';
+import '../../../services/drive/drive_authorization.dart';
+import '../../../services/drive/drive_catalogue.dart';
 import '../../../models/system_model.dart';
 import '../../pairing/qr_pairing_screen.dart';
 import '../../sources/manual_source_add_screen.dart';
+import '../../sources/drive_source_mappings_screen.dart';
+import '../../sources/drive_source_setup_screen.dart';
 import '../../sources/source_mappings_screen.dart';
 import '../onboarding_controller.dart';
 import 'romm_legacy_login_screen.dart';
@@ -225,12 +231,46 @@ class _WelcomeChooserStepState extends ConsumerState<WelcomeChooserStep> {
     if (type == null || !mounted) return;
 
     final source = await Navigator.of(context).push<Source?>(
-      MaterialPageRoute(builder: (_) => ManualSourceAddScreen(type: type)),
+      MaterialPageRoute(
+        builder: (_) => type == SourceType.drive
+            ? const DriveSourceSetupScreen()
+            : ManualSourceAddScreen(type: type),
+      ),
     );
     if (!mounted || source == null) return;
 
+    if (source.type == SourceType.drive) {
+      setState(() {
+        _busy = true;
+        _busyMessage = 'Refreshing Drive catalogue';
+      });
+      try {
+        await DriveRuntime.instance.refreshSource(source);
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _busy = false;
+          _busyMessage = error is DriveApiException ||
+                  error is DriveAuthorizationException ||
+                  error is DriveCatalogueException
+              ? error.toString()
+              : 'Google Drive connection unavailable';
+        });
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _busyMessage = null;
+      });
+    }
+
     final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => SourceMappingsScreen(source: source)),
+      MaterialPageRoute(
+        builder: (_) => source.type == SourceType.drive
+            ? DriveSourceMappingsScreen(source: source)
+            : SourceMappingsScreen(source: source),
+      ),
     );
     if (!mounted || saved != true) return;
 
@@ -269,7 +309,12 @@ class _WelcomeChooserStepState extends ConsumerState<WelcomeChooserStep> {
           title: Text(L.of(context).onboarding_serverType,
               style: const TextStyle(color: Colors.white)),
           content: _TypePickerBody(
-            types: const [SourceType.smb, SourceType.ftp, SourceType.web],
+            types: const [
+              SourceType.drive,
+              SourceType.smb,
+              SourceType.ftp,
+              SourceType.web,
+            ],
             iconFor: _iconFor,
             onPick: (t) => Navigator.of(ctx).pop(t),
           ),
@@ -286,6 +331,8 @@ class _WelcomeChooserStepState extends ConsumerState<WelcomeChooserStep> {
         return Icons.cloud_queue;
       case SourceType.web:
         return Icons.public;
+      case SourceType.drive:
+        return Icons.add_to_drive;
       default:
         return Icons.dns_outlined;
     }
@@ -558,4 +605,3 @@ class _TypePickerBodyState extends State<_TypePickerBody> {
     );
   }
 }
-

@@ -168,6 +168,8 @@ class OnboardingState {
         return has('host') && has('port') && has('share') && has('path');
       case ProviderType.romm:
         return has('url');
+      case ProviderType.drive:
+        return false;
     }
   }
 
@@ -190,6 +192,8 @@ class OnboardingState {
       case ProviderType.web:
       case ProviderType.romm:
         if (!has('url')) missing.add('URL');
+      case ProviderType.drive:
+        return 'Configure Google Drive from Sources';
     }
     if (missing.isEmpty) return null;
     return 'Required: ${missing.join(', ')}';

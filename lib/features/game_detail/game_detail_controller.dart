@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/input/app_intents.dart';
 import '../../models/game_item.dart';
+import '../../models/config/provider_config.dart';
 import '../../models/game_metadata_info.dart';
 import '../../models/system_model.dart';
 import '../../models/ra_models.dart';
@@ -438,11 +439,17 @@ class GameDetailController extends ChangeNotifier {
   }
 
   Future<void> checkInstallationStatus() async {
-    final status = await _romManager.checkMultipleExists(
-      variants,
-      system,
-      targetFolder,
-    );
+    // Exact files require S3 installation manifests. Do not associate them
+    // with a local namesake or expose that unrelated file to legacy removal.
+    final legacy = variants.indexed.where((entry) => !_requiresVerifiedInstallation(entry.$2)).toList();
+    final status = {for (var i = 0; i < variants.length; i++) i: false};
+    if (legacy.isNotEmpty) {
+      final legacyStatus = await _romManager.checkMultipleExists(
+        legacy.map((entry) => entry.$2).toList(), system, targetFolder);
+      for (var i = 0; i < legacy.length; i++) {
+        status[legacy[i].$1] = legacyStatus[i] ?? false;
+      }
+    }
     _state = _state.copyWith(installedStatus: status);
     notifyListeners();
   }
@@ -472,6 +479,11 @@ class GameDetailController extends ChangeNotifier {
 
   Future<void> deleteRom() async {
     if (_state.isDeleting) return;
+    if (_requiresVerifiedInstallation(selectedVariant)) {
+      _state = _state.copyWith(error: 'Verified remote artifact installations are not configured.', activeOverlay: ActiveOverlay.none);
+      notifyListeners();
+      return;
+    }
     _state = _state.copyWith(isDeleting: true, clearError: true);
     notifyListeners();
     try {
@@ -493,6 +505,9 @@ class GameDetailController extends ChangeNotifier {
     _state = _state.copyWith(isSharing: value);
     notifyListeners();
   }
+
+  static bool _requiresVerifiedInstallation(GameItem game) =>
+      game.remoteArtifact != null || game.providerConfig?.type == ProviderType.drive;
 
   String get cleanTitle => GameMetadata.cleanTitle(selectedVariant.filename);
 

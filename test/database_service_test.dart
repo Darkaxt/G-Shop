@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/database_service.dart';
+import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
 void main() {
   late Database db;
@@ -68,6 +70,7 @@ void main() {
         },
       ),
     );
+    await DatabaseService.migrateGameArtifactIdentity(db);
     DatabaseService.testDatabase = db;
     service = DatabaseService();
   });
@@ -78,6 +81,62 @@ void main() {
   });
 
   // ─── Schema ─────────────────────────────────────────────
+
+  test('explicit successful Drive snapshot removes a large catalogue down to zero', () async {
+    await service.saveGames('nes', List.generate(100, (i) => exactGame('file-$i')));
+    await service.saveGames('nes', [], deleteOrphans: true,
+        authoritativeDriveSourceIds: {'source'});
+    expect(await service.getGames('nes'), isEmpty);
+  });
+
+  test('exact IDs alone do not grant complete snapshot deletion authority', () async {
+    for (final count in [3, 100]) {
+      await service.saveGames('nes', List.generate(count, (i) => exactGame('file-$i')));
+      await service.saveGames('nes', [], deleteOrphans: true);
+      expect(await service.getGames('nes'), hasLength(count));
+    }
+  });
+
+  test('Drive authority bypass preserves legacy and other exact source orphans', () async {
+    final base = exactGame('other-file');
+    GameItem otherArtifact(String providerId, String sourceId) => base.copyWith(
+      remoteArtifact: RemoteArtifact.fromJson({
+        ...base.remoteArtifact!.toJson(),
+        'id': {...base.remoteArtifact!.id.toJson(), 'providerId': providerId, 'sourceId': sourceId},
+      }),
+    );
+    final untouched = [
+      ...List.generate(10, (i) => GameItem(filename: 'legacy-$i.nes', displayName: 'Legacy $i', url: 'https://example.test/$i')),
+      otherArtifact('drive', 'other-source'),
+      otherArtifact('other-provider', 'source'),
+    ];
+    await service.saveGames('nes', [
+      ...List.generate(100, (i) => exactGame('file-$i')),
+      ...untouched,
+    ]);
+    await service.saveGames('nes', [], deleteOrphans: true,
+        authoritativeDriveSourceIds: {'source'});
+    final remaining = await service.getGames('nes');
+    expect(remaining.map((g) => g.identityKey).toSet(), untouched.map((g) => g.identityKey).toSet());
+  });
+
+  test('exact cache preserves duplicate filenames, rename and orphan isolation', () async {
+    final first = exactGame('a');
+    final second = exactGame('b');
+    final otherAccount = exactGame('a', account: 'account-b');
+    const legacy = GameItem(filename: 'Game.nes', displayName: 'Legacy', url: 'https://example.test/game');
+    await service.saveGames('nes', [first, second, otherAccount, legacy]);
+    final before = await db.query('games');
+    final firstId = before.firstWhere((row) => row['artifact_key'] == first.remoteArtifact!.id.key)['id'];
+    await service.saveGames('nes', [exactGame('a', name: 'Renamed.nes'), otherAccount, legacy], forceDeleteOrphans: true);
+    final after = await service.getGames('nes');
+    expect(after, hasLength(3));
+    expect(after.where((g) => g.remoteArtifact == null).single.url, legacy.url);
+    final row = (await db.query('games')).firstWhere((row) => row['artifact_key'] == first.remoteArtifact!.id.key);
+    expect(row['id'], firstId);
+    expect(row['filename'], 'Renamed.nes');
+    expect(after.where((g) => g.remoteArtifact?.id == otherAccount.remoteArtifact!.id), hasLength(1));
+  });
 
   group('Schema', () {
     test('games table exists with all columns', () async {

@@ -1,5 +1,6 @@
 import '../models/config/provider_config.dart';
 import 'game_item.dart';
+import 'library_identity.dart';
 import 'system_model.dart';
 
 enum DownloadStatus {
@@ -143,6 +144,7 @@ class DownloadItem {
       'gameUrl': game.url,
       'gameDisplayName': game.displayName,
       'gameCachedCoverUrl': game.cachedCoverUrl,
+      if (game.remoteArtifact != null) 'remoteArtifact': game.remoteArtifact!.toJson(),
       'systemId': system.id,
       'targetFolder': targetFolder,
       'autoExtract': autoExtract,
@@ -185,6 +187,7 @@ class DownloadItem {
         cachedCoverUrl: json['gameCachedCoverUrl'] as String?,
         providerConfig: providerConfig,
         isFolder: json['isFolder'] as bool? ?? false,
+        remoteArtifact: json['remoteArtifact'] == null ? null : RemoteArtifact.fromJson((json['remoteArtifact'] as Map).cast<String, dynamic>()),
       ),
       system: system,
       targetFolder: (json['targetFolder'] ?? json['romPath']) as String,

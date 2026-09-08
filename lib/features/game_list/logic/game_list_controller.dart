@@ -190,7 +190,8 @@ class GameListController extends ChangeNotifier {
     _groupGames();
     _restoreFilters();
     _resolveInstalledStatus();
-    _databaseService.saveGames(system.id, _state.allGames, deleteOrphans: true);
+    await _databaseService.saveGames(system.id, _state.allGames, deleteOrphans: true,
+        authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
     onGamesSaved?.call();
   }
 
@@ -213,9 +214,14 @@ class GameListController extends ChangeNotifier {
       if (_disposed) return;
       final games = GameMergeHelper.merge(remoteGames, localGames, system);
 
-      // Only update UI if game list actually changed
-      final oldFilenames = _state.allGames.map((g) => g.filename).toSet();
-      final newFilenames = games.map((g) => g.filename).toSet();
+      // Keep queued selections aligned with the current exact artifact version,
+      // including size/checksum changes when its provider ID and name persist.
+      // Legacy games retain their existing identity/name comparison semantics.
+      String comparisonKey(GameItem game) => game.remoteArtifact == null
+          ? '${game.identityKey}:${game.filename}'
+          : jsonEncode([game.identityKey, game.filename, game.remoteArtifact!.toJson()]);
+      final oldFilenames = _state.allGames.map(comparisonKey).toSet();
+      final newFilenames = games.map(comparisonKey).toSet();
       if (oldFilenames.length != newFilenames.length ||
           !oldFilenames.containsAll(newFilenames)) {
         _state = _state.copyWith(allGames: games, isLocalOnly: false);
@@ -223,7 +229,8 @@ class GameListController extends ChangeNotifier {
         _restoreFilters();
         _resolveInstalledStatus();
       }
-      _databaseService.saveGames(system.id, games, deleteOrphans: true);
+      await _databaseService.saveGames(system.id, games, deleteOrphans: true,
+          authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
       _storage?.setLastSyncTime(system.id, DateTime.now());
       onGamesSaved?.call();
       if (_state.isOffline) {
@@ -240,9 +247,12 @@ class GameListController extends ChangeNotifier {
   void _groupGames() {
     final groupedGames = <String, List<GameItem>>{};
     for (final game in _state.allGames) {
-      groupedGames.putIfAbsent(game.displayName, () => []).add(game);
+      groupedGames.putIfAbsent(game.groupKey, () => []).add(game);
     }
-    final allGroups = groupedGames.keys.toList()..sort();
+    final allGroups = groupedGames.keys.toList()..sort((a, b) {
+      final comparison = groupedGames[a]!.first.displayName.compareTo(groupedGames[b]!.first.displayName);
+      return comparison == 0 ? a.compareTo(b) : comparison;
+    });
 
     // Build region/language caches
     final regionCache = <String, RegionInfo>{};
@@ -375,7 +385,7 @@ class GameListController extends ChangeNotifier {
     // 1. Search filter
     if (_state.searchQuery.isNotEmpty) {
       groups = groups
-          .where((name) => GameMetadata.normalizeForSearch(name).contains(_state.searchQuery))
+          .where((name) => GameMetadata.normalizeForSearch(_state.groupedGames[name]!.first.displayName).contains(_state.searchQuery))
           .toList();
     }
 
@@ -418,12 +428,12 @@ class GameListController extends ChangeNotifier {
     }
 
     if (filters.favoritesOnly) {
-      final isFavorite = _storage?.getFavorites().contains(game.filename) ?? false;
+      final isFavorite = _storage?.getFavorites().contains(game.selectionKey) ?? false;
       if (!isFavorite) return false;
     }
 
     if (filters.localOnly) {
-      if (_state.installedCache[game.displayName] != true) {
+      if (_state.installedCache[game.groupKey] != true) {
         return false;
       }
     }
@@ -448,6 +458,7 @@ class GameListController extends ChangeNotifier {
 
   bool _isAnyVariantInSet(List<GameItem> variants, Set<String> filenames) {
     for (final variant in variants) {
+      if (variant.remoteArtifact != null) continue;
       final fn = variant.filename;
       if (filenames.contains(fn)) return true;
       // Check archive→extracted match
@@ -466,7 +477,7 @@ class GameListController extends ChangeNotifier {
 
   Future<bool> _isAnyVariantInstalled(List<GameItem> variants) async {
     final romManager = RomManager();
-    return romManager.isAnyVariantInstalled(variants, system, targetFolder);
+    return romManager.isAnyVariantInstalled(variants.where((g) => g.remoteArtifact == null).toList(), system, targetFolder);
   }
 
   Future<void> updateInstalledStatus(String displayName) async {
