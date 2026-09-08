@@ -81,6 +81,64 @@ without reconnecting the account first.
 Still required: actual consent, cancel/denial, renewal/reconnect, account isolation
 and revoke proof on the Thor. Mocked native-platform tests do not satisfy these.
 
+## Native foundation tests (no provider accounts or ROM access)
+
+`integration_test/android_foundations_test.dart` runs on Android's actual Flutter
+activity, SQLite, secure-storage and Google Sign-In plugins. It does not start
+the normal app/library/queue, read a ROM, invoke account selection or contact a
+metadata provider. It requires the isolated debug package before creating any
+fixtures. The shared migration fixture opens a temporary database, not `rshop.db`
+in the normal database directory. Secure-storage fixtures use their own
+preferences/key namespace and remove only their synthetic keys.
+
+The Google test initializes without a client ID, exercising the native local
+resource lookup, then verifies the adapter's setup-required result. This is
+plugin-startup proof only: it cannot prove OAuth configuration, consent, tokens,
+Drive access, or ScreenScraper access. Database reopen and a newly constructed
+credential store are not process-death/relaunch proof.
+
+After dependency resolution, build the test entrypoint explicitly in debug:
+
+```powershell
+$env:TEMP = 'D:\Temp\rshop-native-test'
+$env:TMP = $env:TEMP
+$env:FLUTTER_TEST_OUTPUTS_DIR = 'D:\Temp\rshop-native-test\reports'
+& D:\Tools\flutter\bin\flutter.bat build apk --debug --no-pub --target=integration_test/android_foundations_test.dart --target-platform=android-arm64
+```
+
+Create the named temporary directory first and use the SDK/Pub environment above.
+Project Gradle settings cap the heap at 3 GiB, metaspace at 1 GiB and workers at
+two; Kotlin compiles in-process. These are component limits, not a claim that the
+whole build process tree can never exceed 4 GiB. Run no second workload while it
+is active. Flutter's generated `builtInKotlin=false`/`newDsl=false` settings keep
+the existing Kotlin plugin/DSL route with this SDK.
+The existing `flutter_soloud` 2.1.7 plugin additionally requires NDK 23.1.7779620;
+the Android SDK manager installed that side-by-side component and SDK Platform 33
+during the first native build. The app itself uses Flutter's NDK 28.2.13676358.
+Neither installation replaces another project's SDK/NDK selection.
+
+Before any installation, independently inspect
+`build\app\outputs\flutter-apk\app-debug.apk` using SDK `aapt dump badging`,
+`apksigner verify --verbose --print-certs`, and SHA-256. Require the package,
+version, architecture and debug signer described above. Check the exact package
+on the explicitly selected ADB device; do not replace an unrelated installation.
+Then supply that **same inspected APK**, not a newly rebuilt binary:
+
+```powershell
+& D:\Tools\flutter\bin\flutter.bat drive --debug --no-pub -d bfa98654 --driver=test_driver/integration_test.dart --target=integration_test/android_foundations_test.dart --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk --keep-app-running
+```
+
+Flutter Driver otherwise uninstalls its app at exit. `--keep-app-running` prevents
+that teardown, but Flutter's install-error recovery can still uninstall an
+existing matching package. Use this route only for a confirmed absent or entirely
+test-owned package. An existing valuable installation instead requires direct
+non-uninstalling `adb install -t -r`, explicit launch and attaching the driver to
+its observed VM-service URL with `--use-existing-app`.
+
+Inspect the exit status and per-test results. Stop only the exact test package
+afterwards; fixture cleanup and generated-build cleanup must not target the real
+library. A foundation-test APK is not the usable Drive/metadata application.
+
 ## ScreenScraper: independent application and user access
 
 Obtain legitimate developer authorization **for this fork**, plus a user account

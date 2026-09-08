@@ -13,8 +13,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
   live recovery and fresh metadata/rating verification. No deletion before those
   gates; saves/BIOS/settings and uncertain/unrecoverable files are preserved.
-- Live account setup, full scraping, ROM transfer, SD removal, APK installation
-  and releases: not performed, including the S1 foundation work.
+- Live account setup, full scraping, ROM transfer, SD removal and releases:
+  not performed. An isolated synthetic-only debug APK has now passed the native
+  foundation checks on the Thor and was removed afterwards; this is not a
+  deployment of the usable Drive/metadata features.
 - Old scraped metadata: explicitly rejected as the new trusted baseline.
 - Metadata-backed best-rated-N and content/genre filters: required in this scope.
   User clarified that the overlay suggestion did not waive the recommended shared
@@ -47,7 +49,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | In progress | Additive v14 store, exact identities/mappings, native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; fixture checks below | Normal runtime wiring and native package proof still required; Google/ScreenScraper account setup and live acceptance not available |
+| S1 | In progress | Additive v14 store, exact identities/mappings, native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Normal runtime wiring still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | Not started | None | DRIVE-02, DRIVE-03 |
 | S3 | Not started | None | DRIVE-04, DRIVE-05, DRIVE-06 |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
@@ -94,8 +96,9 @@ outside the seven implementation stages. Revision 2 has 24 requirements; the
   persistent queue, details or discovery UI. RomM behavior remains unchanged.
 - Fork Android IDs are isolated from upstream: debug `com.darkaxt.rshop.debug`,
   future release `com.darkaxt.rshop`. Existing local debug certificate inspected;
-  no keystore replaced. No APK compiled/inspected/installed, so source configuration
-  is not native package or device proof. Setup is in [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md).
+  no keystore replaced. At this initial checkpoint no APK was compiled/inspected/
+  installed; the subsequent native checkpoint below adds that evidence. Setup is
+  in [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md).
 - Tests ran in one workload at a time. Targeted baseline/storage/config checks:
   148 passed. The first full run passed 1,703 and failed four existing Windows
   cases: slash-only folder basename parsing and real multicast socket options.
@@ -124,10 +127,73 @@ outside the seven implementation stages. Revision 2 has 24 requirements; the
 | --- | --- | --- |
 | CORE-01 | Separate metadata/artifact store; legacy cache unchanged | Actual catalogue, queue and installation residency wiring |
 | CORE-02 | Scoped IDs, edition/disc evidence, explicit platform mappings | IDs survive every S2 merge/cache/queue boundary and user corrections |
-| CORE-03 | Additive v13-to-v14 database migration and restart tests | Integrated source/config/queue migration and S6 regression proof |
+| CORE-03 | Additive v13-to-v14 migration and DB reopen tests on host and Android | Integrated source/config/queue migration, process-relaunch and S6 regression proof |
 | DRIVE-01 | Native-plugin adapter and deterministic authorization fixtures | Setup UI, real consent/cancel/renew/revoke and account proof on Thor |
 | META-02 | Functional independent API adapter/secure credential store fixtures | Legitimate developer/user setup, live authenticated lookup and UI wiring |
-| QA-03 | Redaction tests and separate package/signer plan | Actual APK identity/secure-storage/privacy and provider-consent proof |
+| QA-03 | Redaction fixtures, inspected/installed APK identity, native synthetic secure-storage round trip | Integrated privacy and real provider-consent proof |
+
+### Native foundation checkpoint (2026-09-08)
+
+- The user's connected-console instruction authorized live ADB testing. Verified
+  AYN Thor / Android 13 / ARM64 and no existing R-Shop package before installation.
+  SD free space was about 291 GiB; no ROM inventory, transfer or deletion was run.
+- Added four reproducible Android integration cases: isolated activity rendering,
+  actual SQLite v13-to-v14 migration/reopen, separate developer/user credential
+  secure-storage round trip, and native Google plugin configuration lookup.
+  The migration fixture is shared with the host test so the native path exercises
+  production database callbacks, without opening the normal app database.
+- Targeted host migration/store/authorization checks: **25 passed**, exit 0.
+  Scoped Dart analysis of the new/shared tests and driver: **no issues**, exit 0.
+- Final `flutter test --no-pub --concurrency=1 --exclude-tags live --reporter
+  expanded`: **1,707 passed**, exit 0 (2 min 43 s), after the device run.
+  Fresh full `flutter analyze --no-pub` still reports exactly the four existing
+  diagnostics listed above, exit 1; no new diagnostic and no analyzer suppression.
+- `flutter build apk --debug --no-pub
+  --target=integration_test/android_foundations_test.dart
+  --target-platform=android-arm64`: **passed**, exit 0 (first build 1,506.8 s).
+  SDK manager installed the existing audio plugin's NDK 23.1.7779620 and Platform
+  33 prerequisites alongside existing versions. Gradle/Kotlin future-compatibility
+  and dependency Java-8 deprecation warnings remain visible; no bypass added.
+- `aapt dump badging` established package `com.darkaxt.rshop.debug`, label
+  `R-Shop Drive Dev`, version `1.7.0` / `12`, debuggable, min SDK 24 / target 36
+  and ARM64 support. `apksigner verify --verbose --print-certs` verified one signer
+  matching the documented debug SHA-1. APK SHA-256:
+  `7034b9395b5c3b62baf4cf45d53e9993e5352fb33db832ec00a6d996d4ad89ac`.
+  The installed `base.apk` SHA-256 also matched this exact artifact.
+- `flutter drive --debug --no-pub -d bfa98654
+  --driver=test_driver/integration_test.dart
+  --target=integration_test/android_foundations_test.dart
+  --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk
+  --keep-app-running`: **all four native cases passed**, exit 0. Framework setup
+  and teardown add two entries to its progress counter; they are not extra cases.
+- No native plugin was mocked. No normal app bootstrap, account picker, token,
+  provider lookup, SD permission grant or ROM access was invoked. Android app-ops
+  showed no all-files-access operations and default permission mode. DB reopen
+  and new credential-store instances are not process-death recovery proof.
+- The Google test's omitted client ID invokes the Android local configuration
+  lookup. The adapter then reports `setupRequired`. This proves native plugin
+  registration, **not** OAuth configuration, consent or successful Drive access.
+  Real ScreenScraper credentials and rating/source validation also remain pending.
+- Force-stopped and uninstalled only the newly created, test-owned debug package;
+  confirmed it absent afterwards. No usable app deployment or release is claimed.
+- Ran one build/test workload at a time. Gradle uses a 3 GiB heap, 1 GiB metaspace,
+  two workers and in-process Kotlin. Observed native daemon private memory reached
+  about 3.1 GiB in samples, with a separate wrapper around 1.2 GiB; these are
+  samples, not a measured process-tree peak. System commit headroom remained
+  above 40 GiB in the recorded checks. No duplicate workload was launched.
+- Confirmed the build's sole Gradle 8.14 daemon idle and stopped it through
+  Gradle after verification; unrelated Java processes were left alone.
+- Reviewed transactional cleanup removed 8,058 generated entries and reported
+  1,859,209,527 bytes reclaimed. The repository build directory, test APK and
+  task-specific temporary directory are gone; installed SDK/dependency caches
+  remain. Eight hardlinked CMake command records (679,014 summed path bytes,
+  not unique allocation) remain protected in the audio plugin's `.cxx` cache.
+  Revoked the residual directory-removal ticket rather than bypassing those
+  protections or claiming the protected records had been removed.
+
+This checkpoint adds device evidence for foundations only. S1 acceptance and
+S2-S7 remain unfinished; it does not authorize skipping the cloud recovery,
+fresh rating/metadata or exact-file gates before Top-25 SD migration.
 
 ### Preparation verification (2026-09-08)
 
@@ -150,7 +216,7 @@ outside the seven implementation stages. Revision 2 has 24 requirements; the
 | Dependency | Stage / requirements | Resolution and gate |
 | --- | --- | --- |
 | Implementation authorization | Before S1 | Satisfied: explicit "go ahead then" on 2026-09-08 |
-| Flutter/Android toolchain | S1 / CORE-03, QA-01 | Flutter 3.47.2/Dart 3.13.2 and host tests established; native build/device proof still required |
+| Flutter/Android toolchain | S1 / CORE-03, QA-01 | Flutter 3.47.2/Dart 3.13.2, host fixtures and debug APK/native foundation proof established; integrated feature/device acceptance remains required |
 | Google application configuration and consent | S1 / DRIVE-01, QA-03 | New account-owned project/client setup required; package/signer plan documented, no copied secrets |
 | ScreenScraper application authorization | S1 / META-02 | Obtain legitimate developer access for this fork; existing RetroBat user credentials do not establish application authorization |
 | ScreenScraper user access/quota | S1 / META-02 | User enters or explicitly authorizes account setup; verify capabilities and redact all request diagnostics |
