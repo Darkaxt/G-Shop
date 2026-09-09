@@ -52,6 +52,8 @@ class TransferJournal {
     if (record.revision != 0 ||
         record.lifecycle != TransferLifecycle.queued ||
         record.durableOffset != 0 ||
+        record.stageIdentity != null ||
+        record.publication != null ||
         record.verifiedChecksums.isNotEmpty ||
         record.errorCode != null) {
       throw StateError('A new transfer must be a pristine queued record');
@@ -103,6 +105,9 @@ class TransferJournal {
         previous.verifiedChecksums,
         record.verifiedChecksums,
       );
+      if (hashesChanged && previous.verifiedChecksums.isNotEmpty) {
+        throw StateError('Verified digests cannot change or disappear');
+      }
       if (hashesChanged && record.lifecycle != TransferLifecycle.verifying) {
         throw StateError(
             'Verified hashes may only be recorded while verifying');
@@ -113,14 +118,17 @@ class TransferJournal {
           throw StateError('Partial bytes cannot be recorded as verified');
         }
       }
+      _requireStageCheckpoint(previous, record, hashesChanged: hashesChanged);
+      _requirePublicationCheckpoint(previous, record);
       final next = record.copyWith(revision: record.revision + 1);
       await _updateTransfer(txn, next, expectedRevision: record.revision);
       return next;
     });
   }
 
-  /// Explicitly forgets durable partial progress after the transfer engine has
-  /// discarded this transfer's stage bytes. No file is touched by the journal.
+  /// Resets legacy identity-null progress only. Owned stage/publication records
+  /// require a separate durable reset protocol; forgetting them could orphan
+  /// bytes after a crash. No file is touched by this journal.
   Future<TransferRecord> resetPartial(TransferRecord record) async {
     final db = await _database;
     return db.transaction((txn) async {
@@ -129,6 +137,10 @@ class TransferJournal {
       if (record.lifecycle != TransferLifecycle.paused &&
           record.lifecycle != TransferLifecycle.failed) {
         throw StateError('Partial reset requires a paused or failed transfer');
+      }
+      if (record.stageIdentity != null || record.publication != null) {
+        throw StateError(
+            'Owned bytes require an explicit durable reset protocol');
       }
       final next = record.copyWith(
         durableOffset: 0,
@@ -140,13 +152,60 @@ class TransferJournal {
     });
   }
 
+  /// Captures a native resume receipt after the owned private stage has been
+  /// opened and its uncommitted tail trimmed to the journal's durable offset.
+  /// This is not a generic checkpoint or reset: the native resume must pin the
+  /// recorded object and finish before the caller writes new bytes. The existing
+  /// identity/offset is the durable recovery intent. Only an unverified stage's
+  /// timestamp can be rebound; verified stage evidence remains exact.
+  Future<TransferRecord> resumeStageCheckpoint(
+    TransferRecord record,
+    NativeFileIdentity openedIdentity,
+  ) async {
+    final db = await _database;
+    return db.transaction((txn) async {
+      final previous = await _requiredTransfer(txn, record.id);
+      _requireExactRecord(previous, record);
+      if (record.lifecycle != TransferLifecycle.transferring &&
+          record.lifecycle != TransferLifecycle.verifying) {
+        throw StateError(
+            'Native resume requires an active transfer or verification');
+      }
+      final stage = record.stageIdentity;
+      if (stage == null || record.publication != null) {
+        throw StateError('Native resume requires an owned unpublished stage');
+      }
+      if (stage.sizeBytes != record.durableOffset ||
+          openedIdentity.sizeBytes != record.durableOffset ||
+          !stage.sameObject(openedIdentity)) {
+        throw StateError(
+            'Native resume cannot change the stage object or durable offset');
+      }
+      if (record.verifiedChecksums.isNotEmpty &&
+          !stage.matches(openedIdentity)) {
+        throw StateError('Native resume cannot change verified stage evidence');
+      }
+      final next = record.copyWith(
+        stageIdentity: openedIdentity,
+        revision: record.revision + 1,
+      );
+      await _updateTransfer(txn, next, expectedRevision: record.revision);
+      return next;
+    });
+  }
+
   /// Commits the exact installation manifest and `completed` lifecycle together.
   /// The caller must already have published the bytes and captured native file
   /// identity; this transaction makes only the durable ownership declaration.
+  /// [checkCancellation] runs before writes and after all writes. A thrown
+  /// cancellation rolls back the whole transaction. The final synchronous check
+  /// is the commit linearization point: cancellation after it may truthfully
+  /// return completed if the database commit succeeds.
   Future<TransferRecord> complete(
     TransferRecord record,
-    InstalledArtifact installation,
-  ) async {
+    InstalledArtifact installation, {
+    void Function()? checkCancellation,
+  }) async {
     final db = await _database;
     return db.transaction((txn) async {
       final previous = await _requiredTransfer(txn, record.id);
@@ -179,6 +238,7 @@ class TransferJournal {
         throw StateError('Destination already has an installation manifest');
       }
 
+      checkCancellation?.call();
       await txn.insert('installed_artifacts', {
         'installation_id': installation.id,
         'transfer_id': installation.transferId,
@@ -206,6 +266,7 @@ class TransferJournal {
       if (ownerUpdates != 1) {
         throw StateError('Destination ownership changed during completion');
       }
+      checkCancellation?.call();
       return completed;
     });
   }
@@ -341,9 +402,28 @@ class TransferJournal {
     if (record.lifecycle != TransferLifecycle.publishing) {
       throw StateError('Completion requires the publishing lifecycle');
     }
+    _requireVerifiedBytes(record);
+    final publication = record.publication;
+    if (publication == null ||
+        !publication.confirmed ||
+        publication.destinationIdentity == null ||
+        !publication.sourceIdentity.matches(record.stageIdentity!) ||
+        publication.destinationIdentity!.sizeBytes != record.durableOffset ||
+        (publication.method == PublicationMethod.rename &&
+            !publication.sourceIdentity
+                .matches(publication.destinationIdentity!))) {
+      throw StateError('Completion requires confirmed native publication');
+    }
+  }
+
+  static void _requireVerifiedBytes(TransferRecord record) {
     final size = record.artifact.sizeBytes;
     if (size == null || record.durableOffset != size) {
-      throw StateError('Completion requires all source bytes');
+      throw StateError('Verification requires all source bytes');
+    }
+    if (record.stageIdentity == null ||
+        record.stageIdentity!.sizeBytes != size) {
+      throw StateError('Verification requires exact owned stage evidence');
     }
     final expected = record.artifact.providerChecksums;
     final recognized = expected.entries.where((entry) {
@@ -355,7 +435,7 @@ class TransferJournal {
       return true;
     }).toList();
     if (recognized.isEmpty || record.verifiedChecksums['sha256'] == null) {
-      throw StateError('Completion requires provider and local verification');
+      throw StateError('Publication requires provider and local verification');
     }
     for (final checksum in recognized) {
       final verified = record.verifiedChecksums[checksum.key];
@@ -374,12 +454,153 @@ class TransferJournal {
         installation.destinationRoot != record.destinationRoot ||
         installation.relativePath != record.relativePath ||
         installation.sizeBytes != record.artifact.sizeBytes ||
+        record.publication?.destinationIdentity == null ||
+        !installation.fileIdentity
+            .matches(record.publication!.destinationIdentity!) ||
         !_sameJson(installation.artifact.toJson(), record.artifact.toJson()) ||
         !_sameMap(
           installation.verifiedChecksums,
           record.verifiedChecksums,
         )) {
       throw StateError('Installation does not match the verified transfer');
+    }
+  }
+
+  static void _requireStageCheckpoint(
+    TransferRecord previous,
+    TransferRecord record, {
+    required bool hashesChanged,
+  }) {
+    final before = previous.stageIdentity;
+    final after = record.stageIdentity;
+    if (before != null && after == null) {
+      throw StateError('Stage ownership cannot disappear');
+    }
+    if (after != null) {
+      if (after.sizeBytes != record.durableOffset) {
+        throw StateError('Stage size must equal the durable offset');
+      }
+      if (before == null) {
+        if (previous.durableOffset != 0 ||
+            previous.verifiedChecksums.isNotEmpty ||
+            previous.publication != null) {
+          throw StateError('Legacy unowned progress cannot acquire ownership');
+        }
+      } else {
+        if (!before.sameObject(after)) {
+          throw StateError('Stage native object cannot change');
+        }
+        if ((previous.verifiedChecksums.isNotEmpty ||
+                before.sizeBytes == after.sizeBytes) &&
+            !before.matches(after)) {
+          throw StateError(
+              'Unwritten or verified stage evidence cannot change');
+        }
+      }
+    }
+    if ((record.durableOffset != previous.durableOffset || hashesChanged) &&
+        after == null) {
+      throw StateError('New progress requires native stage ownership');
+    }
+    if (record.lifecycle == TransferLifecycle.verifying &&
+        (after == null ||
+            record.artifact.sizeBytes == null ||
+            record.durableOffset != record.artifact.sizeBytes)) {
+      throw StateError('Verification requires a complete owned stage');
+    }
+    if (record.lifecycle == TransferLifecycle.transferring &&
+        ((record.durableOffset > 0 && after == null) ||
+            record.verifiedChecksums.isNotEmpty)) {
+      throw StateError('Network writes require owned unverified progress');
+    }
+  }
+
+  static void _requirePublicationCheckpoint(
+    TransferRecord previous,
+    TransferRecord record,
+  ) {
+    final before = previous.publication;
+    final after = record.publication;
+    if (before != null && after == null) {
+      throw StateError('Publication intent cannot disappear');
+    }
+    if (record.lifecycle == TransferLifecycle.publishing && after == null) {
+      throw StateError('Publishing requires a durable intent');
+    }
+    if (after == null) return;
+    if (record.lifecycle != TransferLifecycle.publishing &&
+        !_sameJson(before?.toJson(), after.toJson())) {
+      throw StateError(
+          'Publication progress requires the publishing lifecycle');
+    }
+    if (record.lifecycle == TransferLifecycle.queued ||
+        record.lifecycle == TransferLifecycle.transferring ||
+        record.lifecycle == TransferLifecycle.verifying) {
+      throw StateError('Publication cannot return to network or stage writes');
+    }
+    _requireVerifiedBytes(record);
+    if (!after.sourceIdentity.matches(record.stageIdentity!)) {
+      throw StateError('Publication source must match the verified stage');
+    }
+    if (before == null) {
+      _requireVerifiedBytes(previous);
+      if (record.lifecycle != TransferLifecycle.publishing ||
+          after.confirmed ||
+          after.destinationIdentity != null) {
+        throw StateError('Publication intent must precede destination changes');
+      }
+      return;
+    }
+    if (!before.sourceIdentity.matches(after.sourceIdentity)) {
+      throw StateError('Publication source identity is immutable');
+    }
+    if (before.method != after.method &&
+        !(before.method == PublicationMethod.rename &&
+            after.method == PublicationMethod.copy &&
+            !before.confirmed &&
+            before.destinationIdentity == null &&
+            !after.confirmed &&
+            after.destinationIdentity == null)) {
+      throw StateError('Only an untouched rename intent may fall back to copy');
+    }
+    if (before.confirmed &&
+        (!after.confirmed ||
+            after.destinationIdentity == null ||
+            !before.destinationIdentity!.matches(after.destinationIdentity!))) {
+      throw StateError('Confirmed publication evidence is immutable');
+    }
+    final destination = after.destinationIdentity;
+    final previousDestination = before.destinationIdentity;
+    if (previousDestination != null &&
+        (destination == null ||
+            !previousDestination.sameObject(destination) ||
+            destination.sizeBytes < previousDestination.sizeBytes)) {
+      throw StateError(
+          'Publication destination cannot disappear, change or shrink');
+    }
+    if (previousDestination != null &&
+        destination != null &&
+        previousDestination.sizeBytes == destination.sizeBytes &&
+        !previousDestination.matches(destination)) {
+      throw StateError('Unwritten destination evidence cannot change');
+    }
+    if (destination != null) {
+      if (destination.sizeBytes > after.sourceIdentity.sizeBytes) {
+        throw StateError('Publication destination cannot exceed the source');
+      }
+      if (after.method == PublicationMethod.rename &&
+          !after.sourceIdentity.matches(destination)) {
+        throw StateError('Renamed destination must be the exact source object');
+      }
+      if (after.method == PublicationMethod.copy &&
+          after.sourceIdentity.sameObject(destination)) {
+        throw StateError('Copy destination must be distinct from its source');
+      }
+    }
+    if (after.confirmed &&
+        (destination == null ||
+            destination.sizeBytes != after.sourceIdentity.sizeBytes)) {
+      throw StateError('Confirmation requires the whole destination');
     }
   }
 
@@ -399,21 +620,29 @@ class TransferJournal {
           to == TransferLifecycle.failed,
       TransferLifecycle.paused => to == TransferLifecycle.queued ||
           to == TransferLifecycle.transferring ||
+          to == TransferLifecycle.verifying ||
+          to == TransferLifecycle.publishing ||
           to == TransferLifecycle.awaitingAuthorization ||
           to == TransferLifecycle.failed,
       TransferLifecycle.awaitingAuthorization =>
         to == TransferLifecycle.queued ||
             to == TransferLifecycle.transferring ||
+            to == TransferLifecycle.verifying ||
+            to == TransferLifecycle.publishing ||
             to == TransferLifecycle.paused ||
             to == TransferLifecycle.failed,
       TransferLifecycle.verifying => to == TransferLifecycle.publishing ||
+          to == TransferLifecycle.awaitingAuthorization ||
           to == TransferLifecycle.paused ||
           to == TransferLifecycle.failed,
-      TransferLifecycle.publishing =>
-        to == TransferLifecycle.paused || to == TransferLifecycle.failed,
+      TransferLifecycle.publishing => to == TransferLifecycle.paused ||
+          to == TransferLifecycle.awaitingAuthorization ||
+          to == TransferLifecycle.failed,
       TransferLifecycle.completed => false,
       TransferLifecycle.failed => to == TransferLifecycle.queued ||
           to == TransferLifecycle.transferring ||
+          to == TransferLifecycle.verifying ||
+          to == TransferLifecycle.publishing ||
           to == TransferLifecycle.paused ||
           to == TransferLifecycle.awaitingAuthorization,
     };

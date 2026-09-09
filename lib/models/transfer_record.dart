@@ -11,6 +11,48 @@ enum TransferLifecycle {
   failed,
 }
 
+enum PublicationMethod { rename, copy }
+
+/// A durable publication intent, persisted before touching the public target.
+/// The verified source remains owned until the installation transaction commits.
+class TransferPublication {
+  final PublicationMethod method;
+  final NativeFileIdentity sourceIdentity;
+  final NativeFileIdentity? destinationIdentity;
+  final bool confirmed;
+
+  const TransferPublication({
+    required this.method,
+    required this.sourceIdentity,
+    this.destinationIdentity,
+    this.confirmed = false,
+  });
+
+  int get copiedOffset => destinationIdentity?.sizeBytes ?? 0;
+
+  factory TransferPublication.fromJson(Map<String, dynamic> json) =>
+      TransferPublication(
+        method: PublicationMethod.values.byName(json['method'] as String),
+        sourceIdentity: NativeFileIdentity.fromJson(
+          (json['sourceIdentity'] as Map).cast<String, dynamic>(),
+        ),
+        destinationIdentity: json['destinationIdentity'] == null
+            ? null
+            : NativeFileIdentity.fromJson(
+                (json['destinationIdentity'] as Map).cast<String, dynamic>(),
+              ),
+        confirmed: json['confirmed'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'method': method.name,
+        'sourceIdentity': sourceIdentity.toJson(),
+        if (destinationIdentity != null)
+          'destinationIdentity': destinationIdentity!.toJson(),
+        'confirmed': confirmed,
+      };
+}
+
 /// Durable transfer intent. The remote artifact and all path fields are an exact
 /// immutable snapshot; only journal-controlled progress fields can be copied.
 class TransferRecord {
@@ -22,6 +64,11 @@ class TransferRecord {
   final int durableOffset;
   final TransferLifecycle lifecycle;
   final int revision;
+
+  /// Identity captured from the flushed native descriptor at durableOffset.
+  /// Null is retained for readable legacy records, not treated as ownership.
+  final NativeFileIdentity? stageIdentity;
+  final TransferPublication? publication;
 
   /// A bounded machine code, never raw exception text, URLs, or credentials.
   final String? errorCode;
@@ -39,6 +86,8 @@ class TransferRecord {
     this.durableOffset = 0,
     this.lifecycle = TransferLifecycle.queued,
     this.revision = 0,
+    this.stageIdentity,
+    this.publication,
     String? errorCode,
     Map<String, String> verifiedChecksums = const {},
   })  : id = _identifier(id, 'id'),
@@ -80,6 +129,16 @@ class TransferRecord {
           json['lifecycle'] as String? ?? TransferLifecycle.queued.name,
         ),
         revision: json['revision'] as int? ?? 0,
+        stageIdentity: json['stageIdentity'] == null
+            ? null
+            : NativeFileIdentity.fromJson(
+                (json['stageIdentity'] as Map).cast<String, dynamic>(),
+              ),
+        publication: json['publication'] == null
+            ? null
+            : TransferPublication.fromJson(
+                (json['publication'] as Map).cast<String, dynamic>(),
+              ),
         errorCode: json['errorCode'] as String?,
         verifiedChecksums: _stringMap(json['verifiedChecksums']),
       );
@@ -88,6 +147,8 @@ class TransferRecord {
     int? durableOffset,
     TransferLifecycle? lifecycle,
     int? revision,
+    NativeFileIdentity? stageIdentity,
+    TransferPublication? publication,
     String? errorCode,
     bool clearErrorCode = false,
     Map<String, String>? verifiedChecksums,
@@ -101,6 +162,8 @@ class TransferRecord {
         durableOffset: durableOffset ?? this.durableOffset,
         lifecycle: lifecycle ?? this.lifecycle,
         revision: revision ?? this.revision,
+        stageIdentity: stageIdentity ?? this.stageIdentity,
+        publication: publication ?? this.publication,
         errorCode: clearErrorCode ? null : (errorCode ?? this.errorCode),
         verifiedChecksums: verifiedChecksums ?? this.verifiedChecksums,
       );
@@ -114,13 +177,15 @@ class TransferRecord {
         'durableOffset': durableOffset,
         'lifecycle': lifecycle.name,
         'revision': revision,
+        if (stageIdentity != null) 'stageIdentity': stageIdentity!.toJson(),
+        if (publication != null) 'publication': publication!.toJson(),
         if (errorCode != null) 'errorCode': errorCode,
         'verifiedChecksums': verifiedChecksums,
       };
 }
 
-/// Native identity captured after publication. Size and modification time are
-/// part of the identity evidence used before a future owned-file operation.
+/// Native identity captured from an owned descriptor. Size and modification
+/// time are evidence revalidated before later writes, publication or removal.
 class NativeFileIdentity {
   final String volumeId;
   final String fileId;
@@ -159,6 +224,15 @@ class NativeFileIdentity {
         modifiedAt: DateTime.parse(json['modifiedAt'] as String),
         modifiedNanoseconds: json['modifiedNanoseconds'] as int?,
       );
+
+  bool sameObject(NativeFileIdentity other) =>
+      volumeId == other.volumeId && fileId == other.fileId;
+
+  bool matches(NativeFileIdentity other) =>
+      sameObject(other) &&
+      sizeBytes == other.sizeBytes &&
+      modifiedAt.isAtSameMomentAs(other.modifiedAt) &&
+      modifiedNanoseconds == other.modifiedNanoseconds;
 
   Map<String, dynamic> toJson() => {
         'volumeId': volumeId,

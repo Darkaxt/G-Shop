@@ -52,13 +52,57 @@ TransferRecord _queued({
       stagePath: '/storage/.r-shop-staging/$id.partial',
     );
 
-NativeFileIdentity _fileIdentity({String fileId = 'inode-42'}) =>
+NativeFileIdentity _fileIdentity(
+        {String fileId = 'inode-42', int sizeBytes = 5, int nanoseconds = 0}) =>
     NativeFileIdentity(
       volumeId: 'sd-volume-1',
       fileId: fileId,
-      sizeBytes: 5,
-      modifiedAt: DateTime.utc(2026, 9, 9, 9),
+      sizeBytes: sizeBytes,
+      modifiedAt: DateTime.utc(2026, 9, 9, 9)
+          .add(Duration(microseconds: nanoseconds ~/ 1000)),
+      modifiedNanoseconds: nanoseconds,
     );
+
+TransferRecord _stage(TransferRecord record, int size,
+        {String fileId = 'inode-42'}) =>
+    TransferRecord.fromJson({
+      ...record.toJson(),
+      'durableOffset': size,
+      'stageIdentity': _fileIdentity(fileId: fileId, sizeBytes: size).toJson(),
+    });
+
+TransferRecord _publication(
+  TransferRecord record, {
+  String method = 'rename',
+  NativeFileIdentity? destination,
+  bool confirmed = false,
+  NativeFileIdentity? source,
+}) =>
+    TransferRecord.fromJson({
+      ...record.toJson(),
+      'lifecycle': TransferLifecycle.publishing.name,
+      'publication': {
+        'method': method,
+        'sourceIdentity': (source ?? _fileIdentity()).toJson(),
+        if (destination != null) 'destinationIdentity': destination.toJson(),
+        'confirmed': confirmed,
+      },
+    });
+
+Future<void> _seedLegacy(Database db, TransferRecord record) async {
+  final json = record.toJson()
+    ..remove('stageIdentity')
+    ..remove('publication');
+  await db.update(
+      'transfer_records',
+      {
+        'durable_offset': record.durableOffset,
+        'lifecycle': record.lifecycle.name,
+        'record_json': jsonEncode(json),
+      },
+      where: 'transfer_id = ?',
+      whereArgs: [record.id]);
+}
 
 String get _fixtureSha256 => sha256.convert([1, 2, 3, 4, 5]).toString();
 
@@ -87,11 +131,11 @@ InstalledArtifact _installation(
 
 Future<TransferRecord> _advanceToPublishing(
     TransferJournal journal, TransferRecord transfer,
-    {Map<String, String>? verifiedChecksums}) async {
+    {Map<String, String>? verifiedChecksums, bool confirm = true}) async {
   var current = await journal.save(
     transfer.copyWith(lifecycle: TransferLifecycle.transferring),
   );
-  current = await journal.save(current.copyWith(durableOffset: 5));
+  current = await journal.save(_stage(current, 5));
   current = await journal.save(
     current.copyWith(
       lifecycle: TransferLifecycle.verifying,
@@ -102,9 +146,12 @@ Future<TransferRecord> _advanceToPublishing(
           },
     ),
   );
-  return journal.save(
-    current.copyWith(lifecycle: TransferLifecycle.publishing),
-  );
+  current = await journal.save(_publication(current));
+  if (confirm) {
+    return journal.save(
+        _publication(current, destination: _fileIdentity(), confirmed: true));
+  }
+  return current;
 }
 
 void main() {
@@ -152,6 +199,424 @@ void main() {
       () => created.artifact.providerChecksums['md5'] = 'changed',
       throwsUnsupportedError,
     );
+  });
+
+  test('new reservations reject preexisting stage or publication evidence',
+      () async {
+    await expectLater(journal.create(_stage(_queued(), 0)), throwsStateError);
+    final withPublication = TransferRecord.fromJson({
+      ..._publication(_queued()).toJson(),
+      'lifecycle': 'queued',
+    });
+    await expectLater(journal.create(withPublication), throwsStateError);
+    expect(await db.query('transfer_target_owners'), isEmpty);
+  });
+
+  test(
+      'native identity distinguishes object ownership from exact byte evidence',
+      () {
+    final source = _fileIdentity();
+    expect(source.sameObject(_fileIdentity(sizeBytes: 3)), isTrue);
+    expect(source.matches(_fileIdentity(sizeBytes: 3)), isFalse);
+    expect(source.matches(_fileIdentity(nanoseconds: 1)), isFalse);
+    expect(source.sameObject(_fileIdentity(fileId: 'other')), isFalse);
+    expect(
+        source.matches(NativeFileIdentity.fromJson(source.toJson())), isTrue);
+    final intent = TransferPublication(
+        method: PublicationMethod.copy, sourceIdentity: source);
+    expect(intent.confirmed, isFalse);
+    expect(intent.copiedOffset, 0);
+    final checkpoint = TransferPublication.fromJson({
+      ...intent.toJson(),
+      'destinationIdentity':
+          _fileIdentity(fileId: 'copy', sizeBytes: 3).toJson()
+    });
+    expect(checkpoint.copiedOffset, 3);
+  });
+
+  test('durable checkpoints require the same stage object and exact size',
+      () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    await expectLater(
+        journal.save(current.copyWith(durableOffset: 1)), throwsStateError);
+    current = await journal.save(_stage(current, 0));
+    final zero = current;
+    current = await journal.save(_stage(current, 3));
+    await expectLater(journal.save(_stage(current, 4, fileId: 'replacement')),
+        throwsStateError);
+    await expectLater(
+        journal.save(_stage(current, 4).copyWith(durableOffset: 3)),
+        throwsStateError);
+    final cleared = current.toJson()..remove('stageIdentity');
+    await expectLater(
+        journal.save(TransferRecord.fromJson(cleared)), throwsStateError);
+    await expectLater(journal.save(_stage(zero, 5)), throwsStateError);
+    expect((await journal.transfer(current.id))!.toJson(), current.toJson());
+  });
+
+  test(
+      'legacy unowned progress is readable but cannot acquire ownership or complete',
+      () async {
+    final created = await journal.create(_queued());
+    final legacy = created.copyWith(
+        durableOffset: 5,
+        lifecycle: TransferLifecycle.publishing,
+        verifiedChecksums: {
+          'md5': '7cfdd07889b3295d6a550914ab35e068',
+          'sha256': _fixtureSha256
+        });
+    await _seedLegacy(db, legacy);
+    final restored =
+        (await TransferJournal(Future.value(db)).transfer(legacy.id))!;
+    expect(restored.durableOffset, 5);
+    expect(restored.toJson()['stageIdentity'], isNull);
+    await expectLater(
+        journal.complete(restored, _installation(restored)), throwsStateError);
+    await expectLater(journal.save(_stage(restored, 5)), throwsStateError);
+    final paused = await journal
+        .save(restored.copyWith(lifecycle: TransferLifecycle.paused));
+    final reset = await journal.resetPartial(paused);
+    expect(reset.durableOffset, 0);
+    expect(reset.verifiedChecksums, isEmpty);
+  });
+
+  test(
+      'native resume rebinds only the unverified stage timestamp at its durable offset',
+      () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    current = await journal.save(_stage(current, 3));
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.paused));
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    final resumedIdentity = _fileIdentity(sizeBytes: 3, nanoseconds: 1);
+    await expectLater(
+        journal.save(current.copyWith(stageIdentity: resumedIdentity)),
+        throwsStateError);
+
+    final resumed =
+        await journal.resumeStageCheckpoint(current, resumedIdentity);
+    expect(resumed.revision, current.revision + 1);
+    expect(resumed.durableOffset, 3);
+    expect(resumed.stageIdentity!.matches(resumedIdentity), isTrue);
+    expect(resumed.verifiedChecksums, isEmpty);
+    expect(resumed.publication, isNull);
+    expect(resumed.lifecycle, TransferLifecycle.transferring);
+    expect(
+        (await TransferJournal(Future.value(db)).transfer(current.id))!
+            .toJson(),
+        resumed.toJson());
+    await expectLater(journal.resumeStageCheckpoint(current, resumedIdentity),
+        throwsStateError);
+  });
+
+  test(
+      'native resume permits rechecking an unverified complete stage in verifying',
+      () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    current = await journal.save(_stage(current, 5));
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.verifying));
+    final identity = _fileIdentity(nanoseconds: 2);
+    final resumed = await journal.resumeStageCheckpoint(current, identity);
+    expect(resumed.durableOffset, 5);
+    expect(resumed.lifecycle, TransferLifecycle.verifying);
+    expect(resumed.stageIdentity!.matches(identity), isTrue);
+  });
+
+  test('native resume cannot rebind a verified stage timestamp', () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    current = await journal.save(_stage(current, 5));
+    current = await journal.save(current.copyWith(
+        lifecycle: TransferLifecycle.verifying,
+        verifiedChecksums: {
+          'md5': '7cfdd07889b3295d6a550914ab35e068',
+          'sha256': _fixtureSha256
+        }));
+    await expectLater(
+        journal.resumeStageCheckpoint(current, _fileIdentity(nanoseconds: 1)),
+        throwsStateError);
+    final resumed =
+        await journal.resumeStageCheckpoint(current, _fileIdentity());
+    expect(resumed.revision, current.revision + 1);
+    expect(resumed.stageIdentity!.matches(current.stageIdentity!), isTrue);
+    expect(resumed.verifiedChecksums, current.verifiedChecksums);
+  });
+
+  test(
+      'native resume requires existing ownership and an exact unchanged transfer record',
+      () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    await expectLater(
+        journal.resumeStageCheckpoint(current, _fileIdentity(sizeBytes: 0)),
+        throwsStateError);
+    current = await journal.save(_stage(current, 3));
+    for (final identity in [
+      _fileIdentity(sizeBytes: 0),
+      _fileIdentity(sizeBytes: 2),
+      _fileIdentity(sizeBytes: 4),
+      _fileIdentity(fileId: 'other', sizeBytes: 3),
+      NativeFileIdentity.fromJson({
+        ..._fileIdentity(sizeBytes: 3).toJson(),
+        'volumeId': 'other-volume'
+      }),
+    ]) {
+      await expectLater(
+          journal.resumeStageCheckpoint(current, identity), throwsStateError);
+    }
+    await expectLater(
+        journal.resumeStageCheckpoint(
+            current.copyWith(durableOffset: 2), _fileIdentity(sizeBytes: 2)),
+        throwsStateError);
+    await expectLater(
+        journal.resumeStageCheckpoint(current.copyWith(errorCode: 'changed'),
+            _fileIdentity(sizeBytes: 3)),
+        throwsStateError);
+    expect((await journal.transfer(current.id))!.toJson(), current.toJson());
+  });
+
+  test('native resume refuses inactive and publication lifecycles', () async {
+    var current = await journal.create(_queued());
+    current = await journal.save(_stage(current, 0));
+    await expectLater(
+        journal.resumeStageCheckpoint(current, _fileIdentity(sizeBytes: 0)),
+        throwsStateError);
+    for (final lifecycle in [
+      TransferLifecycle.paused,
+      TransferLifecycle.failed,
+      TransferLifecycle.awaitingAuthorization
+    ]) {
+      current = await journal.save(current.copyWith(lifecycle: lifecycle));
+      await expectLater(
+          journal.resumeStageCheckpoint(current, _fileIdentity(sizeBytes: 0)),
+          throwsStateError);
+    }
+    current = await _advanceToPublishing(journal, current);
+    await expectLater(journal.resumeStageCheckpoint(current, _fileIdentity()),
+        throwsStateError);
+    current = await journal.complete(current, _installation(current));
+    await expectLater(journal.resumeStageCheckpoint(current, _fileIdentity()),
+        throwsStateError);
+  });
+
+  test(
+      'native resume database failure rolls back the identity and revision together',
+      () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    current = await journal.save(_stage(current, 3));
+    await db
+        .execute('''CREATE TRIGGER fail_resume BEFORE UPDATE ON transfer_records
+      BEGIN SELECT RAISE(ABORT, 'synthetic resume fault'); END''');
+    final identity = _fileIdentity(sizeBytes: 3, nanoseconds: 1);
+    await expectLater(journal.resumeStageCheckpoint(current, identity),
+        throwsA(isA<DatabaseException>()));
+    expect((await journal.transfer(current.id))!.toJson(), current.toJson());
+    await db.execute('DROP TRIGGER fail_resume');
+    final resumed = await journal.resumeStageCheckpoint(current, identity);
+    expect(resumed.revision, current.revision + 1);
+    expect(resumed.stageIdentity!.matches(identity), isTrue);
+  });
+
+  test('verified bytes cannot change their stage evidence or lose digests',
+      () async {
+    final current =
+        await _advanceToPublishing(journal, await journal.create(_queued()));
+    final changed = TransferRecord.fromJson({
+      ...current.toJson(),
+      'stageIdentity': _fileIdentity(nanoseconds: 1).toJson()
+    });
+    await expectLater(journal.save(changed), throwsStateError);
+    await expectLater(journal.save(current.copyWith(verifiedChecksums: {})),
+        throwsStateError);
+    final cleared = current.toJson()..remove('publication');
+    await expectLater(
+        journal.save(TransferRecord.fromJson(cleared)), throwsStateError);
+    expect((await journal.transfer(current.id))!.toJson(), current.toJson());
+  });
+
+  test('publication intent requires exact verified stage before side effects',
+      () async {
+    var current = await journal.create(_queued());
+    current = await journal
+        .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+    current = await journal.save(_stage(current, 5));
+    current = await journal.save(current.copyWith(
+        lifecycle: TransferLifecycle.verifying,
+        verifiedChecksums: {
+          'md5': '7cfdd07889b3295d6a550914ab35e068',
+          'sha256': _fixtureSha256
+        }));
+    await expectLater(
+        journal.save(current.copyWith(lifecycle: TransferLifecycle.publishing)),
+        throwsStateError);
+    await expectLater(
+        journal.save(
+            _publication(current, source: _fileIdentity(fileId: 'other'))),
+        throwsStateError);
+    await expectLater(
+        journal.save(_publication(current,
+            destination: _fileIdentity(), confirmed: true)),
+        throwsStateError);
+    expect((await journal.transfer(current.id))!.lifecycle,
+        TransferLifecycle.verifying);
+  });
+
+  test('rename confirmation requires exact source identity and is immutable',
+      () async {
+    var current = await _advanceToPublishing(
+        journal, await journal.create(_queued()),
+        confirm: false);
+    await expectLater(
+        journal.complete(current, _installation(current)), throwsStateError);
+    await expectLater(
+        journal.save(_publication(current, confirmed: true)), throwsStateError);
+    await expectLater(
+        journal.save(_publication(current,
+            destination: _fileIdentity(fileId: 'other'), confirmed: true)),
+        throwsStateError);
+    await expectLater(
+        journal.save(_publication(current,
+            destination: _fileIdentity(nanoseconds: 1), confirmed: true)),
+        throwsStateError);
+    current = await journal.save(
+        _publication(current, destination: _fileIdentity(), confirmed: true));
+    await expectLater(
+        journal.save(_publication(current, destination: _fileIdentity())),
+        throwsStateError);
+    await expectLater(
+        journal.save(_publication(current, method: 'copy')), throwsStateError);
+    await expectLater(
+        journal.complete(current, _installation(current, fileId: 'other')),
+        throwsStateError);
+    expect(await db.query('installed_artifacts'), isEmpty);
+    expect((await journal.complete(current, _installation(current))).lifecycle,
+        TransferLifecycle.completed);
+  });
+
+  test(
+      'copy checkpoints retain source and destination objects until atomic completion',
+      () async {
+    var current = await _advanceToPublishing(
+        journal, await journal.create(_queued()),
+        confirm: false);
+    current = await journal.save(_publication(current, method: 'copy'));
+    final intent = current;
+    current = await journal.save(_publication(current,
+        method: 'copy',
+        destination: _fileIdentity(fileId: 'copy', sizeBytes: 0)));
+    current = await journal.save(_publication(current,
+        method: 'copy',
+        destination: _fileIdentity(fileId: 'copy', sizeBytes: 3)));
+    expect(
+        current.toJson()['publication']['destinationIdentity']['sizeBytes'], 3);
+    await expectLater(
+        journal.save(_publication(current,
+            method: 'copy',
+            destination:
+                _fileIdentity(fileId: 'copy', sizeBytes: 3, nanoseconds: 1))),
+        throwsStateError);
+    await expectLater(
+        journal.save(_publication(intent,
+            method: 'copy',
+            destination: _fileIdentity(fileId: 'copy', sizeBytes: 4))),
+        throwsStateError);
+    for (final destination in [
+      _fileIdentity(fileId: 'other', sizeBytes: 4),
+      _fileIdentity(fileId: 'copy', sizeBytes: 2),
+      _fileIdentity(fileId: 'copy', sizeBytes: 6),
+    ]) {
+      await expectLater(
+          journal.save(
+              _publication(current, method: 'copy', destination: destination)),
+          throwsStateError);
+    }
+    await expectLater(
+        journal.save(_publication(current, method: 'copy')), throwsStateError);
+    await expectLater(
+        journal.save(_publication(current,
+            method: 'rename',
+            destination: _fileIdentity(fileId: 'copy', sizeBytes: 3))),
+        throwsStateError);
+    await expectLater(
+        journal.save(_publication(current,
+            method: 'copy',
+            destination: _fileIdentity(fileId: 'copy', sizeBytes: 3),
+            confirmed: true)),
+        throwsStateError);
+    current = await journal.save(_publication(current,
+        method: 'copy',
+        destination: _fileIdentity(fileId: 'copy'),
+        confirmed: true));
+    await expectLater(
+        journal.save(_publication(current,
+            method: 'copy',
+            destination: _fileIdentity(fileId: 'copy', nanoseconds: 1),
+            confirmed: true)),
+        throwsStateError);
+    final completed =
+        await journal.complete(current, _installation(current, fileId: 'copy'));
+    expect(completed.lifecycle, TransferLifecycle.completed);
+    expect(completed.toJson()['stageIdentity'], _fileIdentity().toJson());
+    expect(completed.toJson()['publication']['confirmed'], isTrue);
+  });
+
+  test(
+      'resuming verification and publication requires matching durable evidence',
+      () async {
+    for (final state in [
+      TransferLifecycle.paused,
+      TransferLifecycle.failed,
+      TransferLifecycle.awaitingAuthorization
+    ]) {
+      var current = await journal
+          .create(_queued(id: state.name, relativePath: '${state.name}.chd'));
+      current = await journal.save(current.copyWith(lifecycle: state));
+      await expectLater(
+          journal
+              .save(current.copyWith(lifecycle: TransferLifecycle.verifying)),
+          throwsStateError);
+      await expectLater(
+          journal
+              .save(current.copyWith(lifecycle: TransferLifecycle.publishing)),
+          throwsStateError);
+      current = await journal
+          .save(current.copyWith(lifecycle: TransferLifecycle.transferring));
+      current = await journal.save(_stage(current, 5));
+      current = await journal.save(current.copyWith(lifecycle: state));
+      current = await journal
+          .save(current.copyWith(lifecycle: TransferLifecycle.verifying));
+      current = await journal.save(current.copyWith(verifiedChecksums: {
+        'md5': '7cfdd07889b3295d6a550914ab35e068',
+        'sha256': _fixtureSha256
+      }));
+      current = await journal.save(_publication(current));
+      current = await journal.save(current.copyWith(lifecycle: state));
+      final lateConfirmation = TransferRecord.fromJson({
+        ..._publication(current, destination: _fileIdentity(), confirmed: true)
+            .toJson(),
+        'lifecycle': state.name,
+      });
+      await expectLater(journal.save(lateConfirmation), throwsStateError);
+      await expectLater(
+          journal.save(
+              current.copyWith(lifecycle: TransferLifecycle.transferring)),
+          throwsStateError);
+      current = await journal
+          .save(current.copyWith(lifecycle: TransferLifecycle.publishing));
+      expect(current.toJson()['publication']['method'], 'rename');
+    }
   });
 
   test('unsafe relative targets are rejected before reaching SQLite', () {
@@ -213,10 +678,11 @@ void main() {
       created.copyWith(lifecycle: TransferLifecycle.transferring),
     );
     final paused = await journal.save(
-      transferring.copyWith(
-        lifecycle: TransferLifecycle.paused,
-        durableOffset: 3,
-      ),
+      _stage(
+          transferring.copyWith(
+            lifecycle: TransferLifecycle.paused,
+          ),
+          3),
     );
     expect(paused.revision, 2);
     expect(paused.durableOffset, 3);
@@ -246,13 +712,14 @@ void main() {
     expect(restored.errorCode, isNull);
   });
 
-  test('durable offsets are monotonic unless explicit paused reset is used',
+  test(
+      'owned durable offsets cannot decrease or reset without a reset protocol',
       () async {
     var current = await journal.create(_queued());
     current = await journal.save(
       current.copyWith(lifecycle: TransferLifecycle.transferring),
     );
-    current = await journal.save(current.copyWith(durableOffset: 4));
+    current = await journal.save(_stage(current, 4));
 
     await expectLater(
       journal.save(current.copyWith(durableOffset: 0)),
@@ -263,11 +730,8 @@ void main() {
     current = await journal.save(
       current.copyWith(lifecycle: TransferLifecycle.paused),
     );
-    final reset = await journal.resetPartial(current);
-    expect(reset.durableOffset, 0);
-    expect(reset.verifiedChecksums, isEmpty);
-    expect(reset.lifecycle, TransferLifecycle.paused);
-    expect(reset.revision, current.revision + 1);
+    await expectLater(journal.resetPartial(current), throwsStateError);
+    expect((await journal.transfer(current.id))!.toJson(), current.toJson());
   });
 
   test(
@@ -277,13 +741,12 @@ void main() {
     current = await journal.save(
       current.copyWith(lifecycle: TransferLifecycle.transferring),
     );
-    current = await journal.save(current.copyWith(durableOffset: 2));
-    current = await journal.save(
-      current.copyWith(
-        lifecycle: TransferLifecycle.failed,
-        errorCode: 'truncated_response',
-      ),
+    current = current.copyWith(
+      durableOffset: 2,
+      lifecycle: TransferLifecycle.failed,
+      errorCode: 'truncated_response',
     );
+    await _seedLegacy(db, current);
 
     final reset = await journal.resetPartial(current);
     expect(reset.durableOffset, 0);
@@ -366,13 +829,11 @@ void main() {
     var current = await journal.save(
       created.copyWith(lifecycle: TransferLifecycle.transferring),
     );
-    current = await journal.save(current.copyWith(durableOffset: 5));
+    current = await journal.save(_stage(current, 5));
     current = await journal.save(
       current.copyWith(lifecycle: TransferLifecycle.verifying),
     );
-    current = await journal.save(
-      current.copyWith(lifecycle: TransferLifecycle.publishing),
-    );
+    await expectLater(journal.save(_publication(current)), throwsStateError);
     await expectLater(
       journal.complete(current, _installation(current)),
       throwsStateError,
@@ -386,40 +847,32 @@ void main() {
   });
 
   test('unknown-only provider checksums cannot authorize completion', () async {
-    final publishing = await _advanceToPublishing(
-      journal,
-      await journal.create(_queued(
-        providerChecksums: const {'crc32': '01020304'},
-      )),
-      verifiedChecksums: {
-        'crc32': '01020304',
-        'sha256': _fixtureSha256,
-      },
-    );
-
     await expectLater(
-      journal.complete(publishing, _installation(publishing)),
-      throwsStateError,
-    );
-    expect(
-        await journal.installationForTarget(
-          destinationRoot: publishing.destinationRoot,
-          relativePath: publishing.relativePath,
+        _advanceToPublishing(
+          journal,
+          await journal.create(_queued(
+            providerChecksums: const {'crc32': '01020304'},
+          )),
+          verifiedChecksums: {
+            'crc32': '01020304',
+            'sha256': _fixtureSha256,
+          },
         ),
-        isNull);
-    expect((await journal.transfer(publishing.id))!.lifecycle,
-        TransferLifecycle.publishing);
+        throwsStateError);
+    expect(await db.query('installed_artifacts'), isEmpty);
+    expect((await journal.transfer('transfer-1'))!.lifecycle,
+        TransferLifecycle.verifying);
   });
 
   test('malformed recognized provider evidence is not silently ignored',
       () async {
-    final publishing = await _advanceToPublishing(
-        journal,
-        await journal.create(_queued(providerChecksums: {
-          'md5': '7cfdd07889b3295d6a550914ab35e068',
-          'sha1': 'not-a-digest',
-        })));
-    await expectLater(journal.complete(publishing, _installation(publishing)),
+    await expectLater(
+        _advanceToPublishing(
+            journal,
+            await journal.create(_queued(providerChecksums: {
+              'md5': '7cfdd07889b3295d6a550914ab35e068',
+              'sha1': 'not-a-digest',
+            }))),
         throwsStateError);
     expect(await db.query('installed_artifacts'), isEmpty);
   });
@@ -441,6 +894,47 @@ void main() {
     expect((await journal.transfer(publishing.id))!.lifecycle,
         TransferLifecycle.publishing);
     expect(await db.query('installed_artifacts'), isEmpty);
+  });
+
+  for (final cancellationCheck in [1, 2]) {
+    test(
+        'completion cancellation at transaction guard $cancellationCheck rolls back all writes',
+        () async {
+      final publishing =
+          await _advanceToPublishing(journal, await journal.create(_queued()));
+      var checks = 0;
+      final cancellation = StateError('synthetic cancellation');
+      await expectLater(
+          journal.complete(publishing, _installation(publishing),
+              checkCancellation: () {
+            checks++;
+            if (checks == cancellationCheck) throw cancellation;
+          }),
+          throwsA(same(cancellation)));
+      expect(checks, cancellationCheck);
+      expect((await journal.transfer(publishing.id))!.toJson(),
+          publishing.toJson());
+      expect(await db.query('installed_artifacts'), isEmpty);
+      final owner = (await db.query('transfer_target_owners')).single;
+      expect(owner['installation_id'], isNull);
+      expect(owner['transfer_id'], publishing.id);
+      final completed =
+          await journal.complete(publishing, _installation(publishing));
+      expect(completed.lifecycle, TransferLifecycle.completed);
+    });
+  }
+
+  test('successful completion observes both transaction cancellation guards',
+      () async {
+    final publishing =
+        await _advanceToPublishing(journal, await journal.create(_queued()));
+    var checks = 0;
+    final completed = await journal
+        .complete(publishing, _installation(publishing), checkCancellation: () {
+      checks++;
+    });
+    expect(checks, 2);
+    expect(completed.lifecycle, TransferLifecycle.completed);
   });
 
   for (final failingTable in ['transfer_records', 'transfer_target_owners']) {
@@ -540,11 +1034,26 @@ void main() {
       current.copyWith(lifecycle: TransferLifecycle.transferring),
     );
     current = await diskJournal.save(
-      current.copyWith(
-        lifecycle: TransferLifecycle.paused,
-        durableOffset: 3,
-      ),
+      _stage(
+          current.copyWith(
+            lifecycle: TransferLifecycle.paused,
+          ),
+          3),
     );
+    final legacy = (await diskJournal
+            .create(_queued(id: 'legacy-reopen', relativePath: 'legacy.chd')))
+        .copyWith(durableOffset: 2, lifecycle: TransferLifecycle.failed);
+    await _seedLegacy(diskDb, legacy);
+    var publication = await _advanceToPublishing(
+        diskJournal,
+        await diskJournal.create(
+            _queued(id: 'publication-reopen', relativePath: 'publication.chd')),
+        confirm: false);
+    publication =
+        await diskJournal.save(_publication(publication, method: 'copy'));
+    publication = await diskJournal.save(_publication(publication,
+        method: 'copy',
+        destination: _fileIdentity(fileId: 'copy', sizeBytes: 3)));
     await diskDb.close();
 
     diskDb = await databaseFactoryFfi.openDatabase(databasePath);
@@ -556,5 +1065,11 @@ void main() {
     expect(restored.lifecycle, TransferLifecycle.paused);
     expect(restored.durableOffset, 3);
     expect(restored.artifact.version, 'version-1');
+    final restoredLegacy = (await diskJournal.transfer(legacy.id))!;
+    expect(restoredLegacy.durableOffset, 2);
+    expect(restoredLegacy.toJson()['stageIdentity'], isNull);
+    expect((await diskJournal.resetPartial(restoredLegacy)).durableOffset, 0);
+    expect((await diskJournal.transfer(publication.id))!.toJson(),
+        publication.toJson());
   });
 }

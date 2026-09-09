@@ -293,8 +293,10 @@ class OwnedStorageCopy {
   /// Stat alone cannot detect same-size edits on coarse-timestamp SD media.
   /// Recompare the recorded public prefix with the retained verified source
   /// before any resumed append. The native boundary enforces this gate too.
-  Future<void> validateResumePrefix() async {
+  Future<void> validateResumePrefix(
+      {void Function()? checkCancellation}) async {
     while (_validatedPrefix < _requiredPrefix) {
+      checkCancellation?.call();
       final remaining = _requiredPrefix - _validatedPrefix;
       final length = remaining < OwnedStorage.maxChunkBytes
           ? remaining
@@ -302,6 +304,7 @@ class OwnedStorageCopy {
       _validatedPrefix = (await _invoke('ownedCopyValidatePrefix',
           {'offset': _validatedPrefix, 'length': length})) as int;
     }
+    checkCancellation?.call();
   }
 
   Future<NativeFileIdentity> checkpoint() async =>

@@ -51,7 +51,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
-| S3 | In progress | Binary range transport, source/ancestor and streaming checksum fixtures; v16 durable journal; native owned-storage and exclusive SD-copy primitives with actual Thor tests | Durable copy-phase journal and full transfer/queue/installation integration, bundles, replacement/removal and required live recovery proof remain DRIVE-04/05/06 gates |
+| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; native owned-storage primitives with earlier actual Thor tests | Full queue/installation integration, remaining crash/reset/retirement windows, bundles, replacement/removal and required live recovery proof remain DRIVE-04/05/06 gates |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -422,6 +422,72 @@ owned replacement/removal and the live offline emulator/remove/re-download
 round trip. The explicit Drive payload/removal gate remains. Google/ScreenScraper
 setup, S1/S2 live acceptance and S4-S7 are not waived; SD Top-25 migration must
 still wait for credible fresh rankings and verified cloud recovery.
+
+### S3 journaled transfer integration (2026-09-09, in progress)
+
+- Builds on `a3f46f8` without changing the installed Thor application or native
+  implementation. The new engine connects the production streaming verifier,
+  native storage adapter and SQLite journal. Its tests inject only the remote
+  protocol/native channel; they do not establish live Drive or native recovery.
+- Stage identity, complete verified digests, publication method, destination
+  identity/offset and confirmation are durable journal fields. New reservations
+  remain pristine; legacy records stay readable without acquiring ownership by
+  filename. Verified evidence and confirmed publication cannot be weakened.
+- A dedicated native-resume checkpoint permits only an owned, unverified
+  private stage's timestamp to be rebound at the unchanged durable offset after
+  native tail truncation. Generic checkpoint matching remains strict; inode,
+  volume, offset, paths and verified evidence cannot change through that API.
+- Publication intent precedes rename/copy. Unsupported/cross-volume rename
+  results alone select copy. Recovery hashes recorded source/destination bytes
+  against both provider digests and the previously recorded local SHA-256.
+  A rename without a receipt can recover only the exact original native object.
+  Installed-state and completed status still commit together in SQLite.
+- Cancellation joins pending writes, stream disposal and bounded prefix reads.
+  Stream-disposal rejection is immediately observed and becomes a failed result,
+  never an unhandled future or successful pause. API/native authorization
+  cancellation is distinguished from a requirement to reauthorize. Transaction
+  guards roll back installation writes on cancellation; the final synchronous
+  guard is the commit linearization point. Cancellation after it may truthfully
+  return completed when that transaction commits.
+- The normal Drive source runtime now exposes an exact, already-reserved transfer
+  entry point, with artifact-bound ancestry/version checks and request-time
+  authorization. It reserves in-flight IDs and rejects pending starts crossing
+  a disconnect generation. Disconnect signals and joins active transfers and
+  catalogue refreshes before closing media/metadata transports; stage bytes and
+  installed manifests are retained. Existing runtime constructors remain valid.
+- Main independently ran the four targeted files serially: **83 passed**, exit 0
+  (37 journal, 24 engine, 15 storage and 7 runtime tests). Reproduced behavioral
+  failures before their fixes include verification/copy recovery, prefix-read
+  cancellation, metadata/native-authorization cancellation classification,
+  recorded local SHA-256 recovery, completion rollback, private-tail timestamp
+  rebinding and stream-disposal rejection. One early test harness did not settle
+  its own completion on an injected error; that single run was stopped, no Dart
+  child remained, and the corrected finite fixture reproduced RED then GREEN.
+- Required work still inside S3: normal persistent queue/progress/installation
+  UI integration; native create-before-identity and copy-tail-before-checkpoint
+  crash recovery; explicit owned reset for ignored HTTP ranges; private verified
+  source retirement after copy commit; bundles, owned replacement/removal;
+  integrated large-file buffer/space measurements and actual process-death and
+  live emulator/remove/re-download proof. Existing unrecorded files remain
+  preserved conflicts while those protocols are unfinished. No automatic
+  adoption, public-file truncation or deletion shortcut was added.
+- Fresh integrated verification: `flutter test --no-pub --concurrency=1
+  --exclude-tags live --reporter expanded` passed all 1,884 tests (exit 0,
+  framework duration 2m01s), after the 83-test targeted integration run. Workloads
+  were serialized and their terminal results collected before starting another.
+- `flutter analyze --no-pub` reported only the four previously recorded findings
+  (`game_grid.dart` and `library_screen.dart` deprecated `cacheExtent`,
+  `cover_preload_service.dart` return in try, `l10n_completeness_test.dart` local
+  naming); exit 1 is not an analyzer-clean claim. No new finding was introduced.
+  Requirement mapping remains 24/24 with no missing or duplicate owner rows;
+  `git diff --check` passed.
+- Transactional cleanup `814d0f3163441676db5df8beb4dd4752` reached `applied`:
+  removed 475 attributed build/test entries, reclaiming 206,058,213 bytes, with
+  no residuals/errors. Scope was only generated `build` and the dedicated
+  `D:\Temp\rshop-transfer-engine` test directory; both are absent. No ROM,
+  account, installed application or SD-library changes occurred.
+- No stage acceptance, payload-gate removal, fresh metadata coverage or Top-25
+  SD migration is claimed here. S3 and the overall plan remain in progress.
 
 ### Preparation verification (2026-09-08)
 
