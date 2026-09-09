@@ -12,13 +12,14 @@ import '../models/library_identity.dart';
 import '../models/ra_models.dart';
 import '../utils/ra_name_matcher.dart';
 import 'library_store.dart';
+import 'metadata/metadata_refresh_jobs.dart';
 import 'drive/drive_catalogue.dart';
 import 'transfer_journal.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 17;
+  static const int _dbVersion = 18;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -43,11 +44,13 @@ class DatabaseService {
       version: _dbVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: MetadataRefreshJobs.recoverInterrupted,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
     await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
     await DriveCatalogueSchema.install(db);
     await TransferJournalSchema.install(db);
     await db.execute('''
@@ -314,6 +317,9 @@ class DatabaseService {
     }
     if (oldVersion < 17) {
       await TransferJournalSchema.installArtifactIndex(db);
+    }
+    if (oldVersion < 18) {
+      await MetadataRefreshJobs.install(db);
     }
   }
 

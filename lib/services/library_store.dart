@@ -134,17 +134,12 @@ class LibraryStore {
     return record == null ? null : RemoteArtifact.fromJson(record);
   }
 
-  Future<void> putMetadata(MetadataRecord record) async {
-    if (record.providerId.trim().isEmpty ||
-        record.providerGameId.trim().isEmpty ||
-        record.refreshGeneration < 0 ||
-        record.ratings.any((rating) =>
-            rating.sourceId != record.providerId ||
-            rating.providerGameId != record.providerGameId)) {
+  Future<void> putMetadata(MetadataRecord record,
+      {Transaction? transaction}) async {
+    if (!hasConsistentProvenance(record)) {
       throw StateError('Metadata provenance is inconsistent');
     }
-    final db = await _database;
-    await db.transaction((txn) async {
+    Future<void> write(Transaction txn) async {
       final identities = await txn.rawQuery('''
         SELECT g.platform_id, g.record_json AS game_json, e.record_json AS edition_json
         FROM library_editions e
@@ -184,12 +179,32 @@ class LibraryStore {
             'provider_game_id': record.providerGameId,
             'generation_id': record.refreshGeneration,
             'retrieved_at': record.retrievedAt.toUtc().toIso8601String(),
-            'identity_key': _metadataIdentity(identities.single),
+            'identity_key': metadataIdentity(identities.single),
             'record_json': jsonEncode(record.toJson()),
           },
           conflictAlgorithm: ConflictAlgorithm.replace);
-    });
+    }
+
+    if (transaction != null) {
+      await write(transaction);
+    } else {
+      final db = await _database;
+      await db.transaction(write);
+    }
   }
+
+  static bool hasConsistentProvenance(MetadataRecord record) =>
+      record.providerId.trim().isNotEmpty &&
+      record.providerGameId.trim().isNotEmpty &&
+      record.refreshGeneration >= 0 &&
+      record.ratings.every((rating) =>
+          rating.sourceId == record.providerId &&
+          rating.providerGameId == record.providerGameId) &&
+      record.fieldProvenance.entries.every((entry) =>
+          entry.value.providerId == record.providerId &&
+          entry.value.providerGameId == record.providerGameId &&
+          entry.key == entry.value.field &&
+          entry.key.trim().isNotEmpty);
 
   Future<MetadataRecord?> metadata(String editionId, String providerId) async {
     final db = await _database;
@@ -202,7 +217,7 @@ class LibraryStore {
       WHERE m.edition_id = ? AND m.provider_id = ? LIMIT 1
     ''', [editionId, providerId]);
     if (rows.isEmpty) return null;
-    if (rows.single['identity_key'] != _metadataIdentity(rows.single)) {
+    if (rows.single['identity_key'] != metadataIdentity(rows.single)) {
       return null;
     }
     return MetadataRecord.fromJson(
@@ -212,7 +227,7 @@ class LibraryStore {
 
   /// Metadata stays stored as evidence, but cannot be consumed under a changed
   /// game/edition/patch identity. Display-name-only renames are not identity edits.
-  static String _metadataIdentity(Map<String, Object?> row) {
+  static String metadataIdentity(Map<String, Object?> row) {
     final game = jsonDecode(row['game_json'] as String) as Map<String, dynamic>;
     game.remove('title');
     final edition = jsonDecode(row['edition_json'] as String);

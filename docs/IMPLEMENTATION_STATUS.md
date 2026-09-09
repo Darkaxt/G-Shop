@@ -6,7 +6,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 ## Scope state
 
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1-S3 in progress; no stage acceptance claimed.
+- Feature implementation: S1-S4 in progress; no stage acceptance claimed.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. No provider credentials or successful live access is assumed.
 - Existing SD-library migration was missing from the implementation scope.
@@ -54,7 +54,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; supported standalone files enter the verified normal queue | Live selected-folder inventory and consent still required; S5 completes localized/controller UX |
 | S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal queue; shared manifest-based installed index and consumer path resolution; post-commit private-stage retirement with native Thor proof | Remaining crash/reset windows, bundles, replacement/owned removal, exact achievement persistence, emulator handoff, full consumer/live roundtrip and large-file integration proof remain DRIVE-04/05/06 gates |
-| S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
+| S4 | In progress | Persistent explicit-membership refresh snapshots, single worker, atomic result/progress commits and identity-bound provenance checks; verification checkpoint below | Runtime collection/identity population, failed-item review/retry controls, complete quota pacing, artwork, score-reception gate and shared query remain required |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | Not started | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -667,6 +667,48 @@ still wait for credible fresh rankings and verified cloud recovery.
   its approximately 3.0 GiB private memory and its own performance-data file.
   Six pre-existing protected CMake command records remain; they were not forced
   through cleanup. SDK/dependency caches and unrelated processes were retained.
+
+### S4 persistent metadata job checkpoint (2026-09-09)
+
+- Additive v18 jobs/items/provider-backoff tables preserve prior cached games and
+  metadata. Database startup changes interrupted running jobs to paused; it does
+  not start scraping or reset an independently active worker.
+- Callers supply explicit collection generation and edition membership; snapshots
+  never infer membership from historical metadata. A fresh job allocates a new
+  generation and does not skip items because an older score exists. Equivalent
+  request/release/patch evidence coalesces; arbitrary filenames and container
+  digests do not establish ROM identity. Metadata writes and per-edition outcomes
+  share one SQLite transaction, in pages of at most 128 items.
+- Pause cancels and joins the provider call. Completed pages survive; pending
+  items resume. Identity corrections and newer generations remain protected.
+  Invalid IDs/provenance and an unlabelled base-game response for a separately
+  identified derived game cannot publish a score. Unknown candidate confidence
+  remains unknown; title matching is not promoted into a fabricated confidence.
+- Account/offline/quota outcomes stop without a busy retry loop or cache purge.
+  Explicit provider retry-after boundaries persist across jobs and restarts.
+  Full provider rate-window/account-quota scheduling remains required before live
+  bulk scraping; current daily-quota observations alone do not satisfy META-06.
+- Remaining S4 work includes runtime collection/identity population, compatible
+  raw-ROM evidence where actually available, corrected/failed-item review and
+  retry entry points, artwork resolution/cache, shared indexed metadata queries,
+  and the live reception/source reliability gate. These are required work, not
+  waived by the standalone job tests. S5 controls and S7 migration remain pending.
+- Fresh full host suite: `flutter test --no-pub --concurrency=1 --exclude-tags
+  live --reporter expanded` passed **1,999 tests**, exit 0, framework duration
+  2m07s. This includes v13-v17 upgrade/reopen, interrupted-job startup recovery,
+  provider/backoff isolation, commit rollback and identity/provenance fixtures.
+  The prior interrupted run had no completion result and is not counted.
+- The coalescing resource fixture completed 30,000 editions with one equivalent
+  provider lookup and 128-item commit pages in 30,630 ms. Observed test-process
+  RSS rose from 159,932,416 to a peak 246,509,568 bytes. This is an edition/job
+  resource test, not the still-required 30,000-canonical-game query/ranking proof.
+  Its initial run reached the framework's default 30-second test deadline;
+  the fixture now waits for completion rather than using a correctness deadline.
+- Final `flutter analyze --no-pub` reports only the four pre-existing findings
+  in game_grid, library_screen, cover_preload_service and l10n_completeness
+  (exit 1, 4.0s). The eight findings initially introduced in the job file were
+  corrected and do not appear in the final run. Workloads were serialized.
+- No live metadata, Drive ROM download, SD deletion or release is claimed.
 
 ### Preparation verification (2026-09-08)
 

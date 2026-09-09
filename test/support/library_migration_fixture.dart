@@ -8,11 +8,12 @@ import 'package:retro_eshop/models/game_metadata_info.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion < 13 || previousVersion > 16) {
+  if (previousVersion < 13 || previousVersion > 17) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -59,6 +60,9 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
+      'metadata_refresh_items',
+      'metadata_refresh_jobs',
+      'metadata_provider_backoff',
       if (previousVersion == 13) ...[
         'library_metadata',
         'library_artifacts',
@@ -79,7 +83,9 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     ]) {
       await opened.execute('DROP TABLE IF EXISTS $table');
     }
-    await opened.execute('DROP INDEX IF EXISTS idx_transfer_artifact');
+    if (previousVersion < 17) {
+      await opened.execute('DROP INDEX IF EXISTS idx_transfer_artifact');
+    }
     // Remove the v15 cache extension too, retaining the original row IDs.
     if (previousVersion < 15) {
       await opened.execute('DROP INDEX idx_games_system_filename');
@@ -102,7 +108,9 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 17);
+    expect(await opened.getVersion(), 18);
+    expect(await opened.query('metadata_refresh_jobs'), isEmpty);
+    expect(await opened.query('metadata_refresh_items'), isEmpty);
     expect(
         (await opened
                 .query('games', where: 'filename=?', whereArgs: ['Old.chd']))
@@ -136,10 +144,22 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
         id: 'smoke-edition',
         gameId: 'smoke-game',
         tags: {'T-Eng', 'Uncensor'}));
+    final refresh = await MetadataRefreshJobs(Future.value(opened)).create(
+        providerId: 'screenscraper',
+        collectionGeneration: 'fixture-generation',
+        editionIds: ['smoke-edition']);
+    // Durable state left by an exited process; no live runner exists here.
+    await opened.update('metadata_refresh_jobs', {'state': 'running'},
+        where: 'id = ?', whereArgs: [refresh.id]);
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 17);
+    expect(await opened.getVersion(), 18);
+    final recovered =
+        await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
+    expect(recovered.state, 'paused');
+    expect(recovered.counts, {'pending': 1});
+    expect(recovered.generation, refresh.generation);
     expect(
         await opened.query('games'), hasLength(previousVersion >= 15 ? 2 : 1));
     expect(await opened.query('transfer_records'), isEmpty);
