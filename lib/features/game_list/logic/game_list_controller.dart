@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../../models/config/system_config.dart';
+import '../../../models/config/provider_config.dart';
 import '../../../models/game_item.dart';
+import '../../../models/library_identity.dart';
 import '../../../models/system_model.dart';
 import '../../../services/database_service.dart';
+import '../../../services/installation_index.dart';
 import '../../../services/library_sync_service.dart';
 import '../../../services/rom_manager.dart';
 import '../../../services/storage_service.dart';
@@ -121,12 +124,14 @@ class GameListController extends ChangeNotifier {
   }
 
   Set<String>? _pendingInstalledFilenames;
+  List<RemoteArtifact> _installedArtifacts = const [];
 
   GameListController({
     required this.system,
     required this.targetFolder,
     required this.systemConfig,
     Set<String>? installedFilenames,
+    List<RemoteArtifact> installedArtifacts = const [],
     UnifiedGameService? unifiedService,
     DatabaseService? databaseService,
     StorageService? storage,
@@ -134,6 +139,7 @@ class GameListController extends ChangeNotifier {
         _databaseService = databaseService ?? DatabaseService(),
         _storage = storage {
     _pendingInstalledFilenames = installedFilenames;
+    _installedArtifacts = installedArtifacts;
     loadGames();
   }
 
@@ -324,7 +330,8 @@ class GameListController extends ChangeNotifier {
   /// call [applyInstalledFilenames] when data arrives.
   void _resolveInstalledStatus() {
     if (_pendingInstalledFilenames != null) {
-      applyInstalledFilenames(_pendingInstalledFilenames!);
+      applyInstalledFilenames(_pendingInstalledFilenames!,
+          installedArtifacts: _installedArtifacts);
     } else {
       _state = _state.copyWith(isLoading: false);
       notifyListeners();
@@ -442,8 +449,10 @@ class GameListController extends ChangeNotifier {
   }
 
   /// Fast path: apply pre-scanned filenames from the central index.
-  void applyInstalledFilenames(Set<String> installedFilenames) {
+  void applyInstalledFilenames(Set<String> installedFilenames,
+      {List<RemoteArtifact> installedArtifacts = const []}) {
     _pendingInstalledFilenames = installedFilenames;
+    _installedArtifacts = installedArtifacts;
     final installedCache = <String, bool>{};
     for (final entry in _state.groupedGames.entries) {
       installedCache[entry.key] = _isAnyVariantInSet(entry.value, installedFilenames);
@@ -458,7 +467,15 @@ class GameListController extends ChangeNotifier {
 
   bool _isAnyVariantInSet(List<GameItem> variants, Set<String> filenames) {
     for (final variant in variants) {
-      if (variant.remoteArtifact != null) continue;
+      final artifact = variant.remoteArtifact;
+      if (artifact != null) {
+        if (_installedArtifacts.any((installed) =>
+            InstallationSnapshot.sameContent(installed, artifact))) {
+          return true;
+        }
+        continue;
+      }
+      if (variant.providerConfig?.type == ProviderType.drive) continue;
       final fn = variant.filename;
       if (filenames.contains(fn)) return true;
       // Check archive→extracted match
@@ -477,7 +494,7 @@ class GameListController extends ChangeNotifier {
 
   Future<bool> _isAnyVariantInstalled(List<GameItem> variants) async {
     final romManager = RomManager();
-    return romManager.isAnyVariantInstalled(variants.where((g) => g.remoteArtifact == null).toList(), system, targetFolder);
+    return romManager.isAnyVariantInstalled(variants, system, targetFolder);
   }
 
   Future<void> updateInstalledStatus(String displayName) async {

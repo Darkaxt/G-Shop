@@ -12,7 +12,7 @@ import 'package:retro_eshop/services/library_store.dart';
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion < 13 || previousVersion > 15) {
+  if (previousVersion < 13 || previousVersion > 16) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -40,7 +40,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
           platformId: 'psx',
           title: 'Pre-existing identity'));
     }
-    if (previousVersion == 15) {
+    if (previousVersion >= 15) {
       await service.saveGames('psx', [
         GameItem(
             filename: 'Same.chd',
@@ -71,12 +71,15 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
         'drive_catalogue_entries',
         'drive_catalogue_state',
       ],
-      'transfer_records',
-      'installed_artifacts',
-      'transfer_target_owners',
+      if (previousVersion < 16) ...[
+        'transfer_records',
+        'installed_artifacts',
+        'transfer_target_owners',
+      ],
     ]) {
       await opened.execute('DROP TABLE IF EXISTS $table');
     }
+    await opened.execute('DROP INDEX IF EXISTS idx_transfer_artifact');
     // Remove the v15 cache extension too, retaining the original row IDs.
     if (previousVersion < 15) {
       await opened.execute('DROP INDEX idx_games_system_filename');
@@ -99,7 +102,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 16);
+    expect(await opened.getVersion(), 17);
     expect(
         (await opened
                 .query('games', where: 'filename=?', whereArgs: ['Old.chd']))
@@ -116,7 +119,11 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     expect(await opened.query('transfer_records'), isEmpty);
     expect(await opened.query('installed_artifacts'), isEmpty);
     expect(await opened.query('transfer_target_owners'), isEmpty);
-    if (previousVersion == 15) {
+    expect(
+        await opened.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_transfer_artifact'"),
+        hasLength(1));
+    if (previousVersion >= 15) {
       final priorExact =
           (await opened.query('games', where: 'artifact_key IS NOT NULL'))
               .single;
@@ -132,9 +139,9 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 16);
+    expect(await opened.getVersion(), 17);
     expect(
-        await opened.query('games'), hasLength(previousVersion == 15 ? 2 : 1));
+        await opened.query('games'), hasLength(previousVersion >= 15 ? 2 : 1));
     expect(await opened.query('transfer_records'), isEmpty);
     expect(await opened.query('library_metadata'), isEmpty);
     final reopened = LibraryStore(Future.value(opened));

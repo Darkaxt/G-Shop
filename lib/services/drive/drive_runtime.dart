@@ -10,6 +10,7 @@ import '../../models/config/source.dart';
 import '../../models/library_identity.dart';
 import '../../models/transfer_record.dart';
 import '../database_service.dart';
+import '../installation_index.dart';
 import '../owned_storage.dart';
 import '../transfer_journal.dart';
 import 'drive_api.dart';
@@ -163,23 +164,8 @@ class DriveRuntime {
     final installation = await journal.installationForTarget(
         destinationRoot: record.destinationRoot,
         relativePath: record.relativePath);
-    if (record.lifecycle != TransferLifecycle.completed ||
-        installation == null ||
-        installation.transferId != record.id ||
-        !const DeepCollectionEquality()
-            .equals(installation.artifact.toJson(), record.artifact.toJson()) ||
-        !const DeepCollectionEquality()
-            .equals(installation.verifiedChecksums, record.verifiedChecksums)) {
-      throw const OwnedStorageException('changed');
-    }
-    final identity = await _storage.inspect(
-        destinationRoot: record.destinationRoot,
-        relativePath: record.relativePath,
-        stagePath: record.stagePath,
-        published: true);
-    if (identity == null || !identity.matches(installation.fileIdentity)) {
-      throw const OwnedStorageException('changed');
-    }
+    await InstallationIndex(journal, storage: _storage)
+        .requireInstallation(record, installation);
   }
 
   /// Starts only an already reserved exact transfer. The normal queue remains

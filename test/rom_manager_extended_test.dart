@@ -5,8 +5,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/rom_manager.dart';
+import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  late Database db;
+  setUp(() async {
+    sqfliteFfiInit();
+    db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    await TransferJournalSchema.install(db);
+    DatabaseService.testDatabase = db;
+  });
+  tearDown(() async {
+    DatabaseService.resetForTesting();
+    await db.close();
+  });
   group('RomManager.extractGameName', () {
     test('removes .zip extension', () {
       expect(RomManager.extractGameName('Pokemon.zip'), 'Pokemon');

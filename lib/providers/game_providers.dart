@@ -112,12 +112,14 @@ final systemSourceCountsProvider =
     },
   };
 
-  final systemIds = {...remoteCounts.keys, ...installed.bySystem.keys};
+  final systemIds = {...remoteCounts.keys, ...installed.bySystem.keys,
+      ...installed.exactBySystem.keys};
   return {
     for (final id in systemIds)
       id: (
         remote: remoteCounts[id] ?? 0,
-        local: _countRomFiles(installed.bySystem[id], extsBySystem[id]),
+        local: _countRomFiles(installed.bySystem[id], extsBySystem[id]) +
+            (installed.exactBySystem[id]?.length ?? 0),
       ),
   };
 });

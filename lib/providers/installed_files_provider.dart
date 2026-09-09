@@ -5,21 +5,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../models/config/app_config.dart';
+import '../models/library_identity.dart';
 import '../models/system_model.dart';
+import '../services/installation_index.dart';
 import 'game_providers.dart';
 import 'rom_status_providers.dart';
 
 class InstalledFilesState {
-  /// systemId → Set of basenames found in that system's target folder.
+  /// systemId → unmanaged basenames found in that system's target folder.
   final Map<String, Set<String>> bySystem;
 
   /// Flat union of all filenames across every system.
   final Set<String> all;
 
+  /// Verified managed files are never filename evidence for another game.
+  final Map<String, List<RemoteArtifact>> exactBySystem;
+
   const InstalledFilesState({
     this.bySystem = const {},
     this.all = const {},
+    this.exactBySystem = const {},
   });
+
+  bool hasExactArtifact(String systemId, RemoteArtifact artifact) =>
+      exactBySystem[systemId]?.any((installed) =>
+          InstallationSnapshot.sameContent(installed, artifact)) ?? false;
 }
 
 /// Central index of all installed ROM files, scanned on an isolate.
@@ -27,12 +37,29 @@ class InstalledFilesState {
 final installedFilesProvider = FutureProvider<InstalledFilesState>((ref) async {
   ref.watch(romChangeSignalProvider);
   final config = await ref.watch(bootstrappedConfigProvider.future);
-  return compute(_scanAllSystems, config);
+  final candidates = await compute(_scanAllSystems, config);
+  final bySystem = <String, Set<String>>{};
+  final exactBySystem = <String, List<RemoteArtifact>>{};
+  final all = <String>{};
+  final index = InstallationIndex.application();
+  for (final sysConfig in config.systems) {
+    final paths = candidates[sysConfig.id];
+    if (paths == null) continue;
+    // Read journal truth after enumeration so newly published files cannot use
+    // an exclusion snapshot captured before their public create/rename.
+    final snapshot = await index.scan(sysConfig.targetFolder);
+    final filenames = paths.where(snapshot.allowsLegacy).map(p.basename).toSet();
+    bySystem[sysConfig.id] = filenames;
+    all.addAll(filenames);
+    exactBySystem[sysConfig.id] = snapshot.installed.values
+        .map((installation) => installation.artifact).toList();
+  }
+  return InstalledFilesState(bySystem: bySystem, all: all,
+      exactBySystem: exactBySystem);
 });
 
-InstalledFilesState _scanAllSystems(AppConfig config) {
+Map<String, Set<String>> _scanAllSystems(AppConfig config) {
   final bySystem = <String, Set<String>>{};
-  final all = <String>{};
 
   // Build valid ROM extensions per system (includes multiFileExtensions)
   final extsBySystem = <String, Set<String>>{};
@@ -51,28 +78,27 @@ InstalledFilesState _scanAllSystems(AppConfig config) {
 
   for (final sysConfig in config.systems) {
     if (sysConfig.targetFolder.isEmpty) continue;
+    if (InstallationIndex.isRedirectedPath(sysConfig.targetFolder)) continue;
     final dir = Directory(sysConfig.targetFolder);
     if (!dir.existsSync()) continue;
     final filenames = <String>{};
     final validExts = extsBySystem[sysConfig.id] ?? {};
     try {
       for (final entity in dir.listSync(followLinks: false)) {
-        final name = p.basename(entity.path);
         if (entity is Directory) {
           // Only count directories that contain ROM files (one level deep)
           if (_directoryContainsRom(entity, validExts)) {
-            filenames.add(name);
+            filenames.add(entity.path);
           }
-        } else {
-          filenames.add(name);
+        } else if (entity is File) {
+          filenames.add(entity.path);
         }
       }
     } catch (e) { debugPrint('InstalledFiles: listSync failed: $e'); }
     bySystem[sysConfig.id] = filenames;
-    all.addAll(filenames);
   }
 
-  return InstalledFilesState(bySystem: bySystem, all: all);
+  return bySystem;
 }
 
 /// Checks if a directory contains at least one file with a valid ROM extension.

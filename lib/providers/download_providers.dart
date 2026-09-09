@@ -43,6 +43,10 @@ Future<void> _verifyRaHash(
   String? apiKey,
   Ref ref,
 ) async {
+  // RA's persisted match table is still filename-keyed. Do not publish an exact
+  // Drive file's hash result onto unrelated legacy namesakes before that mapping
+  // has its own identity-aware integration.
+  if (item.game.remoteArtifact != null) return;
   if (apiKey == null || apiKey.isEmpty) return;
   if (!item.system.hasRetroAchievements) return;
 

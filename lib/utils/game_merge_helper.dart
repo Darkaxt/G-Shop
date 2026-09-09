@@ -40,7 +40,7 @@ class GameMergeHelper {
       byFilename[game.identityKey] = game;
     }
     for (final game in localGames) {
-      if (remoteTargetNames.contains(game.filename)) {
+      if (game.remoteArtifact == null && remoteTargetNames.contains(game.filename)) {
         debugPrint('GameMergeHelper: skipping local "${game.filename}" '
             '(matches remote archive target)');
         continue;

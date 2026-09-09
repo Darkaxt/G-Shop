@@ -11,6 +11,9 @@ import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/download_queue_manager.dart';
 import 'package:retro_eshop/services/unified_game_service.dart';
 import 'package:retro_eshop/services/rom_manager.dart';
+import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/utils/game_merge_helper.dart';
 
 GameItem exactGame(String fileId,
@@ -38,13 +41,6 @@ GameItem exactGame(String fileId,
 class _NoLegacyRomAccess extends RomManager {
   int calls = 0;
   @override
-  Future<Map<int, bool>> checkMultipleExists(
-      List<GameItem> games, SystemModel system, String targetFolder) async {
-    calls++;
-    throw StateError('Exact artifact reached legacy existence check');
-  }
-
-  @override
   Future<void> delete(
       GameItem game, SystemModel system, String targetFolder) async {
     calls++;
@@ -60,6 +56,17 @@ class _UnusedQueue implements DownloadQueueManager {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late Database db;
+  setUp(() async {
+    sqfliteFfiInit();
+    db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    await TransferJournalSchema.install(db);
+    DatabaseService.testDatabase = db;
+  });
+  tearDown(() async {
+    DatabaseService.resetForTesting();
+    await db.close();
+  });
   final system = SystemModel.supportedSystems.firstWhere((s) => s.id == 'nes');
   test('exact detail status and removal never inspect a local namesake',
       () async {
@@ -125,6 +132,15 @@ void main() {
         [const GameItem(filename: 'Game.nes', displayName: 'Game', url: '')],
         system);
     expect(games, hasLength(4));
+  });
+
+  test('an installed exact artifact is not hidden by a legacy archive target', () {
+    final installed = exactGame('installed');
+    final remote = const GameItem(filename: 'Game.zip', displayName: 'Game', url: 'https://example.test/Game.zip');
+    final games = GameMergeHelper.merge([remote], [installed], system);
+    expect(games, hasLength(2));
+    expect(games.any((game) => game.identityKey == installed.identityKey), true);
+    expect(GameMergeHelper.merge([installed], [installed], system), hasLength(1));
   });
 
   test(

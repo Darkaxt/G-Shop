@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 
 import '../../core/input/input.dart';
 import '../../core/responsive/responsive.dart';
@@ -87,7 +84,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   // Raw data from DB
   List<LibraryEntry> _allGames = [];
-  Set<String> _installedFiles = {};
+  InstalledFilesState _installationState = const InstalledFilesState();
+  Set<String> get _installedFiles => _installationState.all;
   Set<String> _favoriteIds = {};
   // Filtered/sorted view
   List<LibraryEntry> _filteredGames = [];
@@ -196,8 +194,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       _installedFilesSubscription = ref.listenManual(installedFilesProvider, (prev, next) {
         if (!mounted) return;
         final data = next.value;
-        if (data != null && !setEquals(data.all, _installedFiles)) {
-          _installedFiles = data.all;
+        if (data != null && !identical(data, _installationState)) {
+          _installationState = data;
           _applyFilters();
         }
       });
@@ -222,24 +220,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   Future<void> _refreshInstalledFiles() async {
-    final appConfig =
-        ref.read(bootstrappedConfigProvider).value ?? AppConfig.empty;
-    final installed = <String>{};
-    for (final sysConfig in appConfig.systems) {
-      if (sysConfig.targetFolder.isEmpty) continue;
-      final dir = Directory(sysConfig.targetFolder);
-      if (await dir.exists()) {
-        try {
-          await for (final entity in dir.list(followLinks: false)) {
-            if (entity is File || entity is Directory) {
-              installed.add(p.basename(entity.path));
-            }
-          }
-        } catch (e) { debugPrint('LibraryScreen: dir list failed: $e'); }
-      }
-    }
+    final installed = await ref.read(installedFilesProvider.future);
     if (mounted) {
-      setState(() => _installedFiles = installed);
+      setState(() => _installationState = installed);
     }
   }
 
@@ -254,9 +237,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     // Use centralized installed-files index (provider-driven)
     final installedData = ref.read(installedFilesProvider).value;
     if (installedData != null) {
-      _installedFiles = installedData.all;
+      _installationState = installedData;
     } else {
-      // Provider not ready yet — fall back to direct scan
+      // Await the same verified index; never bypass it with a filename scan.
       await _refreshInstalledFiles();
     }
 
@@ -631,7 +614,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       _shelves = ref.read(customShelvesProvider);
       final data = ref.read(installedFilesProvider).value;
       if (data != null) {
-        _installedFiles = data.all;
+        _installationState = data;
       }
       _applyFilters();
       if (isSearchActive) {
@@ -1001,23 +984,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // --- Count helpers ---
 
   bool _isGameInstalled(LibraryEntry entry) {
-    // Exact cloud files require an installation manifest, not a namesake.
-    if (entry.remoteArtifact != null) return false;
+    final artifact = entry.remoteArtifact;
+    if (artifact != null) {
+      return _installationState.hasExactArtifact(entry.systemSlug, artifact);
+    }
+    if (entry.providerConfig?.type == ProviderType.drive) return false;
+    final filenames = _installationState.bySystem[entry.systemSlug] ?? const <String>{};
     final filename = entry.filename;
-    if (_installedFiles.contains(filename)) return true;
+    if (filenames.contains(filename)) return true;
     // Strip archive extension for extracted ROM match
     for (final ext in SystemModel.archiveExtensions) {
       if (filename.toLowerCase().endsWith(ext)) {
         final stripped = filename.substring(0, filename.length - ext.length);
         // Folder match (multi-file games)
-        if (_installedFiles.contains(stripped)) return true;
+        if (filenames.contains(stripped)) return true;
         // ROM extension replacement (like RomManager.getTargetFilename)
         final system = SystemModel.supportedSystems
             .where((s) => s.id == entry.systemSlug)
             .firstOrNull;
         if (system != null) {
           for (final romExt in system.romExtensions) {
-            if (_installedFiles.contains('$stripped$romExt')) return true;
+            if (filenames.contains('$stripped$romExt')) return true;
           }
         }
         return false;
@@ -1032,7 +1019,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   List<LibraryEntry> _deduplicateInstalled(List<LibraryEntry> games) {
     final seen = <String, LibraryEntry>{};
     for (final game in games) {
-      final key = '${game.systemSlug}::${game.displayName.toLowerCase()}';
+      final key = game.remoteArtifact == null
+          ? '${game.systemSlug}::${game.displayName.toLowerCase()}'
+          : '${game.systemSlug}::${game.selectionKey}';
       final existing = seen[key];
       if (existing == null) {
         seen[key] = game;

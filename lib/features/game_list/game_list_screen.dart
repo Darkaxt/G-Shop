@@ -170,6 +170,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       targetFolder: widget.targetFolder,
       systemConfig: systemConfig ?? SystemConfig(id: widget.system.id, name: widget.system.name, targetFolder: widget.targetFolder, providers: []),
       installedFilenames: installedData?.bySystem[widget.system.id],
+      installedArtifacts: installedData?.exactBySystem[widget.system.id] ?? const [],
       storage: ref.read(storageServiceProvider),
     )..addListener(_onControllerChanged);
 
@@ -196,6 +197,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
         if (data != null) {
           _controller.applyInstalledFilenames(
             data.bySystem[widget.system.id] ?? {},
+            installedArtifacts: data.exactBySystem[widget.system.id] ?? const [],
           );
         }
       });

@@ -15,4 +15,6 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 14));
   test('real v15 upgrade adds journal without losing exact cached artifacts',
       () => verifyLibraryMigration(previousVersion: 15));
+  test('real v16 upgrade adds artifact lookup index and reopens intact',
+      () => verifyLibraryMigration(previousVersion: 16));
 }

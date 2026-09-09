@@ -51,7 +51,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
-| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal-queue integration with durable pause and visible lifecycle states; native owned-storage primitives with earlier actual Thor tests | Exact installation/discovery/launch integration, remaining crash/reset/retirement windows, bundles, replacement/removal and required live recovery proof remain DRIVE-04/05/06 gates |
+| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal queue; shared manifest-based installed index and consumer path resolution; native owned-storage primitives with earlier actual Thor tests | Remaining crash/reset/retirement windows, bundles, replacement/owned removal, exact achievement persistence, full consumer/live roundtrip and large-file integration proof remain DRIVE-04/05/06 gates |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -563,6 +563,59 @@ still wait for credible fresh rankings and verified cloud recovery.
   SDK/dependency caches, source files, accounts, ROMs and device data are retained.
 - S3 and the full implementation remain in progress. The normal Drive detail/
   library entry gates are not removed by this tested queue checkpoint.
+
+### S3 installed-state integration checkpoint (2026-09-09)
+
+- Shared offline installation evidence now drives main/isolate local discovery,
+  the central installed-files provider, library/game-list badges and detail
+  status, plus launch/share path resolution. A matching filename is never proof
+  for a managed artifact. Exact source/account/file, version, size and provider
+  digests must match a committed manifest and current native object identity.
+  Source renaming does not invalidate the committed local bytes.
+- Publication intent excludes public copies before their first receipt and
+  while paused/failed/unconfirmed. Missing or changed managed objects do not
+  reappear as unmanaged files. Pristine reservations protect removal without
+  hiding existing unrelated local files. Unmanaged neighbors retain legacy use.
+- Roots and target claims account for case aliases only with filesystem identity
+  proof; distinct case-sensitive files are not conflated. Redirected ancestor
+  paths are rejected. Containing-folder legacy fallbacks cannot expose or share
+  a partially published member through another valid member of that folder.
+- Target reservation and legacy removal share deterministic overlapping-path
+  scopes in the main isolate. Removal sees a prior committed reservation, or a
+  new reservation waits for removal to finish. Disjoint paths proceed. This is
+  not an external-writer lock or an implementation of managed ROM removal.
+- Journal scans use 128-row keyset pages and native inspections only when needed.
+  Single-artifact consumers use the artifact index, not a native scan of every
+  installed ROM. Additive database v17 introduces that index; real v13-v16
+  upgrade/reopen fixtures preserve earlier library/cache data.
+- Exact local entries retain artifact identity during merging; unrelated legacy
+  archive targets cannot suppress them. Filename-based RetroAchievements hash
+  persistence remains explicitly skipped for exact artifacts until its identity
+  mapping is implemented. Managed Delete remains gated; no recursive managed
+  removal or fabricated successful action is enabled.
+- Required S3 work remains: native crash/reset/retirement recovery, safe
+  replacement/removal, bundle/playlist completeness, exact achievement mapping,
+  integrated large-file measurement and actual emulator/offline/remove/reinstall
+  proof. Current queue input is single-file; nested/bundle installations are not
+  claimed ready. Controller/provider tests do not replace a full Library widget
+  or device acceptance test. S4-S7 and live account setup remain outstanding.
+- No account, ROM, H: archive, SD-card, APK or release changes were made here.
+- Fresh final `flutter test --no-pub --concurrency=1 --exclude-tags live
+  --reporter expanded`: **1,958 passed**, exit 0, framework duration 2m14s.
+  Real SQLite/filesystem regressions reproduced publication visibility, case
+  aliases, containing-folder fallback and unnecessarily broad native inspection
+  before correction. Native inspection alone is faked in those host fixtures;
+  no host test is presented as Android proof. No test workloads overlapped.
+- Streaming fixtures used maximum 65,536-byte chunks for 32/256 MiB streams;
+  sampled RSS was 181,760,000 / 186,986,496 bytes. These are fixture samples, not
+  a device peak-memory or multi-gigabyte live-transfer claim.
+- Final `flutter analyze --no-pub` retains exactly the four baseline findings
+  listed in the preceding checkpoint (exit 1), with no new findings. All 24
+  requirements retain unique stage mappings and `git diff --check` passed.
+- Reviewed transactional cleanup `5e6c9f8f6919588bed76e4780961f0f2` applied
+  successfully: 480 generated entries / 105,393,303 bytes removed, no errors or
+  residuals. The generated build directory and task-local test/log directory
+  are absent; reproducible test source and the verification summary remain.
 
 ### Preparation verification (2026-09-08)
 

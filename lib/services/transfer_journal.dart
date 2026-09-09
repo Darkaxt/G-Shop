@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as p;
 
 import '../models/transfer_record.dart';
+import 'installation_paths.dart';
 
 /// Additive transfer/install schema. Integration into the application database
 /// migration remains the responsibility of DatabaseService.
@@ -22,6 +24,7 @@ class TransferJournalSchema {
     )''');
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_lifecycle
       ON transfer_records(lifecycle, transfer_id)''');
+    await installArtifactIndex(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS installed_artifacts (
       installation_id TEXT PRIMARY KEY,
       transfer_id TEXT NOT NULL UNIQUE,
@@ -38,6 +41,10 @@ class TransferJournalSchema {
       PRIMARY KEY(destination_root, relative_path)
     )''');
   }
+
+  static Future<void> installArtifactIndex(DatabaseExecutor db) =>
+      db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_artifact
+      ON transfer_records(artifact_key, destination_root, relative_path)''');
 }
 
 /// Durable state only: this class performs no filesystem operations and never
@@ -49,6 +56,12 @@ class TransferJournal {
 
   /// Reserves the target and creates a new queued transfer in one transaction.
   Future<TransferRecord> create(TransferRecord record) async {
+    return InstallationMutations.run(
+        p.join(record.destinationRoot, record.relativePath),
+        () => _create(record));
+  }
+
+  Future<TransferRecord> _create(TransferRecord record) async {
     if (record.revision != 0 ||
         record.lifecycle != TransferLifecycle.queued ||
         record.durableOffset != 0 ||
@@ -274,6 +287,53 @@ class TransferJournal {
   Future<TransferRecord?> transfer(String id) async {
     final db = await _database;
     return _transfer(db, id);
+  }
+
+  Future<List<String>> destinationRoots() async {
+    final db = await _database;
+    final rows = await db.rawQuery(
+        'SELECT DISTINCT destination_root FROM transfer_target_owners');
+    return rows.map((r) => r['destination_root'] as String).toList();
+  }
+
+  /// Keyset-paged ownership and installation evidence from the same SQL read.
+  /// No transfer history, payload bytes or all-library metadata is materialized.
+  Stream<({TransferRecord transfer, InstalledArtifact? installation})>
+      targetsInRoot(String root, {String? artifactKey}) async* {
+    final db = await _database;
+    String? after;
+    while (true) {
+      final rows = await db.rawQuery('''
+        SELECT t.record_json AS transfer_json, i.record_json AS installation_json,
+          o.relative_path AS cursor
+        FROM transfer_target_owners o
+        JOIN transfer_records t ${artifactKey == null ? '' : 'INDEXED BY idx_transfer_artifact'}
+          ON t.transfer_id = o.transfer_id
+        LEFT JOIN installed_artifacts i ON i.installation_id = o.installation_id
+          AND i.transfer_id = o.transfer_id
+        WHERE o.destination_root = ? ${after == null ? '' : 'AND o.relative_path > ?'}
+          ${artifactKey == null ? '' : 'AND t.artifact_key = ? AND t.destination_root = ?'}
+        ORDER BY o.relative_path LIMIT 128
+      ''', [
+        root,
+        if (after != null) after,
+        if (artifactKey != null) ...[artifactKey, root]
+      ]);
+      if (rows.isEmpty) return;
+      for (final row in rows) {
+        yield (
+          transfer: TransferRecord.fromJson(
+              (jsonDecode(row['transfer_json'] as String) as Map)
+                  .cast<String, dynamic>()),
+          installation: row['installation_json'] == null
+              ? null
+              : InstalledArtifact.fromJson(
+                  (jsonDecode(row['installation_json'] as String) as Map)
+                      .cast<String, dynamic>()),
+        );
+      }
+      after = rows.last['cursor'] as String;
+    }
   }
 
   Future<String?> targetOwner({

@@ -190,6 +190,7 @@ Future<({
 })> createController({
   List<GameItem> games = const [],
   Set<String>? installedFilenames,
+  List<RemoteArtifact> installedArtifacts = const [],
   SystemConfig? config,
 }) async {
   final db = FakeDatabaseService();
@@ -201,6 +202,7 @@ Future<({
     targetFolder: '/nonexistent/nes',
     systemConfig: config ?? _config(),
     installedFilenames: installedFilenames,
+    installedArtifacts: installedArtifacts,
     unifiedService: service,
     databaseService: db,
     storage: storage,
@@ -345,6 +347,49 @@ void main() {
   });
 
   group('Grouping', () {
+    test('verified exact install does not mark a local or remote namesake installed', () async {
+      final installed = exactGame('installed');
+      final remoteNamesake = exactGame('other');
+      final localNamesake = _game('Game.nes');
+      final r = await createController(games: [installed, remoteNamesake, localNamesake],
+          installedFilenames: {}, installedArtifacts: [installed.remoteArtifact!]);
+      expect(r.controller.state.installedCache[installed.groupKey], isTrue);
+      expect(r.controller.state.installedCache[remoteNamesake.groupKey], isFalse);
+      expect(r.controller.state.installedCache[localNamesake.groupKey], isFalse);
+      r.controller.dispose();
+    });
+
+    for (final change in <String, dynamic>{
+      'version': 'v2',
+      'sizeBytes': 43,
+      'providerChecksums': {'md5': 'different'},
+    }.entries) {
+      test('verified install rejects changed ${change.key}', () async {
+        final installed = exactGame('installed');
+        final changed = installed.copyWith(remoteArtifact: RemoteArtifact.fromJson({
+          ...installed.remoteArtifact!.toJson(), change.key: change.value,
+        }));
+        final r = await createController(games: [changed], installedFilenames: {},
+            installedArtifacts: [installed.remoteArtifact!]);
+        expect(r.controller.state.installedCache[changed.groupKey], isFalse);
+        r.controller.dispose();
+      });
+    }
+
+    test('exact install survives rename and withdrawal refreshes installed-only filter', () async {
+      final installed = exactGame('installed');
+      final renamed = exactGame('installed', name: 'Renamed.nes');
+      final r = await createController(games: [renamed], installedFilenames: {},
+          installedArtifacts: [installed.remoteArtifact!]);
+      expect(r.controller.state.installedCache[renamed.groupKey], isTrue);
+      r.controller.toggleLocalFilter();
+      expect(r.controller.state.filteredGroups, [renamed.groupKey]);
+      r.controller.applyInstalledFilenames({}, installedArtifacts: []);
+      expect(r.controller.state.installedCache[renamed.groupKey], isFalse);
+      expect(r.controller.state.filteredGroups, isEmpty);
+      r.controller.dispose();
+    });
+
     test('exact objects remain independent and local namesakes are not installed proof', () async {
       final r = await createController(games: [exactGame('a'), exactGame('b'), exactGame('a', account: 'account-b')], installedFilenames: {'Game.nes'});
       expect(r.controller.state.groupedGames, hasLength(3));

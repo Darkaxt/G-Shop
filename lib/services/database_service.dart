@@ -18,7 +18,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 16;
+  static const int _dbVersion = 17;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -311,6 +311,9 @@ class DatabaseService {
     }
     if (oldVersion < 16) {
       await TransferJournalSchema.install(db);
+    }
+    if (oldVersion < 17) {
+      await TransferJournalSchema.installArtifactIndex(db);
     }
   }
 
