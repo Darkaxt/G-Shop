@@ -125,6 +125,37 @@ general rewrite of legacy providers.
    round trip. Until the engine and native publisher are integrated and verified,
    the existing explicit Drive payload/removal gate remains in place.
 
+### S3 target-storage finding and journaled copy route
+
+The live Thor test established that an equal `st_dev` can hide different Android
+bind mounts. Staging selection therefore prefers the descriptor's actual mount
+ID; neither device nor mount equality is an atomic-publication capability claim.
+The Thor's Android 13 SD FUSE path rejected `RENAME_NOREPLACE`. The corresponding
+[AOSP Android 13 handler](https://android.googlesource.com/platform/packages/providers/MediaProvider/+/refs/heads/android13-release/jni/FuseDaemon.cpp)
+also rejects nonzero rename flags. Do not replace this with check-then-rename or
+an overwrite-capable move. DRIVE-05 already requires a journaled alternative.
+
+For unsupported rename or cross-mount publication, the engine must journal a
+copy intent, exclusively create the final destination through the pinned parent,
+persist its exact native identity, and copy only from the retained verified
+app-private stage in bounded chunks. No network writer may target the public
+copy. Flush before each copied-offset/identity checkpoint; compare a resumed
+public prefix against the verified source before appending, because SD timestamp
+precision can hide same-size edits. Rehash the entire destination and sync its
+parents before the installation transaction. Retain the source through that
+transaction and any interrupted recovery. Never truncate or replace an existing
+public file by filename; unjournaled identity/size changes and the create-before-
+identity-record crash gap remain preserved conflicts, not automatic adoption.
+
+Unlike an atomic rename, a public destination copy may be visible in an external
+file browser while publication is incomplete. It is not resumable network staging
+and must not be advertised as installed by R-Shop or handed to an emulator until
+the journal's installed-state commit. Queue/legacy discovery integration must
+enforce that distinction. Existing valid-target replacement remains separately
+gated until an ownership-checked protocol preserves the old installation through
+verification and commit. Native copy primitives alone do not satisfy these
+engine, process-death, bundle, removal or replacement acceptance criteria.
+
 ## S4 — Fresh metadata pipeline and score semantics
 
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.

@@ -51,7 +51,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
-| S3 | In progress | Binary range transport, source/ancestor and streaming checksum fixtures; v16 durable transfer/installation journal with transactional rollback tests | Native owned storage, full transfer/queue/installation integration, bundles and required live recovery proof remain DRIVE-04/05/06 gates |
+| S3 | In progress | Binary range transport, source/ancestor and streaming checksum fixtures; v16 durable journal; native owned-storage and exclusive SD-copy primitives with actual Thor tests | Durable copy-phase journal and full transfer/queue/installation integration, bundles, replacement/removal and required live recovery proof remain DRIVE-04/05/06 gates |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -335,6 +335,93 @@ fresh rating/metadata or exact-file gates before Top-25 SD migration.
   checkpoint. Native publication, bundles, restart/cancel recovery, installed
   status/removal and the live offline/re-download round trip remain required S3
   work; S1/S2 live acceptance and S4-S7 have not been waived.
+
+### S3 owned-storage and Thor filesystem checkpoint (2026-09-09)
+
+- Added a bounded JNI filesystem boundary and serialized Kotlin service behind
+  the existing storage channel, plus its typed Dart adapter. Each operation uses
+  pinned descriptors, no-follow traversal and exact native identity. File IO is
+  capped at 64 KiB per operation; callers await writes rather than buffering a
+  response in a sink. Namespace publication and parent-directory durability are
+  separate events, so a failed sync is retried without repeating the rename.
+- Actual Android traversal initially failed because `/data` allows searching but
+  not listing. Ancestors now use `O_PATH`; the returned directory remains readable
+  and sync-capable. Native tests cover this exact permission case, invalid paths,
+  links/FIFOs/hardlinks, pinned-directory replacement, Unicode, identity, read-only
+  opens, chunk/offset bounds and no-overwrite collisions. The API-24 ARM64 harness
+  was compiled with `-Wall -Wextra -Werror` and passed on the Thor. The APK's ELF
+  imports `dlsym`, not an unconditional API-30 `renameat2` relocation.
+- Live app-UID tests established two distinct publication constraints: Android
+  bind mounts can share `st_dev` but reject cross-mount rename, and this Android
+  13 SD FUSE path rejects `RENAME_NOREPLACE`. Staging now prefers the actual mount
+  ID from bounded descriptor metadata. Equal mount/device IDs remain hints, not
+  guarantees of rename support. Neither failure was hidden with overwrite moves.
+- Added the specification's explicit copy alternative at the storage boundary:
+  exclusively create a destination, retain the fully verified private source,
+  copy bounded chunks, flush/checkpoint, and rehash the destination before finish.
+  Resume requires recorded destination identity and exact size/mtime, then a
+  byte-for-byte prefix comparison against the source. This rejects same-size,
+  same-timestamp edits on SD storage. No public copy API accepts network bytes;
+  existing public files are never truncated. Public copies are not installed
+  records and can be visible to external file browsers before commit, as recorded
+  in the plan. Durable copy intent/identity/offset integration is still required.
+- Host owned-storage tests: **15 passed**. Kotlin publication fault tests:
+  **5 passed**, zero skipped/failures/errors, verified from the JUnit XML.
+  The complete offline command `flutter test --no-pub --concurrency=1
+  --exclude-tags live --reporter expanded`: **1,838 passed**, exit 0 (2 min 2 s).
+  After import/bracing/explicit-null-only lint fixes, storage plus journal tests
+  passed again: **34 passed**, exit 0. Fresh full analysis returns only the four
+  pre-existing findings tracked above (exit 1); no new finding or suppression.
+- Built an isolated debug integration APK, not a release:
+  `flutter build apk --debug --no-pub --target-platform android-arm64
+  -t integration_test/owned_storage_test.dart
+  --dart-define=RSHOP_STORAGE_TEST_ROOT=/storage/75D7-DC5F/Download`.
+  Final native build passed, exit 0 (91.9 s). Verified package
+  `com.darkaxt.rshop.debug`, label `R-Shop Drive Dev`, version 1.7.0/12,
+  debuggable, min SDK 24 / target 36 and the documented single debug signer.
+  APK and installed `base.apk` SHA-256 both matched
+  `a87a38a9a074aa5eebf3b852b66eb1abc28946c342d107792308bd029c741585`.
+  Subsequent changes only removed redundant imports from the Dart app fixture
+  and adapter; native implementation and fixture behavior were unchanged.
+- `flutter drive --debug --no-pub -d bfa98654
+  --driver=test_driver/integration_test.dart
+  --target=integration_test/owned_storage_test.dart
+  --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk
+  --keep-app-running`: **six actual native cases passed**, exit 0. These cover
+  private checkpoint/resume/publish, collision protection, replaced source inode,
+  replaced parent, disallowed staging and the actual SD copy/resume/hash/edit
+  protocol. The framework counter also includes setup/teardown, not extra cases.
+  Close/reopen is not process-death recovery proof; no native bridge was mocked.
+- Tests used only attributable synthetic bytes and a previously absent debug
+  package. All-files app-op was granted only to this isolated test UID for the
+  SD fixture. Afterwards its exact installed APK identity was checked again,
+  the app was force-stopped/uninstalled and its absence verified. Five standalone
+  test binaries were hash-matched to host outputs before exact-file removal;
+  fixture directories and the test SD Download directory were verified empty.
+  No ROMs, saves, accounts, cloud files or host archive were read or changed.
+- One main-owned build/test/analyzer workload ran at a time. Gradle remains
+  bounded to a 3 GiB heap, 1 GiB metaspace and two workers with in-process Kotlin.
+  These primitive fixtures do not establish the integrated stream's 4 MiB peak
+  buffer or large-file space bound; those measurements remain S3 acceptance work.
+- Verified this checkpoint's sole Gradle 8.14 daemon idle and associated with
+  the R-Shop build, then stopped it through Gradle; unrelated Java processes
+  remained untouched. Reviewed transactional cleanup inspected all 7,565 entries
+  under the three registered generated-output roots and removed 7,546 entries,
+  reporting 1,878,939,425 bytes reclaimed (two entries were already absent).
+  The build/APK and task temporary root are gone. Six protected hardlinked CMake
+  command records remain under `android/app/.cxx` (11,870 summed path bytes,
+  not unique allocation); their nonempty-parent removal ticket was explicitly
+  revoked, not bypassed. SDK/dependency caches remain. All 24 specification
+  requirements still have exactly one delivery-owner row; no missing, unexpected
+  or duplicate mappings, and staged Git whitespace verification passed.
+
+This checkpoint establishes storage primitives, not a working Drive download.
+S3 still requires durable copy-phase persistence, engine/queue integration,
+source-disconnect/cancellation joining, process-death recovery, bundles,
+owned replacement/removal and the live offline emulator/remove/re-download
+round trip. The explicit Drive payload/removal gate remains. Google/ScreenScraper
+setup, S1/S2 live acceptance and S4-S7 are not waived; SD Top-25 migration must
+still wait for credible fresh rankings and verified cloud recovery.
 
 ### Preparation verification (2026-09-08)
 

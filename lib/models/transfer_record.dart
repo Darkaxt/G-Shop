@@ -127,15 +127,27 @@ class NativeFileIdentity {
   final int sizeBytes;
   final DateTime modifiedAt;
 
+  /// Full native subsecond value; DateTime alone truncates filesystem nanoseconds.
+  final int modifiedNanoseconds;
+
   NativeFileIdentity({
     required String volumeId,
     required String fileId,
     required this.sizeBytes,
     required this.modifiedAt,
+    int? modifiedNanoseconds,
   })  : volumeId = _identifier(volumeId, 'volumeId'),
-        fileId = _identifier(fileId, 'fileId') {
+        fileId = _identifier(fileId, 'fileId'),
+        modifiedNanoseconds = modifiedNanoseconds ??
+            (modifiedAt.microsecondsSinceEpoch % 1000000) * 1000 {
     if (sizeBytes < 0) {
       throw ArgumentError.value(sizeBytes, 'sizeBytes', 'Must be non-negative');
+    }
+    if (this.modifiedNanoseconds < 0 ||
+        this.modifiedNanoseconds >= 1000000000 ||
+        this.modifiedNanoseconds ~/ 1000 !=
+            modifiedAt.microsecondsSinceEpoch % 1000000) {
+      throw ArgumentError('Native timestamp must match its display timestamp');
     }
   }
 
@@ -145,6 +157,7 @@ class NativeFileIdentity {
         fileId: json['fileId'] as String,
         sizeBytes: json['sizeBytes'] as int,
         modifiedAt: DateTime.parse(json['modifiedAt'] as String),
+        modifiedNanoseconds: json['modifiedNanoseconds'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -152,6 +165,7 @@ class NativeFileIdentity {
         'fileId': fileId,
         'sizeBytes': sizeBytes,
         'modifiedAt': modifiedAt.toUtc().toIso8601String(),
+        'modifiedNanoseconds': modifiedNanoseconds,
       };
 }
 

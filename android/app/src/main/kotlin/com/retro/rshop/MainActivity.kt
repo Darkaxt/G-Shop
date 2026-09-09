@@ -27,6 +27,7 @@ class MainActivity : FlutterActivity() {
     private val extractorPool = Executors.newFixedThreadPool(2)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val smbService = SmbService()
+    private var ownedStorage: OwnedStorageService? = null
 
     private var progressSink: EventChannel.EventSink? = null
     private var smbProgressSink: EventChannel.EventSink? = null
@@ -178,6 +179,11 @@ class MainActivity : FlutterActivity() {
         }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method.startsWith("owned")) {
+                val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }
+                service.handle(call, result)
+                return@setMethodCallHandler
+            }
             when (call.method) {
                 "getFreeSpace" -> {
                     val path = call.argument<String>("path")
@@ -210,6 +216,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        ownedStorage?.shutdown()
         extractorPool.shutdown()
         smbService.shutdown()
         try {

@@ -18,6 +18,12 @@ android {
     namespace = "com.retro.rshop"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -38,6 +44,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        externalNativeBuild {
+            cmake {
+                // JNI exposes only Java values; no C++ objects cross libraries.
+                // Avoid sharing a runtime with unrelated plugin NDK versions.
+                arguments += "-DANDROID_STL=c++_static"
+            }
+        }
     }
 
     signingConfigs {
@@ -73,6 +86,7 @@ android {
 
 dependencies {
     implementation("com.hierynomus:smbj:0.13.0")
+    testImplementation("junit:junit:4.13.2")
 }
 
 flutter {
