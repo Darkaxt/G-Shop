@@ -606,14 +606,19 @@ class _DownloadRevealOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isQueued = status == DownloadStatus.queued;
-    final isIndeterminate =
-        status == DownloadStatus.extracting || status == DownloadStatus.moving;
+    final isIndeterminate = status == DownloadStatus.extracting ||
+        status == DownloadStatus.moving ||
+        status == DownloadStatus.verifying ||
+        status == DownloadStatus.publishing;
     final isDownloading = status == DownloadStatus.downloading;
+    final isPaused = status == DownloadStatus.paused;
+    final needsAuthorization = status == DownloadStatus.awaitingAuthorization;
 
     // Curtain covers (1 - progress) of the card from the top.
     // At 0% → fully covered. At 100% → fully revealed.
-    final curtainFraction =
-        isQueued ? 1.0 : (isIndeterminate ? 0.1 : 1.0 - progress.clamp(0.0, 1.0));
+    final curtainFraction = isQueued
+        ? 1.0
+        : (isIndeterminate ? 0.1 : 1.0 - progress.clamp(0.0, 1.0));
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1.0, end: curtainFraction),
@@ -683,6 +688,19 @@ class _DownloadRevealOverlay extends StatelessWidget {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
+                        color: Colors.amber.withValues(alpha: 0.8),
+                      ),
+                    )
+                  else if (isPaused || needsAuthorization)
+                    Tooltip(
+                      message: needsAuthorization
+                          ? L.of(context).downloadStatus_awaitingAuthorization
+                          : L.of(context).downloadStatus_paused,
+                      child: Icon(
+                        needsAuthorization
+                            ? Icons.lock_outline_rounded
+                            : Icons.pause_rounded,
+                        size: 22,
                         color: Colors.amber.withValues(alpha: 0.8),
                       ),
                     ),

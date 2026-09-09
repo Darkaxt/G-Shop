@@ -149,10 +149,25 @@ class LEs extends L {
   String get downloads_sectionQueued => 'En cola';
 
   @override
+  String get downloads_sectionPaused => 'En pausa';
+
+  @override
   String get downloads_sectionComplete => 'Completas';
 
   @override
   String get downloads_actionCancel => 'Cancelar';
+
+  @override
+  String get downloads_actionPause => 'Pausar';
+
+  @override
+  String get downloads_actionResume => 'Reanudar';
+
+  @override
+  String get downloads_moveEarlier => 'Subir';
+
+  @override
+  String get downloads_moveLater => 'Bajar';
 
   @override
   String get downloads_actionRetry => 'Reintentar';
@@ -186,6 +201,19 @@ class LEs extends L {
 
   @override
   String get downloadStatus_failed => 'Falló';
+
+  @override
+  String get downloadStatus_paused => 'En pausa';
+
+  @override
+  String get downloadStatus_awaitingAuthorization =>
+      'Volver a conectar en Fuentes';
+
+  @override
+  String get downloadStatus_verifying => 'Verificando...';
+
+  @override
+  String get downloadStatus_publishing => 'Finalizando instalación...';
 
   @override
   String storage_free(String size) {

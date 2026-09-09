@@ -375,6 +375,12 @@ abstract class L {
   /// **'Queued'**
   String get downloads_sectionQueued;
 
+  /// No description provided for @downloads_sectionPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get downloads_sectionPaused;
+
   /// No description provided for @downloads_sectionComplete.
   ///
   /// In en, this message translates to:
@@ -386,6 +392,30 @@ abstract class L {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get downloads_actionCancel;
+
+  /// No description provided for @downloads_actionPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get downloads_actionPause;
+
+  /// No description provided for @downloads_actionResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get downloads_actionResume;
+
+  /// No description provided for @downloads_moveEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get downloads_moveEarlier;
+
+  /// No description provided for @downloads_moveLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get downloads_moveLater;
 
   /// No description provided for @downloads_actionRetry.
   ///
@@ -452,6 +482,30 @@ abstract class L {
   /// In en, this message translates to:
   /// **'Failed'**
   String get downloadStatus_failed;
+
+  /// No description provided for @downloadStatus_paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get downloadStatus_paused;
+
+  /// No description provided for @downloadStatus_awaitingAuthorization.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect in Sources'**
+  String get downloadStatus_awaitingAuthorization;
+
+  /// No description provided for @downloadStatus_verifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying...'**
+  String get downloadStatus_verifying;
+
+  /// No description provided for @downloadStatus_publishing.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing installation...'**
+  String get downloadStatus_publishing;
 
   /// No description provided for @storage_free.
   ///

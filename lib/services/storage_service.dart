@@ -275,12 +275,16 @@ class StorageService {
 
   Future<void> setDownloadQueue(String json) async {
     _ensureInitialized();
-    await _prefs!.setString(_downloadQueueKey, json);
+    if (!await _prefs!.setString(_downloadQueueKey, json)) {
+      throw StateError('Download queue could not be persisted');
+    }
   }
 
   Future<void> clearDownloadQueue() async {
     _ensureInitialized();
-    await _prefs!.remove(_downloadQueueKey);
+    if (!await _prefs!.remove(_downloadQueueKey)) {
+      throw StateError('Download queue could not be cleared');
+    }
   }
 
   // --- Filter Persistence ---

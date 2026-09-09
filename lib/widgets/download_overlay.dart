@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/input/overlay_scope.dart';
 import '../core/responsive/responsive.dart';
+import '../models/config/provider_config.dart';
 import '../models/download_item.dart';
 import '../providers/app_providers.dart';
 import '../providers/download_providers.dart';
@@ -81,6 +82,7 @@ class _DownloadOverlayState extends ConsumerState<DownloadOverlay> {
     return _DownloadBadge(
       activeDownloads: activeDownloads,
       queuedItems: queuedItems,
+      recentItems: queueState.recentItems,
     );
   }
 }
@@ -92,10 +94,12 @@ class _DownloadOverlayState extends ConsumerState<DownloadOverlay> {
 class _DownloadBadge extends ConsumerStatefulWidget {
   final List<DownloadItem> activeDownloads;
   final List<DownloadItem> queuedItems;
+  final List<DownloadItem> recentItems;
 
   const _DownloadBadge({
     required this.activeDownloads,
     required this.queuedItems,
+    required this.recentItems,
   });
 
   @override
@@ -178,11 +182,48 @@ class _DownloadBadgeState extends ConsumerState<_DownloadBadge>
     });
 
     final rs = context.rs;
+    final l = L.of(context);
     final hasActive = widget.activeDownloads.isNotEmpty;
-    final totalActive = widget.activeDownloads.length + widget.queuedItems.length;
+    final pendingCount = widget.recentItems
+        .where((item) => !item.isComplete && !item.isCancelled)
+        .length;
+    final badgeCount =
+        pendingCount > 0 ? pendingCount : widget.recentItems.length;
+    final allCompleted = widget.recentItems.every((item) => item.isComplete);
+    final hasFailed = widget.recentItems.any((item) => item.isFailed);
+    final needsAuthorization = widget.recentItems
+        .any((item) => item.status == DownloadStatus.awaitingAuthorization);
+    final hasPaused =
+        widget.recentItems.any((item) => item.status == DownloadStatus.paused);
+    final isIndeterminate = widget.activeDownloads.any((item) =>
+        item.status != DownloadStatus.downloading || item.progress >= 1);
+    final (badgeIcon, badgeLabel) = hasActive
+        ? (Icons.downloading_rounded, l.downloads_sectionDownloading)
+        : hasFailed
+            ? (Icons.error_outline_rounded, l.downloadStatus_failed)
+            : needsAuthorization
+                ? (
+                    Icons.lock_outline_rounded,
+                    l.downloadStatus_awaitingAuthorization
+                  )
+                : hasPaused
+                    ? (Icons.pause_rounded, l.downloadStatus_paused)
+                    : widget.queuedItems.isNotEmpty
+                        ? (Icons.schedule_rounded, l.downloads_sectionQueued)
+                        : allCompleted
+                            ? (
+                                Icons.download_done_rounded,
+                                l.downloadStatus_complete
+                              )
+                            : (
+                                Icons.cancel_outlined,
+                                l.downloadStatus_cancelled
+                              );
     final avgProgress = widget.activeDownloads.isEmpty
         ? 0.0
-        : widget.activeDownloads.map((d) => d.progress).reduce((a, b) => a + b) /
+        : widget.activeDownloads
+                .map((d) => d.progress)
+                .reduce((a, b) => a + b) /
             widget.activeDownloads.length;
 
     final badgeSize = rs.isSmall ? 52.0 : 60.0;
@@ -190,114 +231,127 @@ class _DownloadBadgeState extends ConsumerState<_DownloadBadge>
     return Positioned(
       left: rs.spacing.lg,
       top: rs.safeAreaTop + rs.spacing.md,
-      child: GestureDetector(
-        onTap: () => toggleDownloadOverlay(ref),
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_pulseAnimation, _burstController]),
-          builder: (context, child) {
-            final glowAlpha = hasActive ? _pulseAnimation.value * 0.5 : 0.0;
-            final burstActive = _burstController.isAnimating;
-            return SizedBox(
-              width: badgeSize * 2,
-              height: badgeSize * 2,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Expanding burst ring
-                  if (burstActive)
-                    Container(
-                      width: badgeSize * _burstRingScale.value,
-                      height: badgeSize * _burstRingScale.value,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.green.withValues(
-                            alpha: _burstRingOpacity.value,
-                          ),
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  // Badge with scale burst
-                  Transform.scale(
-                    scale: burstActive ? _burstScaleAnimation.value : 1.0,
-                    child: Container(
-                      width: badgeSize,
-                      height: badgeSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF0D0D0D),
-                        border: Border.all(
-                          color: hasActive
-                              ? Colors.green.withValues(alpha: 0.5 + _pulseAnimation.value * 0.3)
-                              : Colors.white.withValues(alpha: 0.15),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.7),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                          if (hasActive)
-                            BoxShadow(
-                              color: Colors.green.withValues(alpha: glowAlpha),
-                              blurRadius: 24,
-                              spreadRadius: 4,
+      child: Semantics(
+        key: const ValueKey('download-queue-badge'),
+        button: true,
+        label: '${l.downloads_title}: $badgeCount. $badgeLabel',
+        child: GestureDetector(
+          onTap: () => toggleDownloadOverlay(ref),
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_pulseAnimation, _burstController]),
+            builder: (context, child) {
+              final glowAlpha = hasActive ? _pulseAnimation.value * 0.5 : 0.0;
+              final burstActive = _burstController.isAnimating;
+              return SizedBox(
+                width: badgeSize * 2,
+                height: badgeSize * 2,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Expanding burst ring
+                    if (burstActive)
+                      Container(
+                        width: badgeSize * _burstRingScale.value,
+                        height: badgeSize * _burstRingScale.value,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.green.withValues(
+                              alpha: _burstRingOpacity.value,
                             ),
-                        ],
+                            width: 2,
+                          ),
+                        ),
                       ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (hasActive)
-                            SizedBox(
-                              width: badgeSize - 8,
-                              height: badgeSize - 8,
-                              child: TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0, end: avgProgress),
-                                duration: const Duration(milliseconds: 600),
-                                curve: Curves.easeInOut,
-                                builder: (context, value, _) => CircularProgressIndicator(
-                                  value: value,
-                                  strokeWidth: 2.5,
-                                  backgroundColor: Colors.white.withValues(alpha: 0.08),
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.green.withValues(alpha: 0.8),
+                    // Badge with scale burst
+                    Transform.scale(
+                      scale: burstActive ? _burstScaleAnimation.value : 1.0,
+                      child: Container(
+                        width: badgeSize,
+                        height: badgeSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF0D0D0D),
+                          border: Border.all(
+                            color: hasActive
+                                ? Colors.green.withValues(
+                                    alpha: 0.5 + _pulseAnimation.value * 0.3)
+                                : Colors.white.withValues(alpha: 0.15),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                            if (hasActive)
+                              BoxShadow(
+                                color:
+                                    Colors.green.withValues(alpha: glowAlpha),
+                                blurRadius: 24,
+                                spreadRadius: 4,
+                              ),
+                          ],
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (hasActive)
+                              SizedBox(
+                                width: badgeSize - 8,
+                                height: badgeSize - 8,
+                                child: TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0, end: avgProgress),
+                                  duration: const Duration(milliseconds: 600),
+                                  curve: Curves.easeInOut,
+                                  builder: (context, value, _) =>
+                                      CircularProgressIndicator(
+                                    value: isIndeterminate ? null : value,
+                                    strokeWidth: 2.5,
+                                    backgroundColor:
+                                        Colors.white.withValues(alpha: 0.08),
+                                    valueColor: AlwaysStoppedAnimation(
+                                      Colors.green.withValues(alpha: 0.8),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          Material(
-                            type: MaterialType.transparency,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  hasActive ? Icons.downloading_rounded : Icons.download_done_rounded,
-                                  size: rs.isSmall ? 18 : 22,
-                                  color: hasActive ? Colors.green : Colors.white54,
-                                ),
-                                Text(
-                                  '$totalActive',
-                                  style: TextStyle(
-                                    color: hasActive ? Colors.green : Colors.white70,
-                                    fontSize: rs.isSmall ? 10 : 12,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.0,
+                            Material(
+                              type: MaterialType.transparency,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    badgeIcon,
+                                    size: rs.isSmall ? 18 : 22,
+                                    color: hasActive
+                                        ? Colors.green
+                                        : Colors.white54,
                                   ),
-                                ),
-                              ],
+                                  Text(
+                                    '$badgeCount',
+                                    style: TextStyle(
+                                      color: hasActive
+                                          ? Colors.green
+                                          : Colors.white70,
+                                      fontSize: rs.isSmall ? 10 : 12,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -344,10 +398,18 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
 
   final FocusNode _modalFocusNode = FocusNode(debugLabel: 'DownloadModal');
 
-  /// Flat list of all focusable items: active → queued → finished
+  List<DownloadItem> get _resumableItems =>
+      widget.recentItems.where((item) => item.canResume).toList();
+
+  /// Flat list of all focusable items: active → queued → resumable → finished
   List<DownloadItem> get _allItems {
     final finished = widget.recentItems.where((i) => i.isFinished).toList();
-    return [...widget.activeDownloads, ...widget.queuedItems, ...finished];
+    return [
+      ...widget.activeDownloads,
+      ...widget.queuedItems,
+      ..._resumableItems,
+      ...finished,
+    ];
   }
 
   /// Returns the index of [id] in [items], or -1 if not found.
@@ -513,6 +575,23 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
       return KeyEventResult.handled;
     }
 
+    if (key == LogicalKeyboardKey.gameButtonLeft1 ||
+        key == LogicalKeyboardKey.pageUp ||
+        key == LogicalKeyboardKey.gameButtonRight1 ||
+        key == LogicalKeyboardKey.pageDown) {
+      if (!_debouncer.canPerformAction()) return KeyEventResult.handled;
+      final id = _focusedItemId;
+      if (id != null) {
+        _moveQueued(
+            id,
+            key == LogicalKeyboardKey.gameButtonLeft1 ||
+                    key == LogicalKeyboardKey.pageUp
+                ? -1
+                : 1);
+      }
+      return KeyEventResult.handled;
+    }
+
     final items = _allItems;
     final focusedIdx = _effectiveFocusedIndex(items);
     if (key == LogicalKeyboardKey.arrowDown) {
@@ -595,17 +674,25 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
     final targetIdx = _indexOfId(targetId, items);
     final targetItem = targetIdx >= 0 ? items[targetIdx] : null;
     final hasFinished = items.any((i) => i.isFinished);
+    final queuedIndex = targetItem == null
+        ? -1
+        : widget.queuedItems.indexWhere((item) => item.id == targetItem.id);
 
     final l = L.of(context);
     final HudAction? aAction;
     if (targetItem != null) {
       final label = targetItem.isActive
-          ? l.downloads_actionCancel
-          : targetItem.isFailed
-              ? l.downloads_actionRetry
-              : targetItem.status == DownloadStatus.queued
-                  ? l.downloads_actionRemove
-                  : l.downloads_actionClear;
+          ? (targetItem.game.remoteArtifact != null ||
+                  targetItem.game.providerConfig?.type == ProviderType.drive
+              ? l.downloads_actionPause
+              : l.downloads_actionCancel)
+          : targetItem.canResume
+              ? l.downloads_actionResume
+              : targetItem.isFailed
+                  ? l.downloads_actionRetry
+                  : targetItem.status == DownloadStatus.queued
+                      ? l.downloads_actionRemove
+                      : l.downloads_actionClear;
       aAction = HudAction(label, onTap: () => _performAction(targetItem));
     } else {
       aAction = null;
@@ -623,6 +710,14 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
             key: _hudKey,
             a: aAction,
             b: HudAction(l.common_close, onTap: _close),
+            lb: queuedIndex > 0
+                ? HudAction(l.downloads_moveEarlier,
+                    onTap: () => _moveQueued(targetItem!.id, -1))
+                : null,
+            rb: queuedIndex >= 0 && queuedIndex < widget.queuedItems.length - 1
+                ? HudAction(l.downloads_moveLater,
+                    onTap: () => _moveQueued(targetItem!.id, 1))
+                : null,
             y: hasFinished
                 ? HudAction(l.downloads_clearDone, onTap: () {
                     ref.read(downloadQueueManagerProvider).clearCompleted();
@@ -763,10 +858,25 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
       }
     }
 
+    // Paused and authorization-blocked rows remain visible and focusable.
+    final resumableItems = _resumableItems;
+    if (resumableItems.isNotEmpty) {
+      widgets
+          .add(_buildSectionHeader(L.of(context).downloads_sectionPaused, rs));
+      for (final item in resumableItems) {
+        _itemKeys.putIfAbsent(item.id, () => GlobalKey());
+        seenIds.add(item.id);
+        widgets.add(_buildCard(item, itemIndex, rs));
+        itemIndex++;
+      }
+    }
+
     // Section: COMPLETE (includes completed, failed, cancelled)
-    final finishedItems = widget.recentItems.where((i) => i.isFinished).toList();
+    final finishedItems =
+        widget.recentItems.where((i) => i.isFinished).toList();
     if (finishedItems.isNotEmpty) {
-      widgets.add(_buildSectionHeader(L.of(context).downloads_sectionComplete, rs));
+      widgets.add(
+          _buildSectionHeader(L.of(context).downloads_sectionComplete, rs));
       for (final item in finishedItems) {
         _itemKeys.putIfAbsent(item.id, () => GlobalKey());
         seenIds.add(item.id);
@@ -820,6 +930,8 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
   }
 
   Widget _buildCard(DownloadItem item, int index, Responsive rs) {
+    final queuedIndex =
+        widget.queuedItems.indexWhere((queued) => queued.id == item.id);
     final totalItems = _allItems.length;
     final itemDelay = (index / max(totalItems, 1)).clamp(0.0, 1.0);
     final itemEnd = ((index + 1) / max(totalItems, 1)).clamp(0.0, 1.0);
@@ -847,6 +959,12 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
           isFocused: item.id == _focusedItemId,
           isHovered: item.id == _hoveredItemId,
           onTap: () => _performAction(item),
+          onMoveEarlier:
+              queuedIndex > 0 ? () => _moveQueued(item.id, -1) : null,
+          onMoveLater:
+              queuedIndex >= 0 && queuedIndex < widget.queuedItems.length - 1
+                  ? () => _moveQueued(item.id, 1)
+                  : null,
           onHover: (isHovering) {
             setState(() => _hoveredItemId = isHovering ? item.id : null);
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -858,10 +976,27 @@ class _DownloadModalState extends ConsumerState<_DownloadModal>
     );
   }
 
+  void _moveQueued(String id, int direction) {
+    final manager = ref.read(downloadQueueManagerProvider);
+    final queued = manager.state.queuedItems;
+    final index = queued.indexWhere((item) => item.id == id);
+    final destination = index + direction;
+    if (index < 0 || destination < 0 || destination >= queued.length) return;
+    setState(() {
+      _focusedItemId = id;
+      _hoveredItemId = null;
+    });
+    manager.moveQueued(id, destination);
+    _modalFocusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToFocused();
+    });
+  }
+
   void _performAction(DownloadItem item) {
     if (item.isActive) {
       ref.read(downloadQueueManagerProvider).cancelDownload(item.id);
-    } else if (item.isFailed) {
+    } else if (item.isFailed || item.canResume) {
       ref.read(downloadQueueManagerProvider).retryDownload(item.id);
     } else if (item.status == DownloadStatus.queued) {
       ref.read(downloadQueueManagerProvider).removeDownload(item.id);

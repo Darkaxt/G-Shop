@@ -45,7 +45,9 @@ class _CardProgressRingState extends State<CardProgressRing>
   void _updateAnimation() {
     final needsSpin = widget.status == DownloadStatus.queued ||
         widget.status == DownloadStatus.extracting ||
-        widget.status == DownloadStatus.moving;
+        widget.status == DownloadStatus.moving ||
+        widget.status == DownloadStatus.verifying ||
+        widget.status == DownloadStatus.publishing;
     if (needsSpin && !_spinController.isAnimating) {
       _spinController.repeat();
     } else if (!needsSpin && _spinController.isAnimating) {
@@ -63,8 +65,13 @@ class _CardProgressRingState extends State<CardProgressRing>
   Widget build(BuildContext context) {
     final isQueued = widget.status == DownloadStatus.queued;
     final isIndeterminate = widget.status == DownloadStatus.extracting ||
-        widget.status == DownloadStatus.moving;
+        widget.status == DownloadStatus.moving ||
+        widget.status == DownloadStatus.verifying ||
+        widget.status == DownloadStatus.publishing;
     final isDownloading = widget.status == DownloadStatus.downloading;
+    final isPaused = widget.status == DownloadStatus.paused;
+    final needsAuthorization =
+        widget.status == DownloadStatus.awaitingAuthorization;
 
     final ringColor = isIndeterminate
         ? Colors.amber.withValues(alpha: 0.8)
@@ -143,8 +150,20 @@ class _CardProgressRingState extends State<CardProgressRing>
             )
           else if (isIndeterminate)
             Icon(
-              Icons.unarchive_rounded,
+              widget.status == DownloadStatus.verifying
+                  ? Icons.verified_user_rounded
+                  : widget.status == DownloadStatus.publishing
+                      ? Icons.drive_file_move_rounded
+                      : Icons.unarchive_rounded,
               size: 14,
+              color: Colors.amber.withValues(alpha: 0.8),
+            )
+          else if (isPaused || needsAuthorization)
+            Icon(
+              needsAuthorization
+                  ? Icons.lock_outline_rounded
+                  : Icons.pause_rounded,
+              size: 18,
               color: Colors.amber.withValues(alpha: 0.8),
             ),
         ],

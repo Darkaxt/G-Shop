@@ -148,10 +148,25 @@ class LJa extends L {
   String get downloads_sectionQueued => 'キュー';
 
   @override
+  String get downloads_sectionPaused => '一時停止中';
+
+  @override
   String get downloads_sectionComplete => '完了';
 
   @override
   String get downloads_actionCancel => 'キャンセル';
+
+  @override
+  String get downloads_actionPause => '一時停止';
+
+  @override
+  String get downloads_actionResume => '再開';
+
+  @override
+  String get downloads_moveEarlier => '上へ移動';
+
+  @override
+  String get downloads_moveLater => '下へ移動';
 
   @override
   String get downloads_actionRetry => 'リトライ';
@@ -185,6 +200,18 @@ class LJa extends L {
 
   @override
   String get downloadStatus_failed => '失敗';
+
+  @override
+  String get downloadStatus_paused => '一時停止中';
+
+  @override
+  String get downloadStatus_awaitingAuthorization => 'ソースで再接続';
+
+  @override
+  String get downloadStatus_verifying => '検証中...';
+
+  @override
+  String get downloadStatus_publishing => 'インストールの最終処理中...';
 
   @override
   String storage_free(String size) {

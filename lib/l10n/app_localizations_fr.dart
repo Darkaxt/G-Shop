@@ -149,10 +149,25 @@ class LFr extends L {
   String get downloads_sectionQueued => 'En attente';
 
   @override
+  String get downloads_sectionPaused => 'En pause';
+
+  @override
   String get downloads_sectionComplete => 'Terminés';
 
   @override
   String get downloads_actionCancel => 'Annuler';
+
+  @override
+  String get downloads_actionPause => 'Suspendre';
+
+  @override
+  String get downloads_actionResume => 'Reprendre';
+
+  @override
+  String get downloads_moveEarlier => 'Monter';
+
+  @override
+  String get downloads_moveLater => 'Descendre';
 
   @override
   String get downloads_actionRetry => 'Réessayer';
@@ -186,6 +201,18 @@ class LFr extends L {
 
   @override
   String get downloadStatus_failed => 'Échoué';
+
+  @override
+  String get downloadStatus_paused => 'En pause';
+
+  @override
+  String get downloadStatus_awaitingAuthorization => 'Reconnecter dans Sources';
+
+  @override
+  String get downloadStatus_verifying => 'Vérification...';
+
+  @override
+  String get downloadStatus_publishing => 'Finalisation de l\'installation...';
 
   @override
   String storage_free(String size) {

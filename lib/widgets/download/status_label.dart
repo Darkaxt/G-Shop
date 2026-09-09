@@ -55,19 +55,59 @@ class StatusLabel extends StatelessWidget {
   (String, Color, IconData) _getInfo(L l) {
     switch (item.status) {
       case DownloadStatus.downloading:
-        return (l.downloadStatus_downloading, Colors.green, Icons.arrow_downward_rounded);
+        return (
+          l.downloadStatus_downloading,
+          Colors.green,
+          Icons.arrow_downward_rounded
+        );
       case DownloadStatus.extracting:
-        return (l.downloadStatus_extracting, Colors.amber, Icons.unarchive_rounded);
+        return (
+          l.downloadStatus_extracting,
+          Colors.amber,
+          Icons.unarchive_rounded
+        );
       case DownloadStatus.moving:
-        return (l.downloadStatus_installing, Colors.amber, Icons.drive_file_move_rounded);
+        return (
+          l.downloadStatus_installing,
+          Colors.amber,
+          Icons.drive_file_move_rounded
+        );
       case DownloadStatus.queued:
-        return (l.downloadStatus_waiting, Colors.white38, Icons.schedule_rounded);
+        return (
+          l.downloadStatus_waiting,
+          Colors.white38,
+          Icons.schedule_rounded
+        );
       case DownloadStatus.completed:
-        return (l.downloadStatus_complete, Colors.green, Icons.check_circle_rounded);
+        return (
+          l.downloadStatus_complete,
+          Colors.green,
+          Icons.check_circle_rounded
+        );
       case DownloadStatus.cancelled:
         return (l.downloadStatus_cancelled, Colors.grey, Icons.cancel_rounded);
       case DownloadStatus.error:
         return (l.downloadStatus_failed, Colors.red, Icons.error_rounded);
+      case DownloadStatus.paused:
+        return (l.downloadStatus_paused, Colors.amber, Icons.pause_rounded);
+      case DownloadStatus.awaitingAuthorization:
+        return (
+          l.downloadStatus_awaitingAuthorization,
+          Colors.amber,
+          Icons.lock_outline_rounded
+        );
+      case DownloadStatus.verifying:
+        return (
+          l.downloadStatus_verifying,
+          Colors.amber,
+          Icons.verified_user_rounded
+        );
+      case DownloadStatus.publishing:
+        return (
+          l.downloadStatus_publishing,
+          Colors.amber,
+          Icons.drive_file_move_rounded
+        );
     }
   }
 }

@@ -10,7 +10,12 @@ enum DownloadStatus {
   moving,
   completed,
   cancelled,
-  error;
+  error,
+  // Append to preserve legacy numeric status values.
+  paused,
+  awaitingAuthorization,
+  verifying,
+  publishing;
 
   /// Whether this status represents a final state (no more progress).
   bool get isTerminal =>
@@ -33,6 +38,7 @@ class DownloadItem {
   final String? error;
   final int retryCount;
   final String? tempFilePath;
+  final String? transferId;
 
   DownloadItem({
     required this.id,
@@ -49,12 +55,12 @@ class DownloadItem {
     this.error,
     this.retryCount = 0,
     this.tempFilePath,
+    this.transferId,
   }) : addedAt = addedAt ?? DateTime.now();
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DownloadItem && id == other.id;
+      identical(this, other) || other is DownloadItem && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
@@ -74,6 +80,14 @@ class DownloadItem {
         return 'Cancelled';
       case DownloadStatus.error:
         return error ?? 'Error';
+      case DownloadStatus.paused:
+        return 'Paused';
+      case DownloadStatus.awaitingAuthorization:
+        return 'Authorization required';
+      case DownloadStatus.verifying:
+        return 'Verifying...';
+      case DownloadStatus.publishing:
+        return 'Publishing...';
       default:
         if (totalBytes != null && totalBytes! > 0) {
           return '${(progress * 100).toStringAsFixed(0)}%';
@@ -95,7 +109,13 @@ class DownloadItem {
   bool get isActive =>
       status == DownloadStatus.downloading ||
       status == DownloadStatus.extracting ||
-      status == DownloadStatus.moving;
+      status == DownloadStatus.moving ||
+      status == DownloadStatus.verifying ||
+      status == DownloadStatus.publishing;
+
+  bool get canResume =>
+      status == DownloadStatus.paused ||
+      status == DownloadStatus.awaitingAuthorization;
 
   bool get isComplete => status == DownloadStatus.completed;
 
@@ -118,6 +138,7 @@ class DownloadItem {
     int? retryCount,
     String? tempFilePath,
     bool clearTempFilePath = false,
+    String? transferId,
   }) {
     return DownloadItem(
       id: id,
@@ -133,7 +154,9 @@ class DownloadItem {
       downloadSpeed: clearSpeed ? null : (downloadSpeed ?? this.downloadSpeed),
       error: clearError ? null : (error ?? this.error),
       retryCount: retryCount ?? this.retryCount,
-      tempFilePath: clearTempFilePath ? null : (tempFilePath ?? this.tempFilePath),
+      tempFilePath:
+          clearTempFilePath ? null : (tempFilePath ?? this.tempFilePath),
+      transferId: transferId ?? this.transferId,
     );
   }
 
@@ -144,13 +167,17 @@ class DownloadItem {
       'gameUrl': game.url,
       'gameDisplayName': game.displayName,
       'gameCachedCoverUrl': game.cachedCoverUrl,
-      if (game.remoteArtifact != null) 'remoteArtifact': game.remoteArtifact!.toJson(),
+      if (game.remoteArtifact != null)
+        'remoteArtifact': game.remoteArtifact!.toJson(),
       'systemId': system.id,
       'targetFolder': targetFolder,
       'autoExtract': autoExtract,
       'addedAt': addedAt.toIso8601String(),
       'status': status.name,
       'progress': progress,
+      'receivedBytes': receivedBytes,
+      if (totalBytes != null) 'totalBytes': totalBytes,
+      if (transferId != null) 'transferId': transferId,
       'retryCount': retryCount,
       if (tempFilePath != null) 'tempFilePath': tempFilePath,
       if (game.isFolder) 'isFolder': true,
@@ -166,7 +193,7 @@ class DownloadItem {
         orElse: () => DownloadStatus.queued,
       );
     }
-    if (value is int && value < DownloadStatus.values.length) {
+    if (value is int && value >= 0 && value < DownloadStatus.values.length) {
       return DownloadStatus.values[value];
     }
     return DownloadStatus.queued;
@@ -197,6 +224,9 @@ class DownloadItem {
       progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
       retryCount: (json['retryCount'] as int?) ?? 0,
       tempFilePath: json['tempFilePath'] as String?,
+      transferId: json['transferId'] as String?,
+      receivedBytes: json['receivedBytes'] as int? ?? 0,
+      totalBytes: json['totalBytes'] as int?,
     );
   }
 }

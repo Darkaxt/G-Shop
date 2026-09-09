@@ -1288,10 +1288,14 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             progress = dlStatus.progress;
           case DownloadStatus.extracting:
           case DownloadStatus.moving:
+          case DownloadStatus.verifying:
+          case DownloadStatus.publishing:
             if (buttonState != DownloadButtonState.downloading) {
               buttonState = DownloadButtonState.extracting;
             }
           case DownloadStatus.queued:
+          case DownloadStatus.paused:
+          case DownloadStatus.awaitingAuthorization:
             if (buttonState != DownloadButtonState.downloading &&
                 buttonState != DownloadButtonState.extracting) {
               buttonState = DownloadButtonState.queued;

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/download_item.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/widgets/download/action_button.dart';
+import 'package:retro_eshop/widgets/download/card_progress_ring.dart';
 import 'package:retro_eshop/widgets/download/progress_bar.dart';
 import 'package:retro_eshop/widgets/download/pulsing_dot.dart';
 import 'package:retro_eshop/widgets/download/status_label.dart';
@@ -27,10 +29,11 @@ DownloadItem _makeItem({
   String? error,
   int? totalBytes,
   int receivedBytes = 0,
+  GameItem game = _testGame,
 }) {
   return DownloadItem(
     id: 'test-1',
-    game: _testGame,
+    game: game,
     system: _testSystem,
     targetFolder: '/roms/nes',
     status: status,
@@ -119,6 +122,27 @@ void main() {
       expect(find.text('2.0 MB/s'), findsOneWidget);
     });
 
+    for (final entry in {
+      DownloadStatus.paused: ('Paused', Icons.pause_rounded),
+      DownloadStatus.awaitingAuthorization: (
+        'Reconnect in Sources',
+        Icons.lock_outline_rounded
+      ),
+      DownloadStatus.verifying: ('Verifying...', Icons.verified_user_rounded),
+      DownloadStatus.publishing: (
+        'Finishing installation...',
+        Icons.drive_file_move_rounded
+      ),
+    }.entries) {
+      testWidgets('shows the ${entry.key.name} state', (tester) async {
+        await tester.pumpWidget(createTestApp(
+          StatusLabel(item: _makeItem(status: entry.key)),
+        ));
+        expect(find.text(entry.value.$1), findsOneWidget);
+        expect(find.byIcon(entry.value.$2), findsOneWidget);
+      });
+    }
+
     testWidgets('no speed text for queued items', (tester) async {
       await tester.pumpWidget(createTestApp(
         StatusLabel(item: _makeItem(status: DownloadStatus.queued)),
@@ -172,6 +196,25 @@ void main() {
       expect(find.byType(FractionallySizedBox), findsOneWidget);
     });
 
+    for (final status in [
+      DownloadStatus.verifying,
+      DownloadStatus.publishing
+    ]) {
+      testWidgets('${status.name} stays indeterminate with all bytes received',
+          (tester) async {
+        await tester.pumpWidget(createTestApp(
+          DownloadProgressBar(item: _makeItem(status: status, progress: 1)),
+        ));
+        expect(
+            tester
+                .widget<LinearProgressIndicator>(
+                    find.byType(LinearProgressIndicator))
+                .value,
+            isNull);
+        expect(find.text('100%'), findsNothing);
+      });
+    }
+
     testWidgets('shows percentage text when progress > 1%', (tester) async {
       final item = _makeItem(
         status: DownloadStatus.downloading,
@@ -199,10 +242,34 @@ void main() {
 
   // ─── PulsingDot Tests ──────────────────────────────────
 
+  group('CardProgressRing', () {
+    for (final entry in {
+      DownloadStatus.verifying: Icons.verified_user_rounded,
+      DownloadStatus.publishing: Icons.drive_file_move_rounded,
+      DownloadStatus.paused: Icons.pause_rounded,
+      DownloadStatus.awaitingAuthorization: Icons.lock_outline_rounded,
+    }.entries) {
+      testWidgets('identifies ${entry.key.name} without showing completion',
+          (tester) async {
+        await tester.pumpWidget(createTestApp(CardProgressRing(
+          status: entry.key,
+          progress: 1,
+          accentColor: Colors.blue,
+        )));
+        expect(find.byIcon(entry.value), findsOneWidget);
+        expect(find.text('100'), findsNothing);
+        if (entry.key == DownloadStatus.paused ||
+            entry.key == DownloadStatus.awaitingAuthorization) {
+          await tester.pumpAndSettle();
+          expect(tester.hasRunningAnimations, isFalse);
+        }
+      });
+    }
+  });
+
   group('PulsingDot', () {
     testWidgets('active dot is green', (tester) async {
-      await tester.pumpWidget(
-          createTestApp(const PulsingDot(isActive: true)));
+      await tester.pumpWidget(createTestApp(const PulsingDot(isActive: true)));
       await tester.pump();
 
       final container = tester.widget<Container>(find.byType(Container));
@@ -313,6 +380,48 @@ void main() {
 
       expect(find.byIcon(Icons.stop_rounded), findsOneWidget);
     });
+
+    for (final status in [
+      DownloadStatus.downloading,
+      DownloadStatus.verifying,
+      DownloadStatus.publishing
+    ]) {
+      testWidgets('active Drive ${status.name} offers Pause', (tester) async {
+        var tapped = false;
+        await tester.pumpWidget(createTestApp(DownloadActionButton(
+          item: _makeItem(
+              status: status,
+              game: _testGame.copyWith(
+                providerConfig:
+                    const ProviderConfig(type: ProviderType.drive, priority: 0),
+              )),
+          isHighlighted: false,
+          onTap: () => tapped = true,
+        )));
+        expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+        expect(find.byTooltip('Pause'), findsOneWidget);
+        await tester.tap(find.byType(DownloadActionButton));
+        expect(tapped, isTrue);
+      });
+    }
+
+    for (final status in [
+      DownloadStatus.paused,
+      DownloadStatus.awaitingAuthorization
+    ]) {
+      testWidgets('${status.name} offers Resume', (tester) async {
+        var tapped = false;
+        await tester.pumpWidget(createTestApp(DownloadActionButton(
+          item: _makeItem(status: status),
+          isHighlighted: false,
+          onTap: () => tapped = true,
+        )));
+        expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+        expect(find.byTooltip('Resume'), findsOneWidget);
+        await tester.tap(find.byType(DownloadActionButton));
+        expect(tapped, isTrue);
+      });
+    }
 
     testWidgets('queued shows white close icon', (tester) async {
       await tester.pumpWidget(createTestApp(

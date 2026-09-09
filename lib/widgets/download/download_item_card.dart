@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/util/color_contrast.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/download_item.dart';
 import '../../utils/image_helper.dart';
 import 'action_button.dart';
@@ -17,6 +18,8 @@ class DownloadItemCard extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
   final ValueChanged<bool> onHover;
+  final VoidCallback? onMoveEarlier;
+  final VoidCallback? onMoveLater;
   final bool isFocused;
   final bool isHovered;
 
@@ -26,6 +29,8 @@ class DownloadItemCard extends StatelessWidget {
     required this.index,
     required this.onTap,
     required this.onHover,
+    this.onMoveEarlier,
+    this.onMoveLater,
     this.isFocused = false,
     this.isHovered = false,
   });
@@ -163,6 +168,35 @@ class DownloadItemCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (item.status == DownloadStatus.queued)
+                GestureDetector(
+                  // The reorder surface must not fall through to Remove when
+                  // a boundary arrow is disabled.
+                  behavior: HitTestBehavior.opaque,
+                  excludeFromSemantics: true,
+                  onTap: () {},
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        tooltip: L.of(context).downloads_moveEarlier,
+                        onPressed: onMoveEarlier,
+                        icon: const Icon(Icons.keyboard_arrow_up_rounded),
+                        iconSize: 20,
+                        constraints:
+                            const BoxConstraints(minWidth: 44, minHeight: 44),
+                      ),
+                      IconButton(
+                        tooltip: L.of(context).downloads_moveLater,
+                        onPressed: onMoveLater,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        iconSize: 20,
+                        constraints:
+                            const BoxConstraints(minWidth: 44, minHeight: 44),
+                      ),
+                    ],
+                  ),
+                ),
               // Progress bar under everything
               if (item.isActive || item.status == DownloadStatus.queued)
                 Padding(

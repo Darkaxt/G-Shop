@@ -8,6 +8,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/config/drive_source_config.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/download_item.dart';
+import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/services/drive/drive_api.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
@@ -16,6 +19,9 @@ import 'package:retro_eshop/services/drive/drive_runtime.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:retro_eshop/services/download_queue_manager.dart';
+import 'package:retro_eshop/services/storage_service.dart';
+import 'package:retro_eshop/services/native_smb_service.dart';
 
 class _Driver implements DriveAuthorizationDriver {
   final signedOut = Completer<void>();
@@ -147,6 +153,7 @@ class _NativeStorage {
   Future<void>? finishWrite;
   bool published = false;
   bool sessionOpen = false;
+  bool targetChanged = false;
   int stamp = 0;
   final calls = <String>[];
   Map<String, Object> get identity => {
@@ -190,7 +197,9 @@ class _NativeStorage {
         published = true;
         return identity;
       case 'ownedInspect':
-        return published ? identity : null;
+        return published
+            ? {...identity, if (targetChanged) 'inode': '99'}
+            : null;
       case 'ownedClose':
         sessionOpen = false;
         return null;
@@ -225,7 +234,9 @@ class _TransferFixture {
   late final DriveCatalogue catalogue;
   _TransferFixture._(this.db);
   static Future<_TransferFixture> create(
-      {bool loading = false, bool drainRefresh = false}) async {
+      {bool loading = false,
+      bool drainRefresh = false,
+      bool reserve = true}) async {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     final fixture = _TransferFixture._(db);
     await TransferJournalSchema.install(db);
@@ -249,12 +260,14 @@ class _TransferFixture {
     } finally {
       seed.close();
     }
-    await fixture.journal.create(TransferRecord(
-        id: 'transfer',
-        artifact: _artifact(),
-        destinationRoot: '/roms',
-        relativePath: 'fixture.chd',
-        stagePath: '/owned/transfer.partial'));
+    if (reserve) {
+      await fixture.journal.create(TransferRecord(
+          id: 'transfer',
+          artifact: _artifact(),
+          destinationRoot: '/roms',
+          relativePath: 'fixture.chd',
+          stagePath: '/owned/transfer.partial'));
+    }
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
             fixture.native.channel, fixture.native.handle);
@@ -275,6 +288,63 @@ class _TransferFixture {
           authorization: auth, accountId: account, httpClientAdapter: metadata),
       createMediaApi: (auth, account) => DriveMediaApi(
           authorization: auth, accountId: account, httpClientAdapter: media));
+}
+
+class _QueueStorage extends StorageService {
+  String? savedQueue;
+  int concurrent = 1;
+  bool failWrites = false;
+  @override
+  int getMaxConcurrentDownloads() => concurrent;
+  @override
+  Future<void> setMaxConcurrentDownloads(int value) async {
+    concurrent = value;
+  }
+
+  @override
+  String? getDownloadQueue() => savedQueue;
+  @override
+  Future<void> setDownloadQueue(String json) async {
+    if (failWrites) throw StateError('Synthetic preference failure');
+    savedQueue = json;
+  }
+
+  @override
+  Future<void> clearDownloadQueue() async {
+    savedQueue = null;
+  }
+}
+
+const _system = SystemModel(
+    id: 'psx',
+    name: 'PlayStation',
+    manufacturer: 'Sony',
+    releaseYear: 1994,
+    romExtensions: ['.chd']);
+GameItem _game() => GameItem(
+    filename: 'fixture.chd',
+    displayName: 'Fixture',
+    url: 'drive-artifact:synthetic',
+    providerConfig: _transferConfig,
+    remoteArtifact: _artifact());
+
+Future<DownloadItem> _queueTerminal(DownloadQueueManager queue) {
+  final result = Completer<DownloadItem>();
+  void changed() {
+    final item = queue.state.queue
+        .where((i) => !i.isActive && i.status != DownloadStatus.queued)
+        .firstOrNull;
+    if (item != null &&
+        !item.isActive &&
+        item.status != DownloadStatus.queued &&
+        !result.isCompleted) {
+      result.complete(item);
+    }
+  }
+
+  queue.addListener(changed);
+  changed();
+  return result.future.whenComplete(() => queue.removeListener(changed));
 }
 
 void main() {
@@ -364,6 +434,341 @@ void main() {
     expect(fixture.media.closed, isTrue);
     expect((await fixture.journal.transfer('transfer'))!.lifecycle,
         TransferLifecycle.completed);
+  });
+
+  test('queue reservation is restart-stable and creates no payload or stage',
+      () async {
+    final fixture = await _TransferFixture.create();
+    // The fixture pre-reserves its legacy test target; use an independent name.
+    final artifact = RemoteArtifact.fromJson({
+      ..._artifact().toJson(),
+      'displayName': 'reserved.chd',
+      'displayPath': 'reserved.chd'
+    });
+    final runtime = fixture.runtime();
+    final first = await runtime.reserveTransfer(
+        config: _transferConfig,
+        artifact: artifact,
+        destinationRoot: '/roms',
+        relativePath: 'reserved.chd');
+    final second = await runtime.reserveTransfer(
+        config: _transferConfig,
+        artifact: artifact,
+        destinationRoot: '/roms',
+        relativePath: 'reserved.chd');
+    expect(second.id, first.id);
+    expect(first.stagePath, '/owned/${first.id}.partial');
+    expect(first.lifecycle, TransferLifecycle.queued);
+    expect(fixture.native.calls, ['ownedPrepare', 'ownedPrepare']);
+    expect(fixture.media.requests, isEmpty);
+    expect(fixture.metadata.requests, isEmpty);
+    expect(
+        (await fixture.journal.transfer(first.id))!.artifact.id, artifact.id);
+  });
+
+  test('reservation rejects a mismatched filename before native storage',
+      () async {
+    final fixture = await _TransferFixture.create();
+    final runtime = fixture.runtime();
+    await expectLater(
+        runtime.reserveTransfer(
+            config: _transferConfig,
+            artifact: _artifact(),
+            destinationRoot: '/roms',
+            relativePath: '../escape.chd'),
+        throwsA(isA<DriveTransferException>()));
+    expect(fixture.native.calls, isEmpty);
+    expect(fixture.media.requests, isEmpty);
+  });
+
+  test('checkpoint notifications describe committed journal revisions',
+      () async {
+    final fixture = await _TransferFixture.create();
+    final runtime = fixture.runtime();
+    final checkpoints = <TransferRecord>[];
+    final operation = await runtime.startTransfer(
+        config: _transferConfig,
+        transferId: 'transfer',
+        onCheckpoint: checkpoints.add);
+    final completed = await operation.result;
+    expect(
+        checkpoints.map((r) => r.lifecycle),
+        containsAllInOrder([
+          TransferLifecycle.queued,
+          TransferLifecycle.transferring,
+          TransferLifecycle.verifying,
+          TransferLifecycle.publishing,
+          TransferLifecycle.completed
+        ]));
+    expect(checkpoints.last.revision, completed.revision);
+    expect(checkpoints.last.durableOffset, 5);
+    expect((await fixture.db.query('installed_artifacts')), hasLength(1));
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
+  test('normal queue completes only after real journal installation commit',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final runtime = fixture.runtime();
+    final storage = _QueueStorage();
+    final queue = DownloadQueueManager(storage, NativeSmbService(),
+        driveRuntime: runtime);
+    final complete = _queueTerminal(queue);
+    final hooks = <DownloadItem>[];
+    queue.onItemCompleted = hooks.add;
+    queue.addToQueue(_game(), _system, '/roms');
+    final item = await complete;
+    expect(item.status, DownloadStatus.completed, reason: item.error);
+    expect(item.transferId, isNotNull);
+    expect((await fixture.journal.transfer(item.transferId!))!.lifecycle,
+        TransferLifecycle.completed);
+    expect(await fixture.db.query('installed_artifacts'), hasLength(1));
+    expect(hooks, hasLength(1));
+    expect(fixture.native.sessionOpen, isFalse);
+    await queue.close();
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
+  test('synchronous pause listener joins an attempt before preparation begins',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final runtime = fixture.runtime();
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: runtime);
+    Future<void>? pause;
+    queue.addListener(() {
+      if (queue.state.activeCount == 1 && pause == null) {
+        pause = queue.pauseDownload(queue.state.queue.single.id);
+      }
+    });
+    queue.addToQueue(_game(), _system, '/roms');
+    await pause;
+    expect(queue.state.queue.single.status, DownloadStatus.paused);
+    expect(fixture.native.calls, isEmpty);
+    await queue.close();
+    queue.dispose();
+  });
+
+  test('completion observer failure cannot undo the committed installation',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final runtime = fixture.runtime();
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: runtime);
+    final terminal = _queueTerminal(queue);
+    final observerErrors = <Object>[];
+    queue.onItemCompleted =
+        (_) => throw StateError('Synthetic observer failure');
+    runZonedGuarded(() => queue.addToQueue(_game(), _system, '/roms'),
+        (error, _) => observerErrors.add(error));
+    final item = await terminal;
+    await queue.close();
+    expect(observerErrors.single, isA<StateError>());
+    expect(queue.state.queue.single.status, DownloadStatus.completed);
+    expect((await fixture.journal.transfer(item.transferId!))!.lifecycle,
+        TransferLifecycle.completed);
+    expect(fixture.native.sessionOpen, isFalse);
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
+  test('a completion listener may clear its row without corrupting the hook',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final runtime = fixture.runtime();
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: runtime);
+    final hook = Completer<DownloadItem>();
+    queue.onItemCompleted = hook.complete;
+    queue.addListener(() {
+      if (queue.state.completedItems.isNotEmpty) queue.clearCompleted();
+    });
+    queue.addToQueue(_game(), _system, '/roms');
+    final item = await hook.future;
+    await queue.close();
+    expect(item.status, DownloadStatus.completed);
+    expect(item.transferId, isNotNull);
+    expect(queue.state.queue, isEmpty);
+    expect(await fixture.db.query('installed_artifacts'), hasLength(1));
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
+  test('failed queue persistence blocks reservation and payload work',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final storage = _QueueStorage()..failWrites = true;
+    final queue = DownloadQueueManager(storage, NativeSmbService(),
+        driveRuntime: fixture.runtime());
+    final terminal = _queueTerminal(queue);
+    queue.addToQueue(_game(), _system, '/roms');
+    expect((await terminal).status, DownloadStatus.error);
+    expect(await fixture.db.query('transfer_records'), isEmpty);
+    expect(fixture.native.calls, isEmpty);
+    expect(fixture.media.requests, isEmpty);
+    await queue.close();
+    queue.dispose();
+  });
+
+  test(
+      'restoring paused and authorization-needed Drive entries does not auto-retry',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final storage = _QueueStorage();
+    storage.savedQueue = jsonEncode([
+      DownloadItem(
+              id: 'paused',
+              game: _game(),
+              system: _system,
+              targetFolder: '/roms',
+              status: DownloadStatus.paused,
+              transferId: 'durable-id',
+              receivedBytes: 3,
+              totalBytes: 5)
+          .toJson(),
+      DownloadItem(
+              id: 'auth',
+              game: _game(),
+              system: _system,
+              targetFolder: '/roms',
+              status: DownloadStatus.awaitingAuthorization)
+          .toJson(),
+      DownloadItem(
+              id: 'publishing',
+              game: _game(),
+              system: _system,
+              targetFolder: '/roms',
+              status: DownloadStatus.publishing,
+              transferId: 'publication-id',
+              receivedBytes: 5)
+          .toJson(),
+    ]);
+    final queue = DownloadQueueManager(storage, NativeSmbService(),
+        driveRuntime: fixture.runtime());
+    queue.restoreQueue([_system]);
+    expect(queue.state.queue.map((i) => i.status), [
+      DownloadStatus.paused,
+      DownloadStatus.awaitingAuthorization,
+      DownloadStatus.paused
+    ]);
+    expect(queue.state.queue.first.transferId, 'durable-id');
+    expect(queue.state.queue.first.receivedBytes, 3);
+    expect(queue.state.activeCount, 0);
+    expect(fixture.native.calls, isEmpty);
+    expect(fixture.media.requests, isEmpty);
+    await queue.close();
+    queue.dispose();
+  });
+
+  test(
+      'mixed-source queued reorder is persisted without starting or moving the active attempt',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final finishWrite = Completer<void>();
+    fixture.native.finishWrite = finishWrite.future;
+    final runtime = fixture.runtime();
+    final storage = _QueueStorage();
+    final queue = DownloadQueueManager(storage, NativeSmbService(),
+        driveRuntime: runtime);
+    final terminal = _queueTerminal(queue);
+    final active = queue.addToQueue(_game(), _system, '/roms');
+    await Future.any([fixture.native.writeStarted.future, terminal]);
+    expect(fixture.native.writeStarted.isCompleted, isTrue);
+    GameItem web(String name) => GameItem(
+        filename: '$name.chd',
+        displayName: name,
+        url: 'https://example.invalid/$name.chd',
+        providerConfig: const ProviderConfig(
+            type: ProviderType.web,
+            priority: 1,
+            url: 'https://example.invalid'));
+    final older = queue.addToQueue(web('older'), _system, '/roms');
+    final newer = queue.addToQueue(web('newer'), _system, '/roms');
+    expect(queue.state.queuedItems.map((i) => i.id), [newer, older]);
+    queue.moveQueued(older, 0);
+    expect(queue.state.queuedItems.map((i) => i.id), [older, newer]);
+    expect(queue.state.activeDownloads.single.id, active);
+    final close = queue.close();
+    finishWrite.complete();
+    await close;
+    await terminal;
+    final saved = (jsonDecode(storage.savedQueue!) as List).cast<Map>();
+    expect(saved.where((i) => i['status'] == 'queued').map((i) => i['id']),
+        [older, newer]);
+    expect(fixture.media.requests, hasLength(1));
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
+  test(
+      're-enqueue cannot claim completion from an externally replaced installed file',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final runtime = fixture.runtime();
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: runtime);
+    final first = _queueTerminal(queue);
+    final id = queue.addToQueue(_game(), _system, '/roms');
+    expect((await first).status, DownloadStatus.completed);
+    await queue.removeDownload(id);
+    fixture.native.targetChanged = true;
+    final second = _queueTerminal(queue);
+    queue.addToQueue(_game(), _system, '/roms');
+    expect((await second).status, DownloadStatus.error);
+    expect(fixture.media.requests, hasLength(1));
+    expect(fixture.native.targetChanged, isTrue);
+    await queue.close();
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
+  test(
+      'queue pause joins native write, retains reservation and resumes without redownload',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final finishWrite = Completer<void>();
+    fixture.native.finishWrite = finishWrite.future;
+    final runtime = fixture.runtime();
+    final storage = _QueueStorage();
+    final queue = DownloadQueueManager(storage, NativeSmbService(),
+        driveRuntime: runtime);
+    final earlyTerminal = _queueTerminal(queue);
+    final id = queue.addToQueue(_game(), _system, '/roms');
+    await Future.any([fixture.native.writeStarted.future, earlyTerminal]);
+    expect(fixture.native.writeStarted.isCompleted, isTrue,
+        reason: queue.state.queue.single.error);
+    var stopped = false;
+    final pause = queue.pauseDownload(id).then((_) {
+      stopped = true;
+    });
+    expect(stopped, isFalse);
+    expect(queue.state.activeCount, 1);
+    finishWrite.complete();
+    await pause;
+    final paused = await earlyTerminal;
+    expect(paused.status, DownloadStatus.paused);
+    expect(paused.receivedBytes, 5);
+    expect(fixture.native.sessionOpen, isFalse);
+    expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    expect(jsonDecode(storage.savedQueue!).single['transferId'],
+        paused.transferId);
+    final complete = Completer<DownloadItem>();
+    queue.onItemCompleted = complete.complete;
+    queue.retryDownload(id);
+    final installed = await complete.future;
+    expect(installed.transferId, paused.transferId);
+    expect(fixture.media.requests, hasLength(1));
+    await queue.close();
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
   });
 
   test(

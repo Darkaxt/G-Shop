@@ -149,10 +149,25 @@ class LDe extends L {
   String get downloads_sectionQueued => 'Warteschlange';
 
   @override
+  String get downloads_sectionPaused => 'Pausiert';
+
+  @override
   String get downloads_sectionComplete => 'Fertig';
 
   @override
   String get downloads_actionCancel => 'Abbrechen';
+
+  @override
+  String get downloads_actionPause => 'Pausieren';
+
+  @override
+  String get downloads_actionResume => 'Fortsetzen';
+
+  @override
+  String get downloads_moveEarlier => 'Nach oben';
+
+  @override
+  String get downloads_moveLater => 'Nach unten';
 
   @override
   String get downloads_actionRetry => 'Erneut';
@@ -186,6 +201,19 @@ class LDe extends L {
 
   @override
   String get downloadStatus_failed => 'Fehler';
+
+  @override
+  String get downloadStatus_paused => 'Pausiert';
+
+  @override
+  String get downloadStatus_awaitingAuthorization =>
+      'In Quellen erneut verbinden';
+
+  @override
+  String get downloadStatus_verifying => 'Wird überprüft...';
+
+  @override
+  String get downloadStatus_publishing => 'Installation wird abgeschlossen...';
 
   @override
   String storage_free(String size) {

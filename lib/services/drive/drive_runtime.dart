@@ -1,8 +1,14 @@
+import 'dart:convert';
+
+import 'package:collection/collection.dart';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
 import '../../models/config/drive_source_config.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/config/source.dart';
+import '../../models/library_identity.dart';
+import '../../models/transfer_record.dart';
 import '../database_service.dart';
 import '../owned_storage.dart';
 import '../transfer_journal.dart';
@@ -12,6 +18,7 @@ import 'drive_catalogue.dart';
 import 'drive_download_boundary.dart';
 import 'drive_media.dart';
 import 'drive_transfer_engine.dart';
+import 'drive_verification.dart';
 import 'google_drive_sign_in.dart';
 
 /// Process-wide native account lane and source-scoped refresh/transfer jobs. No token
@@ -33,6 +40,7 @@ class DriveRuntime {
   final _apis = <String, DriveApi>{};
   final _mediaApis = <String, DriveMediaApi>{};
   final _startingTransfers = <String>{};
+  final _reservations = <String, Future<TransferRecord>>{};
   final _transfers = <String, DriveTransferOperation>{};
   final _transferResults = <String, Future<void>>{};
   final _refreshes = <String, Future<void>>{};
@@ -59,11 +67,127 @@ class DriveRuntime {
         _createAuthorization = createAuthorization ??
             ((id) => DriveAuthorization(GoogleDriveSignIn(serverClientId: id)));
 
+  /// Durable exact-file reservation for the normal queue. This creates no ROM
+  /// bytes and performs no online requests. A repeated intent finds the same
+  /// journal record, including after a crash before queue preferences were saved.
+  Future<TransferRecord> reserveTransfer({
+    required ProviderConfig config,
+    required RemoteArtifact artifact,
+    required String destinationRoot,
+    required String relativePath,
+  }) async {
+    _requireConnectedLane();
+    _requireArtifactSource(config, artifact);
+    DriveVerification(artifact);
+    if (relativePath != artifact.displayName ||
+        relativePath.isEmpty ||
+        relativePath == '.' ||
+        relativePath == '..' ||
+        RegExp(r'[\\/\x00-\x1f<>:"|?*]').hasMatch(relativePath)) {
+      throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+    final id = sha256
+        .convert(utf8.encode(jsonEncode([
+          artifact.id.key,
+          artifact.version,
+          destinationRoot,
+          relativePath
+        ])))
+        .toString();
+    final existing = _reservations[id];
+    if (existing != null) {
+      final record = await existing;
+      _requireReservationSnapshot(record, artifact);
+      return record;
+    }
+    final generation = _laneGeneration;
+    final reservation = () async {
+      final plan = await _storage.prepare(destinationRoot);
+      _requireConnectedLane();
+      if (generation != _laneGeneration) {
+        throw const DriveAuthorizationException(
+            DriveAuthorizationIssue.cancelled);
+      }
+      if (plan.destinationRoot != destinationRoot) {
+        throw const OwnedStorageException('changed');
+      }
+      final existing = await journal.transfer(id);
+      if (existing != null) {
+        _requireReservationSnapshot(existing, artifact);
+        if (existing.destinationRoot != destinationRoot ||
+            existing.relativePath != relativePath ||
+            existing.stagePath != plan.stagePath(id)) {
+          throw const OwnedStorageException('changed');
+        }
+        return existing;
+      }
+      return journal.create(TransferRecord(
+          id: id,
+          artifact: artifact,
+          destinationRoot: destinationRoot,
+          relativePath: relativePath,
+          stagePath: plan.stagePath(id)));
+    }();
+    _reservations[id] = reservation;
+    try {
+      return await reservation;
+    } finally {
+      if (identical(_reservations[id], reservation)) _reservations.remove(id);
+    }
+  }
+
+  static void _requireReservationSnapshot(
+      TransferRecord record, RemoteArtifact artifact) {
+    if (!const DeepCollectionEquality()
+        .equals(record.artifact.toJson(), artifact.toJson())) {
+      throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+    }
+  }
+
+  static void _requireArtifactSource(
+      ProviderConfig config, RemoteArtifact artifact) {
+    if (config.type != ProviderType.drive ||
+        config.drive?.isConfigured != true ||
+        config.sourceId?.isNotEmpty != true ||
+        config.path?.isNotEmpty != true ||
+        artifact.id.providerId != 'drive' ||
+        artifact.id.sourceId != config.sourceId ||
+        artifact.id.accountId != config.drive!.accountId) {
+      throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+  }
+
+  /// Offline revalidation of an already committed exact installation. A saved
+  /// completed bit is not proof that another app has left its bytes in place.
+  Future<void> requireInstalledTransfer(TransferRecord record) async {
+    final installation = await journal.installationForTarget(
+        destinationRoot: record.destinationRoot,
+        relativePath: record.relativePath);
+    if (record.lifecycle != TransferLifecycle.completed ||
+        installation == null ||
+        installation.transferId != record.id ||
+        !const DeepCollectionEquality()
+            .equals(installation.artifact.toJson(), record.artifact.toJson()) ||
+        !const DeepCollectionEquality()
+            .equals(installation.verifiedChecksums, record.verifiedChecksums)) {
+      throw const OwnedStorageException('changed');
+    }
+    final identity = await _storage.inspect(
+        destinationRoot: record.destinationRoot,
+        relativePath: record.relativePath,
+        stagePath: record.stagePath,
+        published: true);
+    if (identity == null || !identity.matches(installation.fileIdentity)) {
+      throw const OwnedStorageException('changed');
+    }
+  }
+
   /// Starts only an already reserved exact transfer. The normal queue remains
   /// responsible for choosing when to invoke this API; it does not enqueue files.
   Future<DriveTransferOperation> startTransfer({
     required ProviderConfig config,
     required String transferId,
+    void Function(TransferRecord)? onCheckpoint,
   }) async {
     _requireConnectedLane();
     final drive = config.drive;
@@ -112,7 +236,7 @@ class DriveRuntime {
       // No await separates this last gate from registration. A disconnect can
       // neither overlook this operation nor let a pending old-lane load start.
       _requireConnectedLane();
-      final operation = engine.start(transferId);
+      final operation = engine.start(transferId, onCheckpoint: onCheckpoint);
       _transfers[transferId] = operation;
       void settled() {
         if (identical(_transfers[transferId], operation)) {

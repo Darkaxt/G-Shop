@@ -149,10 +149,25 @@ class LEn extends L {
   String get downloads_sectionQueued => 'Queued';
 
   @override
+  String get downloads_sectionPaused => 'Paused';
+
+  @override
   String get downloads_sectionComplete => 'Complete';
 
   @override
   String get downloads_actionCancel => 'Cancel';
+
+  @override
+  String get downloads_actionPause => 'Pause';
+
+  @override
+  String get downloads_actionResume => 'Resume';
+
+  @override
+  String get downloads_moveEarlier => 'Move up';
+
+  @override
+  String get downloads_moveLater => 'Move down';
 
   @override
   String get downloads_actionRetry => 'Retry';
@@ -186,6 +201,18 @@ class LEn extends L {
 
   @override
   String get downloadStatus_failed => 'Failed';
+
+  @override
+  String get downloadStatus_paused => 'Paused';
+
+  @override
+  String get downloadStatus_awaitingAuthorization => 'Reconnect in Sources';
+
+  @override
+  String get downloadStatus_verifying => 'Verifying...';
+
+  @override
+  String get downloadStatus_publishing => 'Finishing installation...';
 
   @override
   String storage_free(String size) {

@@ -1,8 +1,18 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/models/sound_settings.dart';
+
+class _RejectedQueueWrites extends InMemorySharedPreferencesStore {
+  _RejectedQueueWrites() : super.empty();
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async =>
+      false;
+  @override
+  Future<bool> remove(String key) async => false;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +30,31 @@ void main() {
     test('uninitialized access throws StateError', () {
       final uninitService = StorageService();
       expect(() => uninitService.getRomPath(), throwsStateError);
+    });
+  });
+
+  group('StorageService — durable queue acknowledgement', () {
+    test('stores and clears queue intent', () async {
+      await service.setDownloadQueue('[{"id":"intent"}]');
+      expect(service.getDownloadQueue(), '[{"id":"intent"}]');
+      await service.clearDownloadQueue();
+      expect(service.getDownloadQueue(), isNull);
+    });
+
+    test('false native save acknowledgement rejects the intent write',
+        () async {
+      final original = SharedPreferencesStorePlatform.instance;
+      addTearDown(() => SharedPreferencesStorePlatform.instance = original);
+      SharedPreferencesStorePlatform.instance = _RejectedQueueWrites();
+      await expectLater(service.setDownloadQueue('[]'), throwsStateError);
+    });
+
+    test('false native clear acknowledgement rejects the intent removal',
+        () async {
+      final original = SharedPreferencesStorePlatform.instance;
+      addTearDown(() => SharedPreferencesStorePlatform.instance = original);
+      SharedPreferencesStorePlatform.instance = _RejectedQueueWrites();
+      await expectLater(service.clearDownloadQueue(), throwsStateError);
     });
   });
 

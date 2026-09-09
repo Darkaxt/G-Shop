@@ -51,7 +51,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
-| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; native owned-storage primitives with earlier actual Thor tests | Full queue/installation integration, remaining crash/reset/retirement windows, bundles, replacement/removal and required live recovery proof remain DRIVE-04/05/06 gates |
+| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal-queue integration with durable pause and visible lifecycle states; native owned-storage primitives with earlier actual Thor tests | Exact installation/discovery/launch integration, remaining crash/reset/retirement windows, bundles, replacement/removal and required live recovery proof remain DRIVE-04/05/06 gates |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -488,6 +488,81 @@ still wait for credible fresh rankings and verified cloud recovery.
   account, installed application or SD-library changes occurred.
 - No stage acceptance, payload-gate removal, fresh metadata coverage or Top-25
   SD migration is claimed here. S3 and the overall plan remain in progress.
+
+### S3 normal queue integration checkpoint (2026-09-09)
+
+- Continues from `e89c616` (journaled engine/source lifecycle). Drive single-file
+  transfers now route through that engine before any legacy staging, extraction,
+  filename-existence completion or provider fallback. Unsupported archives and
+  bundles remain explicitly gated; this is not acceptance of DRIVE-04/05/06.
+- Exact artifact/version/root/path reservations have deterministic IDs and are
+  journaled before payload work. Queue preferences are serialized and awaited;
+  false/rejected preference writes prevent a new Drive transfer from starting.
+  The queue persists transfer IDs, durable progress, pending order and paused/
+  authorization-needed states. Interrupted active entries restore as paused,
+  requiring an explicit resume rather than repeating a download automatically.
+- A Drive attempt owns its callbacks and asynchronous shutdown acknowledgement.
+  Pause retains the active slot until stream/native work drains; close joins
+  every Drive attempt. Only the engine result after installation commit and
+  resource closure emits completion. Observer failures or synchronous row
+  dismissal cannot change the committed outcome. Progress uses direct latest
+  journal checkpoints, not an accumulating event stream.
+- Reusing a completed transfer rechecks its exact installation manifest and
+  current native file identity. An externally deleted/replaced target is not
+  reported installed from a cached completed bit.
+- Queue cards and the collapsed badge distinguish paused, authorization-needed,
+  verifying and publishing work. All six locales include the new states and
+  actions. Completed icons are not shown for pending/failed jobs or merely for
+  receiving every byte. Touch arrows and controller shoulder buttons reorder
+  pending jobs only, retain the focused identity and preserve concurrency.
+- The actual overlay regression reproduced a disabled reorder arrow falling
+  through to the parent row's Remove action. A dedicated reorder input surface
+  now consumes that tap without changing the queue. All 14 overlay cases passed
+  after the narrow correction. Fixture teardown closes the modal while its
+  provider remains alive and flushes the existing zero-duration focus-release
+  event; no sleep or lifecycle timeout was added to production.
+- Reproduced and fixed immediate-pause `LateInitializationError` and false
+  completion after external target replacement. The focused real-runtime tests
+  cover native write draining, no-redownload resume, persistence failure,
+  mixed-source queued ordering, restored authorization/paused entries, and
+  completion-hook failures/row dismissal. An early reorder test helper watched
+  the wrong row; only that test process was stopped, its exit collected and no
+  workers remained before the corrected finite event-based fixture was rerun.
+- Required S3 follow-up remains: exact manifest-based installed/discovery,
+  launch/share/achievement/removal paths; hiding noncommitted public-copy intents
+  from all R-Shop scans; remaining native crash/reset/retirement protocols;
+  bundles/replacement/removal, large-file integrated measurements and live
+  process-death/emulator/remove/re-download proof. Existing Drive detail/library
+  payload and removal gates stay in place. No ROMs, SD files or accounts were
+  changed at this checkpoint.
+- The legacy provider audit also found game-ID-only asynchronous callbacks,
+  stream-close completion and incomplete legacy shutdown joins. Preserve existing
+  provider regression coverage while reconciling these shared lifecycle seams
+  inside S3; the new Drive path does not inherit them and this checkpoint does
+  not claim that every legacy downloader lifecycle issue has been fixed.
+- The preference platform interface is now a pinned direct **test** dependency,
+  retaining the already locked 2.4.2 version. Native false-return save/clear
+  acknowledgements are independently tested. `collection` is explicitly declared
+  at its already locked 1.19.1 version for deep artifact-snapshot comparison.
+  Dependency resolution was offline; no package version changed. The storage/
+  runtime integration run passed 54 tests before the full-suite check below.
+- Main ran `flutter test --no-pub --concurrency=1 --exclude-tags live --reporter
+  expanded`: **1,928 passed**, exit 0, framework duration 2m22s. After analyzer
+  feedback corrected five brace blocks and the direct dependency declaration,
+  the runtime/queue/storage/actual-overlay rerun passed **113 tests**, exit 0.
+  Every workload's terminal result was collected before starting the next.
+- Final `flutter analyze --no-pub` reports only the same four baseline findings:
+  the two deprecated grid `cacheExtent` uses, the cover-preload unawaited return
+  and the localization-test local naming lint. Exit 1 is explicitly not a clean
+  analyzer claim; there are no new findings. These baseline items remain S6 work.
+- Requirement mapping remains 24/24 with no missing or duplicate owner rows;
+  `git diff --check` passed. Transactional cleanup
+  `336451c86977781fe565401094a0d9a1` reached `applied`, deleting 482 attributed
+  generated entries (229,618,632 bytes), without errors or residuals. Both the
+  generated `build` root and `D:\Temp\rshop-queue-integration` are absent. Shared
+  SDK/dependency caches, source files, accounts, ROMs and device data are retained.
+- S3 and the full implementation remain in progress. The normal Drive detail/
+  library entry gates are not removed by this tested queue checkpoint.
 
 ### Preparation verification (2026-09-08)
 

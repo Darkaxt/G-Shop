@@ -8,6 +8,12 @@ import '../models/config/provider_config.dart';
 import '../models/download_item.dart';
 import '../models/game_item.dart';
 import '../models/system_model.dart';
+import '../models/transfer_record.dart';
+import 'drive/drive_runtime.dart';
+import 'drive/drive_transfer_engine.dart';
+import 'drive/drive_authorization.dart';
+import 'drive/drive_media.dart';
+import 'owned_storage.dart';
 import 'download_foreground_service.dart';
 import 'disk_space_service.dart';
 import 'download_service.dart';
@@ -85,6 +91,10 @@ class DownloadQueueManager extends ChangeNotifier {
   DownloadQueueState get state => _state;
   bool _disposed = false;
   bool _isProcessingQueue = false;
+  bool _closing = false;
+  Future<void>? _closeFuture;
+  final Map<String, _DriveQueueAttempt> _driveAttempts = {};
+  final DriveRuntime _driveRuntime;
 
   final Map<String, StreamSubscription?> _subscriptions = {};
   final Map<String, DownloadService> _downloadServices = {};
@@ -96,7 +106,9 @@ class DownloadQueueManager extends ChangeNotifier {
   /// processing like RA hash verification.
   void Function(DownloadItem item)? onItemCompleted;
 
-  DownloadQueueManager(this._storage, this._smbService) {
+  DownloadQueueManager(this._storage, this._smbService,
+      {DriveRuntime? driveRuntime})
+      : _driveRuntime = driveRuntime ?? DriveRuntime.instance {
     final maxConcurrent = _storage.getMaxConcurrentDownloads();
     _state = _state.copyWith(maxConcurrent: maxConcurrent);
   }
@@ -195,8 +207,10 @@ class DownloadQueueManager extends ChangeNotifier {
     _processQueue();
   }
 
-  String addToQueue(GameItem game, SystemModel system, String targetFolder, {bool autoExtract = false}) {
+  String addToQueue(GameItem game, SystemModel system, String targetFolder,
+      {bool autoExtract = false}) {
     final id = idFor(game, system);
+    if (_closing || _disposed || _driveAttempts.containsKey(id)) return id;
 
     final existing = _state.getDownloadById(id);
     if (existing != null && !existing.isFinished) {
@@ -248,6 +262,12 @@ class DownloadQueueManager extends ChangeNotifier {
   Future<void> cancelDownload(String id) async {
     final item = _state.getDownloadById(id);
     if (item == null) return;
+    if (_isDrive(item)) {
+      // Drive cancellation retains exact journaled bytes. Removing a queue row
+      // is distinct from deleting an owned partial or installed ROM.
+      await pauseDownload(id);
+      return;
+    }
 
     _retryTimers[id]?.cancel();
     _retryTimers.remove(id);
@@ -291,7 +311,12 @@ class DownloadQueueManager extends ChangeNotifier {
 
   void retryDownload(String id) {
     final item = _state.getDownloadById(id);
-    if (item == null || item.isActive) return;
+    if (item == null ||
+        item.isActive ||
+        _driveAttempts.containsKey(id) ||
+        _closing) {
+      return;
+    }
 
     _updateItem(
       id,
@@ -306,8 +331,44 @@ class DownloadQueueManager extends ChangeNotifier {
     _processQueue();
   }
 
+  static bool _isDrive(DownloadItem item) =>
+      item.game.remoteArtifact != null ||
+      item.game.providerConfig?.type == ProviderType.drive;
+
+  Future<void> pauseDownload(String id) async {
+    final item = _state.getDownloadById(id);
+    if (item == null || !_isDrive(item) || item.isComplete) return;
+    final attempt = _driveAttempts[id];
+    if (attempt != null) {
+      attempt.pauseRequested = true;
+      // result already has an observer in _runDrive. Keep the slot occupied
+      // until that run has joined the returned operation and all native work.
+      attempt.operation?.pause();
+      await attempt.settled;
+    } else {
+      _updateItem(id, status: DownloadStatus.paused, clearSpeed: true);
+      await _persistQueue();
+      _stopForegroundServiceIfIdle();
+    }
+  }
+
+  /// Reorders pending entries only; active operations keep their attempt IDs.
+  void moveQueued(String id, int queuedIndex) {
+    final pending = _state.queuedItems;
+    final old = pending.indexWhere((i) => i.id == id);
+    if (old < 0 || queuedIndex < 0 || queuedIndex >= pending.length) return;
+    pending.insert(queuedIndex, pending.removeAt(old));
+    var next = 0;
+    _state = _state.copyWith(queue: [
+      for (final item in _state.queue)
+        if (item.status == DownloadStatus.queued) pending[next++] else item
+    ]);
+    _persistQueue();
+    _safeNotify();
+  }
+
   void _processQueue() {
-    if (_disposed || _isProcessingQueue) return;
+    if (_disposed || _closing || _isProcessingQueue) return;
     if (!_state.canStartNewDownload()) return;
 
     _isProcessingQueue = true;
@@ -330,10 +391,15 @@ class DownloadQueueManager extends ChangeNotifier {
   Future<void> _startDownload(DownloadItem item) async {
     // Exact artifacts require S3's verified transfer/publication contract.
     // In particular, filename existence must never imply their completion.
-    if (item.game.remoteArtifact != null || item.game.providerConfig?.type == ProviderType.drive) {
-      _updateItem(item.id, status: DownloadStatus.error,
-          error: 'Verified remote artifact transfers are not configured.');
-      _persistQueue();
+    if (_isDrive(item)) {
+      final attempt = _DriveQueueAttempt();
+      _driveAttempts[item.id] = attempt;
+      _updateItem(item.id,
+          status: DownloadStatus.downloading, clearError: true);
+      _updateForegroundService();
+      _runDrive(item, attempt)
+          .then(attempt.join.complete, onError: attempt.join.completeError);
+      await attempt.settled;
       return;
     }
     _updateItem(item.id, status: DownloadStatus.downloading);
@@ -452,6 +518,134 @@ class DownloadQueueManager extends ChangeNotifier {
     _subscriptions[item.id] = subscription;
   }
 
+  bool _ownsDrive(String id, _DriveQueueAttempt attempt) =>
+      identical(_driveAttempts[id], attempt);
+
+  void _driveCheckpoint(
+      String id, _DriveQueueAttempt attempt, TransferRecord record,
+      {bool terminal = false}) {
+    if (!_ownsDrive(id, attempt)) return;
+    if (!terminal &&
+        (record.lifecycle == TransferLifecycle.completed ||
+            record.lifecycle == TransferLifecycle.paused ||
+            record.lifecycle == TransferLifecycle.awaitingAuthorization ||
+            record.lifecycle == TransferLifecycle.failed)) {
+      return;
+    }
+    final status = switch (record.lifecycle) {
+      TransferLifecycle.queued => DownloadStatus.downloading,
+      TransferLifecycle.transferring => DownloadStatus.downloading,
+      TransferLifecycle.verifying => DownloadStatus.verifying,
+      TransferLifecycle.publishing => DownloadStatus.publishing,
+      TransferLifecycle.paused => DownloadStatus.paused,
+      TransferLifecycle.awaitingAuthorization =>
+        DownloadStatus.awaitingAuthorization,
+      TransferLifecycle.completed => DownloadStatus.completed,
+      TransferLifecycle.failed => DownloadStatus.error,
+    };
+    final total = record.artifact.sizeBytes;
+    _updateItem(id,
+        status: status,
+        transferId: record.id,
+        receivedBytes: record.durableOffset,
+        totalBytes: total,
+        progress: total != null && total > 0 ? record.durableOffset / total : 0,
+        error: record.errorCode,
+        clearError: record.errorCode == null,
+        clearSpeed: status != DownloadStatus.downloading);
+    _throttledNotificationUpdate();
+  }
+
+  Future<void> _runDrive(DownloadItem item, _DriveQueueAttempt attempt) async {
+    try {
+      // Queue intent must be durable before reserving a native path or starting
+      // payload IO. Reservation IDs are deterministic across this crash window.
+      await _persistQueue();
+      if (attempt.pauseRequested || _closing) {
+        _updateItem(item.id, status: DownloadStatus.paused);
+        return;
+      }
+      final artifact = item.game.remoteArtifact;
+      final config = item.game.providerConfig;
+      final extension = item.game.filename.toLowerCase();
+      if (artifact == null ||
+          config == null ||
+          item.game.isFolder ||
+          !item.system.romExtensions.any(extension.endsWith) ||
+          ['.zip', '.rar', '.7z', '.cue', '.m3u'].any(extension.endsWith)) {
+        throw const DriveTransferException(DriveTransferIssue.invalidSource);
+      }
+      var record = await _driveRuntime.reserveTransfer(
+          config: config,
+          artifact: artifact,
+          destinationRoot: item.targetFolder,
+          relativePath: item.game.filename);
+      if (item.transferId != null && item.transferId != record.id) {
+        throw const OwnedStorageException('changed');
+      }
+      _updateItem(item.id, transferId: record.id);
+      await _persistQueue();
+      if (record.lifecycle == TransferLifecycle.completed) {
+        await _driveRuntime.requireInstalledTransfer(record);
+      } else if (attempt.pauseRequested || _closing) {
+        if (record.lifecycle != TransferLifecycle.completed) {
+          record = await _driveRuntime.journal
+              .save(record.copyWith(lifecycle: TransferLifecycle.paused));
+        }
+      } else {
+        final operation = await _driveRuntime.startTransfer(
+            config: config,
+            transferId: record.id,
+            onCheckpoint: (record) =>
+                _driveCheckpoint(item.id, attempt, record));
+        attempt.operation = operation;
+        if (attempt.pauseRequested || _closing) operation.pause();
+        record = await operation.result;
+      }
+      if (!_ownsDrive(item.id, attempt)) return;
+      _driveCheckpoint(item.id, attempt, record, terminal: true);
+      if (record.lifecycle == TransferLifecycle.completed && !_disposed) {
+        final completedItem = item.copyWith(
+            status: DownloadStatus.completed,
+            transferId: record.id,
+            progress: 1,
+            receivedBytes: record.durableOffset,
+            totalBytes: record.artifact.sizeBytes,
+            clearError: true,
+            clearSpeed: true);
+        final observer = onItemCompleted;
+        if (observer != null) {
+          Zone.current.runUnaryGuarded(observer, completedItem);
+        }
+      }
+    } catch (error) {
+      if (_ownsDrive(item.id, attempt)) {
+        final auth = error is DriveAuthorizationException;
+        _updateItem(item.id,
+            status: auth
+                ? DownloadStatus.awaitingAuthorization
+                : DownloadStatus.error,
+            error: error is DriveTransferException
+                ? 'transfer_${error.issue.name}'
+                : error is OwnedStorageException
+                    ? 'storage_${error.code}'
+                    : auth
+                        ? 'auth_${error.issue.name}'
+                        : 'transfer_unavailable',
+            clearSpeed: true);
+      }
+    } finally {
+      if (_ownsDrive(item.id, attempt)) {
+        _driveAttempts.remove(item.id);
+        try {
+          await _persistQueue();
+        } catch (_) {/* Error already observed. */}
+        _stopForegroundServiceIfIdle();
+        _processQueue();
+      }
+    }
+  }
+
   void _onDownloadComplete(String id) {
     final item = _state.getDownloadById(id);
     if (item != null && item.status == DownloadStatus.error) {
@@ -498,6 +692,7 @@ class DownloadQueueManager extends ChangeNotifier {
     int? retryCount,
     String? tempFilePath,
     bool clearTempFilePath = false,
+    String? transferId,
   }) {
     final newQueue = _state.queue.map((item) {
       if (item.id == id) {
@@ -513,6 +708,7 @@ class DownloadQueueManager extends ChangeNotifier {
           retryCount: retryCount,
           tempFilePath: tempFilePath,
           clearTempFilePath: clearTempFilePath,
+          transferId: transferId,
         );
       }
       return item;
@@ -570,36 +766,26 @@ class DownloadQueueManager extends ChangeNotifier {
 
   // --- Queue Persistence ---
 
-  bool _isPersisting = false;
-  bool _persistAgain = false;
+  Future<void> _persistence = Future.value();
 
-  void _persistQueue() {
-    if (_isPersisting) {
-      _persistAgain = true;
-      return;
-    }
-    _isPersisting = true;
-    try {
-      final persistable = _state.queue
-          .where((item) =>
-              item.status == DownloadStatus.queued ||
-              item.status == DownloadStatus.error)
-          .map((item) => item.toJson())
-          .toList();
-      if (persistable.isEmpty) {
-        _storage.clearDownloadQueue();
-      } else {
-        _storage.setDownloadQueue(jsonEncode(persistable));
-      }
-    } catch (e) {
-      debugPrint('DownloadQueue: failed to persist queue: $e');
-    } finally {
-      _isPersisting = false;
-      if (_persistAgain) {
-        _persistAgain = false;
-        _persistQueue();
-      }
-    }
+  Future<void> _persistQueue() {
+    final persistable = _state.queue
+        .where((item) =>
+            (_isDrive(item) && !item.isComplete) ||
+            item.status == DownloadStatus.queued ||
+            item.status == DownloadStatus.error)
+        .map((item) => item.toJson())
+        .toList();
+    final snapshot = jsonEncode(persistable);
+    final write = _persistence.then((_) => persistable.isEmpty
+        ? _storage.clearDownloadQueue()
+        : _storage.setDownloadQueue(snapshot));
+    // Observe fire-and-forget legacy callers immediately; Drive awaits the
+    // original future and cannot begin after a failed intent write.
+    _persistence = write.then<void>((_) {}, onError: (Object _, StackTrace __) {
+      debugPrint('DownloadQueue: queue persistence failed');
+    });
+    return write;
   }
 
   void restoreQueue(List<SystemModel> systems, {AppConfig? appConfig}) {
@@ -627,25 +813,36 @@ class DownloadQueueManager extends ChangeNotifier {
 
         final downloadItem = DownloadItem.fromJson(map, system);
         if (downloadItem.game.providerConfig == null) {
-          debugPrint('DownloadQueue: skipping restore item with null providerConfig');
+          debugPrint(
+              'DownloadQueue: skipping restore item with null providerConfig');
           continue;
         }
 
         // Re-inject auth credentials from AppConfig (stripped during persist)
         final restoredItem = _rehydrateAuth(downloadItem, appConfig);
 
-        // Reset to queued so they can be restarted
-        restored.add(restoredItem.copyWith(
-          status: DownloadStatus.queued,
-          progress: 0,
-          receivedBytes: 0,
-          clearError: true,
-          clearSpeed: true,
-        ));
+        // Interrupted Drive attempts require explicit resume; their journal,
+        // not preference progress, decides verification/publication recovery.
+        if (_isDrive(restoredItem)) {
+          restored.add(restoredItem.copyWith(
+              status: restoredItem.isActive
+                  ? DownloadStatus.paused
+                  : restoredItem.status,
+              clearSpeed: true));
+        } else {
+          restored.add(restoredItem.copyWith(
+            status: DownloadStatus.queued,
+            progress: 0,
+            receivedBytes: 0,
+            clearError: true,
+            clearSpeed: true,
+          ));
+        }
       }
 
       if (restored.isNotEmpty) {
-        final newQueue = List<DownloadItem>.from(_state.queue)..addAll(restored);
+        final newQueue = List<DownloadItem>.from(_state.queue)
+          ..addAll(restored);
         _state = _state.copyWith(queue: newQueue);
         _safeNotify();
         _processQueue();
@@ -678,6 +875,7 @@ class DownloadQueueManager extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    unawaited(close());
     _notificationThrottle?.cancel();
 
     for (final timer in _retryTimers.values) {
@@ -701,4 +899,25 @@ class DownloadQueueManager extends ChangeNotifier {
     DownloadForegroundService.stop();
     super.dispose();
   }
+
+  /// Async shutdown join for lifecycle owners. dispose signals it immediately;
+  /// callers needing a durable pause acknowledgement await this future.
+  Future<void> close() => _closeFuture ??= _close();
+  Future<void> _close() async {
+    _closing = true;
+    final attempts = _driveAttempts.values.toList();
+    for (final attempt in attempts) {
+      attempt.pauseRequested = true;
+      attempt.operation?.pause();
+    }
+    await Future.wait(attempts.map((attempt) => attempt.settled));
+    await _persistence;
+  }
+}
+
+class _DriveQueueAttempt {
+  bool pauseRequested = false;
+  DriveTransferOperation? operation;
+  final join = Completer<void>();
+  Future<void> get settled => join.future;
 }

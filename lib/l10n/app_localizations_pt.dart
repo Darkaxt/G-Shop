@@ -149,10 +149,25 @@ class LPt extends L {
   String get downloads_sectionQueued => 'Na fila';
 
   @override
+  String get downloads_sectionPaused => 'Pausados';
+
+  @override
   String get downloads_sectionComplete => 'Concluídos';
 
   @override
   String get downloads_actionCancel => 'Cancelar';
+
+  @override
+  String get downloads_actionPause => 'Pausar';
+
+  @override
+  String get downloads_actionResume => 'Retomar';
+
+  @override
+  String get downloads_moveEarlier => 'Mover para cima';
+
+  @override
+  String get downloads_moveLater => 'Mover para baixo';
 
   @override
   String get downloads_actionRetry => 'Tentar de novo';
@@ -186,6 +201,18 @@ class LPt extends L {
 
   @override
   String get downloadStatus_failed => 'Falhou';
+
+  @override
+  String get downloadStatus_paused => 'Pausado';
+
+  @override
+  String get downloadStatus_awaitingAuthorization => 'Reconecte em Fontes';
+
+  @override
+  String get downloadStatus_verifying => 'Verificando...';
+
+  @override
+  String get downloadStatus_publishing => 'Finalizando instalação...';
 
   @override
   String storage_free(String size) {

@@ -27,11 +27,12 @@ class DriveTransferEngine {
       required this.storage,
       required this.revalidate,
       required this.openMedia});
-  DriveTransferOperation start(String transferId) {
+  DriveTransferOperation start(String transferId,
+      {void Function(TransferRecord)? onCheckpoint}) {
     if (_active.containsKey(transferId)) {
       throw StateError('Transfer already active');
     }
-    final operation = DriveTransferOperation._(this, transferId);
+    final operation = DriveTransferOperation._(this, transferId, onCheckpoint);
     _active[transferId] = operation;
     operation.result = operation._execute();
     return operation;
@@ -42,6 +43,7 @@ class DriveTransferOperation {
   final DriveTransferEngine _engine;
   final String transferId;
   final _cancellation = CancelToken();
+  final void Function(TransferRecord)? _onCheckpoint;
   late final Future<TransferRecord> result;
   TransferRecord? _record;
   OwnedStorageSession? _session;
@@ -49,7 +51,7 @@ class DriveTransferOperation {
   StreamIterator<Uint8List>? _reader;
   Future<void>? _readerClose;
   bool _readerCloseFailed = false;
-  DriveTransferOperation._(this._engine, this.transferId);
+  DriveTransferOperation._(this._engine, this.transferId, this._onCheckpoint);
   TransferRecord get record => _record!;
 
   /// Signal cancellation immediately, then wait for the actual stream, pending
@@ -76,6 +78,14 @@ class DriveTransferOperation {
 
   Future<void> _save(TransferRecord next) async {
     _record = await _engine.journal.save(next);
+    _notifyCheckpoint();
+  }
+
+  // Observer errors cannot change durable transfer state. No stream buffer is
+  // allocated for progress: observers see only the latest committed checkpoint.
+  void _notifyCheckpoint() {
+    final observer = _onCheckpoint;
+    if (observer != null) Zone.current.runUnaryGuarded(observer, record);
   }
 
   Future<void> _state(TransferLifecycle state) =>
@@ -103,6 +113,7 @@ class DriveTransferOperation {
     try {
       _record = await _engine.journal.transfer(transferId);
       if (_record == null) throw StateError('Unknown transfer');
+      _notifyCheckpoint();
       if (record.lifecycle == TransferLifecycle.completed) return record;
       final verification = DriveVerification(record.artifact);
       _checkCancellation();
@@ -143,6 +154,7 @@ class DriveTransferOperation {
           // never by weakening ordinary checkpoint identity validation.
           _record = await _engine.journal
               .resumeStageCheckpoint(record, _session!.openedIdentity);
+          _notifyCheckpoint();
         }
         _checkCancellation();
         if (record.durableOffset < record.artifact.sizeBytes!) await _receive();
@@ -193,6 +205,7 @@ class DriveTransferOperation {
               verifiedChecksums: record.verifiedChecksums,
               fileIdentity: destination),
           checkCancellation: _checkCancellation);
+      _notifyCheckpoint();
       return record;
     } catch (error) {
       if (_record == null || record.lifecycle == TransferLifecycle.completed) {
