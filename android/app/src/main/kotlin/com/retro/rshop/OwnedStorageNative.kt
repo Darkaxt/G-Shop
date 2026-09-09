@@ -14,5 +14,7 @@ internal object OwnedStorageNative {
     external fun truncate(fd: Int, size: Long)
     external fun sync(fd: Int)
     external fun renameNoReplace(fromDir: Int, from: String, toDir: Int, to: String)
+    /** App-exclusive private stage entries only; never public installation paths. */
+    external fun retirePrivateFile(dir: Int, name: String, expected: LongArray)
     external fun close(fd: Int)
 }

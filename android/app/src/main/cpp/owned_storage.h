@@ -31,5 +31,9 @@ void sync(int fd);
 // replace an existing destination and does not flush either parent directory.
 // Missing renameat2 support reports ENOTSUP; cross-volume moves report EXDEV.
 void renameNoReplace(int fromDir, const std::string& from, int toDir, const std::string& to);
+// Caller must hold app-exclusive control of this PRIVATE stage directory.
+// Never use for public installation paths. An absent entry is an idempotent
+// replay; both deletion and replay sync the pinned parent before returning.
+void retirePrivateFile(int dir, const std::string& name, const Identity& expected);
 void close(int fd);
 }  // namespace rshop::owned

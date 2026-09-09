@@ -45,6 +45,20 @@ class _CompletionBarrierJournal extends TransferJournal {
   }
 }
 
+class _RetirementAckFailure extends TransferJournal {
+  bool fail = true;
+  _RetirementAckFailure(super.database);
+  @override
+  Future<TransferRecord> stageRetirementResult(TransferRecord record,
+      {String? issue}) async {
+    if (fail) {
+      fail = false;
+      throw StateError('fixture lost acknowledgement');
+    }
+    return super.stageRetirementResult(record, issue: issue);
+  }
+}
+
 class _Session {
   final String stage;
   final String target;
@@ -93,6 +107,24 @@ class _Native {
     final target = '${a['destinationRoot']}/${a['relativePath']}';
     if (call.method == 'ownedInspect') {
       return files[a['published'] == true ? target : stage]?.identity;
+    }
+    if (call.method == 'ownedRetireStage') {
+      if (sessions.values.any((s) => s.stage == stage || s.target == target)) {
+        fail('collision');
+      }
+      final installed = files[target] ?? fail('changed');
+      if (installed.identity.toString() !=
+          Map<String, Object>.from(a['installedIdentity']).toString()) {
+        fail('changed');
+      }
+      final pending = files[stage];
+      if (pending != null &&
+          pending.identity.toString() !=
+              Map<String, Object>.from(a['expectedIdentity']).toString()) {
+        fail('changed');
+      }
+      files.remove(stage);
+      return null;
     }
     if (call.method == 'ownedOpen') {
       final published = a['mode'] == 'published';
@@ -275,7 +307,7 @@ void main() {
         isTrue);
   });
   test(
-      'unsupported rename uses journaled exclusive verified copy retaining source',
+      'verified copy retires private source only after installation commit and close',
       () async {
     native.copyOnly = true;
     await queue();
@@ -287,13 +319,186 @@ void main() {
       if (call.method == 'ownedCopyChunk') {
         expect(
             (stored['publication'] as Map)['destinationIdentity'], isNotNull);
+        expect(native.files['/owned/transfer.partial'], isNotNull);
+      }
+      if (call.method == 'ownedRetireStage') {
+        expect(stored['lifecycle'], 'completed');
+        expect(await installed(), isNotNull);
+        expect(native.sessions, isEmpty);
       }
     };
     final result = await engine().start('transfer').result;
     expect(result.lifecycle, TransferLifecycle.completed);
-    expect(native.files['/owned/transfer.partial']!.bytes, payload);
+    expect(native.files.containsKey('/owned/transfer.partial'), isFalse);
+    expect(result.toJson()['stageRetired'], true);
     expect(native.files['/roms/fixture.chd']!.bytes, payload);
   });
+  test(
+      'retirement failure keeps installation and retries offline after restart',
+      () async {
+    native.copyOnly = true;
+    await queue();
+    native.before = (call) async {
+      if (call.method == 'ownedRetireStage') {
+        throw PlatformException(code: 'access_denied');
+      }
+    };
+    final first = await engine().start('transfer').result;
+    expect(first.lifecycle, TransferLifecycle.completed);
+    expect(first.stageRetired, false);
+    expect(first.stageRetirementIssue, 'access_denied');
+    expect(await installed(), isNotNull);
+    expect(native.files['/owned/transfer.partial']!.bytes, payload);
+    native.before = null;
+    revalidate = (_) async => throw StateError('cleanup must not authorize');
+    final retried = await engine().start('transfer').result;
+    expect(retried.stageRetired, true);
+    expect(retried.stageRetirementIssue, isNull);
+    expect(requests, [0]);
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+  });
+
+  test('failed acknowledgement preserves completion and replays absent stage',
+      () async {
+    native.copyOnly = true;
+    journal = _RetirementAckFailure(Future.value(db));
+    await queue();
+    final outcome = await engine().start('transfer').result;
+    expect(outcome.lifecycle, TransferLifecycle.completed);
+    expect(outcome.stageRetired, false);
+    final persisted = (await journal.transfer('transfer'))!;
+    expect(persisted.lifecycle, TransferLifecycle.completed);
+    expect(persisted.stageRetired, false);
+    expect(native.files.containsKey('/owned/transfer.partial'), false);
+    expect(await installed(), isNotNull);
+    journal = TransferJournal(Future.value(db));
+    revalidate = (_) async => throw StateError('cleanup must stay offline');
+    expect((await engine().start('transfer').result).stageRetired, true);
+    expect(requests, [0]);
+  });
+
+  test('failed native directory sync replays deletion without touching ROM',
+      () async {
+    native.copyOnly = true;
+    await queue();
+    native.after = (call) async {
+      if (call.method == 'ownedRetireStage') {
+        throw PlatformException(code: 'io_error');
+      }
+    };
+    final first = await engine().start('transfer').result;
+    expect(first.stageRetirementIssue, 'io_error');
+    expect(first.stageRetired, false);
+    expect(native.files.containsKey('/owned/transfer.partial'), false);
+    native.after = null;
+    expect((await engine().start('transfer').result).stageRetired, true);
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+  });
+
+  test(
+      'postcommit close failure defers retirement without failing installation',
+      () async {
+    native.copyOnly = true;
+    await queue();
+    native.after = (call) async {
+      if (call.method == 'ownedClose') {
+        expect(await installed(), isNotNull);
+        throw PlatformException(code: 'io_error');
+      }
+    };
+    final outcome = await engine().start('transfer').result;
+    expect(outcome.lifecycle, TransferLifecycle.completed);
+    expect(outcome.stageRetired, false);
+    expect(outcome.stageRetirementIssue, 'close_unconfirmed');
+    expect(native.methods, isNot(contains('ownedRetireStage')));
+    expect(native.files['/owned/transfer.partial']!.bytes, payload);
+    native.after = null;
+    expect((await engine().start('transfer').result).stageRetired, true);
+    expect(requests, [0]);
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+  });
+
+  test('changed private stage is preserved despite completed installation',
+      () async {
+    native.copyOnly = true;
+    await queue();
+    native.before = (call) async {
+      if (call.method == 'ownedRetireStage') {
+        native.files['/owned/transfer.partial'] = _NativeFile(999)..bytes = [9];
+      }
+    };
+    final result = await engine().start('transfer').result;
+    expect(result.stageRetirementIssue, 'changed');
+    expect(result.stageRetired, false);
+    expect(native.files['/owned/transfer.partial']!.bytes, [9]);
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+  });
+
+  test('changed installed object keeps the retained source', () async {
+    native.copyOnly = true;
+    await queue();
+    native.before = (call) async {
+      if (call.method == 'ownedRetireStage') {
+        native.files['/roms/fixture.chd'] = _NativeFile(999)..bytes = [9];
+      }
+    };
+    final result = await engine().start('transfer').result;
+    expect(result.stageRetirementIssue, 'changed');
+    expect(native.files['/owned/transfer.partial']!.bytes, payload);
+    expect(native.files['/roms/fixture.chd']!.bytes, [9]);
+  });
+
+  for (final copy in [false, true]) {
+    test('completed engine reuse checks installed identity (copy=$copy)',
+        () async {
+      native.copyOnly = copy;
+      await queue();
+      expect((await engine().start('transfer').result).lifecycle,
+          TransferLifecycle.completed);
+      native.files['/roms/fixture.chd'] = _NativeFile(999)..bytes = [9];
+      revalidate = (_) async => throw StateError('reuse must stay offline');
+      await expectLater(
+          engine().start('transfer').result,
+          throwsA(isA<OwnedStorageException>()
+              .having((error) => error.code, 'code', 'changed')));
+      expect((await journal.transfer('transfer'))!.lifecycle,
+          TransferLifecycle.completed);
+      expect(requests, [0]);
+      expect(native.files['/roms/fixture.chd']!.bytes, [9]);
+    });
+  }
+
+  test('retirement cannot be acknowledged before commit or forged through save',
+      () async {
+    await queue();
+    final queued = (await journal.transfer('transfer'))!;
+    await expectLater(journal.stageRetirementResult(queued), throwsStateError);
+    await expectLater(
+        journal.save(queued.copyWith(stageRetired: true)), throwsStateError);
+    await expectLater(
+        journal.save(queued.copyWith(stageRetirementIssue: 'changed')),
+        throwsStateError);
+    expect(native.methods, isEmpty);
+  });
+
+  test('retirement acknowledgements require the current immutable snapshot',
+      () async {
+    native.copyOnly = true;
+    await queue();
+    native.before = (call) async {
+      if (call.method == 'ownedRetireStage') {
+        throw PlatformException(code: 'access_denied');
+      }
+    };
+    final old = await engine().start('transfer').result;
+    final next = await journal.stageRetirementResult(old, issue: 'changed');
+    await expectLater(journal.stageRetirementResult(old), throwsStateError);
+    await expectLater(
+        journal.stageRetirementResult(next.copyWith(stageRetired: true)),
+        throwsStateError);
+    expect((await journal.transfer('transfer'))!.stageRetired, false);
+  });
+
   test('a shared engine revalidates each exact queued artifact', () async {
     await queue();
     final second = RemoteArtifact.fromJson({

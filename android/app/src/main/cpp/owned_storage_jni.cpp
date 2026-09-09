@@ -94,6 +94,15 @@ jlongArray identityArray(JNIEnv* env, const owned::Identity& value) {
     if (result != nullptr) env->SetLongArrayRegion(result, 0, 5, fields);
     return result;
 }
+
+owned::Identity identityValue(JNIEnv* env, jlongArray value) {
+    if (value == nullptr || env->GetArrayLength(value) != 5) invalid();
+    jlong fields[5]{};
+    env->GetLongArrayRegion(value, 0, 5, fields);
+    if (env->ExceptionCheck() || fields[2] < 0 || fields[4] < 0 || fields[4] >= 1000000000) invalid();
+    return {static_cast<uint64_t>(fields[0]), static_cast<uint64_t>(fields[1]),
+            fields[2], fields[3], fields[4]};
+}
 }  // namespace
 
 extern "C" JNIEXPORT jint JNICALL
@@ -163,6 +172,11 @@ Java_com_retro_rshop_OwnedStorageNative_sync(JNIEnv* env, jobject, jint fd) {
 extern "C" JNIEXPORT void JNICALL
 Java_com_retro_rshop_OwnedStorageNative_renameNoReplace(JNIEnv* env, jobject, jint fromDir, jstring from, jint toDir, jstring to) {
     guardedVoid(env, [&] { owned::renameNoReplace(fromDir, utf8(env, from), toDir, utf8(env, to)); });
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_retro_rshop_OwnedStorageNative_retirePrivateFile(JNIEnv* env, jobject, jint dir, jstring name, jlongArray expected) {
+    guardedVoid(env, [&] { owned::retirePrivateFile(dir, utf8(env, name), identityValue(env, expected)); });
 }
 
 extern "C" JNIEXPORT void JNICALL

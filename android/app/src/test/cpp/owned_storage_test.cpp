@@ -195,6 +195,62 @@ void renameContract(Fixture& f, int root) {
     fails([&] { owned::entryIdentity(root, "source"); }, ENOENT);
     owned::sync(root);
 }
+
+void privateRetirementContract(Fixture& f, int root) {
+    Fd stage(owned::openFile(root, "private-stage", true, true)); f.track("private-stage");
+    Fd installed(owned::openFile(root, "retirement-installed", true, true)); f.track("retirement-installed");
+    owned::write(stage.value, 0, {41, 42});
+    owned::write(installed.value, 0, {41, 42});
+    const auto expected = owned::identity(stage.value);
+    owned::retirePrivateFile(root, "private-stage", expected);
+    fails([&] { owned::entryIdentity(root, "private-stage"); }, ENOENT);
+    owned::retirePrivateFile(root, "private-stage", expected);
+    check(owned::read(installed.value, 0, 2) == std::vector<uint8_t>({41, 42}),
+          "private retirement changed installed bytes");
+
+    Fd changed(owned::openFile(root, "changed-stage", true, true)); f.track("changed-stage");
+    owned::write(changed.value, 0, {51});
+    const auto before = owned::identity(changed.value);
+    for (int field = 0; field < 5; ++field) {
+        auto different = before;
+        switch (field) {
+            case 0: different.device++; break;
+            case 1: different.inode++; break;
+            case 2: different.size++; break;
+            case 3: different.modifiedSeconds++; break;
+            default: different.modifiedNanos = (different.modifiedNanos + 1) % 1000000000; break;
+        }
+        fails([&] { owned::retirePrivateFile(root, "changed-stage", different); }, ESTALE);
+        check(owned::entryIdentity(root, "changed-stage").inode == before.inode,
+              "identity mismatch removed the private stage");
+    }
+    owned::write(changed.value, 1, {52});
+    fails([&] { owned::retirePrivateFile(root, "changed-stage", before); }, ESTALE);
+    check(owned::read(changed.value, 0, 2) == std::vector<uint8_t>({51, 52}),
+          "changed private bytes were not preserved");
+
+    for (const std::string& bad : std::vector<std::string>{"", ".", "..", "../changed-stage", "/absolute",
+             "a/changed-stage", std::string("nul\0tail", 8)}) {
+        fails([&] { owned::retirePrivateFile(root, bad, before); }, EINVAL);
+    }
+    fails([&] { owned::retirePrivateFile(-1, "missing-stage", before); }, EBADF);
+    fails([&] { owned::retirePrivateFile(root, "file-link", before); });
+    fails([&] { owned::retirePrivateFile(root, "directory", before); });
+    fails([&] { owned::retirePrivateFile(root, "fifo", before); });
+    struct stat linkStatus{};
+    syscallCheck(::lstat(f.path("file-link").c_str(), &linkStatus));
+    check(S_ISLNK(linkStatus.st_mode), "retirement removed a symlink");
+    syscallCheck(::stat(f.path("directory").c_str(), &linkStatus));
+    check(S_ISDIR(linkStatus.st_mode), "retirement removed a directory");
+
+    const auto linkedExpected = owned::identity(changed.value);
+    syscallCheck(::link(f.path("changed-stage").c_str(), f.path("retirement-hard-link").c_str()));
+    f.track("retirement-hard-link");
+    fails([&] { owned::retirePrivateFile(root, "changed-stage", linkedExpected); }, EMLINK);
+    fails([&] { owned::retirePrivateFile(root, "retirement-hard-link", linkedExpected); }, EMLINK);
+    syscallCheck(::stat(f.path("changed-stage").c_str(), &linkStatus));
+    check(linkStatus.st_nlink == 2, "retirement removed a hard link");
+}
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -214,6 +270,8 @@ int main(int argc, char** argv) {
         pinnedDirectories(fixture, root.value);
         std::cout << "PHASE no-replace rename" << std::endl;
         renameContract(fixture, root.value);
+        std::cout << "PHASE private stage retirement" << std::endl;
+        privateRetirementContract(fixture, root.value);
         std::cout << "PASS owned storage filesystem contract\n";
         return 0;
     } catch (const std::exception& error) {

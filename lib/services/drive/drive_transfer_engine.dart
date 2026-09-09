@@ -5,8 +5,10 @@ import 'package:dio/dio.dart';
 
 import '../../models/library_identity.dart';
 import '../../models/transfer_record.dart';
+import '../installation_index.dart';
 import '../owned_storage.dart';
 import '../transfer_journal.dart';
+import '../stage_retirement.dart';
 import 'drive_api.dart';
 import 'drive_authorization.dart';
 import 'drive_media.dart';
@@ -51,6 +53,7 @@ class DriveTransferOperation {
   StreamIterator<Uint8List>? _reader;
   Future<void>? _readerClose;
   bool _readerCloseFailed = false;
+  bool _resourcesClosed = false;
   DriveTransferOperation._(this._engine, this.transferId, this._onCheckpoint);
   TransferRecord get record => _record!;
 
@@ -111,10 +114,32 @@ class DriveTransferOperation {
 
   Future<TransferRecord> _execute() async {
     try {
+      final transferred = await _executeTransfer();
+      _record = await retireCommittedStage(
+          _engine.journal, _engine.storage, transferred,
+          resourcesClosed: _resourcesClosed);
+      _notifyCheckpoint();
+      return record;
+    } finally {
+      if (identical(_engine._active[transferId], this)) {
+        _engine._active.remove(transferId);
+      }
+    }
+  }
+
+  Future<TransferRecord> _executeTransfer() async {
+    try {
       _record = await _engine.journal.transfer(transferId);
       if (_record == null) throw StateError('Unknown transfer');
       _notifyCheckpoint();
-      if (record.lifecycle == TransferLifecycle.completed) return record;
+      if (record.lifecycle == TransferLifecycle.completed) {
+        final installation = await _engine.journal.installationForTarget(
+            destinationRoot: record.destinationRoot,
+            relativePath: record.relativePath);
+        await InstallationIndex(_engine.journal, storage: _engine.storage)
+            .requireInstallation(record, installation);
+        return record;
+      }
       final verification = DriveVerification(record.artifact);
       _checkCancellation();
       await _engine.revalidate(record.artifact, _cancellation);
@@ -243,15 +268,18 @@ class DriveTransferOperation {
       return record;
     } finally {
       try {
-        await _closeReader();
-      } finally {
         try {
-          await _session?.close();
+          await _closeReader();
         } finally {
-          if (identical(_engine._active[transferId], this)) {
-            _engine._active.remove(transferId);
-          }
+          await _session?.close();
         }
+        _resourcesClosed = true;
+      } catch (_) {
+        // Never unlink the private recovery copy on an uncertain close. An
+        // already committed installation remains completed; the outer layer
+        // records pending cleanup, and native replay refuses active sessions.
+        // Precommit shutdown failures still propagate as failures.
+        if (_record?.lifecycle != TransferLifecycle.completed) rethrow;
       }
     }
   }

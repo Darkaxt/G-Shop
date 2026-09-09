@@ -7,6 +7,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
 
 /// Real native bridge, separate debug UID, synthetic bytes only. No production
@@ -164,6 +165,77 @@ void main() {
         fails('invalid_arguments'));
     expect(await File('${plan.destinationRoot}/outside.partial').exists(),
         isFalse);
+  });
+
+  testWidgets(
+      'private stage retirement verifies ownership, closes first and replays on SD',
+      (_) async {
+    const parent = String.fromEnvironment('RSHOP_STORAGE_TEST_ROOT');
+    expect(parent, isNotEmpty);
+    final sd = await _Fixture.create(parent);
+    try {
+      final selected = await storage.prepare(sd.root.path);
+      final id = 'retire-${DateTime.now().microsecondsSinceEpoch}';
+      final partial = selected.stagePath(id);
+      const name = 'retirement-test.bin';
+      final target = '${selected.destinationRoot}/$name';
+      await sd.reserveFile(partial);
+      await sd.reserveFile(target);
+      final session = await storage.open(
+          destinationRoot: selected.destinationRoot,
+          relativePath: name,
+          stagePath: partial);
+      try {
+        final bytes = Uint8List.fromList([1, 3, 5, 7, 9]);
+        await session.write(0, bytes);
+        final source = await session.checkpoint();
+        final copy = await session.beginPublicationCopy(source);
+        await copy.copyNext(bytes.length);
+        final destination = await copy.finish(await copy.checkpoint());
+        final record = TransferRecord(
+            id: id,
+            artifact: RemoteArtifact(
+                id: RemoteArtifactId(
+                    providerId: 'fixture',
+                    sourceId: 'synthetic',
+                    accountId: 'none',
+                    providerFileId: id),
+                displayPath: name,
+                displayName: name,
+                sizeBytes: bytes.length),
+            destinationRoot: selected.destinationRoot,
+            relativePath: name,
+            stagePath: partial,
+            durableOffset: bytes.length,
+            lifecycle: TransferLifecycle.completed,
+            stageIdentity: source,
+            publication: TransferPublication(
+                method: PublicationMethod.copy,
+                sourceIdentity: source,
+                destinationIdentity: destination,
+                confirmed: true));
+        await expectLater(storage.retireStage(record), fails('collision'));
+        await session.close();
+        final changed =
+            NativeFileIdentity.fromJson({...source.toJson(), 'fileId': '0'});
+        await expectLater(
+            storage.retireStage(record.copyWith(stageIdentity: changed)),
+            fails('changed'));
+        expect(await File(partial).readAsBytes(), bytes);
+        expect(await File(target).readAsBytes(), bytes);
+        await storage.retireStage(record);
+        expect(await File(partial).exists(), false);
+        expect(await File(target).readAsBytes(), bytes);
+        await storage.retireStage(record);
+        expect(await File(target).readAsBytes(), bytes);
+        binding.reportData!['native_sd_stage_retirement'] =
+            'active-session/change preservation, postclose deletion and absent replay passed';
+      } finally {
+        await session.close();
+      }
+    } finally {
+      await sd.cleanup();
+    }
   });
 
   testWidgets(

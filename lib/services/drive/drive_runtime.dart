@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
@@ -13,6 +14,7 @@ import '../database_service.dart';
 import '../installation_index.dart';
 import '../owned_storage.dart';
 import '../transfer_journal.dart';
+import '../stage_retirement.dart';
 import 'drive_api.dart';
 import 'drive_authorization.dart';
 import 'drive_catalogue.dart';
@@ -21,6 +23,24 @@ import 'drive_media.dart';
 import 'drive_transfer_engine.dart';
 import 'drive_verification.dart';
 import 'google_drive_sign_in.dart';
+
+/// Bounded diagnostics for one offline maintenance pass, never artifact data.
+class StageRetirementRecoveryReport {
+  final int examined;
+  final int retired;
+  final int pending;
+  final int skippedActive;
+  final bool stopped;
+  final Map<String, int> issues;
+  StageRetirementRecoveryReport(
+      {this.examined = 0,
+      this.retired = 0,
+      this.pending = 0,
+      this.skippedActive = 0,
+      this.stopped = false,
+      Map<String, int> issues = const {}})
+      : issues = Map.unmodifiable(issues);
+}
 
 /// Process-wide native account lane and source-scoped refresh/transfer jobs. No token
 /// resides in provider configs or download items. Background calls never consent.
@@ -166,6 +186,93 @@ class DriveRuntime {
         relativePath: record.relativePath);
     await InstallationIndex(journal, storage: _storage)
         .requireInstallation(record, installation);
+  }
+
+  Future<TransferRecord> finishRetainedStage(TransferRecord record) =>
+      retireCommittedStage(journal, _storage, record);
+
+  /// One offline pass over durable cleanup intents, including installs whose
+  /// completed queue rows were not persisted. Live operations own their inline
+  /// cleanup; the shared helper serializes every other attempt by target path.
+  Future<StageRetirementRecoveryReport> recoverPendingStageRetirements(
+      {bool Function()? shouldContinue}) async {
+    var examined = 0;
+    var retired = 0;
+    var pending = 0;
+    var skippedActive = 0;
+    var stopped = false;
+    final issues = <String, int>{};
+    void addIssue(String? issue) {
+      const known = {
+        'invalid_arguments',
+        'collision',
+        'not_found',
+        'unsupported',
+        'cross_volume',
+        'out_of_space',
+        'access_denied',
+        'changed',
+        'closed',
+        'io_error',
+        'close_unconfirmed',
+        'retirement_pending',
+        'journal_unavailable',
+      };
+      final code = known.contains(issue) ? issue! : 'retirement_pending';
+      issues.update(code, (count) => count + 1, ifAbsent: () => 1);
+    }
+
+    bool canContinue() {
+      if (shouldContinue?.call() ?? true) return true;
+      stopped = true;
+      return false;
+    }
+
+    StreamIterator<TransferRecord>? records;
+    if (canContinue()) {
+      try {
+        records = StreamIterator(
+            journal.pendingStageRetirements(shouldContinue: canContinue));
+        while (canContinue() && await records.moveNext()) {
+          if (!canContinue()) break;
+          final record = records.current;
+          examined++;
+          if (_startingTransfers.contains(record.id) ||
+              _transfers.containsKey(record.id)) {
+            skippedActive++;
+            continue;
+          }
+          try {
+            final result = await finishRetainedStage(record);
+            if (result.stageRetired) {
+              retired++;
+            } else {
+              pending++;
+              addIssue(result.stageRetirementIssue ?? 'retirement_pending');
+            }
+          } catch (_) {
+            // Cleanup cannot alter the already committed installation outcome.
+            pending++;
+            addIssue('retirement_pending');
+          }
+        }
+      } catch (_) {
+        addIssue('journal_unavailable');
+      } finally {
+        try {
+          await records?.cancel();
+        } catch (_) {
+          addIssue('journal_unavailable');
+        }
+      }
+    }
+    return StageRetirementRecoveryReport(
+        examined: examined,
+        retired: retired,
+        pending: pending,
+        skippedActive: skippedActive,
+        stopped: stopped,
+        issues: issues);
   }
 
   /// Starts only an already reserved exact transfer. The normal queue remains

@@ -67,6 +67,8 @@ class TransferJournal {
         record.durableOffset != 0 ||
         record.stageIdentity != null ||
         record.publication != null ||
+        record.stageRetired ||
+        record.stageRetirementIssue != null ||
         record.verifiedChecksums.isNotEmpty ||
         record.errorCode != null) {
       throw StateError('A new transfer must be a pristine queued record');
@@ -289,6 +291,91 @@ class TransferJournal {
     return _transfer(db, id);
   }
 
+  /// One bounded offline pass over completed copy intents, independent of the
+  /// visible queue (which deliberately omits completed downloads on restart).
+  /// Filter optional JSON fields in Dart for older Android SQLite compatibility.
+  Stream<TransferRecord> pendingStageRetirements(
+      {int batchSize = 128, bool Function()? shouldContinue}) async* {
+    if (batchSize < 1 || batchSize > 128) {
+      throw ArgumentError.value(batchSize, 'batchSize', 'Expected 1..128');
+    }
+    if (!(shouldContinue?.call() ?? true)) return;
+    final db = await _database;
+    final last = await db.query('transfer_records',
+        columns: ['transfer_id'],
+        where: 'lifecycle = ?',
+        whereArgs: ['completed'],
+        orderBy: 'transfer_id DESC',
+        limit: 1);
+    if (last.isEmpty) return;
+    final upper = last.single['transfer_id'] as String;
+    String? after;
+    while (true) {
+      if (!(shouldContinue?.call() ?? true)) return;
+      final rows = await db.query('transfer_records',
+          columns: ['transfer_id', 'record_json'],
+          where: 'lifecycle = ? AND transfer_id <= ?'
+              '${after == null ? '' : ' AND transfer_id > ?'}',
+          whereArgs: ['completed', upper, if (after != null) after],
+          orderBy: 'transfer_id',
+          limit: batchSize);
+      if (rows.isEmpty) return;
+      for (final row in rows) {
+        if (!(shouldContinue?.call() ?? true)) return;
+        final record = TransferRecord.fromJson(
+            (jsonDecode(row['record_json'] as String) as Map)
+                .cast<String, dynamic>());
+        if (record.lifecycle == TransferLifecycle.completed &&
+            record.publication?.method == PublicationMethod.copy &&
+            !record.stageRetired) {
+          yield record;
+        }
+      }
+      after = rows.last['transfer_id'] as String;
+      if (after == upper) return;
+    }
+  }
+
+  /// Records post-commit cleanup without rewriting installed/download truth.
+  /// A completed copy is the durable intent; native replay verifies or observes
+  /// absence of that exact PRIVATE stage before this acknowledgement.
+  Future<TransferRecord> stageRetirementResult(TransferRecord record,
+      {String? issue}) async {
+    final db = await _database;
+    return db.transaction((txn) async {
+      final previous = await _requiredTransfer(txn, record.id);
+      _requireExactRecord(previous, record);
+      if (record.lifecycle != TransferLifecycle.completed ||
+          record.publication?.method != PublicationMethod.copy ||
+          record.publication?.confirmed != true ||
+          record.stageIdentity == null ||
+          record.stageRetired) {
+        throw StateError(
+            'Stage retirement requires an unretired completed copy');
+      }
+      final rows = await txn.query('installed_artifacts',
+          columns: ['record_json'],
+          where: 'transfer_id = ?',
+          whereArgs: [record.id],
+          limit: 1);
+      if (rows.isEmpty) {
+        throw StateError('Stage retirement requires its installed owner');
+      }
+      _requireMatchingInstallation(
+          record,
+          InstalledArtifact.fromJson(
+              (jsonDecode(rows.single['record_json'] as String) as Map)
+                  .cast<String, dynamic>()));
+      final next = record.copyWith(
+          stageRetired: issue == null,
+          stageRetirementIssue: issue,
+          clearStageRetirementIssue: issue == null,
+          revision: record.revision + 1);
+      await _updateTransfer(txn, next, expectedRevision: record.revision);
+      return next;
+    });
+  }
+
   Future<List<String>> destinationRoots() async {
     final db = await _database;
     final rows = await db.rawQuery(
@@ -443,6 +530,8 @@ class TransferJournal {
         previous.destinationRoot != proposed.destinationRoot ||
         previous.relativePath != proposed.relativePath ||
         previous.stagePath != proposed.stagePath ||
+        previous.stageRetired != proposed.stageRetired ||
+        previous.stageRetirementIssue != proposed.stageRetirementIssue ||
         !_sameJson(previous.artifact.toJson(), proposed.artifact.toJson())) {
       throw StateError('Transfer identity is immutable');
     }

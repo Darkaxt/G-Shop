@@ -268,6 +268,26 @@ void renameNoReplace(int fromDir, const std::string& from, int toDir, const std:
     // The caller must fsync both pinned parents before reporting durability.
 }
 
+void retirePrivateFile(int dir, const std::string& name, const Identity& expected) {
+    Identity actual{};
+    try {
+        // No-follow entry validation rejects links, directories and multiply
+        // linked files. The caller owns this PRIVATE namespace exclusively.
+        actual = entryIdentity(dir, name);
+    } catch (const std::system_error& error) {
+        if (error.code().value() != ENOENT) throw;
+        flush(dir);  // Finish a deletion whose previous parent sync was interrupted.
+        return;
+    }
+    if (actual.device != expected.device || actual.inode != expected.inode ||
+        actual.size != expected.size || actual.modifiedSeconds != expected.modifiedSeconds ||
+        actual.modifiedNanos != expected.modifiedNanos) fail(ESTALE);
+    int result;
+    do { result = ::unlinkat(dir, name.c_str(), 0); } while (result < 0 && errno == EINTR);
+    if (result < 0 && errno != ENOENT) fail(errno);
+    flush(dir);
+}
+
 void close(int fd) {
     // Never retry close after EINTR: the descriptor may already have been reused.
     if (::close(fd) < 0) fail(errno);

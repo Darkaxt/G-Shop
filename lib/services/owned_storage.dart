@@ -134,6 +134,26 @@ class OwnedStorage {
     return result == null ? null : decodeIdentity(result);
   }
 
+  /// Only the retained app-private stage, after installed-state commit and
+  /// writer closure. Native rechecks both identities and never deletes a ROM.
+  Future<void> retireStage(TransferRecord record) async {
+    final publication = record.publication;
+    if (record.lifecycle != TransferLifecycle.completed ||
+        publication?.method != PublicationMethod.copy ||
+        publication?.confirmed != true ||
+        record.stageIdentity == null ||
+        publication?.destinationIdentity == null) {
+      throw const OwnedStorageException('invalid_arguments');
+    }
+    await _invoke('ownedRetireStage', {
+      'destinationRoot': record.destinationRoot,
+      'relativePath': record.relativePath,
+      'stagePath': record.stagePath,
+      'expectedIdentity': nativeIdentity(record.stageIdentity!),
+      'installedIdentity': nativeIdentity(publication!.destinationIdentity!),
+    });
+  }
+
   static Map<String, Object> nativeIdentity(NativeFileIdentity identity) => {
         'device': identity.volumeId,
         'inode': identity.fileId,

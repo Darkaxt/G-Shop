@@ -156,6 +156,29 @@ gated until an ownership-checked protocol preserves the old installation through
 verification and commit. Native copy primitives alone do not satisfy these
 engine, process-death, bundle, removal or replacement acceptance criteria.
 
+### S3 post-commit private-stage retirement
+
+A completed copy and its exact stage identity are the durable cleanup intent.
+Retire that app-private copy only after the installation commit and confirmed
+session closure, then synchronize its pinned parent before acknowledging cleanup
+in the journal. An absent private entry is a replayable post-unlink crash state,
+not permission to touch a public ROM. Native retirement checks the current
+installed object, private stage identity and inactive sessions; changed or
+redirected objects remain preserved conflicts.
+
+Track cleanup acknowledgement separately from download completion. Failed
+cleanup, directory synchronization or journal acknowledgement cannot undo a
+committed installation or require another ROM download. An unconfirmed close
+defers retirement. On app startup, one bounded keyset-paged offline journal pass
+recovers pending completed copies independently of the saved queue; shutdown
+signals the pass to stop between entries and joins any in-flight native call.
+No timer retry or age/suffix-based scan is used.
+
+This private-namespace primitive is **not** the public owned-ROM removal
+protocol. Thor public removal remains gated: test an app-UID public-to-private
+quarantine rename in the actual mount domain before selecting its fallback;
+do not substitute a public check-then-unlink or overwrite-capable move.
+
 ## S4 — Fresh metadata pipeline and score semantics
 
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.

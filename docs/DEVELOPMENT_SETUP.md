@@ -51,11 +51,18 @@ fallback; release signing and distribution review remain a separate gate.
 
 ## Google Drive: new account-owned application setup
 
-No Google project or OAuth client for this fork exists in the verified setup.
-When the account owner performs the Google console steps:
+The account owner authorized a dedicated project. `R-Shop Drive`
+(`r-shop-drive-darkaxt`, project number `593016299117`) was created in the
+Google Cloud console. Drive API enablement was requested and the console opened
+its API overview. OAuth branding is prepared for an External **testing** audience,
+but has not been saved: Google's API Services User Data Policy acceptance is
+awaiting the account owner. No OAuth client has been created yet, no billing was
+enabled, and no Drive file access has been granted to this application.
+Continue in this existing project; do not create a duplicate. Remaining setup:
 
-1. Create/select their own project and enable the Google Drive API.
-2. Configure consent for this application and its intended private test audience.
+1. Verify that the Google Drive API is enabled in the dedicated project.
+2. Complete consent configuration after the account owner's policy acceptance,
+   retaining testing mode and the intended private test audience.
 3. Register the **debug package and actual signing certificate** as an Android
    OAuth client. Register a web OAuth client in the same project and pass its
    public client ID as `GoogleDriveSignIn.serverClientId`.
@@ -87,11 +94,14 @@ account cannot satisfy an account-bound source. Disconnect/revoke is app-wide,
 not implicit source deletion; a cold process cannot claim remote revocation
 without reconnecting the account first.
 
-The S2 catalogue/queue checkpoint still deliberately blocks Drive payload transfer
-and local removal until S3's verified transfer/installation lane is integrated.
-It does not claim a cached filename is an installed game or use ordinary HTTP
-fallback to bypass version, checksum and ownership checks. S3 must remove these
-implementation gates by delivering the required verified behavior.
+The normal detail/library flow now enqueues supported standalone Drive files
+through S3's verified transfer/installation lane. Archives, folders, CUE/M3U and
+other dependency-bearing layouts remain blocked until bundle support is complete.
+A cached filename is not an installed game, and ordinary HTTP fallback cannot
+bypass version, checksum or ownership checks. Managed local removal remains
+gated. There is not yet an in-app emulator-open action; sharing a file is not
+evidence of emulator launch. The live download/launch/removal round trip is still
+required, not established by the single-file queue implementation.
 
 Still required: actual consent, cancel/denial, renewal/reconnect, account isolation
 and revoke proof on the Thor. Mocked native-platform tests do not satisfy these.

@@ -93,6 +93,7 @@ class DownloadQueueManager extends ChangeNotifier {
   bool _isProcessingQueue = false;
   bool _closing = false;
   Future<void>? _closeFuture;
+  Future<StageRetirementRecoveryReport>? _stageRetirementRecovery;
   final Map<String, _DriveQueueAttempt> _driveAttempts = {};
   final DriveRuntime _driveRuntime;
 
@@ -587,6 +588,7 @@ class DownloadQueueManager extends ChangeNotifier {
       await _persistQueue();
       if (record.lifecycle == TransferLifecycle.completed) {
         await _driveRuntime.requireInstalledTransfer(record);
+        record = await _driveRuntime.finishRetainedStage(record);
       } else if (attempt.pauseRequested || _closing) {
         if (record.lifecycle != TransferLifecycle.completed) {
           record = await _driveRuntime.journal
@@ -788,7 +790,21 @@ class DownloadQueueManager extends ChangeNotifier {
     return write;
   }
 
+  Future<StageRetirementRecoveryReport> recoverPendingStageRetirements() =>
+      _stageRetirementRecovery ??= _driveRuntime
+          .recoverPendingStageRetirements(
+              shouldContinue: () => !_closing && !_disposed)
+          .then((report) {
+        if (report.pending > 0 || report.issues.isNotEmpty) {
+          debugPrint('Stage retirement recovery: pending=${report.pending}, '
+              'issues=${report.issues}');
+        }
+        return report;
+      });
+
   void restoreQueue(List<SystemModel> systems, {AppConfig? appConfig}) {
+    if (_closing || _disposed) return;
+    unawaited(recoverPendingStageRetirements());
     final json = _storage.getDownloadQueue();
     if (json == null) return;
 
@@ -911,6 +927,7 @@ class DownloadQueueManager extends ChangeNotifier {
       attempt.operation?.pause();
     }
     await Future.wait(attempts.map((attempt) => attempt.settled));
+    await _stageRetirementRecovery;
     await _persistence;
   }
 }

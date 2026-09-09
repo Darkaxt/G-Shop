@@ -166,6 +166,74 @@ void main() {
   });
   tearDown(() => db.close());
 
+  test(
+      'pending private retirement scans completed copies in bounded keyset pages',
+      () async {
+    // Seed persisted snapshots to exercise enumeration independently of the
+    // separately tested publication protocol. Include older JSON defaults.
+    final expected = <String>[];
+    await db.transaction((txn) async {
+      for (var i = 0; i < 137; i++) {
+        final id = 'pending-${i.toString().padLeft(3, '0')}';
+        final pending = i % 4 == 0;
+        final record = _publication(_stage(_queued(id: id), 5),
+                method: i % 4 == 1 ? 'rename' : 'copy',
+                destination: _fileIdentity(fileId: 'copy-$i'),
+                confirmed: true)
+            .copyWith(
+                lifecycle: i % 4 == 2
+                    ? TransferLifecycle.publishing
+                    : TransferLifecycle.completed,
+                stageRetired: i % 4 == 3);
+        if (pending) expected.add(id);
+        final json = record.toJson();
+        if (pending) json.remove('stageRetired');
+        await txn.insert('transfer_records', {
+          'transfer_id': id,
+          'artifact_key': record.artifact.id.key,
+          'destination_root': record.destinationRoot,
+          'relative_path': id,
+          'lifecycle': record.lifecycle.name,
+          'durable_offset': record.durableOffset,
+          'revision': record.revision,
+          'record_json': jsonEncode(json),
+        });
+      }
+    });
+    var continuePass = true;
+    final stopped = <String>[];
+    await for (final record in journal.pendingStageRetirements(
+        batchSize: 7, shouldContinue: () => continuePass)) {
+      stopped.add(record.id);
+      continuePass = false;
+    }
+    expect(stopped, expected.take(1));
+    final actual = <String>[];
+    await for (final record in journal.pendingStageRetirements(batchSize: 7)) {
+      actual.add(record.id);
+      // Updating a visited row cannot shift the cursor or repeat its attempt.
+      final json = record.copyWith(stageRetired: true).toJson();
+      await db.update('transfer_records', {'record_json': jsonEncode(json)},
+          where: 'transfer_id = ?', whereArgs: [record.id]);
+    }
+    expect(actual, expected);
+    expect(await journal.pendingStageRetirements().toList(), isEmpty);
+    final queryPlan = await db.rawQuery(
+        'EXPLAIN QUERY PLAN SELECT record_json '
+        'FROM transfer_records WHERE lifecycle = ? AND transfer_id > ? '
+        'ORDER BY transfer_id LIMIT 7',
+        ['completed', 'pending-000']);
+    expect(queryPlan.map((r) => r['detail']).join(' '),
+        contains('idx_transfer_lifecycle'));
+  });
+
+  test('retirement page size cannot request unbounded history', () async {
+    await expectLater(journal.pendingStageRetirements(batchSize: 0).toList(),
+        throwsArgumentError);
+    await expectLater(journal.pendingStageRetirements(batchSize: 129).toList(),
+        throwsArgumentError);
+  });
+
   test('schema is additive and idempotent', () async {
     await db.execute('CREATE TABLE legacy_queue(id TEXT PRIMARY KEY)');
     await db.insert('legacy_queue', {'id': 'keep-me'});

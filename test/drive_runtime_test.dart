@@ -154,6 +154,16 @@ class _NativeStorage {
   bool published = false;
   bool sessionOpen = false;
   bool targetChanged = false;
+  bool copyOnly = false;
+  bool stagePresent = false;
+  final copiedBytes = <int>[];
+  int copyStamp = 0;
+  String? retirementFailure;
+  Future<void>? finishRetirement;
+  final retirementStarted = Completer<void>();
+  void Function()? onRetirementStarted;
+  Future<void>? finishClose;
+  final closeStarted = Completer<void>();
   int stamp = 0;
   final calls = <String>[];
   Map<String, Object> get identity => {
@@ -162,6 +172,13 @@ class _NativeStorage {
         'size': bytes.length,
         'modifiedSeconds': 100,
         'modifiedNanos': stamp
+      };
+  Map<String, Object> get copyIdentity => {
+        'device': '1',
+        'inode': '43',
+        'size': copiedBytes.length,
+        'modifiedSeconds': 100,
+        'modifiedNanos': copyStamp
       };
   Future<Object?> handle(MethodCall call) async {
     calls.add(call.method);
@@ -180,6 +197,7 @@ class _NativeStorage {
         };
       case 'ownedOpen':
         sessionOpen = true;
+        stagePresent = true;
         return {'session': 'session', 'identity': identity};
       case 'ownedWrite':
         if (!writeStarted.isCompleted) writeStarted.complete();
@@ -194,18 +212,82 @@ class _NativeStorage {
       case 'ownedCheckpoint':
         return identity;
       case 'ownedPublish':
+        if (copyOnly) throw PlatformException(code: 'unsupported');
         published = true;
         return identity;
+      case 'ownedCopyOpen':
+        expect(sessionOpen, isTrue);
+        expect(args['expectedIdentity'], identity);
+        expect(args['durableOffset'], copiedBytes.length);
+        if (args['destinationIdentity'] == null) {
+          expect(published, isFalse);
+        } else {
+          expect(args['destinationIdentity'], copyIdentity);
+        }
+        published = true;
+        return copyIdentity;
+      case 'ownedCopyChunk':
+        expect(sessionOpen, isTrue);
+        expect(args['offset'], copiedBytes.length);
+        final offset = args['offset'] as int;
+        copiedBytes
+            .addAll(bytes.sublist(offset, offset + (args['length'] as int)));
+        copyStamp++;
+        return copiedBytes.length;
+      case 'ownedCopyCheckpoint':
+        return copyIdentity;
+      case 'ownedCopyRead':
+        return Uint8List.fromList(copiedBytes.sublist(args['offset'] as int,
+            (args['offset'] as int) + (args['length'] as int)));
+      case 'ownedCopyFinish':
+        expect(args['expectedIdentity'], copyIdentity);
+        expect(copiedBytes, bytes);
+        return copyIdentity;
       case 'ownedInspect':
+        if (copyOnly) {
+          if (args['published'] != true) return stagePresent ? identity : null;
+          return published
+              ? {...copyIdentity, if (targetChanged) 'inode': '99'}
+              : null;
+        }
         return published
             ? {...identity, if (targetChanged) 'inode': '99'}
             : null;
+      case 'ownedRetireStage':
+        if (!retirementStarted.isCompleted) retirementStarted.complete();
+        onRetirementStarted?.call();
+        await finishRetirement;
+        if (retirementFailure != null) {
+          throw PlatformException(code: retirementFailure!);
+        }
+        expect(sessionOpen, isFalse);
+        expect(args['installedIdentity'], copyIdentity);
+        if (stagePresent) expect(args['expectedIdentity'], identity);
+        stagePresent = false;
+        return null;
       case 'ownedClose':
+        if (!closeStarted.isCompleted) closeStarted.complete();
+        await finishClose;
         sessionOpen = false;
         return null;
       default:
         throw StateError('Unexpected native method ${call.method}');
     }
+  }
+}
+
+class _RetirementAckFailure extends TransferJournal {
+  int acknowledgements = 0;
+  _RetirementAckFailure(super.database);
+  @override
+  Future<TransferRecord> stageRetirementResult(TransferRecord record,
+      {String? issue}) async {
+    acknowledgements++;
+    if (acknowledgements == 1) {
+      throw StateError(
+          'Synthetic postcommit retirement acknowledgement failure');
+    }
+    return super.stageRetirementResult(record, issue: issue);
   }
 }
 
@@ -223,6 +305,20 @@ class _LoadingJournal extends TransferJournal {
   }
 }
 
+class _RecoveryJournal extends TransferJournal {
+  int recoveryPasses = 0;
+  Object? enumerationError;
+  _RecoveryJournal(super.database);
+  @override
+  Stream<TransferRecord> pendingStageRetirements(
+      {int batchSize = 128, bool Function()? shouldContinue}) async* {
+    recoveryPasses++;
+    if (enumerationError != null) throw enumerationError!;
+    yield* super.pendingStageRetirements(
+        batchSize: batchSize, shouldContinue: shouldContinue);
+  }
+}
+
 class _TransferFixture {
   final Database db;
   final _Driver driver = _Driver();
@@ -236,14 +332,19 @@ class _TransferFixture {
   static Future<_TransferFixture> create(
       {bool loading = false,
       bool drainRefresh = false,
+      bool retirementAckFailure = false,
+      TransferJournal Function(Future<Database>)? createJournal,
       bool reserve = true}) async {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     final fixture = _TransferFixture._(db);
     await TransferJournalSchema.install(db);
     await DriveCatalogueSchema.install(db);
-    fixture.journal = loading
-        ? _LoadingJournal(Future.value(db))
-        : TransferJournal(Future.value(db));
+    fixture.journal = createJournal?.call(Future.value(db)) ??
+        (loading
+            ? _LoadingJournal(Future.value(db))
+            : retirementAckFailure
+                ? _RetirementAckFailure(Future.value(db))
+                : TransferJournal(Future.value(db)));
     fixture.catalogue = drainRefresh
         ? _Catalogue(database: Future.value(db))
         : DriveCatalogue(Future.value(db));
@@ -345,6 +446,19 @@ Future<DownloadItem> _queueTerminal(DownloadQueueManager queue) {
   queue.addListener(changed);
   changed();
   return result.future.whenComplete(() => queue.removeListener(changed));
+}
+
+Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
+    _TransferFixture fixture) async {
+  fixture.native.copyOnly = true;
+  fixture.native.retirementFailure = 'access_denied';
+  final runtime = fixture.runtime();
+  final operation = await runtime.startTransfer(
+      config: _transferConfig, transferId: 'transfer');
+  final record = await operation.result;
+  expect(record.lifecycle, TransferLifecycle.completed);
+  expect(record.stageRetired, isFalse);
+  return (runtime: runtime, record: record);
 }
 
 void main() {
@@ -530,6 +644,233 @@ void main() {
     queue.dispose();
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
+  });
+
+  test(
+      'normal queue preserves completion when private retirement acknowledgement fails',
+      () async {
+    final fixture = await _TransferFixture.create(
+        reserve: false, retirementAckFailure: true);
+    fixture.native.copyOnly = true;
+    final runtime = fixture.runtime();
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: runtime);
+    final hooks = <DownloadItem>[];
+    queue.onItemCompleted = hooks.add;
+    try {
+      final terminal = _queueTerminal(queue);
+      queue.addToQueue(_game(), _system, '/roms');
+      final item = await terminal;
+      await queue.close();
+      final journal = fixture.journal as _RetirementAckFailure;
+      expect(journal.acknowledgements, greaterThanOrEqualTo(1));
+      expect(item.status, DownloadStatus.completed, reason: item.error);
+      expect(queue.state.queue.single.status, DownloadStatus.completed);
+      expect(hooks, hasLength(1));
+      expect(hooks.single.status, DownloadStatus.completed);
+      final pending = (await journal.transfer(item.transferId!))!;
+      expect(pending.lifecycle, TransferLifecycle.completed);
+      expect(pending.stageRetired, isFalse);
+      expect(await fixture.db.query('installed_artifacts'), hasLength(1));
+      expect(fixture.native.stagePresent, isFalse);
+      expect(fixture.native.sessionOpen, isFalse);
+      expect(fixture.native.copiedBytes, [1, 2, 3, 4, 5]);
+
+      final mediaRequests = fixture.media.requests.length;
+      final metadataRequests = fixture.metadata.requests.length;
+      final acknowledgements = journal.acknowledgements;
+      final replayed = await runtime.finishRetainedStage(pending);
+      expect(replayed.lifecycle, TransferLifecycle.completed);
+      expect(replayed.stageRetired, isTrue);
+      expect(replayed.stageRetirementIssue, isNull);
+      expect((await journal.transfer(pending.id))!.stageRetired, isTrue);
+      expect(journal.acknowledgements, acknowledgements + 1);
+      expect(fixture.native.calls.where((call) => call == 'ownedRetireStage'),
+          hasLength(2));
+      expect(fixture.media.requests, hasLength(mediaRequests));
+      expect(fixture.metadata.requests, hasLength(metadataRequests));
+      expect(hooks, hasLength(1));
+      expect(fixture.native.copiedBytes, [1, 2, 3, 4, 5]);
+    } finally {
+      await queue.close();
+      queue.dispose();
+      fixture.driver.finishSignOut.complete();
+      await runtime.disconnect();
+    }
+  });
+
+  test(
+      'empty restored queue recovers journal stages once without account access',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    final seeded = await _pendingStage(fixture);
+    final journal = fixture.journal as _RecoveryJournal;
+    fixture.native.retirementFailure = null;
+    final recoveryRuntime = fixture.runtime();
+    final storage = _QueueStorage();
+    final queue = DownloadQueueManager(storage, NativeSmbService(),
+        driveRuntime: recoveryRuntime);
+    final hooks = <DownloadItem>[];
+    queue.onItemCompleted = hooks.add;
+    try {
+      expect(storage.savedQueue, isNull);
+      expect(journal.recoveryPasses, 0,
+          reason: 'Construction must not start recovery');
+      final mediaRequests = fixture.media.requests.length;
+      final metadataRequests = fixture.metadata.requests.length;
+      final grants = fixture.driver.grants;
+      queue.restoreQueue([_system]);
+      final recovery = queue.recoverPendingStageRetirements();
+      final report = await recovery;
+      expect(report.examined, 1);
+      expect(report.retired, 1);
+      expect(report.pending, 0);
+      expect(report.issues, isEmpty);
+      expect(queue.state.queue, isEmpty);
+      expect(hooks, isEmpty);
+      expect((await journal.transfer(seeded.record.id))!.stageRetired, isTrue);
+      expect(fixture.native.stagePresent, isFalse);
+      queue.restoreQueue([_system]);
+      expect(
+          identical(queue.recoverPendingStageRetirements(), recovery), isTrue);
+      expect(journal.recoveryPasses, 1);
+      expect(fixture.media.requests, hasLength(mediaRequests));
+      expect(fixture.metadata.requests, hasLength(metadataRequests));
+      expect(fixture.driver.grants, grants);
+    } finally {
+      await queue.close();
+      queue.dispose();
+      await recoveryRuntime.disconnect();
+      fixture.driver.finishSignOut.complete();
+      await seeded.runtime.disconnect();
+    }
+  });
+
+  test('queue close joins in-progress retirement and stops the startup pass',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    final seeded = await _pendingStage(fixture);
+    fixture.native.retirementFailure = null;
+    final entered = Completer<void>();
+    final release = Completer<void>();
+    fixture.native.onRetirementStarted = entered.complete;
+    fixture.native.finishRetirement = release.future;
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: seeded.runtime);
+    try {
+      queue.restoreQueue([_system]);
+      await entered.future;
+      var closed = false;
+      final closing = queue.close().then((_) => closed = true);
+      final pending = (await fixture.journal.transfer(seeded.record.id))!;
+      expect(pending.stageRetired, isFalse);
+      expect(closed, isFalse);
+      release.complete();
+      await closing;
+      final report = await queue.recoverPendingStageRetirements();
+      expect(report.retired, 1);
+      expect(report.stopped, isTrue);
+      expect(fixture.native.stagePresent, isFalse);
+    } finally {
+      if (!release.isCompleted) release.complete();
+      await queue.close();
+      queue.dispose();
+      fixture.driver.finishSignOut.complete();
+      await seeded.runtime.disconnect();
+    }
+  });
+
+  test('startup retirement failure stays pending without a busy retry',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    final seeded = await _pendingStage(fixture);
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: seeded.runtime);
+    try {
+      final before = fixture.native.calls
+          .where((call) => call == 'ownedRetireStage')
+          .length;
+      queue.restoreQueue([_system]);
+      final report = await queue.recoverPendingStageRetirements();
+      expect(report.retired, 0);
+      expect(report.pending, 1);
+      expect(report.issues, {'access_denied': 1});
+      expect(fixture.native.calls.where((call) => call == 'ownedRetireStage'),
+          hasLength(before + 1));
+      expect(queue.state.queue, isEmpty);
+      expect((await fixture.journal.transfer(seeded.record.id))!.lifecycle,
+          TransferLifecycle.completed);
+      expect((await fixture.journal.transfer(seeded.record.id))!.stageRetired,
+          isFalse);
+      await queue.recoverPendingStageRetirements();
+      expect((fixture.journal as _RecoveryJournal).recoveryPasses, 1);
+    } finally {
+      await queue.close();
+      queue.dispose();
+      fixture.driver.finishSignOut.complete();
+      await seeded.runtime.disconnect();
+    }
+  });
+
+  test('recovery query failure exposes only bounded machine-code diagnostics',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    (fixture.journal as _RecoveryJournal).enumerationError =
+        StateError('synthetic-token /private/library-name');
+    final runtime = fixture.runtime();
+    final report = await runtime.recoverPendingStageRetirements();
+    expect(report.examined, 0);
+    expect(report.issues, {'journal_unavailable': 1});
+    expect(jsonEncode(report.issues), isNot(contains('synthetic-token')));
+    expect(jsonEncode(report.issues), isNot(contains('library-name')));
+    expect(fixture.native.calls, isEmpty);
+    await runtime.disconnect();
+  });
+
+  test('recovery stopped before entry performs no journal or native work',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    final runtime = fixture.runtime();
+    final report = await runtime.recoverPendingStageRetirements(
+        shouldContinue: () => false);
+    expect(report.stopped, isTrue);
+    expect(report.examined, 0);
+    expect((fixture.journal as _RecoveryJournal).recoveryPasses, 0);
+    expect(fixture.native.calls, isEmpty);
+    await runtime.disconnect();
+  });
+
+  test(
+      'startup recovery leaves an active completed transfer to its inline cleanup',
+      () async {
+    final fixture = await _TransferFixture.create();
+    fixture.native.copyOnly = true;
+    final release = Completer<void>();
+    fixture.native.finishClose = release.future;
+    final runtime = fixture.runtime();
+    final operation = await runtime.startTransfer(
+        config: _transferConfig, transferId: 'transfer');
+    try {
+      await fixture.native.closeStarted.future;
+      expect((await fixture.journal.transfer('transfer'))!.lifecycle,
+          TransferLifecycle.completed);
+      final report = await runtime.recoverPendingStageRetirements();
+      expect(report.skippedActive, 1);
+      expect(report.retired, 0);
+      expect(fixture.native.calls, isNot(contains('ownedRetireStage')));
+      release.complete();
+      expect((await operation.result).stageRetired, isTrue);
+    } finally {
+      if (!release.isCompleted) release.complete();
+      await operation.result;
+      fixture.driver.finishSignOut.complete();
+      await runtime.disconnect();
+    }
   });
 
   test('synchronous pause listener joins an attempt before preparation begins',

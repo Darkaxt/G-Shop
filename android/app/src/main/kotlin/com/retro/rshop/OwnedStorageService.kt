@@ -70,6 +70,7 @@ internal class OwnedStorageService(private val context: Context) {
         "ownedPrepare" -> prepare(string(call, "destinationRoot"))
         "ownedOpen" -> open(call)
         "ownedInspect" -> inspect(call)
+        "ownedRetireStage" -> { retireStage(call); null }
         "ownedCopyOpen" -> openCopy(call)
         "ownedCopyChunk" -> copyChunk(call)
         "ownedCopyValidatePrefix" -> {
@@ -271,6 +272,54 @@ internal class OwnedStorageService(private val context: Context) {
         } finally { closeFd(dirFd); closeFd(rootFd) }
     }
 
+    /** Post-commit cleanup only. The public file is opened read-only and never
+     * passed to an unlink primitive. Only the validated app-private stage path
+     * can reach retirePrivateFile, after all matching sessions have drained. */
+    private fun retireStage(call: MethodCall) {
+        val target = target(call)
+        val (stageRoot, stageName) = stage(call)
+        val expected = expectedIdentity(call)
+        val installed = call.argument<Map<String, Any>>("installedIdentity")
+            ?.let(::decodeIdentity) ?: throw Failure("invalid_arguments")
+        // A copied stage and its installed destination must be distinct objects.
+        if (sameObject(expected, installed)) throw Failure("changed")
+        fun requireInactive() {
+            if (sessions.values.any { session ->
+                    session.target == target ||
+                    (session.stageRoot == stageRoot && session.stageName == stageName) ||
+                    sameObject(session.anchor, expected) ||
+                    sameObject(session.anchor, installed) ||
+                    session.copy?.let { sameObject(it.observed, installed) } == true
+                }) throw Failure("collision")
+        }
+        requireInactive()
+        val fds = mutableListOf<Int>()
+        fun own(fd: Int): Int { fds.add(fd); return fd }
+        try {
+            val rootFd = own(OwnedStorageNative.openRoot(target.root))
+            val parentFd = own(OwnedStorageNative.openDirectory(rootFd, target.parent, false))
+            val stageFd = own(OwnedStorageNative.openRoot(stageRoot))
+            val publicFd = own(OwnedStorageNative.openFile(parentFd, target.name, false, false))
+            if (!OwnedStorageNative.identity(publicFd).contentEquals(installed)) throw Failure("changed")
+
+            // Reopen the named roots/parents and compare against the pinned
+            // descriptors, so redirection cannot authorize cleanup elsewhere.
+            val currentRoot = own(OwnedStorageNative.openRoot(target.root))
+            val currentParent = own(OwnedStorageNative.openDirectory(currentRoot, target.parent, false))
+            val currentStage = own(OwnedStorageNative.openRoot(stageRoot))
+            if (!sameObject(OwnedStorageNative.identity(currentRoot), OwnedStorageNative.identity(rootFd)) ||
+                !sameObject(OwnedStorageNative.identity(currentParent), OwnedStorageNative.identity(parentFd)) ||
+                !sameObject(OwnedStorageNative.identity(currentStage), OwnedStorageNative.identity(stageFd)) ||
+                !OwnedStorageNative.entryIdentity(currentParent, target.name).contentEquals(installed) ||
+                !OwnedStorageNative.identity(publicFd).contentEquals(installed)) throw Failure("changed")
+            requireInactive()
+            // The primitive verifies the exact single-link regular stage and
+            // syncs stageFd on success or absent-entry replay. No guessed path
+            // or recursive directory cleanup is available at this boundary.
+            OwnedStorageNative.retirePrivateFile(stageFd, stageName, expected)
+        } finally { fds.asReversed().forEach(::closeFd) }
+    }
+
     private fun publish(call: MethodCall): Map<String, Any> {
         val session = session(call)
         if (session.copy != null) throw Failure("invalid_arguments")
@@ -421,6 +470,7 @@ internal class OwnedStorageService(private val context: Context) {
         is IOException -> when (errno(error)) {
             2 -> "not_found"; 13, 1 -> "access_denied"; 17 -> "collision"; 18 -> "cross_volume"
             20, 22, 40 -> "invalid_arguments"; 28 -> "out_of_space"; 38, 95 -> "unsupported"
+            116 -> "changed"
             else -> "io_error"
         }
         else -> "invalid_arguments"

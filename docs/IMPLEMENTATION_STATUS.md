@@ -13,8 +13,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
   live recovery and fresh metadata/rating verification. No deletion before those
   gates; saves/BIOS/settings and uncertain/unrecoverable files are preserved.
-- Live account setup, full scraping, ROM transfer, SD removal and releases:
-  not performed. An isolated synthetic-only debug APK has now passed the native
+- Live account setup: the dedicated Google project has been created; OAuth
+  policy acceptance and clients remain pending (see DEVELOPMENT_SETUP.md).
+  Full scraping, live Drive ROM transfer, SD removal and releases have not been
+  performed. An isolated synthetic-only debug APK has passed the native
   foundation checks on the Thor and was removed afterwards; this is not a
   deployment of the usable Drive/metadata features.
 - Old scraped metadata: explicitly rejected as the new trusted baseline.
@@ -50,8 +52,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | --- | --- | --- | --- |
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
-| S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
-| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal queue; shared manifest-based installed index and consumer path resolution; native owned-storage primitives with earlier actual Thor tests | Remaining crash/reset/retirement windows, bundles, replacement/owned removal, exact achievement persistence, full consumer/live roundtrip and large-file integration proof remain DRIVE-04/05/06 gates |
+| S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; supported standalone files enter the verified normal queue | Live selected-folder inventory and consent still required; S5 completes localized/controller UX |
+| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal queue; shared manifest-based installed index and consumer path resolution; post-commit private-stage retirement with native Thor proof | Remaining crash/reset windows, bundles, replacement/owned removal, exact achievement persistence, emulator handoff, full consumer/live roundtrip and large-file integration proof remain DRIVE-04/05/06 gates |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -616,6 +618,55 @@ still wait for credible fresh rankings and verified cloud recovery.
   successfully: 480 generated entries / 105,393,303 bytes removed, no errors or
   residuals. The generated build directory and task-local test/log directory
   are absent; reproducible test source and the verification summary remain.
+
+### S3 private-stage retirement checkpoint (2026-09-09)
+
+- Completed copied installations now retain a separate durable private-stage
+  retirement intent. Cleanup runs only after installation commit and confirmed
+  session closure, checks exact stage and installed-file identity, unlinks only
+  the app-private entry, and synchronizes its parent. An absent stage is replayed
+  safely. A changed stage, active session or changed installed object is preserved.
+- Cleanup acknowledgement cannot demote a committed installation to failed or
+  cause a new download. Journal/close failures remain pending maintenance. Startup
+  recovery is one offline keyset-paged pass independent of saved queue entries;
+  it skips active transfers and joins native work when shutdown is requested.
+  Page iteration observes shutdown even when all rows are filtered out.
+- Fresh integrated host suite: `flutter test --no-pub --concurrency=1
+  --exclude-tags live --reporter expanded` passed **1,977 tests**, exit 0,
+  framework duration 2m58s. After the brace-only test lint correction, the runtime
+  file rerun passed **26 tests**, exit 0. Final analyzer reports only the same
+  four baseline findings (exit 1); no new finding remains. No test/build/analyzer
+  workloads overlapped.
+- Fresh Linux native build (`g++ -std=c++17 -Wall -Wextra -Werror`) and actual
+  filesystem contract run passed all eight reported phases, including private
+  stage retirement. This does not substitute for Android filesystem evidence.
+- The synthetic Android integration APK independently verified earlier in this
+  checkpoint had SHA-256
+  `D8EF421FE0B14A1315FAF2FDB6121B562BE0FCC354D8C6D3BAC88F16AE4DA574`,
+  package `com.darkaxt.rshop.debug`, version 1.7.0/12, and the debug signer in
+  DEVELOPMENT_SETUP.md. On the Thor, seven native test cases plus setup/teardown
+  passed (+9), including actual SD copy publication and private-stage retirement.
+  The test package was removed and its synthetic Download fixture cleaned.
+  Later Dart recovery changes are covered by host tests, not by that earlier APK.
+- A fresh source audit corrected stale gate descriptions: normal Library/detail
+  already enqueue supported standalone Drive files into the verified queue.
+  Exact-artifact absence and unsupported dependency-bearing layouts still block
+  correctly. No in-app emulator-open action currently exists; file sharing is not
+  launch proof. Managed removal and the actual download/offline/remove/re-download
+  round trip remain unfinished. No stage or whole-feature acceptance is claimed.
+- The account owner authorized the dedicated Google project; OAuth policy
+  acceptance, client creation and live consent remain pending. No ScreenScraper
+  access, fresh metadata pass, ROM migration or release is claimed here.
+- Requirement mapping remains 24/24 without missing or duplicate owner rows;
+  staged Git whitespace checks passed. Reviewed cleanup removed 7,469 generated
+  entries and reported 1,814,135,974 bytes reclaimed across the initial and
+  replacement-file tickets. The initial ticket was revoked after its safe
+  replacement/lock skips, and the four replaced Flutter test outputs were
+  independently reviewed and removed. The verified task-owned Gradle daemon
+  (last command completed in this repository, then idle) was stopped, releasing
+  its approximately 3.0 GiB private memory and its own performance-data file.
+  Six pre-existing protected CMake command records remain; they were not forced
+  through cleanup. SDK/dependency caches and unrelated processes were retained.
 
 ### Preparation verification (2026-09-08)
 

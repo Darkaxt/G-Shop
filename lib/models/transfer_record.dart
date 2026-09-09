@@ -70,6 +70,11 @@ class TransferRecord {
   final NativeFileIdentity? stageIdentity;
   final TransferPublication? publication;
 
+  /// Post-commit private copy retirement, independent of installed-file truth.
+  /// Completed copy + exact stage identity is the durable retirement intent.
+  final bool stageRetired;
+  final String? stageRetirementIssue;
+
   /// A bounded machine code, never raw exception text, URLs, or credentials.
   final String? errorCode;
 
@@ -88,6 +93,8 @@ class TransferRecord {
     this.revision = 0,
     this.stageIdentity,
     this.publication,
+    this.stageRetired = false,
+    String? stageRetirementIssue,
     String? errorCode,
     Map<String, String> verifiedChecksums = const {},
   })  : id = _identifier(id, 'id'),
@@ -95,6 +102,7 @@ class TransferRecord {
         relativePath = _safeRelativePath(relativePath),
         stagePath = _identifier(stagePath, 'stagePath'),
         errorCode = _errorCode(errorCode),
+        stageRetirementIssue = _errorCode(stageRetirementIssue),
         verifiedChecksums = _checksums(verifiedChecksums) {
     if (durableOffset < 0) {
       throw ArgumentError.value(
@@ -140,6 +148,8 @@ class TransferRecord {
                 (json['publication'] as Map).cast<String, dynamic>(),
               ),
         errorCode: json['errorCode'] as String?,
+        stageRetired: json['stageRetired'] as bool? ?? false,
+        stageRetirementIssue: json['stageRetirementIssue'] as String?,
         verifiedChecksums: _stringMap(json['verifiedChecksums']),
       );
 
@@ -149,6 +159,9 @@ class TransferRecord {
     int? revision,
     NativeFileIdentity? stageIdentity,
     TransferPublication? publication,
+    bool? stageRetired,
+    String? stageRetirementIssue,
+    bool clearStageRetirementIssue = false,
     String? errorCode,
     bool clearErrorCode = false,
     Map<String, String>? verifiedChecksums,
@@ -164,6 +177,10 @@ class TransferRecord {
         revision: revision ?? this.revision,
         stageIdentity: stageIdentity ?? this.stageIdentity,
         publication: publication ?? this.publication,
+        stageRetired: stageRetired ?? this.stageRetired,
+        stageRetirementIssue: clearStageRetirementIssue
+            ? null
+            : stageRetirementIssue ?? this.stageRetirementIssue,
         errorCode: clearErrorCode ? null : (errorCode ?? this.errorCode),
         verifiedChecksums: verifiedChecksums ?? this.verifiedChecksums,
       );
@@ -179,6 +196,9 @@ class TransferRecord {
         'revision': revision,
         if (stageIdentity != null) 'stageIdentity': stageIdentity!.toJson(),
         if (publication != null) 'publication': publication!.toJson(),
+        if (stageRetired) 'stageRetired': true,
+        if (stageRetirementIssue != null)
+          'stageRetirementIssue': stageRetirementIssue,
         if (errorCode != null) 'errorCode': errorCode,
         'verifiedChecksums': verifiedChecksums,
       };
