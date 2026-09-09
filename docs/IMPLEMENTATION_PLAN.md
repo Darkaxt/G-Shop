@@ -79,6 +79,52 @@ removal tests including replaced-owned-file and redirected-path conflicts.
 Live transfer/verify/offline emulator/remove/re-download proof is
 required, using a deliberately chosen test artifact and destination.
 
+### S3 implementation sequence and reviewed storage boundary
+
+The source audit at `b8052d4` established the following implementation seams.
+These refine S3; they do not replace its acceptance criteria or authorize a
+general rewrite of legacy providers.
+
+1. Add exact source/ancestor revalidation, binary HTTP range validation, bounded
+   streaming hashes and an additive transactional transfer/installation journal.
+   The transport must propagate writer backpressure and cancellation to the
+   original input stream; `ResponseType.stream` alone does not establish that.
+2. Add an Android owned-storage adapter behind the existing storage channel.
+   Prefer persistent app-owned external-files staging on the destination volume,
+   excluded from ROM scans. Flush bytes before persisting their durable offset.
+   Use safe relative paths and descriptor-pinned, no-follow traversal. The public
+   Java `Os` API lacks the necessary `*at` primitives; a small JNI adapter is the
+   reviewed path to `openat`, `fstatat`, `renameat2` and `unlinkat`. Feature-detect
+   operations and preserve older Android behavior; do not link an API-30 symbol
+   unconditionally into the existing API-24 path.
+3. Journal publication intent before no-replace publication, then sync and verify
+   the resulting object before the installation/completed transaction. Existing
+   targets remain conflicts unless an explicit ownership-checked replacement
+   protocol applies. Never call the legacy delete-before-move helper for Drive.
+   Test the actual app-UID Android/data-to-ROM move on the selected SD filesystem;
+   equal device IDs alone do not establish supported atomicity or durability.
+4. For cross-volume copies, retain the verified source, journal an exclusive
+   destination-volume staging copy, hash/sync it, publish there and only then
+   retire the recorded source. Include both copies and any old valid installation
+   in peak-space checks. Recover every interrupted journal phase by identity and
+   digest, not by filename existence or age/suffix cleanup.
+5. Integrate a typed Drive handle before legacy cache staging/extraction. Extend
+   visible lifecycle states and join cancellation/resource shutdown. Scope queue
+   callbacks and disposal to an attempt identity, never only a reusable game ID.
+   Stream closure is not completion; only the installed-state commit can trigger
+   the completed callback. Include active transfers in source-disconnect draining.
+   Implement/persist required queue reordering without changing source concurrency.
+6. Route exact-artifact installation status, launch/share/achievement paths and
+   removal through the manifest. For removal, journal a no-replace move into owned
+   quarantine and validate the moved object before unlinking individual verified
+   ROM members. Preserve changed objects and attempt no-clobber restoration on a
+   conflict; no recursive game-folder removal. Do not claim an advisory lock or a
+   pre-move stat prevents every possible already-open external writer.
+7. Complete bundle/playlist, replacement, cancellation, process-death and native
+   filesystem proof, then the authorized emulator/offline/remove/re-download
+   round trip. Until the engine and native publisher are integrated and verified,
+   the existing explicit Drive payload/removal gate remains in place.
+
 ## S4 — Fresh metadata pipeline and score semantics
 
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.

@@ -13,4 +13,6 @@ void main() {
       () => verifyLibraryMigration());
   test('real v14 upgrade preserves existing identity and legacy cache rows',
       () => verifyLibraryMigration(previousVersion: 14));
+  test('real v15 upgrade adds journal without losing exact cached artifacts',
+      () => verifyLibraryMigration(previousVersion: 15));
 }

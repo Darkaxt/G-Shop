@@ -12,7 +12,7 @@ import 'package:retro_eshop/services/library_store.dart';
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion != 13 && previousVersion != 14) {
+  if (previousVersion < 13 || previousVersion > 15) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -34,9 +34,27 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
       const GameMetadataInfo(
           filename: 'Old.chd', systemSlug: 'psx', rating: 99, lastUpdated: 1)
     ]);
-    if (previousVersion == 14) {
+    if (previousVersion >= 14) {
       await LibraryStore(Future.value(opened)).putGame(GameIdentity(
-          id: 'existing-v14', platformId: 'psx', title: 'Pre-existing identity'));
+          id: 'existing-v14',
+          platformId: 'psx',
+          title: 'Pre-existing identity'));
+    }
+    if (previousVersion == 15) {
+      await service.saveGames('psx', [
+        GameItem(
+            filename: 'Same.chd',
+            displayName: 'Exact prior cache',
+            url: 'drive-artifact:fixture',
+            remoteArtifact: RemoteArtifact(
+                id: RemoteArtifactId(
+                    providerId: 'drive',
+                    sourceId: 'source',
+                    accountId: 'account',
+                    providerFileId: 'file'),
+                displayPath: 'Same.chd',
+                displayName: 'Same.chd'))
+      ]);
     }
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
@@ -47,40 +65,63 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
         'library_editions',
         'library_game_identities',
       ],
-      'drive_catalogue_pages',
-      'drive_catalogue_work',
-      'drive_catalogue_entries',
-      'drive_catalogue_state',
+      if (previousVersion < 15) ...[
+        'drive_catalogue_pages',
+        'drive_catalogue_work',
+        'drive_catalogue_entries',
+        'drive_catalogue_state',
+      ],
+      'transfer_records',
+      'installed_artifacts',
+      'transfer_target_owners',
     ]) {
-      await opened.execute('DROP TABLE $table');
+      await opened.execute('DROP TABLE IF EXISTS $table');
     }
     // Remove the v15 cache extension too, retaining the original row IDs.
-    await opened.execute('DROP INDEX idx_games_system_filename');
-    await opened.execute('DROP INDEX idx_games_system_artifact');
-    await opened.execute('ALTER TABLE games RENAME TO games_v15_fixture');
-    await opened.execute('''CREATE TABLE games (
+    if (previousVersion < 15) {
+      await opened.execute('DROP INDEX idx_games_system_filename');
+      await opened.execute('DROP INDEX idx_games_system_artifact');
+      await opened.execute('ALTER TABLE games RENAME TO games_v15_fixture');
+      await opened.execute('''CREATE TABLE games (
       id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
       filename TEXT NOT NULL, displayName TEXT NOT NULL, url TEXT NOT NULL,
       region TEXT, cover_url TEXT, provider_config TEXT, thumb_hash TEXT,
       has_thumbnail INTEGER NOT NULL DEFAULT 0,
       is_folder INTEGER NOT NULL DEFAULT 0, alternative_sources TEXT)''');
-    await opened.execute('INSERT INTO games SELECT id, systemSlug, filename, displayName, url, region, cover_url, provider_config, thumb_hash, has_thumbnail, is_folder, alternative_sources FROM games_v15_fixture');
-    await opened.execute('DROP TABLE games_v15_fixture');
-    await opened.execute('CREATE UNIQUE INDEX idx_games_system_filename ON games(systemSlug, filename)');
+      await opened.execute(
+          'INSERT INTO games SELECT id, systemSlug, filename, displayName, url, region, cover_url, provider_config, thumb_hash, has_thumbnail, is_folder, alternative_sources FROM games_v15_fixture');
+      await opened.execute('DROP TABLE games_v15_fixture');
+      await opened.execute(
+          'CREATE UNIQUE INDEX idx_games_system_filename ON games(systemSlug, filename)');
+    }
     await opened.setVersion(previousVersion);
     await opened.close();
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 15);
-    expect((await opened.query('games')).single['url'],
+    expect(await opened.getVersion(), 16);
+    expect(
+        (await opened
+                .query('games', where: 'filename=?', whereArgs: ['Old.chd']))
+            .single['url'],
         'https://example.invalid/Old.chd');
     expect((await opened.query('game_metadata')).single['rating'], 99);
     expect(await opened.query('library_metadata'), isEmpty);
     expect(await opened.query('drive_catalogue_state'), isEmpty);
     final store = LibraryStore(Future.value(opened));
-    if (previousVersion == 14) {
-      expect((await store.game('existing-v14'))!.title, 'Pre-existing identity');
+    if (previousVersion >= 14) {
+      expect(
+          (await store.game('existing-v14'))!.title, 'Pre-existing identity');
+    }
+    expect(await opened.query('transfer_records'), isEmpty);
+    expect(await opened.query('installed_artifacts'), isEmpty);
+    expect(await opened.query('transfer_target_owners'), isEmpty);
+    if (previousVersion == 15) {
+      final priorExact =
+          (await opened.query('games', where: 'artifact_key IS NOT NULL'))
+              .single;
+      expect(priorExact['displayName'], 'Exact prior cache');
+      expect(priorExact['artifact_key'], '["drive","source","account","file"]');
     }
     await store.putGame(
         GameIdentity(id: 'smoke-game', platformId: 'psx', title: 'Synthetic'));
@@ -91,8 +132,10 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 15);
-    expect(await opened.query('games'), hasLength(1));
+    expect(await opened.getVersion(), 16);
+    expect(
+        await opened.query('games'), hasLength(previousVersion == 15 ? 2 : 1));
+    expect(await opened.query('transfer_records'), isEmpty);
     expect(await opened.query('library_metadata'), isEmpty);
     final reopened = LibraryStore(Future.value(opened));
     expect((await reopened.game('smoke-game'))!.title, 'Synthetic');

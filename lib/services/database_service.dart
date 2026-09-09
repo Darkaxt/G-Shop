@@ -13,11 +13,12 @@ import '../models/ra_models.dart';
 import '../utils/ra_name_matcher.dart';
 import 'library_store.dart';
 import 'drive/drive_catalogue.dart';
+import 'transfer_journal.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 15;
+  static const int _dbVersion = 16;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -48,6 +49,7 @@ class DatabaseService {
   Future<void> _onCreate(Database db, int version) async {
     await LibrarySchema.install(db);
     await DriveCatalogueSchema.install(db);
+    await TransferJournalSchema.install(db);
     await db.execute('''
       CREATE TABLE $_tableName (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -306,6 +308,9 @@ class DatabaseService {
     if (oldVersion < 15) {
       await migrateGameArtifactIdentity(db);
       await DriveCatalogueSchema.install(db);
+    }
+    if (oldVersion < 16) {
+      await TransferJournalSchema.install(db);
     }
   }
 

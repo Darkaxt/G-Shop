@@ -319,6 +319,25 @@ class DriveCatalogue {
         as Map<String, dynamic>);
   }
 
+  /// Exact observed binary in a still-published snapshot, never a filename match.
+  Future<DriveFile> requireBinary({required String sourceId,
+      required String accountId, required String rootFolderId,
+      required String fileId, required int generation}) async {
+    final db = await _database;
+    final rows = await db.rawQuery('''SELECT e.record_json
+      FROM drive_catalogue_entries e
+      JOIN drive_catalogue_state s ON s.scope=e.scope AND s.active=e.generation
+      WHERE e.scope=? AND e.generation=? AND e.file_id=? AND e.is_folder=0''',
+      [scopeKey(sourceId, accountId, rootFolderId), generation, fileId]);
+    if (rows.isEmpty) throw const DriveCatalogueException('artifactUnavailable');
+    final file = DriveFile.fromJson(jsonDecode(rows.single['record_json'] as String)
+        as Map<String, dynamic>);
+    if (!file.isSupportedBinary) {
+      throw const DriveCatalogueException('unsupportedArtifact');
+    }
+    return file;
+  }
+
   /// Paged descendants of an observed folder ID, never a path-prefix match.
   Future<List<DriveCatalogueEntry>> entries(
       {required String sourceId,

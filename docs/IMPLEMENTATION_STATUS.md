@@ -6,7 +6,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 ## Scope state
 
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 in progress; no stage acceptance claimed.
+- Feature implementation: S1-S3 in progress; no stage acceptance claimed.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. No provider credentials or successful live access is assumed.
 - Existing SD-library migration was missing from the implementation scope.
@@ -51,7 +51,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
 | S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; integration checkpoint below | Live selected-folder inventory and consent still required; S3 verified transfer replaces the explicit payload gate; S5 completes localized/controller UX |
-| S3 | Not started | None | DRIVE-04, DRIVE-05, DRIVE-06 |
+| S3 | In progress | Binary range transport, source/ancestor and streaming checksum fixtures; v16 durable transfer/installation journal with transactional rollback tests | Native owned storage, full transfer/queue/installation integration, bundles and required live recovery proof remain DRIVE-04/05/06 gates |
 | S4 | Not started | None | META-01, META-03, META-04, META-05, META-06, META-07 |
 | S5 | Not started | None | UI-01, UI-02, UI-03 |
 | S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -272,6 +272,69 @@ fresh rating/metadata or exact-file gates before Top-25 SD migration.
 | DRIVE-02 | Rooted paginated transactional catalogue, explicit mappings and recovery fixtures | Real selected-folder inventory and target-device navigation proof |
 | DRIVE-03 | Normal source/factory/health integration and identity-safe persistent queue entries | S3 verified payload lane and mixed-source live queue lifecycle |
 | QA-01/02/03/04 | Bounded fixtures, main-owned verification lane, scoped review and explicit ledger | Full integrated feature, resource, privacy and device gates through S6/S7 |
+
+### S3 transport and journal checkpoint (2026-09-09)
+
+- The binary media boundary uses fixed-origin read-only GETs and acquires an
+  account-bound token per request. Exact 206 ranges, full-response restart,
+  length/encoding contradictions, truncated streams, rejected authorization and
+  cancellation are explicit outcomes. A 416 at the exact local length permits
+  local verification only; it never declares installation.
+- A regression exposed eager buffering in Dio 5.9.1's high-level response
+  wrapper: requesting `ResponseType.stream` alone did not propagate upstream
+  pause/cancel. Binary requests now use the native adapter's original stream.
+  Tests prove no eager subscription, slow-consumer pause propagation and source
+  cancellation. Native request-abort exceptions are sanitized as cancellation,
+  not malformed-response errors; both failure cases were observed before fixing.
+- Queued artifacts must still match the selected source/account/mapping, the
+  active catalogue and live file version/size/checksums. Validation reads only
+  previously observed ancestors through the selected root; it never follows a
+  changed parent outside the selected subtree. The engine must invoke this
+  boundary before and after transfer; engine integration remains unfinished.
+- Streaming verification requires a recognized valid provider checksum and also
+  computes local SHA-256. Missing, malformed or mismatched evidence cannot
+  authorize completion. Generated 32 MiB and 256 MiB fixtures use fresh 64 KiB
+  chunks on demand, with independently computed SHA-256 expectations. Recorded
+  final-suite verifier RSS samples were about 147/151 MiB; these include runtime overhead and
+  are not a native transfer peak measurement or proof of the 4 MiB application
+  transfer-buffer acceptance limit. Each accepted transport chunk is at most
+  1 MiB; the full engine/storage pipeline still needs resource measurement.
+- Additive SQLite v16 records immutable transfer intent, exact target ownership,
+  durable offsets and lifecycle revisions. Compare-and-swap rejects stale
+  updates; resetting a partial requires an explicit paused/failed operation.
+  Completion records the exact installation and lifecycle in one transaction.
+  Injected SQLite faults after the installation insert and after the transfer
+  update both roll back all writes and permit a correct retry. Reopen tests retain
+  source identity and durable offset. The journal performs no filesystem IO and
+  does not infer publication from a filename.
+- Reviewed the journal worker's changes locally, tightened recognized checksum
+  validation and replaced a hand-written fixture digest with a computed one.
+  Main-run journal tests: **19 passed**, exit 0. Media tests: **20 passed**,
+  exit 0. Host v13/v14/v15-to-v16 production migration/reopen cases: **3 passed**,
+  exit 0, preserving legacy and exact cache rows. The shared native fixture now
+  expects v16, but this revision has no new Android migration proof yet.
+- After formatting, the full offline command `flutter test --no-pub
+  --concurrency=1 --exclude-tags live --reporter expanded` passed **1,823 tests**,
+  exit 0 (2 min 16 s). Fresh `flutter analyze --no-pub` reported no new issues and
+  no errors; exit 1 remains for the same four pre-existing diagnostics recorded
+  above. Those remain required S6 work, not a green analysis claim. All tests and
+  analysis in this checkpoint were serialized by the main agent.
+- Transactional cleanup inspected all 469 registered generated entries and
+  removed them (104,483,259 reported bytes). Only the repository's test `build`
+  output and `D:\Temp\rshop-drive-s3` were eligible; the transaction reached
+  `applied` with no residual errors. Source, caches and device/cloud content were
+  not cleanup targets. Final specification mapping still has all 24 requirements
+  and exactly 24 delivery-owner rows, with no missing or duplicate entries.
+- The storage/queue review is captured in S3's execution sequence. The existing
+  filename-based mover/deleter and stream-closure completion path are not used
+  by these new components. They must be bypassed by the upcoming verified lane;
+  the existing Drive payload/removal gates deliberately remain in place until
+  native owned publication and queue/manifest integration are actually working.
+- ADB returned `device` again. No APK build/install, account setup, live provider
+  operation, ROM transfer, metadata scrape or SD removal occurred at this
+  checkpoint. Native publication, bundles, restart/cancel recovery, installed
+  status/removal and the live offline/re-download round trip remain required S3
+  work; S1/S2 live acceptance and S4-S7 have not been waived.
 
 ### Preparation verification (2026-09-08)
 
