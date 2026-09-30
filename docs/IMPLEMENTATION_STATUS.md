@@ -5,6 +5,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+- Work parked at the user's request on 2026-10-01 while the LoLRoms manager is
+  updated for the redesigned live catalogue. This does not close any acceptance
+  criterion or remove any remaining Drive, metadata, device or migration work.
 - Authorized now: implementation (2026-09-08, "go ahead then").
 - Feature implementation: S1-S4 in progress; no stage acceptance claimed.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
