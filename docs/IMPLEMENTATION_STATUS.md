@@ -10,8 +10,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 BLOCKED awaiting owner-controlled native consent
-  and legitimate metadata access; S2-S4 BLOCKED on the required S1 live
+- Feature implementation: S1 BLOCKED on Thor network access and legitimate
+  metadata access; S2-S4 BLOCKED on the required S1 live
   access gates. Their existing partial implementations are retained, not being
   worked on concurrently and not claimed complete. S5-S7 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
@@ -63,7 +63,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; actual debug APK inspected/installed, both OAuth clients registered, test user saved and readonly scope persisted; live package-visibility defect fixed and native account chooser opened | External B1: owner must select account and consent on Thor before auth lifecycle proof; B2: legitimate ScreenScraper access/lookup remains missing |
+| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; actual debug APK inspected/installed, both OAuth clients registered, test user saved and readonly scope persisted; live package-visibility defect fixed; authorized owner account selected and offline cancellation traced | External B1: Thor has no active network and no nearby saved Wi-Fi; trusted network connection is required before consent/auth lifecycle proof. B2: legitimate ScreenScraper access/lookup remains missing |
 | S2 | BLOCKED | Existing paginated catalogue, normal Sources/health/mapping UI and exact queue references retained | External B1: S1 Drive access missing prevents live selected-folder inventory; clients are registered, owner consent and auth proof remain. S5 owns final localized/controller UX |
 | S3 | BLOCKED | Existing verified standalone lane, journals, installed index and native retirement evidence retained | B1 prevents required live transfer roundtrip; blocked S2 catalogue acceptance is also a dependency. Ordinary unfinished work remains: crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained | External B2: legitimate ScreenScraper developer/user access missing prevents authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
@@ -72,12 +72,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 
 B1 blocks DRIVE-01 live authentication and dependent S2/S3 real-system evidence;
-account-owner consent and verified auth lifecycle resolve it; client registration
-is now complete. B2 blocks META-02's
+trusted Thor network access followed by account consent and verified auth
+lifecycle resolve it; client registration is complete and account selection is
+authorized. B2 blocks META-02's
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 developer access and user credentials resolve it. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at the owner-controlled sign-in step;
+reclassified as a deferral. S1 is parked at the external network-access boundary;
 no later stage is activated while waiting.
 
 ### S1 live setup checkpoint (2026-10-01)
@@ -92,8 +93,31 @@ no later stage is activated while waiting.
   Focused regression observed failing before the fix and passing afterwards;
   targeted analysis passed; rebuilt APK package/signer/compiled manifest inspected.
 - With the rebuilt APK, Connect opened the native account chooser on the real
-  Thor. Owner account selection/Google consent is pending. This is live entry
-  proof, not granted Drive access, completed auth lifecycle or S1 completion.
+  Thor. This is live entry proof, not granted Drive access, completed auth
+  lifecycle or S1 completion.
+
+### S1 account-selection diagnosis (2026-10-02)
+
+- User authorized selecting `darkaxt.remaxku@gmail.com`; the actual native
+  chooser was used. Selecting it reproduced the immediate cancelled result
+  before Drive consent. No account email was hardcoded into the application.
+- Native microG UI logs show AuthSignInActivity returning internal error 8
+  with a null account, followed by AssistedSignInActivity reporting cancelled
+  16. The installed microG source (v0.3.15.250932) confirms that this bridge
+  maps a null account to cancellation without preserving the internal error.
+  The app therefore received cancellation even though the user selected an
+  account, not Cancel.
+- Actual device checks established no active default network, Wi-Fi disabled,
+  hostname resolution failures and an IP probe returning Network is unreachable.
+  Wi-Fi was enabled for the authorized live test, but no saved network is in
+  the current scan results and the Thor remains disconnected. No arbitrary
+  public network was joined; DNS settings and Google services were not changed.
+- B1 is external: connect the Thor to a trusted network, then repeat native
+  account selection, consent and the required auth lifecycle verification.
+  S1 and dependent live S2/S3 criteria remain unsatisfied. No SDK downgrade,
+  speculative sign-in fallback or production behavior change was made.
+- Both displays were verified OFF after the diagnosis. No source saved, Drive
+  file changed, ROM transferred, or SD-library file removed.
 
 No feature requirement is marked satisfied by documentation. No implementation
 stage has passed, so the future requirement backlog must not be reported as zero
