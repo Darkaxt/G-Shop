@@ -8,21 +8,21 @@ import '../models/config/system_config.dart';
 import '../utils/network_constants.dart';
 import '../models/game_item.dart';
 import 'provider_factory.dart';
-import 'drive/drive_runtime.dart';
 
 class UnifiedGameService {
   final Duration? syncTimeout;
   final Future<List<GameItem>> Function(ProviderConfig, SystemConfig)? fetchProviderGames;
+  /// An explicit refresh operation, supplied only by user-triggered sync.
+  /// Ordinary browsing reads the last successfully published catalogue without
+  /// online traversal or authorization; a missing snapshot still fails visibly.
   final Future<void> Function(ProviderConfig)? prepareDrive;
   /// Only enable for a service whose lifetime is one multi-system sync session.
-  /// Long-lived UI services refresh independently on every fetch invocation.
+  /// Separate explicit sync sessions refresh independently.
   final bool shareDrivePreparation;
   final Map<String, Future<void>> _drivePreparations = {};
 
   UnifiedGameService({this.syncTimeout, this.fetchProviderGames, this.shareDrivePreparation = false,
-    Future<void> Function(ProviderConfig)? prepareDrive})
-      : prepareDrive = prepareDrive ?? (fetchProviderGames == null
-          ? ((config) => DriveRuntime.instance.refreshConfig(config)) : null);
+    this.prepareDrive});
 
   /// Source scope to pass to cache publication only AFTER this system's fetch
   /// succeeds. Configuration by itself never proves a complete traversal.

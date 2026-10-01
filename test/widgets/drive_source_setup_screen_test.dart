@@ -24,8 +24,11 @@ class _FakeApi implements DriveCatalogueApi {
     bool foldersOnly = false,
     cancelToken,
   }) async {
-    expect(parentId, 'actual-root-id');
     expect(foldersOnly, isTrue);
+    if (parentId == 'console-folder-id') {
+      return DriveFilePage(files: const []);
+    }
+    expect(parentId, 'actual-root-id');
     return DriveFilePage(files: [
       DriveFile(
         id: 'console-folder-id',
@@ -72,6 +75,37 @@ class _RepeatingConnector implements DriveSourceSetupConnector {
 }
 
 void main() {
+  testWidgets('opening a folder resets the parent scroll position',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+          home: DriveSourceSetupScreen(
+        connector: _FakeConnector(),
+        onSave: (_) async {},
+      )),
+    ));
+    await tester.enterText(find.byKey(const Key('drive_server_client_id')),
+        'public-client.apps.googleusercontent.com');
+    await tester.tap(find.text('Connect'));
+    await tester.pump();
+    await tester.pump();
+    final folderList = find.byWidgetPredicate((widget) =>
+        widget is Scrollable && widget.axisDirection == AxisDirection.down);
+    await tester.scrollUntilVisible(find.text('SNES'), 160,
+        scrollable: folderList);
+    expect(tester.state<ScrollableState>(folderList).position.pixels,
+        greaterThan(0));
+    await tester.tap(find.text('SNES'));
+    await tester.pump();
+    await tester.pump();
+    expect(tester.state<ScrollableState>(folderList).position.pixels, 0);
+    await tester.scrollUntilVisible(find.text('Use this folder'), 80,
+        scrollable: folderList);
+    await tester.tap(find.text('Use this folder'));
+    await tester.pump();
+    expect(find.text('Selected: SNES'), findsOneWidget);
+  });
+
   testWidgets('connects, exposes unsupported entries, and saves actual root ID',
       (tester) async {
     final connector = _FakeConnector();

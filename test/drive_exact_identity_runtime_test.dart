@@ -223,7 +223,7 @@ void main() {
     expect(preparations, 2);
   });
 
-  test('ordinary repeated fetches each refresh Drive on a long-lived service',
+  test('explicit refresh calls each prepare Drive on a long-lived service',
       () async {
     const config =
         SystemConfig(id: 'nes', name: 'NES', targetFolder: '/roms', providers: [
@@ -240,7 +240,7 @@ void main() {
     expect(preparations, 2);
   });
 
-  test('ordinary refresh can recover after a previous preparation failed',
+  test('explicit refresh can recover after a previous preparation failed',
       () async {
     const config =
         SystemConfig(id: 'nes', name: 'NES', targetFolder: '/roms', providers: [

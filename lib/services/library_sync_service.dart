@@ -15,6 +15,7 @@ import 'rom_manager.dart';
 import 'storage_service.dart';
 import 'thumbnail_service.dart';
 import 'unified_game_service.dart';
+import 'drive/drive_runtime.dart';
 
 class LibrarySyncState {
   final bool isSyncing;
@@ -122,7 +123,9 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout,
+        shareDrivePreparation: true,
+        prepareDrive: DriveRuntime.instance.refreshConfig);
     var completed = 0;
     final failures = <String, String>{};
     final perSystem = <String, int>{};
@@ -357,7 +360,9 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout,
+        shareDrivePreparation: true,
+        prepareDrive: DriveRuntime.instance.refreshConfig);
     var completed = 0;
     var totalGames = 0;
     final failures = <String, String>{};
@@ -489,7 +494,9 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
+    final gameService = UnifiedGameService(syncTimeout: syncTimeout,
+        shareDrivePreparation: true,
+        prepareDrive: DriveRuntime.instance.refreshConfig);
 
     await _syncOneSystem(systemConfig, systemId, db, gameService);
 

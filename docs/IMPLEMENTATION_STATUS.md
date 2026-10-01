@@ -12,9 +12,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 - Authorized now: implementation (2026-09-08, "go ahead then").
 - Feature implementation: S1 BLOCKED on legitimate metadata access; first online
   authorization, cancellation/reconnect and QA-03 release naming are verified.
-  S2-S4 BLOCKED on the required S1 lifecycle/metadata gates. Their existing partial
-  implementations are retained, not being
-  worked on concurrently and not claimed complete. S5-S7 NOT STARTED.
+  S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
+  and offline cold-start browsing are verified. S3 ACTIVE on verified transfer
+  and owned installations; its identity/migration/catalogue dependencies are
+  available. S4 remains BLOCKED on B2 and is not worked on concurrently.
+  S5-S8 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; legitimate ScreenScraper access remains missing.
@@ -67,20 +69,123 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
-| S2 | BLOCKED | Existing paginated catalogue, normal Sources/health/mapping UI and exact queue references retained | Required S1 acceptance is incomplete; initial Drive access now works, but selected-folder catalogue evidence remains unperformed. S5 owns final localized/controller UX |
-| S3 | BLOCKED | Existing verified standalone lane, journals, installed index and native retirement evidence retained | Required S1/S2 acceptance remains incomplete. Ordinary unfinished work remains: live transfer roundtrip, crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof |
-| S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained | External B2: legitimate ScreenScraper developer/user access missing prevents authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
+| S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
+| S3 | ACTIVE | Existing verified standalone lane, journals, installed index and native retirement evidence retained; required S1 migrated identity/Drive access and S2 catalogue/queue dependencies verified | Live transfer roundtrip, crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof remain ordinary unfinished work; no S3 completion claim |
+| S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
+| S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
 
 B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This
 does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocks META-02's
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
-developer access and user credentials resolve it. Neither substitutes for the
+application credentials and a successful live lookup resolve it. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at B2; no later stage is active.
+reclassified as a deferral. S1 is parked at B2. S3 is the only ACTIVE stage after
+S2 acceptance passed. Its explicit dependencies are S2 exact artefacts/queue and
+S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
+criteria remain required and prevent final feature completion.
+
+### Resumption and provider-access checkpoint (2026-10-02)
+
+- Standard ScreenScraper user credentials are present in the ignored local
+  environment file. Live API requests rejected absent application credentials,
+  including a probe using the standard credentials in the application fields.
+  This is provider-side application authentication, not evidence of an incorrect
+  standard account password. B2 is external and blocks META-02 live lookup and
+  S4 live samples; issued fork credentials plus a successful lookup resolve it.
+- The user authorized handling application registration. The existing logged-in
+  account submitted request 24057 in forum category 12 for R-Shop-Darkaxt.
+  Approval/credentials are pending; no duplicate request or invented credentials.
+  A thread reminder checks every twelve hours and pauses after verified access.
+- S8 is recorded in revision 3 and remains NOT STARTED. No companion source
+  implementation or Cocoon reuse is claimed.
+- At resumption the Thor was connected through ADB but Wi-Fi was disabled and
+  there was no active network. Device connectivity must be verified before new
+  live catalogue or authentication claims. Both displays were asleep.
+
+### S2 catalogue and recovery checkpoint (2026-10-02)
+
+- Re-enabled the existing saved Wi-Fi connection, without changing cloud files or
+  the SD library. The normal native picker selected My Drive / Roms / Sega -
+  Game Gear by observed IDs and saved one source into the isolated debug app.
+  The local destination remains internal `RShopLiveTest`, not the existing ROM
+  collection. Indexing uses only Drive metadata, never the media endpoint.
+- Traversal recorded nested assets as well as binary ROMs; raw catalogue entries
+  are not a game count. Sleeping the Thor was followed by disabled Wi-Fi and an
+  interrupted refresh. Its unpublished generation/checkpoint survived; no active
+  snapshot or false empty library was published. Live successful publication and
+  browsing remain required before S2 can be COMPLETE.
+- Live folder navigation reproduced retained parent scroll position. Its real
+  widget regression failed at offset 201 instead of zero, then passed after
+  keying the list by the current observed folder ID. Folder selection still
+  saves the observed ID, not a typed path or filename.
+- Recovery also exposed a pre-existing empty-home defect: Menu/Exit changed state
+  but their overlays were absent from that build branch. A regression reproduced
+  the missing menu; the corrected branch renders the existing menu and exit
+  confirmation. Focused widget verification proves Settings is reachable and
+  closing either overlay preserves the home screen; target-device proof follows.
+- Focused API/catalogue/source tests passed for paging, nested identities, failed
+  snapshot preservation, root confinement, factory/resolver/configuration and
+  health. Runtime queue checks passed for restart-stable reservations, mixed-source
+  persisted reorder, restored paused/authorization states and cancellation drains.
+  These are host fixtures, not live transfer/emulator/removal proof for S3.
+- Only one host verification workload was run at a time. No full suite, metadata
+  scrape, ROM download, SD deletion or external release was performed.
+- Native recheck passed with the rebuilt normal debug APK: controller Start now
+  opens the empty-home menu, Settings opens the retained single Drive source,
+  explicit Connect uses the owner account, and opening Roms resets the scrolled
+  folder list. Cancelling the picker preserves the previously selected Game Gear
+  root; Refresh catalogue resumes its same checkpoint rather than adding a source.
+  Scoped analysis passed. Verified APK SHA-256:
+  `7083516459A9930A94F244EAD69A8846E51D66FF812EB28B69C4736A6E69EC5A`,
+  package `com.darkaxt.rshop.debug`, version 1.7.0/12, registered debug signer.
+- Named S5 UI follow-up: the existing source-actions modal is controller-only
+  and overflows at the Thor's landscape size. S5 owns its touch, scroll/layout
+  and localized-label acceptance; final verification must exercise every action
+  at the actual display sizes. The S2 reconnect/refresh/mapping path is currently
+  controller-accessible, so this does not replace its required indexing evidence.
+
+### S2 acceptance closure (2026-10-02)
+
+- The interrupted refresh resumed the existing checkpoint and successfully
+  published one complete selected-subtree generation: 2,728 metadata entries,
+  including 537 folders. Pending traversal work was cleared only at publication.
+  These are inventory counts, not game counts. The metadata-only API has no media
+  endpoint; no ROM body was read for indexing and no cloud original was modified.
+- The live inventory exposed an archive-filter defect: only raw system ROM
+  extensions were admitted. A regression failed with only `Game.gg` instead of
+  ZIP/7z/RAR plus the raw ROM; the provider now uses the existing shared archive
+  allowlist. Artwork/documents/patches remain excluded, and exact scoped IDs are
+  retained. Archive layout/installation validation remains required in S3.
+- Cold restart exposed implicit online traversal during ordinary library reads.
+  A real factory/runtime/SQLite regression reproduced an authorization failure
+  despite a published catalogue. Ordinary reads and automatic startup cache
+  projection now read the published snapshot. Explicit Source Refresh and
+  user-triggered Sync/Scan retain online preparation, coalesced per source/session;
+  refresh failures still reject publication, never become an empty success.
+  Missing/foreign mappings still fail. This is explicit command/read separation,
+  not a network-error fallback or hidden automatic consent.
+- Saved the observed Game Gear root mapping through the normal UI. The rebuilt
+  normal debug APK displayed 182 archive entries and Drive badges. After force-stop
+  and relaunch with Wi-Fi disabled, all 182 remained available and controller
+  navigation worked. SQLite confirmed 182 rows with 182 exact remote references,
+  one active catalogue and no pending generation. Cached covers are not claimed
+  as a fresh metadata scrape or reliable score evidence.
+- Fresh focused provider/exact-identity regressions and scoped Dart analysis pass.
+  Earlier unchanged API/catalogue/root-conflict/config/resolver/health and mixed
+  persistent queue restart/reorder/cancel checks remain applicable. Native setup,
+  mapping and browsing supply the live DRIVE-02/03 evidence; required download,
+  publication, emulator and owned-removal proof is assigned to S3, not claimed here.
+- Verified normal debug build SHA-256:
+  `9A63DA5597A93D5185C1A699723D9EAC910CC9F65A2D19BA52005F8616ADC595`.
+  Package/version remain `com.darkaxt.rshop.debug` / 1.7.0+12; registered debug
+  signer remains unchanged. No external release, SD migration or payload download.
+- S2 is COMPLETE against DRIVE-02 and DRIVE-03; S3 is now the sole ACTIVE stage.
+  S1 stays BLOCKED at B2, with all outstanding auth criteria retained. S5 owns
+  the explicitly named final source-action landscape/touch/localization check.
 
 ### S1 live setup checkpoint (2026-10-01)
 
@@ -153,7 +258,7 @@ reclassified as a deferral. S1 is parked at B2; no later stage is active.
 No feature requirement is marked satisfied by documentation. No implementation
 stage has passed, so the future requirement backlog must not be reported as zero
 remaining work. There are no dropped requirements or scheduled required deferrals
-outside the seven implementation stages. Revision 2 has 24 requirements; the
+outside the eight implementation stages. Revision 3 has 25 requirements; the
 23-requirement count below describes the completed revision-1 preparation.
 
 ### S1 foundation checkpoint (2026-09-08)

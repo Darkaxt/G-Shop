@@ -40,7 +40,10 @@ class DriveProvider implements SourceProvider {
     if (systems.isEmpty) {
       throw const DriveCatalogueException('unsupportedPlatform');
     }
-    final extensions = systems.single.romExtensions;
+    final extensions = [
+      ...systems.single.romExtensions,
+      ...SystemModel.archiveExtensions,
+    ];
     final generation = await runtime.catalogue.activeGeneration(
         sourceId: config.sourceId!,
         accountId: drive.accountId,

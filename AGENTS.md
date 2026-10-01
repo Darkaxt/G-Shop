@@ -3,12 +3,16 @@
 This fork is preparing two features: native Google Drive on-demand game storage,
 and independent, freshly scraped metadata with rating overlays and integrated
 metadata-backed filters.
+An additional authorized S8 adds per-ROM companion launching: emulator/ROM on
+the Thor's top display, linked installed Android app on the bottom. Review Cocoon
+source/licensing when that stage starts, not during earlier-stage implementation.
 
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.
 - Implementation was authorized after preparation on 2026-09-08. Use the staged
   plan without adding routine approval gates. The plan cannot weaken the
-  specification. Live provider credentials are new setup, not available access.
+  specification. Standard metadata account credentials have been supplied;
+  provider access must be verified, not inferred from credential presence.
 - Preserve upstream behavior, licenses, and existing user data. Work on
   `codex/` branches. No forced pushes or unrelated refactoring.
 - Google Drive is read-only. Do not publish ROMs, private library inventories,

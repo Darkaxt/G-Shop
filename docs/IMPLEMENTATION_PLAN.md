@@ -1,12 +1,13 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 2.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 3.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S7
+Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S8
 without new routine approval gates. Provider account setup is new; fixtures do
 not replace the required live evidence. The user selected Top 25 per console as
 the final offline sample; S7 applies the reviewed, cloud-verified migration.
+S8 was added by the user on 2026-10-02; it must not open a second active stage.
 
 ## S0 — Fork and specification preparation
 
@@ -36,7 +37,10 @@ Depends on: S0 and authorization to implement.
   provenance and database/config migration contracts, with tests first where
   behavior is reproducible. Inventory every SourceType/ProviderType switch.
 - Add Android authorization adapter and credential-store interfaces; complete
-  authorized Google client and ScreenScraper developer/user setup. Do not borrow
+  authorized Google client and standard ScreenScraper account setup. Do not ask
+  the user to obtain a developer account. Verify the standard-account API route
+  and resolve legitimate application authentication if the provider enforces it.
+  Do not borrow
   other applications' embedded developer credentials. Use fixture clients until
   legitimate live access is available, without calling those fixtures live proof.
 - Create the metadata-provider contract and a functional ScreenScraper adapter;
@@ -236,7 +240,8 @@ order. No burnt-in artwork or metadata-only ROM fetches.
 
 ## S6 — Final reconciliation and remediation
 
-Requirements: QA-01, QA-02, QA-04; integrated recheck of every requirement.
+Requirements: QA-01, QA-02, QA-04; integrated recheck of S1-S6 requirements,
+with final QA-04 reconciliation repeated after S7 and S8.
 Depends on: S1-S5, including all required live acceptance evidence.
 
 - Re-read the full specification, not just this plan. Resolve every required
@@ -249,8 +254,8 @@ Depends on: S1-S5, including all required live acceptance evidence.
   authorized outcome; do not auto-publish an APK at each stage.
 
 Evidence: requirement-by-requirement pass/fail for feature stages S1-S6 with
-commands, fixture identifiers, source commit and device/build identity. S7 is
-still required before overall completion. Public evidence must not contain
+commands, fixture identifiers, source commit and device/build identity. S7
+and S8 are still required before overall completion. Public evidence must not contain
 private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
@@ -274,7 +279,34 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
 Evidence: bounded migration fault/restart/identity-change tests, private live
 manifest, fresh metadata coverage, Top-25 retention audit, before/after space,
-actual recovery proof and zero unresolved required blockers/deferrals.
+actual recovery proof and no unresolved S1-S7 blockers/deferrals. S8 remains
+required before overall completion.
+
+## S8 — Per-ROM dual-display companion launching
+
+Requirements: COMPANION-01; recheck CORE-02, DRIVE-06, QA-02/03/04.
+Depends on: S1-S7 acceptance and the established ordinary emulator handoff.
+
+- Inspect Cocoon Launcher's source/revision/license at stage entry, then verify
+  the relevant Android display-launch behavior on the Thor. Do not add a general
+  launcher rewrite, APK downloader or companion marketplace.
+- Persist an optional installed companion package/activity per stable ROM/edition
+  identity. Add select/change/clear controls to existing game settings/details;
+  preserve independent associations through restart and catalogue refresh.
+- Route the ready ROM/emulator to the actual top display and its linked app to
+  the bottom display. Preserve URI grants, ordinary launch and save/settings
+  state; do not require ADB/PC, timers or killing unrelated applications.
+- Verify missing/unlaunchable apps, display absence/placement rejection and repeat
+  activation without false paired-launch success or duplicate launches.
+- Prove two independently linked ROMs and actual top/bottom placement with
+  controller/touch on the Thor, then switch both displays off.
+- Reconcile the entire revision-3 specification, including S7 migration and S8,
+  resolve all required gaps, verify and commit. Publication remains separate.
+
+Evidence: persistence/identity and native launch contract tests, Cocoon source and
+license review, actual Thor display-placement/controller proof, failure-path and
+ordinary-launch regression evidence, save/settings preservation and final
+S1-S8 reconciliation with zero unresolved required blockers/deferrals.
 
 ## Source extension map (baseline, not implemented classes)
 
@@ -356,3 +388,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | QA-03 | S1 | Privacy/authorization/signing gates, rechecked at S6 |
 | QA-04 | S6 | Full-spec reconciliation; no unresolved required gaps |
 | MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |
+| COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |

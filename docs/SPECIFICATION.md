@@ -1,6 +1,6 @@
-# Google Drive and metadata expansion
+# Google Drive, metadata expansion and per-ROM companions
 
-Authoritative specification, revision 2, 2026-09-08.
+Authoritative specification, revision 3, 2026-10-02.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -23,9 +23,22 @@ also requested a final live SD-library migration retaining a small offline
 sample: Top 25 games per console. This is a one-time reviewed migration, not
 automatic eviction or permission to modify the cloud archive.
 
+Scope extension authorized on 2026-10-02: add S8 for per-ROM companion launching
+on the Thor, with the ROM/emulator on the top display and its linked Android
+application on the bottom display. Review Cocoon Launcher's source and reuse
+terms when S8 starts; do not begin that implementation during earlier stages.
+
 User decisions incorporated:
 
 - Google Drive and metadata expansion are the two features.
+- Per-ROM dual-display companion launching is the additional S8 feature.
+- Use the supplied standard ScreenScraper account; do not require the user to
+  obtain a developer account. Verify actual provider access rather than assuming
+  missing developer fields alone prove that access is blocked.
+- After provider-side application-authentication rejection was verified, the
+  user authorized handling the legitimate fork API application request through
+  the logged-in ScreenScraper account and updating the ignored local environment
+  file when credentials are issued. Approval does not itself prove API access.
 - A desktop PC, RomM server, or public Drive sharing link must not be required.
 - Historical scraped metadata is outdated. A complete fresh scrape is required;
   importing an old `gamelist.xml` is not a substitute.
@@ -253,10 +266,14 @@ screenshots and ratings where returned. Model provider capabilities and platform
 IDs explicitly; missing data must remain missing. No hardcoded score dataset,
 HTML challenge bypass, or scraping of a user's historical browser state.
 
-ScreenScraper developer authorization and the user's account are distinct setup
-requirements. Obtain valid credentials for this fork; do not extract/reuse
-RetroBat's application credentials. Keep user credentials in secure storage and
-developer configuration out of version control. Redact query-string credentials
+Use the user's supplied standard ScreenScraper credentials; a developer account
+is not a user prerequisite. Provider application authentication, if enforced by
+the API, remains a distinct integration responsibility: verify the standard-account
+route and resolve legitimate application access without extracting/reusing
+RetroBat's credentials or claiming a rejected request succeeded. A provider-side
+rejection must identify the exact failing boundary, not imply the user's standard
+account password is wrong. Keep user credentials in secure storage and any
+application configuration out of version control. Redact query-string credentials
 from all HTTP logs and errors. Do not claim secrets embedded in a distributed
 APK are confidential; distribution policy must be resolved before release.
 
@@ -482,6 +499,41 @@ identities, all bundle members, before/after space, saved-data preservation and
 cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion
 requires no unresolved required migration work; do not call a partial cleanup
 complete or publish private inventories in Git.
+
+## 6b. Per-ROM companions (S8)
+
+### COMPANION-01 — Linked Android application on the bottom display
+
+Allow an explicit optional companion application association for each ROM/edition,
+using its stable identity rather than a filename-only or console-wide association.
+Provide select/change/clear controls in the existing game settings/details flow
+and persist the association across restart and catalogue refresh. A ROM without
+an association keeps ordinary emulator launching; companions are not mandatory.
+
+Launching an installed, ready ROM with a companion opens that ROM in the chosen
+emulator on the Thor's top display and the linked installed Android application
+on the bottom display. Resolve actual display identities/capabilities rather
+than assuming hardcoded display numbers. Preserve the established ROM URI grants,
+emulator settings, saves and existing applications. Selecting a companion does
+not install an APK or grant permission to kill other applications.
+
+Report missing/unlaunchable companion apps, unavailable second displays and
+rejected display placement truthfully; do not claim a successful pair when either
+launch failed. Keep supported ordinary ROM launch available and avoid duplicate
+launches from repeated activation. Do not add sleep-driven launch ordering,
+require a PC/ADB during normal use or silently switch ROM/companion associations.
+
+At S8 entry, inspect Cocoon Launcher's applicable source, revision and license
+for its companion/display-launch mechanism. Verify Android behavior on the Thor
+before choosing the implementation; reuse only license-compatible code.
+
+Acceptance: association persistence and edition isolation; select/change/clear
+controller/touch proof; actual Thor ROM on top plus linked APK on bottom;
+independent associations for two ROMs; repeated launch, missing app, launch
+rejection and unavailable-display coverage; ordinary launch without a companion;
+save/settings preservation and both displays switched off after live testing.
+Reconcile all S1-S8 requirements before overall completion. S8 being planned is
+not implementation or acceptance evidence.
 
 ## 7. Quality and delivery requirements
 

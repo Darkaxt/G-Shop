@@ -307,6 +307,7 @@ class _DriveSourceSetupScreenState
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: ListView(
+              key: ValueKey(current?.id),
               padding: const EdgeInsets.all(24),
               children: [
                 const Text(

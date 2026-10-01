@@ -547,33 +547,52 @@ class _HomeViewState extends ConsumerState<HomeView>
       return buildWithActions(
         Scaffold(
           backgroundColor: Colors.black,
-          body: Column(
+          body: Stack(
             children: [
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.videogame_asset_off, size: 64, color: Colors.white24),
-                      const SizedBox(height: 16),
-                      Text(
-                        L.of(context).home_noConsoles,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 18),
+              Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.videogame_asset_off,
+                              size: 64, color: Colors.white24),
+                          const SizedBox(height: 16),
+                          Text(
+                            L.of(context).home_noConsoles,
+                            style: TextStyle(
+                                color: Colors.grey[500], fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            L.of(context).home_pressStartForMenu,
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 13),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        L.of(context).home_pressStartForMenu,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                      ),
-                    ],
+                    ),
                   ),
+                  ConsoleHud(
+                    embedded: true,
+                    b: HudAction(L.of(context).common_exit,
+                        onTap: _showExitDialogOverlay),
+                    start: HudAction(L.of(context).common_menu,
+                        onTap: toggleQuickMenu),
+                  ),
+                ],
+              ),
+              if (showQuickMenu)
+                QuickMenuOverlay(
+                  items: _buildQuickMenuItems(),
+                  onClose: closeQuickMenu,
                 ),
-              ),
-              ConsoleHud(
-                embedded: true,
-                b: HudAction(L.of(context).common_exit, onTap: _showExitDialogOverlay),
-                start: HudAction(L.of(context).common_menu, onTap: toggleQuickMenu),
-              ),
+              if (_showExitDialog)
+                ExitConfirmationOverlay(
+                  onConfirm: _exitApp,
+                  onCancel: _hideExitDialog,
+                ),
             ],
           ),
         ),
@@ -1045,4 +1064,3 @@ class _GameCountPill extends StatelessWidget {
     );
   }
 }
-
