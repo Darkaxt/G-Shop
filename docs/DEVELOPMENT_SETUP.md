@@ -33,13 +33,18 @@ accounts or start another test workload to work around a stalled one.
 | Variant | Application ID | Label | Signer |
 | --- | --- | --- | --- |
 | Development debug | `com.darkaxt.rshop.debug` | R-Shop Drive Dev | Local Android debug key |
-| Future fork release | `com.darkaxt.rshop` | R-Shop Drive | Not authorized/configured for publication |
+| Future fork release | `com.darkaxt.rshop` | R-Shop | Not authorized/configured for publication |
 
 The native Kotlin namespace remains `com.retro.rshop`; that is not the installed
 package identity. Separate application IDs prevent replacement of upstream
 `com.retro.rshop` or migration of its private database and secure storage. Before
 any install, independently inspect the APK's actual package, version and signer.
 Source configuration alone is not build/device proof.
+
+The 2026-10-02 user decision preserves upstream APK naming and the release display
+name `R-Shop`; only the application ID distinguishes the fork. The debug label
+remains isolated for testing. Do not rename the final APK to a Drive/fork-branded
+filename. No release/publication is authorized by this naming decision.
 
 The existing local debug key was inspected, not generated or replaced. The
 Android debug signing certificate SHA-1 on this host is
@@ -67,9 +72,11 @@ The Android registration uses the verified `com.darkaxt.rshop.debug` package and
 SHA-1 above. Pass the web client's public ID as `GoogleDriveSignIn.serverClientId`.
 No client secret was copied or embedded. Reloading Data Access verified that its
 only configured scope is `https://www.googleapis.com/auth/drive.readonly`.
-No billing was enabled and account consent/real Drive access remain unverified.
-Continue in this existing project; do not create duplicate clients. Remaining
-setup is owner-controlled native sign-in/consent and the S1 auth lifecycle proof.
+No billing was enabled. On 2026-10-02, authorized native account selection and
+read-only consent succeeded on the online Thor. The production setup connector
+received the actual My Drive root and its folder-list response. Continue in this
+existing project; do not create duplicate clients. The remaining S1 auth lifecycle
+verification is not satisfied by this first live grant.
 
 The current normal debug APK was independently inspected and installed on
 Thor `bfa98654`: version `1.7.0+12`, label `R-Shop Drive Dev`, SHA-256
@@ -88,7 +95,12 @@ The rebuilt APK's compiled manifest and unchanged signer were inspected before
 installation. Its Connect then opened the actual native account chooser on the
 Android 13 Thor (microG 0.3.15.250932). Account selection and consent were handed
 to the owner, not automated. This proves the previous pre-sign-in configuration
-failure is resolved; it does not yet prove successful consent or Drive access.
+failure is resolved. The subsequent 2026-10-02 online retry established successful
+read-only consent and real Drive access after an offline failure was diagnosed.
+The installed APK was unchanged during the online retry; neither an SDK downgrade
+nor a Google services replacement was needed. No source was saved and no ROM
+payload requested. Folder selection/catalogue, transfer and migration acceptance
+remain separate requirements.
 
 The plugin requires a web client ID when not using `google-services.json`.
 Package/signer mismatches can fail even after account selection. Follow the
@@ -124,8 +136,11 @@ gated. There is not yet an in-app emulator-open action; sharing a file is not
 evidence of emulator launch. The live download/launch/removal round trip is still
 required, not established by the single-file queue implementation.
 
-Still required: actual consent, cancel/denial, renewal/reconnect, account isolation
-and revoke proof on the Thor. Mocked native-platform tests do not satisfy these.
+On 2026-10-02, deliberate chooser cancellation followed by reconnect also returned
+the real Drive root without another scope prompt. The current grant was reused;
+this does not prove renewal after expiry. Still required: scope denial,
+expiry-driven renewal, account isolation and revoke proof on the Thor.
+Mocked native-platform tests do not satisfy these.
 
 ## Native foundation tests (no provider accounts or ROM access)
 

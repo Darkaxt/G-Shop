@@ -510,6 +510,13 @@ test build; do not uninstall or overwrite a differently signed upstream app.
 Build/install debug artifacts only when live testing is authorized/required by
 the implementation outcome. No release or pre-release without explicit request.
 
+Release identity decision (2026-10-02): retain the upstream APK filename and
+`R-Shop` application display name. Distinguish the fork only by its custom Android
+application ID (`com.darkaxt.rshop`). The isolated development variant may retain
+its debug suffix/label. This naming requirement does not authorize a release.
+Acceptance: inspect the processed release manifest for the display name and
+package ID; preserve the existing APK naming route without a fork-specific rename.
+
 ### QA-04 — Specification reconciliation
 
 Every requirement must map to a stage with evidence and status. Reconcile the

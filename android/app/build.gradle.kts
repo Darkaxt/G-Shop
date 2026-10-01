@@ -37,7 +37,7 @@ android {
     defaultConfig {
         // Keep the fork separate from the installed upstream app and its data.
         applicationId = "com.darkaxt.rshop"
-        manifestPlaceholders["appLabel"] = "R-Shop Drive"
+        manifestPlaceholders["appLabel"] = "R-Shop"
 
         // Version values are pulled from pubspec.yaml automatically
         minSdk = flutter.minSdkVersion

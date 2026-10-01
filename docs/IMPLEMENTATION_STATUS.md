@@ -10,20 +10,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 BLOCKED on Thor network access and legitimate
-  metadata access; S2-S4 BLOCKED on the required S1 live
-  access gates. Their existing partial implementations are retained, not being
+- Feature implementation: S1 BLOCKED on legitimate metadata access; first online
+  authorization, cancellation/reconnect and QA-03 release naming are verified.
+  S2-S4 BLOCKED on the required S1 lifecycle/metadata gates. Their existing partial
+  implementations are retained, not being
   worked on concurrently and not claimed complete. S5-S7 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
-  by the user. No provider credentials or successful live access is assumed.
+  by the user. Drive's first real read-only authorization was verified on
+  2026-10-02; legitimate ScreenScraper access remains missing.
 - Existing SD-library migration was missing from the implementation scope.
   User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
   live recovery and fresh metadata/rating verification. No deletion before those
   gates; saves/BIOS/settings and uncertain/unrecoverable files are preserved.
 - Live account setup: Drive API enabled, both test clients created using the
   actual debug APK signer, single owner test user saved, and read-only Drive
-  scope verified after reload (see DEVELOPMENT_SETUP.md). Owner-controlled
-  native consent and auth lifecycle proof remain pending.
+  scope verified after reload (see DEVELOPMENT_SETUP.md). Authorized native
+  consent and initial Drive API access succeeded; full auth lifecycle proof
+  remains pending.
   Full scraping, live Drive ROM transfer, SD removal and releases have not been
   performed. An isolated synthetic-only debug APK has passed the native
   foundation checks on the Thor and was removed afterwards; this is not a
@@ -63,23 +66,21 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; actual debug APK inspected/installed, both OAuth clients registered, test user saved and readonly scope persisted; live package-visibility defect fixed; authorized owner account selected and offline cancellation traced | External B1: Thor has no active network and no nearby saved Wi-Fi; trusted network connection is required before consent/auth lifecycle proof. B2: legitimate ScreenScraper access/lookup remains missing |
-| S2 | BLOCKED | Existing paginated catalogue, normal Sources/health/mapping UI and exact queue references retained | External B1: S1 Drive access missing prevents live selected-folder inventory; clients are registered, owner consent and auth proof remain. S5 owns final localized/controller UX |
-| S3 | BLOCKED | Existing verified standalone lane, journals, installed index and native retirement evidence retained | B1 prevents required live transfer roundtrip; blocked S2 catalogue acceptance is also a dependency. Ordinary unfinished work remains: crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof |
+| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
+| S2 | BLOCKED | Existing paginated catalogue, normal Sources/health/mapping UI and exact queue references retained | Required S1 acceptance is incomplete; initial Drive access now works, but selected-folder catalogue evidence remains unperformed. S5 owns final localized/controller UX |
+| S3 | BLOCKED | Existing verified standalone lane, journals, installed index and native retirement evidence retained | Required S1/S2 acceptance remains incomplete. Ordinary unfinished work remains: live transfer roundtrip, crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained | External B2: legitimate ScreenScraper developer/user access missing prevents authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 
-B1 blocks DRIVE-01 live authentication and dependent S2/S3 real-system evidence;
-trusted Thor network access followed by account consent and verified auth
-lifecycle resolve it; client registration is complete and account selection is
-authorized. B2 blocks META-02's
+B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
+read-only authorization and returned the real Drive root/folder response. This
+does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocks META-02's
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 developer access and user credentials resolve it. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at the external network-access boundary;
-no later stage is activated while waiting.
+reclassified as a deferral. S1 is parked at B2; no later stage is active.
 
 ### S1 live setup checkpoint (2026-10-01)
 
@@ -98,7 +99,7 @@ no later stage is activated while waiting.
 
 ### S1 account-selection diagnosis (2026-10-02)
 
-- User authorized selecting `darkaxt.remaxku@gmail.com`; the actual native
+- User authorized selecting the owner account; the actual native
   chooser was used. Selecting it reproduced the immediate cancelled result
   before Drive consent. No account email was hardcoded into the application.
 - Native microG UI logs show AuthSignInActivity returning internal error 8
@@ -118,6 +119,36 @@ no later stage is activated while waiting.
   speculative sign-in fallback or production behavior change was made.
 - Both displays were verified OFF after the diagnosis. No source saved, Drive
   file changed, ROM transferred, or SD-library file removed.
+
+### S1 first real Drive authorization (2026-10-02)
+
+- Fresh device checks confirmed an active validated network and successful
+  resolution/reachability of Google's auth endpoint. The unchanged inspected
+  debug APK was used, with the user's explicitly selected default account.
+- Native account selection reached Google's test-app warning and read-only
+  consent. Consent disclosed only See and download all your Google Drive files.
+  Completing the authorized flow returned to R-Shop with Reconnect, My Drive and
+  Use this folder visible and no authorization error.
+- The production setup code shows these controls only after acquiring a grant,
+  receiving/validating the actual root ID via files.get and completing the
+  folders-only files.list response. This is actual native authorization and API
+  access evidence, not a mocked chooser or source-installation claim.
+- No library source was saved, no ROM downloaded, and no SD/cloud file removed
+  or changed. First consent is not expiry-driven renewal, revocation or complete
+  two-account isolation proof. META-02 legitimate access is still required.
+- Live cancellation/reconnect: pressed Reconnect, deliberately backed out of the
+  native chooser, observed cancelled, then selected the authorized account again.
+  My Drive/Use this folder returned with no new scope consent or error. This
+  proves real cancel and reuse of the current grant, not expiry-driven renewal.
+- Release naming: the focused regression failed on the former R-Shop Drive
+  default label and passed after changing it to R-Shop. The existing explicit
+  debug label/package suffix are unchanged. Gradle processReleaseMainManifest
+  succeeded; its actual merged manifest was parsed and asserted to have package
+  com.darkaxt.rshop and label R-Shop. No APK output rename was introduced. No
+  release APK was built, installed, signed for distribution or published.
+- Final device check verified both displays OFF. The live sign-in result applies
+  to the already installed debug APK; release naming is verified at the processed
+  manifest boundary, not claimed as a deployed release.
 
 No feature requirement is marked satisfied by documentation. No implementation
 stage has passed, so the future requirement backlog must not be reported as zero
@@ -792,7 +823,7 @@ still wait for credible fresh rankings and verified cloud recovery.
 | --- | --- | --- |
 | Implementation authorization | Before S1 | Satisfied: explicit "go ahead then" on 2026-09-08 |
 | Flutter/Android toolchain | S1 / CORE-03, QA-01 | Flutter 3.47.2/Dart 3.13.2, host fixtures and debug APK/native foundation proof established; integrated feature/device acceptance remains required |
-| Google application configuration and consent | S1 / DRIVE-01, QA-03 | New account-owned project/client setup required; package/signer plan documented, no copied secrets |
+| Google application configuration and consent | S1 / DRIVE-01, QA-03 | Account-owned test clients, actual native read-only consent, cancel/reconnect and initial API access verified; remaining lifecycle criteria are still required |
 | ScreenScraper application authorization | S1 / META-02 | Obtain legitimate developer access for this fork; existing RetroBat user credentials do not establish application authorization |
 | ScreenScraper user access/quota | S1 / META-02 | User enters or explicitly authorizes account setup; verify capabilities and redact all request diagnostics |
 | Credible overall-score basis | S4 / META-05, META-07 | Validate reception/sample support; if insufficient, integrate a legitimate aggregate-score source before Top acceptance |

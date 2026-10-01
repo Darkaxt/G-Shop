@@ -29,6 +29,9 @@ Depends on: S0 and authorization to implement.
 
 - Establish Android development SDK/runtime and baseline test status. Resolve
   package/signing identity before OAuth registration or any installation.
+  Under QA-03, preserve the upstream APK naming route and release display name
+  `R-Shop`, with only the fork-specific application ID; verify the processed
+  release manifest without implying publication authorization.
 - Add provider-independent game/edition/remote-artifact identities, rating
   provenance and database/config migration contracts, with tests first where
   behavior is reproducible. Inventory every SourceType/ProviderType switch.
