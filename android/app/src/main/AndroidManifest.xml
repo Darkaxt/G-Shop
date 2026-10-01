@@ -55,6 +55,11 @@
         </application>
 
         <queries>
+            <!-- Credential Manager's Play-services provider checks these packages
+                 before starting sign-in. Without explicit visibility Android 11+
+                 can report an installed Play Store as missing. -->
+            <package android:name="com.android.vending"/>
+            <package android:name="com.google.android.gms"/>
             <intent>
                 <action android:name="android.intent.action.PROCESS_TEXT"/>
                 <data android:mimeType="text/plain"/>

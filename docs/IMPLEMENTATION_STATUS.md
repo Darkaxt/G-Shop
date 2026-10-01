@@ -5,23 +5,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-- Work parked at the user's request on 2026-10-01 while the LoLRoms manager is
-  updated for the redesigned live catalogue. This does not close any acceptance
-  criterion or remove any remaining Drive, metadata, device or migration work.
+- Work resumed at the user's request on 2026-10-01 after the LoLRoms work.
+  The Thor is connected again. Google OAuth branding was completed by the
+  account owner; both OAuth test clients are registered. Live provider evidence
+  remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1-S4 in progress; no stage acceptance claimed.
+- Feature implementation: S1 BLOCKED awaiting owner-controlled native consent
+  and legitimate metadata access; S2-S4 BLOCKED on the required S1 live
+  access gates. Their existing partial implementations are retained, not being
+  worked on concurrently and not claimed complete. S5-S7 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. No provider credentials or successful live access is assumed.
 - Existing SD-library migration was missing from the implementation scope.
   User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
   live recovery and fresh metadata/rating verification. No deletion before those
   gates; saves/BIOS/settings and uncertain/unrecoverable files are preserved.
-- Live account setup: the dedicated Google project has been created; OAuth
-  policy acceptance and clients remain pending (see DEVELOPMENT_SETUP.md).
+- Live account setup: Drive API enabled, both test clients created using the
+  actual debug APK signer, single owner test user saved, and read-only Drive
+  scope verified after reload (see DEVELOPMENT_SETUP.md). Owner-controlled
+  native consent and auth lifecycle proof remain pending.
   Full scraping, live Drive ROM transfer, SD removal and releases have not been
   performed. An isolated synthetic-only debug APK has passed the native
   foundation checks on the Thor and was removed afterwards; this is not a
-  deployment of the usable Drive/metadata features.
+  deployment of the usable Drive/metadata features. On 2026-10-01 the normal
+  debug app was independently inspected and installed in its isolated package
+  for live setup; onboarding uses a new internal RShopLiveTest folder, not the
+  existing ROM library. No real provider access is claimed by that installation.
 - Old scraped metadata: explicitly rejected as the new trusted baseline.
 - Metadata-backed best-rated-N and content/genre filters: required in this scope.
   User clarified that the overlay suggestion did not waive the recommended shared
@@ -53,14 +62,38 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
-| S0 | Complete | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | In progress | Additive v14 identity store and v15 exact game-cache integration; native auth controller/adapter, bounded ScreenScraper adapter and secure credentials; host fixtures and native foundation checks below | Installation/metadata runtime integration still required; Google/ScreenScraper account setup and live provider acceptance not available |
-| S2 | In progress | Read-only paginated Drive API, checkpointed catalogue, normal Sources/health/mapping UI, exact game/cache/queue references; supported standalone files enter the verified normal queue | Live selected-folder inventory and consent still required; S5 completes localized/controller UX |
-| S3 | In progress | Binary range transport, source/ancestor and streaming checksums; identity-bound stage/copy journal and transfer engine; persistent normal queue; shared manifest-based installed index and consumer path resolution; post-commit private-stage retirement with native Thor proof | Remaining crash/reset windows, bundles, replacement/owned removal, exact achievement persistence, emulator handoff, full consumer/live roundtrip and large-file integration proof remain DRIVE-04/05/06 gates |
-| S4 | In progress | Persistent explicit-membership refresh snapshots, single worker, atomic result/progress commits and identity-bound provenance checks; verification checkpoint below | Runtime collection/identity population, failed-item review/retry controls, complete quota pacing, artwork, score-reception gate and shared query remain required |
-| S5 | Not started | None | UI-01, UI-02, UI-03 |
-| S6 | Not started | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
-| S7 | Not started | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
+| S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
+| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; actual debug APK inspected/installed, both OAuth clients registered, test user saved and readonly scope persisted; live package-visibility defect fixed and native account chooser opened | External B1: owner must select account and consent on Thor before auth lifecycle proof; B2: legitimate ScreenScraper access/lookup remains missing |
+| S2 | BLOCKED | Existing paginated catalogue, normal Sources/health/mapping UI and exact queue references retained | External B1: S1 Drive access missing prevents live selected-folder inventory; clients are registered, owner consent and auth proof remain. S5 owns final localized/controller UX |
+| S3 | BLOCKED | Existing verified standalone lane, journals, installed index and native retirement evidence retained | B1 prevents required live transfer roundtrip; blocked S2 catalogue acceptance is also a dependency. Ordinary unfinished work remains: crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof |
+| S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained | External B2: legitimate ScreenScraper developer/user access missing prevents authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
+| S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
+| S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
+| S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
+
+B1 blocks DRIVE-01 live authentication and dependent S2/S3 real-system evidence;
+account-owner consent and verified auth lifecycle resolve it; client registration
+is now complete. B2 blocks META-02's
+authenticated lookup and S4's live matching/reception evidence; legitimate fork
+developer access and user credentials resolve it. Neither substitutes for the
+ordinary unfinished implementation listed above. No required work is dropped or
+reclassified as a deferral. S1 is parked at the owner-controlled sign-in step;
+no later stage is activated while waiting.
+
+### S1 live setup checkpoint (2026-10-01)
+
+- Authorized Android/web OAuth clients and read-only test audience are saved in
+  the existing dedicated project, not a duplicate project. No billing enabled.
+- Normal debug APK installed in the isolated package; internal RShopLiveTest
+  destination only. No source saved, ROM transferred or SD-library file changed.
+- First Connect failed before account selection. Native logs established the
+  package-visibility omission: Play Store installed but reported missing.
+  Manifest now declares the two required packages without broad inventory access.
+  Focused regression observed failing before the fix and passing afterwards;
+  targeted analysis passed; rebuilt APK package/signer/compiled manifest inspected.
+- With the rebuilt APK, Connect opened the native account chooser on the real
+  Thor. Owner account selection/Google consent is pending. This is live entry
+  proof, not granted Drive access, completed auth lifecycle or S1 completion.
 
 No feature requirement is marked satisfied by documentation. No implementation
 stage has passed, so the future requirement backlog must not be reported as zero

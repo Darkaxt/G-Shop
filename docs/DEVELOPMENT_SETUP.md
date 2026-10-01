@@ -53,21 +53,42 @@ fallback; release signing and distribution review remain a separate gate.
 
 The account owner authorized a dedicated project. `R-Shop Drive`
 (`r-shop-drive-darkaxt`, project number `593016299117`) was created in the
-Google Cloud console. Drive API enablement was requested and the console opened
-its API overview. OAuth branding is prepared for an External **testing** audience,
-but has not been saved: Google's API Services User Data Policy acceptance is
-awaiting the account owner. No OAuth client has been created yet, no billing was
-enabled, and no Drive file access has been granted to this application.
-Continue in this existing project; do not create a duplicate. Remaining setup:
+Google Cloud console. On 2026-10-01, its API overview confirmed Drive API enabled.
+OAuth branding was saved by the account owner after policy acceptance. Audience
+remains External **Testing**, with the owner account saved as its single test
+user. After explicit owner authorization, both private test clients were created:
 
-1. Verify that the Google Drive API is enabled in the dedicated project.
-2. Complete consent configuration after the account owner's policy acceptance,
-   retaining testing mode and the intended private test audience.
-3. Register the **debug package and actual signing certificate** as an Android
-   OAuth client. Register a web OAuth client in the same project and pass its
-   public client ID as `GoogleDriveSignIn.serverClientId`.
-4. Request only `https://www.googleapis.com/auth/drive.readonly` for Drive access.
-   No embedded client secret, copied application credentials or write scope.
+| Client | Public client ID |
+| --- | --- |
+| Android: R-Shop Thor development | `593016299117-fq96hg8fq5k6ufbsjn0hmiq7glpseddp.apps.googleusercontent.com` |
+| Web: R-Shop Android authorization | `593016299117-f4m22d2rs93mvnsj9o559aca4a7r3f36.apps.googleusercontent.com` |
+
+The Android registration uses the verified `com.darkaxt.rshop.debug` package and
+SHA-1 above. Pass the web client's public ID as `GoogleDriveSignIn.serverClientId`.
+No client secret was copied or embedded. Reloading Data Access verified that its
+only configured scope is `https://www.googleapis.com/auth/drive.readonly`.
+No billing was enabled and account consent/real Drive access remain unverified.
+Continue in this existing project; do not create duplicate clients. Remaining
+setup is owner-controlled native sign-in/consent and the S1 auth lifecycle proof.
+
+The current normal debug APK was independently inspected and installed on
+Thor `bfa98654`: version `1.7.0+12`, label `R-Shop Drive Dev`, SHA-256
+`7EBF7BCBF852254E0436D0F79E6F459BA7715EB096D3E25969CD54868EE32F48`.
+It is not the earlier synthetic foundation-test entrypoint. Onboarding selected
+the isolated internal `/storage/emulated/0/RShopLiveTest` destination; no existing
+ROM folder was selected or modified. Installation and opening Sources are not
+evidence of successful provider access or feature-stage closure.
+
+The first live Connect reproduced `setupRequired`: native Google availability
+checks reported Play Store missing although the package was installed. The
+manifest lacked explicit package visibility for `com.android.vending` and
+`com.google.android.gms`. A focused regression failed on that omission and
+passed after declaring only those packages, without `QUERY_ALL_PACKAGES`.
+The rebuilt APK's compiled manifest and unchanged signer were inspected before
+installation. Its Connect then opened the actual native account chooser on the
+Android 13 Thor (microG 0.3.15.250932). Account selection and consent were handed
+to the owner, not automated. This proves the previous pre-sign-in configuration
+failure is resolved; it does not yet prove successful consent or Drive access.
 
 The plugin requires a web client ID when not using `google-services.json`.
 Package/signer mismatches can fail even after account selection. Follow the
