@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
@@ -75,15 +78,47 @@ class RecordingGooglePlatform extends GoogleSignInPlatform {
   }
 }
 
+class _RevocationTransport implements HttpClientAdapter {
+  final requests = <RequestOptions>[];
+  int status = 200;
+  bool closed = false;
+  @override
+  Future<ResponseBody> fetch(RequestOptions options,
+      Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+    requests.add(options);
+    return ResponseBody.fromString('private provider details', status);
+  }
+
+  @override
+  void close({bool force = false}) => closed = true;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late RecordingGooglePlatform platform;
   late DriveAuthorization auth;
+  late _RevocationTransport revocation;
+  final nativeClears = <String>[];
+  const native = MethodChannel('com.retro.rshop/drive_authorization');
   setUp(() {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    nativeClears.clear();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(native, (call) async {
+      expect(call.method, 'clearTokenIfMicroG');
+      nativeClears.add((call.arguments as Map)['token'] as String);
+      return true;
+    });
     platform = RecordingGooglePlatform();
     GoogleSignInPlatform.instance = platform;
-    auth =
-        DriveAuthorization(GoogleDriveSignIn(serverClientId: 'test-client-id'));
+    revocation = _RevocationTransport();
+    auth = DriveAuthorization(GoogleDriveSignIn(
+        serverClientId: 'test-client-id', revocationAdapter: revocation));
+  });
+  tearDown(() {
+    debugDefaultTargetPlatformOverride = null;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(native, null);
   });
 
   test('background reconnect cannot trigger even lightweight account UI',
@@ -107,7 +142,8 @@ void main() {
     expect(platform.clientId, 'test-client-id');
     expect(platform.interactiveSignIns, 1);
     expect(platform.lightweightSignIns, 0);
-    expect(platform.clearedToken, 'rejected-private-token');
+    expect(nativeClears, ['rejected-private-token']);
+    expect(platform.clearedToken, isNull);
     expect(platform.requests.every((r) => r.userId == 'account-a'), isTrue);
     expect(
         platform.requests.every((r) =>
@@ -115,6 +151,33 @@ void main() {
             r.scopes.single == DriveAuthorization.readOnlyScope),
         isTrue);
     expect(platform.requests.every((r) => !r.promptIfUnauthorized), isTrue);
+  });
+
+  test('ordinary Play Services keeps the endorsed native token-clear route',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(native, (_) async => false);
+    await auth.acquire(interactive: true);
+    await auth.acquire(
+        expectedAccountId: 'account-a', rejectedToken: 'old-token');
+    expect(platform.clearedToken, 'old-token');
+  });
+
+  test('failed microG cache clear is sanitized and does not fetch a token',
+      () async {
+    await auth.acquire(interactive: true);
+    final before = platform.requests.length;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(native, (_) async {
+      throw PlatformException(
+          code: 'native_error', message: 'private-access-token');
+    });
+    await expectLater(
+        auth.acquire(
+            expectedAccountId: 'account-a', rejectedToken: 'old-token'),
+        throwsA(isA<DriveAuthorizationException>().having((e) => e.toString(),
+            'sanitized', 'Drive authorization: unavailable')));
+    expect(platform.requests.length, before);
   });
 
   test('scope consent occurs only after explicit interactive action', () async {
@@ -150,12 +213,34 @@ void main() {
     await auth.acquire(interactive: true);
     await auth.signOut(revoke: true);
     expect(platform.revokeCalled, isTrue);
+    final request = revocation.requests.single;
+    expect(request.method, 'POST');
+    expect(request.uri.toString(), 'https://oauth2.googleapis.com/revoke');
+    expect(request.followRedirects, isFalse);
+    expect(request.data, 'token=private-access-token');
+    expect(request.contentType, Headers.formUrlEncodedContentType);
+    expect(revocation.closed, isTrue);
     await expectLater(
         auth.acquire(expectedAccountId: 'account-a'), throwsException);
     expect(platform.lightweightSignIns, 0);
     await auth.acquire(interactive: true);
     await auth.signOut();
     expect(platform.signOutCalled, isTrue);
+    expect(revocation.requests.length, 1);
+  });
+
+  test('server revocation failure never reports a successful local disconnect',
+      () async {
+    await auth.acquire(interactive: true);
+    revocation.status = 500;
+    await expectLater(
+        auth.signOut(revoke: true),
+        throwsA(isA<DriveAuthorizationException>().having((e) => e.toString(),
+            'redacted', 'Drive authorization: unavailable')));
+    expect(platform.revokeCalled, isFalse);
+    expect(revocation.closed, isTrue);
+    expect((await auth.acquire(expectedAccountId: 'account-a')).accountId,
+        'account-a');
   });
 
   test('cold-start revoke cannot claim removal of a grant it has not restored',
@@ -165,5 +250,6 @@ void main() {
         throwsA(isA<DriveAuthorizationException>().having((e) => e.issue,
             'issue', DriveAuthorizationIssue.interactionRequired)));
     expect(platform.revokeCalled, isFalse);
+    expect(revocation.requests, isEmpty);
   });
 }

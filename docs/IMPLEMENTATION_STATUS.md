@@ -10,7 +10,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 BLOCKED on legitimate metadata access; first online
+- Feature implementation: S1 BLOCKED at legitimate metadata application access;
+  additional required authorization evidence is retained below. Legitimate
+  metadata application access remains the external B2 gap. First online
   authorization, cancellation/reconnect and QA-03 release naming are verified.
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
@@ -306,7 +308,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
+| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining auth evidence: elapsed-expiry renewal and actual second-account check; second test account needs the owner's choice |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
@@ -321,10 +323,68 @@ does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocks MET
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolve it. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at B2. S3 has closed after its complete
+reclassified as a deferral. S1 resumed as the sole ACTIVE stage for remaining
+authorization evidence after S3's complete
 acceptance reconciliation. Its explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S1 native authorization failure and repair checkpoint (2026-10-02)
+
+- Transactional cleanup removed 842,580,673 bytes of task-generated build output
+  and the superseded 250,598,746-byte task-owned recovery APK after the verified
+  normal reinstall. The build ticket retained 11 nonempty directories and 7,563
+  excluded pre-existing entries; no broad recursive deletion was performed.
+  These expendable outputs can be rebuilt, not recovered from a recycle bin.
+- The debug-only `drive_authorization_lifecycle_app.dart` reads the primary saved
+  source without config recovery or normal bootstrap. It uses the real native
+  driver and fixed-origin read-only root metadata; no mock authorization, database
+  writes, queue, ROM body reads or bearer-token persistence. Diagnostic output is
+  fixed proof codes, never tokens, account IDs, API bodies or native exceptions.
+- Before the repair, PID 18552 connected to the real root at 14:14:33, then stalled
+  on native clear. Device feature diagnostics identified
+  `auth_api_credentials_clear_token`; the matching microG feature list omits it.
+  Its clear handler was never dispatched. PID 25706 rejected a deliberately
+  foreign saved binding while retaining real default-account access, but after
+  native disconnect at 14:22:21 the held previous grant still returned HTTP 200.
+  This was a real remote-revocation failure, not successful revocation.
+- The repair selects the actual microG native cache boundary by service component;
+  ordinary GMS keeps the plugin operation. Native errors are fixed/redacted and
+  calls await completion without a timeout. Explicit remote revocation uses
+  Google's OAuth endpoint, form-body token and HTTP 200 before native disconnect.
+  A failed server response retains the binding for explicit retry and cannot
+  claim a successful revoke or remove a source/file.
+- Updated actual Thor PID 2540: native cache clear entered 14:32:16.335 and returned
+  14:32:16.428; noninteractive authorization and real root succeeded 14:32:17.329.
+  Revoke completed 14:32:35.427, background acquisition required interaction, and
+  the held prior grant was rejected by Google with HTTP 401 at 14:32:35.535.
+  No account chooser or scope UI appeared during that silent renewal.
+- After revocation, actual Google scope consent reappeared. Cancel was selected;
+  microG returned to its warning/help flow, and Back ended authorization at
+  14:35:27.818 as sanitized `unavailable`, with no grant/root success. This proves
+  safe declined access, not that microG supplies the plugin's `cancelled` enum.
+  Explicit reconnect to the same default account restored consent and the real
+  root succeeded 14:38:42.163. No other account was selected.
+- Focused native-driver/coordinator/API contracts passed, covering the supported
+  microG and ordinary GMS routes, redaction, revoked background state, read-only
+  account binding, token renewal and server-revoke failure preservation. Cache-
+  clear regression failed before the implementation and passed afterwards. Actual
+  elapsed-expiry and second-live-account proof are still required, not silently
+  replaced by a fresh connection or deliberately foreign ID fixture.
+- S1 is now parked as BLOCKED at external B2/META-02: legitimate fork application
+  credentials and authenticated lookup still cannot be completed. The existing
+  ScreenScraper tab was logged out on reload; stale visible content is not a fresh
+  approval result. The owner has been asked to restore that session and choose a
+  second Google test account. S4 remains BLOCKED at the same access boundary;
+  S5-S8 are NOT STARTED. There is no second ACTIVE implementation stage.
+- The normal (not probe) debug APK was rebuilt and installed without uninstall,
+  SHA-256 `DAA8B182C8F722F4E3DC75685EE346B8919BFEFB1159C62AF6CFCE3EBDD7FFEE`.
+  Normal startup PID 26680 was verified and stopped. Saved-source config hash
+  remained `ddbe4fa2d045fedf91904908210feb24eae71b8bd625427f7aa7a78095d39c69`;
+  normal SQLite remains schema 22, 134 games and 2 installations. Both isolated
+  roundtrip saves retain their original SHA-256. The transient device UI XML was
+  removed; plug-in stay-awake setting restored to 1 and both actual displays
+  confirmed OFF. No normal SD library migration, release or push occurred.
 
 ### Resumption and provider-access checkpoint (2026-10-02)
 

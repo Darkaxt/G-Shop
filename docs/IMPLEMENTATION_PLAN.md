@@ -50,6 +50,33 @@ Evidence: migration and identity regression tests; consent/cancel/renewal/accoun
 isolation proof; redaction tests; live authenticated metadata lookup. Missing API
 access blocks the corresponding acceptance criterion, not unrelated fixture work.
 
+### S1 Thor native authorization boundary (2026-10-02)
+
+The actual Thor runs microG 0.3.15.250932. Its identity authorization service does
+not advertise `auth_api_credentials_clear_token`, so the modern SDK awaits missing
+feature resolution without dispatching the clear handler. Select microG's supported
+native GoogleAuthUtil cache-clear operation by its installed authorization-service
+component before calling that SDK method; ordinary Play Services retains the
+endorsed route. No timeouts, sleeps, SDK downgrade or account-provider replacement.
+Evidence: matching [microG service feature list](https://github.com/microg/GmsCore/blob/v0.3.15.250932/play-services-core/src/main/kotlin/org/microg/gms/auth/credentials/CredentialsService.kt),
+[authorization service implementation](https://github.com/microg/GmsCore/blob/v0.3.15.250932/play-services-core/src/main/kotlin/org/microg/gms/auth/credentials/identity/AuthorizationService.kt)
+and the actual device dispatch trace.
+
+The same microG revision's revokeAccess only invalidates local consent; a live
+probe demonstrated the previous grant still authorized Drive (HTTP 200). Explicit
+Revoke must first confirm Google's fixed OAuth revocation POST, with the ephemeral
+token in a form body, then disconnect native consent. Failures remain sanitized
+and must not report remote revocation. This is account-wide/project-wide grant
+revocation, not deleting a source or mutating Drive files. Keep credentials in
+memory only and preserve the retry binding on server failure.
+The HTTP success contract follows [Google's OAuth revocation protocol](https://developers.google.com/identity/protocols/oauth2/native-app#tokenrevoke).
+
+Required evidence: reproduce both failures on the actual native adapter; focused
+redaction/ordinary-GMS/microG/account-binding/revoke-failure contracts; native cache
+clear plus silent authorized metadata; prior grant rejected after server revoke;
+scope decline/reconnect; unchanged sources/files and both displays OFF. Cache
+invalidation proof does not become elapsed-expiry or second-live-account proof.
+
 ## S2 — Drive catalogue and source integration
 
 Requirements: DRIVE-02, DRIVE-03.

@@ -1,6 +1,8 @@
 package com.retro.rshop
 
 import android.content.Context
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
@@ -15,6 +17,7 @@ import java.io.*
 import java.util.concurrent.Executors
 import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
+import com.google.android.gms.auth.GoogleAuthUtil
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.retro.rshop/zip"
@@ -67,6 +70,44 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            "com.retro.rshop/drive_authorization").setMethodCallHandler { call, result ->
+            if (call.method != "clearTokenIfMicroG") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+            val token = call.argument<String>("token")
+            if (token.isNullOrBlank()) {
+                result.error("invalid_arguments", "Missing token", null)
+                return@setMethodCallHandler
+            }
+            val microG = try {
+                packageManager.getServiceInfo(ComponentName("com.google.android.gms",
+                    "org.microg.gms.auth.credentials.identity.AuthorizationService"), 0)
+                true
+            } catch (_: PackageManager.NameNotFoundException) {
+                false
+            }
+            if (!microG) {
+                result.success(false)
+                return@setMethodCallHandler
+            }
+            extractorPool.execute {
+                try {
+                    // microG uses the same OAuth token cache for both APIs. Its
+                    // older native auth service implements this synchronous call.
+                    // No timeout, account removal, persisted token or raw log.
+                    @Suppress("DEPRECATION")
+                    GoogleAuthUtil.clearToken(applicationContext, token)
+                    mainHandler.post { result.success(true) }
+                } catch (_: Exception) {
+                    mainHandler.post {
+                        result.error("unavailable", "Token cache clear failed", null)
+                    }
+                }
+            }
+        }
 
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, PROGRESS_CHANNEL).setStreamHandler(
             object : EventChannel.StreamHandler {

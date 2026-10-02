@@ -125,7 +125,8 @@ supported consoles. Unique known aliases are suggestions, not assignments to
 unsupported systems. Unknown/ambiguous mappings require an explicit choice.
 Disconnect and Revoke are labelled app-wide because the native account session
 is shared by all Drive sources; neither removes source settings or local files.
-These screens have host fixtures, not yet live account/controller acceptance.
+The native account picker, selected-folder refresh and controller browsing have
+live Thor evidence; final source-action layout/localization remains UI-02/S5.
 
 Tokens are ephemeral and diagnostics sanitized. Queue requests never open account UI:
 after process restart the current adapter requires an explicit Connect action;
@@ -134,22 +135,35 @@ account cannot satisfy an account-bound source. Disconnect/revoke is app-wide,
 not implicit source deletion; a cold process cannot claim remote revocation
 without reconnecting the account first.
 
-The normal detail/library flow now enqueues supported standalone Drive files
-through S3's verified transfer/installation lane. Archives, folders, CUE/M3U and
-other dependency-bearing layouts remain blocked until bundle support is complete.
+The normal detail/library flow enqueues supported standalone Drive files and
+explicit UTF-8 M3U/binary FILE-BINARY CUE bundles through S3's verified
+transfer/installation lane. Bundle dependencies resolve exact relative catalogue
+names, never title guesses. Archives, folders and unsupported dependency layouts
+remain blocked; bundle completion does not imply archive extraction support.
 A cached filename is not an installed game, and ordinary HTTP fallback cannot
 bypass version, checksum or ownership checks. Exact manifest-owned local removal
 now uses reviewed paths/size and journaled private quarantine, with offline
 startup recovery and actual SD synthetic proof. Changed files remain conflicts.
-There is not yet an in-app emulator-open action; sharing a file is not
-evidence of emulator launch. The live download/launch/removal round trip is still
-required, not established by the single-file queue implementation.
+The exact owned standalone RVZ launch route is verified against Dolphin, including
+offline launch, owned SD removal, preserved saves and real Drive re-download.
+Bundle queue/resume/readiness/share/removal has actual native SD proof with
+synthetic disc bytes; it is not a multi-disc emulator boot claim. See the S3
+closure reconciliation in IMPLEMENTATION_STATUS.md.
 
-On 2026-10-02, deliberate chooser cancellation followed by reconnect also returned
-the real Drive root without another scope prompt. The current grant was reused;
-this does not prove renewal after expiry. Still required: scope denial,
-expiry-driven renewal, account isolation and revoke proof on the Thor.
-Mocked native-platform tests do not satisfy these.
+The earlier 2026-10-02 chooser cancellation/reconnect checkpoint returned the real
+Drive root without another scope prompt. That reused the current grant, not proof
+of renewal after expiry. Its then-outstanding lifecycle checks are superseded by
+the later native evidence below; mocked native-platform tests alone do not
+satisfy live acceptance.
+
+The later real lifecycle probe found and repaired two microG-specific failures:
+missing native token-clear feature dispatch, and local-only SDK revokeAccess.
+Native token clearing and silent authorized root access now pass on the Thor;
+explicit OAuth server revocation invalidates the previous grant (HTTP 401), and
+scope decline followed by fresh consent/reconnect is verified. The declined
+microG flow reports sanitized `unavailable`, not the plugin's `cancelled` enum.
+Actual elapsed-expiry and second-live-account checks remain required. See the
+S1 repair checkpoint for exact evidence and remaining external access gaps.
 
 ## Native foundation tests (no provider accounts or ROM access)
 

@@ -86,6 +86,9 @@ android {
 }
 
 dependencies {
+    // Match the endorsed sign-in plugin; used only for microG's native cache
+    // invalidation boundary, not a second sign-in or account provider.
+    implementation("com.google.android.gms:play-services-auth:21.6.0")
     implementation("com.hierynomus:smbj:0.13.0")
     testImplementation("junit:junit:4.13.2")
 }

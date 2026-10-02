@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'drive_authorization.dart';
@@ -5,13 +8,21 @@ import 'drive_authorization.dart';
 /// Flutter's endorsed plugin delegates Android authentication and scope
 /// authorization to Google's native SDK. No embedded client secret is needed.
 class GoogleDriveSignIn implements DriveAuthorizationDriver {
+  static const _nativeAuthorization =
+      MethodChannel('com.retro.rshop/drive_authorization');
   final GoogleSignIn _google;
   final String serverClientId;
+  final HttpClientAdapter? _revocationAdapter;
   Future<void>? _initialization;
   GoogleSignInAccount? _account;
+  String? _lastAccessToken;
 
-  GoogleDriveSignIn({required this.serverClientId, GoogleSignIn? google})
-      : _google = google ?? GoogleSignIn.instance;
+  GoogleDriveSignIn(
+      {required this.serverClientId,
+      GoogleSignIn? google,
+      HttpClientAdapter? revocationAdapter})
+      : _google = google ?? GoogleSignIn.instance,
+        _revocationAdapter = revocationAdapter;
 
   Future<void> _initialize() {
     if (serverClientId.trim().isEmpty) {
@@ -52,6 +63,7 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
       _native(() async {
         if (interactive) {
           _account = null;
+          _lastAccessToken = null;
           _account = await _google.authenticate();
         }
         // Android lightweight authentication may show an account sheet. Only
@@ -81,33 +93,74 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
         }
         final client = _boundAccount(accountId).authorizationClient;
         final existing = await client.authorizationForScopes(scopes);
-        if (existing != null) return existing.accessToken;
+        if (existing != null) return _lastAccessToken = existing.accessToken;
         if (!interactive) return null;
-        return (await client.authorizeScopes(scopes)).accessToken;
+        return _lastAccessToken =
+            (await client.authorizeScopes(scopes)).accessToken;
       });
+
+  Future<void> _revokeAtGoogle(String token) async {
+    // The observed microG revokeAccess implementation only clears local consent.
+    // Google's fixed OAuth revocation endpoint confirms the actual app-wide
+    // grant removal. Send the ephemeral token in a form body, never a URL/log.
+    final http = Dio(BaseOptions(
+        baseUrl: 'https://oauth2.googleapis.com/',
+        followRedirects: false,
+        responseType: ResponseType.stream,
+        validateStatus: (_) => true));
+    final adapter = _revocationAdapter;
+    if (adapter != null) http.httpClientAdapter = adapter;
+    try {
+      final response = await http.post<ResponseBody>('revoke',
+          data: 'token=${Uri.encodeQueryComponent(token)}',
+          options: Options(contentType: Headers.formUrlEncodedContentType));
+      await response.data?.stream.listen((_) {}).cancel();
+      if (response.statusCode != 200) {
+        throw const DriveAuthorizationException(
+            DriveAuthorizationIssue.unavailable);
+      }
+    } finally {
+      http.close();
+    }
+  }
 
   @override
   Future<void> clearRejectedToken(String accountId, String token) =>
-      _native(() => _boundAccount(accountId)
-          .authorizationClient
-          .clearAuthorizationToken(accessToken: token));
+      _native(() async {
+        final client = _boundAccount(accountId).authorizationClient;
+        // microG's identity service omits the clear-token feature, causing the
+        // modern SDK to await feature resolution instead of dispatching the call.
+        // Select its supported native cache operation BEFORE making that call.
+        // Ordinary Play Services and other platforms retain the endorsed route.
+        if (defaultTargetPlatform == TargetPlatform.android &&
+            await _nativeAuthorization.invokeMethod<bool>(
+                    'clearTokenIfMicroG', {'token': token}) ==
+                true) {
+          return;
+        }
+        await client.clearAuthorizationToken(accessToken: token);
+      });
 
   @override
   Future<void> signOut({required bool revoke}) => _native(() async {
-        if (revoke && _account == null) {
-          // Android disconnect revokes its process-local account cache only.
-          // A cold start cannot truthfully claim a grant was remotely revoked.
+        if (revoke && (_account == null || _lastAccessToken == null)) {
+          // Without a restored credential, a cold start cannot confirm that
+          // the app's actual remote grant was revoked.
           throw const DriveAuthorizationException(
               DriveAuthorizationIssue.interactionRequired);
         }
-        _account = null;
         if (revoke) {
           // This is app-wide disconnection of all accounts connected through
           // Google's SDK, not a per-source operation. The settings UI must label
           // it accordingly; deleting a source must never call this implicitly.
+          // Keep the bound credential on server failure so an explicit retry
+          // remains possible. The coordinator already invalidated late grants.
+          await _revokeAtGoogle(_lastAccessToken!);
           await _google.disconnect();
         } else {
           await _google.signOut();
         }
+        _account = null;
+        _lastAccessToken = null;
       });
 }
