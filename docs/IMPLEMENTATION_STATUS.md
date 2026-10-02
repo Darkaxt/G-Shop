@@ -13,9 +13,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 - Feature implementation: S1 BLOCKED on legitimate metadata access; first online
   authorization, cancellation/reconnect and QA-03 release naming are verified.
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
-  and offline cold-start browsing are verified. S3 ACTIVE on verified transfer
-  and owned installations; its identity/migration/catalogue dependencies are
-  available. S4 remains BLOCKED on B2 and is not worked on concurrently.
+  and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
+  verified transfer, native process recovery, bundles and owned installations.
+  S4 remains BLOCKED on B2 and is not worked on concurrently.
   S5-S8 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
@@ -206,7 +206,58 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   installation and its integrated readiness/removal proof remain unfinished.
   No later stage, existing-library migration, push or external release occurred.
 
-### User-requested pause (2026-10-02)
+### S3 bundle and stage acceptance closure (2026-10-02)
+
+- Selected M3U/CUE dependencies now use the normal persistent queue, rooted
+  catalogue, production journal and native storage. Exact relative layout/header
+  bytes are preserved; bounded cancellable planning does not read discs during
+  indexing. Missing/ambiguous/unsafe/unsupported dependencies are rejected, not
+  adopted by namesake. Completed members are not independent ready games.
+- The actual Thor probe used synthetic playlist/CUE/disc/track bytes, a separate
+  database and exclusive SD root. After the observed first-disc commit, an actual
+  force-stop/relaunch restored the ordinary queue and downloaded only track/CUE/
+  playlist. Root completion included exact children and retired private stages.
+  Renaming a required disc made readiness fail until that exact object returned.
+  The share ZIP contained precisely four ROM members, excluding a neighboring save.
+- This real device test caught an overlong child-removal identifier hidden by
+  earlier short-ID fixtures. The deterministic tuple SHA-256 identifier fixes the
+  native staging limit without relaxing it. Full-length-ID regressions pass.
+  Recovery resumed the already-quarantined root; after the actual track quarantine
+  before its receipt, a second force-stop/relaunch finished exact removal offline.
+  The neighboring save's SHA-256 stayed unchanged. Root/database absence was
+  independently checked; no normal library/cloud file was part of the probe.
+- Bundle-version replacement retains old bytes until the new graph commits.
+  A completed new graph is selected even if old-byte retirement is blocked; root
+  version equality cannot select an outdated dependency graph by path ordering.
+  Focused regressions cover this retained-owner case and interrupted child removal.
+- Actual Android instrumentation passed root reads and rejection of independent
+  member grants, missing/changed members, pending child removal, changed ownership,
+  unretired copy stages and graph mismatch. Its separate synthetic DB/files were
+  cleaned, and no synthetic row remains in the normal DB. Existing read-only,
+  publication/digest/owner/removal gates also passed. Synthetic bundle bytes are
+  not proof of a multi-disc emulator boot; the real RVZ/Dolphin round trip above is
+  the separate actual emulator acceptance evidence.
+- Fresh affected planner/engine/runtime/journal/catalogue/provider/queue/local
+  discovery/migration and details/download-overlay/exact-achievement regressions
+  passed. The scoped analyzer and normal debug build passed. Install-replace
+  restored the normal APK; additive v22 retained 134 cached games, two installs,
+  completed/retained removal audit, no replacement or bundle fixture rows.
+  Both existing 78-byte save fixtures retain SHA-256
+  `91c1a8f28fe1d02d710efaf4f5b7001efab3ba585f5ef59b6d406b1a00ac929b`.
+  Normal APK SHA-256:
+  `31F0CDA4B3B2C6A86F7C1024E4AD5EF7DF81D08812055FF8B97ECF46E5A29680`.
+  Test instrumentation package was removed; normal app data/signature/package
+  were preserved. Both actual displays (0 and 4) were confirmed OFF.
+- Reconciled DRIVE-04: validated 200/206/416, range/size/version/checksum and crash
+  regressions plus measured native bounded large-file streaming/copy space.
+  DRIVE-05: cancellation and process-stop publication recovery, no-clobber
+  collision preservation, replacement and postcommit cleanup boundaries verified.
+  DRIVE-06: actual online/offline Dolphin round trip and save-safe removal/reinstall,
+  exact ownership/redirected/replaced-file conflicts and bundle consistency verified.
+  No unmet S3 criterion or S3 deferral remains. S3 is COMPLETE, not the entire fork.
+  S1's auth lifecycle/B2, S4-S8 and S5's named source-action UX work remain required.
+
+### User-requested pause (historical checkpoint, 2026-10-02)
 
 - Execution paused at the user's explicit request. S3 retains ACTIVE as its
   stage status but receives no work while paused; no other stage was activated.
@@ -257,7 +308,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
-| S3 | ACTIVE | Owned journal and exact publication/retirement; actual normal-UI Drive-to-SD download, verified commit, Dolphin boot, offline cold restart/boot, explicit reviewed removal and verified re-download; neighboring save unchanged; v20 cross-mount retained-intent recovery; real publication process-stop recovery and preserved unrecorded-create conflict; actual large-file bounded streams and measured SD copy space; exact-version achievement keys, pinned raw hashing and actual Android cache isolation | Bundles/playlists and valid-target replacement remain ordinary unfinished work; no S3 completion claim |
+| S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -270,9 +321,9 @@ does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocks MET
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolve it. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at B2. S3 is the only ACTIVE stage after
-S2 acceptance passed. Its explicit dependencies are S2 exact artefacts/queue and
-S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
+reclassified as a deferral. S1 is parked at B2. S3 has closed after its complete
+acceptance reconciliation. Its explicit dependencies were S2 exact artefacts/queue
+and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
 
 ### Resumption and provider-access checkpoint (2026-10-02)

@@ -230,6 +230,39 @@ visible conflicts. Offline startup performs one paged recovery pass, not retries
 or directory scans. Native process-stop proof remains required before closing
 this boundary; bundle/playlist support is still unfinished within S3.
 
+### S3 explicit bundle installation route (2026-10-02)
+
+Selected UTF-8 M3U and binary FILE/BINARY CUE manifests resolve dependencies by
+exact relative names inside the published, folder-ID-rooted catalogue. Duplicate
+names, parent traversal, absolute paths, URLs, cycles, unsupported formats and
+missing provider checksums fail before installation. Indexing still reads no
+payloads. Manifest planning is cancellable and joined at disconnect; it reads
+only selected headers (256 KiB each, 1 MiB aggregate), not disc bodies.
+
+Persist the immutable flattened dependency graph before creating member transfers.
+Limit it to 256 members. A dedicated full-identity bundle namespace preserves the
+original relative layout and header bytes; a dependency-version change creates a
+new graph even when the playlist version did not change. Children share the normal
+queue slot and stream sequentially, with aggregate progress. Restore the durable
+graph and exact completed members, not a filename-derived guess.
+
+Additive v22 ownership excludes member transfers from independent installation
+discovery. Commit the root only with every exact member installation and retired
+private stage; normal consumers and native read grants revalidate those members.
+Retained old bundles do not outrank their committed replacement. Removal previews
+list every exact member and total bytes. Parent-authorized child removal has a
+bounded deterministic SHA-256 journal/staging name and recovers independently of
+the source. Never recursively remove public directories or neighboring saves.
+Sharing streams pinned exact members into a private temporary tree and STORE ZIP,
+not a guessed public game folder. Its handles close even on output-open failure.
+
+Required proof: actual queue/native SD process-stop after a member commit and
+quarantine before receipt; no repeated completed-disc media request; missing-disc
+readiness rejection; exact sharing/removal/save preservation; native grant checks;
+upgrade/restart of normal data. Synthetic disc bytes prove these boundaries, not
+an actual multi-disc emulator boot. The real RVZ/Dolphin round trip supplies the
+separate actual emulator acceptance evidence.
+
 ## S4 — Fresh metadata pipeline and score semantics
 
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.

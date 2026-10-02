@@ -13,7 +13,7 @@ import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion < 13 || previousVersion > 20) {
+  if (previousVersion < 13 || previousVersion > 21) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -60,7 +60,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
-      'transfer_replacements',
+      if (previousVersion < 21) 'transfer_replacements',
       if (previousVersion < 19) 'owned_removals',
       if (previousVersion < 18) ...[
         'metadata_refresh_items',
@@ -90,6 +90,10 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     if (previousVersion < 17) {
       await opened.execute('DROP INDEX IF EXISTS idx_transfer_artifact');
     }
+    if (previousVersion >= 16 && previousVersion < 22) {
+      await opened.execute('DROP INDEX IF EXISTS idx_transfer_bundle');
+      await opened.execute('ALTER TABLE transfer_records DROP COLUMN bundle_owner');
+    }
     // Remove the v15 cache extension too, retaining the original row IDs.
     if (previousVersion < 15) {
       await opened.execute('DROP INDEX idx_games_system_filename');
@@ -112,7 +116,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 21);
+    expect(await opened.getVersion(), 22);
     expect(await opened.query('transfer_replacements'), isEmpty);
     expect(await opened.query('owned_removals'), isEmpty);
     expect(await opened.query('metadata_refresh_jobs'), isEmpty);
@@ -160,7 +164,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 21);
+    expect(await opened.getVersion(), 22);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');

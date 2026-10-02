@@ -13,6 +13,30 @@ enum TransferLifecycle {
 
 enum PublicationMethod { rename, copy }
 
+/// Immutable flattened dependency graph. Paths include the exclusive bundle
+/// namespace; every member keeps its original emulator-relative filename.
+class TransferBundleMember {
+  final String transferId;
+  final RemoteArtifact artifact;
+  final String relativePath;
+  TransferBundleMember(
+      {required this.transferId,
+      required this.artifact,
+      required String relativePath})
+      : relativePath = _safeRelativePath(relativePath);
+  factory TransferBundleMember.fromJson(Map<String, dynamic> json) =>
+      TransferBundleMember(
+          transferId: json['transferId'] as String,
+          artifact: RemoteArtifact.fromJson(
+              (json['artifact'] as Map).cast<String, dynamic>()),
+          relativePath: json['relativePath'] as String);
+  Map<String, dynamic> toJson() => {
+        'transferId': transferId,
+        'artifact': artifact.toJson(),
+        'relativePath': relativePath
+      };
+}
+
 /// A durable publication intent, persisted before touching the public target.
 /// The verified source remains owned until the installation transaction commits.
 class TransferPublication {
@@ -65,6 +89,8 @@ class TransferRecord {
   /// Immutable previous owner. Replacement publishes to a distinct path before
   /// this exact installation can be retired; it never overwrites the old target.
   final InstalledArtifact? replacesInstallation;
+  final String? bundleOwner;
+  final List<TransferBundleMember> bundleMembers;
   final int durableOffset;
   final TransferLifecycle lifecycle;
   final int revision;
@@ -93,6 +119,8 @@ class TransferRecord {
     required String relativePath,
     required String stagePath,
     this.replacesInstallation,
+    this.bundleOwner,
+    List<TransferBundleMember> bundleMembers = const [],
     this.durableOffset = 0,
     this.lifecycle = TransferLifecycle.queued,
     this.revision = 0,
@@ -108,7 +136,11 @@ class TransferRecord {
         stagePath = _identifier(stagePath, 'stagePath'),
         errorCode = _errorCode(errorCode),
         stageRetirementIssue = _errorCode(stageRetirementIssue),
-        verifiedChecksums = _checksums(verifiedChecksums) {
+        verifiedChecksums = _checksums(verifiedChecksums),
+        bundleMembers = List.unmodifiable(bundleMembers) {
+    if (bundleMembers.isNotEmpty && bundleOwner != null) {
+      throw ArgumentError('A member cannot own a nested bundle');
+    }
     if (durableOffset < 0) {
       throw ArgumentError.value(
         durableOffset,
@@ -137,6 +169,12 @@ class TransferRecord {
         destinationRoot: json['destinationRoot'] as String,
         relativePath: json['relativePath'] as String,
         stagePath: json['stagePath'] as String,
+        bundleOwner: json['bundleOwner'] as String?,
+        bundleMembers: [
+          for (final member in json['bundleMembers'] as List? ?? const [])
+            TransferBundleMember.fromJson(
+                (member as Map).cast<String, dynamic>())
+        ],
         replacesInstallation: json['replacesInstallation'] == null
             ? null
             : InstalledArtifact.fromJson(
@@ -182,6 +220,8 @@ class TransferRecord {
         relativePath: relativePath,
         stagePath: stagePath,
         replacesInstallation: replacesInstallation,
+        bundleOwner: bundleOwner,
+        bundleMembers: bundleMembers,
         durableOffset: durableOffset ?? this.durableOffset,
         lifecycle: lifecycle ?? this.lifecycle,
         revision: revision ?? this.revision,
@@ -201,6 +241,11 @@ class TransferRecord {
         'destinationRoot': destinationRoot,
         'relativePath': relativePath,
         'stagePath': stagePath,
+        if (bundleOwner != null) 'bundleOwner': bundleOwner,
+        if (bundleMembers.isNotEmpty)
+          'bundleMembers': [
+            for (final member in bundleMembers) member.toJson()
+          ],
         if (replacesInstallation != null)
           'replacesInstallation': replacesInstallation!.toJson(),
         'durableOffset': durableOffset,
@@ -287,6 +332,7 @@ class InstalledArtifact {
   final NativeFileIdentity fileIdentity;
   final String? gameId;
   final String? editionId;
+  final List<InstalledArtifact> dependencies;
 
   InstalledArtifact({
     required String id,
@@ -299,13 +345,22 @@ class InstalledArtifact {
     required this.fileIdentity,
     String? gameId,
     String? editionId,
+    List<InstalledArtifact> dependencies = const [],
   })  : id = _identifier(id, 'id'),
         transferId = _identifier(transferId, 'transferId'),
         destinationRoot = _identifier(destinationRoot, 'destinationRoot'),
         relativePath = _safeRelativePath(relativePath),
         verifiedChecksums = _checksums(verifiedChecksums),
         gameId = _optionalIdentifier(gameId, 'gameId'),
-        editionId = _optionalIdentifier(editionId, 'editionId') {
+        editionId = _optionalIdentifier(editionId, 'editionId'),
+        dependencies = List.unmodifiable(dependencies) {
+    if (dependencies.any((member) =>
+        member.dependencies.isNotEmpty ||
+        member.id == id ||
+        member.destinationRoot != destinationRoot)) {
+      throw ArgumentError(
+          'Bundle dependencies must be flat exact owned members');
+    }
     if (sizeBytes < 0) {
       throw ArgumentError.value(sizeBytes, 'sizeBytes', 'Must be non-negative');
     }
@@ -341,6 +396,10 @@ class InstalledArtifact {
         ),
         gameId: json['gameId'] as String?,
         editionId: json['editionId'] as String?,
+        dependencies: [
+          for (final member in json['dependencies'] as List? ?? const [])
+            InstalledArtifact.fromJson((member as Map).cast<String, dynamic>())
+        ],
       );
 
   Map<String, dynamic> toJson() => {
@@ -354,6 +413,8 @@ class InstalledArtifact {
         'fileIdentity': fileIdentity.toJson(),
         if (gameId != null) 'gameId': gameId,
         if (editionId != null) 'editionId': editionId,
+        if (dependencies.isNotEmpty)
+          'dependencies': [for (final member in dependencies) member.toJson()],
       };
 }
 

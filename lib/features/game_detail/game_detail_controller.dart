@@ -30,8 +30,19 @@ class GameDetailController extends ChangeNotifier {
   bool _preparingRemoval = false;
   int _removalReviewToken = 0;
   InstalledArtifact? _reviewedRemoval;
-  String? get removalPreview => _reviewedRemoval == null ? null :
-      '${_reviewedRemoval!.destinationRoot}/${_reviewedRemoval!.relativePath}\n${GameMetadata.formatFileSize(_reviewedRemoval!.sizeBytes)}';
+  String? get removalPreview => _reviewedRemoval == null
+      ? null
+      : '${[
+          for (final member in [
+            _reviewedRemoval!,
+            ..._reviewedRemoval!.dependencies
+          ])
+            '${member.destinationRoot}/${member.relativePath}'
+        ].join('\n')}\n'
+          '${GameMetadata.formatFileSize([
+          _reviewedRemoval!,
+          ..._reviewedRemoval!.dependencies
+        ].fold<int>(0, (sum, member) => sum + member.sizeBytes))}';
   GameDetailState _state = const GameDetailState();
   GameDetailState get state => _state;
   GameItem get selectedVariant =>
@@ -41,9 +52,8 @@ class GameDetailController extends ChangeNotifier {
   // --- Dynamic sections ---
   List<DetailSection> _availableSections = const [DetailSection.actions];
   List<DetailSection> get availableSections => _availableSections;
-  DetailSection get focusedSection =>
-      _availableSections[_state.focusedSectionIndex
-          .clamp(0, _availableSections.length - 1)];
+  DetailSection get focusedSection => _availableSections[
+      _state.focusedSectionIndex.clamp(0, _availableSections.length - 1)];
 
   @override
   void dispose() {
@@ -193,8 +203,7 @@ class GameDetailController extends ChangeNotifier {
     if (_nonInteractiveSections.contains(section)) {
       return true;
     }
-    if (skipActionsInVerticalNav &&
-        _leftColumnSections.contains(section)) {
+    if (skipActionsInVerticalNav && _leftColumnSections.contains(section)) {
       return true;
     }
     return false;
@@ -270,7 +279,8 @@ class GameDetailController extends ChangeNotifier {
               _disabledActionButtons.contains(newIdx)) {
             newIdx += delta;
           }
-          if (newIdx >= 0 && (_actionButtonMax == 0 || newIdx < _actionButtonMax)) {
+          if (newIdx >= 0 &&
+              (_actionButtonMax == 0 || newIdx < _actionButtonMax)) {
             _state = _state.copyWith(actionButtonIndex: newIdx);
             notifyListeners();
             return true;
@@ -296,8 +306,7 @@ class GameDetailController extends ChangeNotifier {
 
     // LEFT from right column → jump to primaryAction in left column
     if (direction == GridDirection.left && !isInLeftColumn) {
-      final targetIdx =
-          _availableSections.indexOf(DetailSection.primaryAction);
+      final targetIdx = _availableSections.indexOf(DetailSection.primaryAction);
       if (targetIdx < 0) return false;
       _state = _state.copyWith(
         lastRightSectionIndex: _state.focusedSectionIndex,
@@ -331,8 +340,7 @@ class GameDetailController extends ChangeNotifier {
     final section = focusedSection;
     if (!_leftColumnSections.contains(section)) return false;
 
-    if (direction == GridDirection.up &&
-        section == DetailSection.actions) {
+    if (direction == GridDirection.up && section == DetailSection.actions) {
       final idx = _availableSections.indexOf(DetailSection.primaryAction);
       if (idx >= 0) {
         _state = _state.copyWith(focusedSectionIndex: idx);
@@ -450,7 +458,8 @@ class GameDetailController extends ChangeNotifier {
   Future<void> checkInstallationStatus() async {
     // RomManager resolves exact files through committed, native-revalidated
     // manifests; its legacy lookup cannot adopt a managed namesake.
-    final status = await _romManager.checkMultipleExists(variants, system, targetFolder);
+    final status =
+        await _romManager.checkMultipleExists(variants, system, targetFolder);
     _state = _state.copyWith(installedStatus: status);
     notifyListeners();
   }
@@ -463,7 +472,8 @@ class GameDetailController extends ChangeNotifier {
 
     try {
       final queueSizeBefore = _queueManager.state.queue.length;
-      _queueManager.addToQueue(selectedVariant, system, targetFolder, autoExtract: autoExtract);
+      _queueManager.addToQueue(selectedVariant, system, targetFolder,
+          autoExtract: autoExtract);
       final actuallyAdded = _queueManager.state.queue.length > queueSizeBefore;
       await Future.delayed(const Duration(milliseconds: 300));
       await checkInstallationStatus();
@@ -482,9 +492,15 @@ class GameDetailController extends ChangeNotifier {
     if (_state.isDeleting) return;
     final managed = _requiresVerifiedInstallation(selectedVariant);
     final reviewed = _reviewedRemoval;
-    if (managed && (reviewed == null || selectedVariant.remoteArtifact == null ||
-        !InstallationSnapshot.sameContent(reviewed.artifact, selectedVariant.remoteArtifact!))) {
-      _state = _state.copyWith(error: 'Verified remote artifact removal requires an exact reviewed installation.', activeOverlay: ActiveOverlay.none);
+    if (managed &&
+        (reviewed == null ||
+            selectedVariant.remoteArtifact == null ||
+            !InstallationSnapshot.sameContent(
+                reviewed.artifact, selectedVariant.remoteArtifact!))) {
+      _state = _state.copyWith(
+          error:
+              'Verified remote artifact removal requires an exact reviewed installation.',
+          activeOverlay: ActiveOverlay.none);
       notifyListeners();
       return;
     }
@@ -515,7 +531,8 @@ class GameDetailController extends ChangeNotifier {
   }
 
   static bool _requiresVerifiedInstallation(GameItem game) =>
-      game.remoteArtifact != null || game.providerConfig?.type == ProviderType.drive;
+      game.remoteArtifact != null ||
+      game.providerConfig?.type == ProviderType.drive;
 
   String get cleanTitle => GameMetadata.cleanTitle(selectedVariant.filename);
 
@@ -544,11 +561,16 @@ class GameDetailController extends ChangeNotifier {
     if (_requiresVerifiedInstallation(selected)) {
       _preparingRemoval = true;
       try {
-        final manifest = await _romManager.previewOwnedRemoval(selected, targetFolder);
-        if (_disposed || token != _removalReviewToken || _state.isOverlayOpen) return;
+        final manifest =
+            await _romManager.previewOwnedRemoval(selected, targetFolder);
+        if (_disposed || token != _removalReviewToken || _state.isOverlayOpen) {
+          return;
+        }
         if (selected.remoteArtifact == null ||
-            !InstallationSnapshot.sameContent(manifest.artifact, selected.remoteArtifact!)) {
-          throw StateError('Reviewed installation differs from selected artifact');
+            !InstallationSnapshot.sameContent(
+                manifest.artifact, selected.remoteArtifact!)) {
+          throw StateError(
+              'Reviewed installation differs from selected artifact');
         }
         _reviewedRemoval = manifest;
       } catch (error) {
@@ -610,7 +632,8 @@ class GameDetailController extends ChangeNotifier {
     try {
       final variant = variants[index];
       final queueSizeBefore = _queueManager.state.queue.length;
-      _queueManager.addToQueue(variant, system, targetFolder, autoExtract: autoExtract);
+      _queueManager.addToQueue(variant, system, targetFolder,
+          autoExtract: autoExtract);
       final actuallyAdded = _queueManager.state.queue.length > queueSizeBefore;
       await Future.delayed(const Duration(milliseconds: 300));
       await checkInstallationStatus();

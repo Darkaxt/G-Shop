@@ -34,7 +34,8 @@ class OwnedRomInstrumentation : Instrumentation() {
                 report.putString("result", exerciseMountBoundary())
             } else {
                 exercise()
-                report.putString("result", "PASS owned read, write denial, identity/ownership/publication/removal rejection")
+                BundleProviderProof.exercise(targetContext)
+                report.putString("result", "PASS owned read, write denial, identity/ownership/publication/removal rejection; bundle ready/member grant/missing/member removal/ownership/stage/graph rejection")
             }
             finish(Activity.RESULT_OK, report)
         } catch (error: Throwable) {

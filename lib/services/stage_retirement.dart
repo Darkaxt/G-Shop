@@ -29,7 +29,7 @@ Future<TransferRecord> retireCommittedStage(
       String? issue;
       try {
         await InstallationIndex(journal, storage: storage)
-            .requireInstallation(current, installation);
+            .requireInstallation(current, installation, bundleOwner: current.bundleOwner);
         if (resourcesClosed) {
           await storage.retireStage(current);
         } else {

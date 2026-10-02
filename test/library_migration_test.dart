@@ -23,4 +23,6 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 18));
   test('real v20 upgrade adds replacement claims without changing cached games',
       () => verifyLibraryMigration(previousVersion: 20));
+  test('real v21 upgrade adds bundle ownership without changing cached games',
+      () => verifyLibraryMigration(previousVersion: 21));
 }

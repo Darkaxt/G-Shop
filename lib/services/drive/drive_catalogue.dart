@@ -320,22 +320,90 @@ class DriveCatalogue {
   }
 
   /// Exact observed binary in a still-published snapshot, never a filename match.
-  Future<DriveFile> requireBinary({required String sourceId,
-      required String accountId, required String rootFolderId,
-      required String fileId, required int generation}) async {
+  Future<DriveFile> requireBinary(
+      {required String sourceId,
+      required String accountId,
+      required String rootFolderId,
+      required String fileId,
+      required int generation}) async {
     final db = await _database;
     final rows = await db.rawQuery('''SELECT e.record_json
       FROM drive_catalogue_entries e
       JOIN drive_catalogue_state s ON s.scope=e.scope AND s.active=e.generation
       WHERE e.scope=? AND e.generation=? AND e.file_id=? AND e.is_folder=0''',
-      [scopeKey(sourceId, accountId, rootFolderId), generation, fileId]);
-    if (rows.isEmpty) throw const DriveCatalogueException('artifactUnavailable');
-    final file = DriveFile.fromJson(jsonDecode(rows.single['record_json'] as String)
-        as Map<String, dynamic>);
+        [scopeKey(sourceId, accountId, rootFolderId), generation, fileId]);
+    if (rows.isEmpty) {
+      throw const DriveCatalogueException('artifactUnavailable');
+    }
+    final file = DriveFile.fromJson(
+        jsonDecode(rows.single['record_json'] as String)
+            as Map<String, dynamic>);
     if (!file.isSupportedBinary) {
       throw const DriveCatalogueException('unsupportedArtifact');
     }
     return file;
+  }
+
+  /// Paged descendants of an observed folder ID, never a path-prefix match.
+  Future<DriveCatalogueEntry> requireRelativeBinary(
+      {required String sourceId,
+      required String accountId,
+      required String rootFolderId,
+      required String parentId,
+      required List<String> segments,
+      required int generation}) async {
+    if (segments.isEmpty ||
+        segments.any((s) =>
+            s.isEmpty ||
+            s == '.' ||
+            s == '..' ||
+            s.contains('/') ||
+            s.contains('\\'))) {
+      throw const DriveCatalogueException('unsafeDependency');
+    }
+    final db = await _database;
+    final scope = scopeKey(sourceId, accountId, rootFolderId);
+    return db.transaction((txn) async {
+      var parent = parentId;
+      DriveCatalogueEntry? result;
+      for (var i = 0; i < segments.length; i++) {
+        var after = '';
+        final matches = <Map<String, Object?>>[];
+        while (true) {
+          final rows = await txn
+              .rawQuery('''SELECT e.file_id, e.record_json, e.display_path
+          FROM drive_catalogue_entries e JOIN drive_catalogue_state s
+          ON s.scope=e.scope AND s.active=e.generation
+          WHERE e.scope=? AND e.generation=? AND e.parent_id=? AND e.file_id>?
+          ORDER BY e.file_id LIMIT 100''', [scope, generation, parent, after]);
+          // Duplicate names in Drive are legal. Never pick the first namesake.
+          matches.addAll(rows.where((row) =>
+              DriveFile.fromJson(jsonDecode(row['record_json'] as String)
+                      as Map<String, dynamic>)
+                  .name ==
+              segments[i]));
+          if (matches.length > 1) {
+            throw const DriveCatalogueException('ambiguousOrMissingDependency');
+          }
+          if (rows.length < 100) break;
+          after = rows.last['file_id'] as String;
+        }
+        if (matches.length != 1) {
+          throw const DriveCatalogueException('ambiguousOrMissingDependency');
+        }
+        final row = matches.single;
+        final file = DriveFile.fromJson(
+            jsonDecode(row['record_json'] as String) as Map<String, dynamic>);
+        if (i + 1 < segments.length
+            ? !file.isFolder
+            : !file.isSupportedBinary) {
+          throw const DriveCatalogueException('unsupportedDependency');
+        }
+        result = DriveCatalogueEntry(file, row['display_path'] as String);
+        parent = file.id;
+      }
+      return result!;
+    });
   }
 
   /// Paged descendants of an observed folder ID, never a path-prefix match.

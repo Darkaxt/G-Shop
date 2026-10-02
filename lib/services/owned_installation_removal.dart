@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -15,31 +16,42 @@ import 'transfer_journal.dart';
 /// durable intents. Recovery never repeats a completed download or adopts a
 /// public namesake. App locks do not claim to lock out external writers.
 class OwnedInstallationRemoval {
+  // Bounded deterministic namespace even with full SHA-256 transfer IDs.
+  // Tuple encoding keeps the parent/member ownership association unambiguous.
+  static String _memberRemovalId(String parent, String member) =>
+      'bundle-removal-${sha256.convert(utf8.encode(jsonEncode([
+            parent,
+            member
+          ])))}';
   final TransferJournal journal;
   final OwnedStorage storage;
   OwnedInstallationRemoval(this.journal, {this.storage = const OwnedStorage()});
 
   Future<void> remove(InstalledArtifact installation,
-          {String? replacementTransferId}) =>
+          {String? replacementTransferId, String? bundleRemovalId}) =>
       InstallationMutations.run(
           p.join(installation.destinationRoot, installation.relativePath),
           () async {
         final transfer = await journal.transfer(installation.transferId);
         if (transfer == null) throw const OwnedStorageException('changed');
-        await InstallationIndex(journal, storage: storage)
-            .requireInstallation(transfer, installation);
+        await InstallationIndex(journal, storage: storage).requireInstallation(
+            transfer, installation,
+            bundleOwner: bundleRemovalId == null ? null : transfer.bundleOwner);
         final plan = await storage.prepare(installation.destinationRoot);
         if (!plan.sameMountHint) {
           throw const OwnedStorageException('cross_volume');
         }
         final random = Random.secure();
-        final id = replacementTransferId == null
-            ? 'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}'
-            : 'replacement-$replacementTransferId';
+        final id = bundleRemovalId != null
+            ? _memberRemovalId(bundleRemovalId, transfer.id)
+            : replacementTransferId == null
+                ? 'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}'
+                : 'replacement-$replacementTransferId';
         final intent = await journal.beginRemoval(transfer, installation,
             id: id,
             quarantinePath: plan.stagePath(id),
-            replacementTransferId: replacementTransferId);
+            replacementTransferId: replacementTransferId,
+            bundleRemovalId: bundleRemovalId);
         await _continue(intent);
         if ((await journal.removal(id))!.phase == OwnedRemovalPhase.retained) {
           throw const OwnedStorageException('cross_volume');
@@ -113,6 +125,19 @@ class OwnedInstallationRemoval {
       if (record.phase == OwnedRemovalPhase.quarantined) {
         record =
             await journal.advanceRemoval(record, OwnedRemovalPhase.deleting);
+      }
+      for (final member in manifest.dependencies) {
+        final memberRemovalId = _memberRemovalId(record.id, member.transferId);
+        final prior = await journal.removal(memberRemovalId);
+        if (prior == null) {
+          await remove(member, bundleRemovalId: record.id);
+        } else {
+          await recover(memberRemovalId);
+          if ((await journal.removal(memberRemovalId))!.phase !=
+              OwnedRemovalPhase.completed) {
+            throw const OwnedStorageException('bundle_removal_pending');
+          }
+        }
       }
       await storage.retireQuarantine(
           destinationRoot: root,

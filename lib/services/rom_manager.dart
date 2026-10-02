@@ -18,17 +18,22 @@ class RomManager {
 
   /// Resolve the exact committed manifest for a local consumer, without
   /// source/network access or filename adoption. Does not authorize neighbors.
-  Future<InstalledArtifact> requireInstalledArtifact(GameItem game, String root) async {
+  Future<InstalledArtifact> requireInstalledArtifact(
+      GameItem game, String root) async {
     final artifact = game.remoteArtifact;
     if (artifact == null) throw StateError('An exact artifact is required');
     final index = installations ?? InstallationIndex.application();
     for (final recordedRoot in await index.journal.destinationRoots()) {
       if (!installationPathsOverlap(root, recordedRoot)) continue;
-      await for (final row in index.journal.targetsInRoot(recordedRoot, artifactKey: artifact.id.key)) {
+      await for (final row in index.journal
+          .targetsInRoot(recordedRoot, artifactKey: artifact.id.key)) {
         final record = row.transfer;
-        if (!installationPathsOverlap(root, p.join(recordedRoot, record.relativePath)) ||
+        if (!installationPathsOverlap(
+                root, p.join(recordedRoot, record.relativePath)) ||
+            record.bundleOwner != null ||
             !InstallationSnapshot.sameContent(record.artifact, artifact) ||
-            row.installation == null) {
+            row.installation == null ||
+            await index.journal.hasCommittedReplacement(row.installation!.id)) {
           continue;
         }
         await index.requireInstallation(record, row.installation);
@@ -38,11 +43,13 @@ class RomManager {
     throw const OwnedStorageException('changed');
   }
 
-  Future<InstalledArtifact> previewOwnedRemoval(GameItem game, String root) async {
+  Future<InstalledArtifact> previewOwnedRemoval(
+      GameItem game, String root) async {
     final manifest = await requireInstalledArtifact(game, root);
     final index = installations ?? InstallationIndex.application();
     final record = (await index.journal.transfer(manifest.transferId))!;
-    if (record.publication?.method == PublicationMethod.copy && !record.stageRetired) {
+    if (record.publication?.method == PublicationMethod.copy &&
+        !record.stageRetired) {
       throw const OwnedStorageException('close_unconfirmed');
     }
     final plan = await index.storage.prepare(manifest.destinationRoot);
@@ -52,7 +59,8 @@ class RomManager {
 
   Future<void> removeReviewedInstallation(InstalledArtifact installation) {
     final index = installations ?? InstallationIndex.application();
-    return OwnedInstallationRemoval(index.journal, storage: index.storage).remove(installation);
+    return OwnedInstallationRemoval(index.journal, storage: index.storage)
+        .remove(installation);
   }
 
   static String safePath(String baseDir, String filename) {
@@ -120,10 +128,25 @@ class RomManager {
         system.romExtensions,
         system.multiFileExtensions,
       );
-      if (games.isEmpty) return games;
       final index = await (installations ?? InstallationIndex.application())
           .scan(targetFolder);
-      return index.filterLocal(games, targetFolder);
+      final filtered = index.filterLocal(games, targetFolder);
+      final existing =
+          filtered.map((game) => game.remoteArtifact?.id.key).toSet();
+      for (final installation in index.installed.values) {
+        if (existing.add(installation.artifact.id.key)) {
+          filtered.add(GameItem(
+              filename: p.relative(
+                  p.join(
+                      installation.destinationRoot, installation.relativePath),
+                  from: targetFolder),
+              displayName:
+                  GameItem.cleanDisplayName(installation.artifact.displayName),
+              url: '',
+              remoteArtifact: installation.artifact));
+        }
+      }
+      return filtered;
     } on FileSystemException catch (e) {
       debugPrint('RomManager: cannot scan $targetFolder: $e');
       return [];

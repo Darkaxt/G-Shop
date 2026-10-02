@@ -53,11 +53,13 @@ class InstallationIndex {
         published.add(path);
         final manifest = row.installation;
         if (!verifyInstalled ||
+            record.bundleOwner != null ||
             manifest == null ||
             record.lifecycle != TransferLifecycle.completed) {
           continue;
         }
         try {
+          if (await journal.hasCommittedReplacement(manifest.id)) continue;
           await requireInstallation(record, manifest);
           installed[path] = manifest;
         } on OwnedStorageException {
@@ -80,10 +82,15 @@ class InstallationIndex {
         final path = _path(p.join(record.destinationRoot, record.relativePath));
         if (!installationPathsOverlap(root, path) ||
             record.lifecycle != TransferLifecycle.completed ||
+            record.bundleOwner != null ||
             !InstallationSnapshot.sameContent(record.artifact, artifact)) {
           continue;
         }
         try {
+          if (row.installation == null ||
+              await journal.hasCommittedReplacement(row.installation!.id)) {
+            continue;
+          }
           await requireInstallation(record, row.installation);
           return path;
         } on OwnedStorageException {
@@ -96,9 +103,11 @@ class InstallationIndex {
   }
 
   Future<void> requireInstallation(
-      TransferRecord record, InstalledArtifact? manifest) async {
+      TransferRecord record, InstalledArtifact? manifest,
+      {String? bundleOwner}) async {
     const equality = DeepCollectionEquality();
     if (record.lifecycle != TransferLifecycle.completed ||
+        (record.bundleOwner != null && record.bundleOwner != bundleOwner) ||
         manifest == null ||
         manifest.transferId != record.id ||
         manifest.destinationRoot != record.destinationRoot ||
@@ -120,6 +129,26 @@ class InstallationIndex {
         stagePath: record.stagePath,
         published: true);
     if (actual == null || !actual.matches(manifest.fileIdentity)) {
+      throw const OwnedStorageException('changed');
+    }
+    if (record.bundleMembers.isNotEmpty) {
+      List<InstalledArtifact> members;
+      try {
+        members = await journal.bundleInstallations(record);
+      } on StateError {
+        throw const OwnedStorageException('changed');
+      }
+      if (!equality.equals(
+          [for (final member in manifest.dependencies) member.toJson()],
+          [for (final member in members) member.toJson()])) {
+        throw const OwnedStorageException('changed');
+      }
+      for (final member in members) {
+        await requireInstallation(
+            (await journal.transfer(member.transferId))!, member,
+            bundleOwner: record.id);
+      }
+    } else if (manifest.dependencies.isNotEmpty) {
       throw const OwnedStorageException('changed');
     }
   }

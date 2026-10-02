@@ -27,6 +27,7 @@ class TransferJournalSchema {
       ON transfer_records(lifecycle, transfer_id)''');
     await installArtifactIndex(db);
     await installReplacements(db);
+    await installBundles(db);
     await installRemovalJournal(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS installed_artifacts (
       installation_id TEXT PRIMARY KEY,
@@ -55,6 +56,16 @@ class TransferJournalSchema {
       phase TEXT NOT NULL, issue TEXT)''');
     await db.execute('''CREATE UNIQUE INDEX IF NOT EXISTS idx_replacement_owner
       ON transfer_replacements(previous_installation_id) WHERE phase = 'pending' ''');
+  }
+
+  static Future<void> installBundles(DatabaseExecutor db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(transfer_records)');
+    if (!columns.any((column) => column['name'] == 'bundle_owner')) {
+      await db
+          .execute('ALTER TABLE transfer_records ADD COLUMN bundle_owner TEXT');
+    }
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_transfer_bundle ON transfer_records(bundle_owner)');
   }
 
   static Future<void> installRemovalJournal(DatabaseExecutor db) async {
@@ -88,7 +99,8 @@ class TransferJournal {
       TransferRecord transfer, InstalledArtifact installation,
       {required String id,
       required String quarantinePath,
-      String? replacementTransferId}) async {
+      String? replacementTransferId,
+      String? bundleRemovalId}) async {
     final intent = OwnedRemovalRecord(
         id: id, installation: installation, quarantinePath: quarantinePath);
     final db = await _database;
@@ -104,6 +116,19 @@ class TransferJournal {
       }
       _requireMatchingInstallation(transfer, installation);
       await _requireInstalledOwner(txn, installation);
+      if (transfer.bundleOwner != null) {
+        final parent = bundleRemovalId == null
+            ? null
+            : await _removal(txn, bundleRemovalId);
+        if (parent == null ||
+            parent.isTerminal ||
+            parent.installation.transferId != transfer.bundleOwner ||
+            !parent.installation.dependencies.any((member) =>
+                _sameJson(member.toJson(), installation.toJson()))) {
+          throw StateError(
+              'Bundle members require their exact parent removal intent');
+        }
+      }
       if ((await txn.query('transfer_replacements',
               columns: ['transfer_id'],
               where: "transfer_id = ? AND phase = 'pending'",
@@ -348,15 +373,57 @@ class TransferJournal {
         throw StateError('Destination target already has an owner');
       }
       final previous = record.replacesInstallation;
+      if (record.bundleOwner != null) {
+        final parent = await _requiredTransfer(txn, record.bundleOwner!);
+        if (parent.lifecycle == TransferLifecycle.completed ||
+            parent.destinationRoot != record.destinationRoot ||
+            !parent.bundleMembers.any((member) =>
+                member.transferId == record.id &&
+                member.relativePath == record.relativePath &&
+                _sameJson(
+                    member.artifact.toJson(), record.artifact.toJson()))) {
+          throw StateError(
+              'Bundle member does not match its durable parent graph');
+        }
+        if (previous != null) {
+          throw StateError('Members cannot replace independent files');
+        }
+      }
+      if (record.bundleMembers.isNotEmpty) {
+        final paths = <String>{record.relativePath.toLowerCase()};
+        final ids = <String>{record.id};
+        final namespace = record.relativePath.split('/').first;
+        if (!namespace.startsWith('rshop-bundle-') ||
+            !record.relativePath.contains('/') ||
+            record.bundleMembers.length > 256) {
+          throw StateError('Invalid bundle namespace');
+        }
+        for (final member in record.bundleMembers) {
+          if (!paths.add(member.relativePath.toLowerCase()) ||
+              !ids.add(member.transferId) ||
+              !member.relativePath.startsWith('$namespace/') ||
+              member.artifact.id.sourceId != record.artifact.id.sourceId ||
+              member.artifact.id.accountId != record.artifact.id.accountId) {
+            throw StateError('Ambiguous bundle graph');
+          }
+        }
+      }
       if (previous != null) {
+        final oldRecord = await _requiredTransfer(txn, previous.transferId);
         if (previous.destinationRoot != record.destinationRoot ||
             previous.relativePath == record.relativePath ||
             previous.artifact.id.key != record.artifact.id.key ||
-            previous.artifact.version == record.artifact.version) {
+            (previous.artifact.version == record.artifact.version &&
+                (record.bundleMembers.isEmpty ||
+                    _sameJson([
+                      for (final member in oldRecord.bundleMembers)
+                        member.toJson()
+                    ], [
+                      for (final member in record.bundleMembers) member.toJson()
+                    ])))) {
           throw StateError(
               'Replacement requires a distinct version of the exact artifact');
         }
-        final oldRecord = await _requiredTransfer(txn, previous.transferId);
         if (oldRecord.lifecycle != TransferLifecycle.completed ||
             (oldRecord.publication?.method == PublicationMethod.copy &&
                 !oldRecord.stageRetired) ||
@@ -525,6 +592,12 @@ class TransferJournal {
       _requireExactRecord(previous, record);
       _requireCompleteBytes(record);
       _requireMatchingInstallation(record, installation);
+      final members = await _bundleInstallations(txn, record);
+      if (!_sameJson(
+          [for (final member in installation.dependencies) member.toJson()],
+          [for (final member in members) member.toJson()])) {
+        throw StateError('Installation must include all exact bundle members');
+      }
       if (record.replacesInstallation case final old?) {
         await _requireReplacementClaim(txn, record);
         await _requireInstalledOwner(txn, old);
@@ -688,6 +761,45 @@ class TransferJournal {
     return rows.map((r) => r['destination_root'] as String).toList();
   }
 
+  Future<List<InstalledArtifact>> bundleInstallations(
+      TransferRecord record) async {
+    final db = await _database;
+    return db.transaction((txn) => _bundleInstallations(txn, record));
+  }
+
+  static Future<List<InstalledArtifact>> _bundleInstallations(
+      DatabaseExecutor txn, TransferRecord record) async {
+    final result = <InstalledArtifact>[];
+    for (final member in record.bundleMembers) {
+      final child = await _requiredTransfer(txn, member.transferId);
+      if (child.bundleOwner != record.id ||
+          child.bundleMembers.isNotEmpty ||
+          child.destinationRoot != record.destinationRoot ||
+          child.relativePath != member.relativePath ||
+          child.lifecycle != TransferLifecycle.completed ||
+          (child.publication?.method == PublicationMethod.copy &&
+              !child.stageRetired) ||
+          !_sameJson(child.artifact.toJson(), member.artifact.toJson()) ||
+          await _pendingRemoval(txn, child.id)) {
+        throw StateError('Bundle member is not ready');
+      }
+      final rows = await txn.query('installed_artifacts',
+          columns: ['record_json'],
+          where: 'transfer_id = ?',
+          whereArgs: [child.id]);
+      if (rows.length != 1) {
+        throw StateError('Bundle member installation is missing');
+      }
+      final installed = InstalledArtifact.fromJson(
+          (jsonDecode(rows.single['record_json'] as String) as Map)
+              .cast<String, dynamic>());
+      _requireMatchingInstallation(child, installed);
+      await _requireInstalledOwner(txn, installed);
+      result.add(installed);
+    }
+    return result;
+  }
+
   /// A bounded offline pass; no automatic retries of recorded conflicts.
   Stream<TransferRecord> pendingReplacements(
       {bool Function()? shouldContinue}) async* {
@@ -722,6 +834,16 @@ class TransferJournal {
         columns: ['phase'], where: 'transfer_id = ?', whereArgs: [transferId]);
     return rows.isEmpty ? null : rows.single['phase'] as String;
   }
+
+  /// A committed replacement is the selected version even if exact old-byte
+  /// retirement is blocked. Retained owners remain available to cleanup and
+  /// existing grants, never selected again by path enumeration order.
+  Future<bool> hasCommittedReplacement(String installationId) async =>
+      (await (await _database).rawQuery('''SELECT 1
+        FROM transfer_replacements r JOIN transfer_records t ON t.transfer_id=r.transfer_id
+        WHERE r.previous_installation_id=? AND t.lifecycle='completed' LIMIT 1''',
+              [installationId]))
+          .isNotEmpty;
 
   Future<void> recordReplacementIssue(
       TransferRecord record, String issue) async {
@@ -895,6 +1017,7 @@ class TransferJournal {
         'destination_root': record.destinationRoot,
         'relative_path': record.relativePath,
         'artifact_key': record.artifact.id.key,
+        'bundle_owner': record.bundleOwner,
         'lifecycle': record.lifecycle.name,
         'durable_offset': record.durableOffset,
         'revision': record.revision,
@@ -930,6 +1053,10 @@ class TransferJournal {
         previous.stagePath != proposed.stagePath ||
         previous.stageRetired != proposed.stageRetired ||
         previous.stageRetirementIssue != proposed.stageRetirementIssue ||
+        previous.bundleOwner != proposed.bundleOwner ||
+        !_sameJson(
+            [for (final member in previous.bundleMembers) member.toJson()],
+            [for (final member in proposed.bundleMembers) member.toJson()]) ||
         !_sameJson(previous.replacesInstallation?.toJson(),
             proposed.replacesInstallation?.toJson()) ||
         !_sameJson(previous.artifact.toJson(), proposed.artifact.toJson())) {

@@ -35,21 +35,25 @@ Future<String?> _retire(TransferJournal journal, OwnedStorage storage,
         relativePath: record.relativePath);
     await InstallationIndex(journal, storage: storage)
         .requireInstallation(record, current);
-    final session = await storage.open(
-        destinationRoot: record.destinationRoot,
-        relativePath: record.relativePath,
-        stagePath: record.stagePath,
-        expectedIdentity: current!.fileIdentity,
-        durableOffset: current.sizeBytes,
-        published: true);
-    try {
-      final digest = await sha256.bind(session.bytes(current.sizeBytes)).single;
-      if (digest.toString() != current.verifiedChecksums['sha256'] ||
-          !(await session.checkpoint()).matches(current.fileIdentity)) {
-        throw const OwnedStorageException('changed');
+    for (final installed in [current!, ...current.dependencies]) {
+      final transfer = (await journal.transfer(installed.transferId))!;
+      final session = await storage.open(
+          destinationRoot: record.destinationRoot,
+          relativePath: installed.relativePath,
+          stagePath: transfer.stagePath,
+          expectedIdentity: installed.fileIdentity,
+          durableOffset: installed.sizeBytes,
+          published: true);
+      try {
+        final digest =
+            await sha256.bind(session.bytes(installed.sizeBytes)).single;
+        if (digest.toString() != installed.verifiedChecksums['sha256'] ||
+            !(await session.checkpoint()).matches(installed.fileIdentity)) {
+          throw const OwnedStorageException('changed');
+        }
+      } finally {
+        await session.close();
       }
-    } finally {
-      await session.close();
     }
     final remover = OwnedInstallationRemoval(journal, storage: storage);
     final removalId = 'replacement-${record.id}';

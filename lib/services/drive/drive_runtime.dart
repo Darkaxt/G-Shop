@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
@@ -26,6 +27,7 @@ import 'drive_download_boundary.dart';
 import 'drive_media.dart';
 import 'drive_transfer_engine.dart';
 import 'drive_verification.dart';
+import 'drive_bundle.dart';
 import 'google_drive_sign_in.dart';
 
 /// Bounded diagnostics for one offline maintenance pass, never artifact data.
@@ -79,6 +81,7 @@ class DriveRuntime {
   final _transferResults = <String, Future<void>>{};
   final _refreshes = <String, Future<void>>{};
   final _refreshCancellation = <String, CancelToken>{};
+  final _bundlePlans = <CancelToken, Future<TransferRecord>>{};
   bool _disconnecting = false;
   int _laneGeneration = 0;
 
@@ -164,7 +167,9 @@ class DriveRuntime {
           artifactKey: artifact.id.key)) {
         final installed = row.installation;
         if (installed == null ||
-            row.transfer.lifecycle != TransferLifecycle.completed) {
+            row.transfer.lifecycle != TransferLifecycle.completed ||
+            row.transfer.bundleOwner != null ||
+            await journal.hasCommittedReplacement(installed.id)) {
           continue;
         }
         await index.requireInstallation(row.transfer, installed);
@@ -197,6 +202,211 @@ class DriveRuntime {
   static String _replacementPath(String name, String id) =>
       '${String.fromCharCodes(p.basenameWithoutExtension(name).runes.take(32))}.rshop-$id${p.extension(name)}';
 
+  Future<TransferRecord> reserveBundle(
+      {required ProviderConfig config,
+      required RemoteArtifact artifact,
+      required String destinationRoot,
+      required Set<String> supportedExtensions,
+      required CancelToken cancellation,
+      String? transferId}) async {
+    _requireConnectedLane();
+    _requireArtifactSource(config, artifact);
+    if (!BundleReferences.isManifest(artifact.displayName)) {
+      throw const BundleLayoutException('unsupported_layout');
+    }
+    if (artifact.displayName != p.posix.basename(artifact.displayName)) {
+      throw const BundleLayoutException('unsafe_path');
+    }
+    final operation = _reserveBundle(config, artifact, destinationRoot,
+        supportedExtensions, cancellation, transferId);
+    _bundlePlans[cancellation] = operation;
+    try {
+      return await operation;
+    } finally {
+      _bundlePlans.remove(cancellation);
+    }
+  }
+
+  Future<TransferRecord> _reserveBundle(
+      ProviderConfig config,
+      RemoteArtifact artifact,
+      String root,
+      Set<String> extensions,
+      CancelToken cancellation,
+      String? savedId) async {
+    void check() {
+      _requireConnectedLane();
+      if (cancellation.isCancelled) {
+        throw const DriveTransferException(DriveTransferIssue.cancelled);
+      }
+    }
+
+    check();
+    if (savedId != null) {
+      final existing = await journal.transfer(savedId);
+      if (existing == null ||
+          existing.bundleMembers.isEmpty ||
+          existing.destinationRoot != root) {
+        throw const OwnedStorageException('changed');
+      }
+      _requireReservationSnapshot(existing, artifact);
+      return existing;
+    }
+    final drive = config.drive!;
+    final generation = await catalogue.activeGeneration(
+        sourceId: config.sourceId!,
+        accountId: drive.accountId,
+        rootFolderId: drive.rootFolderId);
+    if (generation == null) {
+      throw const DriveCatalogueException('refreshRequired');
+    }
+    final graph = <({RemoteArtifact artifact, String path})>[];
+    final paths = <String, RemoteArtifact>{};
+    final visiting = <String>{};
+    var headerBytes = 0;
+    Future<void> visit(RemoteArtifact current, String path) async {
+      check();
+      DriveVerification(current);
+      if (!paths.containsKey(path.toLowerCase()) &&
+          paths.length >= BundleReferences.maxMembers + 1) {
+        throw const BundleLayoutException('unsupported_layout');
+      }
+      if (paths[path.toLowerCase()] case final prior?) {
+        if (!const DeepCollectionEquality()
+                .equals(prior.toJson(), current.toJson()) ||
+            visiting.contains(current.id.key)) {
+          throw const BundleLayoutException('ambiguous_or_cyclic');
+        }
+        return;
+      }
+      paths[path.toLowerCase()] = current;
+      if (BundleReferences.isManifest(current.displayName)) {
+        if (!visiting.add(current.id.key)) {
+          throw const BundleLayoutException('ambiguous_or_cyclic');
+        }
+        if (current.sizeBytes! > BundleReferences.maxHeaderBytes ||
+            headerBytes + current.sizeBytes! >
+                4 * BundleReferences.maxHeaderBytes) {
+          throw const BundleLayoutException('unsupported_layout');
+        }
+        headerBytes += current.sizeBytes!;
+        final boundary = DriveDownloadBoundary(
+            config: config,
+            artifact: current,
+            catalogue: catalogue,
+            api: apiFor(drive));
+        await boundary.revalidate(cancellation: cancellation);
+        check();
+        final media = _mediaApis.putIfAbsent(
+            drive.accountId,
+            () => _createMediaApi(
+                authorizationFor(drive.serverClientId), drive.accountId));
+        final response =
+            await media.open(current, offset: 0, cancelToken: cancellation);
+        final bytes = BytesBuilder(copy: false);
+        await DriveVerification(current).verifyBytes(
+            response.bytes.map((chunk) {
+          bytes.add(chunk);
+          return chunk;
+        }), cancellation: cancellation);
+        await boundary.revalidate(cancellation: cancellation);
+        for (final reference
+            in BundleReferences.parse(current.displayName, bytes.takeBytes())) {
+          check();
+          final entry = await catalogue.requireRelativeBinary(
+              sourceId: config.sourceId!,
+              accountId: drive.accountId,
+              rootFolderId: drive.rootFolderId,
+              parentId: current.parentId!,
+              segments: reference.split('/'),
+              generation: generation);
+          final child = entry.file.artifact(
+              sourceId: config.sourceId!,
+              accountId: drive.accountId,
+              displayPath: entry.displayPath);
+          if (!BundleReferences.isManifest(child.displayName) &&
+              !extensions.contains(
+                  p.posix.extension(child.displayName).toLowerCase())) {
+            throw const BundleLayoutException('unsupported_member_format');
+          }
+          await visit(
+              child,
+              BundleReferences.safePath(
+                  p.posix.join(p.posix.dirname(path), reference)));
+        }
+        visiting.remove(current.id.key);
+      }
+      graph.add((artifact: current, path: path));
+    }
+
+    await visit(artifact, BundleReferences.safePath(artifact.displayName));
+    check();
+    final id = sha256
+        .convert(utf8.encode(jsonEncode([
+          artifact.id.key,
+          root,
+          for (final member in graph) [member.path, member.artifact.toJson()]
+        ])))
+        .toString();
+    final current = await journal.transfer(id);
+    if (current != null) return current;
+    final namespace = 'rshop-bundle-$id';
+    final plan = await _storage.prepare(root);
+    if (plan.destinationRoot != root) {
+      throw const OwnedStorageException('changed');
+    }
+    check();
+    InstalledArtifact? previous;
+    await for (final row
+        in journal.targetsInRoot(root, artifactKey: artifact.id.key)) {
+      if (row.transfer.bundleOwner != null ||
+          row.installation == null ||
+          row.transfer.lifecycle != TransferLifecycle.completed ||
+          await journal.hasCommittedReplacement(row.installation!.id)) {
+        continue;
+      }
+      await InstallationIndex(journal, storage: _storage)
+          .requireInstallation(row.transfer, row.installation);
+      if (previous != null) {
+        throw const OwnedStorageException('replacement_pending');
+      }
+      previous = row.installation;
+    }
+    final members = [
+      for (final member in graph.take(graph.length - 1))
+        TransferBundleMember(
+            transferId: sha256
+                .convert(utf8.encode('$id\u0000${member.path}'))
+                .toString(),
+            artifact: member.artifact,
+            relativePath: '$namespace/${member.path}')
+    ];
+    return journal.create(TransferRecord(
+        id: id,
+        artifact: artifact,
+        destinationRoot: root,
+        relativePath: '$namespace/${artifact.displayName}',
+        stagePath: plan.stagePath(id),
+        bundleMembers: members,
+        replacesInstallation: previous));
+  }
+
+  Future<TransferRecord> reserveBundleMember(
+      TransferRecord parent, TransferBundleMember member) async {
+    _requireConnectedLane();
+    final old = await journal.transfer(member.transferId);
+    if (old != null) return old;
+    final plan = await _storage.prepare(parent.destinationRoot);
+    _requireConnectedLane();
+    return journal.create(TransferRecord(
+        id: member.transferId,
+        artifact: member.artifact,
+        destinationRoot: parent.destinationRoot,
+        relativePath: member.relativePath,
+        stagePath: plan.stagePath(member.transferId),
+        bundleOwner: parent.id));
+  }
+
   static void _requireReservationSnapshot(
       TransferRecord record, RemoteArtifact artifact) {
     if (!const DeepCollectionEquality()
@@ -220,12 +430,13 @@ class DriveRuntime {
 
   /// Offline revalidation of an already committed exact installation. A saved
   /// completed bit is not proof that another app has left its bytes in place.
-  Future<void> requireInstalledTransfer(TransferRecord record) async {
+  Future<void> requireInstalledTransfer(TransferRecord record,
+      {String? bundleOwner}) async {
     final installation = await journal.installationForTarget(
         destinationRoot: record.destinationRoot,
         relativePath: record.relativePath);
     await InstallationIndex(journal, storage: _storage)
-        .requireInstallation(record, installation);
+        .requireInstallation(record, installation, bundleOwner: bundleOwner);
   }
 
   Future<TransferRecord> finishRetainedStage(TransferRecord record) =>
@@ -561,6 +772,10 @@ class DriveRuntime {
       for (final cancellation in _refreshCancellation.values) {
         cancellation.cancel();
       }
+      final plans = _bundlePlans.values.toList();
+      for (final cancellation in _bundlePlans.keys.toList()) {
+        cancellation.cancel();
+      }
       final transfers = _transferResults.values.toList();
       for (final transfer in _transfers.values.toList()) {
         transfer.pause();
@@ -572,6 +787,8 @@ class DriveRuntime {
         for (final refresh in _refreshes.values.toList())
           refresh.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
         ...transfers,
+        for (final plan in plans)
+          plan.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
       ]);
     } finally {
       for (final api in _apis.values) {

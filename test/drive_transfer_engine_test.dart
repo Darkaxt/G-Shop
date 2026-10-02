@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as p;
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,7 @@ import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/installation_index.dart';
 import 'package:retro_eshop/services/ra_hash_service.dart';
 import 'package:retro_eshop/services/owned_replacement.dart';
+import 'package:retro_eshop/services/rom_manager.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // Only the remote protocol and native channel are fixtures. The coordinator,
@@ -117,12 +119,20 @@ class _Native {
     if (call.method == 'ownedInspect') {
       return files[a['published'] == true ? target : stage]?.identity;
     }
-    if (call.method == 'ownedQuarantine' || call.method == 'ownedRetireQuarantine') {
-      if (sessions.values.any((s) => s.stage == stage || s.target == target)) fail('collision');
+    if (call.method == 'ownedQuarantine' ||
+        call.method == 'ownedRetireQuarantine') {
+      if (sessions.values.any((s) => s.stage == stage || s.target == target)) {
+        fail('collision');
+      }
       final existing = files[stage];
-      if (call.method == 'ownedRetireQuarantine' && existing == null) return null;
+      if (call.method == 'ownedRetireQuarantine' && existing == null) {
+        return null;
+      }
       final file = existing ?? files[target] ?? fail('changed');
-      if (file.identity.toString() != Map<String, Object>.from(a['expectedIdentity']).toString()) fail('changed');
+      if (file.identity.toString() !=
+          Map<String, Object>.from(a['expectedIdentity']).toString()) {
+        fail('changed');
+      }
       if (call.method == 'ownedRetireQuarantine') {
         files.remove(stage);
         return null;
@@ -163,7 +173,7 @@ class _Native {
         }
         if (published || a['mode'] == 'quarantine') {
           if (file.identity.toString() !=
-              Map<String, Object>.from(a['expectedIdentity']).toString() ||
+                  Map<String, Object>.from(a['expectedIdentity']).toString() ||
               a['durableOffset'] != file.bytes.length) {
             fail('changed');
           }
@@ -298,7 +308,8 @@ void main() {
         return revalidate(token);
       },
       openMedia: (source, offset, token) => media(source, offset, token));
-  Future<void> queue({RemoteArtifact? source, String name = 'fixture.chd'}) async =>
+  Future<void> queue(
+          {RemoteArtifact? source, String name = 'fixture.chd'}) async =>
       journal.create(TransferRecord(
           id: 'transfer',
           artifact: source ?? artifact(),
@@ -311,61 +322,92 @@ void main() {
   OwnedInstallationRemoval remover() => OwnedInstallationRemoval(journal,
       storage: OwnedStorage(channel: native.channel));
 
-  final gg = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gamegear');
-  Future<GameItem> installRaw({String name = 'fixture.gg', Uint8List? bytes}) async {
+  final gg =
+      SystemModel.supportedSystems.singleWhere((s) => s.id == 'gamegear');
+  Future<GameItem> installRaw(
+      {String name = 'fixture.gg', Uint8List? bytes}) async {
     final data = bytes ?? payload;
-    final source = RemoteArtifact.fromJson({...artifact().toJson(),
-      'displayName': name, 'displayPath': name, 'sizeBytes': data.length,
-      'providerChecksums': {'md5': md5.convert(data).toString()}});
+    final source = RemoteArtifact.fromJson({
+      ...artifact().toJson(),
+      'displayName': name,
+      'displayPath': name,
+      'sizeBytes': data.length,
+      'providerChecksums': {'md5': md5.convert(data).toString()}
+    });
     media = (_, offset, __) async => DriveMediaResponse(
         bytes: Stream.value(Uint8List.sublistView(data, offset)),
-        offset: offset, length: data.length - offset, total: data.length);
+        offset: offset,
+        length: data.length - offset,
+        total: data.length);
     await queue(source: source, name: name);
     expect((await engine().start('transfer').result).lifecycle,
         TransferLifecycle.completed);
-    return GameItem(filename: name, displayName: 'Fixture', url: '',
+    return GameItem(
+        filename: name,
+        displayName: 'Fixture',
+        url: '',
         remoteArtifact: source);
   }
+
   InstallationIndex index() => InstallationIndex(journal,
       storage: OwnedStorage(channel: native.channel));
   Future<TransferRecord> queueReplacement() async {
     await queue();
-    expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.completed);
+    expect((await engine().start('transfer').result).lifecycle,
+        TransferLifecycle.completed);
     final old = (await installed())!;
     final bytes = Uint8List.fromList([9, 8, 7, 6, 5]);
-    final source = RemoteArtifact.fromJson({...old.artifact.toJson(),
-      'version': '2', 'sizeBytes': bytes.length,
-      'providerChecksums': {'md5': md5.convert(bytes).toString()}});
+    final source = RemoteArtifact.fromJson({
+      ...old.artifact.toJson(),
+      'version': '2',
+      'sizeBytes': bytes.length,
+      'providerChecksums': {'md5': md5.convert(bytes).toString()}
+    });
     media = (_, offset, __) async => DriveMediaResponse(
-      bytes: Stream.value(Uint8List.sublistView(bytes, offset)), offset: offset,
-      length: bytes.length - offset, total: bytes.length);
-    return journal.create(TransferRecord(id: 'replacement', artifact: source,
-      destinationRoot: '/roms', relativePath: 'fixture.v2.chd',
-      stagePath: '/owned/replacement.partial', replacesInstallation: old));
+        bytes: Stream.value(Uint8List.sublistView(bytes, offset)),
+        offset: offset,
+        length: bytes.length - offset,
+        total: bytes.length);
+    return journal.create(TransferRecord(
+        id: 'replacement',
+        artifact: source,
+        destinationRoot: '/roms',
+        relativePath: 'fixture.v2.chd',
+        stagePath: '/owned/replacement.partial',
+        replacesInstallation: old));
   }
-  test('replacement commits a distinct verified target before retiring exact old bytes', () async {
+
+  test(
+      'replacement commits a distinct verified target before retiring exact old bytes',
+      () async {
     native.copyOnly = true;
     final next = await queueReplacement();
     var sawCommit = false;
     native.before = (call) async {
       if (call.method == 'ownedQuarantine') {
         sawCommit = true;
-        expect((await journal.transfer(next.id))!.lifecycle, TransferLifecycle.completed);
+        expect((await journal.transfer(next.id))!.lifecycle,
+            TransferLifecycle.completed);
         expect(native.files['/roms/fixture.chd']!.bytes, payload);
         expect(native.files['/roms/fixture.v2.chd']!.bytes, [9, 8, 7, 6, 5]);
       }
     };
     final result = await engine().start(next.id).result;
-    expect(result.lifecycle, TransferLifecycle.completed, reason: result.errorCode);
+    expect(result.lifecycle, TransferLifecycle.completed,
+        reason: result.errorCode);
     expect(sawCommit, isTrue);
     expect(native.files['/roms/fixture.chd'], isNull);
     expect(await journal.transfer('transfer'), isNull);
     expect(await journal.replacementPhase(next.id), 'retired');
   });
-  test('paused replacement leaves old verified target and owner intact', () async {
+  test('paused replacement leaves old verified target and owner intact',
+      () async {
     final next = await queueReplacement();
     final entered = Completer<void>(), release = Completer<void>();
-    revalidate = (_) async { entered.complete(); await release.future; };
+    revalidate = (_) async {
+      entered.complete();
+      await release.future;
+    };
     final operation = engine().start(next.id);
     await entered.future;
     final paused = operation.pause();
@@ -375,17 +417,21 @@ void main() {
     expect(await installed(), isNotNull);
     expect(native.files['/roms/fixture.v2.chd'], isNull);
   });
-  test('changed old owner blocks new commit without overwriting either file', () async {
+  test('changed old owner blocks new commit without overwriting either file',
+      () async {
     final next = await queueReplacement();
     native.files['/roms/fixture.chd']!.stamp++;
     final result = await engine().start(next.id).result;
     expect(result.lifecycle, TransferLifecycle.failed);
     expect(native.files['/roms/fixture.chd']!.bytes, payload);
     expect(await installed(), isNotNull);
-    expect(await journal.installationForTarget(destinationRoot: '/roms',
-        relativePath: next.relativePath), isNull);
+    expect(
+        await journal.installationForTarget(
+            destinationRoot: '/roms', relativePath: next.relativePath),
+        isNull);
   });
-  test('lost old-quarantine receipt recovers without another media download', () async {
+  test('lost old-quarantine receipt recovers without another media download',
+      () async {
     final next = await queueReplacement();
     native.after = (call) async {
       if (call.method == 'ownedQuarantine') {
@@ -397,16 +443,22 @@ void main() {
     expect(result.lifecycle, TransferLifecycle.completed);
     expect(await journal.replacementIssue(next.id), 'io_error');
     final requestsBefore = requests.length;
-    expect(await retireReplacedInstallation(journal, OwnedStorage(channel: native.channel), result), isNull);
+    expect(
+        await retireReplacedInstallation(
+            journal, OwnedStorage(channel: native.channel), result),
+        isNull);
     expect(await journal.replacementPhase(next.id), 'retired');
     expect(requests.length, requestsBefore);
     expect(await installed(), isNull);
   });
-  test('changed new bytes after commit preserve old installation during cleanup', () async {
+  test(
+      'changed new bytes after commit preserve old installation during cleanup',
+      () async {
     native.copyOnly = true;
     final next = await queueReplacement();
     native.after = (call) async {
-      if (call.method == 'ownedRetireStage' && call.arguments['relativePath'] == next.relativePath) {
+      if (call.method == 'ownedRetireStage' &&
+          call.arguments['relativePath'] == next.relativePath) {
         native.files['/roms/fixture.v2.chd']!.bytes[0] ^= 1;
       }
     };
@@ -416,52 +468,86 @@ void main() {
     expect(native.files['/roms/fixture.chd']!.bytes, payload);
     expect(await installed(), isNotNull);
   });
-  test('owned achievement hash uses exact pinned committed bytes with bounded reads', () async {
+  test(
+      'owned achievement hash uses exact pinned committed bytes with bounded reads',
+      () async {
     final game = await installRaw();
     final reads = <int>[];
     native.before = (call) async {
-      if (call.method == 'ownedRead') reads.add(call.arguments['length'] as int);
+      if (call.method == 'ownedRead') {
+        reads.add(call.arguments['length'] as int);
+      }
     };
-    expect(await RaHashService.computeInstalledHash(game, gg, '/roms',
-        installations: index()), md5.convert(payload).toString());
+    expect(
+        await RaHashService.computeInstalledHash(game, gg, '/roms',
+            installations: index()),
+        md5.convert(payload).toString());
     expect(reads, isNotEmpty);
-    expect(reads.every((length) => length <= OwnedStorage.maxChunkBytes), isTrue);
+    expect(
+        reads.every((length) => length <= OwnedStorage.maxChunkBytes), isTrue);
   });
-  test('owned achievement hash rejects changed bytes even with unchanged native stat', () async {
+  test(
+      'owned achievement hash rejects changed bytes even with unchanged native stat',
+      () async {
     final game = await installRaw();
     native.files['/roms/fixture.gg']!.bytes[0] ^= 1;
-    await expectLater(RaHashService.computeInstalledHash(game, gg, '/roms',
-        installations: index()), throwsA(isA<OwnedStorageException>()));
+    await expectLater(
+        RaHashService.computeInstalledHash(game, gg, '/roms',
+            installations: index()),
+        throwsA(isA<OwnedStorageException>()));
   });
-  test('owned achievement hash never borrows a namesake or container checksum', () async {
+  test('owned achievement hash never borrows a namesake or container checksum',
+      () async {
     final game = await installRaw();
-    final other = game.copyWith(remoteArtifact: RemoteArtifact.fromJson({
-      ...game.remoteArtifact!.toJson(), 'version': '2'}));
-    await expectLater(RaHashService.computeInstalledHash(other, gg, '/roms',
-        installations: index()), throwsA(isA<OwnedStorageException>()));
-    final archive = GameItem(filename: 'fixture.7z', displayName: 'Fixture', url: '',
+    final other = game.copyWith(
+        remoteArtifact: RemoteArtifact.fromJson(
+            {...game.remoteArtifact!.toJson(), 'version': '2'}));
+    await expectLater(
+        RaHashService.computeInstalledHash(other, gg, '/roms',
+            installations: index()),
+        throwsA(isA<OwnedStorageException>()));
+    final archive = GameItem(
+        filename: 'fixture.7z',
+        displayName: 'Fixture',
+        url: '',
         remoteArtifact: game.remoteArtifact);
     final before = native.methods.length;
-    expect(await RaHashService.computeInstalledHash(archive, gg, '/roms',
-        installations: index()), isNull);
+    expect(
+        await RaHashService.computeInstalledHash(archive, gg, '/roms',
+            installations: index()),
+        isNull);
     expect(native.methods.length, before);
   });
-  test('owned achievement hash strips the actual NES header without buffering the ROM', () async {
-    final data = Uint8List.fromList([0x4e, 0x45, 0x53, 0x1a,
-      ...List.filled(12, 0), 9, 8, 7, 6]);
+  test(
+      'owned achievement hash strips the actual NES header without buffering the ROM',
+      () async {
+    final data = Uint8List.fromList(
+        [0x4e, 0x45, 0x53, 0x1a, ...List.filled(12, 0), 9, 8, 7, 6]);
     final game = await installRaw(name: 'fixture.nes', bytes: data);
-    expect(await RaHashService.computeInstalledHash(game,
-        SystemModel.supportedSystems.singleWhere((s) => s.id == 'nes'),
-        '/roms', installations: index()), md5.convert([9, 8, 7, 6]).toString());
+    expect(
+        await RaHashService.computeInstalledHash(
+            game,
+            SystemModel.supportedSystems.singleWhere((s) => s.id == 'nes'),
+            '/roms',
+            installations: index()),
+        md5.convert([9, 8, 7, 6]).toString());
   });
-  test('owned achievement hash strips SNES copier header using full file size', () async {
-    final data = Uint8List.fromList([...List.filled(512, 0xaa), ...List.filled(1024, 7)]);
+  test('owned achievement hash strips SNES copier header using full file size',
+      () async {
+    final data = Uint8List.fromList(
+        [...List.filled(512, 0xaa), ...List.filled(1024, 7)]);
     final game = await installRaw(name: 'fixture.smc', bytes: data);
-    expect(await RaHashService.computeInstalledHash(game,
-        SystemModel.supportedSystems.singleWhere((s) => s.id == 'snes'),
-        '/roms', installations: index()), md5.convert(List.filled(1024, 7)).toString());
+    expect(
+        await RaHashService.computeInstalledHash(
+            game,
+            SystemModel.supportedSystems.singleWhere((s) => s.id == 'snes'),
+            '/roms',
+            installations: index()),
+        md5.convert(List.filled(1024, 7)).toString());
   });
-  test('owned achievement hash reads NDS ARM sections in hash order, not disk order', () async {
+  test(
+      'owned achievement hash reads NDS ARM sections in hash order, not disk order',
+      () async {
     final data = Uint8List(0xE00);
     final words = ByteData.sublistView(data);
     words.setUint32(0x20, 0x300, Endian.little);
@@ -472,32 +558,45 @@ void main() {
     data.fillRange(0x300, 0x310, 9);
     data.fillRange(0x200, 0x208, 7);
     data.fillRange(0x400, 0xE00, 6);
-    final expected = md5.convert([...data.sublist(0, 0x160),
-      ...List.filled(16, 9), ...List.filled(8, 7), ...List.filled(0xA00, 6)]).toString();
+    final expected = md5.convert([
+      ...data.sublist(0, 0x160),
+      ...List.filled(16, 9),
+      ...List.filled(8, 7),
+      ...List.filled(0xA00, 6)
+    ]).toString();
     final game = await installRaw(name: 'fixture.nds', bytes: data);
-    expect(await RaHashService.computeInstalledHash(game,
-        SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds'),
-        '/roms', installations: index()), expected);
+    expect(
+        await RaHashService.computeInstalledHash(
+            game,
+            SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds'),
+            '/roms',
+            installations: index()),
+        expected);
   });
 
-  test('cross-mount removal leaves installation ready without a pending intent', () async {
+  test('cross-mount removal leaves installation ready without a pending intent',
+      () async {
     await queue();
     await engine().start('transfer').result;
     final manifest = (await installed())!;
     native.crossMount = true;
-    await expectLater(remover().remove(manifest), throwsA(
-        isA<OwnedStorageException>().having((e) => e.code, 'code', 'cross_volume')));
+    await expectLater(
+        remover().remove(manifest),
+        throwsA(isA<OwnedStorageException>()
+            .having((e) => e.code, 'code', 'cross_volume')));
     expect(await journal.hasPendingRemoval('transfer'), isFalse);
     expect(native.methods, isNot(contains('ownedQuarantine')));
     expect(native.files['/roms/fixture.chd'], isNotNull);
     expect((await installed())!.toJson(), manifest.toJson());
   });
 
-  test('EXDEV recovery retains an unmoved installation and its audit record', () async {
+  test('EXDEV recovery retains an unmoved installation and its audit record',
+      () async {
     await queue();
     await engine().start('transfer').result;
     final manifest = (await installed())!;
-    final intent = await journal.beginRemoval((await journal.transfer('transfer'))!, manifest,
+    final intent = await journal.beginRemoval(
+        (await journal.transfer('transfer'))!, manifest,
         id: 'old-intent', quarantinePath: '/owned/old-intent.partial');
     native.before = (call) async {
       if (call.method == 'ownedQuarantine') native.fail('cross_volume');
@@ -512,45 +611,55 @@ void main() {
     expect(native.methods, isNot(contains('ownedRetireQuarantine')));
     await remover().recover(intent.id); // terminal replay, no second attempt
     native.before = null;
-    await remover().remove(manifest); // retained audit does not block a later supported attempt
+    await remover().remove(
+        manifest); // retained audit does not block a later supported attempt
     expect(await installed(), isNull);
   });
 
   for (final privateConflict in [false, true]) {
-  test('EXDEV preserves ambiguous ${privateConflict ? 'private' : 'public'} state', () async {
-    await queue();
-    await engine().start('transfer').result;
-    final manifest = (await installed())!;
-    final intent = await journal.beginRemoval((await journal.transfer('transfer'))!, manifest,
-        id: 'ambiguous-intent', quarantinePath: '/owned/ambiguous-intent.partial');
-    native.before = (call) async {
-      if (call.method == 'ownedQuarantine') {
-        if (privateConflict) {
-          native.files[intent.quarantinePath] = _NativeFile(999)..bytes = [9];
-        } else {
-          native.files['/roms/fixture.chd']!.stamp++;
+    test(
+        'EXDEV preserves ambiguous ${privateConflict ? 'private' : 'public'} state',
+        () async {
+      await queue();
+      await engine().start('transfer').result;
+      final manifest = (await installed())!;
+      final intent = await journal.beginRemoval(
+          (await journal.transfer('transfer'))!, manifest,
+          id: 'ambiguous-intent',
+          quarantinePath: '/owned/ambiguous-intent.partial');
+      native.before = (call) async {
+        if (call.method == 'ownedQuarantine') {
+          if (privateConflict) {
+            native.files[intent.quarantinePath] = _NativeFile(999)..bytes = [9];
+          } else {
+            native.files['/roms/fixture.chd']!.stamp++;
+          }
+          native.fail('cross_volume');
         }
-        native.fail('cross_volume');
-      }
-    };
-    await expectLater(remover().recover(intent.id), throwsA(isA<OwnedStorageException>()));
-    expect(await journal.hasPendingRemoval('transfer'), isTrue);
-    expect((await journal.removal(intent.id))!.phase.name, 'intent');
-    expect(native.methods, isNot(contains('ownedRetireQuarantine')));
-  });
+      };
+      await expectLater(
+          remover().recover(intent.id), throwsA(isA<OwnedStorageException>()));
+      expect(await journal.hasPendingRemoval('transfer'), isTrue);
+      expect((await journal.removal(intent.id))!.phase.name, 'intent');
+      expect(native.methods, isNot(contains('ownedRetireQuarantine')));
+    });
   }
 
-  test('verified installation removal keeps cloud entry and supports re-download', () async {
+  test(
+      'verified installation removal keeps cloud entry and supports re-download',
+      () async {
     await queue();
     await engine().start('transfer').result;
     final manifest = (await installed())!;
     final remote = manifest.artifact.toJson();
     native.before = (call) async {
       if (call.method == 'ownedQuarantine') {
-        expect((await journal.pendingRemovals().toList()).single.phase, OwnedRemovalPhase.intent);
+        expect((await journal.pendingRemovals().toList()).single.phase,
+            OwnedRemovalPhase.intent);
       }
       if (call.method == 'ownedRetireQuarantine') {
-        expect((await journal.pendingRemovals().toList()).single.phase, OwnedRemovalPhase.deleting);
+        expect((await journal.pendingRemovals().toList()).single.phase,
+            OwnedRemovalPhase.deleting);
         expect(native.sessions, isEmpty);
       }
     };
@@ -567,7 +676,9 @@ void main() {
   });
 
   for (final phase in ['ownedQuarantine', 'ownedRetireQuarantine']) {
-    test('lost $phase acknowledgement recovers without repeating download or deleting neighbor', () async {
+    test(
+        'lost $phase acknowledgement recovers without repeating download or deleting neighbor',
+        () async {
       await queue();
       await engine().start('transfer').result;
       native.after = (call) async {
@@ -576,7 +687,8 @@ void main() {
           throw PlatformException(code: 'io_error');
         }
       };
-      await expectLater(remover().remove((await installed())!), throwsA(isA<OwnedStorageException>()));
+      await expectLater(remover().remove((await installed())!),
+          throwsA(isA<OwnedStorageException>()));
       final pending = (await journal.pendingRemovals().toList()).single;
       final neighbor = _NativeFile(999)..bytes = [9, 9];
       native.files['/roms/fixture.chd'] = neighbor;
@@ -588,20 +700,24 @@ void main() {
     });
   }
 
-  test('changed installation and changed quarantine bytes are preserved conflicts', () async {
+  test(
+      'changed installation and changed quarantine bytes are preserved conflicts',
+      () async {
     await queue();
     await engine().start('transfer').result;
     final manifest = (await installed())!;
     final original = native.files['/roms/fixture.chd']!;
     original.stamp++;
-    await expectLater(remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
+    await expectLater(
+        remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
     expect(native.files['/roms/fixture.chd'], same(original));
     expect(await journal.pendingRemovals().toList(), isEmpty);
     original.stamp--;
     native.after = (call) async {
       if (call.method == 'ownedQuarantine') original.bytes[0] ^= 1;
     };
-    await expectLater(remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
+    await expectLater(
+        remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
     expect(native.files.values, contains(same(original)));
     expect(native.methods, isNot(contains('ownedRetireQuarantine')));
     expect(await installed(), isNotNull);
@@ -1260,6 +1376,178 @@ void main() {
         TransferLifecycle.completed);
     expect(requests, [0]);
   });
+  Future<TransferRecord> queueBundle() async {
+    const namespace = 'rshop-bundle-test';
+    final members = [
+      for (var i = 1; i <= 2; i++)
+        TransferBundleMember(
+            transferId: 'disc-$i-${'a' * 64}',
+            artifact: RemoteArtifact.fromJson({
+              ...artifact().toJson(),
+              'id': {...artifact().id.toJson(), 'providerFileId': 'disc-$i'},
+              'displayName': 'Disc $i.chd'
+            }),
+            relativePath: '$namespace/Disc $i.chd')
+    ];
+    return journal.create(TransferRecord(
+        id: 'playlist',
+        artifact: artifact(),
+        destinationRoot: '/roms',
+        relativePath: '$namespace/game.m3u',
+        stagePath: '/owned/playlist.partial',
+        bundleMembers: members));
+  }
+
+  test(
+      'bundle cannot commit with missing discs; exact children never independently ready',
+      () async {
+    native.copyOnly = true;
+    final root = await queueBundle();
+    expect((await engine().start(root.id).result).lifecycle,
+        TransferLifecycle.failed);
+    final index = InstallationIndex(journal,
+        storage: OwnedStorage(channel: native.channel));
+    expect(await index.resolveArtifact(root.artifact, '/roms'), isNull);
+    for (final member in root.bundleMembers) {
+      await journal.create(TransferRecord(
+          id: member.transferId,
+          artifact: member.artifact,
+          destinationRoot: '/roms',
+          relativePath: member.relativePath,
+          stagePath: '/owned/${member.transferId}.partial',
+          bundleOwner: root.id));
+      final result = await engine().start(member.transferId).result;
+      expect(result.lifecycle, TransferLifecycle.completed);
+      expect(result.stageRetired, isTrue);
+      expect(await index.resolveArtifact(member.artifact, '/roms'), isNull);
+    }
+    final completed = await engine().start(root.id).result;
+    expect(completed.lifecycle, TransferLifecycle.completed);
+    expect(completed.stageRetired, isTrue);
+    final manifest = await journal.installationForTarget(
+        destinationRoot: '/roms', relativePath: root.relativePath);
+    expect(manifest!.dependencies.map((m) => m.transferId),
+        root.bundleMembers.map((m) => m.transferId));
+    expect(await index.resolveArtifact(root.artifact, '/roms'),
+        p.normalize(p.absolute('/roms/${root.relativePath}')));
+    final save = _NativeFile(990)..bytes = [42];
+    native.files['/roms/rshop-bundle-test/user-save.sav'] = save;
+    await expectLater(remover().remove(manifest.dependencies.first),
+        throwsA(isA<OwnedStorageException>()));
+    await remover().remove(manifest);
+    expect(await index.resolveArtifact(root.artifact, '/roms'), isNull);
+    expect(native.files, {'/roms/rshop-bundle-test/user-save.sav': save});
+    expect((await db.query('installed_artifacts')), isEmpty);
+  });
+
+  test(
+      'bundle removal resumes after child quarantine receipt loss, preserving its save',
+      () async {
+    final root = await queueBundle();
+    for (final member in root.bundleMembers) {
+      await journal.create(TransferRecord(
+          id: member.transferId,
+          artifact: member.artifact,
+          destinationRoot: '/roms',
+          relativePath: member.relativePath,
+          stagePath: '/owned/${member.transferId}.partial',
+          bundleOwner: root.id));
+      expect((await engine().start(member.transferId).result).lifecycle,
+          TransferLifecycle.completed);
+    }
+    expect((await engine().start(root.id).result).lifecycle,
+        TransferLifecycle.completed);
+    final manifest = (await journal.installationForTarget(
+        destinationRoot: '/roms', relativePath: root.relativePath))!;
+    var lost = false;
+    native.after = (call) async {
+      if (call.method == 'ownedQuarantine' &&
+          (call.arguments as Map)['relativePath'] ==
+              root.bundleMembers.first.relativePath &&
+          !lost) {
+        lost = true;
+        throw StateError('lost child quarantine receipt');
+      }
+    };
+    await expectLater(
+        remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
+    expect(lost, isTrue);
+    expect(
+        await InstallationIndex(journal,
+                storage: OwnedStorage(channel: native.channel))
+            .resolveArtifact(root.artifact, '/roms'),
+        isNull);
+    native.after = null;
+    final rootRemoval = (await db.query('owned_removals',
+            where: 'transfer_id = ?', whereArgs: [root.id]))
+        .single;
+    await remover().recover(rootRemoval['removal_id'] as String);
+    expect(await db.query('installed_artifacts'), isEmpty);
+    expect(native.files, isEmpty);
+  });
+
+  test('committed bundle update wins over retained same-version playlist',
+      () async {
+    final old = await queueBundle();
+    Future<void> installBundle(TransferRecord root) async {
+      for (final member in root.bundleMembers) {
+        await journal.create(TransferRecord(
+            id: member.transferId,
+            artifact: member.artifact,
+            destinationRoot: root.destinationRoot,
+            relativePath: member.relativePath,
+            stagePath: '/owned/${member.transferId}.partial',
+            bundleOwner: root.id));
+        expect((await engine().start(member.transferId).result).lifecycle,
+            TransferLifecycle.completed);
+      }
+      expect((await engine().start(root.id).result).lifecycle,
+          TransferLifecycle.completed);
+    }
+
+    await installBundle(old);
+    final previous = (await journal.installationForTarget(
+        destinationRoot: '/roms', relativePath: old.relativePath))!;
+    final next = await journal.create(TransferRecord(
+        id: 'updated-playlist',
+        artifact: old.artifact,
+        destinationRoot: '/roms',
+        relativePath: 'rshop-bundle-updated/game.m3u',
+        stagePath: '/owned/updated-playlist.partial',
+        replacesInstallation: previous,
+        bundleMembers: [
+          for (final member in old.bundleMembers)
+            TransferBundleMember(
+                transferId: 'updated-${member.transferId}',
+                artifact: RemoteArtifact.fromJson(
+                    {...member.artifact.toJson(), 'version': '2'}),
+                relativePath: member.relativePath
+                    .replaceFirst('rshop-bundle-test', 'rshop-bundle-updated'))
+        ]));
+    native.before = (call) async {
+      if (call.method == 'ownedQuarantine') {
+        throw PlatformException(code: 'io_error');
+      }
+    };
+    await installBundle(next);
+    expect(await journal.replacementIssue(next.id), 'io_error');
+    expect(native.files['/roms/${old.relativePath}'], isNotNull);
+    expect(await journal.transfer(old.id), isNotNull);
+    expect(await index().resolveArtifact(old.artifact, '/roms'),
+        p.normalize(p.absolute('/roms/${next.relativePath}')));
+    final game = GameItem(
+        filename: 'game.m3u',
+        displayName: 'Fixture',
+        url: '',
+        remoteArtifact: old.artifact);
+    expect(
+        (await RomManager(installations: index())
+                .requireInstalledArtifact(game, '/roms'))
+            .transferId,
+        next.id);
+    expect((await index().scan('/roms')).installed.length, 1);
+  });
+
   test('missing checksum fails before any storage or network work', () async {
     await queue(source: artifact(hashes: {}));
     final result = await engine().start('transfer').result;

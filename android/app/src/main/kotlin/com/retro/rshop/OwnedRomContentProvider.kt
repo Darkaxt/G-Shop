@@ -50,7 +50,7 @@ class OwnedRomContentProvider : ContentProvider() {
             .scheme("content").authority("${context.packageName}.owned-roms")
             .appendPath("installation").appendPath(id).appendPath(filename.substringAfterLast('/')).build()
 
-        private fun manifest(context: Context, uri: Uri): JSONObject {
+        private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null): JSONObject {
             if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
                 uri.query != null || uri.fragment != null || uri.pathSegments.size != 3 ||
                 uri.pathSegments[0] != "installation") throw FileNotFoundException("Invalid ROM grant")
@@ -58,7 +58,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 null, SQLiteDatabase.OPEN_READONLY)
             try {
                 db.rawQuery("""SELECT i.record_json, t.record_json, i.transfer_id,
-                    i.destination_root, i.relative_path FROM installed_artifacts i
+                    i.destination_root, i.relative_path, t.bundle_owner FROM installed_artifacts i
                     JOIN transfer_target_owners o ON o.installation_id=i.installation_id
                       AND o.transfer_id=i.transfer_id AND o.destination_root=i.destination_root
                       AND o.relative_path=i.relative_path
@@ -73,6 +73,10 @@ class OwnedRomContentProvider : ContentProvider() {
                     val transfer = JSONObject(cursor.getString(1))
                     val publication = transfer.getJSONObject("publication")
                     val checksums = result.getJSONObject("verifiedChecksums")
+                    val owner = if (cursor.isNull(5)) null else cursor.getString(5)
+                    if (owner != bundleOwner) throw FileNotFoundException("Bundle member has no independent grant")
+                    if (owner != null && publication.optString("method") == "copy" &&
+                        !transfer.optBoolean("stageRetired")) throw FileNotFoundException("Bundle member stage pending")
                     if (result.getString("id") != uri.pathSegments[1] ||
                         result.getString("transferId") != cursor.getString(2) ||
                         transfer.getString("id") != cursor.getString(2) ||
@@ -89,6 +93,27 @@ class OwnedRomContentProvider : ContentProvider() {
                         result.getLong("sizeBytes") != result.getJSONObject("fileIdentity").getLong("sizeBytes")) {
                         throw FileNotFoundException("Installation changed")
                     }
+                    val dependencies = result.optJSONArray("dependencies") ?: JSONArray()
+                    val members = transfer.optJSONArray("bundleMembers") ?: JSONArray()
+                    if (dependencies.length() > 256 || dependencies.length() != members.length() ||
+                        (bundleOwner != null && dependencies.length() != 0)) {
+                        throw FileNotFoundException("Bundle graph changed")
+                    }
+                    for (i in 0 until dependencies.length()) {
+                        val child = dependencies.getJSONObject(i)
+                        val member = members.getJSONObject(i)
+                        if (child.getString("destinationRoot") != result.getString("destinationRoot") ||
+                            member.getString("transferId") != child.getString("transferId") ||
+                            member.getString("relativePath") != child.getString("relativePath") ||
+                            !sameJson(member.getJSONObject("artifact"), child.getJSONObject("artifact"))) {
+                            throw FileNotFoundException("Bundle member changed")
+                        }
+                        val childUri = OwnedRomContentProvider.uri(context, child.getString("id"), child.getString("relativePath"))
+                        if (!sameJson(child, manifest(context, childUri, result.getString("transferId")))) {
+                            throw FileNotFoundException("Bundle ownership changed")
+                        }
+                        openCommitted(context, childUri, result.getString("transferId")).use { }
+                    }
                     return result
                 }
             } finally { db.close() }
@@ -104,10 +129,10 @@ class OwnedRomContentProvider : ContentProvider() {
             else -> a == b
         }
 
-        fun openCommitted(context: Context, uri: Uri): ParcelFileDescriptor {
+        fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null): ParcelFileDescriptor {
             var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
             try {
-                val saved = manifest(context, uri)
+                val saved = manifest(context, uri, bundleOwner)
                 val rootPath = saved.getString("destinationRoot")
                 val relative = saved.getString("relativePath")
                 val pieces = relative.split('/')
@@ -146,7 +171,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     throw FileNotFoundException("Installation path changed")
                 }
                 // Recheck durable ownership after opening the pinned object.
-                if (manifest(context, uri).toString() != saved.toString()) {
+                if (manifest(context, uri, bundleOwner).toString() != saved.toString()) {
                     throw FileNotFoundException("Installation ownership changed")
                 }
                 val result = ParcelFileDescriptor.adoptFd(file)

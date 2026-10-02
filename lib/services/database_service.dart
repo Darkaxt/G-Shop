@@ -19,7 +19,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 21;
+  static const int _dbVersion = 22;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -329,6 +329,9 @@ class DatabaseService {
     }
     if (oldVersion < 21) {
       await TransferJournalSchema.installReplacements(db);
+    }
+    if (oldVersion < 22) {
+      await TransferJournalSchema.installBundles(db);
     }
   }
 

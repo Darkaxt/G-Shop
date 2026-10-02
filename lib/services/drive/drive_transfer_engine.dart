@@ -222,6 +222,14 @@ class DriveTransferOperation {
         throw const OwnedStorageException('changed');
       }
       _checkCancellation();
+      final dependencies = await _engine.journal.bundleInstallations(record);
+      for (final member in dependencies) {
+        _checkCancellation();
+        await _engine.revalidate(member.artifact, _cancellation);
+        await InstallationIndex(_engine.journal, storage: _engine.storage)
+            .requireInstallation((await _engine.journal.transfer(member.transferId))!,
+                member, bundleOwner: record.id);
+      }
       if (record.replacesInstallation case final old?) {
         final previous = await _engine.journal.transfer(old.transferId);
         if (previous == null) throw const OwnedStorageException('changed');
@@ -238,6 +246,7 @@ class DriveTransferOperation {
               relativePath: record.relativePath,
               sizeBytes: record.artifact.sizeBytes!,
               verifiedChecksums: record.verifiedChecksums,
+              dependencies: dependencies,
               fileIdentity: destination),
           checkCancellation: _checkCancellation);
       _notifyCheckpoint();

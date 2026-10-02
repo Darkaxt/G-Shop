@@ -42,6 +42,7 @@ class DriveProvider implements SourceProvider {
     }
     final extensions = [
       ...systems.single.romExtensions,
+      if (systems.single.romExtensions.contains('.cue')) '.m3u',
       ...SystemModel.archiveExtensions,
     ];
     final generation = await runtime.catalogue.activeGeneration(
