@@ -19,6 +19,7 @@ import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/installation_index.dart';
 import 'package:retro_eshop/services/ra_hash_service.dart';
+import 'package:retro_eshop/services/owned_replacement.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // Only the remote protocol and native channel are fixtures. The coordinator,
@@ -327,6 +328,94 @@ void main() {
   }
   InstallationIndex index() => InstallationIndex(journal,
       storage: OwnedStorage(channel: native.channel));
+  Future<TransferRecord> queueReplacement() async {
+    await queue();
+    expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.completed);
+    final old = (await installed())!;
+    final bytes = Uint8List.fromList([9, 8, 7, 6, 5]);
+    final source = RemoteArtifact.fromJson({...old.artifact.toJson(),
+      'version': '2', 'sizeBytes': bytes.length,
+      'providerChecksums': {'md5': md5.convert(bytes).toString()}});
+    media = (_, offset, __) async => DriveMediaResponse(
+      bytes: Stream.value(Uint8List.sublistView(bytes, offset)), offset: offset,
+      length: bytes.length - offset, total: bytes.length);
+    return journal.create(TransferRecord(id: 'replacement', artifact: source,
+      destinationRoot: '/roms', relativePath: 'fixture.v2.chd',
+      stagePath: '/owned/replacement.partial', replacesInstallation: old));
+  }
+  test('replacement commits a distinct verified target before retiring exact old bytes', () async {
+    native.copyOnly = true;
+    final next = await queueReplacement();
+    var sawCommit = false;
+    native.before = (call) async {
+      if (call.method == 'ownedQuarantine') {
+        sawCommit = true;
+        expect((await journal.transfer(next.id))!.lifecycle, TransferLifecycle.completed);
+        expect(native.files['/roms/fixture.chd']!.bytes, payload);
+        expect(native.files['/roms/fixture.v2.chd']!.bytes, [9, 8, 7, 6, 5]);
+      }
+    };
+    final result = await engine().start(next.id).result;
+    expect(result.lifecycle, TransferLifecycle.completed, reason: result.errorCode);
+    expect(sawCommit, isTrue);
+    expect(native.files['/roms/fixture.chd'], isNull);
+    expect(await journal.transfer('transfer'), isNull);
+    expect(await journal.replacementPhase(next.id), 'retired');
+  });
+  test('paused replacement leaves old verified target and owner intact', () async {
+    final next = await queueReplacement();
+    final entered = Completer<void>(), release = Completer<void>();
+    revalidate = (_) async { entered.complete(); await release.future; };
+    final operation = engine().start(next.id);
+    await entered.future;
+    final paused = operation.pause();
+    release.complete();
+    expect((await paused).lifecycle, TransferLifecycle.paused);
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+    expect(await installed(), isNotNull);
+    expect(native.files['/roms/fixture.v2.chd'], isNull);
+  });
+  test('changed old owner blocks new commit without overwriting either file', () async {
+    final next = await queueReplacement();
+    native.files['/roms/fixture.chd']!.stamp++;
+    final result = await engine().start(next.id).result;
+    expect(result.lifecycle, TransferLifecycle.failed);
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+    expect(await installed(), isNotNull);
+    expect(await journal.installationForTarget(destinationRoot: '/roms',
+        relativePath: next.relativePath), isNull);
+  });
+  test('lost old-quarantine receipt recovers without another media download', () async {
+    final next = await queueReplacement();
+    native.after = (call) async {
+      if (call.method == 'ownedQuarantine') {
+        native.after = null;
+        throw PlatformException(code: 'io_error');
+      }
+    };
+    final result = await engine().start(next.id).result;
+    expect(result.lifecycle, TransferLifecycle.completed);
+    expect(await journal.replacementIssue(next.id), 'io_error');
+    final requestsBefore = requests.length;
+    expect(await retireReplacedInstallation(journal, OwnedStorage(channel: native.channel), result), isNull);
+    expect(await journal.replacementPhase(next.id), 'retired');
+    expect(requests.length, requestsBefore);
+    expect(await installed(), isNull);
+  });
+  test('changed new bytes after commit preserve old installation during cleanup', () async {
+    native.copyOnly = true;
+    final next = await queueReplacement();
+    native.after = (call) async {
+      if (call.method == 'ownedRetireStage' && call.arguments['relativePath'] == next.relativePath) {
+        native.files['/roms/fixture.v2.chd']!.bytes[0] ^= 1;
+      }
+    };
+    final result = await engine().start(next.id).result;
+    expect(result.lifecycle, TransferLifecycle.completed);
+    expect(await journal.replacementIssue(next.id), 'changed');
+    expect(native.files['/roms/fixture.chd']!.bytes, payload);
+    expect(await installed(), isNotNull);
+  });
   test('owned achievement hash uses exact pinned committed bytes with bounded reads', () async {
     final game = await installRaw();
     final reads = <int>[];

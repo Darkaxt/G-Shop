@@ -81,8 +81,8 @@ class StatusLabel extends StatelessWidget {
       case DownloadStatus.completed:
         return (
           l.downloadStatus_complete,
-          Colors.green,
-          Icons.check_circle_rounded
+          item.error == null ? Colors.green : Colors.amber,
+          item.error == null ? Icons.check_circle_rounded : Icons.warning_amber_rounded
         );
       case DownloadStatus.cancelled:
         return (l.downloadStatus_cancelled, Colors.grey, Icons.cancel_rounded);

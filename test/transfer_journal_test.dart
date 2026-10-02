@@ -167,6 +167,57 @@ void main() {
   });
   tearDown(() => db.close());
 
+  test('replacement holds its old owner until verified new commit and retirement', () async {
+    final oldPublishing = await _advanceToPublishing(journal, await journal.create(_queued()));
+    final old = _installation(oldPublishing);
+    final oldRecord = await journal.complete(oldPublishing, old);
+    final next = TransferRecord.fromJson({
+      ..._queued(id: 'next', relativePath: 'next.chd').toJson(),
+      'artifact': {...old.artifact.toJson(), 'version': 'version-2'},
+      'replacesInstallation': old.toJson(),
+    });
+    await journal.create(next);
+    await expectLater(journal.beginRemoval(oldRecord, old, id: 'user-remove',
+        quarantinePath: '/private/user-remove.partial'), throwsStateError);
+    // A second version cannot claim the same old installation, even at a new path.
+    final competing = TransferRecord.fromJson({...next.toJson(), 'id': 'competing',
+      'relativePath': 'competing.chd', 'stagePath': '/private/competing.partial'});
+    await expectLater(journal.create(competing), throwsStateError);
+    expect(await journal.transfer('competing'), isNull);
+    var replacement = await _advanceToPublishing(journal, next);
+    final installed = _installation(replacement, id: 'new-installation');
+    replacement = await journal.complete(replacement, installed);
+    expect(await journal.installationForTarget(destinationRoot: old.destinationRoot,
+        relativePath: old.relativePath), isNotNull);
+    final removal = await journal.beginRemoval(oldRecord, old, id: 'replacement-next',
+        quarantinePath: '/private/replacement-next.partial', replacementTransferId: replacement.id);
+    final quarantined = await journal.advanceRemoval(removal, OwnedRemovalPhase.quarantined);
+    final deleting = await journal.advanceRemoval(quarantined, OwnedRemovalPhase.deleting);
+    await journal.finishRemoval(deleting);
+    await journal.finishReplacement(replacement);
+    expect(await journal.transfer(oldRecord.id), isNull);
+    expect(await journal.transfer(replacement.id), isNotNull);
+    expect(await journal.pendingReplacements().toList(), isEmpty);
+  });
+
+  test('replacement cannot retire old bytes before new commit or borrow a namesake', () async {
+    final publishing = await _advanceToPublishing(journal, await journal.create(_queued()));
+    final old = _installation(publishing);
+    final completed = await journal.complete(publishing, old);
+    final invalid = TransferRecord.fromJson({..._queued(id: 'bad', relativePath: 'bad.chd').toJson(),
+      'replacesInstallation': old.toJson()});
+    await expectLater(journal.create(invalid), throwsStateError);
+    final next = TransferRecord.fromJson({...invalid.toJson(),
+      'artifact': {...old.artifact.toJson(), 'version': 'version-2'}});
+    await journal.create(next);
+    await expectLater(journal.beginRemoval(completed, old, id: 'replacement-bad',
+      quarantinePath: '/private/replacement-bad.partial', replacementTransferId: next.id), throwsStateError);
+    await expectLater(journal.finishReplacement(next), throwsStateError);
+    await journal.save(next.copyWith(lifecycle: TransferLifecycle.paused));
+    expect(await journal.installationForTarget(destinationRoot: old.destinationRoot,
+      relativePath: old.relativePath), isNotNull);
+  });
+
   test('removal intent, deletion and owner release are durable separate phases', () async {
     final publishing = await _advanceToPublishing(journal, await journal.create(_queued()));
     final manifest = _installation(publishing);

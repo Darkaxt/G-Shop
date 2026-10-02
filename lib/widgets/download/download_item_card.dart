@@ -142,13 +142,13 @@ class DownloadItemCard extends StatelessWidget {
                           ],
                         ),
                         // Error detail text
-                        if (item.isFailed && item.error != null)
+                        if ((item.isFailed || item.isComplete) && item.error != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               item.error!,
                               style: TextStyle(
-                                color: Colors.redAccent.withValues(alpha: 0.8),
+                                color: (item.isComplete ? Colors.amber : Colors.redAccent).withValues(alpha: 0.8),
                                 fontSize: rs.isSmall ? 10 : 11,
                                 height: 1.3,
                               ),

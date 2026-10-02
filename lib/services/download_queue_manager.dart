@@ -525,7 +525,7 @@ class DownloadQueueManager extends ChangeNotifier {
 
   void _driveCheckpoint(
       String id, _DriveQueueAttempt attempt, TransferRecord record,
-      {bool terminal = false}) {
+      {bool terminal = false, String? maintenanceWarning}) {
     if (!_ownsDrive(id, attempt)) return;
     if (!terminal &&
         (record.lifecycle == TransferLifecycle.completed ||
@@ -552,8 +552,8 @@ class DownloadQueueManager extends ChangeNotifier {
         receivedBytes: record.durableOffset,
         totalBytes: total,
         progress: total != null && total > 0 ? record.durableOffset / total : 0,
-        error: record.errorCode,
-        clearError: record.errorCode == null,
+        error: record.errorCode ?? maintenanceWarning,
+        clearError: record.errorCode == null && maintenanceWarning == null,
         clearSpeed: status != DownloadStatus.downloading);
     _throttledNotificationUpdate();
   }
@@ -590,6 +590,7 @@ class DownloadQueueManager extends ChangeNotifier {
       if (record.lifecycle == TransferLifecycle.completed) {
         await _driveRuntime.requireInstalledTransfer(record);
         record = await _driveRuntime.finishRetainedStage(record);
+        await _driveRuntime.finishReplacement(record);
       } else if (attempt.pauseRequested || _closing) {
         if (record.lifecycle != TransferLifecycle.completed) {
           record = await _driveRuntime.journal
@@ -605,8 +606,15 @@ class DownloadQueueManager extends ChangeNotifier {
         if (attempt.pauseRequested || _closing) operation.pause();
         record = await operation.result;
       }
+      String? warning;
+      if (record.replacesInstallation != null && record.lifecycle == TransferLifecycle.completed) {
+        try {
+          final issue = await _driveRuntime.journal.replacementIssue(record.id);
+          if (issue != null) warning = 'Previous version preserved: $issue';
+        } catch (_) { warning = 'Replacement cleanup status unavailable'; }
+      }
       if (!_ownsDrive(item.id, attempt)) return;
-      _driveCheckpoint(item.id, attempt, record, terminal: true);
+      _driveCheckpoint(item.id, attempt, record, terminal: true, maintenanceWarning: warning);
       if (record.lifecycle == TransferLifecycle.completed && !_disposed) {
         final completedItem = item.copyWith(
             status: DownloadStatus.completed,
@@ -614,7 +622,8 @@ class DownloadQueueManager extends ChangeNotifier {
             progress: 1,
             receivedBytes: record.durableOffset,
             totalBytes: record.artifact.sizeBytes,
-            clearError: true,
+            error: warning,
+            clearError: warning == null,
             clearSpeed: true);
         final observer = onItemCompleted;
         if (observer != null) {
@@ -805,6 +814,8 @@ class DownloadQueueManager extends ChangeNotifier {
 
   Future<OwnedRemovalRecoveryReport> recoverPendingRemovals() =>
       _ownedRemovalRecovery ??= recoverPendingStageRetirements().then((_) =>
+          _driveRuntime.recoverPendingReplacements(
+              shouldContinue: () => !_closing && !_disposed)).then((_) =>
           _driveRuntime.recoverPendingRemovals(
               shouldContinue: () => !_closing && !_disposed)).then((report) {
         if (report.pending > 0 || report.issues.isNotEmpty) {

@@ -175,6 +175,37 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   Both actual displays are OFF. S3 remains ACTIVE on bundles/playlists and safe
   valid-target replacement; no later stage was activated.
 
+### S3 safe version replacement (2026-10-02)
+
+- A new version of the exact account/source/file reserves a separate managed
+  filename, preserving its format extension. The old verified installation is
+  retained through transfer, cancellation and publication. A transactional claim
+  rejects competing replacements and premature explicit removal. No unmanaged
+  target is adopted or overwritten by filename.
+- Only after the new installed-state commit and private-stage retirement does
+  cleanup freshly hash the new file and quarantine/hash/remove the exact previous
+  owner. Failed cleanup preserves the old object and records a bounded warning;
+  it does not falsely fail the already committed new download. Offline startup
+  recovers durable replacement intents without requiring account access.
+- Focused reservation, journal, engine, migration and queue/widget regressions
+  passed, including changed old/new bytes, pause, competing ownership and a lost
+  quarantine receipt. The scoped analyzer reported no issues.
+- The actual Thor probe used production reservation, engine, journal and native
+  SD storage with synthetic versions in a separate database/root. Actual process
+  stops after confirmed publication, installed commit, and the old quarantine
+  rename recovered on relaunch. Final exact owned removal passed; the neighboring
+  save stayed unchanged. Its measured publication boundary held 196,647 logical
+  payload bytes (three 65,549-byte copies), excluding directory/database overhead.
+  This is native recovery evidence, not an online Drive version-update claim.
+- Probe root/database absence was independently checked. The normal current APK
+  was built and restored using install-replace. Its additive v21 migration retained
+  134 cached games, two installations and the completed/retained removal audit;
+  no replacement fixture row entered the normal database. APK SHA-256:
+  `12F5F396017D0836B64C14BFCF7738ABFECF2D2D1CB04C87461BCF071AA576DE`.
+  Both actual displays (0 and 4) are OFF. S3 remains ACTIVE: bundle/playlist
+  installation and its integrated readiness/removal proof remain unfinished.
+  No later stage, existing-library migration, push or external release occurred.
+
 ### User-requested pause (2026-10-02)
 
 - Execution paused at the user's explicit request. S3 retains ACTIVE as its

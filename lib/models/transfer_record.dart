@@ -61,6 +61,10 @@ class TransferRecord {
   final String destinationRoot;
   final String relativePath;
   final String stagePath;
+
+  /// Immutable previous owner. Replacement publishes to a distinct path before
+  /// this exact installation can be retired; it never overwrites the old target.
+  final InstalledArtifact? replacesInstallation;
   final int durableOffset;
   final TransferLifecycle lifecycle;
   final int revision;
@@ -88,6 +92,7 @@ class TransferRecord {
     required String destinationRoot,
     required String relativePath,
     required String stagePath,
+    this.replacesInstallation,
     this.durableOffset = 0,
     this.lifecycle = TransferLifecycle.queued,
     this.revision = 0,
@@ -132,6 +137,10 @@ class TransferRecord {
         destinationRoot: json['destinationRoot'] as String,
         relativePath: json['relativePath'] as String,
         stagePath: json['stagePath'] as String,
+        replacesInstallation: json['replacesInstallation'] == null
+            ? null
+            : InstalledArtifact.fromJson(
+                (json['replacesInstallation'] as Map).cast<String, dynamic>()),
         durableOffset: json['durableOffset'] as int? ?? 0,
         lifecycle: TransferLifecycle.values.byName(
           json['lifecycle'] as String? ?? TransferLifecycle.queued.name,
@@ -172,6 +181,7 @@ class TransferRecord {
         destinationRoot: destinationRoot,
         relativePath: relativePath,
         stagePath: stagePath,
+        replacesInstallation: replacesInstallation,
         durableOffset: durableOffset ?? this.durableOffset,
         lifecycle: lifecycle ?? this.lifecycle,
         revision: revision ?? this.revision,
@@ -191,6 +201,8 @@ class TransferRecord {
         'destinationRoot': destinationRoot,
         'relativePath': relativePath,
         'stagePath': stagePath,
+        if (replacesInstallation != null)
+          'replacesInstallation': replacesInstallation!.toJson(),
         'durableOffset': durableOffset,
         'lifecycle': lifecycle.name,
         'revision': revision,

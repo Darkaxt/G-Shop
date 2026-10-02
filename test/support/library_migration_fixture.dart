@@ -13,7 +13,7 @@ import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion < 13 || previousVersion > 18) {
+  if (previousVersion < 13 || previousVersion > 20) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -60,7 +60,8 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
-      'owned_removals',
+      'transfer_replacements',
+      if (previousVersion < 19) 'owned_removals',
       if (previousVersion < 18) ...[
         'metadata_refresh_items',
         'metadata_refresh_jobs',
@@ -111,7 +112,8 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 19);
+    expect(await opened.getVersion(), 21);
+    expect(await opened.query('transfer_replacements'), isEmpty);
     expect(await opened.query('owned_removals'), isEmpty);
     expect(await opened.query('metadata_refresh_jobs'), isEmpty);
     expect(await opened.query('metadata_refresh_items'), isEmpty);
@@ -158,7 +160,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 19);
+    expect(await opened.getVersion(), 21);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');

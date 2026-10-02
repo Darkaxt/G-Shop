@@ -9,6 +9,7 @@ import '../installation_index.dart';
 import '../owned_storage.dart';
 import '../transfer_journal.dart';
 import '../stage_retirement.dart';
+import '../owned_replacement.dart';
 import 'drive_api.dart';
 import 'drive_authorization.dart';
 import 'drive_media.dart';
@@ -119,6 +120,9 @@ class DriveTransferOperation {
           _engine.journal, _engine.storage, transferred,
           resourcesClosed: _resourcesClosed);
       _notifyCheckpoint();
+      if (_resourcesClosed) {
+        await retireReplacedInstallation(_engine.journal, _engine.storage, record);
+      }
       return record;
     } finally {
       if (identical(_engine._active[transferId], this)) {
@@ -218,6 +222,12 @@ class DriveTransferOperation {
         throw const OwnedStorageException('changed');
       }
       _checkCancellation();
+      if (record.replacesInstallation case final old?) {
+        final previous = await _engine.journal.transfer(old.transferId);
+        if (previous == null) throw const OwnedStorageException('changed');
+        await InstallationIndex(_engine.journal, storage: _engine.storage)
+            .requireInstallation(previous, old);
+      }
       _record = await _engine.journal.complete(
           record,
           InstalledArtifact(

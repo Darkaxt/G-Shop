@@ -103,6 +103,14 @@ void main() {
       expect(find.byIcon(Icons.cancel_rounded), findsOneWidget);
     });
 
+    testWidgets('completed install keeps a distinct cleanup warning, not failure', (tester) async {
+      await tester.pumpWidget(createTestApp(StatusLabel(item: _makeItem(
+        status: DownloadStatus.completed, error: 'Previous version preserved: changed'))));
+      expect(find.text('Complete'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.text('Failed'), findsNothing);
+    });
+
     testWidgets('shows "Failed" for error status', (tester) async {
       await tester.pumpWidget(createTestApp(
         StatusLabel(item: _makeItem(status: DownloadStatus.error)),

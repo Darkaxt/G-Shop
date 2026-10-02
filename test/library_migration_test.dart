@@ -21,4 +21,6 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 17));
   test('real v18 upgrade adds owned removal journal without changing cached games',
       () => verifyLibraryMigration(previousVersion: 18));
+  test('real v20 upgrade adds replacement claims without changing cached games',
+      () => verifyLibraryMigration(previousVersion: 20));
 }

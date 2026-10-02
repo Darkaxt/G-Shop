@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:path/path.dart' as p;
 
 import '../../models/config/drive_source_config.dart';
 import '../../models/config/provider_config.dart';
@@ -17,6 +18,7 @@ import '../owned_storage.dart';
 import '../owned_installation_removal.dart';
 import '../transfer_journal.dart';
 import '../stage_retirement.dart';
+import '../owned_replacement.dart';
 import 'drive_api.dart';
 import 'drive_authorization.dart';
 import 'drive_catalogue.dart';
@@ -45,7 +47,11 @@ class StageRetirementRecoveryReport {
 }
 
 typedef OwnedRemovalRecoveryReport = ({
-  int examined, int removed, int pending, int skippedActive, bool stopped,
+  int examined,
+  int removed,
+  int pending,
+  int skippedActive,
+  bool stopped,
   Map<String, int> issues,
 });
 
@@ -142,18 +148,42 @@ class DriveRuntime {
       final existing = await journal.transfer(id);
       if (existing != null) {
         _requireReservationSnapshot(existing, artifact);
+        final expectedPath = existing.replacesInstallation == null
+            ? relativePath
+            : _replacementPath(relativePath, id);
         if (existing.destinationRoot != destinationRoot ||
-            existing.relativePath != relativePath ||
+            existing.relativePath != expectedPath ||
             existing.stagePath != plan.stagePath(id)) {
           throw const OwnedStorageException('changed');
         }
         return existing;
       }
+      InstalledArtifact? previous;
+      final index = InstallationIndex(journal, storage: _storage);
+      await for (final row in journal.targetsInRoot(destinationRoot,
+          artifactKey: artifact.id.key)) {
+        final installed = row.installation;
+        if (installed == null ||
+            row.transfer.lifecycle != TransferLifecycle.completed) {
+          continue;
+        }
+        await index.requireInstallation(row.transfer, installed);
+        if (InstallationSnapshot.sameContent(installed.artifact, artifact)) {
+          return row.transfer;
+        }
+        if (previous != null) {
+          throw const OwnedStorageException('replacement_pending');
+        }
+        previous = installed;
+      }
+      final target =
+          previous == null ? relativePath : _replacementPath(relativePath, id);
       return journal.create(TransferRecord(
           id: id,
           artifact: artifact,
           destinationRoot: destinationRoot,
-          relativePath: relativePath,
+          relativePath: target,
+          replacesInstallation: previous,
           stagePath: plan.stagePath(id)));
     }();
     _reservations[id] = reservation;
@@ -163,6 +193,9 @@ class DriveRuntime {
       if (identical(_reservations[id], reservation)) _reservations.remove(id);
     }
   }
+
+  static String _replacementPath(String name, String id) =>
+      '${String.fromCharCodes(p.basenameWithoutExtension(name).runes.take(32))}.rshop-$id${p.extension(name)}';
 
   static void _requireReservationSnapshot(
       TransferRecord record, RemoteArtifact artifact) {
@@ -198,6 +231,22 @@ class DriveRuntime {
   Future<TransferRecord> finishRetainedStage(TransferRecord record) =>
       retireCommittedStage(journal, _storage, record);
 
+  Future<String?> finishReplacement(TransferRecord record) =>
+      retireReplacedInstallation(journal, _storage, record);
+
+  Future<void> recoverPendingReplacements(
+      {bool Function()? shouldContinue}) async {
+    await for (final record
+        in journal.pendingReplacements(shouldContinue: shouldContinue)) {
+      if (!(shouldContinue?.call() ?? true)) return;
+      if (_startingTransfers.contains(record.id) ||
+          _transfers.containsKey(record.id)) {
+        continue;
+      }
+      await finishReplacement(record);
+    }
+  }
+
   /// Explicit removal intents survive queue loss and account sign-out. One
   /// offline pass resumes them; conflicts remain for review, never busy retries.
   /// Shutdown stops between intents and joins the current namespace mutation.
@@ -213,10 +262,12 @@ class DriveRuntime {
       stopped = true;
       return false;
     }
+
     StreamIterator<OwnedRemovalRecord>? records;
     if (canContinue()) {
       try {
-        records = StreamIterator(journal.pendingRemovals(shouldContinue: canContinue));
+        records = StreamIterator(
+            journal.pendingRemovals(shouldContinue: canContinue));
         final remover = OwnedInstallationRemoval(journal, storage: _storage);
         while (canContinue() && await records.moveNext()) {
           if (!canContinue()) break;
@@ -249,9 +300,14 @@ class DriveRuntime {
         }
       }
     }
-    return (examined: examined, removed: removed, pending: pending,
-        skippedActive: skippedActive, stopped: stopped,
-        issues: Map<String, int>.unmodifiable(issues));
+    return (
+      examined: examined,
+      removed: removed,
+      pending: pending,
+      skippedActive: skippedActive,
+      stopped: stopped,
+      issues: Map<String, int>.unmodifiable(issues)
+    );
   }
 
   /// One offline pass over durable cleanup intents, including installs whose

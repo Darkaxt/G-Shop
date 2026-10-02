@@ -19,7 +19,8 @@ class OwnedInstallationRemoval {
   final OwnedStorage storage;
   OwnedInstallationRemoval(this.journal, {this.storage = const OwnedStorage()});
 
-  Future<void> remove(InstalledArtifact installation) =>
+  Future<void> remove(InstalledArtifact installation,
+          {String? replacementTransferId}) =>
       InstallationMutations.run(
           p.join(installation.destinationRoot, installation.relativePath),
           () async {
@@ -28,12 +29,17 @@ class OwnedInstallationRemoval {
         await InstallationIndex(journal, storage: storage)
             .requireInstallation(transfer, installation);
         final plan = await storage.prepare(installation.destinationRoot);
-        if (!plan.sameMountHint) throw const OwnedStorageException('cross_volume');
+        if (!plan.sameMountHint) {
+          throw const OwnedStorageException('cross_volume');
+        }
         final random = Random.secure();
-        final id =
-            'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
+        final id = replacementTransferId == null
+            ? 'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}'
+            : 'replacement-$replacementTransferId';
         final intent = await journal.beginRemoval(transfer, installation,
-            id: id, quarantinePath: plan.stagePath(id));
+            id: id,
+            quarantinePath: plan.stagePath(id),
+            replacementTransferId: replacementTransferId);
         await _continue(intent);
         if ((await journal.removal(id))!.phase == OwnedRemovalPhase.retained) {
           throw const OwnedStorageException('cross_volume');
@@ -115,13 +121,17 @@ class OwnedInstallationRemoval {
           expectedIdentity: expected);
       await journal.finishRemoval(record);
     } on OwnedStorageException catch (error) {
-      if (error.code == 'cross_volume' && record.phase == OwnedRemovalPhase.intent) {
+      if (error.code == 'cross_volume' &&
+          record.phase == OwnedRemovalPhase.intent) {
         // EXDEV cannot move an entry. Still inspect both namespaces before
         // ending a legacy pending intent; ambiguity retains the recovery gate.
-        final private = await storage.inspect(destinationRoot: root,
-            relativePath: relative, stagePath: stage);
-        final public = await storage.inspect(destinationRoot: root,
-            relativePath: relative, stagePath: stage, published: true);
+        final private = await storage.inspect(
+            destinationRoot: root, relativePath: relative, stagePath: stage);
+        final public = await storage.inspect(
+            destinationRoot: root,
+            relativePath: relative,
+            stagePath: stage,
+            published: true);
         if (private == null && public != null && public.matches(expected)) {
           await journal.retainUnmovedRemoval(record);
           return;

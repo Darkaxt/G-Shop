@@ -637,6 +637,24 @@ void main() {
     expect(fixture.media.requests, isEmpty);
   });
 
+  test('replacement reservation is exact, distinct-path and restart stable', () async {
+    final fixture = await _TransferFixture.create();
+    final runtime = fixture.runtime();
+    expect((await (await runtime.startTransfer(config: _transferConfig,
+        transferId: 'transfer')).result).lifecycle, TransferLifecycle.completed);
+    final changed = RemoteArtifact.fromJson({..._artifact().toJson(), 'version': '2'});
+    final next = await runtime.reserveTransfer(config: _transferConfig,
+        artifact: changed, destinationRoot: '/roms', relativePath: changed.displayName);
+    expect(next.relativePath, isNot('fixture.chd'));
+    expect(next.relativePath.endsWith('.chd'), isTrue);
+    expect(next.replacesInstallation!.transferId, 'transfer');
+    final again = await fixture.runtime().reserveTransfer(config: _transferConfig,
+        artifact: changed, destinationRoot: '/roms', relativePath: changed.displayName);
+    expect(jsonEncode(again.toJson()), jsonEncode(next.toJson()));
+    expect(await fixture.journal.transfer('transfer'), isNotNull);
+    expect(fixture.native.published, isTrue);
+  });
+
   test('checkpoint notifications describe committed journal revisions',
       () async {
     final fixture = await _TransferFixture.create();

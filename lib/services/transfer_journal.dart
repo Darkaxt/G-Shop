@@ -26,6 +26,7 @@ class TransferJournalSchema {
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_lifecycle
       ON transfer_records(lifecycle, transfer_id)''');
     await installArtifactIndex(db);
+    await installReplacements(db);
     await installRemovalJournal(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS installed_artifacts (
       installation_id TEXT PRIMARY KEY,
@@ -47,6 +48,14 @@ class TransferJournalSchema {
   static Future<void> installArtifactIndex(DatabaseExecutor db) =>
       db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_artifact
       ON transfer_records(artifact_key, destination_root, relative_path)''');
+
+  static Future<void> installReplacements(DatabaseExecutor db) async {
+    await db.execute('''CREATE TABLE IF NOT EXISTS transfer_replacements (
+      transfer_id TEXT PRIMARY KEY, previous_installation_id TEXT NOT NULL,
+      phase TEXT NOT NULL, issue TEXT)''');
+    await db.execute('''CREATE UNIQUE INDEX IF NOT EXISTS idx_replacement_owner
+      ON transfer_replacements(previous_installation_id) WHERE phase = 'pending' ''');
+  }
 
   static Future<void> installRemovalJournal(DatabaseExecutor db) async {
     await db.execute('''CREATE TABLE IF NOT EXISTS owned_removals (
@@ -75,36 +84,74 @@ class TransferJournal {
   final Future<Database> _database;
   TransferJournal(this._database);
 
-  Future<OwnedRemovalRecord> beginRemoval(TransferRecord transfer,
-      InstalledArtifact installation, {required String id,
-      required String quarantinePath}) async {
-    final intent = OwnedRemovalRecord(id: id, installation: installation,
-        quarantinePath: quarantinePath);
+  Future<OwnedRemovalRecord> beginRemoval(
+      TransferRecord transfer, InstalledArtifact installation,
+      {required String id,
+      required String quarantinePath,
+      String? replacementTransferId}) async {
+    final intent = OwnedRemovalRecord(
+        id: id, installation: installation, quarantinePath: quarantinePath);
     final db = await _database;
     return db.transaction((txn) async {
       _requireExactRecord(await _requiredTransfer(txn, transfer.id), transfer);
       if (transfer.lifecycle != TransferLifecycle.completed ||
-          (transfer.publication?.method == PublicationMethod.copy && !transfer.stageRetired) ||
-          quarantinePath == transfer.stagePath || installation.verifiedChecksums['sha256'] == null) {
-        throw StateError('Removal requires a completed installation and retired transfer stage');
+          (transfer.publication?.method == PublicationMethod.copy &&
+              !transfer.stageRetired) ||
+          quarantinePath == transfer.stagePath ||
+          installation.verifiedChecksums['sha256'] == null) {
+        throw StateError(
+            'Removal requires a completed installation and retired transfer stage');
       }
       _requireMatchingInstallation(transfer, installation);
       await _requireInstalledOwner(txn, installation);
-      if (await _pendingRemoval(txn, transfer.id)) throw StateError('Removal is already pending');
+      if ((await txn.query('transfer_replacements',
+              columns: ['transfer_id'],
+              where: "transfer_id = ? AND phase = 'pending'",
+              whereArgs: [transfer.id]))
+          .isNotEmpty) {
+        throw StateError(
+            'New installation must finish replacement retirement first');
+      }
+      final claims = await txn.query('transfer_replacements',
+          columns: ['transfer_id'],
+          where: "previous_installation_id = ? AND phase = 'pending'",
+          whereArgs: [installation.id]);
+      if (claims.isNotEmpty) {
+        if (replacementTransferId != claims.single['transfer_id']) {
+          throw StateError('Installation is retained by a replacement');
+        }
+        final replacement =
+            await _requiredTransfer(txn, replacementTransferId!);
+        if (replacement.lifecycle != TransferLifecycle.completed ||
+            !_sameJson(replacement.replacesInstallation?.toJson(),
+                installation.toJson())) {
+          throw StateError(
+              'Replacement has not committed its new installation');
+        }
+      } else if (replacementTransferId != null) {
+        throw StateError('Replacement ownership changed');
+      }
+      if (await _pendingRemoval(txn, transfer.id)) {
+        throw StateError('Removal is already pending');
+      }
       await txn.insert('owned_removals', _removalValues(intent));
       return intent;
     });
   }
 
-  Future<OwnedRemovalRecord?> removal(String id) async => _removal(await _database, id);
+  Future<OwnedRemovalRecord?> removal(String id) async =>
+      _removal(await _database, id);
 
   Future<bool> hasPendingRemoval(String transferId) async =>
       _pendingRemoval(await _database, transferId);
 
-  Future<OwnedRemovalRecord> advanceRemoval(OwnedRemovalRecord record,
-      OwnedRemovalPhase phase) async {
-    if (record.isTerminal || phase == OwnedRemovalPhase.completed || phase == OwnedRemovalPhase.retained ||
-        phase.index != record.phase.index + 1 || record.issue != null) {
+  Future<OwnedRemovalRecord> advanceRemoval(
+      OwnedRemovalRecord record, OwnedRemovalPhase phase) async {
+    if (record.isTerminal ||
+        phase == OwnedRemovalPhase.completed ||
+        phase == OwnedRemovalPhase.retained ||
+        phase.index != record.phase.index + 1 ||
+        record.issue != null) {
       throw StateError('Invalid removal transition');
     }
     final db = await _database;
@@ -117,7 +164,8 @@ class TransferJournal {
     });
   }
 
-  Future<OwnedRemovalRecord> removalIssue(OwnedRemovalRecord record, String issue) async {
+  Future<OwnedRemovalRecord> removalIssue(
+      OwnedRemovalRecord record, String issue) async {
     if (record.isTerminal) throw StateError('Removal is terminal');
     final db = await _database;
     return db.transaction((txn) async {
@@ -139,8 +187,10 @@ class TransferJournal {
     await db.transaction((txn) async {
       await _requireRemoval(txn, record);
       await _requireInstalledOwner(txn, record.installation);
-      await _updateRemoval(txn, record.next(
-          phase: OwnedRemovalPhase.retained, issue: 'cross_volume'), record.revision);
+      await _updateRemoval(
+          txn,
+          record.next(phase: OwnedRemovalPhase.retained, issue: 'cross_volume'),
+          record.revision);
     });
   }
 
@@ -154,73 +204,113 @@ class TransferJournal {
     await db.transaction((txn) async {
       await _requireRemoval(txn, record);
       await _requireInstalledOwner(txn, record.installation);
-      await txn.delete('installed_artifacts', where: 'installation_id = ?',
-          whereArgs: [record.installation.id]);
-      await txn.delete('transfer_target_owners', where: 'transfer_id = ?',
+      await txn.delete('installed_artifacts',
+          where: 'installation_id = ?', whereArgs: [record.installation.id]);
+      await txn.delete('transfer_target_owners',
+          where: 'transfer_id = ?',
           whereArgs: [record.installation.transferId]);
-      await txn.delete('transfer_records', where: 'transfer_id = ?',
+      await txn.delete('transfer_records',
+          where: 'transfer_id = ?',
           whereArgs: [record.installation.transferId]);
-      await _updateRemoval(txn, record.next(phase: OwnedRemovalPhase.completed), record.revision);
+      await _updateRemoval(txn, record.next(phase: OwnedRemovalPhase.completed),
+          record.revision);
     });
   }
 
-  Stream<OwnedRemovalRecord> pendingRemovals({bool Function()? shouldContinue}) async* {
+  Stream<OwnedRemovalRecord> pendingRemovals(
+      {bool Function()? shouldContinue}) async* {
     final db = await _database;
     String after = '';
     while (shouldContinue?.call() ?? true) {
-      final rows = await db.query('owned_removals', columns: ['removal_id', 'record_json'],
-          where: "phase NOT IN ('completed', 'retained') AND issue IS NULL AND removal_id > ?",
-          whereArgs: [after], orderBy: 'removal_id', limit: 128);
+      final rows = await db.query('owned_removals',
+          columns: ['removal_id', 'record_json'],
+          where:
+              "phase NOT IN ('completed', 'retained') AND issue IS NULL AND removal_id > ?",
+          whereArgs: [after],
+          orderBy: 'removal_id',
+          limit: 128);
       if (rows.isEmpty) return;
       for (final row in rows) {
         if (!(shouldContinue?.call() ?? true)) return;
-        yield OwnedRemovalRecord.fromJson((jsonDecode(row['record_json'] as String) as Map).cast<String, dynamic>());
+        yield OwnedRemovalRecord.fromJson(
+            (jsonDecode(row['record_json'] as String) as Map)
+                .cast<String, dynamic>());
       }
       after = rows.last['removal_id'] as String;
     }
   }
 
-  static Future<OwnedRemovalRecord?> _removal(DatabaseExecutor db, String id) async {
-    final rows = await db.query('owned_removals', columns: ['record_json'],
-        where: 'removal_id = ?', whereArgs: [id], limit: 1);
-    return rows.isEmpty ? null : OwnedRemovalRecord.fromJson(
-        (jsonDecode(rows.single['record_json'] as String) as Map).cast<String, dynamic>());
+  static Future<OwnedRemovalRecord?> _removal(
+      DatabaseExecutor db, String id) async {
+    final rows = await db.query('owned_removals',
+        columns: ['record_json'],
+        where: 'removal_id = ?',
+        whereArgs: [id],
+        limit: 1);
+    return rows.isEmpty
+        ? null
+        : OwnedRemovalRecord.fromJson(
+            (jsonDecode(rows.single['record_json'] as String) as Map)
+                .cast<String, dynamic>());
   }
 
-  static Future<bool> _pendingRemoval(DatabaseExecutor db, String transferId) async =>
-      (await db.query('owned_removals', columns: ['removal_id'],
-          where: "transfer_id = ? AND phase NOT IN ('completed', 'retained')", whereArgs: [transferId], limit: 1)).isNotEmpty;
+  static Future<bool> _pendingRemoval(
+          DatabaseExecutor db, String transferId) async =>
+      (await db.query('owned_removals',
+              columns: ['removal_id'],
+              where:
+                  "transfer_id = ? AND phase NOT IN ('completed', 'retained')",
+              whereArgs: [transferId],
+              limit: 1))
+          .isNotEmpty;
 
-  static Future<void> _requireRemoval(DatabaseExecutor db, OwnedRemovalRecord record) async {
+  static Future<void> _requireRemoval(
+      DatabaseExecutor db, OwnedRemovalRecord record) async {
     final current = await _removal(db, record.id);
-    if (current == null || jsonEncode(current.toJson()) != jsonEncode(record.toJson())) {
+    if (current == null ||
+        jsonEncode(current.toJson()) != jsonEncode(record.toJson())) {
       throw StateError('Removal evidence or revision changed');
     }
   }
 
-  static Future<void> _requireInstalledOwner(DatabaseExecutor db, InstalledArtifact installation) async {
-    final rows = await db.rawQuery('''SELECT i.record_json FROM installed_artifacts i
+  static Future<void> _requireInstalledOwner(
+      DatabaseExecutor db, InstalledArtifact installation) async {
+    final rows =
+        await db.rawQuery('''SELECT i.record_json FROM installed_artifacts i
       JOIN transfer_target_owners o ON o.installation_id = i.installation_id
         AND o.transfer_id = i.transfer_id
       WHERE i.installation_id = ? AND i.transfer_id = ?
-        AND o.destination_root = ? AND o.relative_path = ?''',
-        [installation.id, installation.transferId, installation.destinationRoot, installation.relativePath]);
-    if (rows.length != 1 || jsonEncode(InstalledArtifact.fromJson(
-        (jsonDecode(rows.single['record_json'] as String) as Map).cast<String, dynamic>()).toJson()) !=
-        jsonEncode(installation.toJson())) {
+        AND o.destination_root = ? AND o.relative_path = ?''', [
+      installation.id,
+      installation.transferId,
+      installation.destinationRoot,
+      installation.relativePath
+    ]);
+    if (rows.length != 1 ||
+        jsonEncode(InstalledArtifact.fromJson(
+                    (jsonDecode(rows.single['record_json'] as String) as Map)
+                        .cast<String, dynamic>())
+                .toJson()) !=
+            jsonEncode(installation.toJson())) {
       throw StateError('Installed ownership changed');
     }
   }
 
   static Map<String, Object?> _removalValues(OwnedRemovalRecord record) => {
-    'removal_id': record.id, 'transfer_id': record.installation.transferId,
-    'phase': record.phase.name, 'revision': record.revision, 'issue': record.issue,
-    'record_json': jsonEncode(record.toJson()),
-  };
+        'removal_id': record.id,
+        'transfer_id': record.installation.transferId,
+        'phase': record.phase.name,
+        'revision': record.revision,
+        'issue': record.issue,
+        'record_json': jsonEncode(record.toJson()),
+      };
 
-  static Future<void> _updateRemoval(DatabaseExecutor db, OwnedRemovalRecord record, int previous) async {
+  static Future<void> _updateRemoval(
+      DatabaseExecutor db, OwnedRemovalRecord record, int previous) async {
     if (await db.update('owned_removals', _removalValues(record),
-        where: 'removal_id = ? AND revision = ?', whereArgs: [record.id, previous]) != 1) {
+            where: 'removal_id = ? AND revision = ?',
+            whereArgs: [record.id, previous]) !=
+        1) {
       throw StateError('Removal revision changed');
     }
   }
@@ -256,6 +346,43 @@ class TransferJournal {
       );
       if (owner != null) {
         throw StateError('Destination target already has an owner');
+      }
+      final previous = record.replacesInstallation;
+      if (previous != null) {
+        if (previous.destinationRoot != record.destinationRoot ||
+            previous.relativePath == record.relativePath ||
+            previous.artifact.id.key != record.artifact.id.key ||
+            previous.artifact.version == record.artifact.version) {
+          throw StateError(
+              'Replacement requires a distinct version of the exact artifact');
+        }
+        final oldRecord = await _requiredTransfer(txn, previous.transferId);
+        if (oldRecord.lifecycle != TransferLifecycle.completed ||
+            (oldRecord.publication?.method == PublicationMethod.copy &&
+                !oldRecord.stageRetired) ||
+            await _pendingRemoval(txn, previous.transferId) ||
+            (await txn.query('transfer_replacements',
+                    columns: ['transfer_id'],
+                    where: "transfer_id = ? AND phase = 'pending'",
+                    whereArgs: [previous.transferId]))
+                .isNotEmpty) {
+          throw StateError(
+              'Previous installation is not ready for replacement');
+        }
+        _requireMatchingInstallation(oldRecord, previous);
+        await _requireInstalledOwner(txn, previous);
+        final claims = await txn.query('transfer_replacements',
+            columns: ['transfer_id'],
+            where: "previous_installation_id = ? AND phase = 'pending'",
+            whereArgs: [previous.id]);
+        if (claims.isNotEmpty) {
+          throw StateError('Installation already has a replacement');
+        }
+        await txn.insert('transfer_replacements', {
+          'transfer_id': record.id,
+          'previous_installation_id': previous.id,
+          'phase': 'pending'
+        });
       }
       await txn.insert('transfer_target_owners', {
         'destination_root': record.destinationRoot,
@@ -398,6 +525,13 @@ class TransferJournal {
       _requireExactRecord(previous, record);
       _requireCompleteBytes(record);
       _requireMatchingInstallation(record, installation);
+      if (record.replacesInstallation case final old?) {
+        await _requireReplacementClaim(txn, record);
+        await _requireInstalledOwner(txn, old);
+        if (await _pendingRemoval(txn, old.transferId)) {
+          throw StateError('Previous installation has a pending removal');
+        }
+      }
 
       final owners = await txn.query(
         'transfer_target_owners',
@@ -554,6 +688,99 @@ class TransferJournal {
     return rows.map((r) => r['destination_root'] as String).toList();
   }
 
+  /// A bounded offline pass; no automatic retries of recorded conflicts.
+  Stream<TransferRecord> pendingReplacements(
+      {bool Function()? shouldContinue}) async* {
+    final db = await _database;
+    var after = '';
+    while (shouldContinue?.call() ?? true) {
+      final rows = await db.rawQuery('''SELECT t.transfer_id, t.record_json
+        FROM transfer_replacements r JOIN transfer_records t ON t.transfer_id = r.transfer_id
+        WHERE r.phase = 'pending' AND r.issue IS NULL AND t.lifecycle = 'completed'
+          AND t.transfer_id > ? ORDER BY t.transfer_id LIMIT 128''', [after]);
+      if (rows.isEmpty) return;
+      for (final row in rows) {
+        if (!(shouldContinue?.call() ?? true)) return;
+        yield TransferRecord.fromJson(
+            (jsonDecode(row['record_json'] as String) as Map)
+                .cast<String, dynamic>());
+      }
+      after = rows.last['transfer_id'] as String;
+    }
+  }
+
+  Future<String?> replacementIssue(String transferId) async {
+    final rows = await (await _database).query('transfer_replacements',
+        columns: ['issue'],
+        where: "transfer_id = ? AND phase = 'pending'",
+        whereArgs: [transferId]);
+    return rows.isEmpty ? null : rows.single['issue'] as String?;
+  }
+
+  Future<String?> replacementPhase(String transferId) async {
+    final rows = await (await _database).query('transfer_replacements',
+        columns: ['phase'], where: 'transfer_id = ?', whereArgs: [transferId]);
+    return rows.isEmpty ? null : rows.single['phase'] as String;
+  }
+
+  Future<void> recordReplacementIssue(
+      TransferRecord record, String issue) async {
+    if (!RegExp(r'^[a-z][a-z0-9_]{0,63}$').hasMatch(issue)) {
+      throw ArgumentError('Invalid issue');
+    }
+    final db = await _database;
+    await db.transaction((txn) async {
+      await _requireReplacementClaim(txn, record);
+      await txn.update('transfer_replacements', {'issue': issue},
+          where: 'transfer_id = ?', whereArgs: [record.id]);
+    });
+  }
+
+  Future<void> finishReplacement(TransferRecord record) async {
+    final db = await _database;
+    await db.transaction((txn) async {
+      _requireExactRecord(await _requiredTransfer(txn, record.id), record);
+      if (record.lifecycle != TransferLifecycle.completed) {
+        throw StateError('New installation is not committed');
+      }
+      final rows = await txn.query('installed_artifacts',
+          columns: ['record_json'],
+          where: 'transfer_id = ?',
+          whereArgs: [record.id]);
+      if (rows.length != 1) throw StateError('New installed owner is missing');
+      await _requireInstalledOwner(
+          txn,
+          InstalledArtifact.fromJson(
+              (jsonDecode(rows.single['record_json'] as String) as Map)
+                  .cast<String, dynamic>()));
+      await _requireReplacementClaim(txn, record);
+      final old = record.replacesInstallation!;
+      final removal = await _removal(txn, 'replacement-${record.id}');
+      if (removal?.phase != OwnedRemovalPhase.completed ||
+          !_sameJson(removal!.installation.toJson(), old.toJson()) ||
+          await _transfer(txn, old.transferId) != null) {
+        throw StateError('Exact previous owner has not been retired');
+      }
+      await txn.update(
+          'transfer_replacements', {'phase': 'retired', 'issue': null},
+          where: 'transfer_id = ?', whereArgs: [record.id]);
+    });
+  }
+
+  static Future<void> _requireReplacementClaim(
+      DatabaseExecutor db, TransferRecord record) async {
+    final rows = await db.query('transfer_replacements',
+        columns: ['previous_installation_id'],
+        where: "transfer_id = ? AND phase = 'pending'",
+        whereArgs: [record.id]);
+    if (record.replacesInstallation == null ||
+        rows.length != 1 ||
+        rows.single['previous_installation_id'] !=
+            record.replacesInstallation!.id) {
+      throw StateError('Replacement ownership changed');
+    }
+  }
+
   /// Keyset-paged ownership and installation evidence from the same SQL read.
   /// No transfer history, payload bytes or all-library metadata is materialized.
   Stream<({TransferRecord transfer, InstalledArtifact? installation})>
@@ -703,6 +930,8 @@ class TransferJournal {
         previous.stagePath != proposed.stagePath ||
         previous.stageRetired != proposed.stageRetired ||
         previous.stageRetirementIssue != proposed.stageRetirementIssue ||
+        !_sameJson(previous.replacesInstallation?.toJson(),
+            proposed.replacesInstallation?.toJson()) ||
         !_sameJson(previous.artifact.toJson(), proposed.artifact.toJson())) {
       throw StateError('Transfer identity is immutable');
     }

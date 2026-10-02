@@ -216,6 +216,20 @@ pending removal. Additive v20 updates the active-removal index without dropping
 any records. This capability restriction does not waive DRIVE-06's actual
 supported-target round-trip proof or its other unfinished acceptance criteria.
 
+### S3 valid-target replacement route (2026-10-02)
+
+Updates retain the exact previous manifest and transactionally claim its owner.
+Publish a verified new version to a distinct deterministic path retaining its ROM
+extension, rather than overwriting the old public entry on SD FUSE. The old ROM
+and ownership remain through network, verification, publication and cancellation.
+After the new installed-state commit and closed handles/private-stage retirement,
+freshly hash the new target, then retire only the recorded old owner through the
+existing durable quarantine/hash/unlink protocol. Record cleanup separately from
+successful download; changed objects and unsupported removal are preserved,
+visible conflicts. Offline startup performs one paged recovery pass, not retries
+or directory scans. Native process-stop proof remains required before closing
+this boundary; bundle/playlist support is still unfinished within S3.
+
 ## S4 — Fresh metadata pipeline and score semantics
 
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.
