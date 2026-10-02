@@ -100,6 +100,34 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   outstanding authentication lifecycle criteria are unchanged; no other stage
   was activated and no required item was converted to an unnamed deferral.
 
+### S3 publication process-stop evidence (2026-10-02)
+
+- `integration_test/owned_publication_death_app.dart` exercises the production
+  engine/journal/native SD copy route with a small synthetic payload, separate
+  SQLite database and exclusive test root. No accounts, source requests, normal
+  application database or existing ROMs are used. Event gates sit after actual
+  durable/native transitions; no deadline or sleep decides completion.
+- Actual Android process stops occurred at observed publication intent, durable
+  copy progress, native copy finish before receipt, confirmed publication before
+  installed commit, committed installation before private-stage retirement, and
+  exclusive destination creation before its identity receipt. Each PID disappeared
+  before relaunch; subsequent PIDs reached the next recorded gate.
+- The recoverable cases completed with zero media requests on relaunch, exact
+  bytes, installed-manifest readiness and retired private staging. Precommit
+  states were not exposed as installed. The unrecorded empty destination returned
+  a preserved collision with no installation and unchanged verified private bytes;
+  it was not automatically adopted or truncated. Neighboring synthetic save
+  bytes survived every case.
+- Probe-only files, private stages, database and empty root were removed through
+  exact fixture cleanup after verification. The normal APK was restored using
+  install-replace (not uninstall); its settings/library and owned installations
+  were preserved. Both actual displays remained OFF throughout this proof.
+- The first probe attempt correctly rejected an incomplete synthetic source
+  before publication; its missing parent identity was corrected in the fixture,
+  not by relaxing production validation. The corrected probe passed all named
+  transitions. S3 remains ACTIVE on its remaining bundle/replacement/achievement
+  and integrated large-file requirements; this is not a stage completion claim.
+
 ### User-requested pause (2026-10-02)
 
 - Execution paused at the user's explicit request. S3 retains ACTIVE as its
@@ -151,7 +179,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
-| S3 | ACTIVE | Owned journal and exact publication/retirement; actual normal-UI Drive-to-SD download, verified commit, Dolphin boot, offline cold restart/boot, explicit reviewed removal and verified re-download; neighboring save unchanged; v20 cross-mount retained-intent recovery | Remaining publication process-death boundaries, bundles/playlists, valid-target replacement, exact achievements and integrated large-file resource/space proof remain ordinary unfinished work; no S3 completion claim |
+| S3 | ACTIVE | Owned journal and exact publication/retirement; actual normal-UI Drive-to-SD download, verified commit, Dolphin boot, offline cold restart/boot, explicit reviewed removal and verified re-download; neighboring save unchanged; v20 cross-mount retained-intent recovery; real publication process-stop recovery and preserved unrecorded-create conflict | Bundles/playlists, valid-target replacement, exact achievements and integrated large-file resource/space proof remain ordinary unfinished work; no S3 completion claim |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
