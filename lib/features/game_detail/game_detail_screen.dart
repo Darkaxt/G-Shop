@@ -21,6 +21,7 @@ import '../../providers/game_providers.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/input_debouncer.dart';
+import '../../services/owned_emulator_launcher.dart';
 import '../../utils/game_metadata.dart';
 import '../../utils/rom_share_helper.dart';
 import '../../utils/image_helper.dart';
@@ -74,6 +75,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     with ConsoleScreenMixin {
   GameDetailController? _controller;
   late InputDebouncer _debouncer;
+  final _emulatorLauncher = OwnedEmulatorLauncher();
   ProviderSubscription? _romChangeSubscription;
 
   // Section scroll keys for auto-scroll on D-pad navigation
@@ -483,6 +485,18 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     }
   }
 
+  Future<void> _openOwnedRom() async {
+    final game = _controller?.selectedVariant;
+    if (game == null) return;
+    try {
+      await _emulatorLauncher.open(game, widget.system, widget.targetFolder);
+    } catch (error) {
+      if (!mounted) return;
+      final code = error is PlatformException ? error.code : 'installation_unavailable';
+      showConsoleNotification(context, message: 'Could not open verified ROM: $code');
+    }
+  }
+
   List<QuickMenuItem?> _buildQuickMenuItems() {
     final controller = _controller;
     if (controller == null) return [];
@@ -500,6 +514,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.selectionKey];
     return [
+      if (controller.state.isVariantInstalled && OwnedEmulatorLauncher.supports(variant, widget.system))
+        QuickMenuItem(label: 'Open in Dolphin', icon: Icons.play_arrow_rounded,
+            onSelect: _openOwnedRom),
       QuickMenuItem(
         label: isFavorite ? L.of(context).common_unfavorite : L.of(context).common_favorite,
         icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,

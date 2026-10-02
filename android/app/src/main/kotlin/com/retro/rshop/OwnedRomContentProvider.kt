@@ -1,0 +1,164 @@
+package com.retro.rshop
+
+import android.content.ContentProvider
+import android.content.ContentValues
+import android.content.Context
+import android.database.Cursor
+import android.database.MatrixCursor
+import android.database.sqlite.SQLiteDatabase
+import android.net.Uri
+import android.os.ParcelFileDescriptor
+import android.provider.OpenableColumns
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.FileNotFoundException
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
+
+/** Per-installation read grants, not an arbitrary public-path FileProvider.
+ * Re-check the committed owner and current object at every external open, even
+ * after a process restart. Removed/replaced namesakes cannot reuse an old URI. */
+class OwnedRomContentProvider : ContentProvider() {
+    override fun onCreate() = true
+    override fun getType(uri: Uri): String { manifest(providerContext(), uri); return "application/octet-stream" }
+    override fun insert(uri: Uri, values: ContentValues?): Uri? = throw UnsupportedOperationException()
+    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = throw UnsupportedOperationException()
+    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = throw UnsupportedOperationException()
+    private fun providerContext() = context ?: throw FileNotFoundException("Owned ROM unavailable")
+
+    override fun query(uri: Uri, projection: Array<out String>?, selection: String?,
+        selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
+        val saved = manifest(providerContext(), uri)
+        val columns = projection ?: arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
+        return MatrixCursor(columns).apply {
+            addRow(columns.map { when (it) {
+                OpenableColumns.DISPLAY_NAME -> saved.getString("relativePath").substringAfterLast('/')
+                OpenableColumns.SIZE -> saved.getLong("sizeBytes")
+                else -> null
+            } })
+        }
+    }
+
+    override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+        if (mode != "r") throw FileNotFoundException("Read-only ROM grant")
+        return openCommitted(providerContext(), uri)
+    }
+
+    companion object {
+        fun uri(context: Context, id: String, filename: String): Uri = Uri.Builder()
+            .scheme("content").authority("${context.packageName}.owned-roms")
+            .appendPath("installation").appendPath(id).appendPath(filename.substringAfterLast('/')).build()
+
+        private fun manifest(context: Context, uri: Uri): JSONObject {
+            if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
+                uri.query != null || uri.fragment != null || uri.pathSegments.size != 3 ||
+                uri.pathSegments[0] != "installation") throw FileNotFoundException("Invalid ROM grant")
+            val db = SQLiteDatabase.openDatabase(context.getDatabasePath("rshop.db").path,
+                null, SQLiteDatabase.OPEN_READONLY)
+            try {
+                db.rawQuery("""SELECT i.record_json, t.record_json, i.transfer_id,
+                    i.destination_root, i.relative_path FROM installed_artifacts i
+                    JOIN transfer_target_owners o ON o.installation_id=i.installation_id
+                      AND o.transfer_id=i.transfer_id AND o.destination_root=i.destination_root
+                      AND o.relative_path=i.relative_path
+                    JOIN transfer_records t ON t.transfer_id=i.transfer_id
+                      AND t.destination_root=i.destination_root AND t.relative_path=i.relative_path
+                    WHERE i.installation_id=? AND t.lifecycle='completed'
+                      AND NOT EXISTS(SELECT 1 FROM owned_removals r
+                        WHERE r.transfer_id=i.transfer_id AND r.phase NOT IN ('completed', 'retained'))""",
+                    arrayOf(uri.pathSegments[1])).use { cursor ->
+                    if (!cursor.moveToFirst()) throw FileNotFoundException("Installation not ready")
+                    val result = JSONObject(cursor.getString(0))
+                    val transfer = JSONObject(cursor.getString(1))
+                    val publication = transfer.getJSONObject("publication")
+                    val checksums = result.getJSONObject("verifiedChecksums")
+                    if (result.getString("id") != uri.pathSegments[1] ||
+                        result.getString("transferId") != cursor.getString(2) ||
+                        transfer.getString("id") != cursor.getString(2) ||
+                        result.getString("destinationRoot") != cursor.getString(3) ||
+                        transfer.getString("destinationRoot") != cursor.getString(3) ||
+                        result.getString("relativePath") != cursor.getString(4) ||
+                        transfer.getString("relativePath") != cursor.getString(4) ||
+                        cursor.getString(4).substringAfterLast('/') != uri.pathSegments[2] ||
+                        transfer.getString("lifecycle") != "completed" ||
+                        !publication.getBoolean("confirmed") || checksums.length() == 0 ||
+                        !sameJson(result.getJSONObject("artifact"), transfer.getJSONObject("artifact")) ||
+                        !sameJson(checksums, transfer.getJSONObject("verifiedChecksums")) ||
+                        !sameJson(result.getJSONObject("fileIdentity"), publication.getJSONObject("destinationIdentity")) ||
+                        result.getLong("sizeBytes") != result.getJSONObject("fileIdentity").getLong("sizeBytes")) {
+                        throw FileNotFoundException("Installation changed")
+                    }
+                    return result
+                }
+            } finally { db.close() }
+        }
+
+        // Match the Dart InstallationIndex contract without depending on JSON
+        // member ordering. This provider also runs when Flutter is not alive.
+        private fun sameJson(a: Any?, b: Any?): Boolean = when {
+            a is JSONObject && b is JSONObject -> a.length() == b.length() &&
+                a.keys().asSequence().all { b.has(it) && sameJson(a.get(it), b.get(it)) }
+            a is JSONArray && b is JSONArray -> a.length() == b.length() &&
+                (0 until a.length()).all { sameJson(a.get(it), b.get(it)) }
+            else -> a == b
+        }
+
+        fun openCommitted(context: Context, uri: Uri): ParcelFileDescriptor {
+            var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
+            try {
+                val saved = manifest(context, uri)
+                val rootPath = saved.getString("destinationRoot")
+                val relative = saved.getString("relativePath")
+                val pieces = relative.split('/')
+                if (pieces.any { it.isEmpty() || it == "." || it == ".." || it.contains('\\') } ||
+                    !rootPath.startsWith('/') || relative.contains('\u0000')) {
+                    throw FileNotFoundException("Invalid installation path")
+                }
+                val directory = pieces.dropLast(1).joinToString("/")
+                root = OwnedStorageNative.openRoot(rootPath)
+                parent = if (directory.isEmpty()) OwnedStorageNative.openRoot(rootPath)
+                    else OwnedStorageNative.openDirectory(root, directory, false)
+                file = OwnedStorageNative.openFile(parent, pieces.last(), false, false)
+                val expected = saved.getJSONObject("fileIdentity")
+                val timestamp = expected.getString("modifiedAt")
+                if (!timestamp.endsWith("Z") || timestamp.length < 20) {
+                    throw FileNotFoundException("Invalid native timestamp")
+                }
+                val seconds = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC"); isLenient = false
+                }.parse(timestamp.substring(0, 19))!!.time / 1000
+                val identity = longArrayOf(expected.getString("volumeId").toLong(),
+                    expected.getString("fileId").toLong(), expected.getLong("sizeBytes"),
+                    seconds, expected.getLong("modifiedNanoseconds"))
+                if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
+                    throw FileNotFoundException("Installation object changed")
+                }
+                checkedRoot = OwnedStorageNative.openRoot(rootPath)
+                checkedParent = if (directory.isEmpty()) OwnedStorageNative.openRoot(rootPath)
+                    else OwnedStorageNative.openDirectory(checkedRoot, directory, false)
+                fun sameObject(a: Int, b: Int): Boolean {
+                    val x = OwnedStorageNative.identity(a); val y = OwnedStorageNative.identity(b)
+                    return x[0] == y[0] && x[1] == y[1]
+                }
+                if (!sameObject(root, checkedRoot) || !sameObject(parent, checkedParent) ||
+                    !OwnedStorageNative.entryIdentity(checkedParent, pieces.last()).contentEquals(identity)) {
+                    throw FileNotFoundException("Installation path changed")
+                }
+                // Recheck durable ownership after opening the pinned object.
+                if (manifest(context, uri).toString() != saved.toString()) {
+                    throw FileNotFoundException("Installation ownership changed")
+                }
+                val result = ParcelFileDescriptor.adoptFd(file)
+                file = -1
+                return result
+            } catch (_: Exception) {
+                throw FileNotFoundException("Owned ROM unavailable")
+            } finally {
+                for (fd in listOf(file, checkedParent, checkedRoot, parent, root)) {
+                    if (fd >= 0) OwnedStorageNative.close(fd)
+                }
+            }
+        }
+    }
+}

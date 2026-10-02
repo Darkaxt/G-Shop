@@ -201,6 +201,21 @@ an empty queue and no authorized account. Shutdown joins in-flight mutation;
 there is no timer retry. The real SD synthetic install/lost-move-receipt/startup-
 removal/reinstall test proves this boundary, not live Drive or emulator acceptance.
 
+### S3 internal shared-storage removal restriction (2026-10-02)
+
+An actual app-UID probe found different mount IDs between internal shared storage
+and private external-files staging. `renameat` returned EXDEV (18), leaving the
+public synthetic file unchanged and private destination absent. The SD-card probe
+on the same device succeeded. Do not replace quarantine with a public
+check-then-unlink or silently claim deletion. Preview and explicit removal reject
+known cross-mount plans before recording intent. Existing EXDEV intents terminate
+as `retained` only after fresh exact public identity and absent private quarantine
+evidence; the installation, transfer and target owner remain intact. The failed
+attempt remains audited, while readiness is no longer blocked by an impossible
+pending removal. Additive v20 updates the active-removal index without dropping
+any records. This capability restriction does not waive DRIVE-06's actual
+supported-target round-trip proof or its other unfinished acceptance criteria.
+
 ## S4 — Fresh metadata pipeline and score semantics
 
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.

@@ -1,6 +1,6 @@
 import 'transfer_record.dart';
 
-enum OwnedRemovalPhase { intent, quarantined, deleting, completed }
+enum OwnedRemovalPhase { intent, quarantined, deleting, completed, retained }
 
 /// Explicit user removal, separate from downloading and private-stage cleanup.
 /// The immutable manifest is retained as recovery evidence after owner release.
@@ -11,6 +11,9 @@ class OwnedRemovalRecord {
   final OwnedRemovalPhase phase;
   final int revision;
   final String? issue;
+
+  bool get isTerminal => phase == OwnedRemovalPhase.completed ||
+      phase == OwnedRemovalPhase.retained;
 
   OwnedRemovalRecord(
       {required this.id,

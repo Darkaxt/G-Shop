@@ -16,9 +16,9 @@ class RomManager {
   final InstallationIndex? installations;
   RomManager({this.installations});
 
-  /// Resolve the exact manifest for explicit review, without source/network
-  /// access or filename adoption. This is not permission to remove neighbors.
-  Future<InstalledArtifact> previewOwnedRemoval(GameItem game, String root) async {
+  /// Resolve the exact committed manifest for a local consumer, without
+  /// source/network access or filename adoption. Does not authorize neighbors.
+  Future<InstalledArtifact> requireInstalledArtifact(GameItem game, String root) async {
     final artifact = game.remoteArtifact;
     if (artifact == null) throw StateError('An exact artifact is required');
     final index = installations ?? InstallationIndex.application();
@@ -32,13 +32,22 @@ class RomManager {
           continue;
         }
         await index.requireInstallation(record, row.installation);
-        if (record.publication?.method == PublicationMethod.copy && !record.stageRetired) {
-          throw const OwnedStorageException('close_unconfirmed');
-        }
         return row.installation!;
       }
     }
     throw const OwnedStorageException('changed');
+  }
+
+  Future<InstalledArtifact> previewOwnedRemoval(GameItem game, String root) async {
+    final manifest = await requireInstalledArtifact(game, root);
+    final index = installations ?? InstallationIndex.application();
+    final record = (await index.journal.transfer(manifest.transferId))!;
+    if (record.publication?.method == PublicationMethod.copy && !record.stageRetired) {
+      throw const OwnedStorageException('close_unconfirmed');
+    }
+    final plan = await index.storage.prepare(manifest.destinationRoot);
+    if (!plan.sameMountHint) throw const OwnedStorageException('cross_volume');
+    return manifest;
   }
 
   Future<void> removeReviewedInstallation(InstalledArtifact installation) {

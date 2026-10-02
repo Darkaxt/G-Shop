@@ -31,6 +31,7 @@ import 'utils/rom_share_helper.dart';
 import 'widgets/add_to_queue_toast.dart';
 import 'widgets/download/global_progress_bar.dart';
 import 'widgets/download_overlay.dart';
+import 'widgets/app_overlay_host.dart';
 import 'widgets/sync_badge.dart';
 import 'l10n/app_localizations.dart';
 
@@ -316,7 +317,8 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
         builder: (context, child) {
           return ScrollConfiguration(
             behavior: NoGlowScrollBehavior(),
-            child: Stack(
+            child: AppOverlayHost(
+                child: Stack(
               children: [
                 child!,
                 const Positioned(
@@ -331,7 +333,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
                 const AddToQueueToast(),
                 const SyncBadge(),
               ],
-            ),
+            )),
           );
         },
         routes: {

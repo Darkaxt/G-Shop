@@ -634,6 +634,8 @@ class OnboardingController extends StateNotifier<OnboardingState> {
       providers: sub.providers,
       autoExtract: sub.autoExtract,
       autoSync: sub.autoSync,
+      enabledSourceIds: state.configuredSystems[id]?.enabledSourceIds,
+      manualMappings: state.configuredSystems[id]?.manualMappings ?? const [],
     );
 
     final updated = Map<String, SystemConfig>.from(state.configuredSystems);

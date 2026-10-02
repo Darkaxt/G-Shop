@@ -28,12 +28,16 @@ class OwnedInstallationRemoval {
         await InstallationIndex(journal, storage: storage)
             .requireInstallation(transfer, installation);
         final plan = await storage.prepare(installation.destinationRoot);
+        if (!plan.sameMountHint) throw const OwnedStorageException('cross_volume');
         final random = Random.secure();
         final id =
             'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
         final intent = await journal.beginRemoval(transfer, installation,
             id: id, quarantinePath: plan.stagePath(id));
         await _continue(intent);
+        if ((await journal.removal(id))!.phase == OwnedRemovalPhase.retained) {
+          throw const OwnedStorageException('cross_volume');
+        }
       });
 
   Future<void> recover(String id) async {
@@ -43,7 +47,7 @@ class OwnedInstallationRemoval {
         p.join(saved.installation.destinationRoot,
             saved.installation.relativePath), () async {
       final current = (await journal.removal(id))!;
-      if (current.phase == OwnedRemovalPhase.completed) return;
+      if (current.isTerminal) return;
       if (current.issue != null) throw OwnedStorageException(current.issue!);
       await _continue(current);
     });
@@ -111,6 +115,18 @@ class OwnedInstallationRemoval {
           expectedIdentity: expected);
       await journal.finishRemoval(record);
     } on OwnedStorageException catch (error) {
+      if (error.code == 'cross_volume' && record.phase == OwnedRemovalPhase.intent) {
+        // EXDEV cannot move an entry. Still inspect both namespaces before
+        // ending a legacy pending intent; ambiguity retains the recovery gate.
+        final private = await storage.inspect(destinationRoot: root,
+            relativePath: relative, stagePath: stage);
+        final public = await storage.inspect(destinationRoot: root,
+            relativePath: relative, stagePath: stage, published: true);
+        if (private == null && public != null && public.matches(expected)) {
+          await journal.retainUnmovedRemoval(record);
+          return;
+        }
+      }
       if (error.code == 'changed') {
         // Preserve conflicting bytes. Restoration is strictly no-clobber and
         // may be unsupported; the durable issue retains ownership either way.

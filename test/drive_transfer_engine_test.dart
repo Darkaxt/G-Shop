@@ -76,6 +76,7 @@ class _Native {
   final methods = <String>[];
   final MethodChannel channel = const MethodChannel('engine-fixture-storage');
   bool copyOnly = false;
+  bool crossMount = false;
   int next = 0;
   Future<void> Function(MethodCall)? before;
   Future<void> Function(MethodCall)? after;
@@ -100,7 +101,7 @@ class _Native {
         'destinationVolume': '1',
         'stageVolume': '1',
         'destinationMount': '10',
-        'stageMount': '10',
+        'stageMount': crossMount ? '11' : '10',
         'destinationFreeBytes': 1 << 30,
         'stageFreeBytes': 1 << 30
       };
@@ -302,6 +303,66 @@ void main() {
 
   OwnedInstallationRemoval remover() => OwnedInstallationRemoval(journal,
       storage: OwnedStorage(channel: native.channel));
+
+  test('cross-mount removal leaves installation ready without a pending intent', () async {
+    await queue();
+    await engine().start('transfer').result;
+    final manifest = (await installed())!;
+    native.crossMount = true;
+    await expectLater(remover().remove(manifest), throwsA(
+        isA<OwnedStorageException>().having((e) => e.code, 'code', 'cross_volume')));
+    expect(await journal.hasPendingRemoval('transfer'), isFalse);
+    expect(native.methods, isNot(contains('ownedQuarantine')));
+    expect(native.files['/roms/fixture.chd'], isNotNull);
+    expect((await installed())!.toJson(), manifest.toJson());
+  });
+
+  test('EXDEV recovery retains an unmoved installation and its audit record', () async {
+    await queue();
+    await engine().start('transfer').result;
+    final manifest = (await installed())!;
+    final intent = await journal.beginRemoval((await journal.transfer('transfer'))!, manifest,
+        id: 'old-intent', quarantinePath: '/owned/old-intent.partial');
+    native.before = (call) async {
+      if (call.method == 'ownedQuarantine') native.fail('cross_volume');
+    };
+    await remover().recover(intent.id);
+    expect((await journal.removal(intent.id))!.phase.name, 'retained');
+    expect((await journal.removal(intent.id))!.issue, 'cross_volume');
+    expect(await journal.hasPendingRemoval('transfer'), isFalse);
+    expect(await journal.pendingRemovals().toList(), isEmpty);
+    expect(native.files['/roms/fixture.chd'], isNotNull);
+    expect((await installed())!.toJson(), manifest.toJson());
+    expect(native.methods, isNot(contains('ownedRetireQuarantine')));
+    await remover().recover(intent.id); // terminal replay, no second attempt
+    native.before = null;
+    await remover().remove(manifest); // retained audit does not block a later supported attempt
+    expect(await installed(), isNull);
+  });
+
+  for (final privateConflict in [false, true]) {
+  test('EXDEV preserves ambiguous ${privateConflict ? 'private' : 'public'} state', () async {
+    await queue();
+    await engine().start('transfer').result;
+    final manifest = (await installed())!;
+    final intent = await journal.beginRemoval((await journal.transfer('transfer'))!, manifest,
+        id: 'ambiguous-intent', quarantinePath: '/owned/ambiguous-intent.partial');
+    native.before = (call) async {
+      if (call.method == 'ownedQuarantine') {
+        if (privateConflict) {
+          native.files[intent.quarantinePath] = _NativeFile(999)..bytes = [9];
+        } else {
+          native.files['/roms/fixture.chd']!.stamp++;
+        }
+        native.fail('cross_volume');
+      }
+    };
+    await expectLater(remover().recover(intent.id), throwsA(isA<OwnedStorageException>()));
+    expect(await journal.hasPendingRemoval('transfer'), isTrue);
+    expect((await journal.removal(intent.id))!.phase.name, 'intent');
+    expect(native.methods, isNot(contains('ownedRetireQuarantine')));
+  });
+  }
 
   test('verified installation removal keeps cloud entry and supports re-download', () async {
     await queue();

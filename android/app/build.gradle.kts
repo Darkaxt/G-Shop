@@ -38,6 +38,7 @@ android {
         // Keep the fork separate from the installed upstream app and its data.
         applicationId = "com.darkaxt.rshop"
         manifestPlaceholders["appLabel"] = "R-Shop"
+        testInstrumentationRunner = "com.retro.rshop.OwnedRomInstrumentation"
 
         // Version values are pulled from pubspec.yaml automatically
         minSdk = flutter.minSdkVersion

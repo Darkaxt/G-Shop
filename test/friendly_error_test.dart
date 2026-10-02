@@ -1,8 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/utils/friendly_error.dart';
+import 'package:retro_eshop/services/owned_storage.dart';
 
 void main() {
   group('getUserFriendlyError', () {
+    test('cross-mount removal reports retained ROM and a supported destination', () {
+      final message = getUserFriendlyError(const OwnedStorageException('cross_volume'));
+      expect(message, contains('Your ROM was kept'));
+      expect(message, contains('SD-card library'));
+    });
     test('SocketException returns connection error', () {
       expect(
         getUserFriendlyError(Exception('SocketException: Connection refused')),

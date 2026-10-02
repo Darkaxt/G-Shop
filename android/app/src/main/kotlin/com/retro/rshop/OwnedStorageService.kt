@@ -1,6 +1,8 @@
 package com.retro.rshop
 
 import android.content.Context
+import android.content.ClipData
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.StatFs
@@ -43,6 +45,30 @@ internal class OwnedStorageService(private val context: Context) {
             worker.execute {
                 try {
                     if (closed) throw Failure("closed")
+                    if (call.method == "launchOwnedDolphin") {
+                        val uri = OwnedRomContentProvider.uri(context,
+                            string(call, "installationId"), string(call, "filename"))
+                        OwnedRomContentProvider.openCommitted(context, uri).use { }
+                        main.post {
+                            if (closed) {
+                                result.error("closed", "Emulator handoff closed", null)
+                            } else try {
+                                val intent = context.packageManager.getLaunchIntentForPackage("org.dolphinemu.dolphinemu")
+                                    ?: throw Failure("emulator_missing")
+                                intent.data = uri
+                                intent.clipData = ClipData.newRawUri("Owned ROM", uri)
+                                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                                // Activity acceptance is not a claim that the ROM booted.
+                                result.success(null)
+                            } catch (_: Failure) {
+                                result.error("emulator_missing", "Dolphin is not installed", null)
+                            } catch (_: Exception) {
+                                result.error("launch_denied", "Emulator launch was rejected", null)
+                            }
+                        }
+                        return@execute
+                    }
                     val value = execute(call)
                     main.post { result.success(value) }
                 } catch (error: Exception) {

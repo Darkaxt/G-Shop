@@ -190,6 +190,12 @@ void main() {
     expect(preview.transferId, record.id);
     expect(preview.relativePath, 'Fixture.chd');
     expect(preview.sizeBytes, 5);
+    storage.crossMount = true;
+    await expectLater(manager.previewOwnedRemoval(exact, root.path), throwsA(
+        isA<OwnedStorageException>().having((e) => e.code, 'code', 'cross_volume')));
+    expect(await journal.hasPendingRemoval(record.id), isFalse);
+    expect(await index.resolveArtifact(record.artifact, root.path), isNotNull);
+    storage.crossMount = false;
     await expectLater(manager.previewOwnedRemoval(game, root.path), throwsStateError);
     final other = RemoteArtifact.fromJson({...record.artifact.toJson(),
       'id': {...record.artifact.id.toJson(), 'providerFileId': 'other'}});
@@ -558,6 +564,13 @@ class _PausingIndex extends InstallationIndex {
 }
 
 class _Storage extends OwnedStorage {
+  bool crossMount = false;
+  @override
+  Future<OwnedStoragePlan> prepare(String destinationRoot) async => OwnedStoragePlan(
+      destinationRoot: destinationRoot, stageRoot: '/private',
+      destinationVolume: 'volume', stageVolume: 'volume',
+      destinationMount: 'mount', stageMount: crossMount ? 'other' : 'mount',
+      destinationFreeBytes: 1000, stageFreeBytes: 1000);
   NativeFileIdentity? identity;
   OwnedStorageException? error;
   int calls = 0;

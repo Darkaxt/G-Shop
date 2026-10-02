@@ -29,8 +29,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   scope verified after reload (see DEVELOPMENT_SETUP.md). Authorized native
   consent and initial Drive API access succeeded; full auth lifecycle proof
   remains pending.
-  Full scraping, live Drive ROM transfer, SD removal and releases have not been
-  performed. An isolated synthetic-only debug APK has passed the native
+  Full scraping, existing-library migration and releases have not been performed.
+  An isolated real Drive/SD/emulator round trip is now verified (see S3 live
+  checkpoint below); this does not authorize bulk removal. An isolated
+  synthetic-only debug APK has passed the native
   foundation checks on the Thor and was removed afterwards; this is not a
   deployment of the usable Drive/metadata features. On 2026-10-01 the normal
   debug app was independently inspected and installed in its isolated package
@@ -49,6 +51,85 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S3 live round-trip checkpoint (2026-10-02)
+
+- S3 remains the only ACTIVE stage. The normal debug app preserved a selected
+  GameCube catalogue, explicit mapping and isolated destination through settings
+  navigation and cold restart. No existing SD library path was selected or
+  removed. Real verification used one authorized 20,131,764-byte RVZ, not a
+  synthetic payload or an emulator-intent acknowledgement.
+- Settings Back previously discarded console edits. The real screen/controller
+  regression reproduced this; the corrected save preserves source IDs and manual
+  mappings as well as the local path. Normal Thor navigation confirmed persistence.
+  The global Downloads layer also lacked an Overlay ancestor: a real tooltip
+  regression reproduced the failure, and the shared overlay host fixes it without
+  moving downloads beneath individual Navigator routes. Normal downloads UI works.
+- Both isolated internal and SD downloads committed verified checksums matching
+  the Drive provider, confirmed publication and private-stage retirement. The
+  installed official Dolphin 2606 (42796) booted the SD artifact. After ordinary
+  emulator exit, R-Shop was stopped/restarted with no active network; the cached
+  library and fresh exact installed-manifest handoff booted the same SD game.
+- Normal explicit removal preview showed only the exact SD-owned ROM and 19.2 MiB.
+  Confirmation completed quarantine/deletion, removed its installation/target
+  claim, and returned the game to Download while retaining the cloud catalogue.
+  A neighboring 78-byte save fixture retained its SHA-256. Explicit reconnect and
+  re-download then committed the same provider-verified bytes and retired staging;
+  the save fixture remained unchanged. Drive originals were never mutated.
+- Actual internal shared-storage removal returned EXDEV; the public ROM remained
+  unchanged. A separate native app-UID probe confirmed different internal mount
+  IDs and a successful SD quarantine. Known cross-mount removal is rejected before
+  intent, with a truthful retained-ROM message. Additive v20 terminates a legacy
+  EXDEV intent as retained only after fresh exact public/absent-private evidence;
+  the actual Thor recovered that intent while keeping ownership and installation.
+  Ambiguous public/private states stay pending conflicts, not false success.
+- Native instrumentation passed read-only content grants, fresh object checks,
+  committed artifact/digest/ownership/publication checks, pending-removal denial
+  and retained-intent reads. Handoff grants an installation-bound URI, never a
+  source token or arbitrary filesystem path. Fresh focused host regressions passed
+  cross-mount rejection/recovery, save-safe removal, overlay and configuration
+  persistence, and exact/coalesced emulator handoff. Only one workload ran at once.
+- Verified normal debug APK SHA-256:
+  `A59733DA0F6D88D0A0BEF6661B817B24D4A13FFD3F3B5C6AA36B781CDD92AF40`;
+  version 1.7.0/12, registered debug signer, package com.darkaxt.rshop.debug.
+  No external release or existing-library migration occurred. Both actual Thor
+  displays (0 and 4) were confirmed OFF before host verification.
+- This closes the single-artifact live round-trip gap, not S3. Publication crash
+  boundaries, multi-disc/bundle/playlist installation, safe replacement, exact
+  achievements and integrated large-file evidence remain required. S1/S4 B2 and
+  outstanding authentication lifecycle criteria are unchanged; no other stage
+  was activated and no required item was converted to an unnamed deferral.
+
+### User-requested pause (2026-10-02)
+
+- Execution paused at the user's explicit request. S3 retains ACTIVE as its
+  stage status but receives no work while paused; no other stage was activated.
+- Uncommitted S3 changes add the first standalone GameCube/Wii Dolphin handoff
+  and an installation-bound, read-only Android content provider. Focused Dart
+  handoff/removal regressions passed; the Android build succeeded. This is not
+  proof that a game launched or that the live round trip is complete.
+- Real Android instrumentation first reproduced acceptance of an unconfirmed
+  publication. After matching the native read boundary to the committed
+  InstallationIndex contract, the same device test passed valid descriptor reads,
+  write denial, artifact/digest/ownership/publication/removal checks and rejection
+  of changed native files. Test-owned rows/files were cleaned in its finally block.
+  Normal debug APK SHA-256:
+  `9C3D3726CF4022D64EFA26A60320C4201909EF5291E9B71386C28E8B0288DDA5`,
+  version 1.7.0/12, registered debug signer, package com.darkaxt.rshop.debug.
+- Native Drive sign-in succeeded again. A separate GameCube source was added
+  through the normal observed-folder picker; the Game Gear source was retained.
+  Both catalogue refreshes were still unpublished at the last inspected snapshot.
+  No GameCube mapping, real ROM payload, emulator launch, or local removal was
+  performed during this handoff checkpoint. Existing SD ROMs/saves were untouched.
+- The task's debug app was force-stopped on pause, preserving durable refresh
+  checkpoints. Both Thor displays were independently confirmed OFF. No host build
+  or test workload was running. No completion commit or external release was made.
+- Resume S3 with the native/Dart handoff diff review, reconnect the existing owner
+  account, finish the pending catalogue publication and explicit mappings, then
+  prove real Drive download/verify/Dolphin/offline/remove/re-download. Remaining
+  publication crash cases, bundles/replacement, exact achievements and integrated
+  large-file evidence still prevent S3 closure. Expendable generated build/test
+  artifacts remain registered for transactional cleanup; preserve the normal APK.
 
 - Upstream: `https://github.com/AverageConsumer/R-Shop`.
 - Fork: `https://github.com/Darkaxt/R-Shop`.
@@ -70,7 +151,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
-| S3 | ACTIVE | Existing standalone lane and native retirement; new v19 removal journal, exact preview/confirmation, offline startup recovery; actual SD synthetic install/remove/reinstall; actual Android process stops at transfer and lost removal receipt preserve neighboring synthetic save | Real Drive/emulator roundtrip, remaining publication process-death boundaries, bundles, replacement, achievements and integrated large-file proof remain ordinary unfinished work; no S3 completion claim |
+| S3 | ACTIVE | Owned journal and exact publication/retirement; actual normal-UI Drive-to-SD download, verified commit, Dolphin boot, offline cold restart/boot, explicit reviewed removal and verified re-download; neighboring save unchanged; v20 cross-mount retained-intent recovery | Remaining publication process-death boundaries, bundles/playlists, valid-target replacement, exact achievements and integrated large-file resource/space proof remain ordinary unfinished work; no S3 completion claim |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |

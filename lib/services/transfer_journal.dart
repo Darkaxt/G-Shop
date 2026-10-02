@@ -55,9 +55,16 @@ class TransferJournalSchema {
       record_json TEXT NOT NULL
     )''');
     await db.execute('''CREATE UNIQUE INDEX IF NOT EXISTS idx_active_removal
-      ON owned_removals(transfer_id) WHERE phase != 'completed' ''');
+      ON owned_removals(transfer_id) WHERE phase NOT IN ('completed', 'retained') ''');
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_pending_removal
       ON owned_removals(phase, issue, removal_id)''');
+  }
+
+  static Future<void> installRemovalRetention(DatabaseExecutor db) async {
+    // v19 included every non-completed audit record in the active index.
+    await db.execute('DROP INDEX IF EXISTS idx_active_removal');
+    await db.execute('''CREATE UNIQUE INDEX idx_active_removal
+      ON owned_removals(transfer_id) WHERE phase NOT IN ('completed', 'retained')''');
   }
 }
 
@@ -96,7 +103,7 @@ class TransferJournal {
 
   Future<OwnedRemovalRecord> advanceRemoval(OwnedRemovalRecord record,
       OwnedRemovalPhase phase) async {
-    if (record.phase == OwnedRemovalPhase.completed || phase == OwnedRemovalPhase.completed ||
+    if (record.isTerminal || phase == OwnedRemovalPhase.completed || phase == OwnedRemovalPhase.retained ||
         phase.index != record.phase.index + 1 || record.issue != null) {
       throw StateError('Invalid removal transition');
     }
@@ -111,13 +118,29 @@ class TransferJournal {
   }
 
   Future<OwnedRemovalRecord> removalIssue(OwnedRemovalRecord record, String issue) async {
-    if (record.phase == OwnedRemovalPhase.completed) throw StateError('Removal is completed');
+    if (record.isTerminal) throw StateError('Removal is terminal');
     final db = await _database;
     return db.transaction((txn) async {
       await _requireRemoval(txn, record);
       final next = record.next(issue: issue);
       await _updateRemoval(txn, next, record.revision);
       return next;
+    });
+  }
+
+  /// Only after EXDEV and fresh native evidence that the public object is exact
+  /// and private quarantine is absent. Preserve installed ownership and the
+  /// failed attempt's audit; this is NOT a successful deletion.
+  Future<void> retainUnmovedRemoval(OwnedRemovalRecord record) async {
+    if (record.phase != OwnedRemovalPhase.intent || record.issue != null) {
+      throw StateError('Only an unmoved intent can be retained');
+    }
+    final db = await _database;
+    await db.transaction((txn) async {
+      await _requireRemoval(txn, record);
+      await _requireInstalledOwner(txn, record.installation);
+      await _updateRemoval(txn, record.next(
+          phase: OwnedRemovalPhase.retained, issue: 'cross_volume'), record.revision);
     });
   }
 
@@ -146,7 +169,7 @@ class TransferJournal {
     String after = '';
     while (shouldContinue?.call() ?? true) {
       final rows = await db.query('owned_removals', columns: ['removal_id', 'record_json'],
-          where: "phase != 'completed' AND issue IS NULL AND removal_id > ?",
+          where: "phase NOT IN ('completed', 'retained') AND issue IS NULL AND removal_id > ?",
           whereArgs: [after], orderBy: 'removal_id', limit: 128);
       if (rows.isEmpty) return;
       for (final row in rows) {
@@ -166,7 +189,7 @@ class TransferJournal {
 
   static Future<bool> _pendingRemoval(DatabaseExecutor db, String transferId) async =>
       (await db.query('owned_removals', columns: ['removal_id'],
-          where: "transfer_id = ? AND phase != 'completed'", whereArgs: [transferId], limit: 1)).isNotEmpty;
+          where: "transfer_id = ? AND phase NOT IN ('completed', 'retained')", whereArgs: [transferId], limit: 1)).isNotEmpty;
 
   static Future<void> _requireRemoval(DatabaseExecutor db, OwnedRemovalRecord record) async {
     final current = await _removal(db, record.id);

@@ -1,6 +1,11 @@
 import 'package:dio/dio.dart';
+import '../services/owned_storage.dart';
 
 String getUserFriendlyError(dynamic e, {bool returnRawOnNoMatch = false}) {
+  if (e is OwnedStorageException && e.code == 'cross_volume') {
+    return 'Safe local removal is unavailable across Android storage mounts. '
+        'Your ROM was kept. Use an SD-card library for on-demand removal.';
+  }
   // Structured DioException handling — more reliable than string matching.
   if (e is DioException) {
     return _handleDioError(e, returnRawOnNoMatch: returnRawOnNoMatch);

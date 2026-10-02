@@ -212,6 +212,32 @@ void main() {
     expect(await reopened.transfer(completed.id), isNotNull);
   });
 
+  test('v19 index migration retains ownership and permits a later removal attempt', () async {
+    await db.execute('DROP INDEX idx_active_removal');
+    await db.execute("CREATE UNIQUE INDEX idx_active_removal ON owned_removals(transfer_id) WHERE phase != 'completed'");
+    final publishing = await _advanceToPublishing(journal, await journal.create(_queued()));
+    final manifest = _installation(publishing);
+    final completed = await journal.complete(publishing, manifest);
+    final intent = await journal.beginRemoval(completed, manifest,
+        id: 'retained-attempt', quarantinePath: '/private/retained-attempt.partial');
+    await TransferJournalSchema.installRemovalRetention(db);
+    await journal.retainUnmovedRemoval(intent);
+    final retained = (await journal.removal(intent.id))!;
+    expect(retained.phase, OwnedRemovalPhase.retained);
+    expect(retained.issue, 'cross_volume');
+    expect(await journal.hasPendingRemoval(completed.id), isFalse);
+    expect(await journal.pendingRemovals().toList(), isEmpty);
+    expect(await journal.transfer(completed.id), isNotNull);
+    expect(await journal.installationForTarget(destinationRoot: completed.destinationRoot,
+        relativePath: completed.relativePath), isNotNull);
+    await expectLater(journal.finishRemoval(retained), throwsStateError);
+    await expectLater(journal.advanceRemoval(retained, OwnedRemovalPhase.quarantined), throwsStateError);
+    final next = await journal.beginRemoval(completed, manifest,
+        id: 'next-attempt', quarantinePath: '/private/next-attempt.partial');
+    final moved = await journal.advanceRemoval(next, OwnedRemovalPhase.quarantined);
+    await expectLater(journal.retainUnmovedRemoval(moved), throwsStateError);
+  });
+
   test('completed copy cannot forget a retained private stage during removal', () async {
     final publishing = await _advanceToPublishing(journal, await journal.create(_queued()), confirm: false);
     final intent = await journal.save(_publication(publishing, method: 'copy'));

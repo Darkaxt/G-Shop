@@ -44,6 +44,10 @@
             </intent-filter>
         </activity>
 
+        <provider android:name=".OwnedRomContentProvider"
+            android:authorities="${applicationId}.owned-roms"
+            android:exported="false" android:grantUriPermissions="true" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -60,6 +64,7 @@
                  can report an installed Play Store as missing. -->
             <package android:name="com.android.vending"/>
             <package android:name="com.google.android.gms"/>
+            <package android:name="org.dolphinemu.dolphinemu"/>
             <intent>
                 <action android:name="android.intent.action.PROCESS_TEXT"/>
                 <data android:mimeType="text/plain"/>

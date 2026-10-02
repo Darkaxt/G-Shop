@@ -14,6 +14,8 @@ import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/widgets/download/action_button.dart';
 import 'package:retro_eshop/widgets/download/download_item_card.dart';
 import 'package:retro_eshop/widgets/download_overlay.dart';
+import 'package:retro_eshop/widgets/app_overlay_host.dart';
+import 'package:retro_eshop/l10n/app_localizations.dart';
 
 import '../helpers/pump_helpers.dart';
 
@@ -90,20 +92,31 @@ class _OverlayStorage extends StorageService {
 }
 
 Future<void> _pumpOverlay(WidgetTester tester, _OverlayQueue queue,
-    {bool expanded = false}) async {
+    {bool expanded = false, bool aboveNavigator = false}) async {
   tester.view.physicalSize = const Size(1200, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(createTestAppWithProviders(
-    const Stack(children: [DownloadOverlay()]),
-    overrides: [
-      downloadQueueManagerProvider.overrideWith((ref) => queue),
-      storageServiceProvider.overrideWithValue(_OverlayStorage()),
-      storageInfoProvider('/roms').overrideWith((ref) async => null),
-      downloadOverlayExpandedProvider.overrideWith((ref) => expanded),
-    ],
-  ));
+  final overrides = <Override>[
+    downloadQueueManagerProvider.overrideWith((ref) => queue),
+    storageServiceProvider.overrideWithValue(_OverlayStorage()),
+    storageInfoProvider('/roms').overrideWith((ref) async => null),
+    downloadOverlayExpandedProvider.overrideWith((ref) => expanded),
+  ];
+  await tester.pumpWidget(aboveNavigator
+      ? ProviderScope(
+          overrides: overrides,
+          child: MaterialApp(
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            home: const Scaffold(body: Text('route one')),
+            builder: (context, child) => AppOverlayHost(
+              child: Stack(children: [child!, const DownloadOverlay()]),
+            ),
+          ),
+        )
+      : createTestAppWithProviders(const Stack(children: [DownloadOverlay()]),
+          overrides: overrides));
   await _finishEntryAnimation(tester);
 }
 
@@ -137,6 +150,31 @@ void _overlayTest(String name, WidgetTesterCallback body) {
 }
 
 void main() {
+  _overlayTest('app-wide queue supports tooltips above the Navigator',
+      (tester) async {
+    final queue = _OverlayQueue([
+      _item('auth', DownloadStatus.awaitingAuthorization),
+      _item('first', DownloadStatus.queued),
+      _item('second', DownloadStatus.queued),
+    ]);
+    await _pumpOverlay(tester, queue, expanded: true, aboveNavigator: true);
+    expect(tester.takeException(), isNull);
+    expect(_row('auth'), findsOneWidget);
+    await tester.longPress(find.descendant(
+        of: _row('auth'), matching: find.byType(DownloadActionButton)));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Resume'), findsWidgets);
+    // The host must retain the Navigator and its updates, not capture an
+    // initial child in a one-shot OverlayEntry.
+    Navigator.of(tester.element(find.text('route one')))
+        .push(MaterialPageRoute<void>(builder: (_) => const Text('route two')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('route two'), findsOneWidget);
+    expect(_row('auth'), findsOneWidget);
+  });
+
   for (final entry in {
     DownloadStatus.queued: Icons.schedule_rounded,
     DownloadStatus.paused: Icons.pause_rounded,
