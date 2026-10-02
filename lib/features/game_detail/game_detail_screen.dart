@@ -757,6 +757,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                 type: ConfirmDialogType.delete,
                 selection: state.dialogSelection,
                 gameTitle: controller.cleanTitle,
+                details: controller.removalPreview,
                 onPrimary: () async {
                   await controller.deleteRom();
                   ref.read(romChangeSignalProvider.notifier).state++;

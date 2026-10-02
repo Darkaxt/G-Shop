@@ -251,6 +251,46 @@ void privateRetirementContract(Fixture& f, int root) {
     syscallCheck(::stat(f.path("changed-stage").c_str(), &linkStatus));
     check(linkStatus.st_nlink == 2, "retirement removed a hard link");
 }
+void privateQuarantineContract(Fixture& f, int root) {
+    const auto directory = f.path("quarantine-private");
+    syscallCheck(::mkdir(directory.c_str(), 0700)); f.track("quarantine-private", true);
+    Fd privateDir(owned::openRoot(directory));
+    Fd publicFile(owned::openFile(root, "quarantine-public", true, true)); f.track("quarantine-public");
+    f.track("quarantine-private/owned");
+    owned::write(publicFile.value, 0, {61, 62, 63});
+    owned::sync(publicFile.value);
+    const auto expected = owned::identity(publicFile.value);
+    for (int field = 0; field < 5; ++field) {
+        auto different = expected;
+        switch (field) {
+            case 0: different.device++; break;
+            case 1: different.inode++; break;
+            case 2: different.size++; break;
+            case 3: different.modifiedSeconds++; break;
+            default: different.modifiedNanos = (different.modifiedNanos + 1) % 1000000000; break;
+        }
+        fails([&] { owned::quarantineIntoPrivate(root, "quarantine-public", privateDir.value, "owned", different); }, ESTALE);
+        check(owned::entryIdentity(root, "quarantine-public").inode == expected.inode,
+              "mismatched ownership moved the public file");
+    }
+    Fd collision(owned::openFile(privateDir.value, "occupied", true, true)); f.track("quarantine-private/occupied");
+    owned::write(collision.value, 0, {71});
+    fails([&] { owned::quarantineIntoPrivate(root, "quarantine-public", privateDir.value, "occupied", expected); }, EEXIST);
+    check(owned::read(collision.value, 0, 1) == std::vector<uint8_t>({71}), "private collision was overwritten");
+    fails([&] { owned::quarantineIntoPrivate(root, "file-link", privateDir.value, "owned", expected); });
+    fails([&] { owned::quarantineIntoPrivate(root, "../quarantine-public", privateDir.value, "owned", expected); }, EINVAL);
+    auto moved = owned::quarantineIntoPrivate(root, "quarantine-public", privateDir.value, "owned", expected);
+    check(moved.inode == expected.inode && moved.device == expected.device && moved.size == expected.size,
+          "quarantine did not retain the original object");
+    fails([&] { owned::entryIdentity(root, "quarantine-public"); }, ENOENT);
+    Fd quarantined(owned::openFile(privateDir.value, "owned", false, false));
+    check(owned::read(quarantined.value, 0, 3) == std::vector<uint8_t>({61, 62, 63}), "quarantine changed bytes");
+    // A writer opened before the namespace move is NOT prevented by the move.
+    // Preserve altered quarantine objects; deletion requires fresh validation.
+    owned::write(publicFile.value, 3, {64});
+    fails([&] { owned::retirePrivateFile(privateDir.value, "owned", moved); }, ESTALE);
+    check(owned::read(quarantined.value, 0, 4) == std::vector<uint8_t>({61, 62, 63, 64}), "changed quarantine was deleted");
+}
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -272,6 +312,8 @@ int main(int argc, char** argv) {
         renameContract(fixture, root.value);
         std::cout << "PHASE private stage retirement" << std::endl;
         privateRetirementContract(fixture, root.value);
+        std::cout << "PHASE private quarantine" << std::endl;
+        privateQuarantineContract(fixture, root.value);
         std::cout << "PASS owned storage filesystem contract\n";
         return 0;
     } catch (const std::exception& error) {

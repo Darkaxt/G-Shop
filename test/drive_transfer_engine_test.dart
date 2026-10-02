@@ -6,11 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
+import 'package:retro_eshop/models/owned_removal_record.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/drive/drive_api.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
+import 'package:retro_eshop/services/owned_installation_removal.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -108,6 +110,19 @@ class _Native {
     if (call.method == 'ownedInspect') {
       return files[a['published'] == true ? target : stage]?.identity;
     }
+    if (call.method == 'ownedQuarantine' || call.method == 'ownedRetireQuarantine') {
+      if (sessions.values.any((s) => s.stage == stage || s.target == target)) fail('collision');
+      final existing = files[stage];
+      if (call.method == 'ownedRetireQuarantine' && existing == null) return null;
+      final file = existing ?? files[target] ?? fail('changed');
+      if (file.identity.toString() != Map<String, Object>.from(a['expectedIdentity']).toString()) fail('changed');
+      if (call.method == 'ownedRetireQuarantine') {
+        files.remove(stage);
+        return null;
+      }
+      if (existing == null) files[stage!] = files.remove(target)!;
+      return file.identity;
+    }
     if (call.method == 'ownedRetireStage') {
       if (sessions.values.any((s) => s.stage == stage || s.target == target)) {
         fail('collision');
@@ -139,7 +154,7 @@ class _Native {
             file.bytes.length < (a['durableOffset'] as int)) {
           fail('changed');
         }
-        if (published) {
+        if (published || a['mode'] == 'quarantine') {
           if (file.identity.toString() !=
               Map<String, Object>.from(a['expectedIdentity']).toString()) {
             fail('changed');
@@ -284,6 +299,77 @@ void main() {
           stagePath: '/owned/transfer.partial'));
   Future<InstalledArtifact?> installed() => journal.installationForTarget(
       destinationRoot: '/roms', relativePath: 'fixture.chd');
+
+  OwnedInstallationRemoval remover() => OwnedInstallationRemoval(journal,
+      storage: OwnedStorage(channel: native.channel));
+
+  test('verified installation removal keeps cloud entry and supports re-download', () async {
+    await queue();
+    await engine().start('transfer').result;
+    final manifest = (await installed())!;
+    final remote = manifest.artifact.toJson();
+    native.before = (call) async {
+      if (call.method == 'ownedQuarantine') {
+        expect((await journal.pendingRemovals().toList()).single.phase, OwnedRemovalPhase.intent);
+      }
+      if (call.method == 'ownedRetireQuarantine') {
+        expect((await journal.pendingRemovals().toList()).single.phase, OwnedRemovalPhase.deleting);
+        expect(native.sessions, isEmpty);
+      }
+    };
+    await remover().remove(manifest);
+    expect(await installed(), isNull);
+    expect(native.files, isEmpty);
+    expect(manifest.artifact.toJson(), remote);
+    expect(requests, [0]);
+    native.before = null;
+    await queue();
+    await engine().start('transfer').result;
+    expect(await installed(), isNotNull);
+    expect(requests, [0, 0]);
+  });
+
+  for (final phase in ['ownedQuarantine', 'ownedRetireQuarantine']) {
+    test('lost $phase acknowledgement recovers without repeating download or deleting neighbor', () async {
+      await queue();
+      await engine().start('transfer').result;
+      native.after = (call) async {
+        if (call.method == phase) {
+          native.after = null;
+          throw PlatformException(code: 'io_error');
+        }
+      };
+      await expectLater(remover().remove((await installed())!), throwsA(isA<OwnedStorageException>()));
+      final pending = (await journal.pendingRemovals().toList()).single;
+      final neighbor = _NativeFile(999)..bytes = [9, 9];
+      native.files['/roms/fixture.chd'] = neighbor;
+      await remover().recover(pending.id);
+      expect(native.files['/roms/fixture.chd'], same(neighbor));
+      expect(await installed(), isNull);
+      expect(await journal.pendingRemovals().toList(), isEmpty);
+      expect(requests, [0]);
+    });
+  }
+
+  test('changed installation and changed quarantine bytes are preserved conflicts', () async {
+    await queue();
+    await engine().start('transfer').result;
+    final manifest = (await installed())!;
+    final original = native.files['/roms/fixture.chd']!;
+    original.stamp++;
+    await expectLater(remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
+    expect(native.files['/roms/fixture.chd'], same(original));
+    expect(await journal.pendingRemovals().toList(), isEmpty);
+    original.stamp--;
+    native.after = (call) async {
+      if (call.method == 'ownedQuarantine') original.bytes[0] ^= 1;
+    };
+    await expectLater(remover().remove(manifest), throwsA(isA<OwnedStorageException>()));
+    expect(native.files.values, contains(same(original)));
+    expect(native.methods, isNot(contains('ownedRetireQuarantine')));
+    expect(await installed(), isNotNull);
+    expect(await journal.hasPendingRemoval('transfer'), isTrue);
+  });
 
   test('commits only after journaled verified rename and closes the session',
       () async {

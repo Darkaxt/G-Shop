@@ -6,12 +6,45 @@ import 'package:path/path.dart' as p;
 import '../models/game_item.dart';
 import '../models/config/provider_config.dart';
 import '../models/system_model.dart';
+import '../models/transfer_record.dart';
 import 'installation_index.dart';
 import 'installation_paths.dart';
+import 'owned_installation_removal.dart';
+import 'owned_storage.dart';
 
 class RomManager {
   final InstallationIndex? installations;
   RomManager({this.installations});
+
+  /// Resolve the exact manifest for explicit review, without source/network
+  /// access or filename adoption. This is not permission to remove neighbors.
+  Future<InstalledArtifact> previewOwnedRemoval(GameItem game, String root) async {
+    final artifact = game.remoteArtifact;
+    if (artifact == null) throw StateError('An exact artifact is required');
+    final index = installations ?? InstallationIndex.application();
+    for (final recordedRoot in await index.journal.destinationRoots()) {
+      if (!installationPathsOverlap(root, recordedRoot)) continue;
+      await for (final row in index.journal.targetsInRoot(recordedRoot, artifactKey: artifact.id.key)) {
+        final record = row.transfer;
+        if (!installationPathsOverlap(root, p.join(recordedRoot, record.relativePath)) ||
+            !InstallationSnapshot.sameContent(record.artifact, artifact) ||
+            row.installation == null) {
+          continue;
+        }
+        await index.requireInstallation(record, row.installation);
+        if (record.publication?.method == PublicationMethod.copy && !record.stageRetired) {
+          throw const OwnedStorageException('close_unconfirmed');
+        }
+        return row.installation!;
+      }
+    }
+    throw const OwnedStorageException('changed');
+  }
+
+  Future<void> removeReviewedInstallation(InstalledArtifact installation) {
+    final index = installations ?? InstallationIndex.application();
+    return OwnedInstallationRemoval(index.journal, storage: index.storage).remove(installation);
+  }
 
   static String safePath(String baseDir, String filename) {
     final sanitized = p.basename(filename);

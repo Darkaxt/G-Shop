@@ -5,6 +5,8 @@ import '../../models/config/provider_config.dart';
 import '../../models/game_metadata_info.dart';
 import '../../models/system_model.dart';
 import '../../models/ra_models.dart';
+import '../../models/transfer_record.dart';
+import '../../services/installation_index.dart';
 import '../../services/database_service.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/rom_manager.dart';
@@ -25,6 +27,11 @@ class GameDetailController extends ChangeNotifier {
 
   bool _disposed = false;
   bool _hasSetInitialFocus = false;
+  bool _preparingRemoval = false;
+  int _removalReviewToken = 0;
+  InstalledArtifact? _reviewedRemoval;
+  String? get removalPreview => _reviewedRemoval == null ? null :
+      '${_reviewedRemoval!.destinationRoot}/${_reviewedRemoval!.relativePath}\n${GameMetadata.formatFileSize(_reviewedRemoval!.sizeBytes)}';
   GameDetailState _state = const GameDetailState();
   GameDetailState get state => _state;
   GameItem get selectedVariant =>
@@ -428,6 +435,8 @@ class GameDetailController extends ChangeNotifier {
 
   void selectVariant(int index) {
     if (index >= 0 && index < variants.length) {
+      _removalReviewToken++;
+      _reviewedRemoval = null;
       _state = _state.copyWith(
         selectedIndex: index,
         activeOverlay: _state.activeOverlay == ActiveOverlay.gameInfo
@@ -471,23 +480,30 @@ class GameDetailController extends ChangeNotifier {
 
   Future<void> deleteRom() async {
     if (_state.isDeleting) return;
-    if (_requiresVerifiedInstallation(selectedVariant)) {
-      _state = _state.copyWith(error: 'Verified remote artifact installations are not configured.', activeOverlay: ActiveOverlay.none);
+    final managed = _requiresVerifiedInstallation(selectedVariant);
+    final reviewed = _reviewedRemoval;
+    if (managed && (reviewed == null || selectedVariant.remoteArtifact == null ||
+        !InstallationSnapshot.sameContent(reviewed.artifact, selectedVariant.remoteArtifact!))) {
+      _state = _state.copyWith(error: 'Verified remote artifact removal requires an exact reviewed installation.', activeOverlay: ActiveOverlay.none);
       notifyListeners();
       return;
     }
     _state = _state.copyWith(isDeleting: true, clearError: true);
     notifyListeners();
     try {
-      await _romManager.delete(selectedVariant, system, targetFolder);
-      if (isLocalOnly) {
+      if (managed) {
+        await _romManager.removeReviewedInstallation(reviewed!);
+      } else {
+        await _romManager.delete(selectedVariant, system, targetFolder);
+      }
+      if (isLocalOnly && !managed) {
         await _databaseService.deleteGame(system.id, selectedVariant.filename);
       }
-      await Future.delayed(const Duration(milliseconds: 300));
       await checkInstallationStatus();
     } catch (e) {
       _state = _state.copyWith(error: getUserFriendlyError(e));
     } finally {
+      _reviewedRemoval = null;
       _state = _state.copyWith(isDeleting: false);
       notifyListeners();
     }
@@ -514,11 +530,37 @@ class GameDetailController extends ChangeNotifier {
   // --- Overlay management ---
 
   void closeOverlay() {
+    _removalReviewToken++;
+    _reviewedRemoval = null;
     _state = _state.copyWith(activeOverlay: ActiveOverlay.none);
     notifyListeners();
   }
 
-  void showDeleteDialog() {
+  Future<void> showDeleteDialog() async {
+    if (_preparingRemoval || _state.isDeleting) return;
+    final token = ++_removalReviewToken;
+    final selected = selectedVariant;
+    _reviewedRemoval = null;
+    if (_requiresVerifiedInstallation(selected)) {
+      _preparingRemoval = true;
+      try {
+        final manifest = await _romManager.previewOwnedRemoval(selected, targetFolder);
+        if (_disposed || token != _removalReviewToken || _state.isOverlayOpen) return;
+        if (selected.remoteArtifact == null ||
+            !InstallationSnapshot.sameContent(manifest.artifact, selected.remoteArtifact!)) {
+          throw StateError('Reviewed installation differs from selected artifact');
+        }
+        _reviewedRemoval = manifest;
+      } catch (error) {
+        if (!_disposed && token == _removalReviewToken) {
+          _state = _state.copyWith(error: getUserFriendlyError(error));
+          notifyListeners();
+        }
+        return;
+      } finally {
+        _preparingRemoval = false;
+      }
+    }
     _state = _state.copyWith(
       activeOverlay: ActiveOverlay.deleteDialog,
       dialogSelection: 1,
@@ -532,6 +574,8 @@ class GameDetailController extends ChangeNotifier {
   }
 
   void cancelDialog() {
+    _removalReviewToken++;
+    _reviewedRemoval = null;
     _state = _state.copyWith(activeOverlay: ActiveOverlay.none);
     notifyListeners();
   }
@@ -586,7 +630,7 @@ class GameDetailController extends ChangeNotifier {
     if (variants.length > 1) {
       openVariantPicker();
     } else if (_state.isVariantInstalled) {
-      showDeleteDialog();
+      await showDeleteDialog();
     } else {
       if (isLocalOnly) return;
       final success = await addToQueue();

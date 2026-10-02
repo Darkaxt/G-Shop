@@ -31,6 +31,16 @@ void sync(int fd);
 // replace an existing destination and does not flush either parent directory.
 // Missing renameat2 support reports ENOTSUP; cross-volume moves report EXDEV.
 void renameNoReplace(int fromDir, const std::string& from, int toDir, const std::string& to);
+// Only for a destination namespace held EXCLUSIVELY by the app and proved
+// PRIVATE by the Android boundary. Never use this for public publication.
+// Rejects a changed source and any existing destination. Uses ordinary rename
+// because Android public FUSE may reject RENAME_NOREPLACE. The returned identity
+// MUST be compared with expected after the move: an external source replacement
+// can race the precheck. Keep mismatched objects; never unlink them optimistically.
+// Durable intent must precede this call. Parent sync and receipt persistence are
+// separate recovery steps; this call does not flush either parent.
+Identity quarantineIntoPrivate(int fromDir, const std::string& from, int privateDir,
+                               const std::string& to, const Identity& expected);
 // Caller must hold app-exclusive control of this PRIVATE stage directory.
 // Never use for public installation paths. An absent entry is an idempotent
 // replay; both deletion and replay sync the pinned parent before returning.

@@ -8,6 +8,7 @@ class ConfirmDialog extends StatelessWidget {
   final ConfirmDialogType type;
   final int selection;
   final String? gameTitle;
+  final String? details;
   final VoidCallback onPrimary;
   final VoidCallback onSecondary;
 
@@ -16,6 +17,7 @@ class ConfirmDialog extends StatelessWidget {
     required this.type,
     required this.selection,
     this.gameTitle,
+    this.details,
     required this.onPrimary,
     required this.onSecondary,
   });
@@ -70,6 +72,7 @@ class ConfirmDialog extends StatelessWidget {
       child: Center(
         child: Container(
           width: (rs.isSmall ? 300.0 : 400.0).clamp(0, rs.screenWidth * 0.85),
+          constraints: BoxConstraints(maxHeight: rs.screenHeight * 0.9),
           padding: EdgeInsets.all(rs.isSmall ? 24 : 32),
           decoration: BoxDecoration(
             color: const Color(0xFF141414),
@@ -88,6 +91,9 @@ class ConfirmDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Flexible(child: SingleChildScrollView(child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
               // Icon
               Container(
                 width: rs.isSmall ? 48 : 56,
@@ -128,6 +134,15 @@ class ConfirmDialog extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: rs.isSmall ? 18 : 24),
+              if (details != null) ...[
+                Text(details!,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    textAlign: TextAlign.center),
+                SizedBox(height: rs.spacing.sm),
+              ],
+                ],
+              ))),
+              SizedBox(height: rs.spacing.sm),
               // Buttons
               Row(
                 children: [

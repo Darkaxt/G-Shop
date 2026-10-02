@@ -19,4 +19,6 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 16));
   test('real v17 upgrade adds metadata jobs without changing cached games',
       () => verifyLibraryMigration(previousVersion: 17));
+  test('real v18 upgrade adds owned removal journal without changing cached games',
+      () => verifyLibraryMigration(previousVersion: 18));
 }

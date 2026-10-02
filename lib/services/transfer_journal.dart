@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 
 import '../models/transfer_record.dart';
+import '../models/owned_removal_record.dart';
 import 'installation_paths.dart';
 
 /// Additive transfer/install schema. Integration into the application database
@@ -25,6 +26,7 @@ class TransferJournalSchema {
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_lifecycle
       ON transfer_records(lifecycle, transfer_id)''');
     await installArtifactIndex(db);
+    await installRemovalJournal(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS installed_artifacts (
       installation_id TEXT PRIMARY KEY,
       transfer_id TEXT NOT NULL UNIQUE,
@@ -45,6 +47,18 @@ class TransferJournalSchema {
   static Future<void> installArtifactIndex(DatabaseExecutor db) =>
       db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_artifact
       ON transfer_records(artifact_key, destination_root, relative_path)''');
+
+  static Future<void> installRemovalJournal(DatabaseExecutor db) async {
+    await db.execute('''CREATE TABLE IF NOT EXISTS owned_removals (
+      removal_id TEXT PRIMARY KEY, transfer_id TEXT NOT NULL,
+      phase TEXT NOT NULL, revision INTEGER NOT NULL, issue TEXT,
+      record_json TEXT NOT NULL
+    )''');
+    await db.execute('''CREATE UNIQUE INDEX IF NOT EXISTS idx_active_removal
+      ON owned_removals(transfer_id) WHERE phase != 'completed' ''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_pending_removal
+      ON owned_removals(phase, issue, removal_id)''');
+  }
 }
 
 /// Durable state only: this class performs no filesystem operations and never
@@ -53,6 +67,140 @@ class TransferJournal {
   static const _digestHexLengths = {'md5': 32, 'sha1': 40, 'sha256': 64};
   final Future<Database> _database;
   TransferJournal(this._database);
+
+  Future<OwnedRemovalRecord> beginRemoval(TransferRecord transfer,
+      InstalledArtifact installation, {required String id,
+      required String quarantinePath}) async {
+    final intent = OwnedRemovalRecord(id: id, installation: installation,
+        quarantinePath: quarantinePath);
+    final db = await _database;
+    return db.transaction((txn) async {
+      _requireExactRecord(await _requiredTransfer(txn, transfer.id), transfer);
+      if (transfer.lifecycle != TransferLifecycle.completed ||
+          (transfer.publication?.method == PublicationMethod.copy && !transfer.stageRetired) ||
+          quarantinePath == transfer.stagePath || installation.verifiedChecksums['sha256'] == null) {
+        throw StateError('Removal requires a completed installation and retired transfer stage');
+      }
+      _requireMatchingInstallation(transfer, installation);
+      await _requireInstalledOwner(txn, installation);
+      if (await _pendingRemoval(txn, transfer.id)) throw StateError('Removal is already pending');
+      await txn.insert('owned_removals', _removalValues(intent));
+      return intent;
+    });
+  }
+
+  Future<OwnedRemovalRecord?> removal(String id) async => _removal(await _database, id);
+
+  Future<bool> hasPendingRemoval(String transferId) async =>
+      _pendingRemoval(await _database, transferId);
+
+  Future<OwnedRemovalRecord> advanceRemoval(OwnedRemovalRecord record,
+      OwnedRemovalPhase phase) async {
+    if (record.phase == OwnedRemovalPhase.completed || phase == OwnedRemovalPhase.completed ||
+        phase.index != record.phase.index + 1 || record.issue != null) {
+      throw StateError('Invalid removal transition');
+    }
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _requireRemoval(txn, record);
+      await _requireInstalledOwner(txn, record.installation);
+      final next = record.next(phase: phase);
+      await _updateRemoval(txn, next, record.revision);
+      return next;
+    });
+  }
+
+  Future<OwnedRemovalRecord> removalIssue(OwnedRemovalRecord record, String issue) async {
+    if (record.phase == OwnedRemovalPhase.completed) throw StateError('Removal is completed');
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _requireRemoval(txn, record);
+      final next = record.next(issue: issue);
+      await _updateRemoval(txn, next, record.revision);
+      return next;
+    });
+  }
+
+  /// Call only after native private unlink and parent fsync acknowledge the
+  /// recorded deletion intent. Owner/transfer release and audit commit are atomic.
+  Future<void> finishRemoval(OwnedRemovalRecord record) async {
+    if (record.phase != OwnedRemovalPhase.deleting || record.issue != null) {
+      throw StateError('Removal has no verified deletion intent');
+    }
+    final db = await _database;
+    await db.transaction((txn) async {
+      await _requireRemoval(txn, record);
+      await _requireInstalledOwner(txn, record.installation);
+      await txn.delete('installed_artifacts', where: 'installation_id = ?',
+          whereArgs: [record.installation.id]);
+      await txn.delete('transfer_target_owners', where: 'transfer_id = ?',
+          whereArgs: [record.installation.transferId]);
+      await txn.delete('transfer_records', where: 'transfer_id = ?',
+          whereArgs: [record.installation.transferId]);
+      await _updateRemoval(txn, record.next(phase: OwnedRemovalPhase.completed), record.revision);
+    });
+  }
+
+  Stream<OwnedRemovalRecord> pendingRemovals({bool Function()? shouldContinue}) async* {
+    final db = await _database;
+    String after = '';
+    while (shouldContinue?.call() ?? true) {
+      final rows = await db.query('owned_removals', columns: ['removal_id', 'record_json'],
+          where: "phase != 'completed' AND issue IS NULL AND removal_id > ?",
+          whereArgs: [after], orderBy: 'removal_id', limit: 128);
+      if (rows.isEmpty) return;
+      for (final row in rows) {
+        if (!(shouldContinue?.call() ?? true)) return;
+        yield OwnedRemovalRecord.fromJson((jsonDecode(row['record_json'] as String) as Map).cast<String, dynamic>());
+      }
+      after = rows.last['removal_id'] as String;
+    }
+  }
+
+  static Future<OwnedRemovalRecord?> _removal(DatabaseExecutor db, String id) async {
+    final rows = await db.query('owned_removals', columns: ['record_json'],
+        where: 'removal_id = ?', whereArgs: [id], limit: 1);
+    return rows.isEmpty ? null : OwnedRemovalRecord.fromJson(
+        (jsonDecode(rows.single['record_json'] as String) as Map).cast<String, dynamic>());
+  }
+
+  static Future<bool> _pendingRemoval(DatabaseExecutor db, String transferId) async =>
+      (await db.query('owned_removals', columns: ['removal_id'],
+          where: "transfer_id = ? AND phase != 'completed'", whereArgs: [transferId], limit: 1)).isNotEmpty;
+
+  static Future<void> _requireRemoval(DatabaseExecutor db, OwnedRemovalRecord record) async {
+    final current = await _removal(db, record.id);
+    if (current == null || jsonEncode(current.toJson()) != jsonEncode(record.toJson())) {
+      throw StateError('Removal evidence or revision changed');
+    }
+  }
+
+  static Future<void> _requireInstalledOwner(DatabaseExecutor db, InstalledArtifact installation) async {
+    final rows = await db.rawQuery('''SELECT i.record_json FROM installed_artifacts i
+      JOIN transfer_target_owners o ON o.installation_id = i.installation_id
+        AND o.transfer_id = i.transfer_id
+      WHERE i.installation_id = ? AND i.transfer_id = ?
+        AND o.destination_root = ? AND o.relative_path = ?''',
+        [installation.id, installation.transferId, installation.destinationRoot, installation.relativePath]);
+    if (rows.length != 1 || jsonEncode(InstalledArtifact.fromJson(
+        (jsonDecode(rows.single['record_json'] as String) as Map).cast<String, dynamic>()).toJson()) !=
+        jsonEncode(installation.toJson())) {
+      throw StateError('Installed ownership changed');
+    }
+  }
+
+  static Map<String, Object?> _removalValues(OwnedRemovalRecord record) => {
+    'removal_id': record.id, 'transfer_id': record.installation.transferId,
+    'phase': record.phase.name, 'revision': record.revision, 'issue': record.issue,
+    'record_json': jsonEncode(record.toJson()),
+  };
+
+  static Future<void> _updateRemoval(DatabaseExecutor db, OwnedRemovalRecord record, int previous) async {
+    if (await db.update('owned_removals', _removalValues(record),
+        where: 'removal_id = ? AND revision = ?', whereArgs: [record.id, previous]) != 1) {
+      throw StateError('Removal revision changed');
+    }
+  }
 
   /// Reserves the target and creates a new queued transfer in one transaction.
   Future<TransferRecord> create(TransferRecord record) async {

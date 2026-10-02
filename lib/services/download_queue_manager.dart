@@ -94,6 +94,7 @@ class DownloadQueueManager extends ChangeNotifier {
   bool _closing = false;
   Future<void>? _closeFuture;
   Future<StageRetirementRecoveryReport>? _stageRetirementRecovery;
+  Future<OwnedRemovalRecoveryReport>? _ownedRemovalRecovery;
   final Map<String, _DriveQueueAttempt> _driveAttempts = {};
   final DriveRuntime _driveRuntime;
 
@@ -802,9 +803,20 @@ class DownloadQueueManager extends ChangeNotifier {
         return report;
       });
 
+  Future<OwnedRemovalRecoveryReport> recoverPendingRemovals() =>
+      _ownedRemovalRecovery ??= recoverPendingStageRetirements().then((_) =>
+          _driveRuntime.recoverPendingRemovals(
+              shouldContinue: () => !_closing && !_disposed)).then((report) {
+        if (report.pending > 0 || report.issues.isNotEmpty) {
+          debugPrint('Owned removal recovery: pending=${report.pending}, '
+              'issues=${report.issues}');
+        }
+        return report;
+      });
+
   void restoreQueue(List<SystemModel> systems, {AppConfig? appConfig}) {
     if (_closing || _disposed) return;
-    unawaited(recoverPendingStageRetirements());
+    unawaited(recoverPendingRemovals());
     final json = _storage.getDownloadQueue();
     if (json == null) return;
 
@@ -928,6 +940,7 @@ class DownloadQueueManager extends ChangeNotifier {
     }
     await Future.wait(attempts.map((attempt) => attempt.settled));
     await _stageRetirementRecovery;
+    await _ownedRemovalRecovery;
     await _persistence;
   }
 }

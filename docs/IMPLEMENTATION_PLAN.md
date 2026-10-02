@@ -122,7 +122,7 @@ general rewrite of legacy providers.
    the completed callback. Include active transfers in source-disconnect draining.
    Implement/persist required queue reordering without changing source concurrency.
 6. Route exact-artifact installation status, launch/share/achievement paths and
-   removal through the manifest. For removal, journal a no-replace move into owned
+   removal through the manifest. For removal, journal an exclusive move into owned
    quarantine and validate the moved object before unlinking individual verified
    ROM members. Preserve changed objects and attempt no-clobber restoration on a
    conflict; no recursive game-folder removal. Do not claim an advisory lock or a
@@ -181,10 +181,25 @@ recovers pending completed copies independently of the saved queue; shutdown
 signals the pass to stop between entries and joins any in-flight native call.
 No timer retry or age/suffix-based scan is used.
 
-This private-namespace primitive is **not** the public owned-ROM removal
-protocol. Thor public removal remains gated: test an app-UID public-to-private
-quarantine rename in the actual mount domain before selecting its fallback;
-do not substitute a public check-then-unlink or overwrite-capable move.
+This private-stage retirement primitive is **not** public owned-ROM removal.
+The subsequent actual app-UID SD probe established that ordinary public-to-private
+rename succeeds, although public `RENAME_NOREPLACE` remains unsupported. Removal
+therefore journals intent before moving the exact owned file into a random,
+app-exclusive private staging name. The serialized native boundary forbids an
+existing private destination and active matching handles. This narrowly owned
+private namespace permits ordinary rename; it is not a public check-then-rename
+publisher and cannot authorize overwriting public files. Public restoration still
+requires kernel no-clobber; unsupported restoration preserves the conflict.
+
+After quarantine, compare exact native identity, stream SHA-256, recheck identity
+and confirm handle closure before durable deletion intent and private unlink.
+Retain ownership on conflict. Unlink acknowledgement precedes atomic manifest/
+target-claim release, so an absent private entry is recoverable only with prior
+deletion intent. Additive v19 journals preserve existing installations. Startup
+serially finishes stage retirement then one keyset-paged removal pass, even with
+an empty queue and no authorized account. Shutdown joins in-flight mutation;
+there is no timer retry. The real SD synthetic install/lost-move-receipt/startup-
+removal/reinstall test proves this boundary, not live Drive or emulator acceptance.
 
 ## S4 — Fresh metadata pipeline and score semantics
 

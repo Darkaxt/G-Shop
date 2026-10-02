@@ -70,7 +70,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
-| S3 | ACTIVE | Existing verified standalone lane, journals, installed index and native retirement evidence retained; required S1 migrated identity/Drive access and S2 catalogue/queue dependencies verified | Live transfer roundtrip, crash/reset windows, bundles, replacement/removal, achievements, emulator handoff and large-file proof remain ordinary unfinished work; no S3 completion claim |
+| S3 | ACTIVE | Existing standalone lane and native retirement; new v19 removal journal, exact preview/confirmation, offline startup recovery; actual SD synthetic install/remove/reinstall; actual Android process stops at transfer and lost removal receipt preserve neighboring synthetic save | Real Drive/emulator roundtrip, remaining publication process-death boundaries, bundles, replacement, achievements and integrated large-file proof remain ordinary unfinished work; no S3 completion claim |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
@@ -186,6 +186,71 @@ criteria remain required and prevent final feature completion.
 - S2 is COMPLETE against DRIVE-02 and DRIVE-03; S3 is now the sole ACTIVE stage.
   S1 stays BLOCKED at B2, with all outstanding auth criteria retained. S5 owns
   the explicitly named final source-action landscape/touch/localization check.
+
+### S3 owned-removal checkpoint (2026-10-02)
+
+- Actual app-UID public-to-private rename works on Thor SD FUSE. Public
+  no-replace publication/restoration is not relaxed. Removal uses only an
+  app-exclusive private quarantine with a durable intent and exact native
+  identity, then streaming SHA-256, confirmed handle closure, deletion intent,
+  private unlink/fsync and atomic installed-owner release. No recursive cleanup,
+  cloud access or namesake adoption is available through this path.
+- Additive v19 upgrade/reopen checks from v13-v18 preserve the existing library,
+  identity and metadata/job state. Pending removal is not an installed game;
+  conflicts retain ownership and bytes rather than becoming unmanaged games.
+- Normal detail Delete resolves an exact installed manifest first, shows its
+  full local path and size, defaults to Cancel, and revalidates before mutation.
+  Cancelling, changing variant or disposing invalidates an asynchronous review.
+  A failing long-path landscape regression exposed overflow; content now scrolls
+  while Cancel/Delete stay visible. Legacy removal behavior remains separate.
+- Normal startup performs one offline removal pass after stage retirement even
+  without a saved queue. Focused real journal/engine/runtime tests prove lost
+  move/unlink receipt recovery, changed file preservation, fresh re-download
+  reservation and shutdown joining the in-flight native operation without sleeps.
+- The target-device test passes on `/storage/75D7-DC5F` using actual native IO,
+  SQLite, transfer engine and startup queue/runtime recovery. It installs
+  synthetic bytes, simulates a lost move receipt, removes that exact fixture,
+  reinstalls it and preserves an adjacent synthetic save. Exact expendable
+  fixture cleanup passed. Both Thor displays were verified OFF during testing.
+  This is not actual Drive media, emulator launch or OS process-death proof.
+- S3 remains the only ACTIVE stage. Its remaining required workflow is a real
+  Drive download, verification, existing-emulator/offline use, explicit removal
+  and re-download, plus bundle/replacement/achievement/large-file and actual
+  process-death integration evidence. These are unfinished requirements, not
+  deferrals to S5 or S6. No SD-library migration or external release occurred.
+
+### S3 real process-stop checkpoint (2026-10-02)
+
+- A standalone debug-only probe uses its own SQLite database, explicitly selected
+  new SD fixture directory and synthetic payload. It never reads application
+  preferences, account grants, the application database or actual ROMs.
+- Android `am force-stop` terminated the app at an observed durable 1,048,576-byte
+  transfer checkpoint. PID absence was confirmed; the new process resumed from
+  exactly that offset, verified the complete payload and committed the install.
+- A second actual process stop occurred after native public-to-private quarantine
+  but before its journal receipt. The next process recovered the durable intent
+  offline, removed only the owned synthetic object and reinstalled from offset
+  zero. The adjacent synthetic save remained byte-identical through both stops.
+  The probe reported PASSED; its exact SD files, private stages and own database
+  were removed, and the now-empty synthetic directory was independently absent.
+- Probe APK SHA-256:
+  `DD3DD5B25B4073F1E5771A5A75AC970ECD4C4D3737CB0766BD85E29C3D89BD51`.
+  Normal APK replacement uses `adb install -r`, preserving debug app setup. No
+  provider media request or emulator proof is claimed by this synthetic probe.
+- Restored normal main.dart debug build SHA-256:
+  `4148D2FFA73078B747A3DB9C1C03285F0545151F970D60AEBEBE473383052124`.
+  Package `com.darkaxt.rshop.debug`, version 1.7.0/12 and registered debug signer
+  were independently inspected. Focused affected host contracts, actual native
+  filesystem contracts and the SD removal integration passed; scoped analysis
+  including the standalone probe is clean. No full-suite workload was launched.
+- Earlier Flutter integration teardown was found to uninstall the isolated debug
+  package by default, clearing its setup, not the SD library. The normal app was
+  reinstalled and the owner account/root saved again. Future device test commands
+  require `--no-uninstall`; the standalone probe never uninstalls the package.
+  The replacement catalogue is still unpublished while its rooted traversal
+  resumes, so earlier S2 live evidence must not be described as a current cache.
+- S3 remains ACTIVE. This checkpoint covers transfer/removal process-stop windows,
+  not every publication/cancellation boundary or the actual Drive/emulator cycle.
 
 ### S1 live setup checkpoint (2026-10-01)
 

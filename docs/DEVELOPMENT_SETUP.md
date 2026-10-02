@@ -28,6 +28,13 @@ starting the next. `live` tests must be selected explicitly with configured acce
 excluding them is not live evidence. Do not run the whole suite against real
 accounts or start another test workload to work around a stalled one.
 
+Device integration runs MUST pass `--no-uninstall`: the current Flutter SDK's
+`flutter test` defaults to uninstalling the integration app during teardown,
+which clears even the isolated debug app's catalogue/source preferences. Inspect
+the resulting package and restore the normal `lib/main.dart` debug APK afterwards
+with `adb install -r`; never use uninstall/reinstall as a testing reset. Synthetic
+fixtures already clean only their registered paths, not application data.
+
 ## Android identity before consent or installation
 
 | Variant | Application ID | Label | Signer |
@@ -131,8 +138,10 @@ The normal detail/library flow now enqueues supported standalone Drive files
 through S3's verified transfer/installation lane. Archives, folders, CUE/M3U and
 other dependency-bearing layouts remain blocked until bundle support is complete.
 A cached filename is not an installed game, and ordinary HTTP fallback cannot
-bypass version, checksum or ownership checks. Managed local removal remains
-gated. There is not yet an in-app emulator-open action; sharing a file is not
+bypass version, checksum or ownership checks. Exact manifest-owned local removal
+now uses reviewed paths/size and journaled private quarantine, with offline
+startup recovery and actual SD synthetic proof. Changed files remain conflicts.
+There is not yet an in-app emulator-open action; sharing a file is not
 evidence of emulator launch. The live download/launch/removal round trip is still
 required, not established by the single-file queue implementation.
 
@@ -199,6 +208,21 @@ its observed VM-service URL with `--use-existing-app`.
 Inspect the exit status and per-test results. Stop only the exact test package
 afterwards; fixture cleanup and generated-build cleanup must not target the real
 library. A foundation-test APK is not the usable Drive/metadata application.
+
+## Actual Android process-stop proof
+
+`integration_test/owned_process_death_app.dart` is a standalone debug probe,
+not an application mode. Build it with an explicit, new direct SD-volume child
+named `RShopProcessProof-<run-id>` through `RSHOP_PROCESS_TEST_ROOT`. Inspect its
+APK/package/signer, install with `adb install -r`, and launch the normal activity.
+At `ARMED TRANSFER` stop only `com.darkaxt.rshop.debug`, confirm PID absence and
+relaunch the same APK. Repeat at `ARMED REMOVAL`. Require the final PASSED state,
+which checks exact durable resume, offline lost-receipt recovery, fresh reinstall
+and unchanged neighboring synthetic save. No ROM, source or app preference is
+read. The probe deletes only its exact synthetic paths on success; do not use
+recursive cleanup on failure. Restore the inspected normal main.dart APK with
+`adb install -r` afterwards, and switch off both screens. This proof does not
+replace real Drive media and emulator acceptance.
 
 ## ScreenScraper: independent application and user access
 

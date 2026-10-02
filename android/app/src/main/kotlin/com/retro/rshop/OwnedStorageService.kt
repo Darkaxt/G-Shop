@@ -28,6 +28,7 @@ internal class OwnedStorageService(private val context: Context) {
         val targetRootFd: Int, val targetParentFd: Int, val stageDirFd: Int,
         val fileFd: Int, val anchor: LongArray, var nextOffset: Long,
         val publication: OwnedPublication,
+        val privateReadOnly: Boolean = false,
     ) {
         val published: Boolean get() = publication.renamed
         var copy: PublicationCopy? = null
@@ -71,6 +72,9 @@ internal class OwnedStorageService(private val context: Context) {
         "ownedOpen" -> open(call)
         "ownedInspect" -> inspect(call)
         "ownedRetireStage" -> { retireStage(call); null }
+        "ownedQuarantine" -> quarantine(call, false)
+        "ownedRetireQuarantine" -> { quarantine(call, true); null }
+        "ownedRestoreQuarantine" -> { quarantine(call, false, restore = true); null }
         "ownedCopyOpen" -> openCopy(call)
         "ownedCopyChunk" -> copyChunk(call)
         "ownedCopyValidatePrefix" -> {
@@ -116,7 +120,7 @@ internal class OwnedStorageService(private val context: Context) {
             val session = session(call)
             val offset = number(call, "offset")
             val bytes = call.argument<ByteArray>("bytes") ?: throw Failure("invalid_arguments")
-            if (session.published || session.copy != null || offset != session.nextOffset || bytes.size > 65536) {
+            if (session.published || session.privateReadOnly || session.copy != null || offset != session.nextOffset || bytes.size > 65536) {
                 throw Failure("invalid_arguments")
             }
             OwnedStorageNative.write(session.fileFd, offset, bytes)
@@ -218,7 +222,7 @@ internal class OwnedStorageService(private val context: Context) {
         if (sessions.values.any { it.target == target ||
                     (it.stageRoot == stageRoot && it.stageName == stageName) }) throw Failure("collision")
         val mode = string(call, "mode")
-        if (mode !in listOf("create", "resume", "published")) throw Failure("invalid_arguments")
+        if (mode !in listOf("create", "resume", "published", "quarantine")) throw Failure("invalid_arguments")
         val offset = number(call, "durableOffset")
         if (offset < 0 || (mode == "create" && offset != 0L)) throw Failure("invalid_arguments")
         val expected = if (mode != "create") expectedIdentity(call) else null
@@ -226,18 +230,18 @@ internal class OwnedStorageService(private val context: Context) {
         fun own(fd: Int): Int { fds.add(fd); return fd }
         try {
             val rootFd = own(OwnedStorageNative.openRoot(target.root))
-            val parentFd = own(OwnedStorageNative.openDirectory(rootFd, target.parent, mode != "published"))
+            val parentFd = own(OwnedStorageNative.openDirectory(rootFd, target.parent, mode == "create" || mode == "resume"))
             // Published mode is journal recovery, not a filename-only installed
             // lookup. Retain both parent handles to finish interrupted syncing.
             val stageFd = own(OwnedStorageNative.openRoot(stageRoot))
             val fileFd = own(OwnedStorageNative.openFile(
                 if (mode == "published") parentFd else stageFd,
-                if (mode == "published") target.name else stageName, mode == "create", mode != "published"))
+                if (mode == "published") target.name else stageName, mode == "create", mode == "create" || mode == "resume"))
             val identity = OwnedStorageNative.identity(fileFd)
             if (expected != null && (!sameObject(identity, expected) || identity[2] < offset)) {
                 throw Failure("changed")
             }
-            if (mode == "published") {
+            if (mode == "published" || mode == "quarantine") {
                 if (!identity.contentEquals(expected!!) || offset != identity[2]) throw Failure("changed")
             } else {
                 if (mode == "resume" && identity[2] != offset) OwnedStorageNative.truncate(fileFd, offset)
@@ -245,9 +249,9 @@ internal class OwnedStorageService(private val context: Context) {
                 OwnedStorageNative.sync(stageFd)
             }
             val session = Session(target, stageRoot, stageName, rootFd, parentFd, stageFd,
-                fileFd, OwnedStorageNative.identity(fileFd), offset, OwnedPublication(mode == "published"))
+                fileFd, OwnedStorageNative.identity(fileFd), offset, OwnedPublication(mode == "published"), mode == "quarantine")
             validateLocation(session)
-            if (session.published) syncCheckpoint(session)
+            if (session.published || session.privateReadOnly) syncCheckpoint(session)
             val id = UUID.randomUUID().toString()
             sessions[id] = session
             fds.clear()
@@ -320,9 +324,65 @@ internal class OwnedStorageService(private val context: Context) {
         } finally { fds.asReversed().forEach(::closeFd) }
     }
 
+    /** Requires a durable removal intent before invocation. The destination is
+     * restricted to app-private staging; normal rename is never exposed for a
+     * public destination. An exact existing quarantine is a replay, not adoption.
+     * Retire is separately authorized only after verification/deletion intent. */
+    private fun quarantine(call: MethodCall, retire: Boolean, restore: Boolean = false): Map<String, Any>? {
+        val target = target(call)
+        val (stageRoot, stageName) = stage(call)
+        val expected = expectedIdentity(call)
+        if (sessions.values.any { session ->
+                session.target == target ||
+                (session.stageRoot == stageRoot && session.stageName == stageName) ||
+                sameObject(session.anchor, expected) ||
+                session.copy?.let { sameObject(it.observed, expected) } == true
+            }) throw Failure("collision")
+        val fds = mutableListOf<Int>()
+        fun own(fd: Int): Int { fds.add(fd); return fd }
+        try {
+            val rootFd = own(OwnedStorageNative.openRoot(target.root))
+            val parentFd = own(OwnedStorageNative.openDirectory(rootFd, target.parent, false))
+            val stageFd = own(OwnedStorageNative.openRoot(stageRoot))
+            val currentRoot = own(OwnedStorageNative.openRoot(target.root))
+            val currentParent = own(OwnedStorageNative.openDirectory(currentRoot, target.parent, false))
+            val currentStage = own(OwnedStorageNative.openRoot(stageRoot))
+            if (!sameObject(OwnedStorageNative.identity(rootFd), OwnedStorageNative.identity(currentRoot)) ||
+                !sameObject(OwnedStorageNative.identity(parentFd), OwnedStorageNative.identity(currentParent)) ||
+                !sameObject(OwnedStorageNative.identity(stageFd), OwnedStorageNative.identity(currentStage))) {
+                throw Failure("changed")
+            }
+            if (retire) {
+                OwnedStorageNative.retirePrivateFile(stageFd, stageName, expected)
+                return null
+            }
+            if (restore) {
+                if (!OwnedStorageNative.entryIdentity(stageFd, stageName).contentEquals(expected)) throw Failure("changed")
+                // Public restoration MUST be kernel no-clobber. Unsupported SD
+                // filesystems keep the conflict privately; never overwrite.
+                OwnedStorageNative.renameNoReplace(stageFd, stageName, parentFd, target.name)
+                OwnedStorageNative.sync(parentFd)
+                OwnedStorageNative.sync(stageFd)
+                return null
+            }
+            val existing = try { OwnedStorageNative.entryIdentity(stageFd, stageName) }
+                catch (error: IOException) { if (errno(error) != 2) throw error; null }
+            val moved = if (existing == null) {
+                OwnedStorageNative.quarantineIntoPrivate(parentFd, target.name, stageFd, stageName, expected)
+            } else {
+                if (!existing.contentEquals(expected)) throw Failure("changed")
+                existing
+            }
+            // Complete interrupted durability before returning the receipt.
+            OwnedStorageNative.sync(parentFd)
+            OwnedStorageNative.sync(stageFd)
+            return identityMap(moved)
+        } finally { fds.asReversed().forEach(::closeFd) }
+    }
+
     private fun publish(call: MethodCall): Map<String, Any> {
         val session = session(call)
-        if (session.copy != null) throw Failure("invalid_arguments")
+        if (session.copy != null || session.privateReadOnly) throw Failure("invalid_arguments")
         validateLocation(session)
         val expected = expectedIdentity(call)
         val current = OwnedStorageNative.identity(session.fileFd)
@@ -353,7 +413,7 @@ internal class OwnedStorageService(private val context: Context) {
      * The caller journals intent before open and identity before the first chunk. */
     private fun openCopy(call: MethodCall): Map<String, Any> {
         val session = session(call)
-        if (session.published || session.copy != null) throw Failure("invalid_arguments")
+        if (session.published || session.privateReadOnly || session.copy != null) throw Failure("invalid_arguments")
         validateLocation(session)
         val source = OwnedStorageNative.identity(session.fileFd)
         if (!source.contentEquals(expectedIdentity(call)) || source[2] != session.nextOffset) {

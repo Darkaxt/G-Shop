@@ -12,6 +12,7 @@ import 'package:retro_eshop/models/download_item.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
+import 'package:retro_eshop/models/owned_removal_record.dart';
 import 'package:retro_eshop/services/drive/drive_api.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/drive/drive_catalogue.dart';
@@ -166,6 +167,10 @@ class _NativeStorage {
   final closeStarted = Completer<void>();
   int stamp = 0;
   final calls = <String>[];
+  bool quarantinePresent = false;
+  final quarantineStarted = Completer<void>();
+  Future<void>? finishQuarantineRetirement;
+  final quarantineRetirementStarted = Completer<void>();
   Map<String, Object> get identity => {
         'device': '1',
         'inode': '42',
@@ -197,7 +202,12 @@ class _NativeStorage {
         };
       case 'ownedOpen':
         sessionOpen = true;
-        stagePresent = true;
+        if (args['mode'] == 'quarantine') {
+          expect(quarantinePresent, isTrue);
+          expect(args['expectedIdentity'], identity);
+        } else {
+          stagePresent = true;
+        }
         return {'session': 'session', 'identity': identity};
       case 'ownedWrite':
         if (!writeStarted.isCompleted) writeStarted.complete();
@@ -244,6 +254,10 @@ class _NativeStorage {
         expect(copiedBytes, bytes);
         return copyIdentity;
       case 'ownedInspect':
+        if ((args['stagePath'] as String).contains('removal-') &&
+            args['published'] != true) {
+          return quarantinePresent ? identity : null;
+        }
         if (copyOnly) {
           if (args['published'] != true) return stagePresent ? identity : null;
           return published
@@ -264,6 +278,25 @@ class _NativeStorage {
         expect(args['installedIdentity'], copyIdentity);
         if (stagePresent) expect(args['expectedIdentity'], identity);
         stagePresent = false;
+        return null;
+      case 'ownedQuarantine':
+        expect(sessionOpen, isFalse);
+        expect(args['expectedIdentity'], identity);
+        if (!quarantinePresent) {
+          expect(published, isTrue);
+          published = false;
+          quarantinePresent = true;
+        }
+        if (!quarantineStarted.isCompleted) quarantineStarted.complete();
+        return identity;
+      case 'ownedRetireQuarantine':
+        expect(sessionOpen, isFalse);
+        if (!quarantineRetirementStarted.isCompleted) {
+          quarantineRetirementStarted.complete();
+        }
+        await finishQuarantineRetirement;
+        expect(args['expectedIdentity'], identity);
+        quarantinePresent = false;
         return null;
       case 'ownedClose':
         if (!closeStarted.isCompleted) closeStarted.complete();
@@ -307,8 +340,17 @@ class _LoadingJournal extends TransferJournal {
 
 class _RecoveryJournal extends TransferJournal {
   int recoveryPasses = 0;
+  int removalPasses = 0;
   Object? enumerationError;
   _RecoveryJournal(super.database);
+  @override
+  Stream<OwnedRemovalRecord> pendingRemovals(
+      {bool Function()? shouldContinue}) async* {
+    removalPasses++;
+    if (enumerationError != null) throw enumerationError!;
+    yield* super.pendingRemovals(shouldContinue: shouldContinue);
+  }
+
   @override
   Stream<TransferRecord> pendingStageRetirements(
       {int batchSize = 128, bool Function()? shouldContinue}) async* {
@@ -744,6 +786,99 @@ void main() {
       await recoveryRuntime.disconnect();
       fixture.driver.finishSignOut.complete();
       await seeded.runtime.disconnect();
+    }
+  });
+
+  test('empty restored queue completes interrupted removal once offline',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    final runtime = fixture.runtime();
+    final operation = await runtime.startTransfer(
+        config: _transferConfig, transferId: 'transfer');
+    final installed = await operation.result;
+    final manifest = (await fixture.journal.installationForTarget(
+        destinationRoot: '/roms', relativePath: 'fixture.chd'))!;
+    final removal = await fixture.journal.beginRemoval(installed, manifest,
+        id: 'removal-startup',
+        quarantinePath: '/owned/removal-startup.partial');
+    // Native move committed, but its receipt was lost with the old process.
+    await OwnedStorage(channel: fixture.native.channel).quarantine(
+        destinationRoot: '/roms',
+        relativePath: 'fixture.chd',
+        stagePath: removal.quarantinePath,
+        expectedIdentity: manifest.fileIdentity);
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: fixture.runtime());
+    final journal = fixture.journal as _RecoveryJournal;
+    final grants = fixture.driver.grants;
+    final metadataRequests = fixture.metadata.requests.length;
+    final payloadRequests = fixture.media.requests.length;
+    try {
+      expect(journal.removalPasses, 0);
+      queue.restoreQueue([_system]);
+      final recovery = queue.recoverPendingRemovals();
+      final report = await recovery;
+      expect(report.removed, 1);
+      expect(report.pending, 0);
+      expect(report.issues, isEmpty);
+      expect((await journal.removal(removal.id))!.phase,
+          OwnedRemovalPhase.completed);
+      expect(await journal.transfer(installed.id), isNull);
+      expect(fixture.native.quarantinePresent, isFalse);
+      expect(fixture.native.published, isFalse);
+      expect(queue.state.queue, isEmpty);
+      queue.restoreQueue([_system]);
+      expect(identical(queue.recoverPendingRemovals(), recovery), isTrue);
+      expect(journal.removalPasses, 1);
+      expect(fixture.driver.grants, grants);
+      expect(fixture.metadata.requests, hasLength(metadataRequests));
+      expect(fixture.media.requests, hasLength(payloadRequests));
+    } finally {
+      await queue.close();
+      queue.dispose();
+      fixture.driver.finishSignOut.complete();
+      await runtime.disconnect();
+    }
+  });
+
+  test('queue shutdown joins native removal instead of leaving an orphan',
+      () async {
+    final fixture =
+        await _TransferFixture.create(createJournal: _RecoveryJournal.new);
+    final runtime = fixture.runtime();
+    final operation = await runtime.startTransfer(
+        config: _transferConfig, transferId: 'transfer');
+    final installed = await operation.result;
+    final manifest = (await fixture.journal.installationForTarget(
+        destinationRoot: '/roms', relativePath: 'fixture.chd'))!;
+    final removal = await fixture.journal.beginRemoval(installed, manifest,
+        id: 'removal-shutdown',
+        quarantinePath: '/owned/removal-shutdown.partial');
+    final release = Completer<void>();
+    fixture.native.finishQuarantineRetirement = release.future;
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: fixture.runtime());
+    try {
+      queue.restoreQueue([_system]);
+      await fixture.native.quarantineRetirementStarted.future;
+      var closed = false;
+      final closing = queue.close().then((_) => closed = true);
+      expect((await fixture.journal.removal(removal.id))!.phase,
+          OwnedRemovalPhase.deleting);
+      expect(closed, isFalse);
+      release.complete();
+      await closing;
+      final report = await queue.recoverPendingRemovals();
+      expect(report.removed, 1);
+      expect(report.stopped, isTrue);
+      expect(fixture.native.quarantinePresent, isFalse);
+    } finally {
+      if (!release.isCompleted) release.complete();
+      await queue.close();
+      queue.dispose();
+      fixture.driver.finishSignOut.complete();
+      await runtime.disconnect();
     }
   });
 

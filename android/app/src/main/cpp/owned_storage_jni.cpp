@@ -179,6 +179,15 @@ Java_com_retro_rshop_OwnedStorageNative_retirePrivateFile(JNIEnv* env, jobject, 
     guardedVoid(env, [&] { owned::retirePrivateFile(dir, utf8(env, name), identityValue(env, expected)); });
 }
 
+extern "C" JNIEXPORT jlongArray JNICALL
+Java_com_retro_rshop_OwnedStorageNative_quarantineIntoPrivate(JNIEnv* env, jobject, jint fromDir, jstring from,
+                                                              jint privateDir, jstring to, jlongArray expected) {
+    return guarded<jlongArray>(env, nullptr, [&] {
+        return identityArray(env, owned::quarantineIntoPrivate(fromDir, utf8(env, from), privateDir,
+                                                              utf8(env, to), identityValue(env, expected)));
+    });
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_retro_rshop_OwnedStorageNative_close(JNIEnv* env, jobject, jint fd) {
     guardedVoid(env, [&] { owned::close(fd); });

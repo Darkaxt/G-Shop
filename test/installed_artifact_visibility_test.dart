@@ -181,6 +181,28 @@ void main() {
             fileIdentity: storage.identity!));
   }
 
+  test('owned removal preview resolves only the reviewed exact artifact and root', () async {
+    var record = await complete();
+    record = await journal.stageRetirementResult(record);
+    final exact = game.copyWith(remoteArtifact: record.artifact);
+    final manager = RomManager(installations: index);
+    final preview = await manager.previewOwnedRemoval(exact, root.path);
+    expect(preview.transferId, record.id);
+    expect(preview.relativePath, 'Fixture.chd');
+    expect(preview.sizeBytes, 5);
+    await expectLater(manager.previewOwnedRemoval(game, root.path), throwsStateError);
+    final other = RemoteArtifact.fromJson({...record.artifact.toJson(),
+      'id': {...record.artifact.id.toJson(), 'providerFileId': 'other'}});
+    await expectLater(manager.previewOwnedRemoval(game.copyWith(remoteArtifact: other), root.path),
+        throwsA(isA<OwnedStorageException>()));
+    final intent = await journal.beginRemoval(record, preview,
+        id: 'preview-removal', quarantinePath: '/private/preview-removal.partial');
+    expect(intent.installation.id, preview.id);
+    expect(await index.resolveArtifact(record.artifact, root.path), isNull);
+    expect((await index.scan(root.path)).protects(p.join(root.path, game.filename)), isTrue);
+    await expectLater(manager.previewOwnedRemoval(exact, root.path), throwsA(isA<OwnedStorageException>()));
+  });
+
   test('committed local discovery retains identity through root case aliases',
       () async {
     final record = await complete();

@@ -104,6 +104,7 @@ class InstallationIndex {
         manifest.destinationRoot != record.destinationRoot ||
         manifest.relativePath != record.relativePath ||
         record.publication?.confirmed != true ||
+        await journal.hasPendingRemoval(record.id) ||
         record.publication?.destinationIdentity == null ||
         !manifest.fileIdentity
             .matches(record.publication!.destinationIdentity!) ||

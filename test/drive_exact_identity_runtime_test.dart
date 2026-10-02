@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/features/game_detail/game_detail_controller.dart';
@@ -8,6 +9,7 @@ import 'package:retro_eshop/models/download_item.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/system_model.dart';
+import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/services/download_queue_manager.dart';
 import 'package:retro_eshop/services/unified_game_service.dart';
 import 'package:retro_eshop/services/rom_manager.dart';
@@ -54,6 +56,23 @@ class _UnusedQueue implements DownloadQueueManager {
       throw StateError('Unexpected queue access');
 }
 
+class _ReviewedRemoval extends _NoLegacyRomAccess {
+  final InstalledArtifact manifest;
+  int removed = 0;
+  Future<void>? finishPreview;
+  _ReviewedRemoval(this.manifest);
+  @override
+  Future<InstalledArtifact> previewOwnedRemoval(GameItem game, String root) async {
+    await finishPreview;
+    return manifest;
+  }
+  @override
+  Future<void> removeReviewedInstallation(InstalledArtifact installation) async {
+    expect(installation, same(manifest));
+    removed++;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Database db;
@@ -68,6 +87,56 @@ void main() {
     await db.close();
   });
   final system = SystemModel.supportedSystems.firstWhere((s) => s.id == 'nes');
+  test('detail removal requires exact reviewed paths and clears consent on cancel', () async {
+    final game = exactGame('file');
+    final manifest = InstalledArtifact(id: 'installed', transferId: 'transfer',
+        artifact: game.remoteArtifact!, destinationRoot: '/roms', relativePath: 'Game.nes',
+        sizeBytes: 42, verifiedChecksums: {'sha256': '0' * 64},
+        fileIdentity: NativeFileIdentity(volumeId: '1', fileId: '2', sizeBytes: 42,
+            modifiedAt: DateTime.utc(2026)));
+    final roms = _ReviewedRemoval(manifest);
+    final controller = GameDetailController(game: game, variants: [game], system: system,
+        targetFolder: '/roms', romManager: roms, queueManager: _UnusedQueue());
+    await controller.checkInstallationStatus();
+    await controller.showDeleteDialog();
+    expect(controller.removalPreview, '/roms/Game.nes\n42 B');
+    controller.cancelDialog();
+    await controller.deleteRom();
+    expect(roms.removed, 0);
+    await controller.showDeleteDialog();
+    await controller.deleteRom();
+    expect(roms.removed, 1);
+    expect(roms.calls, 0);
+    controller.dispose();
+  });
+  for (final action in ['cancel', 'variant', 'dispose']) {
+    test('late removal preview cannot reopen after $action', () async {
+      final game = exactGame('file');
+      final manifest = InstalledArtifact(id: 'installed', transferId: 'transfer',
+          artifact: game.remoteArtifact!, destinationRoot: '/roms', relativePath: 'Game.nes',
+          sizeBytes: 42, verifiedChecksums: {'sha256': '0' * 64},
+          fileIdentity: NativeFileIdentity(volumeId: '1', fileId: '2', sizeBytes: 42,
+              modifiedAt: DateTime.utc(2026)));
+      final release = Completer<void>();
+      final roms = _ReviewedRemoval(manifest)..finishPreview = release.future;
+      final controller = GameDetailController(game: game,
+          variants: [game, exactGame('other')], system: system,
+          targetFolder: '/roms', romManager: roms, queueManager: _UnusedQueue());
+      await controller.checkInstallationStatus();
+      final preview = controller.showDeleteDialog();
+      if (action == 'cancel') controller.cancelDialog();
+      if (action == 'variant') controller.selectVariant(1);
+      if (action == 'dispose') controller.dispose();
+      release.complete();
+      await preview;
+      expect(controller.removalPreview, isNull);
+      expect(controller.state.isOverlayOpen, isFalse);
+      expect(roms.removed, 0);
+      expect(roms.calls, 0);
+      if (action != 'dispose') controller.dispose();
+    });
+  }
+
   test('exact detail status and removal never inspect a local namesake',
       () async {
     final game = exactGame('file');

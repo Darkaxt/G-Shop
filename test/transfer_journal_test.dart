@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
+import 'package:retro_eshop/models/owned_removal_record.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -165,6 +166,63 @@ void main() {
     journal = TransferJournal(Future.value(db));
   });
   tearDown(() => db.close());
+
+  test('removal intent, deletion and owner release are durable separate phases', () async {
+    final publishing = await _advanceToPublishing(journal, await journal.create(_queued()));
+    final manifest = _installation(publishing);
+    final completed = await journal.complete(publishing, manifest);
+    final intent = await journal.beginRemoval(completed, manifest,
+        id: 'remove-1', quarantinePath: '/private/remove-1.partial');
+    expect(intent.phase, OwnedRemovalPhase.intent);
+    expect(await journal.hasPendingRemoval(completed.id), isTrue);
+    expect(await journal.installationForTarget(destinationRoot: completed.destinationRoot,
+        relativePath: completed.relativePath), isNotNull);
+    await expectLater(journal.finishRemoval(intent), throwsStateError);
+    await expectLater(journal.advanceRemoval(intent, OwnedRemovalPhase.deleting), throwsStateError);
+    final quarantined = await journal.advanceRemoval(intent, OwnedRemovalPhase.quarantined);
+    await expectLater(journal.advanceRemoval(intent, OwnedRemovalPhase.quarantined), throwsStateError);
+    final deleting = await journal.advanceRemoval(quarantined, OwnedRemovalPhase.deleting);
+    await journal.finishRemoval(deleting);
+    expect((await journal.removal('remove-1'))!.phase, OwnedRemovalPhase.completed);
+    expect(await journal.hasPendingRemoval(completed.id), isFalse);
+    expect(await journal.transfer(completed.id), isNull);
+    expect(await journal.targetOwner(destinationRoot: completed.destinationRoot,
+        relativePath: completed.relativePath), isNull);
+    expect(await journal.installationForTarget(destinationRoot: completed.destinationRoot,
+        relativePath: completed.relativePath), isNull);
+    // New download reservation is allowed only after removal commit.
+    await journal.create(_queued());
+  });
+
+  test('pending removal cannot be rewritten or duplicated and survives reopen', () async {
+    final publishing = await _advanceToPublishing(journal, await journal.create(_queued()));
+    final manifest = _installation(publishing);
+    final completed = await journal.complete(publishing, manifest);
+    final intent = await journal.beginRemoval(completed, manifest,
+        id: 'remove-1', quarantinePath: '/private/remove-1.partial');
+    await expectLater(journal.beginRemoval(completed, manifest,
+        id: 'remove-2', quarantinePath: '/private/remove-2.partial'), throwsStateError);
+    final reopened = TransferJournal(Future.value(db));
+    expect((await reopened.removal(intent.id))!.toJson(), intent.toJson());
+    expect((await reopened.pendingRemovals().toList()).single.id, intent.id);
+    final conflicted = await reopened.removalIssue(intent, 'changed');
+    expect(conflicted.issue, 'changed');
+    expect(await reopened.pendingRemovals().toList(), isEmpty);
+    expect(await reopened.hasPendingRemoval(completed.id), isTrue);
+    expect(await reopened.transfer(completed.id), isNotNull);
+  });
+
+  test('completed copy cannot forget a retained private stage during removal', () async {
+    final publishing = await _advanceToPublishing(journal, await journal.create(_queued()), confirm: false);
+    final intent = await journal.save(_publication(publishing, method: 'copy'));
+    final copied = await journal.save(_publication(intent, method: 'copy',
+        destination: _fileIdentity(fileId: 'copy-42'), confirmed: true));
+    final manifest = _installation(copied, fileId: 'copy-42');
+    final completed = await journal.complete(copied, manifest);
+    await expectLater(journal.beginRemoval(completed, manifest,
+        id: 'remove-1', quarantinePath: '/private/remove-1.partial'), throwsStateError);
+    expect(await journal.hasPendingRemoval(completed.id), isFalse);
+  });
 
   test(
       'pending private retirement scans completed copies in bounded keyset pages',

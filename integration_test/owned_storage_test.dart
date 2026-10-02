@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -6,9 +7,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
+import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:retro_eshop/services/installation_index.dart';
+import 'package:retro_eshop/services/drive/drive_media.dart';
+import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
+import 'package:retro_eshop/services/drive/drive_runtime.dart';
+import 'package:retro_eshop/services/download_queue_manager.dart';
+import 'package:retro_eshop/services/storage_service.dart';
+import 'package:retro_eshop/services/native_smb_service.dart';
 
 /// Real native bridge, separate debug UID, synthetic bytes only. No production
 /// bootstrap, provider access, user ROMs or recursive cleanup.
@@ -238,6 +248,151 @@ void main() {
     }
   });
 
+  testWidgets('actual SD journaled install remove and reinstall preserves neighbors', (_) async {
+    const selectedParent = String.fromEnvironment('RSHOP_STORAGE_TEST_ROOT');
+    expect(selectedParent, isNotEmpty);
+    final sd = await _Fixture.create(selectedParent);
+    final dbPath = '${fixture.root.path}/removal.sqlite';
+    for (final suffix in ['', '-wal', '-shm', '-journal']) {
+      await fixture.reserveFile('$dbPath$suffix');
+    }
+    final db = await openDatabase(dbPath, version: 1,
+        onCreate: (db, _) => TransferJournalSchema.install(db));
+    try {
+      final selected = await storage.prepare(sd.root.path);
+      final id = 'removal-live-${DateTime.now().microsecondsSinceEpoch}';
+      final inputStage = selected.stagePath(id);
+      final quarantine = selected.stagePath('$id-quarantine');
+      final target = '${selected.destinationRoot}/synthetic-owned.bin';
+      final neighbor = '${selected.destinationRoot}/synthetic-save.sav';
+      await sd.reserveFile(inputStage);
+      await sd.reserveFile(quarantine);
+      await sd.reserveFile(target);
+      await sd.reserveFile(neighbor);
+      await File(neighbor).writeAsBytes([9, 8, 7], flush: true);
+      final bytes = Uint8List.fromList(List.generate(131085, (i) => i % 251));
+      final artifact = RemoteArtifact(id: RemoteArtifactId(providerId: 'drive',
+          sourceId: 'synthetic', accountId: 'none', providerFileId: id),
+          parentId: 'synthetic-folder',
+          displayPath: 'synthetic-owned.bin', displayName: 'synthetic-owned.bin',
+          sizeBytes: bytes.length, version: '1', canDownload: true,
+          providerChecksums: {'md5': md5.convert(bytes).toString()});
+      final journal = TransferJournal(Future.value(db));
+      final index = InstallationIndex(journal, storage: storage);
+      var payloadRequests = 0;
+      final engine = DriveTransferEngine(journal: journal, storage: storage,
+          revalidate: (_, __) async {}, openMedia: (_, offset, __) async {
+            payloadRequests++;
+            return DriveMediaResponse(bytes: Stream.value(Uint8List.sublistView(bytes, offset)),
+                offset: offset, length: bytes.length - offset, total: bytes.length);
+          });
+      Future<void> install() async {
+        await journal.create(TransferRecord(id: id, artifact: artifact,
+            destinationRoot: selected.destinationRoot,
+            relativePath: 'synthetic-owned.bin', stagePath: inputStage));
+        final outcome = await engine.start(id).result;
+        expect(outcome.lifecycle, TransferLifecycle.completed,
+            reason: 'sanitized transfer issue: ${outcome.errorCode}; publication: ${outcome.publication?.method.name}');
+        expect(await index.resolveArtifact(artifact, selected.destinationRoot), target);
+        expect(await File(target).readAsBytes(), bytes);
+      }
+      await install();
+      final completed = (await journal.transfer(id))!;
+      final manifest = (await journal.installationForTarget(
+          destinationRoot: selected.destinationRoot, relativePath: 'synthetic-owned.bin'))!;
+      final intent = await journal.beginRemoval(completed, manifest,
+          id: '$id-quarantine', quarantinePath: quarantine);
+      expect(await index.resolveArtifact(artifact, selected.destinationRoot), isNull);
+      // Simulate a process stopping after the actual move but before receipt.
+      final moved = await storage.quarantine(destinationRoot: selected.destinationRoot,
+          relativePath: manifest.relativePath, stagePath: quarantine,
+          expectedIdentity: manifest.fileIdentity);
+      expect(moved.matches(manifest.fileIdentity), isTrue);
+      // Normal startup must recover even with no saved queue or account access.
+      final queue = DownloadQueueManager(_EmptyQueuePreferences(), NativeSmbService(),
+          driveRuntime: DriveRuntime(journal: TransferJournal(Future.value(db)), storage: storage));
+      try {
+        // No access to or changes of the user's saved queue preferences.
+        queue.restoreQueue(const []);
+        final recovered = await queue.recoverPendingRemovals();
+        expect(recovered.removed, 1);
+        expect(recovered.pending, 0);
+        expect(recovered.issues, isEmpty);
+        expect((await journal.removal(intent.id))!.phase.name, 'completed');
+      } finally {
+        await queue.close();
+        queue.dispose();
+      }
+      expect(await File(target).exists(), isFalse);
+      expect(await File(quarantine).exists(), isFalse);
+      expect(await index.resolveArtifact(artifact, selected.destinationRoot), isNull);
+      expect(await File(neighbor).readAsBytes(), [9, 8, 7]);
+      await install();
+      expect(payloadRequests, 2);
+      expect(await File(neighbor).readAsBytes(), [9, 8, 7]);
+      binding.reportData!['sd_journaled_removal'] = 'verified install, lost move receipt recovery, exact removal, reinstall and save preservation passed';
+      debugPrint('SD_JOURNALED_REMOVAL passed; synthetic bytes only; native storage and SQLite');
+    } finally {
+      await db.close();
+      await sd.cleanup();
+    }
+  });
+
+  testWidgets('actual public-to-private quarantine rename capability',
+      (_) async {
+    const selectedParent = String.fromEnvironment('RSHOP_STORAGE_TEST_ROOT');
+    expect(selectedParent.isNotEmpty, isTrue,
+        reason: 'Provide a reviewed synthetic public parent');
+    final publicFixture = await _Fixture.create(selectedParent);
+    try {
+      final selected = await storage.prepare(publicFixture.root.path);
+      final publicPath = '${selected.destinationRoot}/synthetic-quarantine.bin';
+      final privatePath = selected.stagePath(
+          'quarantine-probe-${DateTime.now().microsecondsSinceEpoch}');
+      await publicFixture.reserveFile(publicPath);
+      await publicFixture.reserveFile(privatePath);
+      final payload = Uint8List.fromList(List.generate(257, (i) => i % 251));
+      await File(publicPath).writeAsBytes(payload, flush: true);
+      final original = await storage.inspect(
+          destinationRoot: selected.destinationRoot,
+          relativePath: 'synthetic-quarantine.bin',
+          stagePath: privatePath,
+          published: true);
+      expect(original, isNotNull);
+      var renameErrno = 0;
+      try {
+        // Capability probe only. Production removal still requires pinned
+        // parents, exclusive quarantine ownership and a durable journal.
+        await File(publicPath).rename(privatePath);
+      } on FileSystemException catch (error) {
+        renameErrno = error.osError?.errorCode ?? -1;
+      }
+      if (renameErrno == 0) {
+        expect(await File(publicPath).exists(), isFalse);
+        final moved = await storage.inspect(
+            destinationRoot: selected.destinationRoot,
+            relativePath: 'synthetic-quarantine.bin',
+            stagePath: privatePath);
+        expect(moved!.matches(original!), isTrue);
+        expect(await File(privatePath).readAsBytes(), payload);
+        await File(privatePath).rename(publicPath);
+      } else {
+        expect(await File(privatePath).exists(), isFalse);
+      }
+      expect(await File(publicPath).readAsBytes(), payload);
+      binding.reportData!['public_quarantine_rename_errno'] = renameErrno;
+      binding.reportData!['public_quarantine_same_mount_hint'] =
+          selected.sameMountHint;
+      debugPrint('QUARANTINE_CAPABILITY ${jsonEncode({
+            'errno': renameErrno,
+            'sameMountHint': selected.sameMountHint,
+            'syntheticBytesPreserved': true,
+          })}');
+    } finally {
+      await publicFixture.cleanup();
+    }
+  });
+
   testWidgets(
       'actual SD verified copy, resume, collision and coarse-mtime edit protection',
       (_) async {
@@ -339,6 +494,13 @@ void main() {
       await sd.cleanup();
     }
   });
+}
+
+class _EmptyQueuePreferences extends StorageService {
+  @override
+  int getMaxConcurrentDownloads() => 1;
+  @override
+  String? getDownloadQueue() => null;
 }
 
 class _Fixture {

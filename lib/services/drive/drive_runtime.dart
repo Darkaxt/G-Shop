@@ -9,10 +9,12 @@ import '../../models/config/drive_source_config.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/config/source.dart';
 import '../../models/library_identity.dart';
+import '../../models/owned_removal_record.dart';
 import '../../models/transfer_record.dart';
 import '../database_service.dart';
 import '../installation_index.dart';
 import '../owned_storage.dart';
+import '../owned_installation_removal.dart';
 import '../transfer_journal.dart';
 import '../stage_retirement.dart';
 import 'drive_api.dart';
@@ -41,6 +43,11 @@ class StageRetirementRecoveryReport {
       Map<String, int> issues = const {}})
       : issues = Map.unmodifiable(issues);
 }
+
+typedef OwnedRemovalRecoveryReport = ({
+  int examined, int removed, int pending, int skippedActive, bool stopped,
+  Map<String, int> issues,
+});
 
 /// Process-wide native account lane and source-scoped refresh/transfer jobs. No token
 /// resides in provider configs or download items. Background calls never consent.
@@ -190,6 +197,62 @@ class DriveRuntime {
 
   Future<TransferRecord> finishRetainedStage(TransferRecord record) =>
       retireCommittedStage(journal, _storage, record);
+
+  /// Explicit removal intents survive queue loss and account sign-out. One
+  /// offline pass resumes them; conflicts remain for review, never busy retries.
+  /// Shutdown stops between intents and joins the current namespace mutation.
+  Future<OwnedRemovalRecoveryReport> recoverPendingRemovals(
+      {bool Function()? shouldContinue}) async {
+    var examined = 0, removed = 0, pending = 0, skippedActive = 0;
+    var stopped = false;
+    final issues = <String, int>{};
+    void addIssue(String code) =>
+        issues.update(code, (count) => count + 1, ifAbsent: () => 1);
+    bool canContinue() {
+      if (shouldContinue?.call() ?? true) return true;
+      stopped = true;
+      return false;
+    }
+    StreamIterator<OwnedRemovalRecord>? records;
+    if (canContinue()) {
+      try {
+        records = StreamIterator(journal.pendingRemovals(shouldContinue: canContinue));
+        final remover = OwnedInstallationRemoval(journal, storage: _storage);
+        while (canContinue() && await records.moveNext()) {
+          if (!canContinue()) break;
+          final record = records.current;
+          examined++;
+          if (_startingTransfers.contains(record.installation.transferId) ||
+              _transfers.containsKey(record.installation.transferId)) {
+            skippedActive++;
+            continue;
+          }
+          try {
+            await remover.recover(record.id);
+            removed++;
+          } on OwnedStorageException catch (error) {
+            pending++;
+            // The native adapter exposes only its bounded machine-code enum.
+            addIssue(error.code);
+          } catch (_) {
+            pending++;
+            addIssue('removal_pending');
+          }
+        }
+      } catch (_) {
+        addIssue('journal_unavailable');
+      } finally {
+        try {
+          await records?.cancel();
+        } catch (_) {
+          addIssue('journal_unavailable');
+        }
+      }
+    }
+    return (examined: examined, removed: removed, pending: pending,
+        skippedActive: skippedActive, stopped: stopped,
+        issues: Map<String, int>.unmodifiable(issues));
+  }
 
   /// One offline pass over durable cleanup intents, including installs whose
   /// completed queue rows were not persisted. Live operations own their inline

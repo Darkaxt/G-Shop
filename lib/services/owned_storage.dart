@@ -134,6 +134,51 @@ class OwnedStorage {
     return result == null ? null : decodeIdentity(result);
   }
 
+  /// Durable removal intent must precede the move. Only native-validated app
+  /// staging is a destination. Compare the returned post-move identity before
+  /// verifying/deleting; an already-open external writer is not locked out.
+  Future<NativeFileIdentity> quarantine({required String destinationRoot,
+      required String relativePath, required String stagePath,
+      required NativeFileIdentity expectedIdentity}) async => decodeIdentity(
+        await _invoke('ownedQuarantine', {
+          'destinationRoot': destinationRoot, 'relativePath': relativePath,
+          'stagePath': stagePath, 'expectedIdentity': nativeIdentity(expectedIdentity),
+        }));
+
+  Future<OwnedStorageSession> openQuarantine({required String destinationRoot,
+      required String relativePath, required String stagePath,
+      required NativeFileIdentity expectedIdentity}) async {
+    final value = await _invoke('ownedOpen', {
+      'destinationRoot': destinationRoot, 'relativePath': relativePath,
+      'stagePath': stagePath, 'mode': 'quarantine',
+      'durableOffset': expectedIdentity.sizeBytes,
+      'expectedIdentity': nativeIdentity(expectedIdentity),
+    });
+    final map = (value as Map).cast<String, Object?>();
+    return OwnedStorageSession._(this, map['session'] as String,
+        decodeIdentity(map['identity']), false, readOnly: true);
+  }
+
+  /// Requires durable deletion intent and verified, closed quarantine. Never
+  /// unlinks a public ROM. Absence is replayable only under that prior intent.
+  Future<void> retireQuarantine({required String destinationRoot,
+      required String relativePath, required String stagePath,
+      required NativeFileIdentity expectedIdentity}) async {
+    await _invoke('ownedRetireQuarantine', {
+      'destinationRoot': destinationRoot, 'relativePath': relativePath,
+      'stagePath': stagePath, 'expectedIdentity': nativeIdentity(expectedIdentity),
+    });
+  }
+
+  Future<void> restoreQuarantine({required String destinationRoot,
+      required String relativePath, required String stagePath,
+      required NativeFileIdentity expectedIdentity}) async {
+    await _invoke('ownedRestoreQuarantine', {
+      'destinationRoot': destinationRoot, 'relativePath': relativePath,
+      'stagePath': stagePath, 'expectedIdentity': nativeIdentity(expectedIdentity),
+    });
+  }
+
   /// Only the retained app-private stage, after installed-state commit and
   /// writer closure. Native rechecks both identities and never deletes a ROM.
   Future<void> retireStage(TransferRecord record) async {
@@ -185,10 +230,12 @@ class OwnedStorageSession {
   final String id;
   final NativeFileIdentity openedIdentity;
   bool _published;
+  final bool _readOnly;
   bool _closing = false;
   Future<void>? _closeFuture;
   OwnedStorageSession._(
-      this._storage, this.id, this.openedIdentity, this._published);
+      this._storage, this.id, this.openedIdentity, this._published,
+      {bool readOnly = false}) : _readOnly = readOnly;
 
   void _requireOpen() {
     if (_closing) throw const OwnedStorageException('closed');
@@ -196,7 +243,7 @@ class OwnedStorageSession {
 
   Future<void> write(int offset, Uint8List bytes) async {
     _requireOpen();
-    if (_published || offset < 0 || bytes.length > OwnedStorage.maxChunkBytes) {
+    if (_published || _readOnly || offset < 0 || bytes.length > OwnedStorage.maxChunkBytes) {
       throw const OwnedStorageException('invalid_arguments');
     }
     await _storage._invoke(
@@ -240,7 +287,7 @@ class OwnedStorageSession {
   Future<NativeFileIdentity> publish(
       NativeFileIdentity verifiedIdentity) async {
     _requireOpen();
-    if (_published) throw const OwnedStorageException('invalid_arguments');
+    if (_published || _readOnly) throw const OwnedStorageException('invalid_arguments');
     final result = await _storage._invoke('ownedPublish', {
       'session': id,
       'expectedIdentity': OwnedStorage.nativeIdentity(verifiedIdentity)
@@ -263,7 +310,7 @@ class OwnedStorageSession {
       {int durableOffset = 0,
       NativeFileIdentity? destinationIdentity}) async {
     _requireOpen();
-    if (_published ||
+    if (_published || _readOnly ||
         durableOffset < 0 ||
         (destinationIdentity == null && durableOffset != 0)) {
       throw const OwnedStorageException('invalid_arguments');

@@ -13,7 +13,7 @@ import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion < 13 || previousVersion > 17) {
+  if (previousVersion < 13 || previousVersion > 18) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -60,9 +60,12 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
-      'metadata_refresh_items',
-      'metadata_refresh_jobs',
-      'metadata_provider_backoff',
+      'owned_removals',
+      if (previousVersion < 18) ...[
+        'metadata_refresh_items',
+        'metadata_refresh_jobs',
+        'metadata_provider_backoff',
+      ],
       if (previousVersion == 13) ...[
         'library_metadata',
         'library_artifacts',
@@ -108,7 +111,8 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 18);
+    expect(await opened.getVersion(), 19);
+    expect(await opened.query('owned_removals'), isEmpty);
     expect(await opened.query('metadata_refresh_jobs'), isEmpty);
     expect(await opened.query('metadata_refresh_items'), isEmpty);
     expect(
@@ -154,7 +158,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 18);
+    expect(await opened.getVersion(), 19);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');

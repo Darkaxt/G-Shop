@@ -268,6 +268,29 @@ void renameNoReplace(int fromDir, const std::string& from, int toDir, const std:
     // The caller must fsync both pinned parents before reporting durability.
 }
 
+Identity quarantineIntoPrivate(int fromDir, const std::string& from, int privateDir,
+                               const std::string& to, const Identity& expected) {
+    basename(from);
+    basename(to);
+    directory(privateDir);
+    const auto actual = entryIdentity(fromDir, from);
+    if (actual.device != expected.device || actual.inode != expected.inode ||
+        actual.size != expected.size || actual.modifiedSeconds != expected.modifiedSeconds ||
+        actual.modifiedNanos != expected.modifiedNanos) fail(ESTALE);
+    // The Android boundary guarantees exclusive ownership of the private
+    // destination. This absence check is NOT safe for a public destination.
+    struct stat destination{};
+    int result;
+    do { result = ::fstatat(privateDir, to.c_str(), &destination, AT_SYMLINK_NOFOLLOW); }
+    while (result < 0 && errno == EINTR);
+    if (result == 0) fail(EEXIST);
+    if (errno != ENOENT) fail(errno);
+    // Do not retry the namespace mutation. A persisted intent lets the caller
+    // reconcile source/destination if the operation acknowledgement is lost.
+    if (::renameat(fromDir, from.c_str(), privateDir, to.c_str()) < 0) fail(errno);
+    return entryIdentity(privateDir, to);
+}
+
 void retirePrivateFile(int dir, const std::string& name, const Identity& expected) {
     Identity actual{};
     try {

@@ -51,6 +51,29 @@ void main() {
       ..remove('modifiedNanoseconds');
     expect(NativeFileIdentity.fromJson(legacy).modifiedNanoseconds, 123456000);
   });
+  test('quarantine operations retain exact paths and read-only evidence', () async {
+    final expected = OwnedStorage.decodeIdentity(identity);
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'ownedOpen') {
+        return {'session': 'fixture', 'identity': identity};
+      }
+      return call.method == 'ownedQuarantine' ? identity : null;
+    });
+    expect((await storage.quarantine(destinationRoot: '/roms', relativePath: 'game.chd',
+        stagePath: '/private/removal.partial', expectedIdentity: expected)).matches(expected), isTrue);
+    expect(calls.single.arguments['expectedIdentity'], identity);
+    final session = await storage.openQuarantine(destinationRoot: '/roms', relativePath: 'game.chd',
+        stagePath: '/private/removal.partial', expectedIdentity: expected);
+    expect(calls.last.arguments['mode'], 'quarantine');
+    await expectLater(session.write(0, Uint8List(1)), fails('invalid_arguments'));
+    await expectLater(session.publish(expected), fails('invalid_arguments'));
+    await session.close();
+    await storage.retireQuarantine(destinationRoot: '/roms', relativePath: 'game.chd',
+        stagePath: '/private/removal.partial', expectedIdentity: expected);
+    expect(calls.last.method, 'ownedRetireQuarantine');
+    expect(calls.where((c) => c.method == 'ownedWrite'), isEmpty);
+  });
   test('timestamps before epoch also retain normalized native nanoseconds', () {
     final beforeEpoch = {
       ...identity,
