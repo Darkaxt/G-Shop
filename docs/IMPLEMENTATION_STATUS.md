@@ -10,9 +10,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 BLOCKED at legitimate metadata application access;
-  additional required authorization evidence is retained below. Legitimate
-  metadata application access remains the external B2 gap. First online
+- Feature implementation: S1 BLOCKED at private credential retrieval and live
+  metadata access verification; the fork application was approved on 2026-10-02.
+  Additional required authorization evidence is retained below. B2 is not yet
+  resolved by approval alone. First online
   authorization, cancellation/reconnect and QA-03 release naming are verified.
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
@@ -21,7 +22,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   S5-S8 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
-  2026-10-02; legitimate ScreenScraper access remains missing.
+  2026-10-02; ScreenScraper developer access has been issued, but credentials and
+  an authenticated lookup have not yet been verified.
 - Existing SD-library migration was missing from the implementation scope.
   User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
   live recovery and fresh metadata/rating verification. No deletion before those
@@ -308,10 +310,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining auth evidence: elapsed-expiry renewal and actual second-account check; second test account needs the owner's choice |
+| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; ScreenScraper application approval verified | External B2: private developer credentials must be retrieved and real lookup verified; browser attachment currently fails. Remaining auth evidence: elapsed-expiry renewal and actual second-account check; second test account needs the owner's choice |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
+| S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied; fork application approved | External B2: issued private credentials and live access remain unverified, preventing authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -328,6 +330,28 @@ authorization evidence after S3's complete
 acceptance reconciliation. Its explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S1 ScreenScraper application approval checkpoint (2026-10-02)
+
+- The owner restored the existing browser session. The original request at
+  `forumsujet.php?frub=12&fsuj=24057` now contains an administrator response dated
+  2026-10-02 09:49 confirming developer-account creation. The freshly observed
+  signed-in header exposes the private developer-area link. No duplicate post,
+  borrowed application key or paid service was created.
+- This resolves the pending approval condition, not META-02 live acceptance.
+  After that observation the browser extension reported `Debugger unattached`.
+  The already-authorized Playwright connection also could not obtain the target
+  page. The stalled task-owned helper was cancelled and terminated; the browser
+  and profile were not killed, restarted, copied or changed.
+- No application credentials were read, printed or saved, and no authenticated
+  API lookup occurred. S1 is parked as BLOCKED at credential retrieval/live
+  verification. The owner has been asked to reconnect the extension in the same
+  tab, or privately enter the issued application fields in the ignored
+  `.env.local`. Existing account credentials remain unchanged.
+- Resolve B2 only after retrieving the legitimate application credentials and
+  passing the actual provider lookup. S4's reception gate and ordinary remaining
+  implementation are not satisfied by this approval. Elapsed-expiry and actual
+  second-account Drive evidence are still required. No stage is ACTIVE now.
 
 ### S1 native authorization failure and repair checkpoint (2026-10-02)
 
