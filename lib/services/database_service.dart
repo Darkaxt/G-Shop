@@ -1037,6 +1037,8 @@ class DatabaseService {
     return map;
   }
 
+  /// [filename] is the historical column name. Exact consumers pass the
+  /// content-bound GameItem.raMatchKey; legacy filename keys stay unchanged.
   Future<void> saveRaMatch(
     String filename,
     String systemSlug,

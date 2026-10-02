@@ -1,5 +1,6 @@
 import '../../../models/config/provider_config.dart';
 import '../../../models/library_identity.dart';
+import '../../../models/game_item.dart';
 
 class LibraryEntry {
   final String filename;
@@ -12,6 +13,7 @@ class LibraryEntry {
   final bool hasThumbnail;
   final RemoteArtifact? remoteArtifact;
   String get selectionKey => remoteArtifact == null ? filename : 'artifact:${remoteArtifact!.id.key}';
+  String get raMatchKey => GameItem.achievementKey(filename, remoteArtifact);
 
   const LibraryEntry({
     required this.filename,

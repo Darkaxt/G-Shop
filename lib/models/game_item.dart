@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import '../utils/game_metadata.dart';
 import 'config/provider_config.dart';
 import 'library_identity.dart';
@@ -42,6 +46,19 @@ class GameItem {
   /// Retains existing favorites/shelves keys for all legacy records.
   String get selectionKey => remoteArtifact == null ? filename : identityKey;
   String get groupKey => remoteArtifact == null ? displayName : identityKey;
+
+  /// Achievement evidence is content-version-specific, unlike favorites/shelves.
+  /// The NUL namespace cannot collide with any legacy filesystem filename.
+  String get raMatchKey => achievementKey(filename, remoteArtifact);
+
+  static String achievementKey(String filename, RemoteArtifact? artifact) {
+    if (artifact == null) return filename;
+    final digests = artifact.providerChecksums.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final content = jsonEncode([artifact.id.key, artifact.version,
+      artifact.sizeBytes, {for (final digest in digests) digest.key: digest.value}]);
+    return '\u0000artifact-ra:${sha256.convert(utf8.encode(content))}';
+  }
 
   const GameItem({
     required this.filename,

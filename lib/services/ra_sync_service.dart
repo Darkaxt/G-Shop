@@ -12,6 +12,7 @@ import 'ra_api_service.dart';
 import 'ra_hash_service.dart';
 import 'rom_manager.dart';
 import 'storage_service.dart';
+import 'owned_storage.dart';
 
 class RaSyncState {
   final bool isSyncing;
@@ -188,7 +189,10 @@ class RaSyncService extends StateNotifier<RaSyncState> {
     final romNames = await _db.getRaRomNames(consoleId);
 
     // Run CPU-heavy matching in a background isolate
-    final filenames = games.map((g) => g.filename).toList();
+    // Filename guesses remain legacy-only. Exact remote releases acquire their
+    // own content-bound evidence from a verified installed ROM, never a namesake.
+    final filenames = games.where((g) => g.remoteArtifact == null)
+        .map((g) => g.filename).toList();
     final matches = await compute(
       _matchInIsolate,
       _MatchParams(
@@ -251,19 +255,19 @@ class RaSyncService extends StateNotifier<RaSyncState> {
         if (_isCancelled || !mounted) break;
 
         // Skip if already hash-verified
-        final existing = existingMatches[game.filename];
+        final existing = existingMatches[game.raMatchKey];
         if (existing?.type == RaMatchType.hashVerified ||
             existing?.type == RaMatchType.hashIncompatible) {
           continue;
         }
 
-        // Check if file is installed (resolves actual path on disk)
-        final filePath = await RomManager.resolveInstalledPath(
-            game, system, targetFolder);
-        if (filePath == null) continue;
-
-        // Compute hash in isolate
-        final hash = await RaHashService.computeHash(filePath, system.id);
+        String? hash;
+        try {
+          hash = await RaHashService.computeInstalledHash(game, system, targetFolder);
+        } on OwnedStorageException {
+          // Missing/changed/pending-removal exact installs cannot borrow a path.
+          continue;
+        }
         if (hash == null) continue;
 
         // Look up hash: local DB first, then API
@@ -273,6 +277,12 @@ class RaSyncService extends StateNotifier<RaSyncState> {
           apiKey: apiKey,
         );
 
+        if (game.remoteArtifact != null) {
+          try {
+            await RomManager().requireInstalledArtifact(game, targetFolder);
+          } on OwnedStorageException { continue; }
+        }
+
         if (raGameId != null && raGameId > 0) {
           final raGame = await _db.getRaGame(raGameId);
           final match = raGame != null
@@ -281,12 +291,12 @@ class RaSyncService extends StateNotifier<RaSyncState> {
                   type: RaMatchType.hashVerified,
                   raGameId: raGameId,
                 );
-          await _db.saveRaMatch(game.filename, system.id, match);
+          await _db.saveRaMatch(game.raMatchKey, system.id, match);
           verified++;
         } else if (existing == null) {
           // Only mark incompatible if there's no existing name match
           await _db.saveRaMatch(
-            game.filename,
+            game.raMatchKey,
             system.id,
             const RaMatchResult.hashIncompatible(),
           );

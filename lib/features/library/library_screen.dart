@@ -1301,7 +1301,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         final systemColor =
             systemModel?.accentColor ?? Colors.grey;
 
-        final raMatch = _raMatches[entry.selectionKey];
+        final raMatch = _raMatches[entry.raMatchKey];
 
         // Source dot lookup — entry.providerConfig is rehydrated from
         // the games DB; if it was synthesised by SourceResolver it

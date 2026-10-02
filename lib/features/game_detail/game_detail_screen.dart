@@ -436,7 +436,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   void _tryNavigateToAchievements() {
     final raMatches =
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
-    final raMatch = raMatches[_controller?.selectedVariant.selectionKey];
+    final raMatch = raMatches[_controller?.selectedVariant.raMatchKey];
     if (raMatch != null && raMatch.raGameId != null) {
       _navigateToAchievements(raMatch);
     }
@@ -512,7 +512,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final hasDetails = richMetadata?.hasContent ?? false;
     final raMatches =
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
-    final raMatch = raMatches[variant.selectionKey];
+    final raMatch = raMatches[variant.raMatchKey];
     return [
       if (controller.state.isVariantInstalled && OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(label: 'Open in Dolphin', icon: Icons.play_arrow_rounded,
@@ -695,7 +695,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final isFavorite = ref.watch(favoriteGamesProvider).contains(controller.selectedVariant.selectionKey);
     final raMatches =
         ref.watch(raMatchesForSystemProvider(widget.system.id)).value ?? {};
-    final raMatch = raMatches[selectedVariant.selectionKey];
+    final raMatch = raMatches[selectedVariant.raMatchKey];
 
     // Fetch rich metadata
     final variantFilenames = widget.variants.map((v) => v.selectionKey).join('\n');
@@ -1096,7 +1096,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             SectionHeader(label: L.of(context).gameDetail_achievements),
             RaInfoSection(
               match: raMatch!,
-              filename: controller.selectedVariant.filename,
+              filename: controller.selectedVariant.raMatchKey,
               systemSlug: widget.system.id,
               onViewAchievements: () => _navigateToAchievements(raMatch),
             ),

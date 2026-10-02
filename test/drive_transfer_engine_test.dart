@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,10 @@ import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
 import 'package:retro_eshop/services/owned_installation_removal.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/system_model.dart';
+import 'package:retro_eshop/services/installation_index.dart';
+import 'package:retro_eshop/services/ra_hash_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // Only the remote protocol and native channel are fixtures. The coordinator,
@@ -157,7 +162,8 @@ class _Native {
         }
         if (published || a['mode'] == 'quarantine') {
           if (file.identity.toString() !=
-              Map<String, Object>.from(a['expectedIdentity']).toString()) {
+              Map<String, Object>.from(a['expectedIdentity']).toString() ||
+              a['durableOffset'] != file.bytes.length) {
             fail('changed');
           }
         } else if (file.bytes.length != a['durableOffset']) {
@@ -291,18 +297,99 @@ void main() {
         return revalidate(token);
       },
       openMedia: (source, offset, token) => media(source, offset, token));
-  Future<void> queue({RemoteArtifact? source}) async =>
+  Future<void> queue({RemoteArtifact? source, String name = 'fixture.chd'}) async =>
       journal.create(TransferRecord(
           id: 'transfer',
           artifact: source ?? artifact(),
           destinationRoot: '/roms',
-          relativePath: 'fixture.chd',
+          relativePath: name,
           stagePath: '/owned/transfer.partial'));
   Future<InstalledArtifact?> installed() => journal.installationForTarget(
       destinationRoot: '/roms', relativePath: 'fixture.chd');
 
   OwnedInstallationRemoval remover() => OwnedInstallationRemoval(journal,
       storage: OwnedStorage(channel: native.channel));
+
+  final gg = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gamegear');
+  Future<GameItem> installRaw({String name = 'fixture.gg', Uint8List? bytes}) async {
+    final data = bytes ?? payload;
+    final source = RemoteArtifact.fromJson({...artifact().toJson(),
+      'displayName': name, 'displayPath': name, 'sizeBytes': data.length,
+      'providerChecksums': {'md5': md5.convert(data).toString()}});
+    media = (_, offset, __) async => DriveMediaResponse(
+        bytes: Stream.value(Uint8List.sublistView(data, offset)),
+        offset: offset, length: data.length - offset, total: data.length);
+    await queue(source: source, name: name);
+    expect((await engine().start('transfer').result).lifecycle,
+        TransferLifecycle.completed);
+    return GameItem(filename: name, displayName: 'Fixture', url: '',
+        remoteArtifact: source);
+  }
+  InstallationIndex index() => InstallationIndex(journal,
+      storage: OwnedStorage(channel: native.channel));
+  test('owned achievement hash uses exact pinned committed bytes with bounded reads', () async {
+    final game = await installRaw();
+    final reads = <int>[];
+    native.before = (call) async {
+      if (call.method == 'ownedRead') reads.add(call.arguments['length'] as int);
+    };
+    expect(await RaHashService.computeInstalledHash(game, gg, '/roms',
+        installations: index()), md5.convert(payload).toString());
+    expect(reads, isNotEmpty);
+    expect(reads.every((length) => length <= OwnedStorage.maxChunkBytes), isTrue);
+  });
+  test('owned achievement hash rejects changed bytes even with unchanged native stat', () async {
+    final game = await installRaw();
+    native.files['/roms/fixture.gg']!.bytes[0] ^= 1;
+    await expectLater(RaHashService.computeInstalledHash(game, gg, '/roms',
+        installations: index()), throwsA(isA<OwnedStorageException>()));
+  });
+  test('owned achievement hash never borrows a namesake or container checksum', () async {
+    final game = await installRaw();
+    final other = game.copyWith(remoteArtifact: RemoteArtifact.fromJson({
+      ...game.remoteArtifact!.toJson(), 'version': '2'}));
+    await expectLater(RaHashService.computeInstalledHash(other, gg, '/roms',
+        installations: index()), throwsA(isA<OwnedStorageException>()));
+    final archive = GameItem(filename: 'fixture.7z', displayName: 'Fixture', url: '',
+        remoteArtifact: game.remoteArtifact);
+    final before = native.methods.length;
+    expect(await RaHashService.computeInstalledHash(archive, gg, '/roms',
+        installations: index()), isNull);
+    expect(native.methods.length, before);
+  });
+  test('owned achievement hash strips the actual NES header without buffering the ROM', () async {
+    final data = Uint8List.fromList([0x4e, 0x45, 0x53, 0x1a,
+      ...List.filled(12, 0), 9, 8, 7, 6]);
+    final game = await installRaw(name: 'fixture.nes', bytes: data);
+    expect(await RaHashService.computeInstalledHash(game,
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'nes'),
+        '/roms', installations: index()), md5.convert([9, 8, 7, 6]).toString());
+  });
+  test('owned achievement hash strips SNES copier header using full file size', () async {
+    final data = Uint8List.fromList([...List.filled(512, 0xaa), ...List.filled(1024, 7)]);
+    final game = await installRaw(name: 'fixture.smc', bytes: data);
+    expect(await RaHashService.computeInstalledHash(game,
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'snes'),
+        '/roms', installations: index()), md5.convert(List.filled(1024, 7)).toString());
+  });
+  test('owned achievement hash reads NDS ARM sections in hash order, not disk order', () async {
+    final data = Uint8List(0xE00);
+    final words = ByteData.sublistView(data);
+    words.setUint32(0x20, 0x300, Endian.little);
+    words.setUint32(0x2c, 16, Endian.little);
+    words.setUint32(0x30, 0x200, Endian.little);
+    words.setUint32(0x3c, 8, Endian.little);
+    words.setUint32(0x68, 0x400, Endian.little);
+    data.fillRange(0x300, 0x310, 9);
+    data.fillRange(0x200, 0x208, 7);
+    data.fillRange(0x400, 0xE00, 6);
+    final expected = md5.convert([...data.sublist(0, 0x160),
+      ...List.filled(16, 9), ...List.filled(8, 7), ...List.filled(0xA00, 6)]).toString();
+    final game = await installRaw(name: 'fixture.nds', bytes: data);
+    expect(await RaHashService.computeInstalledHash(game,
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds'),
+        '/roms', installations: index()), expected);
+  });
 
   test('cross-mount removal leaves installation ready without a pending intent', () async {
     await queue();

@@ -43,10 +43,6 @@ Future<void> _verifyRaHash(
   String? apiKey,
   Ref ref,
 ) async {
-  // RA's persisted match table is still filename-keyed. Do not publish an exact
-  // Drive file's hash result onto unrelated legacy namesakes before that mapping
-  // has its own identity-aware integration.
-  if (item.game.remoteArtifact != null) return;
   if (apiKey == null || apiKey.isEmpty) return;
   if (!item.system.hasRetroAchievements) return;
 
@@ -57,13 +53,8 @@ Future<void> _verifyRaHash(
   }
 
   try {
-    final filePath = await RomManager.resolveInstalledPath(
+    final hash = await RaHashService.computeInstalledHash(
         item.game, item.system, item.targetFolder);
-    if (filePath == null) {
-      debugPrint('RetroAchievements: installed ROM not found for ${item.game.filename}');
-      return;
-    }
-    final hash = await RaHashService.computeHash(filePath, item.system.id);
     if (hash == null) {
       debugPrint('RetroAchievements: hash computation failed for ${item.game.filename}');
       return;
@@ -95,7 +86,7 @@ Future<void> _verifyRaHash(
     } else {
       // Preserve existing name match — ROM might be a regional variant
       final existingMatches = await db.getRaMatchesForSystem(item.system.id);
-      final existing = existingMatches[item.game.filename];
+      final existing = existingMatches[item.game.raMatchKey];
       if (existing != null && existing.type == RaMatchType.nameMatch) {
         debugPrint('RetroAchievements: hash not found, keeping name match '
             'for ${item.game.filename}');
@@ -106,7 +97,11 @@ Future<void> _verifyRaHash(
     }
 
     // Save the match result
-    await db.saveRaMatch(item.game.filename, item.system.id, match);
+    if (item.game.remoteArtifact != null) {
+      // An asynchronous API lookup must not publish onto a removed/replaced ROM.
+      await RomManager().requireInstalledArtifact(item.game, item.targetFolder);
+    }
+    await db.saveRaMatch(item.game.raMatchKey, item.system.id, match);
 
     // Trigger refresh of RA matches for this system
     ref.read(raRefreshSignalProvider.notifier).state++;

@@ -151,6 +151,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   Both displays (0 and 4) were confirmed OFF. S3 remains ACTIVE; bundles/playlists,
   valid-target replacement and exact achievements are ordinary unfinished work.
 
+### S3 exact-achievement integration (2026-10-02)
+
+- Achievement matches now use a deterministic exact artifact/content-version key
+  for Drive entries; legacy filenames remain unchanged. Favorites/shelves retain
+  their stable identity. Library, grid, details and mastered updates use the same
+  key, so a namesake or changed version cannot inherit another ROM's match.
+- Supported raw formats are hashed through the pinned native read-only descriptor
+  in bounded chunks, while verifying the complete installed SHA-256. Archives and
+  unsupported hash formats are not optimistically matched. Background/post-download
+  lookup rechecks committed installation readiness before saving evidence.
+- Focused identity, hash, sync, transfer and detail regressions passed. The actual
+  Android probe verified native hashing and SQLite exact/legacy/version isolation,
+  then removed its synthetic files/database/root. The first probe exposed a missing
+  published-read durable offset; the native fixture was strengthened to reproduce
+  that rejection before correcting the production caller. No online achievement
+  API response is claimed by this isolated proof.
+- The scoped analyzer and normal debug build passed (existing grid/library
+  cacheExtent deprecation notices are unchanged). Install-replace restored the
+  normal app, schema v20, cached games 134, installations two and completed/retained
+  removal audit. APK SHA-256:
+  `2CC39BC7026DFCA9EC3529CC4DAB019ECA3A6840CA1CF5B7547B577A40BD4837`.
+  Both actual displays are OFF. S3 remains ACTIVE on bundles/playlists and safe
+  valid-target replacement; no later stage was activated.
+
 ### User-requested pause (2026-10-02)
 
 - Execution paused at the user's explicit request. S3 retains ACTIVE as its
@@ -202,7 +226,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; earlier host/native evidence below; OAuth clients registered; actual online native consent, root/folder API responses, intentional cancel and successful reconnect verified; processed release manifest preserves R-Shop branding/fork package | External B2: legitimate ScreenScraper access/lookup remains missing. Remaining required auth evidence: scope denial, expiry-driven renewal, revoke and two-account isolation |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
-| S3 | ACTIVE | Owned journal and exact publication/retirement; actual normal-UI Drive-to-SD download, verified commit, Dolphin boot, offline cold restart/boot, explicit reviewed removal and verified re-download; neighboring save unchanged; v20 cross-mount retained-intent recovery; real publication process-stop recovery and preserved unrecorded-create conflict; actual large-file bounded streams and measured SD copy space | Bundles/playlists, valid-target replacement and exact achievements remain ordinary unfinished work; no S3 completion claim |
+| S3 | ACTIVE | Owned journal and exact publication/retirement; actual normal-UI Drive-to-SD download, verified commit, Dolphin boot, offline cold restart/boot, explicit reviewed removal and verified re-download; neighboring save unchanged; v20 cross-mount retained-intent recovery; real publication process-stop recovery and preserved unrecorded-create conflict; actual large-file bounded streams and measured SD copy space; exact-version achievement keys, pinned raw hashing and actual Android cache isolation | Bundles/playlists and valid-target replacement remain ordinary unfinished work; no S3 completion claim |
 | S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied | External B2: pending fork application credentials prevent authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |

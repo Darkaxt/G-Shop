@@ -26,7 +26,8 @@ final raCredentialsProvider =
   return (username: storage.getRaUsername(), apiKey: storage.getRaApiKey());
 });
 
-/// Cached RA match results for a system. Keyed by game filename.
+/// Cached RA match results for a system. Keyed by GameItem.raMatchKey:
+/// legacy filename or exact artifact content version, never a Drive namesake.
 /// Re-fetches when sync completes or [raRefreshSignalProvider] is bumped.
 final raMatchesForSystemProvider =
     FutureProvider.family<Map<String, RaMatchResult>, String>(

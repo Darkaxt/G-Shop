@@ -221,7 +221,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
     final isInstalled = widget.installedCache[displayName] ?? false;
     final isFavorite = widget.favorites.contains(displayName);
     final providerLabel = first.providerConfig?.shortLabel;
-    final raMatch = first.remoteArtifact == null ? widget.raMatches[first.filename] : null;
+    final raMatch = widget.raMatches[first.raMatchKey];
 
     // Source dot — look up the contributing Source by its id (set by
     // SourceResolver when it synthesised this provider). Falls back to

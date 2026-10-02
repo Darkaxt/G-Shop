@@ -5,6 +5,12 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 
+import '../models/game_item.dart';
+import '../models/system_model.dart';
+import 'installation_index.dart';
+import 'owned_storage.dart';
+import 'rom_manager.dart';
+
 /// Hash methods supported per system for RetroAchievements.
 enum RaHashMethod {
   simpleMd5,
@@ -16,6 +22,108 @@ enum RaHashMethod {
 }
 
 class RaHashService {
+  /// Exact Drive reads use a pinned read-only descriptor, not the legacy path
+  /// hash or the remote container's checksum. Verify current installed SHA-256
+  /// while streaming before publishing any achievement evidence.
+  static Future<String?> computeInstalledHash(GameItem game, SystemModel system,
+      String root, {InstallationIndex? installations}) async {
+    if (game.remoteArtifact == null) {
+      final path = await RomManager.resolveInstalledPath(game, system, root,
+          installations: installations);
+      return path == null ? null : computeHash(path, system.id);
+    }
+    final method = getHashMethod(system.id);
+    bool supported(String name) => system.romExtensions.any(
+        (ext) => name.toLowerCase().endsWith(ext));
+    if (method == null || game.isFolder || !supported(game.filename)) return null;
+    final index = installations ?? InstallationIndex.application();
+    final installed = await RomManager(installations: index)
+        .requireInstalledArtifact(game, root);
+    if (!supported(installed.relativePath)) return null;
+    final record = (await index.journal.transfer(installed.transferId))!;
+    final session = await index.storage.open(destinationRoot: installed.destinationRoot,
+        relativePath: installed.relativePath, stagePath: record.stagePath,
+        expectedIdentity: installed.fileIdentity, durableOffset: installed.sizeBytes,
+        published: true);
+    try {
+      final size = installed.sizeBytes;
+      if (size == 0) return null;
+      final prefix = await session.read(0, min(size, 512));
+      if (prefix.length != min(size, 512)) throw const OwnedStorageException('changed');
+      final strip = method == RaHashMethod.snesStrip
+          ? (size > 512 && size % 1024 == 512 ? 512 : 0)
+          : prefix.length - _prepareBytes(prefix, method).length;
+      final rawResult = _DigestResult();
+      final raResult = _DigestResult();
+      final raw = sha256.startChunkedConversion(rawResult);
+      final ra = md5.startChunkedConversion(raResult);
+      var offset = 0;
+      try {
+        await for (final chunk in session.bytes(size)) {
+          raw.add(chunk);
+          if (method != RaHashMethod.ndsHash && offset + chunk.length > strip) {
+            ra.add(Uint8List.sublistView(chunk, max(0, strip - offset)));
+          }
+          offset += chunk.length;
+        }
+      } finally { raw.close(); ra.close(); }
+      if (rawResult.value?.toString() != installed.verifiedChecksums['sha256']) {
+        throw const OwnedStorageException('changed');
+      }
+      final result = method == RaHashMethod.ndsHash
+          ? await _computeOwnedNdsHash(session, size, prefix)
+          : raResult.value?.toString();
+      if (!(await session.checkpoint()).matches(installed.fileIdentity)) {
+        throw const OwnedStorageException('changed');
+      }
+      await index.requireInstallation(record, installed);
+      return result;
+    } finally { await session.close(); }
+  }
+
+  static Future<String?> _computeOwnedNdsHash(OwnedStorageSession session,
+      int size, Uint8List prefix) async {
+    if (size < 0x160) return null;
+    final base = prefix.length >= 0xB4 && prefix[0] == 0x2E &&
+        prefix[1] == 0 && prefix[2] == 0 && prefix[3] == 0xEA &&
+        prefix[0xB0] == 0x44 && prefix[0xB1] == 0x46 &&
+        prefix[0xB2] == 0x96 && prefix[0xB3] == 0 ? 0x200 : 0;
+    if (size < base + 0x160) return null;
+    final header = await session.read(base, 0x160);
+    if (header.length != 0x160) throw const OwnedStorageException('changed');
+    final arm9 = _readUint32LE(header, 0x20) + base;
+    final arm9Size = _readUint32LE(header, 0x2C);
+    final arm7 = _readUint32LE(header, 0x30) + base;
+    final arm7Size = _readUint32LE(header, 0x3C);
+    final icon = _readUint32LE(header, 0x68) + base;
+    if (arm9Size + arm7Size > 16 * 1024 * 1024 ||
+        arm9 + arm9Size > size || arm7 + arm7Size > size) {
+      return null;
+    }
+    final result = _DigestResult();
+    final sink = md5.startChunkedConversion(result);
+    Future<void> addRange(int start, int length) async {
+      for (var at = start; at < start + length;) {
+        final count = min(OwnedStorage.maxChunkBytes, start + length - at);
+        final bytes = await session.read(at, count);
+        if (bytes.length != count) {
+          throw const OwnedStorageException('changed');
+        }
+        sink.add(bytes);
+        at += count;
+      }
+    }
+    try {
+      sink.add(header);
+      await addRange(arm9, arm9Size);
+      await addRange(arm7, arm7Size);
+      final readable = max(0, min(size - icon, 0xA00));
+      await addRange(icon, readable);
+      if (readable < 0xA00) sink.add(Uint8List(0xA00 - readable));
+    } finally { sink.close(); }
+    return result.value?.toString();
+  }
+
   /// Returns the hash method for a system, or null if not supported.
   static RaHashMethod? getHashMethod(String systemId) {
     return switch (systemId) {
@@ -220,4 +328,12 @@ class _HashRequest {
   final String filePath;
   final RaHashMethod method;
   const _HashRequest(this.filePath, this.method);
+}
+
+class _DigestResult implements Sink<Digest> {
+  Digest? value;
+  @override
+  void add(Digest data) => value = data;
+  @override
+  void close() {}
 }
