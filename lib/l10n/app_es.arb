@@ -1,4 +1,13 @@
 {
+  "metadata_staleScore": "Valoración desactualizada",
+  "metadata_originalGame": "Juego original",
+  "metadata_projectScore": "Valoración del proyecto",
+  "metadata_advisoryScore": "Orientativa",
+  "metadata_gameScore": "Valoración del juego",
+  "metadata_unknownCount": "Desconocido",
+  "metadata_ratingOverlays": "Valoraciones en las carátulas",
+  "metadata_ratingOverlaysSubtitle": "Mostrar valoraciones guardadas con su fuente en las carátulas",
+  "metadata_scoreDetails": "{source}: {score}/100. Escala original: {raw} ({minimum}–{maximum}). {count} valoraciones. Consultado el {date}.",
   "@@locale": "es",
   "appTitle": "R-Shop",
   "settings_language": "Idioma",

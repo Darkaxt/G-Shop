@@ -1,4 +1,5 @@
 import 'package:confetti/confetti.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -38,6 +39,10 @@ class _FakeHapticService extends HapticService {
 
 class _FakeStorageService extends StorageService {
   _FakeStorageService() : super();
+  bool ratingsEnabled = true;
+  bool failRatingsSave = false;
+  Completer<void>? ratingsWrite;
+  final ratingWrites = <bool>[];
 
   @override
   Future<void> init() async {}
@@ -48,6 +53,15 @@ class _FakeStorageService extends StorageService {
   Future<void> setHapticEnabled(bool enabled) async {}
   @override
   bool getHideEmptyConsoles() => false;
+  @override
+  bool getRatingOverlays() => ratingsEnabled;
+  @override
+  Future<void> setRatingOverlays(bool enabled) async {
+    ratingWrites.add(enabled);
+    if (failRatingsSave) throw StateError('Preference storage unavailable');
+    await ratingsWrite?.future;
+    ratingsEnabled = enabled;
+  }
   @override
   Future<void> setHideEmptyConsoles(bool value) async {}
   @override
@@ -94,6 +108,34 @@ class _FakeStorageService extends StorageService {
 // ─── Tests ───────────────────────────────────────────────
 
 void main() {
+  test('overlay toggles preserve rapid requests in acknowledged write order', () async {
+    final storage = _FakeStorageService();
+    final notifier = RatingOverlaysNotifier(storage);
+    addTearDown(notifier.dispose);
+    storage.ratingsWrite = Completer<void>();
+    final first = notifier.toggle();
+    final second = notifier.toggle();
+    await Future<void>.value();
+    expect(storage.ratingWrites, [false]);
+    expect(notifier.state, isTrue);
+    storage.ratingsWrite!.complete();
+    await Future.wait([first, second]);
+    expect(storage.ratingWrites, [false, true]);
+    expect(notifier.state, isTrue);
+    expect(storage.ratingsEnabled, isTrue);
+  });
+
+  test('failed overlay save keeps the prior preference and permits retry', () async {
+    final storage = _FakeStorageService()..failRatingsSave = true;
+    final notifier = RatingOverlaysNotifier(storage);
+    addTearDown(notifier.dispose);
+    await expectLater(notifier.toggle(), throwsStateError);
+    expect(notifier.state, isTrue);
+    storage.failRatingsSave = false;
+    await notifier.toggle();
+    expect(notifier.state, isFalse);
+  });
+
   // ─── SettingsTabs ────────────────────────────────────────
 
   group('SettingsTabs', () {
@@ -255,6 +297,28 @@ void main() {
       await tester.pumpWidget(buildTab());
       expect(find.text('HOME LAYOUT'), findsOneWidget);
       expect(find.text('Horizontal Carousel'), findsOneWidget);
+    });
+
+    testWidgets('cover score toggle persists through the real settings tile', (tester) async {
+      await tester.pumpWidget(buildTab());
+      final toggle = find.text('COVER RATINGS');
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pump();
+      expect(fakeStorage.ratingsEnabled, isFalse);
+      expect(fakeStorage.ratingWrites, [false]);
+    });
+
+    testWidgets('failed cover score preference is shown without an unhandled error', (tester) async {
+      fakeStorage.failRatingsSave = true;
+      await tester.pumpWidget(buildTab());
+      final toggle = find.text('COVER RATINGS');
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pump();
+      expect(fakeStorage.ratingsEnabled, isTrue);
+      expect(find.textContaining('Failed to save:'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('renders Hide Empty Consoles toggle', (tester) async {

@@ -9,6 +9,37 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_staleScore => 'Avaliação desatualizada';
+
+  @override
+  String get metadata_originalGame => 'Jogo original';
+
+  @override
+  String get metadata_projectScore => 'Avaliação do projeto';
+
+  @override
+  String get metadata_advisoryScore => 'Indicativa';
+
+  @override
+  String get metadata_gameScore => 'Avaliação do jogo';
+
+  @override
+  String get metadata_unknownCount => 'Desconhecido';
+
+  @override
+  String get metadata_ratingOverlays => 'Avaliações nas capas';
+
+  @override
+  String get metadata_ratingOverlaysSubtitle =>
+      'Mostrar avaliações guardadas e a sua fonte nas capas';
+
+  @override
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date) {
+    return '$source: $score/100. Escala original: $raw ($minimum–$maximum). $count avaliações. Consultado em $date.';
+  }
+
+  @override
   String get appTitle => 'R-Shop';
 
   @override

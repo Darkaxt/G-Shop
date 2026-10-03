@@ -105,6 +105,61 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_staleScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Stale score'**
+  String get metadata_staleScore;
+
+  /// No description provided for @metadata_originalGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Original game'**
+  String get metadata_originalGame;
+
+  /// No description provided for @metadata_projectScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Project score'**
+  String get metadata_projectScore;
+
+  /// No description provided for @metadata_advisoryScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Advisory'**
+  String get metadata_advisoryScore;
+
+  /// No description provided for @metadata_gameScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Game score'**
+  String get metadata_gameScore;
+
+  /// No description provided for @metadata_unknownCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get metadata_unknownCount;
+
+  /// No description provided for @metadata_ratingOverlays.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover ratings'**
+  String get metadata_ratingOverlays;
+
+  /// No description provided for @metadata_ratingOverlaysSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show cached, source-labelled ratings on game covers'**
+  String get metadata_ratingOverlaysSubtitle;
+
+  /// No description provided for @metadata_scoreDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'{source}: {score}/100. Original scale: {raw} ({minimum}–{maximum}). {count} ratings. Retrieved {date}.'**
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date);
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

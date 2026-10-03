@@ -21,6 +21,8 @@ import '../../providers/download_providers.dart';
 import '../../providers/installed_files_provider.dart';
 import '../../models/ra_models.dart';
 import '../../providers/game_providers.dart';
+import '../../providers/library_providers.dart';
+import '../../services/metadata/effective_overall_rating.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/config_bootstrap.dart';
 import '../../services/database_service.dart';
@@ -93,6 +95,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Map<String, RaMatchResult> _raMatches = {};
   // Pre-computed cover URLs per filtered index
   Map<int, List<String>> _coverUrlCache = {};
+  Map<String, EffectiveOverallRating?> _ratings = const {};
+  bool _showRatings = true;
 
   int get _totalTabCount => _fixedTabCount + _shelves.length;
 
@@ -1051,6 +1055,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     final rs = context.rs;
+    _showRatings = ref.watch(ratingOverlaysProvider);
+    final ratings = _showRatings
+        ? ref.watch(cachedCoverRatingsProvider('')) : null;
+    _ratings = ratings == null || ratings.isLoading || ratings.hasError
+        ? const {} : ratings.asData?.value ?? const {};
     final baseTopPadding = rs.safeAreaTop + (rs.isSmall ? 72 : 96);
     final searchExtraPadding = isSearchActive ? (rs.isSmall ? 16.0 : 20.0) : 0.0;
     final topPadding = baseTopPadding + searchExtraPadding;
@@ -1349,6 +1358,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               raAchievementCount: raMatch?.achievementCount,
               raMatchType: raMatch?.type ?? RaMatchType.none,
               isMastered: raMatch?.isMastered ?? false,
+              overallRating: _ratings[coverRatingKey(entry.systemSlug, entry.selectionKey)],
+              showRating: _showRatings,
               sourceDotColor: entryDotColor,
               sourceDotBorrowed: entryDotBorrowed,
               extraSourceDots: entryExtraDots,

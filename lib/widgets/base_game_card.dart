@@ -4,6 +4,7 @@ import '../core/util/color_contrast.dart';
 import '../l10n/app_localizations.dart';
 import '../models/download_item.dart';
 import '../models/ra_models.dart';
+import '../services/metadata/effective_overall_rating.dart';
 import 'installed_indicator.dart';
 import 'smart_cover_image.dart';
 
@@ -25,6 +26,8 @@ class BaseGameCard extends StatelessWidget {
   final int? raAchievementCount;
   final RaMatchType raMatchType;
   final bool isMastered;
+  final EffectiveOverallRating? overallRating;
+  final bool showRating;
 
   /// Optional color for the small "source dot" rendered in the bottom-
   /// right corner of the cover. When `null`, no dot is drawn — used for
@@ -75,6 +78,8 @@ class BaseGameCard extends StatelessWidget {
     this.raAchievementCount,
     this.raMatchType = RaMatchType.none,
     this.isMastered = false,
+    this.overallRating,
+    this.showRating = true,
     this.hasThumbnail = false,
     this.onThumbnailNeeded,
     this.memCacheWidth = 500,
@@ -101,6 +106,9 @@ class BaseGameCard extends StatelessWidget {
     final padding = rs.isSmall ? 4.0 : 6.0;
     final borderRadius = rs.isSmall ? 8.0 : 10.0;
     final innerBorderRadius = rs.isSmall ? 6.0 : 8.0;
+    final favoritePadding = rs.isSmall ? 3.0 : 4.0;
+    final favoriteIconSize = rs.isSmall ? 10.0 : 14.0;
+    final favoriteHeight = favoriteIconSize + 2 * favoritePadding;
 
     Widget card = GestureDetector(
       onTapDown: (_) => onTapSelect?.call(),
@@ -135,8 +143,7 @@ class BaseGameCard extends StatelessWidget {
                   ),
                 ),
                 // Download progress overlay — cover reveals from bottom to top
-                if (downloadStatus != null &&
-                    !downloadStatus!.isTerminal)
+                if (downloadStatus != null && !downloadStatus!.isTerminal)
                   Positioned.fill(
                     child: _DownloadRevealOverlay(
                       status: downloadStatus!,
@@ -159,7 +166,8 @@ class BaseGameCard extends StatelessWidget {
                               vertical: rs.isSmall ? 1.5 : 2.0,
                             ),
                             decoration: BoxDecoration(
-                              color: accentColor.forText.withValues(alpha: 0.85),
+                              color:
+                                  accentColor.forText.withValues(alpha: 0.85),
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
@@ -186,14 +194,14 @@ class BaseGameCard extends StatelessWidget {
                     top: padding,
                     right: padding,
                     child: Container(
-                      padding: EdgeInsets.all(rs.isSmall ? 3.0 : 4.0),
+                      padding: EdgeInsets.all(favoritePadding),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.6),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.favorite,
-                        size: rs.isSmall ? 10.0 : 14.0,
+                        size: favoriteIconSize,
                         color: Colors.redAccent,
                       ),
                     ),
@@ -204,7 +212,7 @@ class BaseGameCard extends StatelessWidget {
                     raMatchType != RaMatchType.none)
                   Positioned(
                     top: isFavorite
-                        ? padding + (rs.isSmall ? 22.0 : 28.0)
+                        ? padding + favoriteHeight + (rs.isSmall ? 2.0 : 3.0)
                         : padding,
                     right: padding,
                     child: _RaBadge(
@@ -240,6 +248,11 @@ class BaseGameCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (showRating && overallRating != null) ...[
+                          _CoverRating(
+                              rating: overallRating!, isSmall: rs.isSmall),
+                          SizedBox(height: rs.isSmall ? 3 : 4),
+                        ],
                         Text(
                           displayName,
                           style: TextStyle(
@@ -261,13 +274,18 @@ class BaseGameCard extends StatelessWidget {
                           Row(
                             children: [
                               if (variantCount > 1)
-                                Text(
-                                  L.of(context).gameCard_variantCount(variantCount),
+                                Flexible(
+                                    child: Text(
+                                  L
+                                      .of(context)
+                                      .gameCard_variantCount(variantCount),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: variantFontSize,
                                     color: Colors.grey[400],
                                   ),
-                                ),
+                                )),
                               if (providerLabel != null) ...[
                                 if (variantCount > 1)
                                   Text(
@@ -277,15 +295,18 @@ class BaseGameCard extends StatelessWidget {
                                       color: Colors.grey[600],
                                     ),
                                   ),
-                                Text(
+                                Flexible(
+                                    child: Text(
                                   providerLabel!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: rs.isSmall ? 6.0 : 7.0,
                                     color: Colors.grey[500],
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5,
                                   ),
-                                ),
+                                )),
                               ],
                             ],
                           ),
@@ -357,6 +378,86 @@ class BaseGameCard extends StatelessWidget {
     }
 
     return card;
+  }
+}
+
+/// Pure rendering: callers supply the same cached selector used by ranking.
+/// No provider, database, image mutation or focus target is introduced here.
+class _CoverRating extends StatelessWidget {
+  final EffectiveOverallRating rating;
+  final bool isSmall;
+  const _CoverRating({required this.rating, required this.isSmall});
+
+  String _number(double value) => value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(1);
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    final source = rating.rating;
+    final ownership = switch (rating.ownership) {
+      OverallRatingOwnership.game => l.metadata_gameScore,
+      OverallRatingOwnership.originalGame => l.metadata_originalGame,
+      OverallRatingOwnership.project => l.metadata_projectScore,
+    };
+    final states = [
+      if (!rating.fresh) l.metadata_staleScore,
+      if (rating.ownership != OverallRatingOwnership.game) ownership,
+      if (rating.fresh && !rating.rankingEligible) l.metadata_advisoryScore,
+    ];
+    final scoreDetails = l.metadata_scoreDetails(
+      source.sourceLabel,
+      _number(source.normalizedValue),
+      source.rawValue,
+      _number(source.scaleMinimum),
+      _number(source.scaleMaximum),
+      source.voteCount?.toString() ?? l.metadata_unknownCount,
+      source.retrievedAt.toIso8601String().split('T').first,
+    );
+    final details = '$scoreDetails $ownership'
+        '${states.isEmpty ? '' : '. ${states.join(' · ')}'}';
+    final color = rating.fresh && rating.rankingEligible
+        ? const Color(0xFFF3D98B)
+        : const Color(0xFFCCCCCC);
+    return Semantics(
+      label: details,
+      child: ExcludeSemantics(
+          child: Tooltip(
+        message: details,
+        child: Container(
+          key: const ValueKey('cover-rating'),
+          padding: EdgeInsets.symmetric(
+              horizontal: isSmall ? 4 : 5, vertical: isSmall ? 0 : 3),
+          decoration: BoxDecoration(
+              color: const Color(0xED171717),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: color.withValues(alpha: 0.6))),
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    '${source.sourceLabel} ${_number(source.normalizedValue)}/100',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: isSmall ? 7 : 9,
+                        height: isSmall ? 1 : null,
+                        fontWeight: FontWeight.w700,
+                        color: color)),
+                if (states.isNotEmpty)
+                  Text(states.join(' · '),
+                      maxLines: isSmall ? 1 : 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: isSmall ? 6 : 7,
+                          color: color,
+                          height: isSmall ? 1 : 1.2)),
+              ]),
+        ),
+      )),
+    );
   }
 }
 
@@ -451,6 +552,7 @@ class _RaBadge extends StatelessWidget {
     final vPad = isSmall ? 3.0 : 4.0;
 
     return Container(
+      key: const ValueKey('achievement-badge'),
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
       decoration: BoxDecoration(
         color: bg,

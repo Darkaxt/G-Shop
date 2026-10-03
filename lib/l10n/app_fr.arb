@@ -1,4 +1,13 @@
 {
+  "metadata_staleScore": "Note périmée",
+  "metadata_originalGame": "Jeu original",
+  "metadata_projectScore": "Note du projet",
+  "metadata_advisoryScore": "Indicative",
+  "metadata_gameScore": "Note du jeu",
+  "metadata_unknownCount": "Inconnu",
+  "metadata_ratingOverlays": "Notes sur les jaquettes",
+  "metadata_ratingOverlaysSubtitle": "Afficher les notes enregistrées et leur source sur les jaquettes",
+  "metadata_scoreDetails": "{source} : {score}/100. Échelle d'origine : {raw} ({minimum}–{maximum}). {count} notes. Consulté le {date}.",
   "@@locale": "fr",
   "appTitle": "R-Shop",
   "settings_language": "Langue",

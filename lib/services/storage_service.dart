@@ -34,6 +34,7 @@ class StorageService {
   static const _raEnabledKey = 'ra_enabled';
   static const _raLastSyncKey = 'ra_last_sync';
   static const _hideEmptyConsolesKey = 'hide_empty_consoles';
+  static const _ratingOverlaysKey = 'rating_overlays';
   static const _startHintShownKey = 'start_hint_shown';
   static const _localeOverrideKey = 'locale_override';
   static const _syncTimeoutSecondsKey = 'sync_timeout_seconds';
@@ -302,6 +303,18 @@ class StorageService {
   Future<void> removeFilters(String systemId) async {
     _ensureInitialized();
     await _prefs!.remove('$_filterPrefix$systemId');
+  }
+
+  bool getRatingOverlays() {
+    _ensureInitialized();
+    return _prefs!.getBool(_ratingOverlaysKey) ?? true;
+  }
+
+  Future<void> setRatingOverlays(bool enabled) async {
+    _ensureInitialized();
+    if (!await _prefs!.setBool(_ratingOverlaysKey, enabled)) {
+      throw StateError('Rating overlay preference was not saved');
+    }
   }
 
   // --- Global RomM Connection (encrypted via SecureStorage) ---

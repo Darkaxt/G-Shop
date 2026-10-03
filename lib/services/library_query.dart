@@ -393,6 +393,36 @@ class LibraryQuery {
     }
   }
 
+  /// Cover badges need every exact cached edition, including non-representative
+  /// regions/discs. Unlike [page], this does not collapse canonical groups or
+  /// rank/filter them. The same identity-bound score selector supplies both.
+  Future<Map<int, EffectiveOverallRating?>> cachedRatings(List<int> cacheRowIds,
+      {List<AssessedOverallScoreBasis>? assessedBases}) async {
+    if (cacheRowIds.length > 128 || cacheRowIds.any((id) => id < 1)) {
+      throw ArgumentError('Cover score pages require at most 128 positive IDs');
+    }
+    final ids = cacheRowIds.toSet().toList();
+    final result = {for (final id in ids) id: null as EffectiveOverallRating?};
+    if (ids.isEmpty) return Map.unmodifiable(result);
+    final bases = assessedBases ?? productionOverallScoreBases;
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _refresh(txn, bases);
+      final rows = await txn.rawQuery('''SELECT cache_row_id,
+        MIN(edition_id) AS edition_id FROM library_query_editions
+        WHERE member = 1 AND cache_row_id IN
+          (${List.filled(ids.length, '?').join(',')})
+        GROUP BY cache_row_id HAVING COUNT(*) = 1''', ids);
+      final scores = await LibraryStore.readEffectiveRatings(
+          txn, rows.map((row) => row['edition_id'] as String).toList(),
+          assessedBases: bases);
+      for (final row in rows) {
+        result[row['cache_row_id'] as int] = scores[row['edition_id']];
+      }
+      return Map<int, EffectiveOverallRating?>.unmodifiable(result);
+    });
+  }
+
   Future<LibraryQueryPage> page(
       {required LibraryQueryFilter filter,
       List<AssessedOverallScoreBasis>? assessedBases}) async {

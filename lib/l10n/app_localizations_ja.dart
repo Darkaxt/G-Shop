@@ -9,6 +9,36 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_staleScore => '古い評価';
+
+  @override
+  String get metadata_originalGame => 'オリジナル作品';
+
+  @override
+  String get metadata_projectScore => 'プロジェクトの評価';
+
+  @override
+  String get metadata_advisoryScore => '参考評価';
+
+  @override
+  String get metadata_gameScore => 'ゲームの評価';
+
+  @override
+  String get metadata_unknownCount => '不明';
+
+  @override
+  String get metadata_ratingOverlays => 'カバーの評価';
+
+  @override
+  String get metadata_ratingOverlaysSubtitle => '保存済みの評価と出典をゲームのカバーに表示';
+
+  @override
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date) {
+    return '$source: $score/100。元の尺度: $raw（$minimum–$maximum）。評価数: $count。取得日: $date。';
+  }
+
+  @override
   String get appTitle => 'R-Shop';
 
   @override

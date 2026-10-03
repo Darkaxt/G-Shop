@@ -28,6 +28,7 @@ class SettingsGeneralTab extends ConsumerWidget {
     final l = L.of(context);
     final isHomeGrid = ref.watch(homeLayoutProvider);
     final hideEmpty = ref.watch(hideEmptyConsolesProvider);
+    final ratingOverlays = ref.watch(ratingOverlaysProvider);
     final layout = ref.watch(controllerLayoutProvider);
     final localeOverride = ref.watch(localeProvider);
     final localeName = localeOverride == null
@@ -67,6 +68,22 @@ class SettingsGeneralTab extends ConsumerWidget {
           ),
         ]),
         SettingsSection(l.settings_sectionDisplay, [
+          SettingsEntry.toggle(
+            title: l.metadata_ratingOverlays,
+            subtitle: l.metadata_ratingOverlaysSubtitle,
+            value: ratingOverlays,
+            onChanged: () async {
+              ref.read(feedbackServiceProvider).tick();
+              try {
+                await ref.read(ratingOverlaysProvider.notifier).toggle();
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l.onboarding_failedToSave(error.toString())),
+                ));
+              }
+            },
+          ),
           SettingsEntry.toggle(
             title: l.settings_homeLayout,
             subtitle: isHomeGrid ? l.settings_homeLayoutGrid : l.settings_homeLayoutCarousel,

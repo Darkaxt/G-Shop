@@ -9,6 +9,37 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_staleScore => 'Veraltete Bewertung';
+
+  @override
+  String get metadata_originalGame => 'Originalspiel';
+
+  @override
+  String get metadata_projectScore => 'Projektbewertung';
+
+  @override
+  String get metadata_advisoryScore => 'Orientierung';
+
+  @override
+  String get metadata_gameScore => 'Spielbewertung';
+
+  @override
+  String get metadata_unknownCount => 'Unbekannt';
+
+  @override
+  String get metadata_ratingOverlays => 'Cover-Bewertungen';
+
+  @override
+  String get metadata_ratingOverlaysSubtitle =>
+      'Gespeicherte Bewertungen mit Quellenangabe auf Spielcovern anzeigen';
+
+  @override
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date) {
+    return '$source: $score/100. Originalskala: $raw ($minimum–$maximum). $count Bewertungen. Abgerufen am $date.';
+  }
+
+  @override
   String get appTitle => 'R-Shop';
 
   @override

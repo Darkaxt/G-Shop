@@ -1,4 +1,14 @@
 {
+  "metadata_staleScore": "Stale score",
+  "metadata_originalGame": "Original game",
+  "metadata_projectScore": "Project score",
+  "metadata_advisoryScore": "Advisory",
+  "metadata_gameScore": "Game score",
+  "metadata_unknownCount": "Unknown",
+  "metadata_ratingOverlays": "Cover ratings",
+  "metadata_ratingOverlaysSubtitle": "Show cached, source-labelled ratings on game covers",
+  "metadata_scoreDetails": "{source}: {score}/100. Original scale: {raw} ({minimum}–{maximum}). {count} ratings. Retrieved {date}.",
+  "@metadata_scoreDetails": { "placeholders": { "source": {"type": "String"}, "score": {"type": "String"}, "raw": {"type": "String"}, "minimum": {"type": "String"}, "maximum": {"type": "String"}, "count": {"type": "String"}, "date": {"type": "String"} } },
   "@@locale": "en",
 
   "appTitle": "R-Shop",

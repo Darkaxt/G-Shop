@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:retro_eshop/providers/library_providers.dart';
+import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:retro_eshop/services/library_store.dart';
@@ -6,6 +9,13 @@ import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class _CacheDatabase extends DatabaseService {
+  final Database cache;
+  _CacheDatabase(this.cache);
+  @override
+  Future<Database> get database => Future.value(cache);
+}
 
 void main() {
   late Database db;
@@ -26,7 +36,7 @@ void main() {
     await LibrarySchema.install(db);
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
-      systemSlug TEXT, displayName TEXT, artifact_key TEXT, remote_artifact TEXT,
+      systemSlug TEXT, displayName TEXT, filename TEXT, artifact_key TEXT, remote_artifact TEXT,
       is_folder INTEGER DEFAULT 0)''');
     await LibraryQuery.install(db);
     store = LibraryStore(Future.value(db));
@@ -43,8 +53,12 @@ void main() {
       List<String> regions = const ['USA'],
       List<String> languages = const ['en'],
       int votes = 100}) async {
-    await db.insert(
-        'games', {'id': n, 'systemSlug': platform, 'displayName': 'Game $n'});
+    await db.insert('games', {
+      'id': n,
+      'systemSlug': platform,
+      'displayName': 'Game $n',
+      'filename': 'Game $n.7z'
+    });
     final id = (await db.transaction((txn) =>
             LibraryStore.catalogueEditions(txn, cacheRowId: n).toList()))
         .single;
@@ -99,6 +113,77 @@ void main() {
 
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
+
+  test('card score pages preserve each exact cached edition, not group winners',
+      () async {
+    final first = await seed(1, score: 91, group: 'same-game');
+    final second = await seed(2, score: 91, group: 'same-game');
+    await seed(3);
+    final cards =
+        await query.cachedRatings([1, 2, 3, 999], assessedBases: [basis]);
+    expect(cards.keys, [1, 2, 3, 999]);
+    final selected =
+        await store.effectiveRatings([first, second], assessedBases: [basis]);
+    expect(cards[1]!.rating.toJson(), selected[first]!.rating.toJson());
+    expect(cards[2]!.rating.toJson(), selected[second]!.rating.toJson());
+    expect(cards[3], isNull);
+    expect(cards[999], isNull);
+    expect((await read()).items, hasLength(2),
+        reason:
+            'Discovery groups canonical games; card scores retain editions.');
+    await db.delete('games', where: 'id = 2');
+    expect((await query.cachedRatings([2], assessedBases: [basis]))[2], isNull);
+    await expectLater(query.cachedRatings(List.generate(129, (i) => i + 1)),
+        throwsArgumentError);
+  });
+
+  test(
+      'shared cover provider separates consoles and refreshes cached publication',
+      () async {
+    final first = await seed(1, score: 91);
+    await seed(2, score: 70, platform: 'snes');
+    await seed(3);
+    await db.update('games', {'filename': 'Same.7z'}, where: 'id IN (1, 2)');
+    final container = ProviderContainer(overrides: [
+      libraryDbProvider.overrideWithValue(_CacheDatabase(db)),
+    ]);
+    final all = container.listen(cachedCoverRatingsProvider(''), (_, __) {});
+    final system =
+        container.listen(cachedCoverRatingsProvider('psx'), (_, __) {});
+    try {
+      final scores =
+          await container.read(cachedCoverRatingsProvider('').future);
+      final local =
+          await container.read(cachedCoverRatingsProvider('psx').future);
+      final psx = coverRatingKey('psx', 'Same.7z');
+      final snes = coverRatingKey('snes', 'Same.7z');
+      expect(scores[psx]!.rating.normalizedValue, 91);
+      expect(scores[snes]!.rating.normalizedValue, 70);
+      expect(local.containsKey(snes), isFalse);
+      expect(local[coverRatingKey('psx', 'Game 3.7z')], isNull);
+      expect(
+          identical(await container.read(cachedCoverRatingsProvider('').future),
+              scores),
+          isTrue,
+          reason:
+              'Card rebuilds/scrolling reuse the same map, not database reads.');
+      final cached = (await store.metadata(first, 'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...cached.toJson(),
+        'ratings':
+            cached.ratings.map((r) => {...r.toJson(), 'rawValue': 88}).toList()
+      }));
+      container.read(gameDbChangedProvider.notifier).state++;
+      final refreshed =
+          await container.read(cachedCoverRatingsProvider('').future);
+      expect(refreshed[psx]!.rating.normalizedValue, 88);
+      expect(refreshed[snes]!.rating.normalizedValue, 70);
+    } finally {
+      all.close();
+      system.close();
+      container.dispose();
+    }
+  });
 
   test('production display and Top share supported community score, not total',
       () async {

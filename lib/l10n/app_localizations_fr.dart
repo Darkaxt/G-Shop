@@ -9,6 +9,37 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_staleScore => 'Note périmée';
+
+  @override
+  String get metadata_originalGame => 'Jeu original';
+
+  @override
+  String get metadata_projectScore => 'Note du projet';
+
+  @override
+  String get metadata_advisoryScore => 'Indicative';
+
+  @override
+  String get metadata_gameScore => 'Note du jeu';
+
+  @override
+  String get metadata_unknownCount => 'Inconnu';
+
+  @override
+  String get metadata_ratingOverlays => 'Notes sur les jaquettes';
+
+  @override
+  String get metadata_ratingOverlaysSubtitle =>
+      'Afficher les notes enregistrées et leur source sur les jaquettes';
+
+  @override
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date) {
+    return '$source : $score/100. Échelle d\'origine : $raw ($minimum–$maximum). $count notes. Consulté le $date.';
+  }
+
+  @override
   String get appTitle => 'R-Shop';
 
   @override

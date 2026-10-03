@@ -275,6 +275,30 @@ final homeLayoutProvider = StateNotifierProvider<HomeLayoutNotifier, bool>((ref)
 // ==========================================
 // Hide Empty Consoles
 // ==========================================
+class RatingOverlaysNotifier extends StateNotifier<bool> {
+  final StorageService _storage;
+  Future<void> _pending = Future<void>.value();
+  RatingOverlaysNotifier(this._storage) : super(_storage.getRatingOverlays());
+
+  Future<void> toggle() {
+    final operation = _pending.then((_) async {
+      if (!mounted) return;
+      final next = !state;
+      await _storage.setRatingOverlays(next);
+      if (mounted) state = next;
+    });
+    // Preserve tap order, and allow a later retry after a failed write. The
+    // caller still receives the original error; the visible state changes only
+    // after persistence acknowledges the update.
+    _pending = operation.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return operation;
+  }
+}
+
+final ratingOverlaysProvider =
+    StateNotifierProvider<RatingOverlaysNotifier, bool>((ref) =>
+        RatingOverlaysNotifier(ref.read(storageServiceProvider)));
+
 class HideEmptyConsolesNotifier extends StateNotifier<bool> {
   final StorageService _storage;
 

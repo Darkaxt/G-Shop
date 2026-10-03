@@ -64,6 +64,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 cached cover overlays and preference integration (2026-10-03)
+
+- S5 remains the sole ACTIVE stage. Both existing shared-card callers (console
+  grid and library/shelves) now receive nullable, exact-edition cached ratings.
+  One view-scoped provider reads keyset pages of at most 128 rows, preserves
+  console/artifact identity and rejects duplicate bindings. It uses the same
+  effective-score selector as ranking, without requests per card or frame.
+  Loading/error generations hide previous score maps; empty console views do
+  not start score reads. No provider credentials or cloud files were changed.
+- The pure card overlay labels the source and normalized score, exposes raw
+  scale/count/retrieval/ownership through semantics and tooltip, and distinguishes
+  stale/original/project/advisory scores. Existing artwork is not rewritten.
+  The normal Display settings tile persists the overlay preference. Acknowledged
+  writes are serialized in tap order; failure preserves the prior value and shows
+  the existing localized save error. Subsequent retry remains usable.
+- Host checks passed for optional/unrated/disabled/stale/original states, compact
+  and large selected crowded cards, full achievement-badge geometry, accessible
+  provenance, preference persistence/rapid taps/failure/retry, exact cache lookup
+  and publication refresh. The reference golden was generated, visually inspected
+  and then compared without update (`92852`, exit 0). The affected legacy grid
+  checks also passed (`0d9287`, exit 0). Found defects were reproduced first:
+  unconstrained footer text, a fixed favorite-to-achievement offset and concurrent
+  preference writes. Tests exercise these boundaries rather than reporting them
+  as already working.
+- Scoped analysis of the changed production/tests reported only the two existing
+  `cacheExtent` deprecation notices in the console/library grids (`77155`, exit 1
+  for infos); their unchanged HEAD definitions were inspected. There were no new
+  errors/warnings. Formatting and Git whitespace checks were inspected.
+- UI-01 is not COMPLETE: actual screen offline-scroll/request measurements,
+  additional badge/controller cases and Thor readability/touch/controller proof
+  remain. UI-02 provider setup/refresh/details and UI-03 shared-query filter/sort
+  controls, scope/coverage/persistence/clear/manual-order integration remain
+  ordinary unfinished S5 work, not later-stage deferrals. S1/B3 and S4/B5 remain
+  BLOCKED as previously recorded; S6-S8 are NOT STARTED.
+- Reviewed cleanup `b2b4cbf4ec4c45136c417053aa191909` permanently removed only
+  regenerated `build/unit_test_assets` and `build/test_cache` output: 103,212,965
+  bytes, terminal APPLIED, no errors/residuals. These are reproducible compiler
+  outputs. The golden, source, credentials, native and original forensic evidence
+  remain preserved. No test/analyzer workload remains running; no deployment,
+  publication or Thor mutation occurred in this scope.
+
 ### S4 VM-disabled observation and explicit parked evidence gap (2026-10-03)
 
 - The original native CDB trace and installed FFI/ReceivePort implementations

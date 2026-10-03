@@ -1,4 +1,13 @@
 {
+  "metadata_staleScore": "Avaliação desatualizada",
+  "metadata_originalGame": "Jogo original",
+  "metadata_projectScore": "Avaliação do projeto",
+  "metadata_advisoryScore": "Indicativa",
+  "metadata_gameScore": "Avaliação do jogo",
+  "metadata_unknownCount": "Desconhecido",
+  "metadata_ratingOverlays": "Avaliações nas capas",
+  "metadata_ratingOverlaysSubtitle": "Mostrar avaliações guardadas e a sua fonte nas capas",
+  "metadata_scoreDetails": "{source}: {score}/100. Escala original: {raw} ({minimum}–{maximum}). {count} avaliações. Consultado em {date}.",
   "@@locale": "pt",
 
   "appTitle": "R-Shop",

@@ -1,4 +1,13 @@
 {
+  "metadata_staleScore": "Veraltete Bewertung",
+  "metadata_originalGame": "Originalspiel",
+  "metadata_projectScore": "Projektbewertung",
+  "metadata_advisoryScore": "Orientierung",
+  "metadata_gameScore": "Spielbewertung",
+  "metadata_unknownCount": "Unbekannt",
+  "metadata_ratingOverlays": "Cover-Bewertungen",
+  "metadata_ratingOverlaysSubtitle": "Gespeicherte Bewertungen mit Quellenangabe auf Spielcovern anzeigen",
+  "metadata_scoreDetails": "{source}: {score}/100. Originalskala: {raw} ({minimum}–{maximum}). {count} Bewertungen. Abgerufen am {date}.",
   "@@locale": "de",
 
   "appTitle": "R-Shop",

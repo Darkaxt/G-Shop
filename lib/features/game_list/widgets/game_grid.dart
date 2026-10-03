@@ -10,6 +10,8 @@ import '../../../models/ra_models.dart';
 import '../../../models/system_model.dart';
 import '../../../providers/app_providers.dart';
 import '../../../providers/download_providers.dart';
+import '../../../providers/library_providers.dart';
+import '../../../services/metadata/effective_overall_rating.dart';
 import '../../../services/download_queue_manager.dart';
 import '../../../utils/image_helper.dart';
 import '../../../widgets/base_game_card.dart';
@@ -74,6 +76,8 @@ class GameGrid extends ConsumerStatefulWidget {
 class _GameGridState extends ConsumerState<GameGrid> {
   int _optimalCacheWidth = 500;
   Map<String, List<String>> _coverUrlCache = {};
+  Map<String, EffectiveOverallRating?> _ratings = const {};
+  bool _showRatings = true;
 
   @override
   void initState() {
@@ -168,6 +172,12 @@ class _GameGridState extends ConsumerState<GameGrid> {
         ),
       );
     }
+
+    _showRatings = ref.watch(ratingOverlaysProvider);
+    final ratings = _showRatings
+        ? ref.watch(cachedCoverRatingsProvider(widget.system.id)) : null;
+    _ratings = ratings == null || ratings.isLoading || ratings.hasError
+        ? const {} : ratings.asData?.value ?? const {};
 
     return FocusTraversalGroup(
       policy: WidgetOrderTraversalPolicy(),
@@ -286,6 +296,8 @@ class _GameGridState extends ConsumerState<GameGrid> {
           raAchievementCount: raMatch?.achievementCount,
           raMatchType: raMatch?.type ?? RaMatchType.none,
           isMastered: raMatch?.isMastered ?? false,
+          overallRating: _ratings[coverRatingKey(widget.system.id, first.selectionKey)],
+          showRating: _showRatings,
           hasThumbnail: first.hasThumbnail,
           memCacheWidth: _optimalCacheWidth,
           scrollSuppression: widget.scrollSuppression,

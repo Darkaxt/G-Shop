@@ -9,6 +9,37 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_staleScore => 'Stale score';
+
+  @override
+  String get metadata_originalGame => 'Original game';
+
+  @override
+  String get metadata_projectScore => 'Project score';
+
+  @override
+  String get metadata_advisoryScore => 'Advisory';
+
+  @override
+  String get metadata_gameScore => 'Game score';
+
+  @override
+  String get metadata_unknownCount => 'Unknown';
+
+  @override
+  String get metadata_ratingOverlays => 'Cover ratings';
+
+  @override
+  String get metadata_ratingOverlaysSubtitle =>
+      'Show cached, source-labelled ratings on game covers';
+
+  @override
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date) {
+    return '$source: $score/100. Original scale: $raw ($minimum–$maximum). $count ratings. Retrieved $date.';
+  }
+
+  @override
   String get appTitle => 'R-Shop';
 
   @override

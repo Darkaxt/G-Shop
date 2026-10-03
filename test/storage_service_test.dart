@@ -59,6 +59,15 @@ void main() {
   });
 
   group('StorageService — ROM path', () {
+    test('cover rating preference persists across a new storage instance', () async {
+      expect(service.getRatingOverlays(), isTrue);
+      await service.setRatingOverlays(false);
+      final restored = StorageService();
+      await restored.init();
+      expect(restored.getRatingOverlays(), isFalse);
+      expect(service.getRomPath(), isNull);
+    });
+
     test('getRomPath returns null on empty storage', () {
       expect(service.getRomPath(), isNull);
     });

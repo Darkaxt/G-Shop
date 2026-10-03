@@ -1,0 +1,194 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:retro_eshop/models/download_item.dart';
+import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/ra_models.dart';
+import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
+import 'package:retro_eshop/widgets/base_game_card.dart';
+import '../helpers/pump_helpers.dart';
+
+EffectiveOverallRating score({bool stale = false, bool original = false}) {
+  final game = GameIdentity(
+      id: 'game',
+      platformId: 'psx',
+      title: 'Test',
+      matchStatus: IdentityMatchStatus.manuallyMatched,
+      providerIds: {'igdb': '123'});
+  final edition = EditionIdentity(
+      id: 'edition',
+      gameId: game.id,
+      tags: original ? {'Undub'} : {'official'});
+  final at = DateTime.utc(2026, 10, 3);
+  return selectEffectiveOverallRating(
+      game: game,
+      edition: edition,
+      assessedBases: productionOverallScoreBases,
+      staleProviderIds: stale ? {'igdb'} : {},
+      records: [
+        MetadataRecord(
+            gameId: game.id,
+            editionId: edition.id,
+            platformId: 'psx',
+            providerId: 'igdb',
+            providerGameId: '123',
+            retrievedAt: at,
+            refreshGeneration: 1,
+            matchMethod: 'verifiedProviderIdGlobalGame',
+            titles: [
+              const MetadataText(text: 'Test')
+            ],
+            ratings: [
+              SourcedRating.parse(
+                  sourceId: 'igdb',
+                  sourceLabel: 'IGDB users',
+                  providerGameId: '123',
+                  rawValue: 90,
+                  scaleMinimum: 0,
+                  scaleMaximum: 100,
+                  voteCount: 100,
+                  kind: RatingKind.communityAggregate,
+                  retrievedAt: at)!
+            ])
+      ])!;
+}
+
+void main() {
+  Widget card(EffectiveOverallRating? rating,
+          {bool enabled = true,
+          bool selected = false,
+          bool crowded = false,
+          double width = 180,
+          Size screen = const Size(1280, 720)}) =>
+      createTestApp(
+          Center(
+              child: SizedBox(
+                  width: width,
+                  height: width,
+                  child: BaseGameCard(
+                    displayName:
+                        'A long game title with regional and revision information',
+                    coverUrls: const [],
+                    cachedUrl: null,
+                    isInstalled: crowded,
+                    isSelected: selected,
+                    accentColor: Colors.cyan,
+                    onTap: () {},
+                    overallRating: rating,
+                    showRating: enabled,
+                    systemLabel: crowded ? 'PSX' : null,
+                    isFavorite: crowded,
+                    raAchievementCount: crowded ? 99 : null,
+                    raMatchType: RaMatchType.hashVerified,
+                    sourceDotColor: crowded ? Colors.green : null,
+                    providerLabel: crowded ? 'Drive' : null,
+                    variantCount: crowded ? 2 : 0,
+                    downloadStatus: crowded ? DownloadStatus.queued : null,
+                  ))),
+          size: screen);
+
+  testWidgets(
+      'source-labelled score is optional; stale and original are explicit',
+      (tester) async {
+    await tester.pumpWidget(card(score()));
+    expect(find.text('IGDB users 90/100'), findsOneWidget);
+    final semantics = tester.ensureSemantics();
+    expect(
+        find.bySemanticsLabel(
+            RegExp(r'IGDB users.*Original scale.*100 ratings')),
+        findsOneWidget);
+    semantics.dispose();
+    await tester.pumpWidget(card(score(stale: true, original: true)));
+    expect(find.textContaining('Stale score'), findsOneWidget);
+    expect(find.textContaining('Original game'), findsOneWidget);
+    await tester.pumpWidget(card(score(), enabled: false));
+    expect(find.text('IGDB users 90/100'), findsNothing);
+    await tester.pumpWidget(card(null));
+    expect(find.textContaining('/100'), findsNothing);
+  });
+
+  for (final compact in [true, false]) {
+    testWidgets(
+        'rating leaves title, selection and existing badges visible (${compact ? 'compact' : 'large'})',
+        (tester) async {
+      await tester.pumpWidget(card(score(stale: true, original: true),
+          crowded: true,
+          selected: true,
+          width: compact ? 100 : 240,
+          screen: compact ? const Size(640, 360) : const Size(1280, 720)));
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('A long game title'), findsOneWidget);
+      expect(find.text('PSX'), findsOneWidget);
+      expect(find.byIcon(Icons.favorite), findsOneWidget);
+      expect(find.text('99'), findsOneWidget);
+      final title = tester.getRect(find.textContaining('A long game title'));
+      final badge = tester.getRect(find.byKey(const ValueKey('cover-rating')));
+      expect(badge.bottom, lessThanOrEqualTo(title.top));
+      final trophy =
+          tester.getRect(find.byKey(const ValueKey('achievement-badge')));
+      final platform = tester.getRect(find.text('PSX'));
+      expect(badge.overlaps(trophy), isFalse,
+          reason: 'badge=$badge trophy=$trophy title=$title');
+      expect(badge.overlaps(platform), isFalse);
+    });
+  }
+
+  testWidgets('existing compact footer is constrained even without a score',
+      (tester) async {
+    await tester.pumpWidget(card(null,
+        crowded: true,
+        selected: true,
+        width: 100,
+        screen: const Size(640, 360)));
+  });
+
+  testWidgets(
+      'cover rating states match the compact and large reference render',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(createTestApp(
+        RepaintBoundary(
+          key: const ValueKey('cover-rating-reference'),
+          child: ColoredBox(
+              color: Colors.black,
+              child: Wrap(spacing: 16, runSpacing: 16, children: [
+                for (final compact in [false, true])
+                  for (final rating in [
+                    score(),
+                    score(stale: true, original: true),
+                    null
+                  ])
+                    MediaQuery(
+                        data: MediaQueryData(
+                            size: compact
+                                ? const Size(640, 360)
+                                : const Size(1280, 720)),
+                        child: SizedBox(
+                            width: compact ? 100 : 200,
+                            height: compact ? 100 : 200,
+                            child: BaseGameCard(
+                              displayName:
+                                  'Long game title with edition information',
+                              coverUrls: const [],
+                              cachedUrl: null,
+                              isInstalled: true,
+                              isSelected: true,
+                              isFavorite: true,
+                              systemLabel: 'PSX',
+                              accentColor: Colors.cyan,
+                              onTap: () {},
+                              overallRating: rating,
+                              raAchievementCount: 99,
+                              raMatchType: RaMatchType.hashVerified,
+                              sourceDotColor: Colors.green,
+                              providerLabel: 'Drive',
+                              variantCount: 2,
+                            ))),
+              ])),
+        ),
+        size: const Size(1280, 720)));
+    await expectLater(find.byKey(const ValueKey('cover-rating-reference')),
+        matchesGoldenFile('goldens/cover_rating_states.png'));
+  });
+}

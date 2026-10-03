@@ -9,6 +9,37 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_staleScore => 'Valoración desactualizada';
+
+  @override
+  String get metadata_originalGame => 'Juego original';
+
+  @override
+  String get metadata_projectScore => 'Valoración del proyecto';
+
+  @override
+  String get metadata_advisoryScore => 'Orientativa';
+
+  @override
+  String get metadata_gameScore => 'Valoración del juego';
+
+  @override
+  String get metadata_unknownCount => 'Desconocido';
+
+  @override
+  String get metadata_ratingOverlays => 'Valoraciones en las carátulas';
+
+  @override
+  String get metadata_ratingOverlaysSubtitle =>
+      'Mostrar valoraciones guardadas con su fuente en las carátulas';
+
+  @override
+  String metadata_scoreDetails(String source, String score, String raw,
+      String minimum, String maximum, String count, String date) {
+    return '$source: $score/100. Escala original: $raw ($minimum–$maximum). $count valoraciones. Consultado el $date.';
+  }
+
+  @override
   String get appTitle => 'R-Shop';
 
   @override
