@@ -9,6 +9,119 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_setupTitle => 'Metadatos de juegos';
+
+  @override
+  String get metadata_setupSubtitle =>
+      'Acceso al proveedor, nuevo scraping y progreso guardado';
+
+  @override
+  String get metadata_provider => 'Proveedor de metadatos';
+
+  @override
+  String get metadata_accessInfo =>
+      'ScreenScraper usa una cuenta estándar y acceso separado de aplicación. IGDB usa credenciales privadas de aplicación. Se guardan de forma segura en este dispositivo, no se exportan. Guardarlas no verifica el acceso; el scraping lo comprueba. No se descargan ROMs.';
+
+  @override
+  String get metadata_saved => 'Guardado en este dispositivo';
+
+  @override
+  String get metadata_notConfigured => 'Sin configurar';
+
+  @override
+  String get metadata_applicationAccess => 'Acceso privado de aplicación';
+
+  @override
+  String get metadata_softwareName => 'Nombre del software';
+
+  @override
+  String get metadata_clientId => 'ID de cliente';
+
+  @override
+  String get metadata_clientSecret => 'Secreto de cliente';
+
+  @override
+  String get metadata_fullScope => 'Toda la colección';
+
+  @override
+  String get metadata_systemScope => 'Consola';
+
+  @override
+  String get metadata_gameScope => 'Juego seleccionado';
+
+  @override
+  String get metadata_refresh => 'Nuevo scraping';
+
+  @override
+  String get metadata_pause => 'Pausar';
+
+  @override
+  String get metadata_resume => 'Reanudar trabajo guardado';
+
+  @override
+  String get metadata_retryOutcomes => 'Reintentar fallos / sin coincidencia';
+
+  @override
+  String get metadata_jobQueued => 'En cola';
+
+  @override
+  String get metadata_jobRunning => 'En curso';
+
+  @override
+  String get metadata_jobCompleted => 'Recorrido completado';
+
+  @override
+  String get metadata_requested => 'Consultas solicitadas';
+
+  @override
+  String get metadata_matched => 'Coincidentes';
+
+  @override
+  String get metadata_review => 'Requieren revisión';
+
+  @override
+  String get metadata_ambiguous => 'Ambiguos';
+
+  @override
+  String get metadata_unmatched => 'Sin coincidencia';
+
+  @override
+  String get metadata_failed => 'Fallidos / no compatibles';
+
+  @override
+  String get metadata_rated => 'Con puntuación';
+
+  @override
+  String get metadata_pending => 'Pendientes';
+
+  @override
+  String get metadata_completeNote =>
+      'Completar el recorrido no significa que todos los juegos tengan metadatos o puntuaciones fiables.';
+
+  @override
+  String get metadata_controlsError =>
+      'Falló la operación de metadatos. Se conservan el progreso y las acciones de ROM. Comprueba el acceso o reanuda el trabajo.';
+
+  @override
+  String get metadata_configureAccess =>
+      'Configura la cuenta y el acceso de aplicación abajo y reanuda. La cuenta estándar de ScreenScraper no necesita convertirse en cuenta de desarrollador.';
+
+  @override
+  String get metadata_quotaWait =>
+      'Se aplica la cuota o cadencia del proveedor. Reanuda cuando el acceso lo permita; se conservan los elementos completados.';
+
+  @override
+  String get metadata_offlineWait =>
+      'Proveedor no disponible. Comprueba la conexión y reanuda el trabajo.';
+
+  @override
+  String get metadata_invalidInput =>
+      'Completa los campos obligatorios. Deja vacíos los campos de aplicación para conservar el acceso existente.';
+
+  @override
+  String get metadata_forget => 'Olvidar las credenciales de este proveedor';
+
+  @override
   String get metadata_cacheLoading => 'Cargando metadatos en caché…';
 
   @override

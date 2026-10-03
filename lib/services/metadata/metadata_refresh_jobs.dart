@@ -23,6 +23,7 @@ class MetadataRefreshReport {
   final String? blockedStatus;
   final DateTime? notBefore;
   final String kind;
+  final String providerId;
   const MetadataRefreshReport(
       {required this.id,
       required this.generation,
@@ -33,7 +34,8 @@ class MetadataRefreshReport {
       required this.counts,
       this.blockedStatus,
       this.notBefore,
-      this.kind = 'metadata'});
+      this.kind = 'metadata',
+      this.providerId = ''});
 }
 
 class MetadataReviewItem {
@@ -591,6 +593,7 @@ class MetadataRefreshJobs {
           requested: row['requested'] as int,
           rated: totals.fold(0, (sum, r) => sum + (r['rated'] as int)),
           kind: artwork ? 'artwork' : 'metadata',
+          providerId: row['provider_id'] as String,
           counts: Map.unmodifiable({
             for (final r in totals) r['status'] as String: r['count'] as int
           }),
@@ -602,6 +605,18 @@ class MetadataRefreshJobs {
     });
   }
 
+  /// Restore one durable job, not an unbounded history or catalogue load.
+  Future<MetadataRefreshReport?> latest({required String providerId}) async {
+    final db = await _database;
+    final rows = await db.query('metadata_refresh_jobs',
+        columns: ['id'],
+        where: 'provider_id = ? AND is_artwork = 0',
+        whereArgs: [providerId],
+        orderBy: 'id DESC',
+        limit: 1);
+    return rows.isEmpty ? null : report(rows.single['id'] as int);
+  }
+
   static Future<Map<String, Object?>> _job(DatabaseExecutor db, int id) async {
     final rows = await db.query('metadata_refresh_jobs',
         where: 'id = ?', whereArgs: [id], limit: 1);
@@ -610,7 +625,9 @@ class MetadataRefreshJobs {
   }
 
   Future<MetadataRefreshReport> run(int id, MetadataProvider provider,
-      {bool recheckAccess = false, MetadataArtworkCache? artworkCache}) {
+      {bool recheckAccess = false,
+      MetadataArtworkCache? artworkCache,
+      void Function(MetadataRefreshReport)? onProgress}) {
     if (recheckAccess && provider is! MetadataAccessProvider) {
       throw ArgumentError('This provider has no explicit access check');
     }
@@ -619,8 +636,12 @@ class MetadataRefreshJobs {
     }
     final cancel = CancelToken();
     _cancel = cancel;
-    return _active = _run(id, provider, cancel, recheckAccess, artworkCache)
-        .whenComplete(() {
+    return _active =
+        _run(id, provider, cancel, recheckAccess, artworkCache, onProgress)
+            .then((result) {
+      onProgress?.call(result);
+      return result;
+    }).whenComplete(() {
       _active = null;
       _cancel = null;
     });
@@ -636,7 +657,8 @@ class MetadataRefreshJobs {
       MetadataProvider provider,
       CancelToken cancel,
       bool recheckAccess,
-      MetadataArtworkCache? artworkCache) async {
+      MetadataArtworkCache? artworkCache,
+      void Function(MetadataRefreshReport)? onProgress) async {
     final db = await _database;
     final claimed = await db.transaction((txn) async {
       final job = await _job(txn, id);
@@ -700,6 +722,32 @@ class MetadataRefreshJobs {
     }
 
     try {
+      // One SQL aggregate at entry, then bounded committed-page deltas.
+      // Observer/storage failures also release the durable worker claim.
+      final initial = await report(id);
+      final counts = Map<String, int>.from(initial.counts);
+      var requested = initial.requested;
+      var rated = initial.rated;
+      void publish([Map<String, int> changes = const {}, int ratedChange = 0]) {
+        for (final entry in changes.entries) {
+          counts['pending'] = (counts['pending'] ?? 0) - entry.value;
+          counts[entry.key] = (counts[entry.key] ?? 0) + entry.value;
+        }
+        if (counts['pending'] == 0) counts.remove('pending');
+        rated += ratedChange;
+        onProgress?.call(MetadataRefreshReport(
+            id: id,
+            generation: initial.generation,
+            collectionGeneration: initial.collectionGeneration,
+            state: 'running',
+            requested: requested,
+            rated: rated,
+            counts: Map.unmodifiable(counts),
+            providerId: provider.providerId,
+            kind: initial.kind));
+      }
+
+      publish();
       if (recheckAccess) {
         if (!await _requestSlot(
             db, id, provider.providerId, cancel, waitForBudget,
@@ -747,6 +795,7 @@ class MetadataRefreshJobs {
               'metadata_refresh_items', {'status': 'identityChanged'},
               where: 'job_id = ? AND edition_id = ?',
               whereArgs: [id, request.editionId]);
+          publish({'identityChanged': 1});
           continue;
         }
         if (cancel.isCancelled) break;
@@ -766,12 +815,14 @@ class MetadataRefreshJobs {
               'metadata_refresh_items', {'status': 'identityChanged'},
               where: 'job_id = ? AND edition_id = ?',
               whereArgs: [id, request.editionId]);
+          publish({'identityChanged': 1});
           continue;
         }
         final requestStarted = _now().millisecondsSinceEpoch;
         await db.rawUpdate(
             'UPDATE metadata_refresh_jobs SET requested = requested + 1 WHERE id = ?',
             [id]);
+        requested++;
         if (cancel.isCancelled) break;
         final result = await provider.lookup(request, cancelToken: cancel);
         if (cancel.isCancelled ||
@@ -784,8 +835,8 @@ class MetadataRefreshJobs {
           await _block(db, id, result.status, result.retryAfter);
           return await report(id);
         }
-        await _commitResult(
-            db, id, item, request, result, provider.providerId, cancel);
+        await _commitResult(db, id, item, request, result, provider.providerId,
+            cancel, publish);
         if (cancel.isCancelled) break;
         final quota = result.quota;
         if ((quota?.requestsToday != null &&
@@ -1108,7 +1159,8 @@ class MetadataRefreshJobs {
       MetadataLookupRequest request,
       MetadataLookupResult result,
       String providerId,
-      CancelToken cancel) async {
+      CancelToken cancel,
+      void Function(Map<String, int>, int) committed) async {
     final record = result.record;
     final originalBaseScore = record != null &&
         request.baseProviderGameId != null &&
@@ -1134,7 +1186,11 @@ class MetadataRefreshJobs {
     // leaves the remaining page pending, never a done item with missing metadata.
     while (!cancel.isCancelled) {
       final count = await db.transaction((txn) async {
-        if (cancel.isCancelled) return 0;
+        if (cancel.isCancelled) {
+          return (length: 0, counts: <String, int>{}, rated: 0);
+        }
+        final outcomes = <String, int>{};
+        var ratedTotal = 0;
         final rows = await txn.query('metadata_refresh_items',
             where: 'job_id = ? AND lookup_key = ? AND status = ?',
             whereArgs: [id, item['lookup_key'], 'pending'],
@@ -1210,11 +1266,14 @@ class MetadataRefreshJobs {
               },
               where: 'job_id = ? AND edition_id = ?',
               whereArgs: [id, editionId]);
+          outcomes[outcome] = (outcomes[outcome] ?? 0) + 1;
+          ratedTotal += rated;
         }
         if (cancel.isCancelled) throw const _RefreshCommitCancelled();
-        return rows.length;
+        return (length: rows.length, counts: outcomes, rated: ratedTotal);
       });
-      if (count < 128) break;
+      if (count.length != 0) committed(count.counts, count.rated);
+      if (count.length < 128) break;
     }
   }
 }

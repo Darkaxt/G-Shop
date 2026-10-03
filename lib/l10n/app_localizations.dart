@@ -105,6 +105,216 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_setupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game metadata'**
+  String get metadata_setupTitle;
+
+  /// No description provided for @metadata_setupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider access, fresh scraping and saved progress'**
+  String get metadata_setupSubtitle;
+
+  /// No description provided for @metadata_provider.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata provider'**
+  String get metadata_provider;
+
+  /// No description provided for @metadata_accessInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'ScreenScraper uses a standard account plus separate application access. IGDB uses a private application pair. Credentials are saved securely on this device, not in exported configuration. Saving is not proof of provider access; refresh checks access. No ROM files are downloaded.'**
+  String get metadata_accessInfo;
+
+  /// No description provided for @metadata_saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device'**
+  String get metadata_saved;
+
+  /// No description provided for @metadata_notConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not configured'**
+  String get metadata_notConfigured;
+
+  /// No description provided for @metadata_applicationAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Private application access'**
+  String get metadata_applicationAccess;
+
+  /// No description provided for @metadata_softwareName.
+  ///
+  /// In en, this message translates to:
+  /// **'Software name'**
+  String get metadata_softwareName;
+
+  /// No description provided for @metadata_clientId.
+  ///
+  /// In en, this message translates to:
+  /// **'Client ID'**
+  String get metadata_clientId;
+
+  /// No description provided for @metadata_clientSecret.
+  ///
+  /// In en, this message translates to:
+  /// **'Client secret'**
+  String get metadata_clientSecret;
+
+  /// No description provided for @metadata_fullScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Entire collection'**
+  String get metadata_fullScope;
+
+  /// No description provided for @metadata_systemScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Console'**
+  String get metadata_systemScope;
+
+  /// No description provided for @metadata_gameScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected game'**
+  String get metadata_gameScope;
+
+  /// No description provided for @metadata_refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Fresh re-scrape'**
+  String get metadata_refresh;
+
+  /// No description provided for @metadata_pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get metadata_pause;
+
+  /// No description provided for @metadata_resume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume saved job'**
+  String get metadata_resume;
+
+  /// No description provided for @metadata_retryOutcomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry failed / unmatched'**
+  String get metadata_retryOutcomes;
+
+  /// No description provided for @metadata_jobQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get metadata_jobQueued;
+
+  /// No description provided for @metadata_jobRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get metadata_jobRunning;
+
+  /// No description provided for @metadata_jobCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Traversal completed'**
+  String get metadata_jobCompleted;
+
+  /// No description provided for @metadata_requested.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested lookups'**
+  String get metadata_requested;
+
+  /// No description provided for @metadata_matched.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched'**
+  String get metadata_matched;
+
+  /// No description provided for @metadata_review.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs review'**
+  String get metadata_review;
+
+  /// No description provided for @metadata_ambiguous.
+  ///
+  /// In en, this message translates to:
+  /// **'Ambiguous'**
+  String get metadata_ambiguous;
+
+  /// No description provided for @metadata_unmatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmatched'**
+  String get metadata_unmatched;
+
+  /// No description provided for @metadata_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed / unsupported'**
+  String get metadata_failed;
+
+  /// No description provided for @metadata_rated.
+  ///
+  /// In en, this message translates to:
+  /// **'Rated'**
+  String get metadata_rated;
+
+  /// No description provided for @metadata_pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get metadata_pending;
+
+  /// No description provided for @metadata_completeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed traversal does not mean every game has metadata or a reliable rating.'**
+  String get metadata_completeNote;
+
+  /// No description provided for @metadata_controlsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata operation failed. Saved progress and ROM actions remain available. Check access or resume the saved job.'**
+  String get metadata_controlsError;
+
+  /// No description provided for @metadata_configureAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure account/application access below, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.'**
+  String get metadata_configureAccess;
+
+  /// No description provided for @metadata_quotaWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider quota or cadence applies. Resume when access permits; completed items are retained.'**
+  String get metadata_quotaWait;
+
+  /// No description provided for @metadata_offlineWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider unavailable. Check connectivity and resume the saved job.'**
+  String get metadata_offlineWait;
+
+  /// No description provided for @metadata_invalidInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete all required fields. Leave application fields blank to keep existing access.'**
+  String get metadata_invalidInput;
+
+  /// No description provided for @metadata_forget.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget this provider\'s credentials'**
+  String get metadata_forget;
+
   /// No description provided for @metadata_cacheLoading.
   ///
   /// In en, this message translates to:

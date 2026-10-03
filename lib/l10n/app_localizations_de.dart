@@ -9,6 +9,119 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_setupTitle => 'Spielmetadaten';
+
+  @override
+  String get metadata_setupSubtitle =>
+      'Anbieterzugang, neues Scraping und gespeicherter Fortschritt';
+
+  @override
+  String get metadata_provider => 'Metadatenanbieter';
+
+  @override
+  String get metadata_accessInfo =>
+      'ScreenScraper verwendet ein Standardkonto und separaten Anwendungszugang. IGDB verwendet private Anwendungsdaten. Zugangsdaten bleiben sicher auf diesem Gerät und werden nicht exportiert. Speichern bestätigt keinen Zugang; die Aktualisierung prüft ihn. Keine ROM-Dateien werden heruntergeladen.';
+
+  @override
+  String get metadata_saved => 'Auf diesem Gerät gespeichert';
+
+  @override
+  String get metadata_notConfigured => 'Nicht eingerichtet';
+
+  @override
+  String get metadata_applicationAccess => 'Privater Anwendungszugang';
+
+  @override
+  String get metadata_softwareName => 'Softwarename';
+
+  @override
+  String get metadata_clientId => 'Client-ID';
+
+  @override
+  String get metadata_clientSecret => 'Client-Geheimnis';
+
+  @override
+  String get metadata_fullScope => 'Gesamte Sammlung';
+
+  @override
+  String get metadata_systemScope => 'Konsole';
+
+  @override
+  String get metadata_gameScope => 'Ausgewähltes Spiel';
+
+  @override
+  String get metadata_refresh => 'Neu scrapen';
+
+  @override
+  String get metadata_pause => 'Pausieren';
+
+  @override
+  String get metadata_resume => 'Gespeicherten Auftrag fortsetzen';
+
+  @override
+  String get metadata_retryOutcomes => 'Fehler / ohne Treffer erneut versuchen';
+
+  @override
+  String get metadata_jobQueued => 'In Warteschlange';
+
+  @override
+  String get metadata_jobRunning => 'Läuft';
+
+  @override
+  String get metadata_jobCompleted => 'Durchlauf abgeschlossen';
+
+  @override
+  String get metadata_requested => 'Angefragte Suchvorgänge';
+
+  @override
+  String get metadata_matched => 'Zugeordnet';
+
+  @override
+  String get metadata_review => 'Prüfung nötig';
+
+  @override
+  String get metadata_ambiguous => 'Mehrdeutig';
+
+  @override
+  String get metadata_unmatched => 'Ohne Treffer';
+
+  @override
+  String get metadata_failed => 'Fehler / nicht unterstützt';
+
+  @override
+  String get metadata_rated => 'Mit Bewertung';
+
+  @override
+  String get metadata_pending => 'Ausstehend';
+
+  @override
+  String get metadata_completeNote =>
+      'Ein abgeschlossener Durchlauf bedeutet nicht, dass jedes Spiel Metadaten oder eine verlässliche Bewertung hat.';
+
+  @override
+  String get metadata_controlsError =>
+      'Metadatenaktion fehlgeschlagen. Fortschritt und ROM-Aktionen bleiben erhalten. Zugang prüfen oder Auftrag fortsetzen.';
+
+  @override
+  String get metadata_configureAccess =>
+      'Konto-/Anwendungszugang unten einrichten, dann fortsetzen. Ein ScreenScraper-Standardkonto muss kein Entwicklerkonto werden.';
+
+  @override
+  String get metadata_quotaWait =>
+      'Anbieterlimit oder Abfrageabstand gilt. Fortsetzen, sobald der Zugang es erlaubt; abgeschlossene Einträge bleiben erhalten.';
+
+  @override
+  String get metadata_offlineWait =>
+      'Anbieter nicht verfügbar. Verbindung prüfen und Auftrag fortsetzen.';
+
+  @override
+  String get metadata_invalidInput =>
+      'Alle Pflichtfelder ausfüllen. Anwendungsfelder leer lassen, um vorhandenen Zugang zu behalten.';
+
+  @override
+  String get metadata_forget => 'Zugangsdaten dieses Anbieters vergessen';
+
+  @override
   String get metadata_cacheLoading => 'Metadaten aus dem Cache werden geladen…';
 
   @override

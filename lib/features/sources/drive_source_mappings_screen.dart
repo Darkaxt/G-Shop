@@ -159,6 +159,7 @@ class _DriveSourceMappingsScreenState
                       ],
                       const SizedBox(height: 20),
                       FilledButton(
+                        style: AppTheme.primaryButtonStyle,
                         onPressed: _busy || _folders == null ? null : _save,
                         child: _busy
                             ? const SizedBox(

@@ -9,6 +9,119 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_setupTitle => 'Metadados dos jogos';
+
+  @override
+  String get metadata_setupSubtitle =>
+      'Acesso ao fornecedor, nova recolha e progresso guardado';
+
+  @override
+  String get metadata_provider => 'Fornecedor de metadados';
+
+  @override
+  String get metadata_accessInfo =>
+      'O ScreenScraper usa uma conta padrão e acesso separado de aplicação. O IGDB usa credenciais privadas de aplicação. Ficam seguras neste dispositivo e não são exportadas. Guardar não verifica o acesso; a recolha verifica-o. Não são descarregadas ROMs.';
+
+  @override
+  String get metadata_saved => 'Guardado neste dispositivo';
+
+  @override
+  String get metadata_notConfigured => 'Não configurado';
+
+  @override
+  String get metadata_applicationAccess => 'Acesso privado de aplicação';
+
+  @override
+  String get metadata_softwareName => 'Nome do software';
+
+  @override
+  String get metadata_clientId => 'ID do cliente';
+
+  @override
+  String get metadata_clientSecret => 'Segredo do cliente';
+
+  @override
+  String get metadata_fullScope => 'Toda a coleção';
+
+  @override
+  String get metadata_systemScope => 'Consola';
+
+  @override
+  String get metadata_gameScope => 'Jogo selecionado';
+
+  @override
+  String get metadata_refresh => 'Nova recolha';
+
+  @override
+  String get metadata_pause => 'Pausar';
+
+  @override
+  String get metadata_resume => 'Retomar trabalho guardado';
+
+  @override
+  String get metadata_retryOutcomes => 'Repetir falhas / sem correspondência';
+
+  @override
+  String get metadata_jobQueued => 'Na fila';
+
+  @override
+  String get metadata_jobRunning => 'Em curso';
+
+  @override
+  String get metadata_jobCompleted => 'Percurso concluído';
+
+  @override
+  String get metadata_requested => 'Pesquisas pedidas';
+
+  @override
+  String get metadata_matched => 'Correspondências';
+
+  @override
+  String get metadata_review => 'Requerem revisão';
+
+  @override
+  String get metadata_ambiguous => 'Ambíguos';
+
+  @override
+  String get metadata_unmatched => 'Sem correspondência';
+
+  @override
+  String get metadata_failed => 'Falhas / não suportados';
+
+  @override
+  String get metadata_rated => 'Com pontuação';
+
+  @override
+  String get metadata_pending => 'Pendentes';
+
+  @override
+  String get metadata_completeNote =>
+      'Concluir o percurso não significa que todos os jogos tenham metadados ou pontuações fiáveis.';
+
+  @override
+  String get metadata_controlsError =>
+      'A operação falhou. O progresso e as ações ROM foram preservados. Verifique o acesso ou retome o trabalho.';
+
+  @override
+  String get metadata_configureAccess =>
+      'Configure a conta e o acesso de aplicação abaixo e retome. A conta padrão do ScreenScraper não precisa de se tornar uma conta de programador.';
+
+  @override
+  String get metadata_quotaWait =>
+      'Aplica-se a quota ou cadência do fornecedor. Retome quando o acesso permitir; os itens concluídos são preservados.';
+
+  @override
+  String get metadata_offlineWait =>
+      'Fornecedor indisponível. Verifique a ligação e retome.';
+
+  @override
+  String get metadata_invalidInput =>
+      'Preencha os campos obrigatórios. Deixe os campos de aplicação vazios para manter o acesso existente.';
+
+  @override
+  String get metadata_forget => 'Esquecer as credenciais deste fornecedor';
+
+  @override
   String get metadata_cacheLoading => 'Carregando metadados em cache…';
 
   @override

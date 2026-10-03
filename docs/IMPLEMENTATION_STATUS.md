@@ -64,6 +64,62 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 normal metadata setup and refresh controls (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. Existing General settings and the exact
+  selected game's quick menu now open the same localized metadata controls.
+  Opening reads only cached scope/job state and secure configuration. Saving
+  credentials neither authenticates silently nor claims access was verified;
+  forgetting a provider removes only its separate secure credentials.
+- ScreenScraper user/application access and IGDB private application access have
+  distinct setup fields and secure stores. No credentials were regenerated,
+  copied into the APK, exported to ordinary configuration or committed.
+  Full/system/exact-file re-scrape, durable latest-job restoration, pause/resume
+  and failed/unmatched retry use the existing worker and normal catalogue.
+- Progress comes from committed bounded-page deltas and a terminal SQL report,
+  not a polling timer or a per-card/frame request. Requested, matched, review,
+  ambiguous, unmatched, failed, pending and rated counts stay separate; completed
+  traversal explicitly does not claim rated coverage.
+- Reproduced and repaired two lifecycle defects: an observer failure could leave
+  the durable worker claim running, and pause during snapshot creation could
+  still start provider requests. Focused regressions verify claim release and
+  preservation of pause intent through snapshot publication without a timeout.
+  Shutdown joins a failing/cancelled lookup before closing its adapter.
+- Host normal settings, exact game controls at landscape/portrait resolutions,
+  secure storage and finite job controls passed (`70680`, `75094`, `11592`). The
+  dark-layout goldens verify geometry with Flutter's test font, not real-font
+  readability. Screenshot-test waits were reproduced at a cross-zone Future
+  boundary and resolved by keeping each fixture's SQLite/controller futures in
+  one async zone. This is not evidence for the earlier S4/B5 artwork wait's cause.
+- A native Back failure was reproduced on the host after field unfocus: focus
+  fell to the route scope outside the screen's actions. A screen-local FocusScope
+  preserves the action boundary; its regression passed (`8214`). The affected
+  settings/details/credentials/job checks passed (`79910`) and scoped analysis
+  reported no issues (`7956`). That run also verified the bounded snapshot at
+  about 239 MB peak RSS, one lookup and 128-item commit pages.
+- The native Thor workflow now passes controller entry, touch credential setup,
+  snapshot pause without provider requests, in-flight pause/same-job resume,
+  distinct coverage and Back. The inspected test APK has SHA-256
+  `C54B82DF33376090DAC0E94E934D7D6E1758FB67CCC0C67ACFB2B6115D460EBA`;
+  native logcat and attached driver (`97322`) both report success. Actual-font
+  evidence is `D:/Temp/rshop-s5-native-20261004/native-focus-fixed.png`. This is
+  synthetic in-memory SQLite/provider verification, not a real-provider scrape.
+- The original normal APK was restored and its on-device SHA-256 matches
+  `DAA8B182C8F722F4E3DC75685EE346B8919BFEFB1159C62AF6CFCE3EBDD7FFEE`.
+  All seven original database/preferences/credential/config fingerprints match.
+  The test-only ADB forward was removed; both displays report OFF and the device
+  reports Asleep. No Samsung installation occurred when the Thor disconnected.
+  Match-correction/media UI and remaining S5 acceptance work remain ordinary
+  unfinished work in S5, not deferrals or completed criteria.
+- After the user's approval, primary filled metadata and Drive setup/mapping
+  actions now share white labels on `#C62828`. Brighter accents, tonal actions
+  and disabled defaults remain unchanged. The rendered metadata button regression
+  failed before the change (`76952`); focused settings/source widgets and
+  normal/hover/focus/pressed contrast checks pass (`5219`). Host goldens were
+  updated for the approved palette; this color change has not been installed on
+  the Thor. No Gradle command was required or launched for this verification;
+  gate acquisition and an effective Gradle/Kotlin resource profile are not claimed.
+
 ### S5 exact cached game-details integration (2026-10-03)
 
 - S5 remains the sole ACTIVE stage. The normal detail screen and Game Info

@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers/app_providers.dart';
 import '../../onboarding/widgets/ra_onboarding_screen.dart';
 import '../config_mode_screen.dart';
+import '../metadata_settings_screen.dart';
 import '../models/settings_entry.dart';
 import '../sources_screen.dart';
 import 'settings_list_view.dart';
@@ -42,6 +43,13 @@ class SettingsGeneralTab extends ConsumerWidget {
       firstFocusNode: firstFocusNode,
       sections: [
         SettingsSection(l.settings_sectionLibrary, [
+          SettingsEntry.nav(
+            icon: Icons.auto_stories_outlined,
+            title: l.metadata_setupTitle,
+            subtitle: l.metadata_setupSubtitle,
+            onSelect: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const MetadataSettingsScreen())),
+          ),
           SettingsEntry.nav(
             icon: Icons.cloud_outlined,
             title: l.settings_mySources,

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import '../settings/metadata_settings_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -566,6 +567,15 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           icon: Icons.info_outline_rounded,
           onSelect: () => controller.openGameInfo(),
         ),
+      if (richMetadata?.cacheRowId != null)
+        QuickMenuItem(label: L.of(context).metadata_setupTitle,
+            icon: Icons.auto_stories_outlined,
+            onSelect: () {
+              closeQuickMenu();
+              Navigator.push(context, MaterialPageRoute(builder: (_) =>
+                  MetadataSettingsScreen(systemSlug: widget.system.id,
+                      cacheRowId: richMetadata!.cacheRowId, gameTitle: variant.displayName)));
+            }),
       if (raMatch != null && raMatch.hasMatch && raMatch.raGameId != null)
         QuickMenuItem(
           label: L.of(context).gameDetail_achievements,

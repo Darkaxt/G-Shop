@@ -350,6 +350,7 @@ class _DriveSourceSetupScreenState
                 ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
+                  style: AppTheme.primaryButtonStyle,
                   onPressed: _busy ? null : _connect,
                   icon: const Icon(Icons.login),
                   label: Text(_connection == null ? 'Connect' : 'Reconnect'),
@@ -409,6 +410,7 @@ class _DriveSourceSetupScreenState
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
+                  style: AppTheme.primaryButtonStyle,
                   onPressed: canSave ? _save : null,
                   child: const Text('Save source'),
                 ),

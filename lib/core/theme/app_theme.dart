@@ -5,6 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   // Colors
   static const Color primaryColor = Colors.redAccent;
+  // Primary filled actions need a darker red for readable white labels.
+  // Keep the brighter accent for glows, indicators and other existing UI.
+  static final ButtonStyle primaryButtonStyle = FilledButton.styleFrom(
+    backgroundColor: const Color(0xFFC62828),
+    foregroundColor: Colors.white,
+  );
   static const Color backgroundColor = Colors.black;
   static const Color surfaceColor = Color(0xFF121212);
   static const Color cardColor = Color(0xFF1E1E1E);

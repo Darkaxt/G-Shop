@@ -9,6 +9,119 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_setupTitle => 'Game metadata';
+
+  @override
+  String get metadata_setupSubtitle =>
+      'Provider access, fresh scraping and saved progress';
+
+  @override
+  String get metadata_provider => 'Metadata provider';
+
+  @override
+  String get metadata_accessInfo =>
+      'ScreenScraper uses a standard account plus separate application access. IGDB uses a private application pair. Credentials are saved securely on this device, not in exported configuration. Saving is not proof of provider access; refresh checks access. No ROM files are downloaded.';
+
+  @override
+  String get metadata_saved => 'Saved on this device';
+
+  @override
+  String get metadata_notConfigured => 'Not configured';
+
+  @override
+  String get metadata_applicationAccess => 'Private application access';
+
+  @override
+  String get metadata_softwareName => 'Software name';
+
+  @override
+  String get metadata_clientId => 'Client ID';
+
+  @override
+  String get metadata_clientSecret => 'Client secret';
+
+  @override
+  String get metadata_fullScope => 'Entire collection';
+
+  @override
+  String get metadata_systemScope => 'Console';
+
+  @override
+  String get metadata_gameScope => 'Selected game';
+
+  @override
+  String get metadata_refresh => 'Fresh re-scrape';
+
+  @override
+  String get metadata_pause => 'Pause';
+
+  @override
+  String get metadata_resume => 'Resume saved job';
+
+  @override
+  String get metadata_retryOutcomes => 'Retry failed / unmatched';
+
+  @override
+  String get metadata_jobQueued => 'Queued';
+
+  @override
+  String get metadata_jobRunning => 'Running';
+
+  @override
+  String get metadata_jobCompleted => 'Traversal completed';
+
+  @override
+  String get metadata_requested => 'Requested lookups';
+
+  @override
+  String get metadata_matched => 'Matched';
+
+  @override
+  String get metadata_review => 'Needs review';
+
+  @override
+  String get metadata_ambiguous => 'Ambiguous';
+
+  @override
+  String get metadata_unmatched => 'Unmatched';
+
+  @override
+  String get metadata_failed => 'Failed / unsupported';
+
+  @override
+  String get metadata_rated => 'Rated';
+
+  @override
+  String get metadata_pending => 'Pending';
+
+  @override
+  String get metadata_completeNote =>
+      'Completed traversal does not mean every game has metadata or a reliable rating.';
+
+  @override
+  String get metadata_controlsError =>
+      'Metadata operation failed. Saved progress and ROM actions remain available. Check access or resume the saved job.';
+
+  @override
+  String get metadata_configureAccess =>
+      'Configure account/application access below, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.';
+
+  @override
+  String get metadata_quotaWait =>
+      'Provider quota or cadence applies. Resume when access permits; completed items are retained.';
+
+  @override
+  String get metadata_offlineWait =>
+      'Provider unavailable. Check connectivity and resume the saved job.';
+
+  @override
+  String get metadata_invalidInput =>
+      'Complete all required fields. Leave application fields blank to keep existing access.';
+
+  @override
+  String get metadata_forget => 'Forget this provider\'s credentials';
+
+  @override
   String get metadata_cacheLoading => 'Loading cached metadata…';
 
   @override

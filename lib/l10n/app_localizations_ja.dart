@@ -9,6 +9,115 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_setupTitle => 'ゲームのメタデータ';
+
+  @override
+  String get metadata_setupSubtitle => 'プロバイダー設定、新規取得、保存済みの進行状況';
+
+  @override
+  String get metadata_provider => 'メタデータプロバイダー';
+
+  @override
+  String get metadata_accessInfo =>
+      'ScreenScraperは通常アカウントと別のアプリ認証を使用します。IGDBは非公開のアプリ認証情報を使用します。認証情報はこの端末に安全に保存され、設定には出力されません。保存だけでは接続確認になりません。取得時に確認します。ROMはダウンロードしません。';
+
+  @override
+  String get metadata_saved => 'この端末に保存済み';
+
+  @override
+  String get metadata_notConfigured => '未設定';
+
+  @override
+  String get metadata_applicationAccess => '非公開のアプリ認証';
+
+  @override
+  String get metadata_softwareName => 'ソフトウェア名';
+
+  @override
+  String get metadata_clientId => 'クライアントID';
+
+  @override
+  String get metadata_clientSecret => 'クライアントシークレット';
+
+  @override
+  String get metadata_fullScope => 'コレクション全体';
+
+  @override
+  String get metadata_systemScope => '本体';
+
+  @override
+  String get metadata_gameScope => '選択したゲーム';
+
+  @override
+  String get metadata_refresh => '新しく取得';
+
+  @override
+  String get metadata_pause => '一時停止';
+
+  @override
+  String get metadata_resume => '保存済みジョブを再開';
+
+  @override
+  String get metadata_retryOutcomes => '失敗・未一致を再試行';
+
+  @override
+  String get metadata_jobQueued => '待機中';
+
+  @override
+  String get metadata_jobRunning => '実行中';
+
+  @override
+  String get metadata_jobCompleted => '処理完了';
+
+  @override
+  String get metadata_requested => '検索リクエスト';
+
+  @override
+  String get metadata_matched => '一致';
+
+  @override
+  String get metadata_review => '要確認';
+
+  @override
+  String get metadata_ambiguous => '曖昧';
+
+  @override
+  String get metadata_unmatched => '未一致';
+
+  @override
+  String get metadata_failed => '失敗・非対応';
+
+  @override
+  String get metadata_rated => '評価あり';
+
+  @override
+  String get metadata_pending => '未処理';
+
+  @override
+  String get metadata_completeNote => '処理が完了しても、全ゲームにメタデータや信頼できる評価があるとは限りません。';
+
+  @override
+  String get metadata_controlsError =>
+      'メタデータ操作に失敗しました。進行状況とROM操作は維持されます。認証を確認するか、ジョブを再開してください。';
+
+  @override
+  String get metadata_configureAccess =>
+      '下でアカウントとアプリ認証を設定して再開してください。ScreenScraperの通常アカウントを開発者アカウントに変更する必要はありません。';
+
+  @override
+  String get metadata_quotaWait =>
+      'プロバイダーの利用枠またはリクエスト間隔が適用されます。利用可能になったら再開してください。完了した項目は維持されます。';
+
+  @override
+  String get metadata_offlineWait => 'プロバイダーに接続できません。接続を確認して再開してください。';
+
+  @override
+  String get metadata_invalidInput => '必須項目を入力してください。アプリ認証の欄を空にすると現在の設定を維持します。';
+
+  @override
+  String get metadata_forget => 'このプロバイダーの認証情報を削除';
+
+  @override
   String get metadata_cacheLoading => 'キャッシュ済みメタデータを読み込み中…';
 
   @override

@@ -97,6 +97,45 @@ void main() {
     await library.putEdition(EditionIdentity(id: editionId, gameId: gameId));
   }
 
+  test('committed progress coalesces editions and latest restores provider job',
+      () async {
+    expect(await jobs.latest(providerId: 'screenscraper'), isNull);
+    await seed('a');
+    await seed('b');
+    final job = await jobs.create(
+        providerId: provider.providerId,
+        collectionGeneration: 'progress',
+        editionIds: ['a', 'b']);
+    final events = <MetadataRefreshReport>[];
+    final done = await jobs.run(job.id, provider, onProgress: events.add);
+    expect(events.first.state, 'running');
+    expect(events.last.counts, {'matched': 2});
+    expect(events.last.requested, 1);
+    expect(events.last.rated, 2);
+    final restored = await MetadataRefreshJobs(Future.value(db))
+        .latest(providerId: 'screenscraper');
+    expect(restored!.id, done.id);
+    expect(restored.providerId, 'screenscraper');
+    expect(restored.state, 'completed');
+    expect(await jobs.latest(providerId: 'igdb'), isNull);
+  });
+
+  test('progress observer failure releases the durable worker claim', () async {
+    await seed('observer');
+    final job = await jobs.create(
+        providerId: provider.providerId,
+        collectionGeneration: 'observer',
+        editionIds: ['observer']);
+    await expectLater(
+        jobs.run(job.id, provider, onProgress: (_) {
+          throw StateError('observer failed');
+        }),
+        throwsStateError);
+    expect((await jobs.report(job.id)).state, 'paused');
+    expect(provider.calls, isEmpty);
+    expect((await jobs.run(job.id, provider)).state, 'completed');
+  });
+
   test(
       'fresh snapshot coalesces equal requests and never imports legacy scores',
       () async {

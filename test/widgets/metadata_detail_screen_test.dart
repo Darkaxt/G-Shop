@@ -17,12 +17,15 @@ import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/game_providers.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
+import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import '../helpers/pump_helpers.dart';
+import '../metadata_controls_test.dart' show MemorySecrets, ControlsProvider;
 
 class _Database extends DatabaseService {
   final Database db;
@@ -127,10 +130,17 @@ void main() {
       final storage = StorageService();
       await storage.init();
       final database = _Database(db);
+      final secrets = MemorySecrets();
+      final controls = MetadataControlsController(database: Future.value(db),
+          providers: {'screenscraper': ControlsProvider(), 'igdb': ControlsProvider('igdb')},
+          screenScraperCredentials: ScreenScraperCredentialStore(storage: secrets),
+          igdbCredentials: IgdbCredentialStore(storage: secrets), catalogueChanged: () {});
+      await controls.load();
       final container = ProviderContainer(overrides: [
         libraryDbProvider.overrideWithValue(database),
         storageServiceProvider.overrideWithValue(storage),
         bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
+        metadataControlsProvider.overrideWith((_) => controls),
       ]);
       addTearDown(container.dispose);
       final game = GameItem(
@@ -173,8 +183,27 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
       expect(find.textContaining('IGDB users 89/100'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonStart);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Game metadata'));
+      await tester.pumpAndSettle();
+      expect(find.text('Selected game: Game'), findsOneWidget);
+      expect(find.byKey(const ValueKey('metadata-scope')), findsNothing);
+      final refresh = find.byKey(const ValueKey('metadata-refresh'));
+      await tester.ensureVisible(refresh);
+      await tester.tap(refresh);
+      // Keep these controller futures in the zone that owns the fixture DB.
+      await controls.pause();
+      if (controls.state.report!.state != 'completed') {
+        await controls.resume();
+      }
+      await tester.pumpAndSettle();
+      expect(controls.state.report!.counts, {'unmatched': 1});
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
+      await controls.close();
       expect(tester.takeException(), isNull);
     });
   }

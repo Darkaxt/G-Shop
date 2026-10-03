@@ -7,18 +7,7 @@ import '../../models/scraped_metadata.dart';
 import '../romm_platform_matcher.dart';
 import 'metadata_credentials.dart';
 import 'metadata_provider.dart';
-
-/// Application credentials are request-time configuration, not catalogue data.
-/// The caller uses secure storage; no bearer token is exported or persisted.
-class IgdbCredentials {
-  final String clientId;
-  final String clientSecret;
-  const IgdbCredentials(this.clientId, this.clientSecret);
-  bool get isConfigured =>
-      clientId.trim().isNotEmpty && clientSecret.isNotEmpty;
-  @override
-  String toString() => 'IgdbCredentials(redacted)';
-}
+export 'metadata_credentials.dart' show IgdbCredentials;
 
 /// Legitimate IGDB v4 source for the externally defined overall score and its
 /// separate critic/community support. Receiving scores does not approve META-05.

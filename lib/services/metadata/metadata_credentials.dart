@@ -54,6 +54,66 @@ class MetadataCredentialStorageException implements Exception {
   String toString() => 'Metadata credentials could not be accessed securely.';
 }
 
+/// Private application configuration, never exported into catalogue or config JSON.
+class IgdbCredentials {
+  final String clientId;
+  final String clientSecret;
+  const IgdbCredentials(this.clientId, this.clientSecret);
+  bool get isConfigured =>
+      clientId.trim().isNotEmpty && clientSecret.trim().isNotEmpty;
+  @override
+  String toString() => 'IgdbCredentials(redacted)';
+}
+
+class IgdbCredentialStore {
+  final MetadataSecretStorage _storage;
+  Future<void> _tail = Future.value();
+  static const _id = 'rshop.metadata.igdb.client.id';
+  static const _secret = 'rshop.metadata.igdb.client.secret';
+  IgdbCredentialStore({MetadataSecretStorage? storage})
+      : _storage = storage ?? FlutterMetadataSecretStorage();
+
+  Future<T> _serial<T>(Future<T> Function() operation) {
+    final before = _tail;
+    final done = Completer<void>();
+    _tail = done.future;
+    return () async {
+      await before;
+      try {
+        return await operation();
+      } catch (_) {
+        throw const MetadataCredentialStorageException();
+      } finally {
+        done.complete();
+      }
+    }();
+  }
+
+  Future<IgdbCredentials?> read() => _serial(() async {
+        final id = await _storage.read(_id);
+        final secret = await _storage.read(_secret);
+        if (id == null || secret == null) return null;
+        final credentials = IgdbCredentials(id, secret);
+        return credentials.isConfigured ? credentials : null;
+      });
+
+  Future<void> save(IgdbCredentials credentials) {
+    if (!credentials.isConfigured) {
+      throw ArgumentError('Incomplete application access');
+    }
+    return _serial(() async {
+      await _storage.delete(_id);
+      await _storage.write(_secret, credentials.clientSecret);
+      await _storage.write(_id, credentials.clientId);
+    });
+  }
+
+  Future<void> remove() => _serial(() async {
+        await _storage.delete(_id);
+        await _storage.delete(_secret);
+      });
+}
+
 /// Separate application authorization and account credentials. Neither type has
 /// an export/config JSON representation. Secure storage is the only persistence.
 /// Store instances should be shared by their provider setup and lookup callers.

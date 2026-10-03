@@ -438,6 +438,11 @@ and expose provenance, original scale, available vote count, match correction an
 content tags. A score is advice, not permission to download/delete or a change to
 the archive/device curation profiles.
 
+The user approved white labels on darker-red primary filled buttons on
+2026-10-04: use `#C62828` with white, retaining existing disabled/tonal styling
+and the brighter accent used elsewhere. Verify normal and interaction-state
+label contrast without changing authentication or refresh behavior.
+
 Acceptance: coherent controller/touch navigation, no dead-end authentication UI,
 clear pending/error states and a details view that explains the overlay's score.
 

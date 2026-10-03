@@ -14,6 +14,20 @@ class _MemorySecrets implements MetadataSecretStorage {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('IGDB private application pair is secure and independently removable',
+      () async {
+    final storage = _MemorySecrets();
+    final store = IgdbCredentialStore(storage: storage);
+    expect(await store.read(), isNull);
+    await store.save(const IgdbCredentials('fixture-id', 'fixture-secret'));
+    expect((await store.read())!.clientId, 'fixture-id');
+    expect((await store.read())!.clientSecret, 'fixture-secret');
+    expect('${await store.read()}', isNot(contains('secret')));
+    await store.remove();
+    expect(await store.read(), isNull);
+    expect(() => store.save(const IgdbCredentials('', 'fixture')),
+        throwsArgumentError);
+  });
   test('account removal preserves independent developer authorization',
       () async {
     final storage = _MemorySecrets();
