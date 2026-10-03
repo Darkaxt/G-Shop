@@ -789,13 +789,14 @@ class LibraryStore {
   /// the same read transaction; retained obsolete facts cannot supply a score.
   Future<Map<String, EffectiveOverallRating?>> effectiveRatings(
       List<String> editionIds,
-      {List<AssessedOverallScoreBasis> assessedBases = const []}) async {
+      {List<AssessedOverallScoreBasis>? assessedBases}) async {
     if (editionIds.length > 128 || editionIds.any((id) => id.trim().isEmpty)) {
       throw ArgumentError(
           'Rating pages require at most 128 nonempty edition IDs');
     }
     final ids = editionIds.toSet().toList(growable: false);
-    final bases = List<AssessedOverallScoreBasis>.unmodifiable(assessedBases);
+    final bases = List<AssessedOverallScoreBasis>.unmodifiable(
+        assessedBases ?? productionOverallScoreBases);
     final sources = {
       'screenscraper',
       'igdb',
@@ -815,11 +816,11 @@ class LibraryStore {
   /// Shared transaction-scoped read used by the indexed collection projection.
   static Future<Map<String, EffectiveOverallRating?>> readEffectiveRatings(
       DatabaseExecutor txn, List<String> ids,
-      {List<AssessedOverallScoreBasis> assessedBases = const []}) async {
+      {List<AssessedOverallScoreBasis>? assessedBases}) async {
     if (ids.length > 128) {
       throw ArgumentError('Rating page exceeds 128 editions');
     }
-    final bases = assessedBases;
+    final bases = assessedBases ?? productionOverallScoreBases;
     final sources = {
       'screenscraper',
       'igdb',

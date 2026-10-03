@@ -395,7 +395,7 @@ class LibraryQuery {
 
   Future<LibraryQueryPage> page(
       {required LibraryQueryFilter filter,
-      List<AssessedOverallScoreBasis> assessedBases = const []}) async {
+      List<AssessedOverallScoreBasis>? assessedBases}) async {
     if (filter.limit < 1 ||
         filter.limit > 128 ||
         filter.offset < 0 ||
@@ -414,7 +414,8 @@ class LibraryQuery {
         values.length > 64 || values.any((v) => v.trim().isEmpty))) {
       throw ArgumentError('Invalid filter dimensions');
     }
-    final bases = List<AssessedOverallScoreBasis>.unmodifiable(assessedBases);
+    final bases = List<AssessedOverallScoreBasis>.unmodifiable(
+        assessedBases ?? productionOverallScoreBases);
     final db = await _database;
     return db.transaction((txn) async {
       await _refresh(txn, bases);

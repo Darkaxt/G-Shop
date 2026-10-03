@@ -100,6 +100,66 @@ void main() {
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
 
+  test('production display and Top share supported community score, not total',
+      () async {
+    final supported = await seed(1, score: 70);
+    final small = await seed(2, score: 100, tags: {'Hack'});
+    await seed(3);
+    for (final (id, value, votes) in [(supported, 90, 20), (small, 99, 2)]) {
+      final cached = (await store.metadata(id, 'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...cached.toJson(),
+        'ratings': [
+          ...cached.ratings.map((r) => r.toJson()),
+          SourcedRating.parse(
+                  sourceId: 'igdb',
+                  sourceLabel: 'IGDB users',
+                  providerGameId: cached.providerGameId,
+                  rawValue: value,
+                  scaleMinimum: 0,
+                  scaleMaximum: 100,
+                  voteCount: votes,
+                  kind: RatingKind.communityAggregate,
+                  retrievedAt: at)!
+              .toJson()
+        ]
+      }));
+    }
+    final page = await query.page(filter: LibraryQueryFilter(top: 25));
+    expect(page.collectionGames, 3);
+    expect(page.rankedGames, 1);
+    expect(page.provisional, isTrue);
+    expect(page.items.single.editionId, supported);
+    final selected = (await store.effectiveRatings([supported, small]));
+    expect(page.items.single.score!.rating.toJson(),
+        selected[supported]!.rating.toJson());
+    expect(selected[supported]!.rating.normalizedValue, 90);
+    expect(selected[supported]!.rating.kind, RatingKind.communityAggregate);
+    expect(selected[small]!.rating.normalizedValue, 99);
+    expect(selected[small]!.rankingEligible, isFalse);
+    expect(
+        (await query.page(filter: LibraryQueryFilter(top: 25, tags: {'Hack'})))
+            .items,
+        isEmpty,
+        reason:
+            'A low-support hack cannot fill an eligible ordinary-game Top.');
+    // The same current projection is invalidated by a support-count change;
+    // no new scrape or provider request is needed for the read.
+    final cached = (await store.metadata(supported, 'igdb'))!;
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...cached.toJson(),
+      'ratings': cached.ratings
+          .map((r) => {
+                ...r.toJson(),
+                if (r.kind == RatingKind.communityAggregate) 'voteCount': 19,
+              })
+          .toList(),
+    }));
+    final revised = await query.page(filter: LibraryQueryFilter(top: 25));
+    expect(revised.rankedGames, 0);
+    expect(revised.items, isEmpty);
+  });
+
   test('ranks collection before tag search view and genre intersections',
       () async {
     final first = await seed(1, score: 95);

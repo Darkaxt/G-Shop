@@ -20,8 +20,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   verified transfer, native process recovery, bundles and owned installations.
   S4 is ACTIVE again: B4 application authentication is resolved by the authorized
   dedicated Twitch app and a real review/publication/offline-consumption check.
-  Its representative reception assessment and earlier unexplained host artwork
-  wait remain required. S5-S8 NOT STARTED; no parallel ACTIVE stage is opened.
+  The representative older/newer/project reception assessment now supplies a
+  scoped IGDB community basis, verified through the real worker/cache/offline
+  query. The earlier unexplained host artwork wait and final S4 reconciliation
+  remain required. Unassessed console scopes remain advisory, not silently
+  approved. S5-S8 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; ScreenScraper developer credentials are stored in the ignored local
@@ -57,6 +60,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S4 live reception remediation and shared production score (2026-10-03)
+
+- Real IGDB capture requested public games only: twenty older-console releases,
+  four Switch releases and two distinct hacks. All 26 identities were matched;
+  24 had sourced ratings and two remained unrated. Final Fantasy VII initially
+  stayed ambiguous among three offered IDs; an explicit single-title benchmark
+  review selected original 427 without changing production matching. No ROM
+  payload, owner collection, artwork, Drive or Thor storage was involved.
+- `SCORE_RECEPTION_ASSESSMENT.md` records IDs, separate raw score/count bases,
+  independent reception, port/project differences, coverage and limitations.
+  The blended IGDB total can give one critic half the result despite thousands
+  of user votes. It is not approved merely from its combined count. The supplied
+  game-level community average is the assessed basis, explicitly preserving
+  `communityAggregate` / `IGDB users`, not pretending it is critics or inventing
+  a local average. Its current scope is PS1/PS2/GBA/GameCube/Switch with known
+  >=20 user ratings. This operational floor is not statistical certainty.
+- The shared selector/store/indexed query now apply that same application-owned
+  assessment by default. An explicit empty assessment remains available to verify
+  unapproved capture semantics. Unsupported scope, unknown/small count, stale
+  generation, conflicting identity and wrong original/project ownership cannot
+  rank. The actual community object drives display and rank; no higher total or
+  critic fallback gains approval. Existing query-policy fingerprints invalidate
+  projections when the basis changes, without persisted fixed Top lists.
+- The focused regression failed against the prior selector's rejection of a
+  community game-level assessment, then passed after integration. Score/cache,
+  exact identity, indexed query/no-backfill, production upgrade/reopen and normal
+  IGDB worker checks passed, exit 0. New checks cover the real one-critic trap,
+  null/two/nineteen/twenty vote support, stale scope, shared display/Top and a
+  count change invalidating current ranked membership. Scoped analysis of all
+  six changed Dart source/test files passed without findings, exit 0.
+- Fresh real three-item provider -> review -> publication -> provider closed ->
+  production offline query passed, exit 0. Final Fantasy VII used its actual
+  90.6648675637598 community score/1,630 votes, not total 87.8324337818799.
+  Unbound's thirteen-vote project remained advisory; Crimson Echoes stayed
+  unrated and did not borrow Chrono Trigger. The query reported 3 collection
+  games, 1 ranked, 1 Top match and provisional coverage. This is actual provider
+  and host SQLite proof, not target UI/device proof. The public diagnostic logs
+  are retained under `D:\Temp\rshop-reception-20261003` as required evidence.
+- Transactional cleanup inspected the signed manifest for only regenerated
+  `build/unit_test_assets` and `build/test_cache`; ticket application reached
+  `applied`, deleting 56,982,037 bytes with no warnings or errors. These outputs
+  are reproducible by the focused Flutter checks. Live capture evidence, earlier
+  host-stall diagnostics, APK deliverables, source assets and credentials remain.
+- S4 remains ACTIVE; no S5 implementation, release, SD migration, account change,
+  repeated secret renewal or new monitoring occurred. S1 is still BLOCKED at
+  B3/elapsed renewal, S2/S3 COMPLETE, S5-S8 NOT STARTED. The unassessed platform
+  scope and unexplained earlier host artwork wait cannot be concealed by this
+  successful narrow score workflow.
 
 ### S4 dedicated Twitch registration and live IGDB verification (2026-10-03)
 

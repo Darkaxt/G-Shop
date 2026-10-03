@@ -333,9 +333,13 @@ Unmatched provider coverage is reported honestly and does not authorize false
 matches. Run the full fresh library pass only within authorized live scope.
 
 The [2026-10-03 live reception assessment](SCORE_RECEPTION_ASSESSMENT.md)
-records the ordinary-release sample and does not approve ScreenScraper as a
-consensus ranking basis. Newer-console/project coverage and live aggregate-source
-remediation remain S4 acceptance work; B4 blocks the IGDB authentication boundary.
+records older/newer releases and independently identified projects. ScreenScraper
+and IGDB's blended total are not approved. The legitimate IGDB capture resolved
+B4 and establishes the labelled game-level community average with known >=20
+user votes in the assessed PS1/PS2/GBA/GameCube/Switch scope. Preserve its actual
+community kind; it is an overall assessment of the game, not a critic component
+silently substituting for an absent total. Query/display integration and remaining
+S4 reconciliation must still pass before stage closure.
 
 ### S4 provider budget and explicit recovery boundary
 
@@ -451,7 +455,8 @@ Use one selector for cached card/detail scores and ranking eligibility. Select
 one sourced overall, not the highest value or an average of provider components.
 The application supplies benchmark-established source precedence and scope only
 after META-05's live assessment passes; provider/import JSON cannot supply that
-policy. No source is accepted by default. Each accepted basis retains its evidence
+policy. The recorded IGDB community assessment supplies the initial production
+basis, with no critic/total or unknown-count fallback. Each accepted basis retains its evidence
 reference, original scale/kind, assessed platform coverage and assessed sample
 support. Unknown counts require their separately recorded confidence assessment;
 known counts below the assessed threshold cannot become ranked consensus.

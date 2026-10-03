@@ -50,7 +50,7 @@ void main() {
   }
 
   // This explicit synthetic assessment exercises semantics, NOT live reception
-  // acceptance. Production has no accepted basis until META-05 is reconciled.
+  // acceptance. These overrides are distinct from the recorded production basis.
   AssessedOverallScoreBasis basis(String provider,
           {String? unknownCountAssessment,
           Set<String> platforms = const {'psx'}}) =>
@@ -205,6 +205,76 @@ void main() {
     ]) {
       expect(select([record('igdb', 100, votes: 100, kind: kind)]), isNull);
     }
+  });
+
+  test('assessed community game score is selected, not the blended maximum',
+      () {
+    final community =
+        record('igdb', 90.5, votes: 1712, kind: RatingKind.communityAggregate);
+    final combined = MetadataRecord.fromJson({
+      ...community.toJson(),
+      'ratings': [
+        record('igdb', 85.25, votes: 1713).ratings.single.toJson(),
+        record('igdb', 80, votes: 1, kind: RatingKind.criticAggregate)
+            .ratings
+            .single
+            .toJson(),
+        community.ratings.single.toJson(),
+      ]
+    });
+    final assessment = AssessedOverallScoreBasis(
+        sourceId: 'igdb',
+        kind: RatingKind.communityAggregate,
+        scaleMinimum: 0,
+        scaleMaximum: 100,
+        platformIds: {'psx'},
+        minimumVoteCount: 20,
+        assessmentReference: 'fixture-explicit-community-assessment');
+    final selected = select([combined], assessed: [assessment])!;
+    expect(selected.rating.kind, RatingKind.communityAggregate);
+    expect(selected.rating.normalizedValue, 90.5);
+    expect(selected.rating.voteCount, 1712);
+    expect(selected.rankingEligible, isTrue);
+    // No assessment means no implicit component substitution.
+    expect(select([combined])!.rating.normalizedValue, 85.25);
+    for (final votes in [null, 2, 19]) {
+      final lowSupport = record('igdb', 100,
+          votes: votes, kind: RatingKind.communityAggregate);
+      expect(select([lowSupport], assessed: [assessment])?.rankingEligible,
+          isNot(true));
+    }
+  });
+
+  test('production community basis enforces support scope and freshness', () {
+    for (final votes in [null, 2, 19, 20]) {
+      final score =
+          record('igdb', 99, votes: votes, kind: RatingKind.communityAggregate);
+      final selected = select([score], assessed: productionOverallScoreBases)!;
+      expect(selected.rating.normalizedValue, 99);
+      expect(selected.rating.kind, RatingKind.communityAggregate);
+      expect(selected.rating.voteCount, votes);
+      expect(selected.rankingEligible, votes == 20);
+      final stale = selectEffectiveOverallRating(
+          game: game,
+          edition: official,
+          records: [score],
+          assessedBases: productionOverallScoreBases,
+          staleProviderIds: {'igdb'})!;
+      expect(stale.rating.toJson(), score.ratings.single.toJson());
+      expect(stale.fresh, isFalse);
+      expect(stale.rankingEligible, isFalse);
+    }
+    final unsupported =
+        record('igdb', 99, votes: 100, kind: RatingKind.communityAggregate);
+    expect(
+        select([
+          MetadataRecord.fromJson(
+              {...unsupported.toJson(), 'platformId': 'snes'})
+        ],
+            identity:
+                GameIdentity.fromJson({...game.toJson(), 'platformId': 'snes'}),
+            assessed: productionOverallScoreBases),
+        isNull);
   });
 
   test('imported approval and stale generations do not grant ranking', () {
