@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
 import '../library_store.dart';
+import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
 
 class MetadataRefreshReport {
@@ -20,6 +21,7 @@ class MetadataRefreshReport {
   final Map<String, int> counts;
   final String? blockedStatus;
   final DateTime? notBefore;
+  final String kind;
   const MetadataRefreshReport(
       {required this.id,
       required this.generation,
@@ -29,7 +31,8 @@ class MetadataRefreshReport {
       required this.rated,
       required this.counts,
       this.blockedStatus,
-      this.notBefore});
+      this.notBefore,
+      this.kind = 'metadata'});
 }
 
 class MetadataReviewItem {
@@ -59,7 +62,7 @@ class MetadataRefreshJobs {
       id INTEGER PRIMARY KEY AUTOINCREMENT, generation INTEGER NOT NULL UNIQUE,
       provider_id TEXT NOT NULL, collection_generation TEXT NOT NULL,
       state TEXT NOT NULL, requested INTEGER NOT NULL DEFAULT 0,
-      blocked_status TEXT, not_before INTEGER
+      blocked_status TEXT, not_before INTEGER, is_artwork INTEGER NOT NULL DEFAULT 0
     )''');
     await db.execute('''CREATE TABLE IF NOT EXISTS metadata_refresh_items (
       job_id INTEGER NOT NULL, edition_id TEXT NOT NULL,
@@ -82,8 +85,31 @@ class MetadataRefreshJobs {
       provider_id TEXT PRIMARY KEY, requests_per_minute INTEGER,
       next_allowed_at INTEGER NOT NULL,
       max_threads INTEGER,
-      quota_exhausted INTEGER NOT NULL DEFAULT 0
+      quota_exhausted INTEGER NOT NULL DEFAULT 0, remaining_requests INTEGER
     )''');
+    final jobColumns =
+        await db.rawQuery('PRAGMA table_info(metadata_refresh_jobs)');
+    if (!jobColumns.any((r) => r['name'] == 'is_artwork')) {
+      await db.execute(
+          'ALTER TABLE metadata_refresh_jobs ADD COLUMN is_artwork INTEGER NOT NULL DEFAULT 0');
+    }
+    final limitColumns =
+        await db.rawQuery('PRAGMA table_info(metadata_provider_limits)');
+    if (!limitColumns.any((r) => r['name'] == 'remaining_requests')) {
+      await db.execute(
+          'ALTER TABLE metadata_provider_limits ADD COLUMN remaining_requests INTEGER');
+    }
+    await db.execute('''CREATE TABLE IF NOT EXISTS metadata_artwork_items (
+      job_id INTEGER NOT NULL, edition_id TEXT NOT NULL, media_key TEXT NOT NULL,
+      identity_key TEXT NOT NULL, metadata_generation INTEGER NOT NULL,
+      media_json TEXT NOT NULL, status TEXT NOT NULL,
+      PRIMARY KEY(job_id, edition_id, media_key)
+    )''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_artwork_pending
+      ON metadata_artwork_items(job_id, status, edition_id, media_key)''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_artwork_coalescing
+      ON metadata_artwork_items(job_id, media_key, status, edition_id)''');
+    await MetadataArtworkCache.install(db);
   }
 
   /// Called once by database startup, never by a second live job runner.
@@ -135,6 +161,87 @@ class MetadataRefreshJobs {
     'unsupportedPlatform',
     'identityChanged'
   };
+
+  /// Explicit fresh artwork snapshot from current owned metadata. This never
+  /// scrapes titles, imports legacy covers or enumerates installation residency.
+  Future<MetadataRefreshReport> createArtwork(
+      {required String providerId,
+      required String collectionGeneration,
+      required Iterable<String> editionIds,
+      Set<String>? mediaKeys}) async {
+    if (providerId.trim().isEmpty || collectionGeneration.trim().isEmpty) {
+      throw ArgumentError('Artwork scope is required');
+    }
+    final db = await _database;
+    final id = await db.transaction((txn) async {
+      final maximum = await txn.rawQuery('''SELECT MAX(value) AS maximum FROM (
+        SELECT MAX(generation) AS value FROM metadata_refresh_jobs
+        UNION ALL SELECT MAX(generation_id) FROM library_metadata)''');
+      final id = await txn.insert('metadata_refresh_jobs', {
+        'generation': ((maximum.single['maximum'] as int?) ?? 0) + 1,
+        'provider_id': providerId,
+        'collection_generation': collectionGeneration,
+        'state': 'paused',
+        'is_artwork': 1,
+      });
+      for (final editionId in editionIds) {
+        final identity = await _identity(txn, editionId);
+        final rows = await txn.query('library_metadata',
+            where: 'edition_id = ? AND provider_id = ?',
+            whereArgs: [editionId, providerId],
+            limit: 1);
+        if (identity == null ||
+            rows.isEmpty ||
+            rows.single['identity_key'] !=
+                LibraryStore.metadataIdentity(identity)) {
+          throw StateError('Artwork requires current matched metadata');
+        }
+        final record = MetadataRecord.fromJson(
+            jsonDecode(rows.single['record_json'] as String));
+        for (final media in record.media) {
+          final mediaKey = MetadataArtworkCache.key(media);
+          if (mediaKeys != null && !mediaKeys.contains(mediaKey)) continue;
+          await txn.insert(
+              'metadata_artwork_items',
+              {
+                'job_id': id,
+                'edition_id': editionId,
+                'media_key': mediaKey,
+                'identity_key': rows.single['identity_key'],
+                'metadata_generation': record.refreshGeneration,
+                'media_json': jsonEncode(media.toJson()),
+                'status': 'pending',
+              },
+              conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+      }
+      return id;
+    });
+    return report(id);
+  }
+
+  static Future<bool> _currentArtwork(
+      DatabaseExecutor db, Map<String, Object?> item, String providerId) async {
+    final identity = await _identity(db, item['edition_id'] as String);
+    if (identity == null ||
+        LibraryStore.metadataIdentity(identity) != item['identity_key']) {
+      return false;
+    }
+    final records = await db.query('library_metadata',
+        columns: ['generation_id', 'identity_key', 'record_json'],
+        where: 'edition_id = ? AND provider_id = ?',
+        whereArgs: [item['edition_id'], providerId],
+        limit: 1);
+    if (records.isEmpty ||
+        records.single['generation_id'] != item['metadata_generation'] ||
+        records.single['identity_key'] != item['identity_key']) {
+      return false;
+    }
+    final record = MetadataRecord.fromJson(
+        jsonDecode(records.single['record_json'] as String));
+    return record.media
+        .any((m) => MetadataArtworkCache.key(m) == item['media_key']);
+  }
 
   /// User-requested retry is a new snapshot, never an automatic busy loop or a
   /// mutation of the old report. Successful entries and review decisions are not
@@ -450,8 +557,9 @@ class MetadataRefreshJobs {
     final db = await _database;
     return db.transaction((txn) async {
       final row = await _job(txn, id);
+      final artwork = row['is_artwork'] == 1;
       final totals = await txn.rawQuery('''SELECT status, COUNT(*) AS count,
-        SUM(rated) AS rated FROM metadata_refresh_items WHERE job_id = ? GROUP BY status''',
+        ${artwork ? '0' : 'SUM(rated)'} AS rated FROM ${artwork ? 'metadata_artwork_items' : 'metadata_refresh_items'} WHERE job_id = ? GROUP BY status''',
           [id]);
       return MetadataRefreshReport(
           id: id,
@@ -460,6 +568,7 @@ class MetadataRefreshJobs {
           state: row['state'] as String,
           requested: row['requested'] as int,
           rated: totals.fold(0, (sum, r) => sum + (r['rated'] as int)),
+          kind: artwork ? 'artwork' : 'metadata',
           counts: Map.unmodifiable({
             for (final r in totals) r['status'] as String: r['count'] as int
           }),
@@ -479,7 +588,7 @@ class MetadataRefreshJobs {
   }
 
   Future<MetadataRefreshReport> run(int id, MetadataProvider provider,
-      {bool recheckAccess = false}) {
+      {bool recheckAccess = false, MetadataArtworkCache? artworkCache}) {
     if (recheckAccess && provider is! MetadataAccessProvider) {
       throw ArgumentError('This provider has no explicit access check');
     }
@@ -488,7 +597,8 @@ class MetadataRefreshJobs {
     }
     final cancel = CancelToken();
     _cancel = cancel;
-    return _active = _run(id, provider, cancel, recheckAccess).whenComplete(() {
+    return _active = _run(id, provider, cancel, recheckAccess, artworkCache)
+        .whenComplete(() {
       _active = null;
       _cancel = null;
     });
@@ -499,13 +609,22 @@ class MetadataRefreshJobs {
     await _active;
   }
 
-  Future<MetadataRefreshReport> _run(int id, MetadataProvider provider,
-      CancelToken cancel, bool recheckAccess) async {
+  Future<MetadataRefreshReport> _run(
+      int id,
+      MetadataProvider provider,
+      CancelToken cancel,
+      bool recheckAccess,
+      MetadataArtworkCache? artworkCache) async {
     final db = await _database;
     final claimed = await db.transaction((txn) async {
       final job = await _job(txn, id);
       if (job['provider_id'] != provider.providerId) {
         throw StateError('Wrong metadata provider');
+      }
+      if (job['is_artwork'] == 1 &&
+          (artworkCache == null || provider is! MetadataArtworkProvider)) {
+        throw ArgumentError(
+            'Artwork job requires an image provider and private cache');
       }
       final notBefore = job['not_before'] as int?;
       if (job['state'] == 'completed' ||
@@ -579,6 +698,10 @@ class MetadataRefreshJobs {
             }
           }
         }
+      }
+      if ((await _job(db, id))['is_artwork'] == 1) {
+        return await _runArtwork(db, id, provider as MetadataArtworkProvider,
+            artworkCache!, cancel, waitForBudget);
       }
       while (!cancel.isCancelled) {
         final next = await db.query('metadata_refresh_items',
@@ -670,6 +793,120 @@ class MetadataRefreshJobs {
     return report(id);
   }
 
+  Future<MetadataRefreshReport> _runArtwork(
+      Database db,
+      int id,
+      MetadataArtworkProvider provider,
+      MetadataArtworkCache cache,
+      CancelToken cancel,
+      Future<void> Function(int) waitForBudget) async {
+    while (!cancel.isCancelled) {
+      final next = await db.query('metadata_artwork_items',
+          where: 'job_id = ? AND status = ?',
+          whereArgs: [id, 'pending'],
+          orderBy: 'edition_id, media_key',
+          limit: 1);
+      if (next.isEmpty) {
+        await _setState(db, id, 'completed');
+        return report(id);
+      }
+      final item = next.single;
+      Future<bool> current() => _currentArtwork(db, item, provider.providerId);
+      Future<void> invalidated() => db
+          .update('metadata_artwork_items', {'status': 'identityChanged'},
+              where: 'job_id = ? AND edition_id = ? AND media_key = ?',
+              whereArgs: [id, item['edition_id'], item['media_key']])
+          .then((_) {});
+      if (!await current()) {
+        await invalidated();
+        continue;
+      }
+      final media =
+          MetadataMedia.fromJson(jsonDecode(item['media_json'] as String));
+      MetadataArtworkBlob? blob;
+      DateTime? retrievedAt;
+      final completed = await db.query('metadata_artwork_items',
+          columns: ['edition_id'],
+          where: 'job_id = ? AND media_key = ? AND status = ?',
+          whereArgs: [id, item['media_key'], 'matched'],
+          limit: 1);
+      // Only this job's verified completed request can coalesce unfinished work.
+      // A fresh artwork job never silently skips a required fresh body request.
+      if (completed.isNotEmpty &&
+          await cache.fileFor(
+                  item['edition_id'] as String, provider.providerId, media) !=
+              null) {
+        final stored = (await db.query('metadata_artwork_cache',
+                where: 'media_key = ?',
+                whereArgs: [item['media_key']],
+                limit: 1))
+            .single;
+        blob = MetadataArtworkBlob(item['media_key'] as String,
+            stored['filename'] as String, stored['byte_length'] as int);
+        retrievedAt = DateTime.parse(stored['retrieved_at'] as String);
+      }
+      var result = MetadataLookupResult(
+          status: MetadataLookupStatus.matched,
+          message: 'Completed image reused within this job.');
+      if (blob == null) {
+        if (!await _requestSlot(
+            db, id, provider.providerId, cancel, waitForBudget)) {
+          if (cancel.isCancelled) break;
+          return report(id);
+        }
+        if (cancel.isCancelled) break;
+        if (!await current()) {
+          await invalidated();
+          continue;
+        }
+        final started = _now().millisecondsSinceEpoch;
+        await db.rawUpdate(
+            'UPDATE metadata_refresh_jobs SET requested = requested + 1 WHERE id = ?',
+            [id]);
+        final downloaded = await cache.download(media, provider, id, cancel);
+        result = downloaded.result;
+        blob = downloaded.blob;
+        if (blob != null) retrievedAt = _now();
+        if (cancel.isCancelled ||
+            result.status == MetadataLookupStatus.cancelled) {
+          break;
+        }
+        await _observeQuota(db, provider.providerId, result.quota, started);
+        if (_blocking.contains(result.status)) {
+          await _block(db, id, result.status, result.retryAfter);
+          return report(id);
+        }
+      }
+      while (!cancel.isCancelled) {
+        final count = await db.transaction((txn) async {
+          final targets = await txn.query('metadata_artwork_items',
+              where: 'job_id = ? AND media_key = ? AND status = ?',
+              whereArgs: [id, item['media_key'], 'pending'],
+              orderBy: 'edition_id',
+              limit: 128);
+          var published = false;
+          for (final target in targets) {
+            if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+            final valid =
+                await _currentArtwork(txn, target, provider.providerId);
+            if (valid && blob != null && !published) {
+              await MetadataArtworkCache.publish(txn, blob, retrievedAt!);
+              published = true;
+            }
+            await txn.update('metadata_artwork_items',
+                {'status': valid ? result.status.name : 'identityChanged'},
+                where: 'job_id = ? AND edition_id = ? AND media_key = ?',
+                whereArgs: [id, target['edition_id'], target['media_key']]);
+          }
+          return targets.length;
+        });
+        if (count < 128) break;
+      }
+    }
+    await _setState(db, id, 'paused');
+    return report(id);
+  }
+
   Future<bool> _requestSlot(Database db, int id, String providerId,
       CancelToken cancel, Future<void> Function(int) wait,
       {bool accessCheck = false}) async {
@@ -680,11 +917,11 @@ class MetadataRefreshJobs {
         if (rows.isEmpty) return 0;
         if (!accessCheck &&
             (rows.single['quota_exhausted'] == 1 ||
-                rows.single['max_threads'] == 0)) {
+                rows.single['max_threads'] == 0 ||
+                rows.single['remaining_requests'] == 0)) {
           return -1;
         }
         final rate = rows.single['requests_per_minute'] as int?;
-        if (rate == null) return 0;
         if (rate == 0) return -1;
         final now = _now().millisecondsSinceEpoch;
         final next = rows.single['next_allowed_at'] as int;
@@ -696,9 +933,17 @@ class MetadataRefreshJobs {
         }
         // Reserve before the request. Process death/cancellation cannot grant a
         // second runner the same protocol slot, even if no response is received.
-        await txn.update('metadata_provider_limits',
-            {'next_allowed_at': now + (60000 / rate).ceil()},
-            where: 'provider_id = ?', whereArgs: [providerId]);
+        final remaining = rows.single['remaining_requests'] as int?;
+        await txn.update(
+            'metadata_provider_limits',
+            {
+              'next_allowed_at':
+                  now + (rate == null ? 0 : (60000 / rate).ceil()),
+              if (!accessCheck && remaining != null)
+                'remaining_requests': remaining - 1
+            },
+            where: 'provider_id = ?',
+            whereArgs: [providerId]);
         await txn.update('metadata_refresh_jobs',
             {'blocked_status': null, 'not_before': null},
             where: 'id = ?', whereArgs: [id]);
@@ -753,6 +998,13 @@ class MetadataRefreshJobs {
                 (prior.isEmpty ? null : prior.single['max_threads']),
             'next_allowed_at':
                 declaredNext > previousNext ? declaredNext : previousNext,
+            'remaining_requests':
+                quota.maxRequestsPerDay != null && quota.requestsToday != null
+                    ? (quota.maxRequestsPerDay! - quota.requestsToday!)
+                        .clamp(0, quota.maxRequestsPerDay!)
+                    : prior.isEmpty
+                        ? null
+                        : prior.single['remaining_requests'],
             'quota_exhausted': dailyExhausted
                 ? 1
                 : resetConfirmed

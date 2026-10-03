@@ -19,7 +19,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 24;
+  static const int _dbVersion = 25;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -339,6 +339,9 @@ class DatabaseService {
     if (oldVersion < 24) {
       await LibrarySchema.install(db);
       await LibraryStore.indexCanonicalGroups(db);
+    }
+    if (oldVersion < 25) {
+      await MetadataRefreshJobs.install(db);
     }
   }
 

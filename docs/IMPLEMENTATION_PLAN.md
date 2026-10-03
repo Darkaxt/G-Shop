@@ -331,7 +331,21 @@ observed on a job's final item. A user-requested access recheck uses the documen
 account-status endpoint and complete fresh quota counters; do not invent a local
 reset timer or poll. Retain Retry-After and current identity checks. Account status
 does not publish game metadata. Artwork-body fetches must use the same provider
-budget before META-06 can be closed; their cache remains required S4 work.
+budget before META-06 can be closed.
+
+### S4 artwork publication boundary
+
+Capture only current owned media selectors and metadata generations. Image jobs
+share the exclusive worker, persisted cadence and daily request balance with game
+lookups, including cancellation/relaunch and explicit access recovery. Publish
+bounded, CRC-valid and natively decoded single-frame PNG bodies to immutable
+content-addressed app-private files, then commit current bindings in bounded pages.
+Failed refreshes retain usable cache pointers; scrolling/offline reads never
+initiate requests. Persist selectors and relative hashed filenames, not credential
+URLs. Resolve ScreenScraper images at its fixed documented endpoint. Normalize
+only the exact live-observed IEND-plus-ASCII-1 endpoint framing; the cache still
+rejects arbitrary appended bytes. Native integration and the full large-fixture
+artwork/resource assessment remain acceptance work, not inferred from host proof.
 
 ### S4 canonical grouping boundary
 

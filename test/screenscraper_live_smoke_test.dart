@@ -2,11 +2,11 @@
 library;
 
 import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
@@ -147,6 +147,41 @@ void main() {
     expect(cached.media, isNotEmpty);
     expect(cached.ratings.single.scaleMaximum, 20);
     expect(cached.ratings.single.consensusValidated, isFalse);
+    // Narrow real image workflow: one cover and screenshot, through the same
+    // durable worker/budget. No ROM payload or device storage is involved.
+    final root = await Directory.systemTemp.createTemp('rshop-live-artwork-');
+    addTearDown(() async {
+      if (!root.path.startsWith(Directory.systemTemp.path) ||
+          !root.path
+              .split(Platform.pathSeparator)
+              .last
+              .startsWith('rshop-live-artwork-')) {
+        throw StateError('Unexpected live fixture cleanup root');
+      }
+      await root.delete(recursive: true);
+    });
+    final selected = ['box-2D', 'ss']
+        .map((type) => cached.media.firstWhere((media) => media.type == type));
+    final cache = MetadataArtworkCache(Future.value(db), root);
+    final images = await jobs.createArtwork(
+        providerId: provider.providerId,
+        collectionGeneration: job.collectionGeneration,
+        editionIds: [review.editionId],
+        mediaKeys: selected.map(MetadataArtworkCache.key).toSet());
+    final artwork = await jobs.run(images.id, provider, artworkCache: cache);
+    expect(artwork.state, 'completed');
+    expect(artwork.counts, {'matched': 2});
+    expect(artwork.requested, 2);
+    provider.close();
+    final offline = MetadataArtworkCache(Future.value(db), root);
+    for (final media in selected) {
+      final file =
+          await offline.fileFor(review.editionId, 'screenscraper', media);
+      expect(file, isNotNull);
+      expect(await file!.length(), greaterThan(100));
+    }
+    expect(
+        await root.list().any((file) => file.path.endsWith('.part')), isFalse);
     final fresh =
         await jobs.createFromCatalogue(providerId: provider.providerId);
     expect(fresh.counts, {'pending': 1},

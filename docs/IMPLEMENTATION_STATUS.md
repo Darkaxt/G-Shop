@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; provider budget and explicit recovery; actual ScreenScraper host workflow; indexed verified-game grouping, bounded edition selection and v24 backfill/reopen verified | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, quota-aware artwork-body cache, shared indexed ranking query, live reception assessment and native integration verification |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow with offline reads; indexed verified-game grouping; bounded edition selection; additive v25 upgrade and disk-reopen proof | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, shared indexed ranking query, live reception assessment, full large-fixture artwork/resource assessment and native integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -329,6 +329,46 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 artwork cache checkpoint (2026-10-03)
+
+- META-01/META-03/META-06: explicit image jobs snapshot current edition-owned
+  media and metadata generations. They use the same exclusive worker, persisted
+  cadence and remaining daily request balance as metadata lookups. Completed
+  duplicate selectors coalesce within a job; a new explicit refresh requests
+  current bodies again. Cancellation and disk reopen preserve pending work;
+  obsolete identities/generations cannot publish a current cache binding.
+- Bounded private staging, PNG CRC/dimension/frame validation and Flutter's
+  native decoder precede immutable content-addressed publication. A failed
+  refresh cannot replace an older usable image. Pointer/outcome commits process
+  at most 128 editions per page. Offline reads validate current metadata ownership
+  and make no network/ROM requests. Credentials and authenticated URLs are absent
+  from stored selectors and filenames.
+- Real cached-catalogue -> ScreenScraper review -> metadata -> cover plus
+  screenshot -> close provider -> offline cache reads passed in the opt-in host
+  live smoke test. The API returned HTTP 200 PNG bodies with one literal ASCII
+  `1` after the complete IEND; only that exact endpoint framing is normalized.
+  Arbitrary appended data remains invalid, as do CRC-valid undecodable images.
+  No score became consensus-validated through this artwork proof.
+- Focused provider/artwork-job/quota/catalogue/retry/migration checks passed, as
+  did a separate disk-close/reopen artwork checkpoint. The v25 production upgrade
+  preserves v13-v24 identities, existing records, pending work and provider budget.
+  Changed-code analysis reports no issues. Repository-wide analysis still reports
+  four pre-existing unrelated findings; it is not claimed clean. Verification used
+  one workload at a time, not another full-suite run.
+- Evidence commands: `flutter test test/screenscraper_live_smoke_test.dart
+  --plain-name "cached catalogue to live review, retry and offline metadata cache"
+  --no-pub --concurrency=1 --reporter expanded`; focused tests in
+  `screenscraper_artwork_test`, `metadata_artwork_jobs_test`,
+  `metadata_rate_limit_test`, `library_migration_test`,
+  `metadata_catalogue_jobs_test`, `metadata_retry_jobs_test` and
+  `screenscraper_provider_test`; focused `flutter analyze --no-pub` for changed
+  metadata/database/test files. All inspected terminal results exited zero.
+- Transactional cleanup ad0f32b20061d8c449b72ce8e7e507f5 removed only reviewed,
+  reproducible host-test assets/cache: 56,984,021 bytes; state applied, no errors.
+  Existing APKs, credentials, ROMs and Thor state were untouched. S4 remains
+  ACTIVE: this checkpoint does not close reception/ranking, complete native
+  integration or the full large-fixture artwork assessment.
 
 ### S4 canonical grouping checkpoint (2026-10-03)
 

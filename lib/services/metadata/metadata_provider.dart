@@ -299,3 +299,11 @@ abstract interface class MetadataProvider {
 abstract interface class MetadataAccessProvider implements MetadataProvider {
   Future<MetadataLookupResult> checkAccess({CancelToken? cancelToken});
 }
+
+/// Image bodies are explicit worker requests, never authenticated cover URLs.
+/// The caller owns bounded staging and validates the image before publication.
+abstract interface class MetadataArtworkProvider implements MetadataProvider {
+  Future<MetadataLookupResult> fetchArtwork(MetadataMedia media,
+      {required Future<void> Function(List<int>) write,
+      CancelToken? cancelToken});
+}

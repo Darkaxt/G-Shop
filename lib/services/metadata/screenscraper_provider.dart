@@ -11,12 +11,27 @@ import 'metadata_provider.dart';
 /// Standalone ScreenScraper API v2 access. API contract and system IDs were
 /// checked against https://www.screenscraper.fr/webapi2.php on 2026-09-08.
 /// Live acceptance still requires this fork's legitimate developer authorization.
-class ScreenScraperProvider implements MetadataAccessProvider {
+class ScreenScraperProvider
+    implements MetadataAccessProvider, MetadataArtworkProvider {
   final Dio _dio;
   final Future<ScreenScraperDeveloperCredentials?> Function() _readDeveloper;
   final Future<ScreenScraperUserCredentials?> Function() _readUser;
   final DateTime Function() _clock;
   static const maxResponseBytes = 4 * 1024 * 1024;
+  static const imageTypes = {
+    'box-2D',
+    'box-3D',
+    'box-texture',
+    'wheel',
+    'wheel-hd',
+    'ss',
+    'sstitle',
+    'fanart',
+    'marquee',
+    'screenmarquee',
+    'support-2D',
+    'support-3D'
+  };
 
   /// Explicit app-system mappings. DSi has no distinct verified mapping here;
   /// narrower variants (e.g. WonderSwan Color) need a specific assignment in S4.
@@ -113,6 +128,115 @@ class ScreenScraperProvider implements MetadataAccessProvider {
 
   @override
   String get providerId => 'screenscraper';
+
+  @override
+  Future<MetadataLookupResult> fetchArtwork(MetadataMedia media,
+      {required Future<void> Function(List<int>) write,
+      CancelToken? cancelToken}) async {
+    final reference = media.providerReference;
+    if (reference == null ||
+        !imageTypes.contains(reference.mediaType) ||
+        !platformIds.values.contains(reference.providerPlatformId)) {
+      return _result(MetadataLookupStatus.invalidRequest);
+    }
+    if (cancelToken?.isCancelled == true) {
+      return _result(MetadataLookupStatus.cancelled);
+    }
+    try {
+      final authentication = await _authenticatedQuery();
+      if (cancelToken?.isCancelled == true) {
+        return _result(MetadataLookupStatus.cancelled);
+      }
+      if (authentication == null) {
+        return _result(MetadataLookupStatus.setupRequired);
+      }
+      final response = await _dio.get<ResponseBody>('mediaJeu.php',
+          queryParameters: {
+            ...authentication,
+            'systemeid': reference.providerPlatformId,
+            'jeuid': reference.providerGameId,
+            'media': reference.mediaSelector,
+            'outputformat': 'png',
+            'maxwidth': 1024,
+            'maxheight': 1024
+          },
+          cancelToken: cancelToken);
+      if (response.statusCode != 200) {
+        await response.data?.stream.listen((_) {}).cancel();
+        return _httpFailure(
+            response.statusCode ?? 0, response.headers.value('retry-after'));
+      }
+      final body = response.data;
+      final length =
+          int.tryParse(response.headers.value('content-length') ?? '');
+      final mime =
+          response.headers.value('content-type')?.split(';').first.trim();
+      if (body == null ||
+          (length != null && (length < 1 || length > maxResponseBytes))) {
+        await body?.stream.listen((_) {}).cancel();
+        return _result(MetadataLookupStatus.invalidResponse);
+      }
+      if (mime?.startsWith('text/') == true) {
+        // The image endpoint documents a literal NOMEDIA response. Do not feed
+        // text/challenge pages to the cache or keep an unbounded diagnostic body.
+        final text = <int>[];
+        await for (final chunk in body.stream) {
+          if (cancelToken?.isCancelled == true) {
+            return _result(MetadataLookupStatus.cancelled);
+          }
+          if (text.length + chunk.length > 32) {
+            return _result(MetadataLookupStatus.invalidResponse);
+          }
+          text.addAll(chunk);
+        }
+        return _result(
+            ascii.decode(text, allowInvalid: true).trim() == 'NOMEDIA'
+                ? MetadataLookupStatus.unmatched
+                : MetadataLookupStatus.invalidResponse);
+      }
+      if (mime != 'image/png') {
+        await body.stream.listen((_) {}).cancel();
+        return _result(MetadataLookupStatus.invalidResponse);
+      }
+      var received = 0;
+      var tail = Uint8List(0);
+      await for (final chunk in body.stream) {
+        if (cancelToken?.isCancelled == true) {
+          return _result(MetadataLookupStatus.cancelled);
+        }
+        received += chunk.length;
+        if (received > maxResponseBytes) {
+          return _result(MetadataLookupStatus.invalidResponse);
+        }
+        // Keep only the end-chunk framing across arbitrary transport chunks.
+        // Live mediaJeu.php appends ASCII '1' after the complete IEND. Normalize
+        // that exact endpoint response, not arbitrary data or whitespace.
+        final combined = Uint8List.fromList([...tail, ...chunk]);
+        final prefix = combined.length > 13 ? combined.length - 13 : 0;
+        if (prefix > 0) await write(Uint8List.sublistView(combined, 0, prefix));
+        tail = Uint8List.fromList(Uint8List.sublistView(combined, prefix));
+      }
+      if (cancelToken?.isCancelled == true) {
+        return _result(MetadataLookupStatus.cancelled);
+      }
+      if (received == 0 || (length != null && received != length)) {
+        return _result(MetadataLookupStatus.invalidResponse);
+      }
+      const endWithMarker = [0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130, 49];
+      final framed = tail.length == endWithMarker.length &&
+          Iterable<int>.generate(tail.length)
+              .every((i) => tail[i] == endWithMarker[i]);
+      await write(framed ? Uint8List.sublistView(tail, 0, 12) : tail);
+      return MetadataLookupResult(
+          status: MetadataLookupStatus.matched,
+          message: 'Image body received; cache validation is required.');
+    } catch (error) {
+      if (error is FileSystemException) {
+        return _result(MetadataLookupStatus.unavailable);
+      }
+      return _safeFailure(error, cancelToken);
+    }
+  }
 
   @override
   MetadataProviderCapabilities get capabilities =>

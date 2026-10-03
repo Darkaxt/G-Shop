@@ -30,4 +30,6 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 22));
   test('real v23 upgrade backfills canonical groups and reopens intact',
       () => verifyLibraryMigration(previousVersion: 23));
+  test('real v24 upgrade adds artwork work and shared quota balance',
+      () => verifyLibraryMigration(previousVersion: 24));
 }
