@@ -575,7 +575,11 @@ class ScreenScraperProvider implements MetadataProvider {
     final uri = Uri.tryParse(url);
     if (uri == null ||
         uri.scheme != 'https' ||
-        uri.host != 'api.screenscraper.fr' ||
+        // Live API v2 metadata also uses this provider-owned media shard.
+        // Parse identifiers only; neither hostname nor credential-bearing URL
+        // is persisted or used as an arbitrary download destination.
+        !const {'api.screenscraper.fr', 'neoclone.screenscraper.fr'}
+            .contains(uri.host) ||
         uri.port != 443 ||
         uri.path != '/api2/mediaJeu.php' ||
         uri.userInfo.isNotEmpty ||

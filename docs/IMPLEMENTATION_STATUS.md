@@ -10,20 +10,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 BLOCKED at private credential retrieval and live
-  metadata access verification; the fork application was approved on 2026-10-02.
-  Additional required authorization evidence is retained below. B2 is not yet
-  resolved by approval alone. First online
+- Feature implementation: S1 BLOCKED at the owner's second Google test-account
+  choice, with elapsed-expiry verification also remaining. ScreenScraper access
+  B2 is resolved by the actual adapter's authenticated live lookup on 2026-10-03.
+  Additional required authorization evidence is retained below. First online
   authorization, cancellation/reconnect and QA-03 release naming are verified.
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
   verified transfer, native process recovery, bundles and owned installations.
-  S4 remains BLOCKED on B2 and is not worked on concurrently.
+  S4 is the sole ACTIVE stage for the fresh metadata pipeline and score semantics.
   S5-S8 NOT STARTED.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
-  2026-10-02; ScreenScraper developer access has been issued, but credentials and
-  an authenticated lookup have not yet been verified.
+  2026-10-02; ScreenScraper developer credentials are stored in the ignored local
+  environment file and actual-adapter authenticated lookup is verified.
 - Existing SD-library migration was missing from the implementation scope.
   User selected Top 25 per console; revision 2 adds MIGRATE-01/S7 after integrated
   live recovery and fresh metadata/rating verification. No deletion before those
@@ -310,10 +310,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; ScreenScraper application approval verified | External B2: private developer credentials must be retrieved and real lookup verified; browser attachment currently fails. Remaining auth evidence: elapsed-expiry renewal and actual second-account check; second test account needs the owner's choice |
+| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | BLOCKED | Existing persistent refresh worker and identity-bound provenance checks retained; standard user credentials supplied; fork application approved | External B2: issued private credentials and live access remain unverified, preventing authenticated samples and reception gate. Ordinary unfinished work remains: runtime membership, review/retry, quota pacing, artwork and shared query |
+| S4 | ACTIVE | Existing persistent refresh worker and identity-bound provenance checks retained; actual standalone ScreenScraper access verified | Required work remains: runtime membership, review/retry, quota pacing, artwork, shared query and live reception assessment |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -323,13 +323,44 @@ B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This
 does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocks META-02's
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
-application credentials and a successful live lookup resolve it. Neither substitutes for the
+application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 resumed as the sole ACTIVE stage for remaining
-authorization evidence after S3's complete
-acceptance reconciliation. Its explicit dependencies were S2 exact artefacts/queue
+reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
+S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S1 live ScreenScraper adapter acceptance (2026-10-03)
+
+- Reused the existing standard credentials to sign in to the existing browser
+  tab, retrieved the legitimately issued application fields and added only the
+  developer ID/password/software-name fields to `.env.local`. Git confirms that
+  file is ignored; no account/application secret enters source or this record.
+- The actual production Dart adapter, not only a direct API probe, reproduced
+  missing artwork: current API responses use `neoclone.screenscraper.fr` for
+  authenticated media URLs, while the parser accepted only the API hostname.
+  A bounded synthetic regression failed before the narrow hostname correction.
+  Both approved origins now yield identity-only media references; query secrets,
+  remote hostname and the original URL are not persisted or fetched here.
+  Lookalike/unknown hosts and wrong identity/selector tests remain rejecting.
+- Fresh focused provider/credential/model regressions passed. The explicitly
+  selected `screenscraper_live_smoke_test.dart` passed through the default real
+  transport: public SNES title search stays review-only, reviewed identity lookup
+  produces descriptions, genres, release dates, credits, media references and
+  sourced ratings. The score remains explicitly consensus-unassessed. No ROM or
+  media body was requested and no private catalogue was published.
+- The browser diagnostic accidentally exposed application fields in one private
+  task tool output. This was an execution error, not safe credential handling.
+  Those values are not repeated in source/docs or committed; no release is
+  authorized, and this credential set must not be distributed.
+- The owner-requested 12-hour approval monitoring event was deleted. B2 is
+  resolved. B3 is external: DRIVE-01's actual two-account isolation acceptance
+  needs the owner's second test-account choice, which has not been provided.
+  Supplying/selecting that account resolves the access condition; real isolation
+  proof and elapsed-expiry renewal still must pass before S1/final closure.
+  S1 is parked BLOCKED, S4 is ACTIVE, and S5-S8 remain NOT STARTED. S4 depends on
+  the verified provider/identity contracts and complete S2 catalogue, not on a
+  claimed second-account or expired-token proof. Thor displays remain off.
 
 ### S1 ScreenScraper application approval checkpoint (2026-10-02)
 

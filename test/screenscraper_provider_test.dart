@@ -423,6 +423,59 @@ void main() {
         reason: 'No media body is fetched here');
   });
 
+  test('live media shard keeps identity without retaining credentials',
+      () async {
+    final game = _game();
+    game['medias'] = [
+      {
+        'type': 'box-2D',
+        'region': 'us',
+        'url': Uri.parse(_authenticatedMedia())
+            .replace(host: 'neoclone.screenscraper.fr')
+            .toString(),
+      }
+    ];
+    final wire = _Wire({
+      'response': {'jeu': game}
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    final result = await provider.lookup(_request());
+    expect(result.record!.media, hasLength(1));
+    final media = result.record!.media.single;
+    expect(media.url, isNull);
+    expect(media.providerReference!.mediaSelector, 'box-2D(us)');
+    final persisted = jsonEncode(media.toJson());
+    expect(persisted, isNot(contains('fixture-dev-secret')));
+    expect(persisted, isNot(contains('fixture-user-secret')));
+    expect(persisted, isNot(contains('neoclone')));
+    expect(wire.requests, hasLength(1));
+  });
+
+  test('unrecognized media shards cannot become provider references', () async {
+    for (final host in [
+      'neoclone.screenscraper.fr.attacker.invalid',
+      'attacker.screenscraper.fr',
+      'neoclone-screenscraper.fr',
+    ]) {
+      final game = _game();
+      game['medias'] = [
+        {
+          'type': 'box-2D',
+          'region': 'us',
+          'url':
+              Uri.parse(_authenticatedMedia()).replace(host: host).toString(),
+        }
+      ];
+      final provider = _provider(_Wire({
+        'response': {'jeu': game}
+      }));
+      final result = await provider.lookup(_request());
+      expect(result.record!.media, isEmpty);
+      provider.close();
+    }
+  });
+
   test(
       'documented grouped media objects retain covers, screenshots and member identity',
       () async {
