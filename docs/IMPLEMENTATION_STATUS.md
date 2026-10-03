@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Existing persistent refresh worker and identity-bound provenance checks retained; actual standalone ScreenScraper access verified | Required work remains: runtime membership, review/retry, quota pacing, artwork, shared query and live reception assessment |
+| S4 | ACTIVE | Cached-catalogue full/system/item snapshots, paged local candidate review, atomic explicit correction/retry and byte-bound result publication verified; actual ScreenScraper catalogue-to-review-to-cache host workflow passes | Required work remains: failed/unmatched retry, canonical grouping/conversion reconciliation, full release/classification evidence, quota pacing, artwork-body cache, shared indexed ranking query, live reception assessment and native integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -321,7 +321,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This
-does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocks META-02's
+does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocked META-02's
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
@@ -329,6 +329,43 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 cached catalogue and live review checkpoint (2026-10-03)
+
+- Full, per-console and individual refresh entry points now derive membership
+  from the normal committed `games` cache, not legacy ratings or installation
+  residency. Identity capture and immutable job publication share one SQLite
+  transaction; input is consumed in 128-row keyset pages. Folder records are
+  excluded. Unreviewed files are not merged by cleaned names or assumed official.
+- Exact account/source/object identity retains the edition and reviewed provider
+  ID across equal-byte renames and cache reinsertion. A changed provider content
+  digest invalidates the old verified match without deleting correction evidence.
+  Container checksums never become raw-ROM identifiers. Legacy cache-row identity
+  remains deliberately conservative; explicit conversion/group reconciliation is
+  still required, not claimed by these checks.
+- Paged local review offers only the recorded platform-bound candidates. Explicit
+  candidate/classification acceptance atomically persists the correction and a new
+  retry generation. Invalid candidates, contradictory official/modified tags or
+  stale identity fail without either a partial correction or an orphan retry job.
+  `T-Eng`, `Undub` and `Uncensor` survive independently; official classification
+  does not mark an English release as an English translation.
+- Cached membership/content is rechecked before HTTP, inside result publication
+  and when consuming cached metadata. Removed or replaced objects cannot receive
+  an in-flight old result; prior metadata evidence is retained, not erased.
+- Fresh host SQLite regressions passed, including the actual normal cache writer,
+  conservative legacy-score separation, correction persistence, byte
+  replacement, failed-review rollback and the existing bounded refresh-worker
+  behavior. The real transport workflow passed on current code: a public SNES
+  cached title produces review without a score, explicit reviewed identity plus
+  official classification retries, and descriptions/media references/sourced
+  20-point ratings persist for network-free cache consumption. Explicit fresh
+  scraping still queues the item. Consensus reliability remains unassessed.
+- This proves a host catalogue/job/provider/cache slice, not normal Thor UI,
+  artwork-body downloads, broad reception validation or S4 completion. S4 remains
+  ACTIVE with the named required gaps above; no later stage was opened. The Thor
+  disconnected before the native integration check. Per the owner's instruction,
+  pause for device testing and ask for availability; no device was woken, installed
+  or modified during this checkpoint. The cancelled approval monitor stays deleted.
 
 ### S1 live ScreenScraper adapter acceptance (2026-10-03)
 

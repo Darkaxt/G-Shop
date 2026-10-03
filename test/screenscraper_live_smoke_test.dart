@@ -4,6 +4,9 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
@@ -42,6 +45,11 @@ void main() {
     username: values['SCREENSCRAPER_USERNAME'] ?? '',
     password: values['SCREENSCRAPER_PASSWORD'] ?? '',
   );
+
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
 
   test('real standalone adapter authenticates, reviews and retrieves metadata',
       () async {
@@ -96,5 +104,53 @@ void main() {
       skip: developer.isConfigured && user.isConfigured
           ? false
           : 'Live ScreenScraper credentials are not configured.',
+      timeout: Timeout.none);
+
+  test('cached catalogue to live review, retry and offline metadata cache',
+      () async {
+    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
+      displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
+      artifact_key TEXT, remote_artifact TEXT)''');
+    await db.insert(
+        'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World'});
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final provider = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(provider.close);
+    final job = await jobs.createFromCatalogue(
+        providerId: provider.providerId, systemSlug: 'snes');
+    final first = await jobs.run(job.id, provider);
+    expect(first.rated, 0);
+    final review = (await jobs.reviewItems(job.id)).single;
+    final exact = review.candidates.where((c) => c.titleMatched);
+    expect(exact.length, 1);
+    final retry = await jobs.acceptCandidate(job.id,
+        editionId: review.editionId,
+        providerGameId: exact.single.providerGameId,
+        contentTags: {'official'});
+    final accepted = await jobs.run(retry.id, provider);
+    expect(accepted.counts, {'matched': 1});
+    expect(accepted.rated, 1);
+    // No provider call participates in consumption of the persisted result.
+    final cached = await LibraryStore(Future.value(db))
+        .metadata(review.editionId, provider.providerId);
+    expect(cached!.refreshGeneration, retry.generation);
+    expect(cached.media, isNotEmpty);
+    expect(cached.ratings.single.scaleMaximum, 20);
+    expect(cached.ratings.single.consensusValidated, isFalse);
+    final fresh =
+        await jobs.createFromCatalogue(providerId: provider.providerId);
+    expect(fresh.counts, {'pending': 1},
+        reason: 'Cached success cannot skip an explicit fresh scrape.');
+  },
+      skip: developer.isConfigured && user.isConfigured
+          ? false
+          : 'Live credentials are not configured.',
       timeout: Timeout.none);
 }

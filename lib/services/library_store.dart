@@ -134,6 +134,211 @@ class LibraryStore {
     return record == null ? null : RemoteArtifact.fromJson(record);
   }
 
+  /// Capture the normal app's committed game cache, not historical metadata or
+  /// installation residency. The caller holds the snapshot transaction while
+  /// consuming this bounded stream and creating its durable refresh items.
+  ///
+  /// Each unreviewed artifact initially owns a distinct game/edition. A cleaned
+  /// name is a search hint, never evidence for merging projects or rating them.
+  static Stream<String> catalogueEditions(DatabaseExecutor db,
+      {String? systemSlug, int? cacheRowId}) async* {
+    var cursor = 0;
+    while (true) {
+      final rows = await db.query('games',
+          columns: [
+            'id',
+            'systemSlug',
+            'displayName',
+            'artifact_key',
+            'remote_artifact'
+          ],
+          where: 'id > ? AND is_folder = 0'
+              '${systemSlug == null ? '' : ' AND systemSlug = ?'}'
+              '${cacheRowId == null ? '' : ' AND id = ?'}',
+          whereArgs: [
+            cursor,
+            if (systemSlug != null) systemSlug,
+            if (cacheRowId != null) cacheRowId
+          ],
+          orderBy: 'id',
+          limit: 128);
+      for (final row in rows) {
+        final artifactJson = row['remote_artifact'] as String?;
+        final artifact = artifactJson == null
+            ? null
+            : RemoteArtifact.fromJson(
+                jsonDecode(artifactJson) as Map<String, dynamic>);
+        if (row['artifact_key'] != artifact?.id.key) {
+          throw StateError('Cached artifact identity is inconsistent');
+        }
+        final suffix = sha256
+            .convert(utf8.encode(jsonEncode([
+              row['systemSlug'],
+              artifact == null
+                  ? ['legacy-cache-row', row['id']]
+                  : ['artifact', artifact.id.key],
+            ])))
+            .toString();
+        final gameId = 'catalogue-game:$suffix';
+        final editionId = 'catalogue-edition:$suffix';
+        final existingGame = await db.query('library_game_identities',
+            where: 'game_id = ?', whereArgs: [gameId], limit: 1);
+        var game = existingGame.isEmpty
+            ? GameIdentity(
+                id: gameId,
+                platformId: row['systemSlug'] as String,
+                title: row['displayName'] as String,
+                evidence: [
+                  IdentityEvidence(
+                      source: 'catalogue',
+                      kind: 'artifactIdentity',
+                      value:
+                          artifact?.id.key ?? 'legacy-cache-row:${row['id']}'),
+                  IdentityEvidence(
+                      source: 'catalogue',
+                      kind: 'system',
+                      value: row['systemSlug'] as String)
+                ],
+              )
+            : GameIdentity.fromJson(
+                jsonDecode(existingGame.single['record_json'] as String));
+        final existingEdition = await db.query('library_editions',
+            where: 'edition_id = ?', whereArgs: [editionId], limit: 1);
+        var edition = existingEdition.isEmpty
+            ? EditionIdentity(
+                id: editionId,
+                gameId: gameId,
+                members: [
+                  if (artifact != null) EditionMember(artifactId: artifact.id)
+                ],
+              )
+            : EditionIdentity.fromJson(
+                jsonDecode(existingEdition.single['record_json'] as String));
+        if (artifact != null) {
+          final marker = _artifactContentMarker(artifact);
+          final previousMarkers = edition.evidence.where(
+              (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
+          if (previousMarkers.isNotEmpty &&
+              previousMarkers.single.value != marker) {
+            // Retain the correction as candidate evidence, but a replaced blob
+            // must not silently inherit the old blob's verified provider match.
+            game = GameIdentity.fromJson(
+                {...game.toJson(), 'matchStatus': 'unmatched'});
+          }
+          edition = EditionIdentity.fromJson({
+            ...edition.toJson(),
+            'evidence': [
+              ...edition.evidence
+                  .where((e) =>
+                      !(e.source == 'catalogue' && e.kind == 'artifactContent'))
+                  .map((e) => e.toJson()),
+              IdentityEvidence(
+                      source: 'catalogue',
+                      kind: 'artifactContent',
+                      value: marker)
+                  .toJson(),
+            ]
+          });
+          await db.insert(
+              'library_artifacts',
+              {
+                'artifact_id': artifact.id.key,
+                'provider_id': artifact.id.providerId,
+                'source_id': artifact.id.sourceId,
+                'account_id': artifact.id.accountId,
+                'provider_file_id': artifact.id.providerFileId,
+                'record_json': jsonEncode(artifact.toJson()),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+        await db.insert(
+            'library_game_identities',
+            {
+              'game_id': game.id,
+              'platform_id': game.platformId,
+              'title': game.title,
+              'match_status': game.matchStatus.name,
+              'record_json': jsonEncode(game.toJson()),
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.insert(
+            'library_editions',
+            {
+              'edition_id': edition.id,
+              'game_id': edition.gameId,
+              'record_json': jsonEncode(edition.toJson()),
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        yield editionId;
+      }
+      if (rows.length < 128) break;
+      cursor = rows.last['id'] as int;
+    }
+  }
+
+  static String _artifactContentMarker(RemoteArtifact artifact) {
+    final algorithms = artifact.providerChecksums.keys.toList()..sort();
+    return sha256
+        .convert(utf8.encode(jsonEncode([
+          artifact.sizeBytes,
+          // A provider metadata/version change can be a pure rename. Known hashes
+          // establish equal bytes; use version/time only without that evidence.
+          if (algorithms.isEmpty)
+            artifact.version ?? artifact.modifiedAt?.toIso8601String(),
+          {
+            for (final algorithm in algorithms)
+              algorithm: artifact.providerChecksums[algorithm]
+          },
+        ])))
+        .toString();
+  }
+
+  /// A saved scrape snapshot is evidence about those bytes, not permission to
+  /// attach results to a removed/replaced object. Called again inside result
+  /// publication's transaction, so catalogue changes during HTTP are detected.
+  static Future<bool> isCurrentCatalogueIdentity(
+      DatabaseExecutor db, Map<String, Object?> row) async {
+    final game = GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+    final catalogueKeys = game.evidence
+        .where((e) => e.source == 'catalogue' && e.kind == 'artifactIdentity');
+    if (catalogueKeys.isEmpty) {
+      return true; // Explicit non-catalogue identities.
+    }
+    if (catalogueKeys.length != 1) return false;
+    final systems = game.evidence
+        .where((e) => e.source == 'catalogue' && e.kind == 'system');
+    if (systems.length != 1) return false;
+    final key = catalogueKeys.single.value;
+    if (key.startsWith('legacy-cache-row:')) {
+      final id = int.tryParse(key.substring('legacy-cache-row:'.length));
+      if (id == null) return false;
+      return (await db.query('games',
+              columns: ['id'],
+              where:
+                  'id = ? AND systemSlug = ? AND is_folder = 0 AND artifact_key IS NULL',
+              whereArgs: [id, systems.single.value],
+              limit: 1))
+          .isNotEmpty;
+    }
+    final records = await db.query('games',
+        columns: ['remote_artifact'],
+        where: 'systemSlug = ? AND artifact_key = ? AND is_folder = 0',
+        whereArgs: [systems.single.value, key],
+        limit: 2);
+    if (records.length != 1 || records.single['remote_artifact'] == null) {
+      return false;
+    }
+    final artifact = RemoteArtifact.fromJson(
+        jsonDecode(records.single['remote_artifact'] as String));
+    if (artifact.id.key != key) return false;
+    final edition =
+        EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+    final markers = edition.evidence
+        .where((e) => e.source == 'catalogue' && e.kind == 'artifactContent');
+    return markers.length == 1 &&
+        markers.single.value == _artifactContentMarker(artifact);
+  }
+
   Future<void> putMetadata(MetadataRecord record,
       {Transaction? transaction}) async {
     if (!hasConsistentProvenance(record)) {
@@ -220,6 +425,7 @@ class LibraryStore {
     if (rows.single['identity_key'] != metadataIdentity(rows.single)) {
       return null;
     }
+    if (!await isCurrentCatalogueIdentity(db, rows.single)) return null;
     return MetadataRecord.fromJson(
         jsonDecode(rows.single['record_json'] as String)
             as Map<String, dynamic>);

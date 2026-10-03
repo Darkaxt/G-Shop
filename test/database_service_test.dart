@@ -4,6 +4,8 @@ import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
 void main() {
@@ -81,6 +83,36 @@ void main() {
   });
 
   // ─── Schema ─────────────────────────────────────────────
+
+  test(
+      'normal catalogue writer feeds fresh metadata without promoting legacy scores',
+      () async {
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await service.saveGames('nes', [
+      const GameItem(
+          filename: 'Super Mario Bros.nes',
+          displayName: 'Super Mario Bros',
+          url: 'https://example.invalid/game.nes'),
+      exactGame('cloud-file'),
+      const GameItem(
+          filename: 'Folder',
+          displayName: 'Folder',
+          url: 'https://example.invalid/folder',
+          isFolder: true),
+    ]);
+    await db.insert('game_metadata', {
+      'system_slug': 'nes',
+      'filename': 'Super Mario Bros.nes',
+      'rating': 99,
+      'last_updated': 1
+    });
+    final job = await MetadataRefreshJobs(Future.value(db))
+        .createFromCatalogue(providerId: 'screenscraper', systemSlug: 'nes');
+    expect(job.counts, {'pending': 2});
+    expect(await db.query('library_metadata'), isEmpty);
+    expect((await db.query('game_metadata')).single['rating'], 99);
+  });
 
   test('explicit successful Drive snapshot removes a large catalogue down to zero', () async {
     await service.saveGames('nes', List.generate(100, (i) => exactGame('file-$i')));

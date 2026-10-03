@@ -30,6 +30,16 @@ class MetadataRefreshReport {
       this.blockedStatus});
 }
 
+class MetadataReviewItem {
+  final String editionId;
+  final String status;
+  final List<MetadataLookupCandidate> candidates;
+  const MetadataReviewItem(
+      {required this.editionId,
+      required this.status,
+      required this.candidates});
+}
+
 class MetadataRefreshJobs {
   final Future<Database> _database;
   final DateTime Function() _now;
@@ -76,14 +86,42 @@ class MetadataRefreshJobs {
       e.record_json AS edition_json FROM library_editions e
       JOIN library_game_identities g ON g.game_id = e.game_id
       WHERE e.edition_id = ? LIMIT 1''', [editionId]);
-    return rows.isEmpty ? null : rows.single;
+    return rows.isEmpty ||
+            !await LibraryStore.isCurrentCatalogueIdentity(db, rows.single)
+        ? null
+        : rows.single;
   }
 
   Future<MetadataRefreshReport> create(
+          {required String providerId,
+          required String collectionGeneration,
+          required Iterable<String> editionIds}) =>
+      _create(
+          providerId: providerId,
+          collectionGeneration: collectionGeneration,
+          editions: (_) => Stream.fromIterable(editionIds));
+
+  /// Full, system and individual refreshes all snapshot the committed normal
+  /// catalogue. Capture and job publication share one database transaction;
+  /// concurrent source changes cannot produce half-old, half-new membership.
+  Future<MetadataRefreshReport> createFromCatalogue(
+      {required String providerId, String? systemSlug, int? cacheRowId}) {
+    if (systemSlug?.trim().isEmpty == true ||
+        (cacheRowId != null && cacheRowId < 1)) {
+      throw ArgumentError('Catalogue scope is invalid');
+    }
+    return _create(
+        providerId: providerId,
+        editions: (txn) => LibraryStore.catalogueEditions(txn,
+            systemSlug: systemSlug, cacheRowId: cacheRowId));
+  }
+
+  Future<MetadataRefreshReport> _create(
       {required String providerId,
-      required String collectionGeneration,
-      required Iterable<String> editionIds}) async {
-    if (providerId.trim().isEmpty || collectionGeneration.trim().isEmpty) {
+      String? collectionGeneration,
+      required Stream<String> Function(Transaction) editions}) async {
+    if (providerId.trim().isEmpty ||
+        collectionGeneration?.trim().isEmpty == true) {
       throw ArgumentError('Provider and collection generation are required');
     }
     final db = await _database;
@@ -95,12 +133,13 @@ class MetadataRefreshJobs {
       final id = await txn.insert('metadata_refresh_jobs', {
         'generation': generation,
         'provider_id': providerId,
-        'collection_generation': collectionGeneration,
+        'collection_generation':
+            collectionGeneration ?? 'cached-catalogue:$generation',
         'state': 'paused',
       });
       // Consume explicit membership incrementally; never discover the collection
       // by scanning historical metadata or load every record into a Dart list.
-      for (final editionId in editionIds) {
+      await for (final editionId in editions(txn)) {
         final row = await _identity(txn, editionId);
         if (row == null) {
           throw StateError('Unknown edition in refresh snapshot');
@@ -185,6 +224,154 @@ class MetadataRefreshJobs {
     }
     if (value is List) return value.map(_canonical).toList();
     return value;
+  }
+
+  /// Local paged review only: displaying outcomes never starts provider requests.
+  Future<List<MetadataReviewItem>> reviewItems(int id,
+      {String afterEditionId = '', int limit = 50}) async {
+    if (limit < 1 || limit > 128) throw ArgumentError.value(limit, 'limit');
+    final db = await _database;
+    final rows = await db.query('metadata_refresh_items',
+        where: 'job_id = ? AND edition_id > ? AND status IN (?, ?, ?)',
+        whereArgs: [
+          id,
+          afterEditionId,
+          'needsReview',
+          'ambiguous',
+          'unmatched'
+        ],
+        orderBy: 'edition_id',
+        limit: limit);
+    return List.unmodifiable(rows.map((row) => MetadataReviewItem(
+          editionId: row['edition_id'] as String,
+          status: row['status'] as String,
+          candidates:
+              List.unmodifiable(_candidates(row['candidates_json'] as String?)),
+        )));
+  }
+
+  static List<MetadataLookupCandidate> _candidates(String? json) =>
+      (json == null ? <dynamic>[] : jsonDecode(json) as List).map((value) {
+        final candidate = value as Map<String, dynamic>;
+        return MetadataLookupCandidate(
+            providerGameId: candidate['providerGameId'] as String,
+            platformId: candidate['platformId'] as String,
+            titles: (candidate['titles'] as List)
+                .map((title) =>
+                    MetadataText.fromJson(title as Map<String, dynamic>))
+                .toList(),
+            titleMatched: candidate['titleMatched'] as bool,
+            evidence: candidate['evidence'] as String);
+      }).toList();
+
+  /// Explicit review is one atomic correction + new-generation retry snapshot.
+  /// A failed validation creates neither a correction nor an orphan retry job.
+  /// Tags describe this edition; selecting an ID never makes a patch official or
+  /// transfers an original game's score to it. The provider still verifies that.
+  Future<MetadataRefreshReport> acceptCandidate(int id,
+      {required String editionId,
+      required String providerGameId,
+      required Set<String> contentTags}) async {
+    final db = await _database;
+    final job = await _job(db, id);
+    final providerId = job['provider_id'] as String;
+    return _create(
+        providerId: providerId,
+        collectionGeneration: job['collection_generation'] as String,
+        editions: (txn) async* {
+          final items = await txn.query('metadata_refresh_items',
+              where: 'job_id = ? AND edition_id = ?',
+              whereArgs: [id, editionId],
+              limit: 1);
+          final current = await _identity(txn, editionId);
+          if (items.isEmpty ||
+              current == null ||
+              !{'needsReview', 'ambiguous'}.contains(items.single['status']) ||
+              items.single['identity_key'] !=
+                  LibraryStore.metadataIdentity(current)) {
+            throw StateError(
+                'The current identity no longer matches this review');
+          }
+          final game =
+              GameIdentity.fromJson(jsonDecode(current['game_json'] as String));
+          final edition = EditionIdentity.fromJson(
+              jsonDecode(current['edition_json'] as String));
+          final offered =
+              _candidates(items.single['candidates_json'] as String?).where(
+                  (c) =>
+                      c.providerGameId == providerGameId &&
+                      c.platformId == game.platformId);
+          const knownTags = {
+            'official',
+            'Hack',
+            'T-Eng',
+            'Dub',
+            'Undub',
+            'Uncensor',
+            'homebrew',
+            'demo',
+            'unknown'
+          };
+          if (offered.length != 1 ||
+              contentTags.isEmpty ||
+              !knownTags.containsAll(contentTags) ||
+              (contentTags.contains('official') && contentTags.length != 1)) {
+            throw StateError(
+                'Review requires an offered identity and consistent classification');
+          }
+          final tags = contentTags.toList()..sort();
+          final correctedGame = GameIdentity.fromJson({
+            ...game.toJson(),
+            'providerIds': {...game.providerIds, providerId: providerGameId},
+            'matchStatus': 'manuallyMatched',
+            'evidence': [
+              ...game.evidence.map((e) => e.toJson()),
+              IdentityEvidence(
+                  source: 'manual',
+                  kind: 'providerId',
+                  value: jsonEncode([providerId, providerGameId])).toJson()
+            ],
+          });
+          final correctedEdition = EditionIdentity.fromJson({
+            ...edition.toJson(),
+            'tags': tags,
+            if (contentTags.contains('T-Eng')) ...{
+              'isTranslation': true,
+              'translatedLanguages': [
+                ...edition.translatedLanguages.where((l) => l != 'en'),
+                'en'
+              ],
+            },
+            if (contentTags.contains('official')) ...{
+              'isTranslation': false,
+              'translatedLanguages': <String>[],
+            },
+            'evidence': [
+              ...edition.evidence
+                  .where((e) => !(e.source == 'manual' &&
+                      e.kind == 'contentClassification'))
+                  .map((e) => e.toJson()),
+              IdentityEvidence(
+                      source: 'manual',
+                      kind: 'contentClassification',
+                      value: jsonEncode(tags))
+                  .toJson()
+            ],
+          });
+          await txn.update(
+              'library_game_identities',
+              {
+                'title': correctedGame.title,
+                'match_status': correctedGame.matchStatus.name,
+                'record_json': jsonEncode(correctedGame.toJson()),
+              },
+              where: 'game_id = ?',
+              whereArgs: [game.id]);
+          await txn.update('library_editions',
+              {'record_json': jsonEncode(correctedEdition.toJson())},
+              where: 'edition_id = ?', whereArgs: [editionId]);
+          yield editionId;
+        });
   }
 
   Future<MetadataRefreshReport> report(int id) async {
