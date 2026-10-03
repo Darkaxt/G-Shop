@@ -125,8 +125,11 @@ void main() {
     addTearDown(provider.close);
     final job = await jobs.createFromCatalogue(
         providerId: provider.providerId, systemSlug: 'snes');
-    final first = await jobs.run(job.id, provider);
+    final first = await jobs.run(job.id, provider, recheckAccess: true);
     expect(first.rated, 0);
+    final limits = (await db.query('metadata_provider_limits')).single;
+    expect(limits['requests_per_minute'], greaterThan(0));
+    expect(limits['quota_exhausted'], 0);
     final review = (await jobs.reviewItems(job.id)).single;
     final exact = review.candidates.where((c) => c.titleMatched);
     expect(exact.length, 1);

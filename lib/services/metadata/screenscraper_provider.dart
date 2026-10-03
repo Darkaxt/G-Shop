@@ -11,7 +11,7 @@ import 'metadata_provider.dart';
 /// Standalone ScreenScraper API v2 access. API contract and system IDs were
 /// checked against https://www.screenscraper.fr/webapi2.php on 2026-09-08.
 /// Live acceptance still requires this fork's legitimate developer authorization.
-class ScreenScraperProvider implements MetadataProvider {
+class ScreenScraperProvider implements MetadataAccessProvider {
   final Dio _dio;
   final Future<ScreenScraperDeveloperCredentials?> Function() _readDeveloper;
   final Future<ScreenScraperUserCredentials?> Function() _readUser;
@@ -135,6 +135,40 @@ class ScreenScraperProvider implements MetadataProvider {
       );
 
   @override
+  Future<MetadataLookupResult> checkAccess({CancelToken? cancelToken}) async {
+    if (cancelToken?.isCancelled == true) {
+      return _result(MetadataLookupStatus.cancelled);
+    }
+    try {
+      final query = await _authenticatedQuery();
+      if (cancelToken?.isCancelled == true) {
+        return _result(MetadataLookupStatus.cancelled);
+      }
+      if (query == null) return _result(MetadataLookupStatus.setupRequired);
+      final response = await _readApi('ssuserInfos.php', query, cancelToken);
+      if (response.$2 != null) return response.$2!;
+      final account = _map(response.$1!['ssuser']);
+      final quota = _quota(account);
+      if (_text(account?['id'])?.toLowerCase() !=
+              (query['ssid'] as String).toLowerCase() ||
+          quota?.maxThreads == null ||
+          quota?.maxRequestsPerMinute == null ||
+          quota?.requestsToday == null ||
+          quota?.maxRequestsPerDay == null ||
+          quota?.unmatchedToday == null ||
+          quota?.maxUnmatchedPerDay == null) {
+        return _result(MetadataLookupStatus.invalidResponse);
+      }
+      return MetadataLookupResult(
+          status: MetadataLookupStatus.matched,
+          quota: quota,
+          message: 'Provider access checked; no game lookup performed.');
+    } catch (error) {
+      return _safeFailure(error, cancelToken);
+    }
+  }
+
+  @override
   Future<MetadataLookupResult> lookup(MetadataLookupRequest request,
       {CancelToken? cancelToken}) async {
     if (cancelToken?.isCancelled == true) {
@@ -163,22 +197,16 @@ class ScreenScraperProvider implements MetadataProvider {
     }
 
     try {
-      final developer = await _readDeveloper();
-      final user = await _readUser();
+      final authentication = await _authenticatedQuery();
       if (cancelToken?.isCancelled == true) {
         return _result(MetadataLookupStatus.cancelled);
       }
-      if (developer?.isConfigured != true || user?.isConfigured != true) {
+      if (authentication == null) {
         return _result(MetadataLookupStatus.setupRequired);
       }
       final byId = request.verifiedProviderGameId != null;
       final query = <String, dynamic>{
-        'devid': developer!.developerId,
-        'devpassword': developer.developerPassword,
-        'softname': developer.softwareName,
-        'ssid': user!.username,
-        'sspassword': user.password,
-        'output': 'json',
+        ...authentication,
         'systemeid': '$platform',
         if (byId) 'gameid': request.verifiedProviderGameId,
         if (!byId && raw != null) ...{
@@ -191,34 +219,12 @@ class ScreenScraperProvider implements MetadataProvider {
         },
         if (!byId && raw == null) 'recherche': request.title,
       };
-      final response = await _dio.get<ResponseBody>(
+      final response = await _readApi(
           byId || raw != null ? 'jeuInfos.php' : 'jeuRecherche.php',
-          queryParameters: query,
-          cancelToken: cancelToken);
-      final status = response.statusCode ?? 0;
-      if (status != 200) {
-        await response.data?.stream.listen((_) {}).cancel();
-        return _httpFailure(status, response.headers.value('retry-after'));
-      }
-      final bytes = BytesBuilder(copy: false);
-      final body = response.data;
-      if (body == null) {
-        return _result(MetadataLookupStatus.invalidResponse);
-      }
-      await for (final chunk in body.stream) {
-        if (bytes.length + chunk.length > maxResponseBytes) {
-          return _result(MetadataLookupStatus.invalidResponse);
-        }
-        bytes.add(chunk);
-      }
-      if (cancelToken?.isCancelled == true) {
-        return _result(MetadataLookupStatus.cancelled);
-      }
-      final payload = _map(jsonDecode(utf8.decode(bytes.takeBytes())));
-      final data = _map(payload?['response']);
-      if (data == null) {
-        return _result(MetadataLookupStatus.invalidResponse);
-      }
+          query,
+          cancelToken);
+      if (response.$2 != null) return response.$2!;
+      final data = response.$1!;
       final quota = _quota(_map(data['ssuser']));
       final List<Map<String, dynamic>> games;
       if (byId || raw != null) {
@@ -303,21 +309,72 @@ class ScreenScraperProvider implements MetadataProvider {
           candidates: candidates,
           quota: quota,
           message: 'Metadata matched; rating confidence is unassessed.');
-    } on MetadataCredentialStorageException {
-      return _result(MetadataLookupStatus.setupRequired);
-    } on DioException catch (error) {
-      return _result(error.type == DioExceptionType.cancel ||
-              cancelToken?.isCancelled == true
-          ? MetadataLookupStatus.cancelled
-          : MetadataLookupStatus.unavailable);
-    } on FormatException {
-      return _result(MetadataLookupStatus.invalidResponse);
-    } catch (_) {
-      // Do not expose plugin, transport or parser diagnostics containing secrets.
-      return _result(cancelToken?.isCancelled == true
-          ? MetadataLookupStatus.cancelled
-          : MetadataLookupStatus.invalidResponse);
+    } catch (error) {
+      return _safeFailure(error, cancelToken);
     }
+  }
+
+  Future<Map<String, dynamic>?> _authenticatedQuery() async {
+    final developer = await _readDeveloper();
+    final user = await _readUser();
+    if (developer?.isConfigured != true || user?.isConfigured != true) {
+      return null;
+    }
+    return {
+      'devid': developer!.developerId,
+      'devpassword': developer.developerPassword,
+      'softname': developer.softwareName,
+      'ssid': user!.username,
+      'sspassword': user.password,
+      'output': 'json',
+    };
+  }
+
+  Future<(Map<String, dynamic>?, MetadataLookupResult?)> _readApi(
+      String endpoint, Map<String, dynamic> query, CancelToken? cancel) async {
+    final response = await _dio.get<ResponseBody>(endpoint,
+        queryParameters: query, cancelToken: cancel);
+    final status = response.statusCode ?? 0;
+    if (status != 200) {
+      await response.data?.stream.listen((_) {}).cancel();
+      return (
+        null,
+        _httpFailure(status, response.headers.value('retry-after'))
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      return (null, _result(MetadataLookupStatus.invalidResponse));
+    }
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in body.stream) {
+      if (bytes.length + chunk.length > maxResponseBytes) {
+        return (null, _result(MetadataLookupStatus.invalidResponse));
+      }
+      bytes.add(chunk);
+    }
+    if (cancel?.isCancelled == true) {
+      return (null, _result(MetadataLookupStatus.cancelled));
+    }
+    final data =
+        _map(_map(jsonDecode(utf8.decode(bytes.takeBytes())))?['response']);
+    return data == null
+        ? (null, _result(MetadataLookupStatus.invalidResponse))
+        : (data, null);
+  }
+
+  static MetadataLookupResult _safeFailure(Object error, CancelToken? cancel) {
+    if (cancel?.isCancelled == true ||
+        (error is DioException && error.type == DioExceptionType.cancel)) {
+      return _result(MetadataLookupStatus.cancelled);
+    }
+    if (error is MetadataCredentialStorageException) {
+      return _result(MetadataLookupStatus.setupRequired);
+    }
+    // No raw plugin, transport or parser diagnostics containing secrets escape.
+    return _result(error is DioException
+        ? MetadataLookupStatus.unavailable
+        : MetadataLookupStatus.invalidResponse);
   }
 
   MetadataRecord _record(Map<String, dynamic> game,
@@ -759,7 +816,8 @@ class ScreenScraperProvider implements MetadataProvider {
           maxThreads: _nonnegativeInt(data['maxthreads']),
           requestsToday: _nonnegativeInt(data['requeststoday']),
           maxRequestsPerDay: _nonnegativeInt(data['maxrequestsperday']),
-          maxRequestsPerMinute: _nonnegativeInt(data['maxrequestsperdmin']),
+          maxRequestsPerMinute: _nonnegativeInt(
+              data['maxrequestsperdmin'] ?? data['maxrequestspermin']),
           unmatchedToday: _nonnegativeInt(data['requestskotoday']),
           maxUnmatchedPerDay: _nonnegativeInt(data['maxrequestskoperday']));
 

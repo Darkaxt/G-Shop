@@ -146,6 +146,66 @@ ScreenScraperProvider _provider(_Wire wire, {bool configured = true}) =>
         clock: () => DateTime.utc(2026, 9, 8));
 
 void main() {
+  test('explicit access check reads only documented account quota fields',
+      () async {
+    final wire = _Wire({
+      'response': {
+        'ssuser': {
+          'id': 'fixture-user',
+          'maxthreads': '1',
+          'requeststoday': '1',
+          'maxrequestsperday': '100',
+          'requestskotoday': '0',
+          'maxrequestskoperday': '10',
+          'maxrequestspermin': '2'
+        }
+      }
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    final result = await provider.checkAccess();
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(result.record, isNull);
+    expect(result.candidates, isEmpty);
+    expect(result.quota!.maxRequestsPerMinute, 2);
+    expect(result.quota!.requestsToday, 1);
+    expect(wire.requests, hasLength(1));
+    expect(wire.requests.single.uri.path, '/api2/ssuserInfos.php');
+    expect(wire.requests.single.queryParameters.containsKey('gameid'), isFalse);
+    expect(
+        wire.requests.single.queryParameters.containsKey('recherche'), isFalse);
+  });
+
+  test('access check rejects missing counters instead of claiming recovery',
+      () async {
+    final wire = _Wire({
+      'response': {
+        'ssuser': {'maxthreads': '1'}
+      }
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    expect((await provider.checkAccess()).status,
+        MetadataLookupStatus.invalidResponse);
+  });
+
+  test('access check preserves HTTP guidance and does not expose credentials',
+      () async {
+    final wire = _Wire('provider failure', status: 429, headers: {
+      'retry-after': ['12']
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    final result = await provider.checkAccess();
+    expect(result.status, MetadataLookupStatus.throttled);
+    expect(result.retryAfter, const Duration(seconds: 12));
+    expect(result.message, isNot(contains('fixture-user-secret')));
+    final missing = _provider(_Wire(null), configured: false);
+    addTearDown(missing.close);
+    expect((await missing.checkAccess()).status,
+        MetadataLookupStatus.setupRequired);
+  });
+
   test(
       'verified ID lookup parses provenance and never fetches ROM/media bodies',
       () async {

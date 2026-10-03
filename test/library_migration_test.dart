@@ -19,10 +19,13 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 16));
   test('real v17 upgrade adds metadata jobs without changing cached games',
       () => verifyLibraryMigration(previousVersion: 17));
-  test('real v18 upgrade adds owned removal journal without changing cached games',
+  test(
+      'real v18 upgrade adds owned removal journal without changing cached games',
       () => verifyLibraryMigration(previousVersion: 18));
   test('real v20 upgrade adds replacement claims without changing cached games',
       () => verifyLibraryMigration(previousVersion: 20));
   test('real v21 upgrade adds bundle ownership without changing cached games',
       () => verifyLibraryMigration(previousVersion: 21));
+  test('real v22 upgrade adds provider limits without changing cached games',
+      () => verifyLibraryMigration(previousVersion: 22));
 }

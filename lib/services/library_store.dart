@@ -293,6 +293,42 @@ class LibraryStore {
         .toString();
   }
 
+  /// Refresh only the selected retry member from its exact current cache row.
+  /// Explicit identities do not depend on the file cache. Removed catalogue
+  /// members remain invalid and will receive an identityChanged retry outcome.
+  static Future<void> refreshCatalogueEdition(
+      DatabaseExecutor db, String editionId) async {
+    final identities =
+        await db.rawQuery('''SELECT g.record_json FROM library_editions e
+      JOIN library_game_identities g ON g.game_id = e.game_id
+      WHERE e.edition_id = ? LIMIT 1''', [editionId]);
+    if (identities.isEmpty) return;
+    final game = GameIdentity.fromJson(
+        jsonDecode(identities.single['record_json'] as String));
+    final keys = game.evidence
+        .where((e) => e.source == 'catalogue' && e.kind == 'artifactIdentity');
+    final systems = game.evidence
+        .where((e) => e.source == 'catalogue' && e.kind == 'system');
+    if (keys.length != 1 || systems.length != 1) return;
+    final key = keys.single.value;
+    final legacyId = key.startsWith('legacy-cache-row:')
+        ? int.tryParse(key.substring('legacy-cache-row:'.length))
+        : null;
+    final rows = await db.query('games',
+        columns: ['id'],
+        where:
+            'systemSlug = ? AND is_folder = 0 AND ${legacyId == null ? 'artifact_key = ?' : 'id = ? AND artifact_key IS NULL'}',
+        whereArgs: [systems.single.value, legacyId ?? key],
+        limit: 2);
+    if (rows.length != 1) return;
+    await for (final captured
+        in catalogueEditions(db, cacheRowId: rows.single['id'] as int)) {
+      if (captured != editionId) {
+        throw StateError('Catalogue retry identity is inconsistent');
+      }
+    }
+  }
+
   /// A saved scrape snapshot is evidence about those bytes, not permission to
   /// attach results to a removed/replaced object. Called again inside result
   /// publication's transaction, so catalogue changes during HTTP are detected.

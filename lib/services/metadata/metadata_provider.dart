@@ -293,3 +293,9 @@ abstract interface class MetadataProvider {
       {CancelToken? cancelToken});
   void close();
 }
+
+/// Explicit connection/quotas checks are distinct from game lookups. A user may
+/// recheck provider access without discarding cached metadata or retrying a ROM.
+abstract interface class MetadataAccessProvider implements MetadataProvider {
+  Future<MetadataLookupResult> checkAccess({CancelToken? cancelToken});
+}

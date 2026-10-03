@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue full/system/item snapshots, paged local candidate review, atomic explicit correction/retry and byte-bound result publication verified; actual ScreenScraper catalogue-to-review-to-cache host workflow passes | Required work remains: failed/unmatched retry, canonical grouping/conversion reconciliation, full release/classification evidence, quota pacing, artwork-body cache, shared indexed ranking query, live reception assessment and native integration verification |
+| S4 | ACTIVE | Cached-catalogue full/system/item snapshots, paged local review/correction, selective failed/unmatched retry and byte-bound publication verified; provider-wide rate/daily quota persistence and explicit access recovery verified; actual ScreenScraper access-to-catalogue-to-review-to-cache host workflow passes | Required work remains: canonical grouping/conversion reconciliation, full release/classification evidence, quota-aware artwork-body cache, shared indexed ranking query, live reception assessment and native integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -329,6 +329,48 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 selective retry and provider budget checkpoint (2026-10-03)
+
+- META-01's explicit failed/unmatched retry captures only selected unresolved
+  members in a new generation; successful members and the old report remain
+  unchanged. Exact current bytes and manual corrections are recaptured. Removed
+  members receive an explicit identityChanged outcome, not silent omission. Review
+  decisions remain separate from failure retry; blocked pending work resumes its
+  existing job rather than creating an automatic retry loop.
+- META-06's worker persists provider-reported per-minute cadence and reserves the
+  next protocol slot before requests. One worker keeps its database claim while
+  waiting; cancellation stops/joins the protocol timer with one cancellation
+  listener per run. Identity is checked again after a wait. New jobs, runner
+  objects, missing later quota fields and DB reopen do not erase the budget.
+- Daily/unmatched exhaustion and HTTP quota rejection apply provider-wide, even
+  when the job that discovered the limit completed its final item. Normal runs
+  cannot bypass them. Explicit run(recheckAccess: true) performs one documented
+  ssuserInfos.php access check, subject to known cadence/Retry-After, and resumes
+  pending game lookups only after complete daily counters establish recovery.
+  No guessed midnight, background polling, arbitrary delay or cache purge is used.
+  Zero minute/thread allowances block further game requests. Limits are currently
+  conservative per provider for the app's single selected metadata account.
+- Shared sanitized, bounded API decoding covers lookup and account status. The
+  status endpoint's maxrequestspermin spelling and game endpoints'
+  maxrequestsperdmin spelling are both recognized; incomplete/wrong-account
+  responses cannot establish recovery. No game request, metadata publication or
+  raw account response is hidden inside the explicit status check.
+- Additive v23 creates only the provider budget table. The real v22 upgrade and
+  file-backed close/reopen preserve catalogue, anonymous legacy ratings, identities,
+  saved pending work and persisted quota state. Focused retry/rate/catalogue/
+  provider regressions passed, including cancellation, exclusive worker ownership,
+  daily bypass reproduction and explicit recovery. Scoped analysis found no
+  issues; final whitespace/diff review passed before the checkpoint commit.
+- Actual current API access, quota parsing and catalogue -> local review ->
+  verified lookup -> persisted descriptions/artwork references/20-point score
+  succeeded on the host with the legitimate ignored credentials. Consumption is
+  network-free; the score remains consensus-unassessed. This is not artwork-body
+  caching, native metadata UI, broad reception validation or S4 completion.
+- The Thor reappeared in adb as bfa98654 during host verification. No device
+  installation, wake or mutation occurred. Native testing remains required and
+  follows the owner's instruction to ask at that boundary and switch screens off
+  after use. The approval-monitor automation remains deleted.
 
 ### S4 cached catalogue and live review checkpoint (2026-10-03)
 

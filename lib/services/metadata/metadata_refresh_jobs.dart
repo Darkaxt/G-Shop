@@ -19,6 +19,7 @@ class MetadataRefreshReport {
   final int rated;
   final Map<String, int> counts;
   final String? blockedStatus;
+  final DateTime? notBefore;
   const MetadataRefreshReport(
       {required this.id,
       required this.generation,
@@ -27,7 +28,8 @@ class MetadataRefreshReport {
       required this.requested,
       required this.rated,
       required this.counts,
-      this.blockedStatus});
+      this.blockedStatus,
+      this.notBefore});
 }
 
 class MetadataReviewItem {
@@ -43,10 +45,14 @@ class MetadataReviewItem {
 class MetadataRefreshJobs {
   final Future<Database> _database;
   final DateTime Function() _now;
+  final Timer Function(Duration, void Function()) _schedule;
   Future<MetadataRefreshReport>? _active;
   CancelToken? _cancel;
-  MetadataRefreshJobs(this._database, {DateTime Function()? now})
-      : _now = now ?? DateTime.now;
+  MetadataRefreshJobs(this._database,
+      {DateTime Function()? now,
+      Timer Function(Duration, void Function())? schedule})
+      : _now = now ?? DateTime.now,
+        _schedule = schedule ?? Timer.new;
 
   static Future<void> install(DatabaseExecutor db) async {
     await db.execute('''CREATE TABLE IF NOT EXISTS metadata_refresh_jobs (
@@ -71,6 +77,12 @@ class MetadataRefreshJobs {
       ON metadata_refresh_jobs(state) WHERE state = 'running' ''');
     await db.execute('''CREATE TABLE IF NOT EXISTS metadata_provider_backoff (
       provider_id TEXT PRIMARY KEY, not_before INTEGER NOT NULL, reason TEXT NOT NULL
+    )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS metadata_provider_limits (
+      provider_id TEXT PRIMARY KEY, requests_per_minute INTEGER,
+      next_allowed_at INTEGER NOT NULL,
+      max_threads INTEGER,
+      quota_exhausted INTEGER NOT NULL DEFAULT 0
     )''');
   }
 
@@ -116,9 +128,58 @@ class MetadataRefreshJobs {
             systemSlug: systemSlug, cacheRowId: cacheRowId));
   }
 
+  static const _retryable = {
+    'unmatched',
+    'invalidRequest',
+    'invalidResponse',
+    'unsupportedPlatform',
+    'identityChanged'
+  };
+
+  /// User-requested retry is a new snapshot, never an automatic busy loop or a
+  /// mutation of the old report. Successful entries and review decisions are not
+  /// repeated. Blocked pending work continues through run() on its original job.
+  Future<MetadataRefreshReport> retryUnresolved(int id,
+      {Set<String> statuses = _retryable}) async {
+    if (statuses.isEmpty || !_retryable.containsAll(statuses)) {
+      throw ArgumentError('Only unresolved outcomes can be retried');
+    }
+    final selected = List<String>.unmodifiable(statuses.toList()..sort());
+    final db = await _database;
+    final job = await _job(db, id);
+    return _create(
+        providerId: job['provider_id'] as String,
+        collectionGeneration: job['collection_generation'] as String,
+        recordMissingIdentities: true,
+        editions: (txn) async* {
+          if ((await _job(txn, id))['state'] == 'running') {
+            throw StateError(
+                'Pause or finish the original job before retrying');
+          }
+          var cursor = '';
+          while (true) {
+            final items = await txn.query('metadata_refresh_items',
+                columns: ['edition_id'],
+                where:
+                    'job_id = ? AND edition_id > ? AND status IN (${List.filled(selected.length, '?').join(',')})',
+                whereArgs: [id, cursor, ...selected],
+                orderBy: 'edition_id',
+                limit: 128);
+            for (final item in items) {
+              final editionId = item['edition_id'] as String;
+              await LibraryStore.refreshCatalogueEdition(txn, editionId);
+              yield editionId;
+            }
+            if (items.length < 128) break;
+            cursor = items.last['edition_id'] as String;
+          }
+        });
+  }
+
   Future<MetadataRefreshReport> _create(
       {required String providerId,
       String? collectionGeneration,
+      bool recordMissingIdentities = false,
       required Stream<String> Function(Transaction) editions}) async {
     if (providerId.trim().isEmpty ||
         collectionGeneration?.trim().isEmpty == true) {
@@ -142,6 +203,16 @@ class MetadataRefreshJobs {
       await for (final editionId in editions(txn)) {
         final row = await _identity(txn, editionId);
         if (row == null) {
+          if (recordMissingIdentities) {
+            await txn.insert('metadata_refresh_items', {
+              'job_id': id,
+              'edition_id': editionId,
+              'lookup_key': editionId,
+              'identity_key': 'unavailable',
+              'status': 'identityChanged'
+            });
+            continue;
+          }
           throw StateError('Unknown edition in refresh snapshot');
         }
         final game =
@@ -391,7 +462,11 @@ class MetadataRefreshJobs {
           counts: Map.unmodifiable({
             for (final r in totals) r['status'] as String: r['count'] as int
           }),
-          blockedStatus: row['blocked_status'] as String?);
+          blockedStatus: row['blocked_status'] as String?,
+          notBefore: row['not_before'] == null
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(row['not_before'] as int,
+                  isUtc: true));
     });
   }
 
@@ -402,13 +477,17 @@ class MetadataRefreshJobs {
     return rows.single;
   }
 
-  Future<MetadataRefreshReport> run(int id, MetadataProvider provider) {
+  Future<MetadataRefreshReport> run(int id, MetadataProvider provider,
+      {bool recheckAccess = false}) {
+    if (recheckAccess && provider is! MetadataAccessProvider) {
+      throw ArgumentError('This provider has no explicit access check');
+    }
     if (_active != null) {
       throw StateError('A metadata refresh is already active');
     }
     final cancel = CancelToken();
     _cancel = cancel;
-    return _active = _run(id, provider, cancel).whenComplete(() {
+    return _active = _run(id, provider, cancel, recheckAccess).whenComplete(() {
       _active = null;
       _cancel = null;
     });
@@ -419,8 +498,8 @@ class MetadataRefreshJobs {
     await _active;
   }
 
-  Future<MetadataRefreshReport> _run(
-      int id, MetadataProvider provider, CancelToken cancel) async {
+  Future<MetadataRefreshReport> _run(int id, MetadataProvider provider,
+      CancelToken cancel, bool recheckAccess) async {
     final db = await _database;
     final claimed = await db.transaction((txn) async {
       final job = await _job(txn, id);
@@ -455,7 +534,51 @@ class MetadataRefreshJobs {
       return true;
     });
     if (!claimed) return report(id);
+    Timer? budgetTimer;
+    Completer<void>? budgetWait;
+    // One cancellation listener per run, not one retained listener per item.
+    cancel.whenCancel.then((_) {
+      budgetTimer?.cancel();
+      if (budgetWait?.isCompleted == false) budgetWait!.complete();
+    });
+    Future<void> waitForBudget(int target) async {
+      if (cancel.isCancelled) return;
+      final remaining = target - _now().millisecondsSinceEpoch;
+      if (remaining <= 0) return;
+      final completion = Completer<void>();
+      budgetWait = completion;
+      // This is the provider's declared API cadence, not a lifecycle deadline.
+      budgetTimer = _schedule(Duration(milliseconds: remaining), () {
+        if (!completion.isCompleted) completion.complete();
+      });
+      await completion.future;
+      budgetTimer?.cancel();
+      budgetTimer = null;
+      budgetWait = null;
+    }
+
     try {
+      if (recheckAccess) {
+        if (!await _requestSlot(
+            db, id, provider.providerId, cancel, waitForBudget,
+            accessCheck: true)) {
+          if (!cancel.isCancelled) return await report(id);
+        } else if (!cancel.isCancelled) {
+          final started = _now().millisecondsSinceEpoch;
+          final checked = await (provider as MetadataAccessProvider)
+              .checkAccess(cancelToken: cancel);
+          if (!cancel.isCancelled &&
+              checked.status != MetadataLookupStatus.cancelled) {
+            await _observeQuota(db, provider.providerId, checked.quota, started,
+                accessConfirmed:
+                    checked.status == MetadataLookupStatus.matched);
+            if (checked.status != MetadataLookupStatus.matched) {
+              await _block(db, id, checked.status, checked.retryAfter);
+              return await report(id);
+            }
+          }
+        }
+      }
       while (!cancel.isCancelled) {
         final next = await db.query('metadata_refresh_items',
             where: 'job_id = ? AND status = ?',
@@ -479,6 +602,23 @@ class MetadataRefreshJobs {
           continue;
         }
         if (cancel.isCancelled) break;
+        if (!await _requestSlot(
+            db, id, provider.providerId, cancel, waitForBudget)) {
+          if (cancel.isCancelled) break;
+          return await report(id);
+        }
+        if (cancel.isCancelled) break;
+        // A protocol wait is not permission to use a now-removed or changed item.
+        final afterWait = await _identity(db, request.editionId);
+        if (afterWait == null ||
+            LibraryStore.metadataIdentity(afterWait) != item['identity_key']) {
+          await db.update(
+              'metadata_refresh_items', {'status': 'identityChanged'},
+              where: 'job_id = ? AND edition_id = ?',
+              whereArgs: [id, request.editionId]);
+          continue;
+        }
+        final requestStarted = _now().millisecondsSinceEpoch;
         await db.rawUpdate(
             'UPDATE metadata_refresh_jobs SET requested = requested + 1 WHERE id = ?',
             [id]);
@@ -488,6 +628,8 @@ class MetadataRefreshJobs {
             result.status == MetadataLookupStatus.cancelled) {
           break;
         }
+        await _observeQuota(
+            db, provider.providerId, result.quota, requestStarted);
         if (_blocking.contains(result.status)) {
           await _block(db, id, result.status, result.retryAfter);
           return await report(id);
@@ -521,8 +663,105 @@ class MetadataRefreshJobs {
       // Do not persist raw provider exceptions or erase already committed data.
       await _setState(db, id, 'paused');
       rethrow;
+    } finally {
+      budgetTimer?.cancel();
     }
     return report(id);
+  }
+
+  Future<bool> _requestSlot(Database db, int id, String providerId,
+      CancelToken cancel, Future<void> Function(int) wait,
+      {bool accessCheck = false}) async {
+    while (!cancel.isCancelled) {
+      final slot = await db.transaction((txn) async {
+        final rows = await txn.query('metadata_provider_limits',
+            where: 'provider_id = ?', whereArgs: [providerId], limit: 1);
+        if (rows.isEmpty) return 0;
+        if (!accessCheck &&
+            (rows.single['quota_exhausted'] == 1 ||
+                rows.single['max_threads'] == 0)) {
+          return -1;
+        }
+        final rate = rows.single['requests_per_minute'] as int?;
+        if (rate == null) return 0;
+        if (rate == 0) return -1;
+        final now = _now().millisecondsSinceEpoch;
+        final next = rows.single['next_allowed_at'] as int;
+        if (next > now) {
+          await txn.update('metadata_refresh_jobs',
+              {'blocked_status': 'throttled', 'not_before': next},
+              where: 'id = ?', whereArgs: [id]);
+          return next;
+        }
+        // Reserve before the request. Process death/cancellation cannot grant a
+        // second runner the same protocol slot, even if no response is received.
+        await txn.update('metadata_provider_limits',
+            {'next_allowed_at': now + (60000 / rate).ceil()},
+            where: 'provider_id = ?', whereArgs: [providerId]);
+        await txn.update('metadata_refresh_jobs',
+            {'blocked_status': null, 'not_before': null},
+            where: 'id = ?', whereArgs: [id]);
+        return 0;
+      });
+      if (slot == -1) {
+        await _block(db, id, MetadataLookupStatus.quotaExceeded, null);
+        return false;
+      }
+      if (slot == 0) return !cancel.isCancelled;
+      await wait(slot);
+    }
+    return false;
+  }
+
+  Future<void> _observeQuota(
+      Database db, String providerId, MetadataQuota? quota, int requestStarted,
+      {bool accessConfirmed = false}) async {
+    final rate = quota?.maxRequestsPerMinute;
+    if (quota == null) return;
+    final dailyExhausted = (quota.requestsToday != null &&
+            quota.maxRequestsPerDay != null &&
+            quota.requestsToday! >= quota.maxRequestsPerDay!) ||
+        (quota.unmatchedToday != null &&
+            quota.maxUnmatchedPerDay != null &&
+            quota.unmatchedToday! >= quota.maxUnmatchedPerDay!);
+    // Reset requires a fresh explicit account-status response with complete
+    // daily counters. Never guess a local midnight or clear on missing data.
+    final resetConfirmed = accessConfirmed &&
+        !dailyExhausted &&
+        quota.requestsToday != null &&
+        quota.maxRequestsPerDay != null &&
+        quota.unmatchedToday != null &&
+        quota.maxUnmatchedPerDay != null;
+    await db.transaction((txn) async {
+      final prior = await txn.query('metadata_provider_limits',
+          where: 'provider_id = ?', whereArgs: [providerId], limit: 1);
+      final declaredNext = requestStarted +
+          (rate == null || rate <= 0 ? 0 : (60000 / rate).ceil());
+      final previousNext =
+          prior.isEmpty ? 0 : prior.single['next_allowed_at'] as int;
+      await txn.insert(
+          'metadata_provider_limits',
+          {
+            'provider_id': providerId,
+            'requests_per_minute': rate != null && rate >= 0
+                ? rate
+                : prior.isEmpty
+                    ? null
+                    : prior.single['requests_per_minute'],
+            'max_threads': quota.maxThreads ??
+                (prior.isEmpty ? null : prior.single['max_threads']),
+            'next_allowed_at':
+                declaredNext > previousNext ? declaredNext : previousNext,
+            'quota_exhausted': dailyExhausted
+                ? 1
+                : resetConfirmed
+                    ? 0
+                    : prior.isEmpty
+                        ? 0
+                        : prior.single['quota_exhausted'],
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    });
   }
 
   static const _blocking = {
@@ -559,6 +798,13 @@ class MetadataRefreshJobs {
               'reason': status.name
             },
             conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      if (status == MetadataLookupStatus.quotaExceeded) {
+        final job = await _job(txn, id);
+        await txn.rawInsert('''INSERT INTO metadata_provider_limits
+          (provider_id, next_allowed_at, quota_exhausted) VALUES (?, 0, 1)
+          ON CONFLICT(provider_id) DO UPDATE SET quota_exhausted = 1''',
+            [job['provider_id']]);
       }
     });
   }

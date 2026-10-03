@@ -321,6 +321,18 @@ fresh live samples including older and newer consoles and modified releases.
 Unmatched provider coverage is reported honestly and does not authorize false
 matches. Run the full fresh library pass only within authorized live scope.
 
+### S4 provider budget and explicit recovery boundary
+
+Persist the single selected metadata provider's reported request cadence across
+jobs/relaunch. Reserve request slots before network access, retain the exclusive
+worker claim through protocol waits, and join cancellation without per-item
+listener accumulation. Persist daily/unmatched exhaustion, including exhaustion
+observed on a job's final item. A user-requested access recheck uses the documented
+account-status endpoint and complete fresh quota counters; do not invent a local
+reset timer or poll. Retain Retry-After and current identity checks. Account status
+does not publish game metadata. Artwork-body fetches must use the same provider
+budget before META-06 can be closed; their cache remains required S4 work.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.
