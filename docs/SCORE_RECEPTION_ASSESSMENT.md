@@ -1,6 +1,8 @@
 # Live overall-score assessment — 2026-10-03
 
-Authority: SPECIFICATION.md, META-05. Owner: S4 (ACTIVE).
+Authority: SPECIFICATION.md, META-05. Owner: S4; current stage state and remaining
+host-evidence blocker are in IMPLEMENTATION_STATUS.md and
+S4_ACCEPTANCE_RECONCILIATION.md. Source assessment is not whole-stage closure.
 
 ## Decision
 

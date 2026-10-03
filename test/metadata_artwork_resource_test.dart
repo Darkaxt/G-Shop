@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -14,6 +15,32 @@ import 'support/artwork_wait_diagnostic.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('artwork wait observation is read-only and works without VM service',
+      () async {
+    final server = await startArtworkWaitObserver();
+    // Flutter deliberately replaces ordinary HttpClient in widget fixtures.
+    // Only this loopback observer contract needs the real client, never a ROM
+    // or metadata provider transport; keep the global override unchanged.
+    final client = _LoopbackHttpOverrides().createHttpClient(null);
+    try {
+      final uri = Uri.parse('http://127.0.0.1:${server.port}/');
+      final get = await client.getUrl(uri);
+      final response = await get.close();
+      expect(response.statusCode, HttpStatus.ok);
+      final snapshot = jsonDecode(await utf8.decoder.bind(response).join())
+          as Map<String, dynamic>;
+      expect(snapshot['pending'], isEmpty);
+      expect(snapshot['artworkWorkId'], isNull);
+      final post = await client.postUrl(uri);
+      final rejected = await post.close();
+      expect(rejected.statusCode, HttpStatus.methodNotAllowed);
+      await rejected.drain<void>();
+      expect(artworkWaitSnapshot(), jsonEncode(snapshot));
+    } finally {
+      client.close();
+      await server.close();
+    }
+  }, timeout: Timeout.none);
   test('12000 repeated native artwork publications isolate the cache boundary',
       () async {
     final root = await Directory.systemTemp.createTemp('rshop-artwork-decode-');
@@ -78,10 +105,22 @@ void main() {
     final tracing =
         Platform.environment['RSHOP_ARTWORK_WAIT_DIAGNOSTIC'] == 'true';
     final factory = tracing ? await tracedArtworkFactory() : databaseFactoryFfi;
-    await verifyMetadataArtworkResource(factory);
-    if (tracing) {
+    final observer = tracing ? await startArtworkWaitObserver() : null;
+    if (observer != null) {
       // ignore: avoid_print
-      print('artwork diagnostic terminal ${artworkWaitSnapshot()}');
+      print('artwork diagnostic observer=http://127.0.0.1:${observer.port}/');
+    }
+    try {
+      await verifyMetadataArtworkResource(factory,
+          cacheFactory: tracing ? TracedArtworkCache.new : null);
+      if (tracing) {
+        // ignore: avoid_print
+        print('artwork diagnostic terminal ${artworkWaitSnapshot()}');
+      }
+    } finally {
+      await observer?.close();
     }
   }, timeout: Timeout.none);
 }
+
+class _LoopbackHttpOverrides extends HttpOverrides {}

@@ -18,14 +18,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
   verified transfer, native process recovery, bundles and owned installations.
-  S4 is ACTIVE again: B4 application authentication is resolved by the authorized
+  S4 is BLOCKED at B5 (missing original host-wait runtime evidence): B4 application authentication is resolved by the authorized
   dedicated Twitch app and a real review/publication/offline-consumption check.
   The representative older/newer/project reception assessment now supplies a
   scoped IGDB community basis, verified through the real worker/cache/offline
   query, including Android SQLite's reviewed production-policy workflow. The
-  earlier unexplained host artwork wait and final S4 reconciliation
-  remain required. Unassessed console scopes remain advisory, not silently
-  approved. S5-S8 NOT STARTED; no parallel ACTIVE stage is opened.
+  earlier unexplained host artwork wait remains required; the requirement-by-
+  requirement backend reconciliation is recorded in S4_ACCEPTANCE_RECONCILIATION.md.
+  Unassessed console scopes remain advisory, not silently approved. S5 is the
+  sole ACTIVE stage, using verified provenance/cache/query/setup contracts.
+  S6-S8 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; ScreenScraper developer credentials are stored in the ignored local
@@ -61,6 +63,50 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S4 VM-disabled observation and explicit parked evidence gap (2026-10-03)
+
+- The original native CDB trace and installed FFI/ReceivePort implementations
+  were inspected. There is no captured Dart async stack; nearest-export symbols
+  do not identify the outstanding Future or prove engine shutdown. Provider quota
+  and memory exhaustion were absent. The original stopped process cannot supply
+  the missing state, and its preserved database is not a substitute for it.
+- A test-only loopback GET observer exposes at most 64 sanitized FFI summaries,
+  pending acknowledgements and active production cache download. POST is rejected.
+  No production hooks, timers, retries, garbage collection, provider requests,
+  credential changes or database mutations are introduced by observation. The
+  focused loopback contract passed (d27248); the initial contract failure was
+  Flutter's deliberate test HttpClient replacement, corrected only for that
+  exact loopback client without changing the global override.
+- One full diagnostic workload used the actual `--disable-vm-service` tester
+  (92308), with `Service.getInfo` returning null. Session 55923 exited 0:
+  30,000 matched selectors, 600,308 acknowledged operations, no pending operation
+  or download; 21,440 ms capture, 641,259 ms total, 206,770,176-byte peak RSS,
+  65,536-byte maximum chunk and one transport. Offline reopen/replay passed.
+  This disproves that an enabled VM service is necessary for progress; it does
+  not reproduce or explain the original wait. Its tester/listener exited and
+  exact private fixture was absent. Original forensic evidence remains.
+- The default unobserved 256-item shared fixture passed (65153), including the
+  unchanged native production cache/worker and offline reopen/replay. Its optional
+  test-only cache factory leaves the default Android fixture path unchanged.
+- Scoped analysis of the three changed diagnostic/fixture files exited 0 with
+  no issues (98813). Dart formatting and `git diff --check` passed. The default
+  fixture's exact private directory was also absent after its terminal result.
+  Reviewed transaction 550e88c33d712b969f318c858e7408ba removed only regenerated
+  `build/unit_test_assets` and `build/test_cache` output: 56,910,629 bytes,
+  terminal APPLIED, no errors or residuals. Source, credentials, native reports
+  and original forensic evidence were preserved.
+- S4's full backend requirement reconciliation is in
+  [S4_ACCEPTANCE_RECONCILIATION.md](S4_ACCEPTANCE_RECONCILIATION.md). B5 records the
+  exact remaining acceptance, missing state, evidence-availability boundary,
+  resolution and final dependencies. S4 is BLOCKED, not COMPLETE; B5 is not
+  renamed a deferral or claimed to be an external application fault. A recurrence
+  or additional original runtime evidence returns priority to S4.
+- S5 becomes the sole ACTIVE stage. Its actual dependencies—verified provenance,
+  cache/query semantics and current setup states—are available. It owns the
+  still-undelivered card/details/setup/filter/controller integration. S1 remains
+  BLOCKED at B3/elapsed renewal; S2/S3 COMPLETE; S6-S8 NOT STARTED. Final closure
+  and SD migration remain gated by the unresolved required earlier-stage work.
 
 ### S4 production-score native proof and bounded wait diagnostics (2026-10-03)
 
@@ -795,8 +841,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed provider/raw/project canonical grouping and rank-before-filter query; exact raw-release validation across reviewed IDs and revisions; independent classification/review/unknown reconciliation; bounded edition and shared effective-score selection; additive v31 projection and disk-reopen preservation; populated 30,000-game indexed query; full 30,000-game native Thor query/artwork resource workflow with offline reopen and unchanged normal data; native production-adapter/job/identity/query ownership fixtures; interrupted-job recovery; real 26-identity IGDB reception assessment; production community-score publication/display/Top integration on host and Android; bounded test-only FFI diagnostic completed 30,000 artwork items without pending operations | B4 is resolved: no more credential renewals are required for IGDB access. Diagnose the earlier host artwork wait, then reconcile META-01/03/04/05/06/07 before closure. Current observed success is not a root-cause finding or production fix. Unassessed console scopes stay advisory; synthetic native transport proof does not replace live API or UI acceptance. S5 owns source/scope/coverage presentation, not S4's source approval |
-| S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
+| S4 | BLOCKED | Backend requirement reconciliation in S4_ACCEPTANCE_RECONCILIATION.md; fresh jobs/review/retry, exact raw/project/release ownership, independent tags, native query/artwork resources, real reception assessment and integrated production community policy verified; both VM-enabled and VM-disabled 30,000-item observed host workflows completed with offline reopen/replay | B5: original live async/FFI wait state was not captured before process stop; no available repeat reproduces it. Needs a recurrence with exact runtime state or additional original diagnostics, then cause/fix verification. No original fix is claimed. B4 resolved; no more IGDB credential renewal. Unassessed scopes remain advisory. S4/final closure stays blocked, not deferred |
+| S5 | ACTIVE | Verified S4 provenance/cache/query and S1/S2 setup contracts available; normal shared-card/view integration is the current implementation work | UI-01, UI-02, UI-03: real overlays, unified discovery filters, setup/refresh/details and controller/device proof still required |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
@@ -807,7 +853,8 @@ does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocked ME
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
+reclassified as a deferral. S1 is parked at B3; S4 is parked at B5; S5 is the sole
+ACTIVE stage. Earlier chronological checkpoints retain their then-current state.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.

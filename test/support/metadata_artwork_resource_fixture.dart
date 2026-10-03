@@ -102,7 +102,9 @@ class SyntheticArtworkProvider implements MetadataArtworkProvider {
 /// All transports are synthetic; never scans an account, catalogue or ROM.
 Future<Map<String, Object?>> verifyMetadataArtworkResource(
     DatabaseFactory factory,
-    {int count = 30000}) async {
+    {int count = 30000,
+    MetadataArtworkCache Function(Future<Database>, Directory)?
+        cacheFactory}) async {
   if (count < 2) {
     throw ArgumentError.value(count, 'count', 'At least two games');
   }
@@ -184,7 +186,7 @@ Future<Map<String, Object?>> verifyMetadataArtworkResource(
     }
 
     final jobs = MetadataRefreshJobs(Future.value(db));
-    final cache = MetadataArtworkCache(
+    final cache = (cacheFactory ?? MetadataArtworkCache.new)(
         Future.value(db), Directory(p.join(root.path, 'images')));
     final snapshot = await jobs.createArtwork(
         providerId: provider.providerId,
