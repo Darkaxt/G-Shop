@@ -379,6 +379,11 @@ and normal refresh/review worker. It retains IGDB's supplied `total_rating` and
 and counts; it never computes a replacement average or chooses the largest score.
 Title search yields review candidates, not approved ratings. Project scores need
 a verified project ID and mod/fork classification, never a base-game ID.
+Reviewed `T-Eng`/`Dub`/`Undub`/`Uncensor` editions may retrieve the verified
+global original's facts, with original-game ownership rather than patch quality.
+An explicit base relation must identify that same verified original on the same
+platform and be revalidated in the publication transaction; unknown/contradictory
+classification and a hack's base ID remain rejected. This does not approve Top.
 Request-time application credentials and in-memory expiry-bound tokens remain
 outside catalogues/exported configuration. Live access, the representative
 reception comparison, source precedence and native secure setup remain S4/S5

@@ -8,6 +8,8 @@ import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/metadata/igdb_provider.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/library_query.dart';
+import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -16,12 +18,14 @@ class _Transport implements HttpClientAdapter {
   final Object games;
   int gameStatus = 200;
   int tokenStatus = 200;
+  Future<void> Function()? beforeGames;
   _Transport(this.games);
   @override
   Future<ResponseBody> fetch(RequestOptions request, Stream<Uint8List>? body,
       Future<void>? cancel) async {
     requests.add(request);
     final token = request.uri.host == 'id.twitch.tv';
+    if (!token) await beforeGames?.call();
     return ResponseBody.fromString(
         jsonEncode(token
             ? {
@@ -132,6 +136,150 @@ void main() {
     final hack = await api.lookup(request(id: '123', tags: {'Hack'}));
     expect(hack.status, MetadataLookupStatus.needsReview);
     expect(hack.record, isNull);
+  });
+
+  test('reviewed original-game modifications can retrieve labelled facts',
+      () async {
+    final api = provider(_Transport([fixture]));
+    addTearDown(api.close);
+    for (final tags in [
+      {'T-Eng'},
+      {'Dub'},
+      {'Undub'},
+      {'Uncensor'},
+      {'T-Eng', 'Undub', 'Uncensor'}
+    ]) {
+      final result = await api.lookup(request(id: '123', tags: tags));
+      expect(result.status, MetadataLookupStatus.matched);
+      expect(result.record!.matchMethod, 'verifiedProviderIdGlobalGame');
+      expect(result.record!.ratings.first.normalizedValue, 91.5);
+    }
+    for (final tags in [
+      {'unknown'},
+      {'official', 'T-Eng'},
+      {'Hack', 'T-Eng'},
+      {'demo'}
+    ]) {
+      expect((await api.lookup(request(id: '123', tags: tags))).record, isNull);
+    }
+    final modApi = provider(_Transport([
+      {
+        ...fixture,
+        'game_type': {'type': 'Mod'}
+      }
+    ]));
+    addTearDown(modApi.close);
+    expect((await modApi.lookup(request(id: '123', tags: {'T-Eng'}))).record,
+        isNull,
+        reason: 'A mod/project score is not the original-game score.');
+  });
+
+  test('normal reviewed modification reaches offline original-score query',
+      () async {
+    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db
+        .execute('''CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT,
+      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL,
+      is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
+    await db.insert('games',
+        {'systemSlug': 'snes', 'displayName': 'Super Mario World translation'});
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final api = provider(_Transport([fixture]));
+    addTearDown(api.close);
+    final store = LibraryStore(Future.value(db));
+    final seed = await jobs.createFromCatalogue(providerId: 'igdb');
+    final editionId = (await db.query('metadata_refresh_items',
+            where: 'job_id = ?', whereArgs: [seed.id]))
+        .single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    final identity = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity(
+        id: 'base',
+        platformId: 'snes',
+        title: 'Super Mario World',
+        providerIds: {'igdb': '123'},
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    await store.putGame(
+        GameIdentity.fromJson({...identity.toJson(), 'baseGameId': 'base'}));
+    final first = await jobs.createFromCatalogue(providerId: 'igdb');
+    await jobs.run(first.id, api);
+    final review = (await jobs.reviewItems(first.id)).single;
+    final retry = await jobs.acceptCandidate(first.id,
+        editionId: review.editionId,
+        providerGameId: '123',
+        contentTags: {'T-Eng', 'Undub', 'Uncensor'});
+    final completed = await jobs.run(retry.id, api);
+    expect(completed.counts, {'matched': 1});
+    api.close();
+    final score =
+        (await store.effectiveRatings([review.editionId]))[review.editionId]!;
+    expect(score.ownership, OverallRatingOwnership.originalGame);
+    expect(score.rankingEligible, isFalse);
+    final result = await LibraryQuery(Future.value(db)).page(
+        filter: LibraryQueryFilter(
+            tags: {'T-Eng', 'Undub', 'Uncensor'}, matchAllTags: true));
+    expect(result.items.single.editionId, review.editionId);
+    expect(result.items.single.score!.ownership,
+        OverallRatingOwnership.originalGame);
+    expect(result.items.single.rank, isNull);
+    // Changing the explicitly linked base invalidates ownership, not the patch
+    // identity or cached evidence. Dirty projections must reflect that change.
+    await store.putGame(GameIdentity(
+        id: 'base',
+        platformId: 'snes',
+        title: 'Other base',
+        providerIds: {'igdb': '999'},
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    expect(
+        (await LibraryQuery(Future.value(db))
+                .page(filter: LibraryQueryFilter()))
+            .items
+            .single
+            .score,
+        isNull);
+    expect(await store.metadata(review.editionId, 'igdb'), isNotNull);
+    await store.putGame(GameIdentity(
+        id: 'base',
+        platformId: 'snes',
+        title: 'Super Mario World',
+        providerIds: {'igdb': '123'},
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    final refresh = await jobs.createFromCatalogue(providerId: 'igdb');
+    expect(refresh.counts, {'pending': 1});
+    expect(
+        (await LibraryQuery(Future.value(db))
+                .page(filter: LibraryQueryFilter()))
+            .items
+            .single
+            .score!
+            .fresh,
+        isFalse);
+    final changingBase = _Transport([fixture])
+      ..beforeGames = () => store.putGame(GameIdentity(
+          id: 'base',
+          platformId: 'snes',
+          title: 'Changed while retrieving facts',
+          providerIds: {'igdb': '999'},
+          matchStatus: IdentityMatchStatus.manuallyMatched));
+    final refreshedApi = provider(changingBase);
+    addTearDown(refreshedApi.close);
+    final rejected = await jobs.run(refresh.id, refreshedApi);
+    expect(rejected.counts, {'invalidResponse': 1});
+    expect((await store.metadata(review.editionId, 'igdb'))!.refreshGeneration,
+        retry.id,
+        reason:
+            'A changed base cannot publish the returned original-game facts.');
+    expect(
+        (await LibraryQuery(Future.value(db))
+                .page(filter: LibraryQueryFilter()))
+            .items
+            .single
+            .score,
+        isNull);
   });
 
   test('missing counts stay unknown and missing total is not computed locally',

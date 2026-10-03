@@ -330,6 +330,46 @@ S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
 
+### S4 reviewed original-game modification checkpoint (2026-10-03)
+
+- META-04's labelled original-game score existed in the selector, but the normal
+  IGDB adapter rejected every reviewed translation/audio/restoration edition.
+  An explicit base relation also failed the selector's blanket same-ID guard and
+  the worker's blanket base-ID response rejection. Separate reproductions failed
+  at those exact boundaries before the corresponding rules were corrected.
+- Reviewed independent/combinable `T-Eng`, `Dub`, `Undub`, `Uncensor` tags may now
+  retrieve a verified global original's facts. The shared selector returns
+  `originalGame` ownership, not a rating of patch quality. An explicit base must
+  be verified, same-platform and assigned the same original ID. Unknown,
+  contradictory, revision-uncertain and project/base-score substitutions remain
+  rejected. No title lookup automatically publishes a score or grants ranking.
+- The normal persistent catalogue -> review -> retry -> IGDB adapter -> metadata
+  publication -> offline query workflow passes with combined tags and an explicit
+  base relation. Changing the base invalidates query ownership without deleting
+  evidence; a new requested generation marks retained facts stale. A deterministic
+  transport-boundary mutation of the base during retrieval returns
+  `invalidResponse` and preserves the previous metadata generation. Publication
+  revalidates that base within its SQLite transaction, including coalesced targets.
+- Verification used synthetic IGDB wire responses and actual production worker,
+  SQLite persistence, selector and query. It is host integration proof, not live
+  IGDB access. The affected adapter/selector/store/query/refresh/catalogue/retry
+  regression workload exited zero (44 seconds); scoped analysis of the three
+  changed production files and two tests reported no issues (2.4 seconds).
+  The included worker's bounded 30,000-edition fixture took 36,719 ms, with peak
+  measured RSS 235,466,752 bytes, one coalesced lookup and 128-row commit pages.
+  That fixture is not full artwork/native resource acceptance. Only one test
+  workload ran at a time; no full-suite run was performed.
+- Cleanup `1da35904a720e2b29dfe6126cec4313b` reviewed all 454 exact generated
+  entries under `build/unit_test_assets` and `build/test_cache`; the applied ticket
+  removed 57,350,029 bytes with no warnings/errors. Compilation outputs are
+  rebuildable; source assets, private credentials, ROMs and APK deliverables were
+  outside the cleanup roots.
+- S4 remains ACTIVE: live reception assessment/B4, remaining provider/raw/release
+  and classification reconciliation, full artwork/resource assessment and native
+  integration remain required. S1 remains BLOCKED at B3/elapsed renewal;
+  S2/S3 COMPLETE; S5-S8 NOT STARTED. No required gap was deferred away. No browser,
+  credential, Thor, ROM body, SD migration or release changed. Monitoring stays off.
+
 ### S4 indexed collection-query checkpoint (2026-10-03)
 
 - `LibraryQuery.page` establishes membership from actual committed cache rows,

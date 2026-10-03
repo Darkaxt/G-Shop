@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
 import '../library_store.dart';
+import 'effective_overall_rating.dart';
 import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
 
@@ -1099,6 +1100,9 @@ class MetadataRefreshJobs {
       String providerId,
       CancelToken cancel) async {
     final record = result.record;
+    final originalBaseScore = record != null &&
+        request.baseProviderGameId != null &&
+        record.providerGameId == request.baseProviderGameId;
     final valid = result.status != MetadataLookupStatus.matched ||
         (record != null &&
             record.gameId == request.gameId &&
@@ -1110,7 +1114,10 @@ class MetadataRefreshJobs {
             (request.verifiedProviderGameId == null ||
                 record.providerGameId == request.verifiedProviderGameId) &&
             (request.baseProviderGameId == null ||
-                record.providerGameId != request.baseProviderGameId));
+                record.providerGameId != request.baseProviderGameId ||
+                (providerId == 'igdb' &&
+                    record.matchMethod == 'verifiedProviderIdGlobalGame' &&
+                    record.providerGameId == request.verifiedProviderGameId)));
     final status = valid ? result.status.name : 'invalidResponse';
     final store = LibraryStore(_database);
     // Each bounded page commits its metadata and item results together. A crash
@@ -1134,20 +1141,44 @@ class MetadataRefreshJobs {
                   target['identity_key']) {
             outcome = 'identityChanged';
           } else if (outcome == 'matched') {
-            final previous = await txn.query('library_metadata',
-                columns: ['generation_id'],
-                where: 'edition_id = ? AND provider_id = ?',
-                whereArgs: [editionId, providerId],
-                limit: 1);
-            if (previous.isNotEmpty &&
-                (previous.single['generation_id'] as int) >
-                    request.refreshGeneration) {
-              outcome = 'superseded';
-            } else {
-              final copy = MetadataRecord.fromJson(
-                  {...record!.toJson(), 'editionId': editionId});
-              await store.putMetadata(copy, transaction: txn);
-              rated = copy.ratings.isEmpty ? 0 : 1;
+            final copy = MetadataRecord.fromJson(
+                {...record!.toJson(), 'editionId': editionId});
+            if (originalBaseScore) {
+              // Revalidate the linked original inside the publication
+              // transaction. A shared provider ID alone cannot exempt a hack,
+              // contradictory classification or changed base from rejection.
+              final game = GameIdentity.fromJson(
+                  jsonDecode(identity['game_json'] as String));
+              final edition = EditionIdentity.fromJson(
+                  jsonDecode(identity['edition_json'] as String));
+              final bases = await txn.query('library_game_identities',
+                  columns: ['record_json'],
+                  where: 'game_id = ?',
+                  whereArgs: [game.baseGameId],
+                  limit: 1);
+              final base = bases.isEmpty
+                  ? null
+                  : GameIdentity.fromJson(
+                      jsonDecode(bases.single['record_json'] as String));
+              if (metadataOverallOwnership(game, edition, copy, base) !=
+                  OverallRatingOwnership.originalGame) {
+                outcome = 'invalidResponse';
+              }
+            }
+            if (outcome == 'matched') {
+              final previous = await txn.query('library_metadata',
+                  columns: ['generation_id'],
+                  where: 'edition_id = ? AND provider_id = ?',
+                  whereArgs: [editionId, providerId],
+                  limit: 1);
+              if (previous.isNotEmpty &&
+                  (previous.single['generation_id'] as int) >
+                      request.refreshGeneration) {
+                outcome = 'superseded';
+              } else {
+                await store.putMetadata(copy, transaction: txn);
+                rated = copy.ratings.isEmpty ? 0 : 1;
+              }
             }
           }
           await txn.update(

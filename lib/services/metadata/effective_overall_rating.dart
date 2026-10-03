@@ -184,8 +184,7 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
   if (game.baseGameId != null &&
       (baseGame == null ||
           baseGame.id != game.baseGameId ||
-          baseGame.platformId != game.platformId ||
-          baseGame.providerIds[record.providerId] == record.providerGameId)) {
+          baseGame.platformId != game.platformId)) {
     return null;
   }
   final project =
@@ -194,6 +193,7 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
     return !edition.tags.contains('official') &&
             !edition.tags.contains('unknown') &&
             byId &&
+            baseGame?.providerIds[record.providerId] != record.providerGameId &&
             record.providerId == 'igdb' &&
             record.matchMethod == 'verifiedProjectId'
         ? OverallRatingOwnership.project
@@ -223,6 +223,12 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
   // ScreenScraper currently returns modified editions for review, not scores.
   return knownModification &&
           byId &&
+          (game.baseGameId == null ||
+              ((baseGame!.matchStatus == IdentityMatchStatus.matched ||
+                      baseGame.matchStatus ==
+                          IdentityMatchStatus.manuallyMatched) &&
+                  baseGame.providerIds[record.providerId] ==
+                      record.providerGameId)) &&
           record.providerId == 'igdb' &&
           record.matchMethod == 'verifiedProviderIdGlobalGame'
       ? OverallRatingOwnership.originalGame

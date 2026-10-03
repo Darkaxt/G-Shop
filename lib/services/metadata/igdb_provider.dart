@@ -179,15 +179,23 @@ class IgdbMetadataProvider implements MetadataProvider {
           : null;
       final official = request.contentTags.length == 1 &&
           request.contentTags.contains('official');
+      // A reviewed global game ID may describe the original behind a known
+      // translation/audio/restoration edition. It does not rate patch quality.
+      const originalModifications = {'T-Eng', 'Dub', 'Undub', 'Uncensor'};
+      final originalModification = request.contentTags.isNotEmpty &&
+          originalModifications.containsAll(request.contentTags);
       final project = request.contentTags.contains('Hack') &&
           (kind == 'mod' || kind == 'fork') &&
           candidates.single.titleMatched &&
           request.baseProviderGameId != id;
       if (id == null ||
-          (!official && !project) ||
-          (official && (kind == null || kind == 'mod' || kind == 'fork')) ||
+          (!official && !project && !originalModification) ||
+          ((official || originalModification) &&
+              (kind == null || kind == 'mod' || kind == 'fork')) ||
           request.revision?.isNotEmpty == true ||
-          (request.baseProviderGameId != null && !project)) {
+          (request.baseProviderGameId != null &&
+              !project &&
+              (!originalModification || request.baseProviderGameId != id))) {
         return _result(MetadataLookupStatus.needsReview,
             candidates: candidates);
       }
@@ -217,8 +225,9 @@ class IgdbMetadataProvider implements MetadataProvider {
           status: MetadataLookupStatus.matched,
           quota: _quota,
           candidates: candidates,
-          message:
-              'Sourced aggregate retrieved; reception assessment remains required.',
+          message: originalModification
+              ? 'Original-game facts retrieved, not patch quality; reception assessment remains required.'
+              : 'Sourced aggregate retrieved; reception assessment remains required.',
           record: MetadataRecord(
               gameId: request.gameId,
               editionId: request.editionId,

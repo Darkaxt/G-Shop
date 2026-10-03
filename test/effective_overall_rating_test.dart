@@ -264,6 +264,49 @@ void main() {
     }
   });
 
+  test(
+      'explicit base relation labels original score only on known modifications',
+      () {
+    final related =
+        GameIdentity.fromJson({...game.toJson(), 'baseGameId': 'base'});
+    final base = GameIdentity(
+        id: 'base',
+        title: 'Original',
+        platformId: 'psx',
+        providerIds: {'igdb': '91'},
+        matchStatus: IdentityMatchStatus.matched);
+    final edition = EditionIdentity(
+        id: 'e',
+        gameId: 'g',
+        tags: {'T-Eng', 'Undub', 'Uncensor'},
+        isTranslation: true,
+        translatedLanguages: ['en'],
+        patchId: 'translation');
+    final original = record('igdb', 80, method: 'verifiedProviderIdGlobalGame');
+    final score =
+        select([original], identity: related, edition: edition, baseGame: base);
+    expect(score, isNotNull);
+    expect(score!.ownership, OverallRatingOwnership.originalGame);
+    expect(score.rankingEligible, isFalse);
+    for (final wrongBase in [
+      null,
+      GameIdentity.fromJson({...base.toJson(), 'platformId': 'ps2'}),
+      GameIdentity.fromJson({...base.toJson(), 'matchStatus': 'unmatched'}),
+      GameIdentity.fromJson({
+        ...base.toJson(),
+        'providerIds': {'igdb': 'other'}
+      })
+    ]) {
+      expect(
+          select([original],
+              identity: related, edition: edition, baseGame: wrongBase),
+          isNull);
+    }
+    expect(select([original], identity: related, baseGame: base), isNull,
+        reason:
+            'An original-game link cannot make an official edition a patch.');
+  });
+
   test('hack may use its verified project rating, never its base rating', () {
     final hack = EditionIdentity(id: 'e', gameId: 'g', tags: {'Hack'});
     expect(select([record('igdb', 99)], edition: hack), isNull);
