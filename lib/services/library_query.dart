@@ -31,7 +31,7 @@ class LibraryQueryFilter {
       this.limit = 50,
       this.offset = 0})
       : platformIds = Set.unmodifiable(platformIds),
-        tags = Set.unmodifiable(tags),
+        tags = EditionIdentity.normalizeContentTags(tags),
         genres = Set.unmodifiable(genres),
         regions = Set.unmodifiable(regions),
         languages = Set.unmodifiable(languages),
@@ -355,8 +355,20 @@ class LibraryQuery {
             }
           }
         }
+        final contradictoryOfficial = edition.tags.contains('official') &&
+            (edition.tags.length != 1 ||
+                edition.isTranslation == true ||
+                edition.translatedLanguages.isNotEmpty);
+        final tagFacets = {
+          ...edition.tags
+              .where((tag) => tag != 'official' || !contradictoryOfficial),
+          if (edition.tags.isEmpty ||
+              !EditionIdentity.knownContentTags.containsAll(edition.tags) ||
+              contradictoryOfficial)
+            'unknown'
+        };
         final facets = {
-          'tag': edition.tags.isEmpty ? {'unknown'} : edition.tags,
+          'tag': tagFacets,
           'genre': genres,
           'region': edition.regions.toSet(),
           'language': edition.languages.toSet()

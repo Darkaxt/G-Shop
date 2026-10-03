@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
 
 enum RomIdentifierKind { rawRom, rawIso, container }
@@ -90,7 +91,8 @@ class MetadataLookupRequest {
     this.revision,
     this.romIdentifier,
     required this.refreshGeneration,
-  }) : contentTags = Set.unmodifiable(List<String>.of(contentTags)..sort());
+  }) : contentTags = Set.unmodifiable(
+            EditionIdentity.normalizeContentTags(contentTags).toList()..sort());
 
   Map<String, dynamic> toJson() => {
         'gameId': gameId,

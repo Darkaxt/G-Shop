@@ -480,6 +480,7 @@ class MetadataRefreshJobs {
       {required String editionId,
       required String providerGameId,
       required Set<String> contentTags}) async {
+    final classification = EditionIdentity.normalizeContentTags(contentTags);
     final db = await _database;
     final job = await _job(db, id);
     final providerId = job['provider_id'] as String;
@@ -510,25 +511,15 @@ class MetadataRefreshJobs {
                   (c) =>
                       c.providerGameId == providerGameId &&
                       c.platformId == game.platformId);
-          const knownTags = {
-            'official',
-            'Hack',
-            'T-Eng',
-            'Dub',
-            'Undub',
-            'Uncensor',
-            'homebrew',
-            'demo',
-            'unknown'
-          };
           if (offered.length != 1 ||
-              contentTags.isEmpty ||
-              !knownTags.containsAll(contentTags) ||
-              (contentTags.contains('official') && contentTags.length != 1)) {
+              classification.isEmpty ||
+              !EditionIdentity.knownContentTags.containsAll(classification) ||
+              (classification.contains('official') &&
+                  classification.length != 1)) {
             throw StateError(
                 'Review requires an offered identity and consistent classification');
           }
-          final tags = contentTags.toList()..sort();
+          final tags = classification.toList()..sort();
           final correctedGame = GameIdentity.fromJson({
             ...game.toJson(),
             'providerIds': {...game.providerIds, providerId: providerGameId},
@@ -544,14 +535,14 @@ class MetadataRefreshJobs {
           final correctedEdition = EditionIdentity.fromJson({
             ...edition.toJson(),
             'tags': tags,
-            if (contentTags.contains('T-Eng')) ...{
+            if (classification.contains('T-Eng')) ...{
               'isTranslation': true,
               'translatedLanguages': [
                 ...edition.translatedLanguages.where((l) => l != 'en'),
                 'en'
               ],
             },
-            if (contentTags.contains('official')) ...{
+            if (classification.contains('official')) ...{
               'isTranslation': false,
               'translatedLanguages': <String>[],
             },

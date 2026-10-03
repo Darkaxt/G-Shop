@@ -561,7 +561,15 @@ class LibraryStore {
             {
               'edition_id': edition.id,
               'game_id': edition.gameId,
-              'record_json': jsonEncode(edition.toJson()),
+              // Catalogue capture updates artifact evidence, not reviewed tag
+              // facts. Preserve old spellings in their identity binding; reading
+              // canonical aliases must not invalidate metadata or queued work.
+              'record_json': jsonEncode({
+                ...edition.toJson(),
+                if (existingEdition.isNotEmpty)
+                  'tags': jsonDecode(
+                      existingEdition.single['record_json'] as String)['tags'],
+              }),
             },
             conflictAlgorithm: ConflictAlgorithm.replace);
         await indexCanonicalGroups(db, editionId: edition.id);

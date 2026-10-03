@@ -132,6 +132,45 @@ void main() {
     expect(translations.provisional, isFalse);
   });
 
+  test(
+      'tag aliases use the same cached query while unfamiliar tags stay unknown',
+      () async {
+    final official = await seed(1, score: 90, tags: {'OFFICIAL'});
+    final modified = await seed(2, tags: {'dubbed', 'UNDUBBED', 'uncensored'});
+    final unfamiliar =
+        await seed(3, score: 99, tags: {'Translation', 'PEGI 18'});
+    final conflicting = await seed(4, score: 98, tags: {'Official', 'Hack'});
+    expect(
+        (await read(filter: LibraryQueryFilter(tags: {'Official'})))
+            .items
+            .map((i) => i.editionId),
+        [official],
+        reason: 'Contradictory facts do not claim an official release.');
+    expect(
+        (await read(filter: LibraryQueryFilter(top: 1, tags: {' official '})))
+            .items
+            .map((i) => i.editionId),
+        [official]);
+    expect(
+        (await read(
+                filter: LibraryQueryFilter(
+                    tags: {'Dubbed', 'undubbed', 'UNCENSORED'},
+                    matchAllTags: true)))
+            .items
+            .map((i) => i.editionId),
+        [modified]);
+    final unresolved =
+        await read(filter: LibraryQueryFilter(tags: {'Unknown'}));
+    expect(unresolved.items.map((i) => i.editionId).toSet(),
+        {unfamiliar, conflicting});
+    expect(unresolved.items.map((i) => i.score), everyElement(isNull));
+    expect(
+        (await read(filter: LibraryQueryFilter(top: 1, tags: {'Unknown'})))
+            .items,
+        isEmpty);
+    expect((await store.edition(unfamiliar))!.tags, {'Translation', 'PEGI 18'});
+  });
+
   test('any/all tags are independent and AND other dimensions', () async {
     final a = await seed(1, score: 90, tags: {'T-Eng', 'Undub', 'Uncensor'});
     await seed(2,

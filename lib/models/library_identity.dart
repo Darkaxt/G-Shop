@@ -257,6 +257,39 @@ class EditionMember {
 /// Separate editions may share the game ID. Distinct hack projects have their
 /// own game IDs. No relationship is inferred from titles, regions, or tags.
 class EditionIdentity {
+  static const knownContentTags = {
+    'official',
+    'Hack',
+    'T-Eng',
+    'Dub',
+    'Undub',
+    'Uncensor',
+    'homebrew',
+    'demo',
+    'unknown'
+  };
+  static const _contentTagAliases = {
+    'official': 'official',
+    'hack': 'Hack',
+    't-eng': 'T-Eng',
+    't-en': 'T-Eng',
+    'dub': 'Dub',
+    'dubbed': 'Dub',
+    'undub': 'Undub',
+    'undubbed': 'Undub',
+    'uncensor': 'Uncensor',
+    'uncensored': 'Uncensor',
+    'homebrew': 'homebrew',
+    'demo': 'demo',
+    'unknown': 'unknown'
+  };
+
+  /// Interpret known spellings only. Unfamiliar facts remain verbatim; neither
+  /// language nor translation status is inferred from normalization.
+  static Set<String> normalizeContentTags(Iterable<String> tags) =>
+      Set.unmodifiable(tags
+          .map((tag) => _contentTagAliases[tag.trim().toLowerCase()] ?? tag));
+
   final String id;
   final String gameId;
   final Map<String, String> providerIds;
@@ -294,7 +327,7 @@ class EditionIdentity {
         providerIds = Map.unmodifiable(providerIds),
         regions = List.unmodifiable(regions),
         languages = List.unmodifiable(languages),
-        tags = Set.unmodifiable(tags),
+        tags = normalizeContentTags(tags),
         translatedLanguages = List.unmodifiable(translatedLanguages),
         members = List.unmodifiable(members),
         evidence = List.unmodifiable(evidence);

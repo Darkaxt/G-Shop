@@ -9,12 +9,148 @@ import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
+import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+  });
+  test('production v30 upgrade reinterprets aliases without rewriting evidence',
+      () async {
+    final original = await databaseFactory.getDatabasesPath();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-query-migration-');
+    Database? db;
+    try {
+      await databaseFactory.setDatabasesPath(root.path);
+      DatabaseService.resetForTesting();
+      db = await DatabaseService().database;
+      await db.insert('games', {
+        'id': 1,
+        'systemSlug': 'psx',
+        'filename': 'Fixture.chd',
+        'displayName': 'Fixture',
+        'url': 'https://example.invalid/Fixture.chd'
+      });
+      final store = LibraryStore(Future.value(db));
+      final id = (await db.transaction(
+              (txn) => LibraryStore.catalogueEditions(txn).toList()))
+          .single;
+      final edition = (await store.edition(id))!;
+      final game = (await store.game(edition.gameId))!;
+      await store.putGame(GameIdentity.fromJson({
+        ...game.toJson(),
+        'providerIds': {'igdb': '91'},
+        'matchStatus': 'manuallyMatched'
+      }));
+      // Write actual historical JSON directly; do not seed through the new model.
+      await db.update(
+          'library_editions',
+          {
+            'record_json': jsonEncode({
+              ...edition.toJson(),
+              'tags': [' OFFICIAL ']
+            })
+          },
+          where: 'edition_id = ?',
+          whereArgs: [id]);
+      final at = DateTime.utc(2026, 10, 3);
+      await store.putMetadata(MetadataRecord(
+          gameId: game.id,
+          editionId: id,
+          platformId: 'psx',
+          providerId: 'igdb',
+          providerGameId: '91',
+          retrievedAt: at,
+          refreshGeneration: 1,
+          matchMethod: 'verifiedProviderIdGlobalGame',
+          titles: const [
+            MetadataText(text: 'Fixture')
+          ],
+          ratings: [
+            SourcedRating.parse(
+                sourceId: 'igdb',
+                sourceLabel: 'IGDB',
+                providerGameId: '91',
+                rawValue: 85,
+                scaleMinimum: 0,
+                scaleMaximum: 100,
+                voteCount: 100,
+                kind: RatingKind.overallAggregate,
+                retrievedAt: at)!
+          ]));
+      await MetadataRefreshJobs(Future.value(db))
+          .createFromCatalogue(providerId: 'screenscraper');
+      expect(await store.metadata(id, 'igdb'), isNotNull,
+          reason: 'Catalogue capture must preserve the original binding.');
+      final basis = AssessedOverallScoreBasis(
+          sourceId: 'igdb',
+          kind: RatingKind.overallAggregate,
+          scaleMinimum: 0,
+          scaleMaximum: 100,
+          platformIds: {'psx'},
+          minimumVoteCount: 10,
+          assessmentReference: 'synthetic-alias-assessment');
+      final query = LibraryQuery(Future.value(db));
+      await query.replaceViewMembers('shelf:fixture', [id]);
+      await query.page(filter: LibraryQueryFilter(), assessedBases: [basis]);
+      // v30 had raw spellings in its facets and no eligible alias-owned score.
+      await db.update('library_query_facets', {'value': ' official '},
+          where: 'edition_id = ? AND dimension = ?', whereArgs: [id, 'tag']);
+      await db.update(
+          'library_query_editions', {'score': null, 'rating_eligible': 0});
+      await db.delete('library_query_dirty');
+      final preserved = <String, List<Map<String, Object?>>>{};
+      for (final table in [
+        'games',
+        'library_game_identities',
+        'library_editions',
+        'library_metadata',
+        'metadata_refresh_jobs',
+        'metadata_refresh_items',
+        'library_query_views'
+      ]) {
+        preserved[table] = await db.query(table);
+      }
+      await db.setVersion(30);
+      await db.close();
+      DatabaseService.resetForTesting();
+      db = await DatabaseService().database;
+      for (var reopen = 0; reopen < 2; reopen++) {
+        final currentDb = db!;
+        final result = await LibraryQuery(Future.value(currentDb)).page(
+            filter: LibraryQueryFilter(
+                top: 1, tags: {'official'}, viewIds: {'shelf:fixture'}),
+            assessedBases: [basis]);
+        expect(result.items.map((i) => i.editionId), [id]);
+        expect(result.items.single.score!.rating.normalizedValue, 85);
+        expect(await currentDb.getVersion(), 31);
+        expect((await LibraryStore(Future.value(currentDb)).edition(id))!.tags,
+            {'official'});
+        expect(await LibraryStore(Future.value(currentDb)).metadata(id, 'igdb'),
+            isNotNull);
+        for (final entry in preserved.entries) {
+          expect(await currentDb.query(entry.key), entry.value,
+              reason: entry.key);
+        }
+        if (reopen == 0) {
+          await currentDb.close();
+          DatabaseService.resetForTesting();
+          db = await DatabaseService().database;
+        }
+      }
+    } finally {
+      await db?.close();
+      DatabaseService.resetForTesting();
+      await databaseFactory.setDatabasesPath(original);
+      if (!p.isWithin(Directory.systemTemp.path, root.path) ||
+          !p.basename(root.path).startsWith('rshop-query-migration-')) {
+        throw StateError('Unexpected fixture cleanup root');
+      }
+      await root.delete(recursive: true);
+    }
   });
   test('production v29 upgrade backfills raw/project matches and exact facts',
       () async {
@@ -109,7 +245,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 30);
+      expect(await db.getVersion(), 31);
       expect(await db.query('library_metadata'), factsBefore);
       expect(await db.query('library_editions'), editionsBefore);
       expect(await db.query('games'), filesBefore);
@@ -234,7 +370,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 30);
+      expect(await db.getVersion(), 31);
       expect(await db.query('library_metadata'), before);
       expect(await db.query('games'), filesBefore);
       final basis = AssessedOverallScoreBasis(
@@ -264,7 +400,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 30);
+      expect(await db.getVersion(), 31);
       expect(await db.query('library_canonical_claims'), hasLength(1));
       expect(await db.query('library_query_views'), viewsBefore);
       query = LibraryQuery(Future.value(db));

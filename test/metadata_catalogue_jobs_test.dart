@@ -221,6 +221,37 @@ void main() {
   });
 
   test(
+      'reviewed tag aliases persist canonical classification and retry evidence',
+      () async {
+    await cache('snes', 'Fixture.zip', artifact: remote('file'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, _ReviewProvider());
+    final review = (await jobs.reviewItems(job.id)).single;
+    final retry = await jobs.acceptCandidate(job.id,
+        editionId: review.editionId,
+        providerGameId: '42',
+        contentTags: {' T-En ', 'undubbed', 'UNCENSORED'});
+    final request =
+        jsonDecode((await items(retry.id)).single['request_json'] as String);
+    expect(request['contentTags'], ['T-Eng', 'Uncensor', 'Undub']);
+    final edition = (await store.edition(review.editionId))!;
+    expect(edition.isTranslation, isTrue);
+    expect(edition.translatedLanguages, ['en']);
+    expect(
+        jsonDecode(edition.evidence
+            .singleWhere((e) => e.kind == 'contentClassification')
+            .value),
+        request['contentTags']);
+    final refreshed =
+        await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect(
+        jsonDecode((await items(refreshed.id)).single['request_json']
+            as String)['contentTags'],
+        request['contentTags']);
+    expect(await store.metadata(review.editionId, 'screenscraper'), isNull);
+  });
+
+  test(
       'catalogue review groups verified conversions without confusing changed bytes',
       () async {
     final firstRow = await cache('snes', 'Game.zip', artifact: remote('zip'));

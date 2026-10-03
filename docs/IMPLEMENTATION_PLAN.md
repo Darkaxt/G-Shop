@@ -295,6 +295,17 @@ separate actual emulator acceptance evidence.
 Requirements: META-01, META-03, META-04, META-05, META-06, META-07.
 Depends on: S1 provider/identity contracts; S2 remote catalogue for integration.
 
+Classification reconciliation normalizes only finite known tag spellings/case
+(including `T-En`, `Dubbed`, `Undubbed`, `Uncensored`) through the existing edition
+identity and shared request/query/review boundaries. Preserve unfamiliar labels,
+classification evidence, general translation status and translated languages;
+never infer tags from a title, ordinary English language or age rating. Unknown
+or contradictory official classifications remain browsable under Unknown.
+Backfill only rebuildable canonical/query projections on upgrade, retaining
+original stored identity JSON, metadata bindings/facts and in-flight job records.
+Verify explicit review -> retry -> worker publication -> offline filters and
+production upgrade/reopen; normalization alone does not approve a match or Top.
+
 - Implement persistent full/per-system/per-game refresh generations, correction
   preservation, deduplicated work, quota control and fresh coverage reports.
 - Ignore historical gamelist data as a trusted baseline. Revisit every game

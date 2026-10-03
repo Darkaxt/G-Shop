@@ -20,7 +20,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 30;
+  static const int _dbVersion = 31;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -353,7 +353,9 @@ class DatabaseService {
     if (oldVersion < 28) {
       await LibraryQuery.install(db);
     }
-    if (oldVersion < 30) {
+    if (oldVersion < 31) {
+      // v31 interprets known content-tag aliases in rebuildable projections.
+      // Keep original identity JSON and metadata/job ownership keys untouched.
       await LibrarySchema.install(db);
       await LibraryStore.indexCanonicalGroups(db);
     }

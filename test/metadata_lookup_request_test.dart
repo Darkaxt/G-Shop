@@ -24,6 +24,25 @@ MetadataLookupRequest _request({
     );
 
 void main() {
+  test('request aliases canonicalize without interpreting unfamiliar labels',
+      () {
+    final request = _request(contentTags: {
+      ' T-En ',
+      'T-ENG',
+      'dubbed',
+      'Undubbed',
+      'UNCENSORED',
+      'Translation'
+    });
+    expect(request.contentTags,
+        {'T-Eng', 'Dub', 'Undub', 'Uncensor', 'Translation'});
+    final restored = MetadataLookupRequest.fromJson({
+      ...request.toJson(),
+      'contentTags': ['T-En', 'T-ENG', 'Dubbed', 'Translation'],
+    });
+    expect(restored.toJson()['contentTags'], ['Dub', 'T-Eng', 'Translation']);
+    expect(() => restored.contentTags.add('Hack'), throwsUnsupportedError);
+  });
   test(
       'round trips every request and raw-ROM identifier field deterministically',
       () {

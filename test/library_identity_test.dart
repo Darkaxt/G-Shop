@@ -203,6 +203,41 @@ void main() {
       expect(secondPatch.id, isNot(translated.id));
     });
 
+    test('known content-tag aliases canonicalize without inferring patch facts',
+        () {
+      final edition = EditionIdentity(
+          id: 'aliases',
+          gameId: 'game',
+          languages: [
+            'en'
+          ],
+          tags: {
+            ' t-en ',
+            'T-ENG',
+            'Dubbed',
+            ' UNDUBBED ',
+            'uncensored',
+            'HACK'
+          });
+      expect(edition.tags, {'T-Eng', 'Dub', 'Undub', 'Uncensor', 'Hack'});
+      expect(edition.isTranslation, isNull);
+      expect(edition.translatedLanguages, isEmpty);
+      final restored = EditionIdentity.fromJson(roundTrip(edition.toJson()));
+      expect(restored.tags, edition.tags);
+      expect(() => restored.tags.add('official'), throwsUnsupportedError);
+      final unknown = EditionIdentity(
+          id: 'unknown',
+          gameId: 'game',
+          languages: ['en'],
+          isTranslation: true,
+          translatedLanguages: ['fr'],
+          tags: {'Translation', 'English', 'PEGI 18', ' custom '});
+      expect(unknown.tags, {'Translation', 'English', 'PEGI 18', ' custom '});
+      expect(unknown.tags, isNot(contains('T-Eng')));
+      expect(unknown.tags, isNot(contains('Uncensor')));
+      expect(unknown.translatedLanguages, ['fr']);
+    });
+
     test('ambiguous and manually corrected evidence persist without guessing',
         () {
       for (final status in [

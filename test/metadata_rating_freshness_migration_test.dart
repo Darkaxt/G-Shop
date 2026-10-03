@@ -74,7 +74,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 30);
+      expect(await db.getVersion(), 31);
       expect(await db.query('library_metadata'), metadataBefore);
       expect(await db.query('metadata_refresh_items'), itemsBefore);
       final jobs = await db.query('metadata_refresh_jobs');

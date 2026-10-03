@@ -56,6 +56,50 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S4 content-tag reconciliation checkpoint (2026-10-03)
+
+- S4 remains the sole ACTIVE stage. Edition identities, persisted lookup requests,
+  candidate review and cached query filters share finite known-tag interpretation:
+  case/trim variants, `T-En`, `Dubbed`, `Undubbed` and `Uncensored`. Unfamiliar
+  labels remain verbatim. Normalization does not infer translation/language,
+  patch features, trusted matches or ranking approval from a filename or age.
+- Unknown/unfamiliar and contradictory official classifications are available
+  through Unknown. Conflicting `official + Hack` facts remain stored but do not
+  claim an unmodified official release or acquire a score/Top position. Any/all
+  filters continue to intersect existing ranks without backfill.
+- The migration reproduction exposed a second defect: catalogue capture could
+  serialize normalized aliases over existing tag facts and invalidate their
+  source-bound metadata. Capture now preserves the original stored tag facts;
+  explicit review still writes canonical classification and its manual evidence.
+  Disabling that preservation reproduced the lost-binding failure.
+- Production v31 rebuilds only canonical/query projections in bounded pages.
+  Actual v30 upgrade and cold reopen preserve raw game/edition JSON, metadata
+  records and ownership keys, refresh jobs/requests, game files and shelf members.
+  Existing v25/v26/v27/v28/v29 migration and preservation checks also pass.
+- Host integration: canonical and alias reviews both traverse the normal job,
+  retry and IGDB adapter wire fixture into persistent metadata and offline any/all
+  query results. Original-game scores remain labelled, not project scores. No
+  network requests occur during the offline reads. This is actual adapter/SQLite
+  fixture evidence, not a live IGDB authorization or Thor claim.
+- Verification: affected identity/request/review/query/adapter/ownership/grouping
+  and migration checks exited 0 (test workload session 66358, 1m36s); after the
+  final official-filter correction, query/migration/IGDB integration checks exited
+  0 (66367, 6s). Scoped analysis of every changed Dart file found no issues.
+  The bounded 30,000-edition job measured peak RSS 235,028,480 bytes with page
+  size 128; standalone grouping measured RSS 146,587,648 -> 208,801,792 bytes.
+  Workloads were sequential. No broad suite, credential changes, ROM downloads,
+  device testing or release occurred; monitoring remains cancelled.
+- Reviewed transaction `7fa0c27323b2f0382953857f240dff29` removed only generated
+  test-cache/unit-test assets (57,756,597 bytes); apply is terminal with no warnings
+  or errors. Requested deliverables and the earlier artwork diagnostic fixture
+  remain preserved.
+- Reconciliation: META-04 alias/unknown handling and META-07 offline filter
+  interpretation have integrated host evidence; CORE-03 preservation is verified.
+  S4 is not COMPLETE: release reconciliation, remaining classification evidence,
+  full reception/source assessment (B4), the earlier unexplained artwork wait,
+  and native query/artwork/integration/resource acceptance remain required.
+  S1 stays BLOCKED at B3/elapsed renewal; S2/S3 COMPLETE; S5-S8 NOT STARTED.
+
 ### S4 verified raw/project grouping checkpoint (2026-10-03)
 
 - S4 remains the sole ACTIVE stage. The normal catalogue/refresh worker now
