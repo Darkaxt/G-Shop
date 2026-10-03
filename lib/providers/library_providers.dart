@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:convert';
 
 import '../services/database_service.dart';
 import '../services/library_sync_service.dart';
 import '../services/library_query.dart';
 import '../services/metadata/effective_overall_rating.dart';
+export '../services/library_query.dart' show coverRatingKey;
 
 final libraryDbProvider = Provider<DatabaseService>((ref) {
   return DatabaseService();
@@ -18,11 +18,6 @@ final librarySyncServiceProvider =
 /// Bumped when games are saved to DB outside of LibrarySyncService
 /// (e.g. by GameListController). Watched by count providers to re-query.
 final gameDbChangedProvider = StateProvider<int>((ref) => 0);
-
-/// Exact cover ownership uses the existing selection identity plus console.
-/// A cleaned title is never used to attach a rating to a different artifact.
-String coverRatingKey(String systemSlug, String selectionKey) =>
-    jsonEncode([systemSlug, selectionKey]);
 
 /// One shared, cache-only read per mounted view. Scores are fetched in pages of
 /// 128, not per card/frame; scrolling only reads this immutable in-memory map.

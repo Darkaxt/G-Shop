@@ -9,12 +9,33 @@ import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:retro_eshop/features/game_list/logic/game_list_controller.dart';
+import 'package:retro_eshop/models/config/system_config.dart';
+import 'package:retro_eshop/models/config/provider_config.dart';
+import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/system_model.dart';
+import 'game_list_controller_test.dart'
+    show FakeStorageService, waitUntilLoaded;
 
 class _CacheDatabase extends DatabaseService {
   final Database cache;
   _CacheDatabase(this.cache);
   @override
   Future<Database> get database => Future.value(cache);
+}
+
+class _ConsoleCacheDatabase extends _CacheDatabase {
+  final List<GameItem> games;
+  _ConsoleCacheDatabase(super.cache, this.games);
+  @override
+  Future<bool> hasCache(String systemSlug) async => true;
+  @override
+  Future<List<GameItem>> getGames(String systemSlug) async => games;
+}
+
+class _FreshFilterStorage extends FakeStorageService {
+  @override
+  DateTime? getLastSyncTime(String systemId) => DateTime.now();
 }
 
 void main() {
@@ -113,6 +134,103 @@ void main() {
 
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
+
+  test(
+      'console Top and tags use production scores and persist without a scrape',
+      () async {
+    final games = <GameItem>[];
+    for (var i = 1; i <= 12; i++) {
+      final id = await seed(i,
+          score: 100 - i.toDouble(),
+          tags: i == 1 || i == 12 ? {'Hack'} : {'official'});
+      final metadata = (await store.metadata(id, 'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...metadata.toJson(),
+        'ratings': metadata.ratings
+            .map((r) =>
+                {...r.toJson(), 'kind': RatingKind.communityAggregate.name})
+            .toList()
+      }));
+      games.add(GameItem(
+          filename: 'Game $i.7z',
+          displayName: 'Game $i',
+          url: 'https://example.invalid/$i'));
+    }
+    final storage = _FreshFilterStorage();
+    final system =
+        SystemModel.supportedSystems.firstWhere((s) => s.id == 'psx');
+    final config = SystemConfig(
+        id: system.id,
+        name: system.name,
+        targetFolder: '/nonexistent/psx',
+        providers: [
+          const ProviderConfig(
+              type: ProviderType.web,
+              url: 'https://example.invalid/',
+              priority: 1)
+        ]);
+    GameListController create() => GameListController(
+        system: system,
+        targetFolder: config.targetFolder,
+        systemConfig: config,
+        databaseService: _ConsoleCacheDatabase(db, games),
+        storage: storage,
+        installedFilenames: {'Game 1.7z'});
+    var controller = create();
+    try {
+      await waitUntilLoaded(controller);
+      await controller.loadDiscoveryGenres();
+      expect(controller.state.availableGenres, ['action']);
+      controller.setTopFilter(10);
+      controller.toggleTagFilter('Hack');
+      await controller.discoverySettled;
+      expect(controller.state.filteredGroups, hasLength(1));
+      final key = controller.state.filteredGroups.single;
+      expect(controller.state.filteredGroupedGames[key]!.single.filename,
+          'Game 1.7z');
+      expect(controller.state.installedCache[key], isTrue);
+      expect(controller.state.discovery!.collectionGames, 12);
+      expect(controller.state.discovery!.rankedGames, 12);
+      await storage.setFavorites(['Game 12.7z']);
+      controller.toggleFavoritesFilter();
+      await controller.discoverySettled;
+      expect(controller.state.filteredGroups, isEmpty,
+          reason: 'Favorites cannot promote the rank-12 hack into Top 10');
+      controller.toggleFavoritesFilter();
+      await controller.discoverySettled;
+      var changedDuringPublication = false;
+      void changeFromListener() {
+        if (!changedDuringPublication &&
+            controller.state.discovery != null &&
+            !controller.state.queryingDiscovery) {
+          changedDuringPublication = true;
+          controller.toggleGenreFilter('action');
+        }
+      }
+
+      controller.addListener(changeFromListener);
+      controller.refreshDiscovery();
+      await controller.discoverySettled;
+      controller.removeListener(changeFromListener);
+      expect(controller.state.queryingDiscovery, isFalse,
+          reason:
+              'A publication listener may request a newer filter generation');
+      expect(controller.state.filteredGroups, hasLength(1));
+      controller.dispose();
+      controller = create();
+      await waitUntilLoaded(controller);
+      await controller.discoverySettled;
+      expect(controller.state.activeFilters.top, 10);
+      expect(controller.state.activeFilters.selectedTags, {'Hack'});
+      expect(controller.state.filteredGroups, hasLength(1));
+      controller.clearFilters();
+      await controller.discoverySettled;
+      expect(controller.state.filteredGroups, hasLength(12));
+      expect(await db.query('library_query_views'), isEmpty);
+    } finally {
+      controller.dispose();
+    }
+  });
 
   test('card score pages preserve each exact cached edition, not group winners',
       () async {
@@ -447,6 +565,128 @@ void main() {
     expect(await db.query('library_query_editions'), snapshot);
     await expectLater(
         read(filter: LibraryQueryFilter(limit: 129)), throwsArgumentError);
+  });
+
+  test('Top intersects manual shelf without silently selecting rating sort',
+      () async {
+    final a = await seed(1, score: 90);
+    final b = await seed(2, score: 80);
+    final c = await seed(3, score: 70);
+    await query.replaceViewMembers('shelf:manual', [c, b, a]);
+    final filter = LibraryQueryFilter(
+        top: 2, viewIds: {'shelf:manual'}, manualViewId: 'shelf:manual');
+    expect((await read(filter: filter)).items.map((i) => i.editionId), [b, a]);
+    expect(
+        (await read(
+                filter: LibraryQueryFilter(
+                    top: 2,
+                    ratingOrder: true,
+                    viewIds: {'shelf:manual'},
+                    manualViewId: 'shelf:manual')))
+            .items
+            .map((i) => i.editionId),
+        [a, b]);
+  });
+
+  test('discovery returns matching editions but counts and ranks games once',
+      () async {
+    final a = await seed(1, score: 90, group: 'same');
+    final b = await seed(2, score: 90, group: 'same');
+    await seed(3, score: 70);
+    final page = await read(
+        filter: LibraryQueryFilter(top: 1, includeVariants: true, limit: 1));
+    final next = await read(
+        filter: LibraryQueryFilter(
+            top: 1, includeVariants: true, limit: 1, offset: 1));
+    expect({page.items.single.editionId, next.items.single.editionId}, {a, b});
+    expect(page.totalMatches, 1);
+    expect(page.collectionGames, 2);
+    expect(page.items.single.rank, 1);
+    expect(next.items.single.rank, 1);
+  });
+
+  test(
+      'shared UI discovery preserves exact variants and removes temporary view',
+      () async {
+    await seed(1, score: 90, group: 'same');
+    await seed(2, score: 90, group: 'same');
+    await seed(3, score: 70, tags: {'Hack'});
+    await seed(4, score: 99, platform: 'snes');
+    final keys = [
+      for (var i = 1; i <= 3; i++) coverRatingKey('psx', 'Game $i.7z')
+    ];
+    final result = (await query.discover(
+        filter: LibraryQueryFilter(platformIds: {'psx'}, top: 1),
+        orderedKeys: keys,
+        isCurrent: () => true,
+        assessedBases: [basis]))!;
+    expect(result.groups.values.single.toSet(), keys.take(2).toSet());
+    expect(result.totalMatches, 1);
+    expect(result.collectionGames, 2);
+    expect(result.genres, ['action']);
+    expect(await db.query('library_query_views'), isEmpty);
+    final empty = (await query.discover(
+        filter:
+            LibraryQueryFilter(platformIds: {'psx'}, top: 1, tags: {'Hack'}),
+        orderedKeys: keys,
+        isCurrent: () => true,
+        assessedBases: [basis]))!;
+    expect(empty.groups, isEmpty,
+        reason: 'No refill from the lower-ranked hack');
+    expect(empty.collectionGames, 2);
+    var calls = 0;
+    expect(
+        await query.discover(
+            filter: LibraryQueryFilter(),
+            orderedKeys: keys,
+            isCurrent: () => ++calls < 2,
+            assessedBases: [basis]),
+        isNull);
+    expect(await db.query('library_query_views'), isEmpty);
+  });
+
+  test(
+      'UI view binds exact files after ranking with no title match or backfill',
+      () async {
+    await seed(1, score: 90);
+    await seed(2, score: 80);
+    await seed(3, score: 70);
+    await seed(4, score: 99, platform: 'snes');
+    await db.update('games', {'filename': 'Same.7z'}, where: 'id IN (3,4)');
+    final bindings = await query.replaceViewCacheMembers('ui:test', [
+      coverRatingKey('psx', 'Same.7z'),
+      coverRatingKey('psx', 'Game 1.7z'),
+      coverRatingKey('psx', 'missing.7z')
+    ], platformIds: {
+      'psx'
+    }, assessedBases: [
+      basis
+    ]);
+    expect(bindings, {
+      1: coverRatingKey('psx', 'Game 1.7z'),
+      3: coverRatingKey('psx', 'Same.7z')
+    });
+    final page = await read(
+        filter: LibraryQueryFilter(
+            platformIds: {'psx'},
+            top: 2,
+            viewIds: {'ui:test'},
+            includeVariants: true));
+    expect(page.items.map((i) => i.cacheRowId), [1]);
+    expect(page.collectionGames, 3);
+    expect(page.rankedGames, 3);
+    await db.insert('games', {
+      'id': 5,
+      'systemSlug': 'psx',
+      'filename': 'Same.7z',
+      'displayName': 'duplicate'
+    });
+    final ambiguous = await query.replaceViewCacheMembers(
+        'ui:test', [coverRatingKey('psx', 'Same.7z')],
+        platformIds: {'psx'}, assessedBases: [basis]);
+    expect(ambiguous, isEmpty);
+    expect((await read(filter: LibraryQueryFilter(viewIds: {'ui:test'}))).items,
+        isEmpty);
   });
 
   test('new unscraped cache rows belong to collection and affect coverage',

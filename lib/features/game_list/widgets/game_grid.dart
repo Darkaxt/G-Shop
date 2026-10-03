@@ -118,7 +118,8 @@ class _GameGridState extends ConsumerState<GameGrid> {
     final gridPadding = rs.spacing.lg * 2;
     final spacing = rs.isSmall ? 10.0 : 16.0;
     final gridWidth = MediaQuery.of(context).size.width - gridPadding;
-    final itemWidth = (gridWidth - (widget.crossAxisCount - 1) * spacing) / widget.crossAxisCount;
+    final itemWidth = (gridWidth - (widget.crossAxisCount - 1) * spacing) /
+        widget.crossAxisCount;
     final dpr = MediaQuery.of(context).devicePixelRatio;
     return (itemWidth * dpr).round().clamp(150, widget.memCacheWidthMax);
   }
@@ -175,9 +176,11 @@ class _GameGridState extends ConsumerState<GameGrid> {
 
     _showRatings = ref.watch(ratingOverlaysProvider);
     final ratings = _showRatings
-        ? ref.watch(cachedCoverRatingsProvider(widget.system.id)) : null;
+        ? ref.watch(cachedCoverRatingsProvider(widget.system.id))
+        : null;
     _ratings = ratings == null || ratings.isLoading || ratings.hasError
-        ? const {} : ratings.asData?.value ?? const {};
+        ? const {}
+        : ratings.asData?.value ?? const {};
 
     return FocusTraversalGroup(
       policy: WidgetOrderTraversalPolicy(),
@@ -211,15 +214,31 @@ class _GameGridState extends ConsumerState<GameGrid> {
   (IconData, String, String?) _emptyStateContent() {
     final l = L.of(context);
     if (widget.searchQuery.isNotEmpty) {
-      return (Icons.search_off, l.gameList_noGamesMatchSearch(widget.searchQuery), l.gameList_tryShorterSearch);
+      return (
+        Icons.search_off,
+        l.gameList_noGamesMatchSearch(widget.searchQuery),
+        l.gameList_tryShorterSearch
+      );
     }
     if (widget.hasActiveFilters) {
-      return (Icons.filter_list_off, l.gameList_noGamesMatchFilters, l.gameList_changeFilters);
+      return (
+        Icons.filter_list_off,
+        l.gameList_noGamesMatchFilters,
+        l.gameList_changeFilters
+      );
     }
     if (widget.isLocalOnly) {
-      return (Icons.folder_open, l.gameList_noRomsFound(widget.targetFolder), l.gameList_addRomFiles);
+      return (
+        Icons.folder_open,
+        l.gameList_noRomsFound(widget.targetFolder),
+        l.gameList_addRomFiles
+      );
     }
-    return (Icons.cloud_off, l.gameList_couldNotLoadGames, l.gameList_checkConnection);
+    return (
+      Icons.cloud_off,
+      l.gameList_couldNotLoadGames,
+      l.gameList_checkConnection
+    );
   }
 
   Widget _buildItem(BuildContext context, int index) {
@@ -229,7 +248,8 @@ class _GameGridState extends ConsumerState<GameGrid> {
     final first = variants.first;
     final cachedUrl = first.cachedCoverUrl;
     final isInstalled = widget.installedCache[displayName] ?? false;
-    final isFavorite = widget.favorites.contains(displayName);
+    final isFavorite = widget.favorites.contains(displayName) ||
+        variants.any((g) => widget.favorites.contains(g.selectionKey));
     final providerLabel = first.providerConfig?.shortLabel;
     final raMatch = widget.raMatches[first.raMatchKey];
 
@@ -296,7 +316,8 @@ class _GameGridState extends ConsumerState<GameGrid> {
           raAchievementCount: raMatch?.achievementCount,
           raMatchType: raMatch?.type ?? RaMatchType.none,
           isMastered: raMatch?.isMastered ?? false,
-          overallRating: _ratings[coverRatingKey(widget.system.id, first.selectionKey)],
+          overallRating:
+              _ratings[coverRatingKey(widget.system.id, first.selectionKey)],
           showRating: _showRatings,
           hasThumbnail: first.hasThumbnail,
           memCacheWidth: _optimalCacheWidth,
@@ -315,7 +336,6 @@ class _GameGridState extends ConsumerState<GameGrid> {
       ),
     );
   }
-
 }
 
 class GameGridLoading extends StatefulWidget {

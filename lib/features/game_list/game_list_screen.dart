@@ -59,6 +59,12 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   bool _showStartHint = false;
   ProviderSubscription? _installedFilesSubscription;
   ProviderSubscription? _syncSub;
+  ProviderSubscription? _metadataSub;
+  List<String> _visibleSelectionKeys = const [];
+  String? _focusedSelectionKey;
+  String? _focusedGroupKey;
+  List<String> _visibleGroupKeys = const [];
+  bool _discoveryPending = false;
 
   late int _columns;
   double _lastPinchScale = 1.0;
@@ -117,38 +123,54 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   @override
   Map<Type, Action<Intent>> get screenActions {
     return {
-        NavigateIntent: OverlayGuardedAction<NavigateIntent>(ref,
-          onInvoke: (intent) { _navigateGrid(intent.direction); return null; },
-          isEnabledOverride: searchOrNone,
-        ),
-        AdjustColumnsIntent: OverlayGuardedAction<AdjustColumnsIntent>(ref,
-          onInvoke: (intent) { _adjustColumns(intent.increase); return null; },
-          isEnabledOverride: searchOrNone,
-        ),
-        ConfirmIntent: CallbackAction<ConfirmIntent>(
-          onInvoke: (_) {
-            _openSelectedGame();
-            return null;
-          },
-        ),
-        BackIntent: OverlayGuardedAction<BackIntent>(ref,
-          onInvoke: (_) { _handleBack(); return null; },
-          isEnabledOverride: searchOrNone,
-        ),
-        SearchIntent: CallbackAction<SearchIntent>(
-          onInvoke: (_) {
-            if (!_isFiltering) toggleSearch();
-            return null;
-          },
-        ),
-        FavoriteIntent: OverlayGuardedAction<FavoriteIntent>(ref,
-          onInvoke: (_) { _handleFavorite(); return null; },
-        ),
-        ToggleOverlayIntent: ToggleOverlayAction(ref, onToggle: () {
-          _dismissStartHint();
-          toggleQuickMenu();
-        }),
-      };
+      NavigateIntent: OverlayGuardedAction<NavigateIntent>(
+        ref,
+        onInvoke: (intent) {
+          _navigateGrid(intent.direction);
+          return null;
+        },
+        isEnabledOverride: searchOrNone,
+      ),
+      AdjustColumnsIntent: OverlayGuardedAction<AdjustColumnsIntent>(
+        ref,
+        onInvoke: (intent) {
+          _adjustColumns(intent.increase);
+          return null;
+        },
+        isEnabledOverride: searchOrNone,
+      ),
+      ConfirmIntent: CallbackAction<ConfirmIntent>(
+        onInvoke: (_) {
+          _openSelectedGame();
+          return null;
+        },
+      ),
+      BackIntent: OverlayGuardedAction<BackIntent>(
+        ref,
+        onInvoke: (_) {
+          _handleBack();
+          return null;
+        },
+        isEnabledOverride: searchOrNone,
+      ),
+      SearchIntent: CallbackAction<SearchIntent>(
+        onInvoke: (_) {
+          if (!_isFiltering) toggleSearch();
+          return null;
+        },
+      ),
+      FavoriteIntent: OverlayGuardedAction<FavoriteIntent>(
+        ref,
+        onInvoke: (_) {
+          _handleFavorite();
+          return null;
+        },
+      ),
+      ToggleOverlayIntent: ToggleOverlayAction(ref, onToggle: () {
+        _dismissStartHint();
+        toggleQuickMenu();
+      }),
+    };
   }
 
   @override
@@ -168,9 +190,15 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     _controller = GameListController(
       system: widget.system,
       targetFolder: widget.targetFolder,
-      systemConfig: systemConfig ?? SystemConfig(id: widget.system.id, name: widget.system.name, targetFolder: widget.targetFolder, providers: []),
+      systemConfig: systemConfig ??
+          SystemConfig(
+              id: widget.system.id,
+              name: widget.system.name,
+              targetFolder: widget.targetFolder,
+              providers: []),
       installedFilenames: installedData?.bySystem[widget.system.id],
-      installedArtifacts: installedData?.exactBySystem[widget.system.id] ?? const [],
+      installedArtifacts:
+          installedData?.exactBySystem[widget.system.id] ?? const [],
       storage: ref.read(storageServiceProvider),
     )..addListener(_onControllerChanged);
 
@@ -191,15 +219,20 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _restoreSavedIndex();
-      _installedFilesSubscription = ref.listenManual(installedFilesProvider, (prev, next) {
+      _installedFilesSubscription =
+          ref.listenManual(installedFilesProvider, (prev, next) {
         if (!mounted) return;
         final data = next.value;
         if (data != null) {
           _controller.applyInstalledFilenames(
             data.bySystem[widget.system.id] ?? {},
-            installedArtifacts: data.exactBySystem[widget.system.id] ?? const [],
+            installedArtifacts:
+                data.exactBySystem[widget.system.id] ?? const [],
           );
         }
+      });
+      _metadataSub = ref.listenManual(gameDbChangedProvider, (_, __) {
+        _controller.refreshDiscovery();
       });
 
       // Auto-retry when sync finishes and we're showing an error or have no games
@@ -207,7 +240,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
         librarySyncServiceProvider.select((s) => s.isSyncing),
         (prev, isSyncing) {
           if (prev == true && !isSyncing) {
-            if (_controller.state.error != null || _controller.state.allGames.isEmpty) {
+            if (_controller.state.error != null ||
+                _controller.state.allGames.isEmpty) {
               _controller.loadGames();
             }
           }
@@ -250,6 +284,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
     _installedFilesSubscription?.close();
     _syncSub?.close();
+    _metadataSub?.close();
     _debouncer.stopHold();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
@@ -263,9 +298,36 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   void _onControllerChanged() {
     if (!mounted) return;
+    final oldIndex = _focusManager.selectedIndex;
+    if (!_discoveryPending &&
+        oldIndex >= 0 &&
+        oldIndex < _visibleSelectionKeys.length) {
+      _focusedSelectionKey = _visibleSelectionKeys[oldIndex];
+      _focusedGroupKey = _visibleGroupKeys[oldIndex];
+    }
+    final state = _controller.state;
+    if (!state.queryingDiscovery) {
+      final visible = [
+        for (final group in state.filteredGroups)
+          state.filteredGroupedGames[group]!.first.selectionKey
+      ];
+      final groupIndex = state.filteredGroups.indexOf(_focusedGroupKey ?? '');
+      final next = groupIndex < 0
+          ? visible.indexOf(_focusedSelectionKey ?? '')
+          : groupIndex;
+      if (next >= 0) {
+        _focusManager.setSelectedIndex(next);
+        _selectedIndexNotifier.value = next;
+      }
+      _visibleSelectionKeys = visible;
+      _visibleGroupKeys = List.of(state.filteredGroups);
+    }
+    _discoveryPending = state.queryingDiscovery;
     // Trigger deferred migration (idempotent, no-op if already migrated)
     if (_controller.state.allGames.isNotEmpty) {
-      ref.read(favoriteGamesProvider.notifier).migrateIfNeeded(_controller.state.allGames);
+      ref
+          .read(favoriteGamesProvider.notifier)
+          .migrateIfNeeded(_controller.state.allGames);
     }
     _focusManager.validateState(_columns);
     setState(() {});
@@ -293,6 +355,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   }
 
   void _openFilter() {
+    unawaited(_controller.loadDiscoveryGenres());
     setState(() => _isFiltering = true);
   }
 
@@ -373,20 +436,26 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   void _handleFavorite() {
     final state = _controller.state;
     final selectedIndex = _focusManager.selectedIndex;
-    if (selectedIndex < 0 || selectedIndex >= state.filteredGroups.length) return;
+    if (selectedIndex < 0 || selectedIndex >= state.filteredGroups.length) {
+      return;
+    }
 
     final displayName = state.filteredGroups[selectedIndex];
     final variants = state.filteredGroupedGames[displayName];
     if (variants == null || variants.length != 1) return;
 
     ref.read(feedbackServiceProvider).tick();
-    ref.read(favoriteGamesProvider.notifier).toggleFavorite(variants.first.selectionKey);
+    ref
+        .read(favoriteGamesProvider.notifier)
+        .toggleFavorite(variants.first.selectionKey);
   }
 
   void _handleAddToShelf() {
     final state = _controller.state;
     final selectedIndex = _focusManager.selectedIndex;
-    if (selectedIndex < 0 || selectedIndex >= state.filteredGroups.length) return;
+    if (selectedIndex < 0 || selectedIndex >= state.filteredGroups.length) {
+      return;
+    }
 
     final displayName = state.filteredGroups[selectedIndex];
     final variants = state.filteredGroupedGames[displayName];
@@ -395,7 +464,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final game = variants.first;
     final shelves = ref.read(customShelvesProvider);
     final availableShelves = shelves
-        .where((s) => !s.containsGame(game.selectionKey, game.displayName, widget.system.id))
+        .where((s) => !s.containsGame(
+            game.selectionKey, game.displayName, widget.system.id))
         .toList();
     if (availableShelves.isEmpty) return;
 
@@ -404,7 +474,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       ref: ref,
       shelves: availableShelves,
       onSelect: (shelfId) {
-        ref.read(customShelvesProvider.notifier).addGameToShelf(shelfId, game.selectionKey);
+        ref
+            .read(customShelvesProvider.notifier)
+            .addGameToShelf(shelfId, game.selectionKey);
       },
     );
   }
@@ -423,7 +495,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     if (idx < 0 || idx >= state.filteredGroups.length) return false;
     final variants = state.filteredGroupedGames[state.filteredGroups[idx]];
     if (variants == null || variants.length != 1) return false;
-    return ref.read(favoriteGamesProvider).contains(variants.first.selectionKey);
+    return ref
+        .read(favoriteGamesProvider)
+        .contains(variants.first.selectionKey);
   }
 
   bool _canAddToShelf() {
@@ -435,7 +509,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final variants = state.filteredGroupedGames[state.filteredGroups[idx]];
     if (variants == null || variants.isEmpty) return false;
     final game = variants.first;
-    return shelves.any((s) => !s.containsGame(game.selectionKey, game.displayName, widget.system.id));
+    return shelves.any((s) =>
+        !s.containsGame(game.selectionKey, game.displayName, widget.system.id));
   }
 
   List<QuickMenuItem?> _buildQuickMenuItems() {
@@ -463,9 +538,11 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       ),
       if (_selectedIsSingleVariant()) ...[
         QuickMenuItem(
-          label: _selectedIsFavorite() ? l.common_unfavorite : l.common_favorite,
+          label:
+              _selectedIsFavorite() ? l.common_unfavorite : l.common_favorite,
           icon: _selectedIsFavorite()
-              ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              ? Icons.favorite_rounded
+              : Icons.favorite_border_rounded,
           shortcutHint: '−',
           onSelect: _handleFavorite,
         ),
@@ -477,7 +554,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
           onSelect: _handleAddToShelf,
         ),
       QuickMenuItem(
-        label: state.activeFilters.isNotEmpty ? l.gameList_filterActive : l.gameList_filter,
+        label: state.activeFilters.isNotEmpty
+            ? l.gameList_filterActive
+            : l.gameList_filter,
         icon: Icons.filter_list_rounded,
         onSelect: _toggleFilter,
       ),
@@ -551,11 +630,15 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final rs = context.rs;
     final state = _controller.state;
     final baseTopPadding = rs.safeAreaTop + (rs.isSmall ? 60 : 80);
-    final folderExtraPadding = widget.targetFolder.isNotEmpty ? (rs.isSmall ? 14.0 : 16.0) : 0.0;
-    final localOnlyExtraPadding = state.isLocalOnly ? (rs.isSmall ? 24.0 : 28.0) : 0.0;
+    final folderExtraPadding =
+        widget.targetFolder.isNotEmpty ? (rs.isSmall ? 14.0 : 16.0) : 0.0;
+    final localOnlyExtraPadding =
+        state.isLocalOnly ? (rs.isSmall ? 24.0 : 28.0) : 0.0;
     final searchExtraPadding = rs.isSmall ? 16.0 : 20.0;
-    final topPadding =
-        baseTopPadding + folderExtraPadding + localOnlyExtraPadding + (isSearchActive ? searchExtraPadding : 0.0);
+    final topPadding = baseTopPadding +
+        folderExtraPadding +
+        localOnlyExtraPadding +
+        (isSearchActive ? searchExtraPadding : 0.0);
 
     return buildWithActions(
       PopScope(
@@ -566,68 +649,72 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
           }
         },
         child: Scaffold(
-        backgroundColor: Colors.black,
-        body: GestureDetector(
-          onScaleStart: (details) {
-            _lastPinchScale = 1.0;
-          },
-          onScaleEnd: (details) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _focusManager
-                  .scrollToSelected(_itemKeys[_focusManager.selectedIndex]);
-            });
-          },
-          onScaleUpdate: (details) {
-            if (details.scale != 1.0) {
-              final pinchDelta = details.scale - _lastPinchScale;
-              if (pinchDelta.abs() > 0.15) {
-                _lastPinchScale = details.scale;
-                if (pinchDelta > 0) {
-                  _adjustColumns(false);
-                } else {
-                  _adjustColumns(true);
+          backgroundColor: Colors.black,
+          body: GestureDetector(
+            onScaleStart: (details) {
+              _lastPinchScale = 1.0;
+            },
+            onScaleEnd: (details) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _focusManager
+                    .scrollToSelected(_itemKeys[_focusManager.selectedIndex]);
+              });
+            },
+            onScaleUpdate: (details) {
+              if (details.scale != 1.0) {
+                final pinchDelta = details.scale - _lastPinchScale;
+                if (pinchDelta.abs() > 0.15) {
+                  _lastPinchScale = details.scale;
+                  if (pinchDelta > 0) {
+                    _adjustColumns(false);
+                  } else {
+                    _adjustColumns(true);
+                  }
                 }
               }
-            }
-          },
-          child: Stack(
-            children: [
-              _buildNormalContent(state, topPadding),
-              if (isSearchActive) _buildSearchContent(state),
-              if (_isFiltering) _buildFilterContent(state),
-              if (_isFiltering)
-                ConsoleHud(
-                  a: null,
-                  b: HudAction(L.of(context).common_close, onTap: _closeFilter),
-                  x: HudAction(L.of(context).common_clear, onTap: () {
-                    _controller.clearFilters();
-                    _resetFocusAfterFilterChange();
-                    setState(() {});
-                  }),
-                )
-              else if (isSearchActive)
-                buildSearchHud(
-                  aAction: HudAction(L.of(context).common_select, onTap: _openSelectedGame),
-                )
-              else if (!showQuickMenu)
-                ConsoleHud(
-                  a: HudAction(L.of(context).common_select, onTap: _openSelectedGame),
-                  b: HudAction(L.of(context).common_back, onTap: () => Navigator.pop(context)),
-                  start: HudAction(L.of(context).common_menu, onTap: () {
-                    _dismissStartHint();
-                    toggleQuickMenu();
-                  }),
-                ),
-              if (showQuickMenu)
-                QuickMenuOverlay(
-                  items: _buildQuickMenuItems(),
-                  onClose: closeQuickMenu,
-                ),
-              if (_showStartHint) _buildStartHint(context),
-            ],
+            },
+            child: Stack(
+              children: [
+                _buildNormalContent(state, topPadding),
+                if (isSearchActive) _buildSearchContent(state),
+                if (_isFiltering) _buildFilterContent(state),
+                if (_isFiltering)
+                  ConsoleHud(
+                    a: null,
+                    b: HudAction(L.of(context).common_close,
+                        onTap: _closeFilter),
+                    x: HudAction(L.of(context).common_clear, onTap: () {
+                      _controller.clearFilters();
+                      _resetFocusAfterFilterChange();
+                      setState(() {});
+                    }),
+                  )
+                else if (isSearchActive)
+                  buildSearchHud(
+                    aAction: HudAction(L.of(context).common_select,
+                        onTap: _openSelectedGame),
+                  )
+                else if (!showQuickMenu)
+                  ConsoleHud(
+                    a: HudAction(L.of(context).common_select,
+                        onTap: _openSelectedGame),
+                    b: HudAction(L.of(context).common_back,
+                        onTap: () => Navigator.pop(context)),
+                    start: HudAction(L.of(context).common_menu, onTap: () {
+                      _dismissStartHint();
+                      toggleQuickMenu();
+                    }),
+                  ),
+                if (showQuickMenu)
+                  QuickMenuOverlay(
+                    items: _buildQuickMenuItems(),
+                    onClose: closeQuickMenu,
+                  ),
+                if (_showStartHint) _buildStartHint(context),
+              ],
+            ),
           ),
         ),
-      ),
       ),
       onKeyEvent: _handleKeyEvent,
     );
@@ -635,10 +722,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   Widget _buildNormalContent(GameListState state, double topPadding) {
     final syncState = ref.watch(librarySyncServiceProvider);
-    final syncActive = syncState.isSyncing && (
-      LibrarySyncService.isSyncingSystem(widget.system.id) ||
-      !syncState.gamesPerSystem.containsKey(widget.system.id)
-    );
+    final syncActive = syncState.isSyncing &&
+        (LibrarySyncService.isSyncingSystem(widget.system.id) ||
+            !syncState.gamesPerSystem.containsKey(widget.system.id));
 
     return Stack(
       children: [
@@ -659,6 +745,16 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   }
 
   Widget _buildGridOrStatus(GameListState state, bool syncActive) {
+    if (state.queryingDiscovery) {
+      return GameGridLoading(
+          accentColor: widget.system.accentColor, crossAxisCount: _columns);
+    }
+    if (state.discoveryError != null) {
+      return GameGridError(
+          error: state.discoveryError!,
+          accentColor: widget.system.accentColor,
+          onRetry: _controller.refreshDiscovery);
+    }
     if (state.isLoading) {
       if (syncActive) {
         return GameGridSyncing(accentColor: widget.system.accentColor);
@@ -680,13 +776,15 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       );
     }
     // Empty game list while sync hasn't reached this system yet
-    if (state.filteredGroups.isEmpty && syncActive &&
-        state.searchQuery.isEmpty && state.activeFilters.isEmpty) {
+    if (state.filteredGroups.isEmpty &&
+        syncActive &&
+        state.searchQuery.isEmpty &&
+        state.activeFilters.isEmpty) {
       return GameGridSyncing(accentColor: widget.system.accentColor);
     }
     // Only rebuild when favorites relevant to THIS system's games change
     final systemFilenames = state.filteredGroupedGames.values
-        .expand((v) => v.map((g) => g.filename))
+        .expand((v) => v.map((g) => g.selectionKey))
         .toSet();
     final favoriteFilenames = ref.watch(favoriteGamesProvider.select(
       (all) => all.where(systemFilenames.contains).toSet(),
@@ -747,6 +845,15 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   }
 
   Widget _buildFilterContent(GameListState state) {
+    final l = L.of(context);
+    final coverage = state.discovery;
+    final status = state.queryingDiscovery
+        ? l.filter_querying
+        : state.discoveryError ??
+            (coverage == null
+                ? null
+                : '${l.filter_coverage(coverage.rankedGames, coverage.collectionGames, coverage.totalMatches)}'
+                    '${coverage.provisional ? ' · ${l.filter_provisional}' : ''}');
     return DialogFocusScope(
       isVisible: _isFiltering,
       onClose: _closeFilter,
@@ -759,6 +866,11 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
         favoritesOnly: state.activeFilters.favoritesOnly,
         localOnly: state.activeFilters.localOnly,
         isLocalSystem: state.isLocalOnly,
+        discoveryFilters: state.activeFilters,
+        discoveryScope: widget.system.name,
+        discoveryStatus: status,
+        availableGenres: state.availableGenres,
+        onDiscoveryChanged: _controller.setDiscoveryFilters,
         onToggleRegion: (r) {
           _controller.toggleRegionFilter(r);
           _resetFocusAfterFilterChange();

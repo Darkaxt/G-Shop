@@ -7,7 +7,17 @@ import '../../../l10n/app_localizations.dart';
 import '../logic/filter_state.dart';
 
 enum _FilterItemType { header, option }
-enum _FilterCategory { region, language }
+
+enum _FilterCategory {
+  region,
+  language,
+  top,
+  tag,
+  genre,
+  match,
+  order,
+  platform
+}
 
 class _FilterItem {
   final _FilterItemType type;
@@ -38,6 +48,11 @@ class FilterOverlay extends StatefulWidget {
   final VoidCallback onToggleLocal;
   final VoidCallback onClearAll;
   final VoidCallback onClose;
+  final ActiveFilters? discoveryFilters;
+  final ValueChanged<ActiveFilters>? onDiscoveryChanged;
+  final List<String> availableGenres;
+  final Map<String, String> availablePlatforms;
+  final String? discoveryScope, discoveryStatus;
 
   const FilterOverlay({
     super.key,
@@ -55,6 +70,12 @@ class FilterOverlay extends StatefulWidget {
     required this.onToggleLocal,
     required this.onClearAll,
     required this.onClose,
+    this.discoveryFilters,
+    this.onDiscoveryChanged,
+    this.availableGenres = const [],
+    this.availablePlatforms = const {},
+    this.discoveryScope,
+    this.discoveryStatus,
   });
 
   @override
@@ -168,6 +189,50 @@ class _FilterOverlayState extends State<FilterOverlay>
       }
     }
 
+    if (widget.discoveryFilters != null && widget.onDiscoveryChanged != null) {
+      void item(_FilterCategory category, String label, {bool header = false}) {
+        if (!header) _selectableIndices.add(_items.length);
+        _items.add(_FilterItem(
+            type: header ? _FilterItemType.header : _FilterItemType.option,
+            category: category,
+            label: label));
+      }
+
+      item(_FilterCategory.top, 'discovery', header: true);
+      item(_FilterCategory.top, 'all');
+      for (final top in ActiveFilters.topChoices) {
+        item(_FilterCategory.top, '$top');
+      }
+      item(_FilterCategory.order, 'ratingOrder');
+      if (widget.availablePlatforms.isNotEmpty) {
+        item(_FilterCategory.platform, 'scope', header: true);
+        for (final platform in widget.availablePlatforms.keys) {
+          item(_FilterCategory.platform, platform);
+        }
+      }
+      item(_FilterCategory.tag, 'contentTags', header: true);
+      item(_FilterCategory.match, 'match');
+      for (final tag in [
+        'Hack',
+        'T-Eng',
+        'Dub',
+        'Undub',
+        'Uncensor',
+        'official',
+        'unknown',
+        'homebrew',
+        'demo'
+      ]) {
+        item(_FilterCategory.tag, tag);
+      }
+      if (widget.availableGenres.isNotEmpty) {
+        item(_FilterCategory.genre, 'genres', header: true);
+        for (final genre in widget.availableGenres) {
+          item(_FilterCategory.genre, genre);
+        }
+      }
+    }
+
     // Ensure focused index is valid
     if (_selectableIndices.isNotEmpty) {
       if (!_selectableIndices.contains(_focusedIndex)) {
@@ -193,7 +258,23 @@ class _FilterOverlayState extends State<FilterOverlay>
   void _toggleCurrent() {
     if (!_selectableIndices.contains(_focusedIndex)) return;
     final item = _items[_focusedIndex];
-    
+    final filters = widget.discoveryFilters;
+    if (filters != null) {
+      final next = switch (item.category) {
+        _FilterCategory.top => filters.withTop(int.tryParse(item.label)),
+        _FilterCategory.tag => filters.toggleTag(item.label),
+        _FilterCategory.genre => filters.toggleGenre(item.label),
+        _FilterCategory.match => filters.toggleTagMatch(),
+        _FilterCategory.order => filters.toggleRatingOrder(),
+        _FilterCategory.platform => filters.togglePlatform(item.label),
+        _ => null,
+      };
+      if (next != null) {
+        widget.onDiscoveryChanged?.call(next);
+        return;
+      }
+    }
+
     // Handle toggle filters
     if (item.label == 'Favorites Only') {
       widget.onToggleFavorites();
@@ -203,7 +284,7 @@ class _FilterOverlayState extends State<FilterOverlay>
       widget.onToggleLocal();
       return;
     }
-    
+
     if (item.option == null) return;
 
     if (item.category == _FilterCategory.region) {
@@ -225,7 +306,8 @@ class _FilterOverlayState extends State<FilterOverlay>
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
         );
-      } else if (offset + itemHeight > viewport.pixels + viewport.viewportDimension) {
+      } else if (offset + itemHeight >
+          viewport.pixels + viewport.viewportDimension) {
         _scrollController.animateTo(
           offset + itemHeight - viewport.viewportDimension,
           duration: const Duration(milliseconds: 150),
@@ -236,6 +318,25 @@ class _FilterOverlayState extends State<FilterOverlay>
   }
 
   bool _isSelected(_FilterItem item) {
+    final filters = widget.discoveryFilters;
+    if (filters != null) {
+      switch (item.category) {
+        case _FilterCategory.top:
+          return filters.top == int.tryParse(item.label);
+        case _FilterCategory.tag:
+          return filters.selectedTags.contains(item.label);
+        case _FilterCategory.genre:
+          return filters.selectedGenres.contains(item.label);
+        case _FilterCategory.match:
+          return filters.matchAllTags;
+        case _FilterCategory.order:
+          return filters.ratingOrder;
+        case _FilterCategory.platform:
+          return filters.selectedPlatforms.contains(item.label);
+        default:
+          break;
+      }
+    }
     if (item.label == 'Favorites Only') return widget.favoritesOnly;
     if (item.label == 'Installed Only') return widget.localOnly;
     if (item.option == null) return false;
@@ -246,12 +347,47 @@ class _FilterOverlayState extends State<FilterOverlay>
   }
 
   String _localizeLabel(L l, _FilterItem item) {
+    if (item.category == _FilterCategory.platform) {
+      return item.type == _FilterItemType.header
+          ? l.filter_scope
+          : widget.availablePlatforms[item.label] ?? item.label;
+    }
+    if (item.category == _FilterCategory.top) {
+      if (item.type == _FilterItemType.header) return l.filter_discoveryTitle;
+      final limit = int.tryParse(item.label);
+      return limit == null ? l.filter_allGames : l.filter_topLimit(limit);
+    }
+    if (item.category == _FilterCategory.order) return l.filter_ratingOrder;
+    if (item.category == _FilterCategory.match) {
+      return widget.discoveryFilters!.matchAllTags
+          ? l.filter_allTags
+          : l.filter_anyTags;
+    }
+    if (item.category == _FilterCategory.genre &&
+        item.type == _FilterItemType.header) {
+      return l.filter_genres;
+    }
+    if (item.category == _FilterCategory.tag) {
+      return switch (item.label) {
+        'contentTags' => l.filter_contentTags,
+        'official' => l.filter_official,
+        'unknown' => l.filter_unknown,
+        'homebrew' => l.filter_homebrew,
+        'demo' => l.filter_demo,
+        _ => item.label,
+      };
+    }
     switch (item.label) {
-      case 'Favorites Only': return l.filter_favoritesOnly;
-      case 'Installed Only': return l.filter_installedOnly;
-      case 'REGIONS': return l.filter_regions;
-      case 'LANGUAGES': return l.filter_languages;
-      default: return item.label;
+      case 'Favorites Only':
+        return l.filter_favoritesOnly;
+      case 'Installed Only':
+        return l.filter_installedOnly;
+      case 'REGIONS':
+        return l.filter_regions;
+      case 'LANGUAGES':
+        return l.filter_languages;
+      default:
+        return item.label;
     }
   }
 
@@ -259,7 +395,11 @@ class _FilterOverlayState extends State<FilterOverlay>
   Widget build(BuildContext context) {
     final rs = context.rs;
     final l = L.of(context);
-    final totalActive = widget.selectedRegions.length + widget.selectedLanguages.length + (widget.favoritesOnly ? 1 : 0) + (widget.localOnly ? 1 : 0);
+    final totalActive = widget.discoveryFilters?.activeCount ??
+        (widget.selectedRegions.length +
+            widget.selectedLanguages.length +
+            (widget.favoritesOnly ? 1 : 0) +
+            (widget.localOnly ? 1 : 0));
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -279,31 +419,29 @@ class _FilterOverlayState extends State<FilterOverlay>
               top: 0,
               bottom: 0,
               left: 0,
-              width: rs.isPortrait
-                  ? rs.screenWidth
-                  : rs.screenWidth * 0.38,
+              width: rs.isPortrait ? rs.screenWidth : rs.screenWidth * 0.38,
               child: SlideTransition(
                 position: _slideAnimation,
                 child: CallbackShortcuts(
                   bindings: {
-                    const SingleActivator(LogicalKeyboardKey.arrowUp):
-                        () => _moveFocus(-1),
-                    const SingleActivator(LogicalKeyboardKey.arrowDown):
-                        () => _moveFocus(1),
-                    const SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
-                        _toggleCurrent,
-                    const SingleActivator(LogicalKeyboardKey.space, includeRepeats: false):
-                        _toggleCurrent,
-                    const SingleActivator(LogicalKeyboardKey.gameButtonA, includeRepeats: false):
-                        _toggleCurrent,
-                    const SingleActivator(LogicalKeyboardKey.escape, includeRepeats: false):
-                        widget.onClose,
-                    const SingleActivator(LogicalKeyboardKey.gameButtonB, includeRepeats: false):
-                        widget.onClose,
-                    const SingleActivator(LogicalKeyboardKey.goBack, includeRepeats: false):
-                        widget.onClose,
-                    const SingleActivator(LogicalKeyboardKey.gameButtonX, includeRepeats: false):
-                        widget.onClearAll,
+                    const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                        _moveFocus(-1),
+                    const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                        _moveFocus(1),
+                    const SingleActivator(LogicalKeyboardKey.enter,
+                        includeRepeats: false): _toggleCurrent,
+                    const SingleActivator(LogicalKeyboardKey.space,
+                        includeRepeats: false): _toggleCurrent,
+                    const SingleActivator(LogicalKeyboardKey.gameButtonA,
+                        includeRepeats: false): _toggleCurrent,
+                    const SingleActivator(LogicalKeyboardKey.escape,
+                        includeRepeats: false): widget.onClose,
+                    const SingleActivator(LogicalKeyboardKey.gameButtonB,
+                        includeRepeats: false): widget.onClose,
+                    const SingleActivator(LogicalKeyboardKey.goBack,
+                        includeRepeats: false): widget.onClose,
+                    const SingleActivator(LogicalKeyboardKey.gameButtonX,
+                        includeRepeats: false): widget.onClearAll,
                   },
                   child: Focus(
                     focusNode: _focusNode,
@@ -348,7 +486,8 @@ class _FilterOverlayState extends State<FilterOverlay>
           children: [
             // Title bar
             Padding(
-              padding: EdgeInsets.fromLTRB(padding, padding, padding, rs.spacing.sm),
+              padding:
+                  EdgeInsets.fromLTRB(padding, padding, padding, rs.spacing.sm),
               child: Row(
                 children: [
                   Text(
@@ -390,6 +529,20 @@ class _FilterOverlayState extends State<FilterOverlay>
               color: Colors.white.withValues(alpha: 0.08),
               height: 1,
             ),
+            if (widget.discoveryScope != null)
+              Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: padding, vertical: rs.spacing.sm),
+                  child: Text(
+                      [
+                        widget.discoveryScope!,
+                        l.filter_basis,
+                        if (widget.discoveryStatus != null)
+                          widget.discoveryStatus!
+                      ].join('\n'),
+                      style: TextStyle(
+                          fontSize: rs.isSmall ? 11 : 13,
+                          color: Colors.grey[300]))),
             // Scrollable list
             Expanded(
               child: ListView.builder(
@@ -451,112 +604,129 @@ class _FilterOverlayState extends State<FilterOverlay>
     final countFontSize = rs.isSmall ? 11.0 : 12.0;
     final horizontalPadding = rs.isSmall ? rs.spacing.md : rs.spacing.lg;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() => _focusedIndex = index);
-        _toggleCurrent();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        margin: EdgeInsets.symmetric(
-          horizontal: horizontalPadding - 4,
-          vertical: 1,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? widget.accentColor.withValues(alpha: isFocused ? 0.18 : 0.08)
-              : isFocused
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(rs.radius.md),
-          border: isFocused
-              ? Border.all(
-                  color: widget.accentColor.withValues(alpha: 0.7),
-                  width: 1.5,
-                )
-              : Border.all(color: Colors.transparent, width: 1.5),
-          boxShadow: isFocused
-              ? [
-                  BoxShadow(
-                    color: widget.accentColor.withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    spreadRadius: -2,
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            // Checkbox indicator
-            SizedBox(
-              width: 20,
-              child: isSelected
-                  ? Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: widget.accentColor.forIcon,
+    return Semantics(
+        button: true,
+        toggled: isSelected,
+        child: GestureDetector(
+          key: switch (item.category) {
+            _FilterCategory.top => ValueKey('discovery-top-${item.label}'),
+            _FilterCategory.tag => ValueKey('discovery-tag-${item.label}'),
+            _FilterCategory.genre => ValueKey('discovery-genre-${item.label}'),
+            _FilterCategory.platform =>
+              ValueKey('discovery-platform-${item.label}'),
+            _FilterCategory.match => const ValueKey('discovery-match'),
+            _FilterCategory.order => const ValueKey('discovery-order'),
+            _ => null,
+          },
+          onTap: () {
+            setState(() => _focusedIndex = index);
+            _toggleCurrent();
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            margin: EdgeInsets.symmetric(
+              horizontal: horizontalPadding - 4,
+              vertical: 1,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? widget.accentColor
+                      .withValues(alpha: isFocused ? 0.18 : 0.08)
+                  : isFocused
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(rs.radius.md),
+              border: isFocused
+                  ? Border.all(
+                      color: widget.accentColor.withValues(alpha: 0.7),
+                      width: 1.5,
                     )
-                  : Icon(
-                      Icons.circle_outlined,
-                      size: 16,
-                      color: isFocused
-                          ? Colors.grey[400]
-                          : Colors.grey[600],
+                  : Border.all(color: Colors.transparent, width: 1.5),
+              boxShadow: isFocused
+                  ? [
+                      BoxShadow(
+                        color: widget.accentColor.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        spreadRadius: -2,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                // Checkbox indicator
+                SizedBox(
+                  width: 20,
+                  child: isSelected
+                      ? Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: widget.accentColor.forIcon,
+                        )
+                      : Icon(
+                          Icons.circle_outlined,
+                          size: 16,
+                          color:
+                              isFocused ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                ),
+                const SizedBox(width: 8),
+                // Flag
+                if (!isToggle) ...[
+                  Text(
+                    option.flag,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 8),
+                ] else ...[
+                  Icon(
+                    item.label == 'Favorites Only'
+                        ? Icons.star
+                        : Icons.save_alt,
+                    size: 16,
+                    color: isSelected ? Colors.white : Colors.grey[400],
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                // Label
+                Expanded(
+                  child: Text(
+                    isToggle ? _localizeLabel(l, item) : option.label,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected
+                          ? Colors.white
+                          : isFocused
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : Colors.grey[400],
                     ),
-            ),
-            const SizedBox(width: 8),
-            // Flag
-            if (!isToggle) ...[
-              Text(
-                option.flag,
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(width: 8),
-            ] else ...[
-              Icon(
-                item.label == 'Favorites Only' ? Icons.star : Icons.save_alt,
-                size: 16,
-                color: isSelected ? Colors.white : Colors.grey[400],
-              ),
-              const SizedBox(width: 8),
-            ],
-            // Label
-            Expanded(
-              child: Text(
-                isToggle ? _localizeLabel(l, item) : option.label,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected
-                      ? Colors.white
-                      : isFocused
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : Colors.grey[400],
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // Count badge
-            if (!isToggle)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${option.count}',
-                  style: TextStyle(
-                    fontSize: countFontSize,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[500],
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-          ],
-        ),
-      ),
-    );
+                // Count badge
+                if (!isToggle)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${option.count}',
+                      style: TextStyle(
+                        fontSize: countFontSize,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ));
   }
 }

@@ -10,6 +10,7 @@ import '../../../models/system_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/installation_index.dart';
 import '../../../services/library_sync_service.dart';
+import '../../../services/library_query.dart';
 import '../../../services/rom_manager.dart';
 import '../../../services/storage_service.dart';
 import '../../../services/unified_game_service.dart';
@@ -35,6 +36,10 @@ class GameListState {
   final Map<String, List<GameItem>> filteredGroupedGames;
   final bool isLocalOnly;
   final bool isOffline;
+  final bool queryingDiscovery;
+  final LibraryDiscoveryResult? discovery;
+  final String? discoveryError;
+  final List<String> availableGenres;
 
   const GameListState({
     this.allGames = const [],
@@ -53,6 +58,10 @@ class GameListState {
     this.filteredGroupedGames = const {},
     this.isLocalOnly = false,
     this.isOffline = false,
+    this.queryingDiscovery = false,
+    this.discovery,
+    this.discoveryError,
+    this.availableGenres = const [],
   });
 
   GameListState copyWith({
@@ -72,6 +81,11 @@ class GameListState {
     Map<String, List<GameItem>>? filteredGroupedGames,
     bool? isLocalOnly,
     bool? isOffline,
+    bool? queryingDiscovery,
+    LibraryDiscoveryResult? discovery,
+    String? discoveryError,
+    List<String>? availableGenres,
+    bool clearDiscovery = false,
   }) {
     return GameListState(
       allGames: allGames ?? this.allGames,
@@ -90,6 +104,10 @@ class GameListState {
       filteredGroupedGames: filteredGroupedGames ?? this.filteredGroupedGames,
       isLocalOnly: isLocalOnly ?? this.isLocalOnly,
       isOffline: isOffline ?? this.isOffline,
+      queryingDiscovery: queryingDiscovery ?? this.queryingDiscovery,
+      discovery: clearDiscovery ? null : discovery ?? this.discovery,
+      discoveryError: discoveryError,
+      availableGenres: availableGenres ?? this.availableGenres,
     );
   }
 }
@@ -103,6 +121,29 @@ class GameListController extends ChangeNotifier {
   final StorageService? _storage;
   bool _disposed = false;
   Timer? _thumbnailDebounce;
+  int _discoveryGeneration = 0;
+  Future<void>? _discoveryWork;
+  Future<void>? _genreWork;
+  List<String> _discoveryKeys = const [];
+  Future<void> get discoverySettled => _discoveryWork ?? Future.value();
+
+  Future<void> loadDiscoveryGenres() => _genreWork ??= _loadDiscoveryGenres();
+
+  Future<void> _loadDiscoveryGenres() async {
+    try {
+      final genres = await LibraryQuery(_databaseService.database)
+          .genres(platformIds: {system.id});
+      if (_disposed) return;
+      _state = _state.copyWith(availableGenres: genres);
+      notifyListeners();
+    } catch (e) {
+      if (_disposed) return;
+      _state = _state.copyWith(discoveryError: getUserFriendlyError(e));
+      notifyListeners();
+    } finally {
+      _genreWork = null;
+    }
+  }
 
   /// Called after games are saved to the database, so the UI layer
   /// can signal count providers to re-query.
@@ -143,7 +184,8 @@ class GameListController extends ChangeNotifier {
     loadGames();
   }
 
-  Future<void> loadGames({bool forceRefresh = false, bool silent = false}) async {
+  Future<void> loadGames(
+      {bool forceRefresh = false, bool silent = false}) async {
     if (silent) {
       _state = _state.copyWith(error: null);
     } else {
@@ -159,8 +201,10 @@ class GameListController extends ChangeNotifier {
         _groupGames();
         _restoreFilters();
         _resolveInstalledStatus();
-        await _databaseService.saveGames(system.id, _state.allGames, forceDeleteOrphans: true);
+        await _databaseService.saveGames(system.id, _state.allGames,
+            forceDeleteOrphans: true);
         onGamesSaved?.call();
+        refreshDiscovery();
         return;
       }
 
@@ -183,7 +227,8 @@ class GameListController extends ChangeNotifier {
       // No cache or forced refresh — fetch from source
       await _fetchFromSource();
     } catch (e) {
-      _state = _state.copyWith(error: getUserFriendlyError(e), isLoading: false, isOffline: true);
+      _state = _state.copyWith(
+          error: getUserFriendlyError(e), isLoading: false, isOffline: true);
       notifyListeners();
     }
   }
@@ -192,13 +237,17 @@ class GameListController extends ChangeNotifier {
     final remoteGames = await _unifiedService.fetchGamesForSystem(systemConfig);
     final localGames = await RomManager.scanLocalGames(system, targetFolder);
     final games = GameMergeHelper.merge(remoteGames, localGames, system);
-    _state = _state.copyWith(allGames: games, isLocalOnly: false, isOffline: false);
+    _state =
+        _state.copyWith(allGames: games, isLocalOnly: false, isOffline: false);
     _groupGames();
     _restoreFilters();
     _resolveInstalledStatus();
-    await _databaseService.saveGames(system.id, _state.allGames, deleteOrphans: true,
-        authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
+    await _databaseService.saveGames(system.id, _state.allGames,
+        deleteOrphans: true,
+        authoritativeDriveSourceIds:
+            UnifiedGameService.configuredDriveSourceIds(systemConfig));
     onGamesSaved?.call();
+    refreshDiscovery();
   }
 
   Future<void> _backgroundRefresh() async {
@@ -215,7 +264,8 @@ class GameListController extends ChangeNotifier {
       }
     }
     try {
-      final remoteGames = await _unifiedService.fetchGamesForSystem(systemConfig);
+      final remoteGames =
+          await _unifiedService.fetchGamesForSystem(systemConfig);
       final localGames = await RomManager.scanLocalGames(system, targetFolder);
       if (_disposed) return;
       final games = GameMergeHelper.merge(remoteGames, localGames, system);
@@ -225,7 +275,8 @@ class GameListController extends ChangeNotifier {
       // Legacy games retain their existing identity/name comparison semantics.
       String comparisonKey(GameItem game) => game.remoteArtifact == null
           ? '${game.identityKey}:${game.filename}'
-          : jsonEncode([game.identityKey, game.filename, game.remoteArtifact!.toJson()]);
+          : jsonEncode(
+              [game.identityKey, game.filename, game.remoteArtifact!.toJson()]);
       final oldFilenames = _state.allGames.map(comparisonKey).toSet();
       final newFilenames = games.map(comparisonKey).toSet();
       if (oldFilenames.length != newFilenames.length ||
@@ -235,10 +286,13 @@ class GameListController extends ChangeNotifier {
         _restoreFilters();
         _resolveInstalledStatus();
       }
-      await _databaseService.saveGames(system.id, games, deleteOrphans: true,
-          authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
+      await _databaseService.saveGames(system.id, games,
+          deleteOrphans: true,
+          authoritativeDriveSourceIds:
+              UnifiedGameService.configuredDriveSourceIds(systemConfig));
       _storage?.setLastSyncTime(system.id, DateTime.now());
       onGamesSaved?.call();
+      refreshDiscovery();
       if (_state.isOffline) {
         _state = _state.copyWith(isOffline: false);
         notifyListeners();
@@ -255,17 +309,22 @@ class GameListController extends ChangeNotifier {
     for (final game in _state.allGames) {
       groupedGames.putIfAbsent(game.groupKey, () => []).add(game);
     }
-    final allGroups = groupedGames.keys.toList()..sort((a, b) {
-      final comparison = groupedGames[a]!.first.displayName.compareTo(groupedGames[b]!.first.displayName);
-      return comparison == 0 ? a.compareTo(b) : comparison;
-    });
+    final allGroups = groupedGames.keys.toList()
+      ..sort((a, b) {
+        final comparison = groupedGames[a]!
+            .first
+            .displayName
+            .compareTo(groupedGames[b]!.first.displayName);
+        return comparison == 0 ? a.compareTo(b) : comparison;
+      });
 
     // Build region/language caches
     final regionCache = <String, RegionInfo>{};
     final languageCache = <String, List<LanguageInfo>>{};
     for (final game in _state.allGames) {
       regionCache[game.filename] = GameMetadata.extractRegion(game.filename);
-      languageCache[game.filename] = GameMetadata.extractLanguages(game.filename);
+      languageCache[game.filename] =
+          GameMetadata.extractLanguages(game.filename);
     }
 
     final options = buildFilterOptions(
@@ -294,18 +353,14 @@ class GameListController extends ChangeNotifier {
     if (json == null) return;
     try {
       final map = jsonDecode(json) as Map<String, dynamic>;
-      final restored = ActiveFilters(
-        selectedRegions: Set<String>.from(map['regions'] as List),
-        selectedLanguages: Set<String>.from(map['languages'] as List),
-        favoritesOnly: map['favoritesOnly'] as bool? ?? false,
-        localOnly: map['localOnly'] as bool? ?? false,
-      );
+      final restored = ActiveFilters.fromJson(map);
       if (restored.isNotEmpty) {
         _state = _state.copyWith(activeFilters: restored);
         _applyFilters();
       }
     } catch (e) {
-      debugPrint('GameListController: filter restore failed for ${system.id}: $e');
+      debugPrint(
+          'GameListController: filter restore failed for ${system.id}: $e');
     }
   }
 
@@ -316,12 +371,7 @@ class GameListController extends ChangeNotifier {
     if (filters.isEmpty) {
       storage.removeFilters(system.id);
     } else {
-      storage.setFilters(system.id, jsonEncode({
-        'regions': filters.selectedRegions.toList(),
-        'languages': filters.selectedLanguages.toList(),
-        'favoritesOnly': filters.favoritesOnly,
-        'localOnly': filters.localOnly,
-      }));
+      storage.setFilters(system.id, jsonEncode(filters.toJson()));
     }
   }
 
@@ -339,7 +389,8 @@ class GameListController extends ChangeNotifier {
   }
 
   void filterGames(String query) {
-    _state = _state.copyWith(searchQuery: GameMetadata.normalizeForSearch(query));
+    _state =
+        _state.copyWith(searchQuery: GameMetadata.normalizeForSearch(query));
     _applyFilters();
   }
 
@@ -386,13 +437,40 @@ class GameListController extends ChangeNotifier {
     _saveFilters();
   }
 
+  void setTopFilter(int? top) =>
+      _changeDiscovery(_state.activeFilters.withTop(top));
+  void setDiscoveryFilters(ActiveFilters filters) => _changeDiscovery(filters);
+  void toggleTagFilter(String tag) =>
+      _changeDiscovery(_state.activeFilters.toggleTag(tag));
+  void toggleGenreFilter(String genre) =>
+      _changeDiscovery(_state.activeFilters.toggleGenre(genre));
+  void toggleTagMatch() =>
+      _changeDiscovery(_state.activeFilters.toggleTagMatch());
+  void toggleRatingOrder() =>
+      _changeDiscovery(_state.activeFilters.toggleRatingOrder());
+
+  void _changeDiscovery(ActiveFilters filters) {
+    _state = _state.copyWith(activeFilters: filters);
+    _applyFilters();
+    _saveFilters();
+  }
+
+  /// A committed catalogue/score publication re-evaluates cached membership;
+  /// this is not a source refresh or a metadata request.
+  void refreshDiscovery() {
+    if (!_disposed && _state.activeFilters.hasMetadataFilters) _applyFilters();
+  }
+
   void _applyFilters() {
+    _discoveryGeneration++;
     var groups = List<String>.from(_state.allGroups);
 
     // 1. Search filter
     if (_state.searchQuery.isNotEmpty) {
       groups = groups
-          .where((name) => GameMetadata.normalizeForSearch(_state.groupedGames[name]!.first.displayName).contains(_state.searchQuery))
+          .where((name) => GameMetadata.normalizeForSearch(
+                  _state.groupedGames[name]!.first.displayName)
+              .contains(_state.searchQuery))
           .toList();
     }
 
@@ -402,16 +480,102 @@ class GameListController extends ChangeNotifier {
       groups = groups.where((groupName) {
         final variants = _state.groupedGames[groupName];
         if (variants == null) return false;
-        final matching = variants.where((game) => _matchesFilters(game)).toList();
+        final matching =
+            variants.where((game) => _matchesFilters(game)).toList();
         if (matching.isEmpty) return false;
         filteredMap[groupName] = matching;
         return true;
       }).toList();
-      _state = _state.copyWith(filteredGroups: groups, filteredGroupedGames: filteredMap);
+      if (_state.activeFilters.hasMetadataFilters) {
+        _discoveryKeys = [
+          for (final group in groups)
+            for (final game in filteredMap[group]!)
+              coverRatingKey(system.id, game.selectionKey)
+        ];
+        _state = _state.copyWith(
+            filteredGroups: const [],
+            filteredGroupedGames: const {},
+            queryingDiscovery: true,
+            clearDiscovery: true);
+        _discoveryWork ??= _runDiscovery();
+      } else {
+        _state = _state.copyWith(
+            filteredGroups: groups,
+            filteredGroupedGames: filteredMap,
+            queryingDiscovery: false,
+            clearDiscovery: true);
+      }
     } else {
-      _state = _state.copyWith(filteredGroups: groups, filteredGroupedGames: _state.groupedGames);
+      _state = _state.copyWith(
+          filteredGroups: groups,
+          filteredGroupedGames: _state.groupedGames,
+          queryingDiscovery: false,
+          clearDiscovery: true);
     }
     notifyListeners();
+  }
+
+  Future<void> _runDiscovery() async {
+    try {
+      while (!_disposed && _state.activeFilters.hasMetadataFilters) {
+        final generation = _discoveryGeneration;
+        final filters = _state.activeFilters;
+        final keys = _discoveryKeys;
+        try {
+          final result = await LibraryQuery(_databaseService.database).discover(
+              filter: LibraryQueryFilter(
+                  platformIds: {system.id},
+                  tags: filters.selectedTags,
+                  genres: filters.selectedGenres,
+                  top: filters.top,
+                  ratingOrder: filters.ratingOrder,
+                  matchAllTags: filters.matchAllTags),
+              orderedKeys: keys,
+              preserveOrder: true,
+              isCurrent: () =>
+                  !_disposed && generation == _discoveryGeneration);
+          if (_disposed) return;
+          if (generation != _discoveryGeneration) continue;
+          if (result == null) return;
+          final files = {
+            for (final g in _state.allGames)
+              coverRatingKey(system.id, g.selectionKey): g
+          };
+          final groups = <String, List<GameItem>>{};
+          final installed = Map<String, bool>.of(_state.installedCache);
+          for (final entry in result.groups.entries) {
+            final variants =
+                entry.value.map((k) => files[k]).whereType<GameItem>().toList();
+            if (variants.isEmpty) continue;
+            groups[entry.key] = variants;
+            installed[entry.key] =
+                variants.any((g) => installed[g.groupKey] == true);
+          }
+          _state = _state.copyWith(
+              filteredGroups: groups.keys.toList(),
+              filteredGroupedGames: groups,
+              installedCache: installed,
+              discovery: result,
+              availableGenres: result.genres,
+              queryingDiscovery: false);
+          notifyListeners();
+          if (generation != _discoveryGeneration) continue;
+          return;
+        } catch (e) {
+          if (_disposed) return;
+          if (generation != _discoveryGeneration) continue;
+          _state = _state.copyWith(
+              queryingDiscovery: false,
+              discoveryError: getUserFriendlyError(e),
+              clearDiscovery: true);
+          notifyListeners();
+          if (generation != _discoveryGeneration) continue;
+          return;
+        }
+      }
+    } finally {
+      _discoveryWork = null;
+    }
   }
 
   bool _matchesFilters(GameItem game) {
@@ -428,14 +592,16 @@ class GameListController extends ChangeNotifier {
     // Language check: OR within languages (null/empty = no metadata → pass through)
     if (filters.selectedLanguages.isNotEmpty) {
       final languages = _state.languageCache[game.filename];
-      if (languages != null && languages.isNotEmpty &&
+      if (languages != null &&
+          languages.isNotEmpty &&
           !languages.any((l) => filters.selectedLanguages.contains(l.code))) {
         return false;
       }
     }
 
     if (filters.favoritesOnly) {
-      final isFavorite = _storage?.getFavorites().contains(game.selectionKey) ?? false;
+      final isFavorite =
+          _storage?.getFavorites().contains(game.selectionKey) ?? false;
       if (!isFavorite) return false;
     }
 
@@ -455,7 +621,12 @@ class GameListController extends ChangeNotifier {
     _installedArtifacts = installedArtifacts;
     final installedCache = <String, bool>{};
     for (final entry in _state.groupedGames.entries) {
-      installedCache[entry.key] = _isAnyVariantInSet(entry.value, installedFilenames);
+      installedCache[entry.key] =
+          _isAnyVariantInSet(entry.value, installedFilenames);
+    }
+    for (final entry in _state.filteredGroupedGames.entries) {
+      installedCache[entry.key] =
+          _isAnyVariantInSet(entry.value, installedFilenames);
     }
     _state = _state.copyWith(installedCache: installedCache, isLoading: false);
     if (_state.activeFilters.localOnly) {
@@ -498,7 +669,8 @@ class GameListController extends ChangeNotifier {
   }
 
   Future<void> updateInstalledStatus(String displayName) async {
-    final variants = _state.groupedGames[displayName];
+    final variants = _state.filteredGroupedGames[displayName] ??
+        _state.groupedGames[displayName];
     if (variants == null) return;
 
     final isInstalled = await _isAnyVariantInstalled(variants);
@@ -522,8 +694,7 @@ class GameListController extends ChangeNotifier {
       filenames,
       hasThumbnail: true,
     );
-    _updateInMemorySilent(
-        filenames, (g) => g.copyWith(hasThumbnail: true));
+    _updateInMemorySilent(filenames, (g) => g.copyWith(hasThumbnail: true));
     _scheduleThumbnailNotify();
   }
 

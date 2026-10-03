@@ -9,6 +9,72 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get filter_oneLimit =>
+      'Un único límite para las consolas seleccionadas';
+
+  @override
+  String get filter_scope => 'Consolas incluidas';
+
+  @override
+  String get filter_allScope => 'Todas las consolas · un único límite';
+
+  @override
+  String get filter_noMatches => 'Ningún juego coincide con estos filtros';
+
+  @override
+  String get filter_discoveryTitle => 'Mejor valorados de mi colección';
+
+  @override
+  String get filter_ratingOrder => 'Orden por valoración';
+
+  @override
+  String get filter_anyTags => 'Cualquier etiqueta';
+
+  @override
+  String get filter_allTags => 'Todas las etiquetas';
+
+  @override
+  String get filter_contentTags => 'Etiquetas de contenido';
+
+  @override
+  String get filter_genres => 'Géneros';
+
+  @override
+  String get filter_allGames => 'Todos los juegos';
+
+  @override
+  String get filter_provisional => 'Provisional';
+
+  @override
+  String filter_coverage(int ranked, int total, int matches) {
+    return '$ranked/$total clasificados · $matches juegos coincidentes';
+  }
+
+  @override
+  String get filter_basis =>
+      'Base: media de usuarios IGDB (20+ votos; solo sistemas evaluados)';
+
+  @override
+  String get filter_querying => 'Actualizando filtros en caché…';
+
+  @override
+  String filter_topLimit(int limit) {
+    return 'Mejores $limit';
+  }
+
+  @override
+  String get filter_official => 'Lanzamientos oficiales';
+
+  @override
+  String get filter_unknown => 'Clasificación desconocida';
+
+  @override
+  String get filter_homebrew => 'Homebrew';
+
+  @override
+  String get filter_demo => 'Demo';
+
+  @override
   String get metadata_staleScore => 'Valoración desactualizada';
 
   @override

@@ -64,6 +64,53 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 integrated discovery filters checkpoint (2026-10-03)
+
+- S5 is the sole ACTIVE stage. Existing console filters and the library/shelf
+  panel now share the cache-only SQLite discovery query. Best 10/25/50/100/All,
+  independent content tags, any/all matching, genres and explicit rating order
+  persist in their existing console or library/tab/shelf contexts. Cross-system
+  scope is selectable and the UI states that one cap applies across that scope.
+  Scope/ranking precede search, installed, favorites and shelf intersections;
+  filtering never backfills or adds uncapped extras.
+- Query pages retain every matching edition while counting/ranking a canonical
+  game once. The UI bridge binds exact console plus file/artifact identities,
+  rejects ambiguous duplicate bindings and removes its transaction-local view.
+  It reads lightweight cached query rows, not whole metadata/artwork records or
+  provider APIs. Genre choices are available before selecting a Top filter.
+  Accepted score policy is unchanged; unsupported scopes remain unranked/advisory.
+- Console query publication is generation-coalesced. A reproduced listener-time
+  filter change previously left a pending generation unpublished; the regression
+  now passes. Top membership does not implicitly change manual shelf order:
+  that reproduced defect is fixed, and only explicit rating sort reorders it.
+  Library publication refreshes coalesce catalogue reloads. Focus is retained by
+  exact game/group identity rather than position. Clear restores normal browsing.
+- Fresh focused host verification (66752, exit 0) covers the actual library
+  screen and production score policy: one cross-console Top cap, changed scope,
+  tag no-backfill, empty results after score publication, restoration after
+  publication, per-view persistence/relaunch, unchanged shelf storage, manual
+  order and identity focus through rating sort. Console/controller/shared-query,
+  touch/controller filter panel, legacy grid and cover golden checks also pass.
+  Synthetic fixtures and Flutter's test HTTP boundary make no real ROM/provider
+  requests. The external test container remains alive while routes unmount, as
+  in the app, so existing deferred focus callbacks do not target disposed state.
+- Scoped analysis of changed production/tests (27c55f, exit 0) reports only the
+  two pre-existing grid cacheExtent deprecation infos, verified against HEAD;
+  no errors/warnings. Formatting and Git whitespace checks pass. Workloads ran
+  sequentially; no credential renewal, browser/account mutation, deployment,
+  release or Thor/ROM/SD mutation occurred.
+- Reviewed cleanup a0d9b6092300f59670483210acd6e559 permanently removed only
+  regenerated build/unit_test_assets and build/test_cache: 93,048,845 bytes,
+  terminal APPLIED, no errors/residuals. Every manifest item was inspected;
+  source, goldens, credentials and existing forensic/native evidence are kept.
+  These compiler outputs are reproducible; no test/analyzer workload remains.
+- UI-03 is not COMPLETE: native handheld/controller scope/filter/manual-order
+  proof, exact console-screen focus and badge cases, compact/localized layout,
+  and offline-scroll/request measurements remain required. UI-01's remaining
+  screen/native checks and UI-02's normal setup/refresh/details integration also
+  remain ordinary unfinished S5 work. No acceptance is deferred to another stage.
+  S1/B3 and S4/B5 remain BLOCKED; S2/S3 COMPLETE; S6-S8 NOT STARTED.
+
 ### S5 cached cover overlays and preference integration (2026-10-03)
 
 - S5 remains the sole ACTIVE stage. Both existing shared-card callers (console

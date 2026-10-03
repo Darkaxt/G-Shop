@@ -9,6 +9,71 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get filter_oneLimit => 'One limit across the selected consoles';
+
+  @override
+  String get filter_scope => 'Console scope';
+
+  @override
+  String get filter_allScope => 'All consoles · one collection-wide limit';
+
+  @override
+  String get filter_noMatches => 'No games match these filters';
+
+  @override
+  String get filter_discoveryTitle => 'Best rated in my collection';
+
+  @override
+  String get filter_ratingOrder => 'Rating order';
+
+  @override
+  String get filter_anyTags => 'Match any tag';
+
+  @override
+  String get filter_allTags => 'Match all tags';
+
+  @override
+  String get filter_contentTags => 'Content tags';
+
+  @override
+  String get filter_genres => 'Genres';
+
+  @override
+  String get filter_allGames => 'All games';
+
+  @override
+  String get filter_provisional => 'Provisional';
+
+  @override
+  String filter_coverage(int ranked, int total, int matches) {
+    return '$ranked/$total ranked · $matches matching games';
+  }
+
+  @override
+  String get filter_basis =>
+      'Ranking basis: IGDB community average (20+ ratings; assessed systems only)';
+
+  @override
+  String get filter_querying => 'Updating cached filters…';
+
+  @override
+  String filter_topLimit(int limit) {
+    return 'Best $limit';
+  }
+
+  @override
+  String get filter_official => 'Official releases';
+
+  @override
+  String get filter_unknown => 'Unknown classification';
+
+  @override
+  String get filter_homebrew => 'Homebrew';
+
+  @override
+  String get filter_demo => 'Demo';
+
+  @override
   String get metadata_staleScore => 'Stale score';
 
   @override

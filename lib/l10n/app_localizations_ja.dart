@@ -9,6 +9,70 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get filter_oneLimit => '選択したゲーム機全体で1つの上限';
+
+  @override
+  String get filter_scope => '対象のゲーム機';
+
+  @override
+  String get filter_allScope => 'すべてのゲーム機・コレクション全体で1つの上限';
+
+  @override
+  String get filter_noMatches => '条件に一致するゲームはありません';
+
+  @override
+  String get filter_discoveryTitle => 'コレクション内の高評価ゲーム';
+
+  @override
+  String get filter_ratingOrder => '評価順';
+
+  @override
+  String get filter_anyTags => 'いずれかのタグ';
+
+  @override
+  String get filter_allTags => 'すべてのタグ';
+
+  @override
+  String get filter_contentTags => 'コンテンツタグ';
+
+  @override
+  String get filter_genres => 'ジャンル';
+
+  @override
+  String get filter_allGames => 'すべてのゲーム';
+
+  @override
+  String get filter_provisional => '暫定';
+
+  @override
+  String filter_coverage(int ranked, int total, int matches) {
+    return '$ranked/$total 件を順位付け · $matches 件が一致';
+  }
+
+  @override
+  String get filter_basis => '順位の根拠：IGDBユーザー平均（20票以上・評価検証済みシステムのみ）';
+
+  @override
+  String get filter_querying => 'キャッシュのフィルターを更新中…';
+
+  @override
+  String filter_topLimit(int limit) {
+    return '上位 $limit 件';
+  }
+
+  @override
+  String get filter_official => '公式リリース';
+
+  @override
+  String get filter_unknown => '分類不明';
+
+  @override
+  String get filter_homebrew => '自作ゲーム';
+
+  @override
+  String get filter_demo => '体験版';
+
+  @override
   String get metadata_staleScore => '古い評価';
 
   @override

@@ -105,6 +105,126 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @filter_oneLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'One limit across the selected consoles'**
+  String get filter_oneLimit;
+
+  /// No description provided for @filter_scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Console scope'**
+  String get filter_scope;
+
+  /// No description provided for @filter_allScope.
+  ///
+  /// In en, this message translates to:
+  /// **'All consoles · one collection-wide limit'**
+  String get filter_allScope;
+
+  /// No description provided for @filter_noMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No games match these filters'**
+  String get filter_noMatches;
+
+  /// No description provided for @filter_discoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Best rated in my collection'**
+  String get filter_discoveryTitle;
+
+  /// No description provided for @filter_ratingOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating order'**
+  String get filter_ratingOrder;
+
+  /// No description provided for @filter_anyTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Match any tag'**
+  String get filter_anyTags;
+
+  /// No description provided for @filter_allTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Match all tags'**
+  String get filter_allTags;
+
+  /// No description provided for @filter_contentTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Content tags'**
+  String get filter_contentTags;
+
+  /// No description provided for @filter_genres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get filter_genres;
+
+  /// No description provided for @filter_allGames.
+  ///
+  /// In en, this message translates to:
+  /// **'All games'**
+  String get filter_allGames;
+
+  /// No description provided for @filter_provisional.
+  ///
+  /// In en, this message translates to:
+  /// **'Provisional'**
+  String get filter_provisional;
+
+  /// No description provided for @filter_coverage.
+  ///
+  /// In en, this message translates to:
+  /// **'{ranked}/{total} ranked · {matches} matching games'**
+  String filter_coverage(int ranked, int total, int matches);
+
+  /// No description provided for @filter_basis.
+  ///
+  /// In en, this message translates to:
+  /// **'Ranking basis: IGDB community average (20+ ratings; assessed systems only)'**
+  String get filter_basis;
+
+  /// No description provided for @filter_querying.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating cached filters…'**
+  String get filter_querying;
+
+  /// No description provided for @filter_topLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Best {limit}'**
+  String filter_topLimit(int limit);
+
+  /// No description provided for @filter_official.
+  ///
+  /// In en, this message translates to:
+  /// **'Official releases'**
+  String get filter_official;
+
+  /// No description provided for @filter_unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown classification'**
+  String get filter_unknown;
+
+  /// No description provided for @filter_homebrew.
+  ///
+  /// In en, this message translates to:
+  /// **'Homebrew'**
+  String get filter_homebrew;
+
+  /// No description provided for @filter_demo.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo'**
+  String get filter_demo;
+
   /// No description provided for @metadata_staleScore.
   ///
   /// In en, this message translates to:

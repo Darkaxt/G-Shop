@@ -9,10 +9,14 @@ import 'library_store.dart';
 
 import 'metadata/effective_overall_rating.dart';
 
+/// File identity shared by cached covers and discovery, never a cleaned title.
+String coverRatingKey(String systemSlug, String selectionKey) =>
+    jsonEncode([systemSlug, selectionKey]);
+
 /// Console IDs define ranking scope. All other constraints intersect it later.
 class LibraryQueryFilter {
   final Set<String> platformIds, tags, genres, regions, languages, viewIds;
-  final bool matchAllTags, ratingOrder;
+  final bool matchAllTags, ratingOrder, includeVariants;
   final int? top;
   final String? search, manualViewId;
   final int limit, offset;
@@ -25,6 +29,7 @@ class LibraryQueryFilter {
       Set<String> viewIds = const {},
       this.matchAllTags = false,
       this.ratingOrder = false,
+      this.includeVariants = false,
       this.top,
       this.search,
       this.manualViewId,
@@ -66,9 +71,27 @@ class LibraryQueryPage {
       : items = List.unmodifiable(items);
 }
 
+/// Lightweight UI identities only; metadata/artwork stay in the paged cache.
+class LibraryDiscoveryResult {
+  final Map<String, List<String>> groups;
+  final List<String> genres;
+  final int collectionGames, rankedGames, totalMatches;
+  bool get provisional => rankedGames < collectionGames;
+  LibraryDiscoveryResult(
+      {required Map<String, List<String>> groups,
+      required List<String> genres,
+      required this.collectionGames,
+      required this.rankedGames,
+      required this.totalMatches})
+      : groups = Map.unmodifiable(
+            groups.map((k, v) => MapEntry(k, List<String>.unmodifiable(v)))),
+        genres = List.unmodifiable(genres);
+}
+
 class LibraryQuery {
   final Future<Database> _database;
   LibraryQuery(this._database);
+  static int _viewSequence = 0;
 
   /// Rebuildable facts only. No ratings approval, Top membership, artwork or
   /// authoritative favorite/shelf/install state is persisted here.
@@ -191,6 +214,163 @@ class LibraryQuery {
       }
       await batch.commit(noResult: true);
     });
+  }
+
+  /// Bind the existing UI's favorite/install/search/shelf intersection after
+  /// ranking. Cache and edition ambiguity is rejected, not resolved by title.
+  /// Positions are presentation order, not ownership or persisted Top lists.
+  Future<Map<int, String>> replaceViewCacheMembers(
+      String viewId, List<String> orderedKeys,
+      {Set<String> platformIds = const {},
+      List<AssessedOverallScoreBasis>? assessedBases}) async {
+    if (viewId.trim().isEmpty || platformIds.length > 64) {
+      throw ArgumentError('Invalid view/scope');
+    }
+    final db = await _database;
+    return db.transaction((txn) => _bindCacheView(txn, viewId, orderedKeys,
+        platformIds, assessedBases ?? productionOverallScoreBases));
+  }
+
+  static Future<Map<int, String>> _bindCacheView(
+      DatabaseExecutor txn,
+      String viewId,
+      List<String> orderedKeys,
+      Set<String> platformIds,
+      List<AssessedOverallScoreBasis> bases) async {
+    final positions = <String, int>{};
+    for (var i = 0; i < orderedKeys.length; i++) {
+      positions.putIfAbsent(orderedKeys[i], () => i);
+    }
+    await _refresh(txn, bases);
+    await txn.delete('library_query_views',
+        where: 'view_id = ?', whereArgs: [viewId]);
+    final bindings = <int, String>{};
+    final seen = <String, int>{};
+    var cursor = 0;
+    while (true) {
+      final rows = await txn.rawQuery('''SELECT g.id, g.systemSlug,
+          g.filename, g.artifact_key, MIN(e.edition_id) AS edition_id,
+          COUNT(e.edition_id) AS editions
+          FROM games g LEFT JOIN library_query_editions e
+            ON e.cache_row_id = g.id AND e.member = 1
+          WHERE g.id > ? AND g.is_folder = 0
+          ${platformIds.isEmpty ? '' : 'AND g.systemSlug IN (${List.filled(platformIds.length, '?').join(',')})'}
+          GROUP BY g.id ORDER BY g.id LIMIT 128''', [cursor, ...platformIds]);
+      if (rows.isEmpty) break;
+      final batch = txn.batch();
+      for (final row in rows) {
+        final artifact = row['artifact_key'] as String?;
+        final key = coverRatingKey(
+            row['systemSlug'] as String,
+            artifact == null
+                ? row['filename'] as String
+                : 'artifact:$artifact');
+        final position = positions[key];
+        if (position == null) continue;
+        if (seen.containsKey(key)) {
+          bindings.remove(seen[key]);
+          batch.delete('library_query_views',
+              where: 'view_id = ? AND position = ?',
+              whereArgs: [viewId, position]);
+          continue;
+        }
+        seen[key] = row['id'] as int;
+        if (row['editions'] != 1) continue;
+        bindings[row['id'] as int] = key;
+        batch.insert('library_query_views', {
+          'view_id': viewId,
+          'edition_id': row['edition_id'],
+          'position': position
+        });
+      }
+      await batch.commit(noResult: true);
+      cursor = rows.last['id'] as int;
+      if (rows.length < 128) break;
+    }
+    return Map<int, String>.unmodifiable(bindings);
+  }
+
+  /// One SQLite snapshot bridges both console and library UI intersections.
+  /// The temporary membership never changes favorites, installs or shelves.
+  Future<LibraryDiscoveryResult?> discover(
+      {required LibraryQueryFilter filter,
+      required List<String> orderedKeys,
+      required bool Function() isCurrent,
+      bool preserveOrder = false,
+      List<AssessedOverallScoreBasis>? assessedBases}) async {
+    _validate(filter);
+    final db = await _database;
+    final bases = assessedBases ?? productionOverallScoreBases;
+    final view = 'ui-discovery:${++_viewSequence}';
+    return db.transaction((txn) async {
+      if (!isCurrent()) return null;
+      final bindings = await _bindCacheView(
+          txn, view, orderedKeys, filter.platformIds, bases);
+      try {
+        final groups = <String, List<String>>{};
+        LibraryQueryPage? coverage;
+        var offset = 0;
+        while (isCurrent()) {
+          final page = await _page(
+              txn,
+              LibraryQueryFilter(
+                  platformIds: filter.platformIds,
+                  tags: filter.tags,
+                  genres: filter.genres,
+                  regions: filter.regions,
+                  languages: filter.languages,
+                  matchAllTags: filter.matchAllTags,
+                  ratingOrder: filter.ratingOrder,
+                  top: filter.top,
+                  search: filter.search,
+                  viewIds: {...filter.viewIds, view},
+                  manualViewId: preserveOrder ? view : null,
+                  includeVariants: true,
+                  limit: 128,
+                  offset: offset),
+              bases);
+          coverage = page;
+          for (final item in page.items) {
+            final key = bindings[item.cacheRowId];
+            if (key != null) {
+              groups.putIfAbsent(item.groupKey, () => []).add(key);
+            }
+          }
+          if (page.items.length < 128) break;
+          offset += page.items.length;
+        }
+        if (!isCurrent() || coverage == null) return null;
+        final genres = await _genres(txn, filter.platformIds);
+        return LibraryDiscoveryResult(
+            groups: groups,
+            genres: genres,
+            collectionGames: coverage.collectionGames,
+            rankedGames: coverage.rankedGames,
+            totalMatches: coverage.totalMatches);
+      } finally {
+        await txn.delete('library_query_views',
+            where: 'view_id = ?', whereArgs: [view]);
+      }
+    });
+  }
+
+  Future<List<String>> genres({Set<String> platformIds = const {}}) async {
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _refresh(txn, productionOverallScoreBases);
+      return _genres(txn, platformIds);
+    });
+  }
+
+  static Future<List<String>> _genres(
+      DatabaseExecutor txn, Set<String> platformIds) async {
+    final rows = await txn.rawQuery('''SELECT DISTINCT f.value
+          FROM library_query_facets f JOIN library_query_editions e
+            ON e.edition_id = f.edition_id
+          WHERE f.dimension = 'genre' AND e.member = 1
+          ${platformIds.isEmpty ? '' : 'AND e.platform_id IN (${List.filled(platformIds.length, '?').join(',')})'}
+          ORDER BY f.value LIMIT 128''', platformIds.toList());
+    return List.unmodifiable(rows.map((r) => r['value'] as String));
   }
 
   static String _policy(List<AssessedOverallScoreBasis> bases) => sha256
@@ -426,6 +606,14 @@ class LibraryQuery {
   Future<LibraryQueryPage> page(
       {required LibraryQueryFilter filter,
       List<AssessedOverallScoreBasis>? assessedBases}) async {
+    _validate(filter);
+    final bases = List<AssessedOverallScoreBasis>.unmodifiable(
+        assessedBases ?? productionOverallScoreBases);
+    final db = await _database;
+    return db.transaction((txn) => _page(txn, filter, bases));
+  }
+
+  static void _validate(LibraryQueryFilter filter) {
     if (filter.limit < 1 ||
         filter.limit > 128 ||
         filter.offset < 0 ||
@@ -444,20 +632,20 @@ class LibraryQuery {
         values.length > 64 || values.any((v) => v.trim().isEmpty))) {
       throw ArgumentError('Invalid filter dimensions');
     }
-    final bases = List<AssessedOverallScoreBasis>.unmodifiable(
-        assessedBases ?? productionOverallScoreBases);
-    final db = await _database;
-    return db.transaction((txn) async {
-      await _refresh(txn, bases);
-      final args = <Object?>[];
-      final scope = filter.platformIds.isEmpty
-          ? ''
-          : 'AND platform_id IN (${List.filled(filter.platformIds.length, '?').join(',')})';
-      args.addAll(filter.platformIds);
-      // Canonical ranks precede every presentation filter. A group selects its
-      // first accepted source, not its highest-scoring edition. Conflicting
-      // values under that source are unresolved, not a tie-break opportunity.
-      final cte = '''WITH scoped AS (
+  }
+
+  static Future<LibraryQueryPage> _page(DatabaseExecutor txn,
+      LibraryQueryFilter filter, List<AssessedOverallScoreBasis> bases) async {
+    await _refresh(txn, bases);
+    final args = <Object?>[];
+    final scope = filter.platformIds.isEmpty
+        ? ''
+        : 'AND platform_id IN (${List.filled(filter.platformIds.length, '?').join(',')})';
+    args.addAll(filter.platformIds);
+    // Canonical ranks precede every presentation filter. A group selects its
+    // first accepted source, not its highest-scoring edition. Conflicting
+    // values under that source are unresolved, not a tie-break opportunity.
+    final cte = '''WITH scoped AS (
         SELECT * FROM library_query_editions WHERE member = 1 $scope),
         priorities AS (SELECT group_key, MIN(source_order) AS source_order
           FROM scoped WHERE rating_eligible = 1 GROUP BY group_key),
@@ -468,44 +656,45 @@ class LibraryQuery {
           HAVING MIN(s.score) = MAX(s.score)),
         ranks AS (SELECT group_key, source_order, score,
           ROW_NUMBER() OVER (ORDER BY score DESC, group_key) AS rank FROM scores)''';
-      final predicates = <String>[];
-      if (filter.top != null) {
-        predicates.add(
-            'r.rank <= ? AND s.rating_eligible = 1 AND s.source_order = r.source_order AND s.score = r.score');
-        args.add(filter.top);
-      }
-      for (final facet in {
-        'tag': filter.tags,
-        'genre': filter.genres,
-        'region': filter.regions,
-        'language': filter.languages
-      }.entries) {
-        if (facet.value.isEmpty) continue;
-        final all = facet.key == 'tag' && filter.matchAllTags;
-        predicates
-            .add('''(SELECT COUNT(DISTINCT f.value) FROM library_query_facets f
+    final predicates = <String>[];
+    if (filter.top != null) {
+      predicates.add(
+          'r.rank <= ? AND s.rating_eligible = 1 AND s.source_order = r.source_order AND s.score = r.score');
+      args.add(filter.top);
+    }
+    for (final facet in {
+      'tag': filter.tags,
+      'genre': filter.genres,
+      'region': filter.regions,
+      'language': filter.languages
+    }.entries) {
+      if (facet.value.isEmpty) continue;
+      final all = facet.key == 'tag' && filter.matchAllTags;
+      predicates
+          .add('''(SELECT COUNT(DISTINCT f.value) FROM library_query_facets f
           WHERE f.edition_id = s.edition_id AND f.dimension = ?
           AND f.value IN (${List.filled(facet.value.length, '?').join(',')})) ${all ? '= ?' : '> 0'}''');
-        args.add(facet.key);
-        args.addAll(facet.value.map((v) => v.toLowerCase()));
-        if (all) {
-          args.add(facet.value.map((v) => v.toLowerCase()).toSet().length);
-        }
+      args.add(facet.key);
+      args.addAll(facet.value.map((v) => v.toLowerCase()));
+      if (all) {
+        args.add(facet.value.map((v) => v.toLowerCase()).toSet().length);
       }
-      final search = filter.search?.trim();
-      if (search != null && search.isNotEmpty) {
-        predicates.add("s.title LIKE ? ESCAPE '\\'");
-        args.add(
-            '%${search.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%');
-      }
-      for (final view in filter.viewIds) {
-        predicates.add(
-            'EXISTS(SELECT 1 FROM library_query_views v WHERE v.edition_id = s.edition_id AND v.view_id = ?)');
-        args.add(view);
-      }
-      final manual = filter.manualViewId;
-      final ratingOrder = filter.ratingOrder || filter.top != null;
-      final intersection = '''$cte, candidates AS (SELECT s.*,
+    }
+    final search = filter.search?.trim();
+    if (search != null && search.isNotEmpty) {
+      predicates.add("s.title LIKE ? ESCAPE '\\'");
+      args.add(
+          '%${search.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%');
+    }
+    for (final view in filter.viewIds) {
+      predicates.add(
+          'EXISTS(SELECT 1 FROM library_query_views v WHERE v.edition_id = s.edition_id AND v.view_id = ?)');
+      args.add(view);
+    }
+    final manual = filter.manualViewId;
+    final ratingOrder =
+        filter.ratingOrder || (filter.top != null && manual == null);
+    final intersection = '''$cte, candidates AS (SELECT s.*,
         CASE WHEN s.rating_eligible = 1 AND s.source_order = r.source_order
           AND s.score = r.score THEN r.rank ELSE NULL END AS rank,
         ${manual == null ? 'NULL' : '(SELECT position FROM library_query_views v WHERE v.edition_id = s.edition_id AND v.view_id = ?)'} AS manual_position
@@ -514,44 +703,43 @@ class LibraryQuery {
         filtered AS (SELECT candidates.*, ROW_NUMBER() OVER (PARTITION BY group_key ORDER BY
           ${manual != null && !ratingOrder ? 'manual_position IS NULL, manual_position,' : ''}
           rating_eligible DESC, source_order, edition_id) AS edition_order FROM candidates)''';
-      // manual position placeholder comes before filter predicates, after scope.
-      if (manual != null) args.insert(filter.platformIds.length, manual);
-      final order = ratingOrder
-          ? 'rank IS NULL, rank, group_key'
-          : manual != null
-              ? 'manual_position IS NULL, manual_position, group_key'
-              : 'title COLLATE NOCASE, group_key';
-      // One evaluation supplies coverage/count/page, including empty pages.
-      // Re-running the same full-scope rank CTE for each count tripled work.
-      final response = await txn.rawQuery('''$intersection, summary AS (SELECT
+    // manual position placeholder comes before filter predicates, after scope.
+    if (manual != null) args.insert(filter.platformIds.length, manual);
+    final order = ratingOrder
+        ? 'rank IS NULL, rank, group_key, edition_order'
+        : manual != null
+            ? 'manual_position IS NULL, manual_position, group_key, edition_order'
+            : 'title COLLATE NOCASE, group_key, edition_order';
+    // One evaluation supplies coverage/count/page, including empty pages.
+    // Re-running the same full-scope rank CTE for each count tripled work.
+    final response = await txn.rawQuery('''$intersection, summary AS (SELECT
         (SELECT COUNT(DISTINCT group_key) FROM scoped) AS collection_games,
         (SELECT COUNT(*) FROM ranks) AS ranked_games,
         (SELECT COUNT(*) FROM filtered WHERE edition_order = 1) AS matches),
         page_rows AS (SELECT edition_id, game_id,
-        group_key, platform_id, title, cache_row_id, rank, manual_position FROM filtered
-        WHERE edition_order = 1 ORDER BY $order LIMIT ? OFFSET ?)
+        group_key, platform_id, title, cache_row_id, rank, manual_position, edition_order FROM filtered
+        ${filter.includeVariants ? '' : 'WHERE edition_order = 1'} ORDER BY $order LIMIT ? OFFSET ?)
         SELECT page_rows.*, summary.* FROM summary LEFT JOIN page_rows ON 1 = 1 ORDER BY $order''',
-          [...args, filter.limit, filter.offset]);
-      final coverage = response.first;
-      final rows = response.where((r) => r['edition_id'] != null).toList();
-      final ratings = await LibraryStore.readEffectiveRatings(
-          txn, rows.map((r) => r['edition_id'] as String).toList(),
-          assessedBases: bases);
-      return LibraryQueryPage(
-          items: rows
-              .map((r) => LibraryQueryItem(
-                  editionId: r['edition_id'] as String,
-                  gameId: r['game_id'] as String,
-                  groupKey: r['group_key'] as String,
-                  platformId: r['platform_id'] as String,
-                  title: r['title'] as String,
-                  cacheRowId: r['cache_row_id'] as int,
-                  rank: r['rank'] as int?,
-                  score: ratings[r['edition_id']]))
-              .toList(),
-          collectionGames: coverage['collection_games'] as int,
-          rankedGames: coverage['ranked_games'] as int,
-          totalMatches: coverage['matches'] as int);
-    });
+        [...args, filter.limit, filter.offset]);
+    final coverage = response.first;
+    final rows = response.where((r) => r['edition_id'] != null).toList();
+    final ratings = await LibraryStore.readEffectiveRatings(
+        txn, rows.map((r) => r['edition_id'] as String).toList(),
+        assessedBases: bases);
+    return LibraryQueryPage(
+        items: rows
+            .map((r) => LibraryQueryItem(
+                editionId: r['edition_id'] as String,
+                gameId: r['game_id'] as String,
+                groupKey: r['group_key'] as String,
+                platformId: r['platform_id'] as String,
+                title: r['title'] as String,
+                cacheRowId: r['cache_row_id'] as int,
+                rank: r['rank'] as int?,
+                score: ratings[r['edition_id']]))
+            .toList(),
+        collectionGames: coverage['collection_games'] as int,
+        rankedGames: coverage['ranked_games'] as int,
+        totalMatches: coverage['matches'] as int);
   }
 }

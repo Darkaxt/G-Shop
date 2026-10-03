@@ -5,6 +5,41 @@ import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
 
 void main() {
+  test(
+      'metadata discovery choices survive legacy toggles and saved restoration',
+      () {
+    final filters = const ActiveFilters()
+        .toggleTag('T-Eng')
+        .toggleTag('Undub')
+        .toggleGenre('Role-playing')
+        .toggleTagMatch()
+        .withTop(25)
+        .toggleRatingOrder()
+        .togglePlatform('psx')
+        .toggleRegion('USA')
+        .toggleLanguage('en')
+        .toggleFavoritesOnly()
+        .toggleLocalOnly();
+    final restored = ActiveFilters.fromJson(filters.toJson());
+    expect(restored.selectedTags, {'T-Eng', 'Undub'});
+    expect(restored.selectedGenres, {'Role-playing'});
+    expect(restored.selectedPlatforms, {'psx'});
+    expect(restored.matchAllTags, isTrue);
+    expect(restored.top, 25);
+    expect(restored.ratingOrder, isTrue);
+    expect(restored.selectedRegions, {'USA'});
+    expect(restored.selectedLanguages, {'en'});
+    expect(restored.favoritesOnly && restored.localOnly, isTrue);
+    expect(restored.withTop(null).top, isNull);
+    expect(restored.clearAll().isEmpty, isTrue);
+    expect(() => restored.withTop(17), throwsArgumentError);
+    expect(
+        ActiveFilters.fromJson({
+          'regions': ['USA'],
+          'languages': ['en']
+        }).selectedTags,
+        isEmpty);
+  });
   // ─── ActiveFilters ─────────────────────────────────────────────
 
   group('ActiveFilters', () {
@@ -195,11 +230,17 @@ void main() {
         );
 
     Map<String, RegionInfo> regionCacheFor(List<GameItem> games) {
-      return {for (final g in games) g.filename: GameMetadata.extractRegion(g.filename)};
+      return {
+        for (final g in games)
+          g.filename: GameMetadata.extractRegion(g.filename)
+      };
     }
 
     Map<String, List<LanguageInfo>> languageCacheFor(List<GameItem> games) {
-      return {for (final g in games) g.filename: GameMetadata.extractLanguages(g.filename)};
+      return {
+        for (final g in games)
+          g.filename: GameMetadata.extractLanguages(g.filename)
+      };
     }
 
     test('single group with one region', () {
