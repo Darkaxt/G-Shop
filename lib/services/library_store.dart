@@ -622,41 +622,61 @@ class LibraryStore {
     final result = {for (final id in ids) id: null as EffectiveOverallRating?};
     if (ids.isEmpty) return Map.unmodifiable(result);
     final db = await _database;
-    return db.transaction((txn) async {
-      final marks = List.filled(ids.length, '?').join(',');
-      final identities = await txn.rawQuery('''SELECT e.edition_id,
+    return db.transaction(
+        (txn) => readEffectiveRatings(txn, ids, assessedBases: bases));
+  }
+
+  /// Shared transaction-scoped read used by the indexed collection projection.
+  static Future<Map<String, EffectiveOverallRating?>> readEffectiveRatings(
+      DatabaseExecutor txn, List<String> ids,
+      {List<AssessedOverallScoreBasis> assessedBases = const []}) async {
+    if (ids.length > 128) {
+      throw ArgumentError('Rating page exceeds 128 editions');
+    }
+    final bases = assessedBases;
+    final sources = {
+      'screenscraper',
+      'igdb',
+      'romm',
+      ...bases.map((basis) => basis.sourceId)
+    }.toList(growable: false);
+    if (sources.length > 8) throw ArgumentError('Too many score sources');
+    final result = {for (final id in ids) id: null as EffectiveOverallRating?};
+    if (ids.isEmpty) return Map.unmodifiable(result);
+    final marks = List.filled(ids.length, '?').join(',');
+    final identities = await txn.rawQuery('''SELECT e.edition_id,
         g.record_json AS game_json, e.record_json AS edition_json
         FROM library_editions e
         JOIN library_game_identities g ON g.game_id = e.game_id
         WHERE e.edition_id IN ($marks)''', ids);
-      final decoded = <String,
-          ({
-        Map<String, Object?> row,
-        GameIdentity game,
-        EditionIdentity edition
-      })>{};
-      final baseIds = <String>{};
-      for (final row in identities) {
+    final decoded = <String,
+        ({
+      Map<String, Object?> row,
+      GameIdentity game,
+      EditionIdentity edition
+    })>{};
+    final baseIds = <String>{};
+    for (final row in identities) {
+      final game =
+          GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+      final edition =
+          EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+      decoded[edition.id] = (row: row, game: game, edition: edition);
+      if (game.baseGameId != null) baseIds.add(game.baseGameId!);
+    }
+    final baseGames = <String, GameIdentity>{};
+    if (baseIds.isNotEmpty) {
+      final rows = await txn.query('library_game_identities',
+          columns: ['record_json'],
+          where: 'game_id IN (${List.filled(baseIds.length, '?').join(',')})',
+          whereArgs: baseIds.toList());
+      for (final row in rows) {
         final game =
-            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
-        final edition =
-            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
-        decoded[edition.id] = (row: row, game: game, edition: edition);
-        if (game.baseGameId != null) baseIds.add(game.baseGameId!);
+            GameIdentity.fromJson(jsonDecode(row['record_json'] as String));
+        baseGames[game.id] = game;
       }
-      final baseGames = <String, GameIdentity>{};
-      if (baseIds.isNotEmpty) {
-        final rows = await txn.query('library_game_identities',
-            columns: ['record_json'],
-            where: 'game_id IN (${List.filled(baseIds.length, '?').join(',')})',
-            whereArgs: baseIds.toList());
-        for (final row in rows) {
-          final game =
-              GameIdentity.fromJson(jsonDecode(row['record_json'] as String));
-          baseGames[game.id] = game;
-        }
-      }
-      final metadata = await txn.rawQuery('''SELECT m.edition_id, m.provider_id,
+    }
+    final metadata = await txn.rawQuery('''SELECT m.edition_id, m.provider_id,
         m.identity_key, m.record_json,
         EXISTS (SELECT 1 FROM metadata_refresh_items i
           JOIN metadata_refresh_jobs j ON j.id = i.job_id
@@ -666,40 +686,39 @@ class LibraryStore {
         FROM library_metadata m
         WHERE m.edition_id IN ($marks) AND m.provider_id IN
           (${List.filled(sources.length, '?').join(',')}) LIMIT ?''',
-          [...ids, ...sources, ids.length * sources.length]);
-      final records = <String, List<MetadataRecord>>{};
-      final staleSources = <String, Set<String>>{};
-      for (final row in metadata) {
-        final id = row['edition_id'] as String;
-        final identity = decoded[id];
-        if (identity == null ||
-            row['identity_key'] !=
-                metadataIdentity(identity.row,
-                    providerId: row['provider_id'] as String)) {
-          continue;
-        }
-        final record =
-            MetadataRecord.fromJson(jsonDecode(row['record_json'] as String));
-        if (hasConsistentProvenance(record)) {
-          (records[id] ??= []).add(record);
-          if (row['newer_requested'] == 1) {
-            (staleSources[id] ??= {}).add(record.providerId);
-          }
+        [...ids, ...sources, ids.length * sources.length]);
+    final records = <String, List<MetadataRecord>>{};
+    final staleSources = <String, Set<String>>{};
+    for (final row in metadata) {
+      final id = row['edition_id'] as String;
+      final identity = decoded[id];
+      if (identity == null ||
+          row['identity_key'] !=
+              metadataIdentity(identity.row,
+                  providerId: row['provider_id'] as String)) {
+        continue;
+      }
+      final record =
+          MetadataRecord.fromJson(jsonDecode(row['record_json'] as String));
+      if (hasConsistentProvenance(record)) {
+        (records[id] ??= []).add(record);
+        if (row['newer_requested'] == 1) {
+          (staleSources[id] ??= {}).add(record.providerId);
         }
       }
-      for (final entry in decoded.entries) {
-        final identity = entry.value;
-        if (!await isCurrentCatalogueIdentity(txn, identity.row)) continue;
-        result[entry.key] = selectEffectiveOverallRating(
-            game: identity.game,
-            edition: identity.edition,
-            records: records[entry.key] ?? const [],
-            baseGame: baseGames[identity.game.baseGameId],
-            assessedBases: bases,
-            staleProviderIds: staleSources[entry.key] ?? const {});
-      }
-      return Map<String, EffectiveOverallRating?>.unmodifiable(result);
-    });
+    }
+    for (final entry in decoded.entries) {
+      final identity = entry.value;
+      if (!await isCurrentCatalogueIdentity(txn, identity.row)) continue;
+      result[entry.key] = selectEffectiveOverallRating(
+          game: identity.game,
+          edition: identity.edition,
+          records: records[entry.key] ?? const [],
+          baseGame: baseGames[identity.game.baseGameId],
+          assessedBases: bases,
+          staleProviderIds: staleSources[entry.key] ?? const {});
+    }
+    return Map<String, EffectiveOverallRating?>.unmodifiable(result);
   }
 
   /// Metadata stays stored as evidence, but cannot be consumed under a changed

@@ -12,6 +12,7 @@ import '../models/library_identity.dart';
 import '../models/ra_models.dart';
 import '../utils/ra_name_matcher.dart';
 import 'library_store.dart';
+import 'library_query.dart';
 import 'metadata/metadata_refresh_jobs.dart';
 import 'drive/drive_catalogue.dart';
 import 'transfer_journal.dart';
@@ -19,7 +20,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 27;
+  static const int _dbVersion = 28;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -151,6 +152,7 @@ class DatabaseService {
         PRIMARY KEY (filename, system_slug)
       )
     ''');
+    await LibraryQuery.install(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -348,6 +350,9 @@ class DatabaseService {
     }
     if (oldVersion < 27) {
       await MetadataRefreshJobs.installRatingFreshnessIndex(db);
+    }
+    if (oldVersion < 28) {
+      await LibraryQuery.install(db);
     }
   }
 

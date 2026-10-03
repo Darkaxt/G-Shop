@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow with offline score reads; indexed verified-game grouping; bounded edition and shared effective-score selection; additive v27 upgrade/current-generation index and disk-reopen proof | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, shared indexed ranking query, live reception assessment, full large-fixture artwork/resource assessment and native integration verification |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; indexed verified-game grouping and rank-before-filter query; bounded edition and shared effective-score selection; additive v28 projection and disk-reopen proof | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, live reception assessment/B4, full large-fixture artwork/resource assessment and native query/integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -329,6 +329,70 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 indexed collection-query checkpoint (2026-10-03)
+
+- `LibraryQuery.page` establishes membership from actual committed cache rows,
+  including newly indexed but unscraped files. Retained metadata-only/provider
+  search identities cannot enter the collection. Mutation triggers retain dirty
+  cache/identity/metadata/refresh state across restart; 128-row reconciliation
+  uses the shared effective-score selector and exact catalogue/owner bindings.
+  Filter-only changes read compact indexed fields, not full-library metadata or
+  artwork bodies, and do not rebuild the projection or initiate provider work.
+- Canonical groups receive stable score/identity ranks within the explicit system
+  scope before any tag, genre, region/language, search or view intersection.
+  No lower-ranked translation, hack or favorite refills a filtered Top. Any/all
+  tags, overlapping modification tags, unknown classification and sparse coverage
+  use the same query. One sourced effective score serves exact-edition display
+  and ranking; conflicting accepted scores within a group leave it unresolved.
+  Unrated editions do not inherit a rated region's rank. Manual shelves preserve
+  their first matching edition and order unless rating order is explicitly chosen.
+- View-membership projections preserve exact edition identities and order but do
+  not replace existing favorite, shelf or installation owners. S5 must wire their
+  current authoritative state and the shared query into the existing UI. No UI,
+  cloud/device Top profile or installation/removal behavior was changed here.
+- Reproductions failed for omitted unscraped members, invented edition ranks and
+  manual-edition selection before their source rules were corrected. A further
+  failing reproduction showed ambiguous raw-match metadata supplying a genre;
+  the shared ownership boundary now rejects that metadata while preserving the
+  ordinary collection item. Focused
+  current-collection, scope/tie, any/all, source ownership, add/remove, successful
+  score publication, pending refresh, conflict, page and cold-reopen checks pass.
+  Production v27->v28 adds only rebuildable tables/indexes/triggers; its file-backed
+  fixture preserves metadata and cached files, persists views and handles a cache
+  removal recorded before restart. Earlier v13-v26 migrations also passed against
+  v28. No existing score was promoted or retrieval date refreshed on upgrade.
+- The normal real ScreenScraper catalogue -> review -> retry -> metadata plus
+  cover/screenshot workflow now reaches this query with the provider closed.
+  It returns exactly the real sourced score in ordinary browsing, no invented
+  rank/Top without META-05, and a stale retained score after the explicit newer
+  refresh. That focused host test exited zero (21 seconds). This is one title,
+  not the required 20-game/four-console reception assessment or Thor proof.
+- The file-backed 30,000-game fixture constructs the projection through normal
+  catalogue capture and score ownership, with a synthetic test-only assessment.
+  The inspected final run built it in 85,486 ms; two subsequent paged/intersection
+  queries took 1,171 ms together, versus 3,108 ms before eliminating repeated
+  rank-CTE evaluation. Peak process RSS was 241,586,176 bytes (about 230.4 MiB);
+  identity and metadata reads stayed at 128 rows. Actual EXPLAIN output uses query
+  indexes, and the rank SQL reads no full metadata/artwork. Filter changes produced
+  no projection rewrites. This is host evidence, not native latency or full
+  artwork-job resource acceptance. Only one test workload ran at a time.
+- The final affected query/selector/store/migration checks and scoped analysis
+  exited zero; the analyzer reported no issues. Changes after the live/resource
+  runs were confined to the ambiguous/mismatched ownership rejection; their
+  manually matched, exact-bound fixtures remain applicable, without repeating
+  those unchanged workloads merely for a checkpoint.
+- Transactional cleanup `2892f18b471b75aa34fe2e16ecd8c15a` reviewed only the
+  attributed `build/unit_test_assets` and `build/test_cache` outputs. The ticket
+  applied successfully: 454 generated entries, 57,447,901 bytes removed, no errors
+  or warnings. Original assets/source, credentials and requested deliverables
+  were outside its roots; removed compilation outputs are rebuildable.
+- S4 remains the sole ACTIVE stage. META-05 assessment/B4, remaining identifier,
+  release and classification reconciliation, the full artwork/resource assessment
+  and native integration/capability/performance verification remain required.
+  Native SQLite window-query behavior has not been tested here. S1 remains BLOCKED
+  at B3/elapsed renewal; S2/S3 COMPLETE; S5-S8 NOT STARTED. Monitoring stays cancelled.
+  No credentials, browser session, Thor, ROM bodies, SD migration or release changed.
 
 ### S4 shared effective-score checkpoint (2026-10-03)
 

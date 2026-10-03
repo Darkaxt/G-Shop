@@ -94,7 +94,7 @@ EffectiveOverallRating? selectEffectiveOverallRating({
         record.providerGameId.trim().isEmpty) {
       continue;
     }
-    final ownership = _ownership(game, edition, record, baseGame);
+    final ownership = metadataOverallOwnership(game, edition, record, baseGame);
     if (ownership == null) continue;
     final overall = record.ratings
         .where((rating) =>
@@ -161,8 +161,17 @@ EffectiveOverallRating? selectEffectiveOverallRating({
   return null;
 }
 
-OverallRatingOwnership? _ownership(GameIdentity game, EditionIdentity edition,
-    MetadataRecord record, GameIdentity? baseGame) {
+/// Verified field ownership, also used for query facets without a rating.
+OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
+    EditionIdentity edition, MetadataRecord record, GameIdentity? baseGame) {
+  if (game.matchStatus == IdentityMatchStatus.ambiguous ||
+      edition.gameId != game.id ||
+      record.gameId != game.id ||
+      record.editionId != edition.id ||
+      game.platformId == null ||
+      record.platformId != game.platformId) {
+    return null;
+  }
   final assigned = game.providerIds[record.providerId];
   final editionAssigned = edition.providerIds[record.providerId];
   if ((assigned != null && assigned != record.providerGameId) ||

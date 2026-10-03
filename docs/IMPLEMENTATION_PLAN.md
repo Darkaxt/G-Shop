@@ -416,6 +416,24 @@ collection membership, canonical ranks
 or filter intersection. The indexed collection-scoped Top/filter query, large
 ranked fixture and native integration remain required S4 acceptance work.
 
+### S4 indexed collection query
+
+Keep a compact, rebuildable edition/facet/score projection, not copied artwork or
+fixed Top lists. SQLite mutation triggers mark affected identities dirty; refresh
+only dirty identities in bounded pages using the same effective-score selector.
+Changing the application-owned assessment invalidates the projection. Actual
+current cache rows establish membership, never provider search results. Rank
+canonical groups within the selected system scope before intersecting tag,
+genre, region/language, search or explicit view membership. Conflicting accepted
+scores within a group remain unresolved rather than selecting a highest score.
+Persist view-membership projections separately from favorites/shelf/installation
+ownership; S5 will supply their existing authoritative state, not replace it.
+Return bounded pages and pre-filter coverage, preserving source attribution and
+stable identity ties. Additive migration preserves original metadata and settings.
+Verify real SQLite mutation/reopen, source and edition ownership, no-backfill,
+multi-disc/region grouping, sparse coverage and the indexed 30,000-game query.
+These host checks do not replace reception assessment or native/UI acceptance.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.

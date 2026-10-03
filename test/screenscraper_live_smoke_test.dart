@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
@@ -117,6 +118,7 @@ void main() {
       id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
       displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
     await db.insert(
         'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World'});
     final jobs = MetadataRefreshJobs(Future.value(db));
@@ -184,6 +186,16 @@ void main() {
         reason:
             'A real successful lookup is not the META-05 reception assessment.');
     expect(rating.assessmentReference, isNull);
+    final query = LibraryQuery(Future.value(db));
+    final ordinary = await query.page(filter: LibraryQueryFilter());
+    expect(ordinary.collectionGames, 1);
+    expect(ordinary.items.single.score!.rating.toJson(),
+        cached.ratings.single.toJson());
+    expect(ordinary.items.single.rank, isNull);
+    final top = await query.page(filter: LibraryQueryFilter(top: 25));
+    expect(top.items, isEmpty);
+    expect(top.rankedGames, 0);
+    expect(top.provisional, isTrue);
     final offline = MetadataArtworkCache(Future.value(db), root);
     for (final media in selected) {
       final file =
@@ -204,6 +216,13 @@ void main() {
         reason:
             'An explicit newer scrape retains, but marks stale, the old score.');
     expect(retained.rankingEligible, isFalse);
+    expect(
+        (await query.page(filter: LibraryQueryFilter()))
+            .items
+            .single
+            .score!
+            .fresh,
+        isFalse);
   },
       skip: developer.isConfigured && user.isConfigured
           ? false
