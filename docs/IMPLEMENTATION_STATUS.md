@@ -22,7 +22,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   dedicated Twitch app and a real review/publication/offline-consumption check.
   The representative older/newer/project reception assessment now supplies a
   scoped IGDB community basis, verified through the real worker/cache/offline
-  query. The earlier unexplained host artwork wait and final S4 reconciliation
+  query, including Android SQLite's reviewed production-policy workflow. The
+  earlier unexplained host artwork wait and final S4 reconciliation
   remain required. Unassessed console scopes remain advisory, not silently
   approved. S5-S8 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
@@ -60,6 +61,61 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S4 production-score native proof and bounded wait diagnostics (2026-10-03)
+
+- S4 remains the sole ACTIVE stage. The shared host/Android fixture now verifies
+  catalogue discovery -> explicit candidate review -> actual IGDB adapter ->
+  persistent publication -> production score selection -> offline Top query.
+  Its three synthetic PS1 identities include a supported community score, a
+  low-vote extreme-score project and an unrated original. The exact community
+  object is used by display and ranking; critic/blended-total values do not
+  substitute. Low-vote projects remain browsable with project attribution, not
+  ranked. Tag intersection cannot backfill. Changing the known count from 20 to
+  19 invalidates rank through the normal cache/projection with no new request.
+  This is native transport-fixture proof; real API/reception evidence remains
+  the preceding live assessment, not a synthetic claim of consensus.
+- The focused host check exited 0 (`8f3587`). Initial fixture setup used the
+  wrong IGDB platform ID and discovery outcome; only fixture data was corrected
+  against the existing explicit platform mapping and adapter contract. Review
+  association uses candidate evidence, not edition-ID/insertion-order assumptions.
+- The Android ownership entrypoint built successfully (`89812`), and the exact
+  artifact was independently inspected: `com.darkaxt.rshop.debug`, 1.7.0/12,
+  unchanged registered debug signer; SHA-256
+  `37E623DDB2706B3E4079958E63B2663ACAEE4C3B8F551C5AB7D1A4A32BEBD06B`.
+  Native logs show the production-policy workflow and existing raw-release/
+  project/review/classification checks passing. The driver attached to the
+  observed VM service without uninstall/rebuild and exited 0 (`43156`). Private
+  report and device trace: `D:\Temp\rshop-s4-score-native-20261003`.
+- The exact normal APK was restored without uninstall; its on-device SHA-256
+  again equals `DAA8B182C8F722F4E3DC75685EE346B8919BFEFB1159C62AF6CFCE3EBDD7FFEE`.
+  Normal database/journal, secure storage/key preferences, ordinary preferences
+  and Google sign-in preferences retained their exact pre-test fingerprints.
+  App and task log listener stopped, task forward removed, both physical display
+  states confirmed OFF and device asleep. No normal-source bootstrap, account
+  request, ROM payload, library mutation or credential rotation occurred.
+- A single opt-in host diagnostic (`53821`) completed the unchanged 30,000-game
+  artwork workload through the same SQLite FFI isolate boundary. The test-only
+  trace keeps at most 64 sanitized summaries and bounded pending operations;
+  no rows, SQL arguments, retries, timers or production hooks were introduced.
+  Read-only VM inspection did not pause the isolate or force garbage collection.
+  Terminal report: 600,308 operations acknowledged, none pending; capture
+  27,319 ms, complete workflow 706,214 ms, peak RSS 224,997,376 bytes,
+  65,536-byte maximum chunk and one active stream. Offline reopen/replay passed.
+- That run did not reproduce the earlier wait at item 9,027. The original
+  pre-recovery snapshot remains intact, with 9,026 committed items, 20,974
+  pending and no throttle/quota state. Success with observation enabled is not
+  evidence of its root cause or a production fix. The original wait investigation
+  and requirement-by-requirement S4 reconciliation remain unfinished; no later
+  stage was activated and no required work was silently deferred.
+- Scoped analysis of the changed host wrappers/helper, shared provider fixture
+  and Android entrypoint exited 0 with no issues (`52153`). Git whitespace checks
+  pass. No production runtime/schema changed during this verification scope.
+  Reviewed cleanup `30dac0471b2c62c1c3e6cb633a8753ac` and
+  `092f497abfec0ddfa0ce103cf87e1848` are terminal APPLIED without errors: generated
+  test assets/cache (57,408,517 bytes) and the restored recovery APK copy
+  (250,598,905 bytes) were removed. These reproducible outputs are permanently
+  deleted; native report/log and original forensic database remain preserved.
 
 ### S4 live reception remediation and shared production score (2026-10-03)
 
@@ -739,7 +795,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | BLOCKED | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed provider/raw/project canonical grouping and rank-before-filter query; exact raw-release validation across reviewed IDs and revisions; independent classification/review/unknown reconciliation; bounded edition and shared effective-score selection; additive v31 projection and disk-reopen preservation; populated 30,000-game indexed query; full 30,000-game native Thor query/artwork resource workflow with offline reopen and unchanged normal data; native production-adapter/job/identity/query ownership fixtures; interrupted-job recovery | External B4 prevents META-05/META-07 live aggregate-source/reception approval; resolve legitimate matching credentials and assess the real representative sample. Earlier host artwork wait remains unexplained. S5 Top acceptance and S7 retention cannot complete before source approval; synthetic native transport proof is not real API or UI acceptance |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed provider/raw/project canonical grouping and rank-before-filter query; exact raw-release validation across reviewed IDs and revisions; independent classification/review/unknown reconciliation; bounded edition and shared effective-score selection; additive v31 projection and disk-reopen preservation; populated 30,000-game indexed query; full 30,000-game native Thor query/artwork resource workflow with offline reopen and unchanged normal data; native production-adapter/job/identity/query ownership fixtures; interrupted-job recovery; real 26-identity IGDB reception assessment; production community-score publication/display/Top integration on host and Android; bounded test-only FFI diagnostic completed 30,000 artwork items without pending operations | B4 is resolved: no more credential renewals are required for IGDB access. Diagnose the earlier host artwork wait, then reconcile META-01/03/04/05/06/07 before closure. Current observed success is not a root-cause finding or production fix. Unassessed console scopes stay advisory; synthetic native transport proof does not replace live API or UI acceptance. S5 owns source/scope/coverage presentation, not S4's source approval |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |

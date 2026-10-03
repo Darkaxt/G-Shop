@@ -80,3 +80,20 @@ were unchanged, the task forward was removed and both displays confirmed OFF.
 See the current status checkpoint for artifact/evidence identity and remaining
 S4 requirements. Build with this explicit target for focused ownership checks;
 do not rerun the unchanged 30,000-game resource target for this extraction.
+
+## Production score assessment integration — 2026-10-03
+
+The shared ownership entrypoint now additionally exercises the application's
+assessed community-score policy, not an injected synthetic ranking approval.
+Synthetic PS1 wire responses pass through catalogue review, normal adapter/jobs,
+publication, current cache selection and offline queries on Android SQLite.
+The supported community rating is shared by display and rank. A low-vote
+100-point project cannot enter Top or backfill a tag-filtered result; lowering
+the supported count below the assessed threshold invalidates its cached rank
+without a provider request. Missing ratings remain missing and coverage provisional.
+
+The authorized Thor run and attached driver passed; exact normal APK/data
+fingerprints were restored/preserved, task forward removed and both displays
+confirmed OFF. See IMPLEMENTATION_STATUS.md for the inspected artifact/report.
+This is integrated native policy evidence, distinct from live reception evidence
+and the still-required S5 UI controls. It does not explain the earlier host wait.

@@ -80,10 +80,122 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
           readCredentials: () async =>
               const IgdbCredentials('fixture-id', 'fixture-secret'));
 
+  test(
+      'reviewed worker publication uses production community Top policy offline',
+      () async {
+    final db = await factory.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db
+        .execute('''CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT,
+      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL,
+      is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
+    const titles = ['Supported fixture', 'Low vote project', 'Unrated fixture'];
+    for (final title in titles) {
+      await db.insert('games', {'systemSlug': 'psx', 'displayName': title});
+    }
+    final wire = _Transport([
+      {
+        ...fixture,
+        'name': titles[0],
+        'platforms': [7],
+        'rating': 90.0,
+        'rating_count': 20,
+        'aggregated_rating': 50.0,
+        'aggregated_rating_count': 1,
+        'total_rating': 70.0,
+        'total_rating_count': 21,
+      },
+      {
+        'id': 124,
+        'name': titles[1],
+        'platforms': [7],
+        'game_type': {'type': 'Mod'},
+        'rating': 100.0,
+        'rating_count': 2,
+        'total_rating': 100.0,
+        'total_rating_count': 2,
+      },
+      {
+        'id': 125,
+        'name': titles[2],
+        'platforms': [7],
+        'game_type': {'type': 'Main Game'},
+      }
+    ]);
+    final api = provider(wire);
+    addTearDown(api.close);
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final store = LibraryStore(Future.value(db));
+    final snapshot = await jobs.createFromCatalogue(providerId: 'igdb');
+    expect((await jobs.run(snapshot.id, api)).counts, {'ambiguous': 3});
+    final reviewItems = await jobs.reviewItems(snapshot.id);
+    // Review pages use stable edition-ID order, not catalogue insertion order.
+    final reviews = titles
+        .map((title) => reviewItems.singleWhere((review) => review.candidates
+            .any((candidate) =>
+                candidate.titleMatched &&
+                candidate.titles.any((text) => text.text == title))))
+        .toList(growable: false);
+    for (var n = 0; n < reviews.length; n++) {
+      final review = reviews[n];
+      final candidate = review.candidates.singleWhere(
+          (c) => c.titleMatched && c.titles.any((t) => t.text == titles[n]));
+      final retry = await jobs.acceptCandidate(snapshot.id,
+          editionId: review.editionId,
+          providerGameId: candidate.providerGameId,
+          contentTags: n == 1 ? {'Hack'} : {'official'});
+      expect((await jobs.run(retry.id, api)).counts, {'matched': 1});
+    }
+    api.close();
+    final requestCount = wire.requests.length;
+    final query = LibraryQuery(Future.value(db));
+    final page = await query.page(filter: LibraryQueryFilter(top: 25));
+    expect(page.collectionGames, 3);
+    expect(page.rankedGames, 1);
+    expect(page.provisional, isTrue);
+    expect(page.items.single.editionId, reviews[0].editionId);
+    final scores = await store.effectiveRatings(
+        reviews.map((r) => r.editionId).toList(growable: false));
+    final score = scores[reviews[0].editionId]!;
+    expect(score.rating.kind, RatingKind.communityAggregate);
+    expect(score.rating.sourceLabel, 'IGDB users');
+    expect(score.rating.normalizedValue, 90);
+    expect(score.rating.voteCount, 20);
+    expect(page.items.single.score!.rating.toJson(), score.rating.toJson());
+    expect(scores[reviews[1].editionId]!.ownership,
+        OverallRatingOwnership.project);
+    expect(scores[reviews[1].editionId]!.rankingEligible, isFalse);
+    expect(scores[reviews[2].editionId], isNull);
+    expect(
+        (await query.page(filter: LibraryQueryFilter(top: 25, tags: {'Hack'})))
+            .items,
+        isEmpty);
+    final current = (await store.metadata(reviews[0].editionId, 'igdb'))!;
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...current.toJson(),
+      'ratings': current.ratings
+          .map((r) => {
+                ...r.toJson(),
+                if (r.kind == RatingKind.communityAggregate) 'voteCount': 19,
+              })
+          .toList(growable: false),
+    }));
+    expect(
+        (await query.page(filter: LibraryQueryFilter(top: 25))).items, isEmpty);
+    expect(wire.requests.length, requestCount,
+        reason: 'Offline policy/query invalidation cannot contact a provider.');
+  });
+
   test('title discovery includes multiplatform games and still requires review',
       () async {
     final transport = _Transport([
-      {...fixture, 'platforms': [19, 5]}
+      {
+        ...fixture,
+        'platforms': [19, 5]
+      }
     ]);
     final api = provider(transport);
     addTearDown(api.close);
@@ -93,7 +205,8 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     expect(result.candidates.single.providerGameId, '123');
     expect(result.candidates.single.titleMatched, isTrue);
     expect(transport.requests.last.data, contains('where platforms = (19);'),
-        reason: 'Scalar equality excludes originals released on other platforms.');
+        reason:
+            'Scalar equality excludes originals released on other platforms.');
   });
 
   test(

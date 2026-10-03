@@ -9,6 +9,7 @@ import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'support/metadata_artwork_resource_fixture.dart';
+import 'support/artwork_wait_diagnostic.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +75,13 @@ void main() {
 
   test('30000 distinct games keep artwork snapshot work and cache bounded',
       () async {
-    await verifyMetadataArtworkResource(databaseFactoryFfi);
+    final tracing =
+        Platform.environment['RSHOP_ARTWORK_WAIT_DIAGNOSTIC'] == 'true';
+    final factory = tracing ? await tracedArtworkFactory() : databaseFactoryFfi;
+    await verifyMetadataArtworkResource(factory);
+    if (tracing) {
+      // ignore: avoid_print
+      print('artwork diagnostic terminal ${artworkWaitSnapshot()}');
+    }
   }, timeout: Timeout.none);
 }
