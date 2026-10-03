@@ -321,6 +321,11 @@ fresh live samples including older and newer consoles and modified releases.
 Unmatched provider coverage is reported honestly and does not authorize false
 matches. Run the full fresh library pass only within authorized live scope.
 
+The [2026-10-03 live reception assessment](SCORE_RECEPTION_ASSESSMENT.md)
+records the ordinary-release sample and does not approve ScreenScraper as a
+consensus ranking basis. Newer-console/project coverage and live aggregate-source
+remediation remain S4 acceptance work; B4 blocks the IGDB authentication boundary.
+
 ### S4 provider budget and explicit recovery boundary
 
 Persist the single selected metadata provider's reported request cadence across

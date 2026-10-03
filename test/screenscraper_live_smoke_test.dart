@@ -1,6 +1,7 @@
 @Tags(['live'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -52,6 +53,150 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   });
+
+  test('public reception assessment capture through persistent worker',
+      () async {
+    // Deliberately heterogeneous public titles, not the owner's collection.
+    // This captures evidence; it never approves a ranking basis. Exact offered
+    // title IDs are reviewed here only for these known official test releases.
+    const sample = <(String, String)>[
+      ('psx', 'Final Fantasy VII'),
+      ('psx', 'Metal Gear Solid'),
+      ('psx', 'Castlevania: Symphony of the Night'),
+      ('psx', 'Croc: Legend of the Gobbos'),
+      ('psx', 'Bubsy 3D'),
+      ('ps2', 'Shadow of the Colossus'),
+      ('ps2', 'Gran Turismo 4'),
+      ('ps2', 'The Suffering'),
+      ('ps2', 'Superman Returns'),
+      ('ps2', 'God of War'),
+      ('gba', 'Advance Wars'),
+      ('gba', 'Metroid Fusion'),
+      ('gba', 'Mario & Luigi: Superstar Saga'),
+      ('gba', 'Donkey Kong Country'),
+      ('gba', 'Earthworm Jim'),
+      ('gc', 'The Legend of Zelda: The Wind Waker'),
+      ('gc', 'Resident Evil 4'),
+      ('gc', "Eternal Darkness: Sanity's Requiem"),
+      ('gc', 'Chibi-Robo!'),
+      ('gc', 'Universal Studios Theme Parks Adventure'),
+    ];
+    // A separately requested diagnostic pass tests published filename-style
+    // aliases for the six zero-candidate searches. It cannot silently retry or
+    // rename the production catalogue, nor count aliases as additional games.
+    const aliases = <(String, String)>[
+      ('gba', 'Mario & Luigi - Superstar Saga'),
+      ('gc', "Eternal Darkness - Sanity's Requiem"),
+      ('psx', 'Croc - Legend of the Gobbos'),
+      ('psx', 'Castlevania - Symphony of the Night'),
+      ('gc', 'Legend of Zelda, The - The Wind Waker'),
+      ('gc', 'Universal Studios Theme Park Adventure'),
+    ];
+    const remaining = <(String, String)>[
+      ('gba', 'Mario And Luigi - Superstar Saga'),
+      ('gc', 'Legend Of Zelda - The Wind Waker The'),
+    ];
+    final requestedSample =
+        Platform.environment['RSHOP_RECEPTION_ZELDA'] == 'true'
+            ? const [('gc', 'Legend of Zelda, The - The Wind Waker')]
+            : Platform.environment['RSHOP_RECEPTION_REMAINING'] == 'true'
+                ? remaining
+                : Platform.environment['RSHOP_RECEPTION_ALIASES'] == 'true'
+                    ? aliases
+                    : sample;
+    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
+      displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
+      artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
+    for (final (platform, title) in requestedSample) {
+      await db.insert('games', {'systemSlug': platform, 'displayName': title});
+    }
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final store = LibraryStore(Future.value(db));
+    final provider = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(provider.close);
+    final job = await jobs.createFromCatalogue(providerId: provider.providerId);
+    final search = await jobs.run(job.id, provider, recheckAccess: true);
+    stdout.writeln('RECEPTION_SEARCH ${jsonEncode({
+          'state': search.state,
+          'requested': search.requested,
+          'counts': search.counts,
+          'blockedStatus': search.blockedStatus,
+        })}');
+    final reviews = await jobs.reviewItems(job.id);
+    for (final review in reviews) {
+      final identity = await db.rawQuery('''SELECT g.platform_id, g.title
+        FROM library_editions e JOIN library_game_identities g
+        ON g.game_id = e.game_id WHERE e.edition_id = ?''', [review.editionId]);
+      final exact = review.candidates.where((candidate) =>
+          candidate.titleMatched ||
+          // Explicit public-fixture review of the US/EU title returned by the
+          // earlier alias search. No article-reordering heuristic in production.
+          (identity.single['platform_id'] == 'gc' &&
+              identity.single['title'] ==
+                  'Legend of Zelda, The - The Wind Waker' &&
+              candidate.providerGameId == '4745'));
+      final evidence = <String, Object?>{
+        'platform': identity.single['platform_id'],
+        'title': identity.single['title'],
+        'searchStatus': review.status,
+        'candidates': review.candidates
+            .map((c) => {
+                  'id': c.providerGameId,
+                  'platform': c.platformId,
+                  'titles': c.titles,
+                  'titleMatched': c.titleMatched,
+                })
+            .toList(),
+      };
+      if (exact.length == 1) {
+        final retry = await jobs.acceptCandidate(job.id,
+            editionId: review.editionId,
+            providerGameId: exact.single.providerGameId,
+            contentTags: {'official'});
+        final result = await jobs.run(retry.id, provider);
+        evidence['state'] = result.state;
+        evidence['counts'] = result.counts;
+        evidence['blockedStatus'] = result.blockedStatus;
+        final record =
+            await store.metadata(review.editionId, provider.providerId);
+        if (record != null) {
+          expect(record.platformId, identity.single['platform_id']);
+          expect(record.providerGameId, exact.single.providerGameId);
+          evidence['matchMethod'] = record.matchMethod;
+          evidence['retrievedAt'] = record.retrievedAt.toIso8601String();
+          evidence['ratings'] = record.ratings
+              .map((rating) => {
+                    ...rating.toJson(),
+                    'normalizedValue': rating.normalizedValue,
+                  })
+              .toList();
+          final selected = (await store
+              .effectiveRatings([review.editionId]))[review.editionId];
+          expect(selected?.rankingEligible, isNot(true),
+              reason: 'Capture cannot approve META-05 consensus.');
+        }
+        stdout.writeln('RECEPTION_ITEM ${jsonEncode(evidence)}');
+        if (result.state != 'completed') break;
+      } else {
+        stdout.writeln('RECEPTION_ITEM ${jsonEncode(evidence)}');
+      }
+    }
+    expect(sample.map((item) => item.$1).toSet().length, 4);
+  },
+      skip: developer.isConfigured &&
+              user.isConfigured &&
+              Platform.environment['RSHOP_RECEPTION_CAPTURE'] == 'true'
+          ? false
+          : 'Explicit reception capture and live credentials are required.',
+      timeout: Timeout.none);
 
   test('real standalone adapter authenticates, reviews and retrieves metadata',
       () async {

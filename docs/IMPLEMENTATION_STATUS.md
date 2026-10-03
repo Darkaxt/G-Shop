@@ -56,6 +56,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S4 live reception assessment checkpoint (2026-10-03)
+
+- S4 remains the sole ACTIVE stage. The normal persistent worker retrieved and
+  cached fresh, explicitly reviewed identities/scores for twenty unique public
+  official games across PS1, PS2, GBA and GameCube. Six initial zero-candidate
+  searches required separate fixture-alias diagnostics, not automatic production
+  matching. The final Wind Waker candidate was explicitly reviewed by offered
+  platform/ID. Sequential runs terminated; no overlapping test worker was launched.
+- [SCORE_RECEPTION_ASSESSMENT.md](SCORE_RECEPTION_ASSESSMENT.md) records raw scale,
+  provider IDs, retrieval times and platform-specific independent reception.
+  Every ScreenScraper vote count remains unknown and its aggregate type remains
+  unknown. Scores stay sourced advisory values, not an approved Top basis; the
+  capture asserts that ranking eligibility is not granted. No production rule,
+  private collection, ROM payload, artwork or Thor storage changed.
+- This is ordinary-release assessment evidence, not META-05 closure. Required
+  newer-console and modified-project coverage, low-vote handling and legitimate
+  aggregate-source comparison remain S4 work. B4 still blocks the IGDB OAuth
+  boundary; no repeated request with unchanged rejected credentials was made.
+- Monitoring remains canceled. Native testing awaits the owner's device-testing
+  response; this host assessment did not wake or mutate the Thor.
+- Focused `dart analyze test/screenscraper_live_smoke_test.dart` passed with no
+  findings after directing sanitized capture evidence to stdout. The preceding
+  live runs' assertions/results remain applicable: only their output sink changed.
+  Git whitespace checks passed. Reviewed transactional cleanup removed only the
+  attributed Flutter test assets/cache (57,102,605 bytes); forensic artwork-wait
+  evidence, credentials and requested deliverables remain preserved.
+
 ### S3 live round-trip checkpoint (2026-10-02)
 
 - S3 remains the only ACTIVE stage. The normal debug app preserved a selected
