@@ -501,6 +501,15 @@ It uses the same host assertions with Android's real database factory; writing
 the entrypoint is not native acceptance and does not close the unexplained host
 artwork wait. Obtain the user's requested Thor-testing handoff before deploying.
 
+The focused `integration_test/metadata_ownership_test.dart` entrypoint reuses
+the host provider/grouping assertions with Android SQLite: catalogue -> reviewed
+lookup/retry -> exact metadata publication -> canonical grouping -> offline
+query. It checks raw revisions, invalid identities, original/project ownership,
+classification aliases and normal provider access recovery without production
+source bootstrap or real accounts/ROMs. Native fixture results are distinct from
+live API/reception assessment and S5's normal metadata controls; they cannot
+approve a ranking source or substitute for those later real boundaries.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.

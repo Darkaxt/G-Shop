@@ -59,3 +59,24 @@ artifact identity. The exact prior normal APK was restored; normal database and
 credential/preferences fingerprints were unchanged. Both displays were confirmed
 OFF. This verifies the resource harness, not the unresolved META-05 source gate
 or the complete user-facing metadata integration.
+
+## Focused native metadata ownership — 2026-10-03
+
+`integration_test/metadata_ownership_test.dart` runs the same provider/job/
+grouping assertions as the host `igdb_provider_test.dart` and
+`library_verified_match_grouping_test.dart`, with Android's actual SQLite
+factory. Its package/platform/debug guards precede the tests. Synthetic wire
+responses reach the real adapters and normal persistent jobs, manual review,
+raw-release validation, edition/project grouping and offline queries. Every
+database is in-memory and closed; the normal app/database is not bootstrapped.
+This is not real API access, UI acceptance or ranking-source approval.
+
+The authorized Thor run passed, including rejection of conflicting hashes,
+release fields and provider IDs, correction-preserving re-scrape, reviewed
+translation aliases with original-game labels and project/base separation.
+Driver session 35561 exited 0; the private report and device logs were inspected.
+The exact normal APK was restored without uninstalling; normal data fingerprints
+were unchanged, the task forward was removed and both displays confirmed OFF.
+See the current status checkpoint for artifact/evidence identity and remaining
+S4 requirements. Build with this explicit target for focused ownership checks;
+do not rerun the unchanged 30,000-game resource target for this extraction.

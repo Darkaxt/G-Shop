@@ -18,8 +18,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
   verified transfer, native process recovery, bundles and owned installations.
-  S4 is the sole ACTIVE stage for the fresh metadata pipeline and score semantics.
-  S5-S8 NOT STARTED.
+  S4 is BLOCKED at B4 after native query/artwork and metadata ownership checks.
+  S5-S8 NOT STARTED. The next permitted implementation stage is S5, using the
+  verified cache/query interfaces; its Top acceptance still depends on resolving
+  S4/META-05. No parallel ACTIVE stage is created by this checkpoint.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; ScreenScraper developer credentials are stored in the ignored local
@@ -55,6 +57,69 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S4 native metadata ownership and classification reconciliation (2026-10-03)
+
+- S4 remains the sole ACTIVE stage. The existing host ownership assertions now
+  run unchanged with Android's actual SQLite factory through
+  `integration_test/metadata_ownership_test.dart`. Real ScreenScraper/IGDB
+  adapters, catalogue snapshots, review/retry, persistent refresh publication,
+  canonical grouping and offline collection queries participate. Wire responses
+  and credentials are synthetic: this is native integration evidence, not live
+  ScreenScraper/IGDB API or reception-approval evidence.
+- On the authorized connected Thor, wrong raw hash/size/game/platform/region/
+  language responses were rejected without metadata publication; matching raw
+  revisions survived fresh re-scraping with exact edition evidence preserved.
+  Verified project variants grouped separately from originals, while changing
+  the linked base invalidated their assertions. Reviewed `T-Eng + Undub +
+  Uncensor` and finite aliases reached offline queries with explicitly original-
+  game ownership, no invented rank, and no request while filtering. Normal
+  provider access-error/recovery/review/publication also reached cached scores.
+- Classification reconciliation is verified against META-04: focused host
+  identity/catalogue/query checks (session 56479, exit 0) additionally cover two
+  patches, independent translation/audio/uncensor evidence, official English
+  versus T-Eng, unknown labels, contradictory official review rollback, any/all
+  tag intersection and no rank backfill. Existing production migration/reopen
+  evidence remains applicable; no production code or schema changed in this
+  fixture extraction. No score source was approved by synthetic assertions.
+- Host ownership extraction checks exited 0 (70442). Final scoped analysis
+  exited 0 with no issues after using the already-declared sqflite dependency.
+  Native build exited 0 (17316); its package/version/signer were independently
+  inspected before `adb install -t -r`. APK SHA-256:
+  `5D3D62F44C34A6C9A2148B46B957FFA841FBB79A09EF7904969800073B5B6196`.
+  Actual device logs show the complete ownership workflow passing in five
+  seconds. The driver attached to the observed VM service and exited 0 (35561);
+  its private report was read from
+  `D:\Temp\rshop-s4-ownership-20261003\reports`. Workloads were sequential.
+- The exact prior normal APK was restored and its on-device SHA-256 again equals
+  `DAA8B182C8F722F4E3DC75685EE346B8919BFEFB1159C62AF6CFCE3EBDD7FFEE`.
+  Database, both secure-storage files, ordinary preferences and Google sign-in
+  preferences retained their pre-test fingerprints during and after the run.
+  App stopped, task ADB forward removed, both displays confirmed OFF. The tests
+  used only in-memory synthetic databases; no source bootstrap, account access,
+  ROM payload, SD-library mutation or release occurred.
+- Reviewed cleanup `8471775b0c06eb8a7e890c518f8331fc` is terminal APPLIED:
+  only the 250,598,905-byte recovery APK copy was removed after exact restoration.
+  Native reports and the earlier host-stall forensic fixture remain preserved.
+- META-03/META-04/META-07's adapter/job/identity/query path now has native fixture
+  evidence. S4 is not COMPLETE: META-05's legitimate live aggregate-source and
+  reception assessment remain blocked by B4, and the earlier host artwork wait
+  is still unexplained, not claimed fixed by a successful native run. The existing
+  Twitch setup tab still shows the owner's login form; no credential change or
+  repeated invalid-client request occurred. Real external metadata access and
+  later UI integration remain distinct from this synthetic transport proof.
+  Reconciliation parks S4 as BLOCKED at external B4: META-05/META-07 cannot
+  approve a credible overall-score ranking basis while the actual configured
+  Twitch application pair is rejected and the owner login/MFA handoff is still
+  pending. Resolution requires legitimate matching API credentials followed by
+  live representative reception assessment, not another fixture run. S5 Top
+  acceptance and S7 retention/migration cannot complete until this passes.
+  The earlier unexplained host artwork wait stays recorded under S4; it is not
+  renamed a deferral or claimed fixed. S1 stays BLOCKED at B3/elapsed renewal;
+  S2/S3 COMPLETE; S5-S8 NOT STARTED. S5 may next use the already-verified metadata
+  interfaces for normal controls/overlays/filters without approving real Top
+  scores. Return to S4 when the external handoff resolves. Monitoring remains
+  cancelled; no required work is silently waived.
 
 ### S4 Thor query/artwork resource acceptance (2026-10-03)
 
@@ -564,7 +629,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed provider/raw/project canonical grouping and rank-before-filter query; exact raw-release validation across reviewed IDs and revisions; bounded edition and shared effective-score selection; additive v31 projection and disk-reopen preservation; populated 30,000-game indexed query; full 30,000-game native Thor query/artwork resource workflow with offline reopen and unchanged normal data; interrupted-job recovery | Required work remains: classification reconciliation, live reception assessment/B4, unexplained earlier host artwork wait and real native metadata-provider/identity/query integration verification |
+| S4 | BLOCKED | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed provider/raw/project canonical grouping and rank-before-filter query; exact raw-release validation across reviewed IDs and revisions; independent classification/review/unknown reconciliation; bounded edition and shared effective-score selection; additive v31 projection and disk-reopen preservation; populated 30,000-game indexed query; full 30,000-game native Thor query/artwork resource workflow with offline reopen and unchanged normal data; native production-adapter/job/identity/query ownership fixtures; interrupted-job recovery | External B4 prevents META-05/META-07 live aggregate-source/reception approval; resolve legitimate matching credentials and assess the real representative sample. Earlier host artwork wait remains unexplained. S5 Top acceptance and S7 retention cannot complete before source approval; synthetic native transport proof is not real API or UI acceptance |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
