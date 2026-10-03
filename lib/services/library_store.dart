@@ -546,7 +546,8 @@ class LibraryStore {
             'provider_game_id': record.providerGameId,
             'generation_id': record.refreshGeneration,
             'retrieved_at': record.retrievedAt.toUtc().toIso8601String(),
-            'identity_key': metadataIdentity(identities.single),
+            'identity_key': metadataIdentity(identities.single,
+                providerId: record.providerId),
             'record_json': jsonEncode(record.toJson()),
           },
           conflictAlgorithm: ConflictAlgorithm.replace);
@@ -584,7 +585,8 @@ class LibraryStore {
       WHERE m.edition_id = ? AND m.provider_id = ? LIMIT 1
     ''', [editionId, providerId]);
     if (rows.isEmpty) return null;
-    if (rows.single['identity_key'] != metadataIdentity(rows.single)) {
+    if (rows.single['identity_key'] !=
+        metadataIdentity(rows.single, providerId: providerId)) {
       return null;
     }
     if (!await isCurrentCatalogueIdentity(db, rows.single)) return null;
@@ -595,10 +597,96 @@ class LibraryStore {
 
   /// Metadata stays stored as evidence, but cannot be consumed under a changed
   /// game/edition/patch identity. Display-name-only renames are not identity edits.
-  static String metadataIdentity(Map<String, Object?> row) {
+  static String metadataIdentity(Map<String, Object?> row,
+      {String? providerId}) {
     final game = jsonDecode(row['game_json'] as String) as Map<String, dynamic>;
     game.remove('title');
-    final edition = jsonDecode(row['edition_json'] as String);
-    return sha256.convert(utf8.encode(jsonEncode([game, edition]))).toString();
+    final edition =
+        jsonDecode(row['edition_json'] as String) as Map<String, dynamic>;
+    if (providerId == null) {
+      // Canonical grouping and pre-v26 records retain the full identity key.
+      return sha256
+          .convert(utf8.encode(jsonEncode([game, edition])))
+          .toString();
+    }
+    if (providerId.trim().isEmpty) {
+      throw ArgumentError.value(providerId, 'providerId');
+    }
+    for (final identity in [game, edition]) {
+      final ids = identity['providerIds'] as Map<String, dynamic>? ?? {};
+      identity['providerIds'] = {
+        if (ids.containsKey(providerId)) providerId: ids[providerId]
+      };
+      // Only an explicit provider-ID assertion is source-scoped. Raw-ROM,
+      // release, classification, platform, artifact and other evidence remain
+      // bound; unknown/malformed assertions must not be silently discarded.
+      identity['evidence'] =
+          (identity['evidence'] as List? ?? []).where((value) {
+        final evidence = value as Map<String, dynamic>;
+        if (evidence['source'] != 'manual' ||
+            evidence['kind'] != 'providerId') {
+          return true;
+        }
+        try {
+          final asserted = jsonDecode(evidence['value'] as String);
+          if (asserted is List &&
+              asserted.length == 2 &&
+              asserted[0] is String &&
+              asserted[1] is String &&
+              (asserted[0] as String).trim().isNotEmpty &&
+              (asserted[1] as String).trim().isNotEmpty) {
+            return asserted[0] == providerId;
+          }
+        } on FormatException {
+          // Preserve uncertain evidence in the binding.
+        }
+        return true;
+      }).toList();
+    }
+    return sha256
+        .convert(utf8.encode(
+            jsonEncode(['metadata-owner-v1', providerId, game, edition])))
+        .toString();
+  }
+
+  /// v26 migrates only bindings which still prove their complete old identity.
+  /// Stale records remain stored but unusable. Work items and image ownership
+  /// move with their provider, preserving generation/selector/request/offset.
+  /// The production upgrade transaction owns these bounded keyset pages.
+  static Future<void> migrateMetadataOwnership(DatabaseExecutor db) async {
+    for (final table in [
+      'library_metadata',
+      'metadata_refresh_items',
+      'metadata_artwork_items'
+    ]) {
+      final metadata = table == 'library_metadata';
+      var cursor = 0;
+      while (true) {
+        final rows = await db.rawQuery('''SELECT m.rowid AS binding_rowid,
+          m.identity_key, ${metadata ? 'm' : 'j'}.provider_id,
+          g.record_json AS game_json, e.record_json AS edition_json
+          FROM $table m
+          ${metadata ? '' : 'JOIN metadata_refresh_jobs j ON j.id = m.job_id'}
+          JOIN library_editions e ON e.edition_id = m.edition_id
+          JOIN library_game_identities g ON g.game_id = e.game_id
+          WHERE m.rowid > ? ORDER BY m.rowid LIMIT 128''', [cursor]);
+        for (final row in rows) {
+          if (row['identity_key'] != metadataIdentity(row) ||
+              !await isCurrentCatalogueIdentity(db, row)) {
+            continue;
+          }
+          await db.update(
+              table,
+              {
+                'identity_key': metadataIdentity(row,
+                    providerId: row['provider_id'] as String)
+              },
+              where: 'rowid = ? AND identity_key = ?',
+              whereArgs: [row['binding_rowid'], row['identity_key']]);
+        }
+        if (rows.length < 128) break;
+        cursor = rows.last['binding_rowid'] as int;
+      }
+    }
   }
 }

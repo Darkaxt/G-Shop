@@ -193,7 +193,8 @@ class MetadataRefreshJobs {
         if (identity == null ||
             rows.isEmpty ||
             rows.single['identity_key'] !=
-                LibraryStore.metadataIdentity(identity)) {
+                LibraryStore.metadataIdentity(identity,
+                    providerId: providerId)) {
           throw StateError('Artwork requires current matched metadata');
         }
         final record = MetadataRecord.fromJson(
@@ -224,7 +225,8 @@ class MetadataRefreshJobs {
       DatabaseExecutor db, Map<String, Object?> item, String providerId) async {
     final identity = await _identity(db, item['edition_id'] as String);
     if (identity == null ||
-        LibraryStore.metadataIdentity(identity) != item['identity_key']) {
+        LibraryStore.metadataIdentity(identity, providerId: providerId) !=
+            item['identity_key']) {
       return false;
     }
     final records = await db.query('library_metadata',
@@ -383,7 +385,8 @@ class MetadataRefreshJobs {
                   .convert(utf8.encode(
                       jsonEncode(_canonical([keyData, editionEvidence]))))
                   .toString(),
-              'identity_key': LibraryStore.metadataIdentity(row),
+              'identity_key':
+                  LibraryStore.metadataIdentity(row, providerId: providerId),
               'request_json':
                   request == null ? null : jsonEncode(request.toJson()),
               'status': request == null ? 'unsupportedPlatform' : 'pending',
@@ -466,7 +469,8 @@ class MetadataRefreshJobs {
               current == null ||
               !{'needsReview', 'ambiguous'}.contains(items.single['status']) ||
               items.single['identity_key'] !=
-                  LibraryStore.metadataIdentity(current)) {
+                  LibraryStore.metadataIdentity(current,
+                      providerId: providerId)) {
             throw StateError(
                 'The current identity no longer matches this review');
           }
@@ -718,7 +722,9 @@ class MetadataRefreshJobs {
             jsonDecode(item['request_json'] as String));
         final current = await _identity(db, request.editionId);
         if (current == null ||
-            LibraryStore.metadataIdentity(current) != item['identity_key']) {
+            LibraryStore.metadataIdentity(current,
+                    providerId: provider.providerId) !=
+                item['identity_key']) {
           await db.update(
               'metadata_refresh_items', {'status': 'identityChanged'},
               where: 'job_id = ? AND edition_id = ?',
@@ -735,7 +741,9 @@ class MetadataRefreshJobs {
         // A protocol wait is not permission to use a now-removed or changed item.
         final afterWait = await _identity(db, request.editionId);
         if (afterWait == null ||
-            LibraryStore.metadataIdentity(afterWait) != item['identity_key']) {
+            LibraryStore.metadataIdentity(afterWait,
+                    providerId: provider.providerId) !=
+                item['identity_key']) {
           await db.update(
               'metadata_refresh_items', {'status': 'identityChanged'},
               where: 'job_id = ? AND edition_id = ?',
@@ -1115,7 +1123,7 @@ class MetadataRefreshJobs {
           final editionId = target['edition_id'] as String;
           final identity = await _identity(txn, editionId);
           if (identity == null ||
-              LibraryStore.metadataIdentity(identity) !=
+              LibraryStore.metadataIdentity(identity, providerId: providerId) !=
                   target['identity_key']) {
             outcome = 'identityChanged';
           } else if (outcome == 'matched') {

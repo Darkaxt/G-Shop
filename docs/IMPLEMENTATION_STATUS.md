@@ -330,6 +330,48 @@ S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
 
+### S4 independent metadata ownership checkpoint (2026-10-03)
+
+- Reproduced META-03/META-06 integration defect: reviewing a second provider ID
+  invalidated the first provider's current metadata because every cache/job key
+  included all providers' identities. Source-scoped bindings now retain the owning
+  provider's assigned IDs/manual assertions and all shared game/edition evidence.
+  They omit only unrelated provider-ID assertions, not platform, artifact bytes,
+  raw-ROM checksums, release, region/language, revision, patch, classification,
+  base relationship or malformed evidence. Canonical grouping retains its full
+  projection. This is not cross-provider equivalence or score-reliability approval.
+- The failing reproduction now passes. Normal cached-catalogue -> IGDB review ->
+  sourced score -> offline SQLite consumption preserves previously verified
+  ScreenScraper metadata. Pending image work and offline cached images likewise
+  survive an independent provider review; a different patch still cannot consume
+  them. Both proofs use the normal worker/store, not a separate test-only path.
+- Production v26 upgrade/reopen proof covers current and stale v25 metadata,
+  pending lookup/image snapshots across more than one 128-row page, unchanged
+  requests/selectors/generations/retrieval dates and preserved provider budget.
+  Only still-current complete old bindings convert; stale records remain stored
+  and unusable. A second reopen cannot promote or migrate those records again.
+  Existing v13-v24 upgrade/restart checks also passed against v26.
+- Fresh real ScreenScraper host metadata/review/cover/screenshot/offline workflow
+  passed after the binding change. It makes no ROM requests and does not enable
+  consensus-ranked Top results. This is host proof, not Thor acceptance.
+- Focused store, IGDB, artwork, migration, snapshot, catalogue, retry, budget and
+  grouping checks passed. The combined worker command had a missing test filename
+  after its selected worker tests passed; the correct `library_grouping_test.dart`
+  was then run separately and exited zero. No full-suite result is claimed.
+  The 30,000-edition worker check reported 59,594 ms, one request, 128-row pages
+  and observed RSS endpoints 146,415,616 -> 223,129,600 bytes. Grouping reported
+  endpoints 141,381,632 -> 189,042,688 bytes. Neither is ranked-query/artwork-wide
+  resource proof. Focused analysis of changed production and test files exited
+  zero with no issues after correcting one brace-style finding.
+- Transactional cleanup 3d1b453cdbb92a9817baa12143e9617c removed only reviewed,
+  regenerated Flutter test assets/compiled cache (56,975,037 bytes); applied with
+  no errors. Requested APKs, source assets, credentials and ROMs remain intact.
+- S4 remains ACTIVE. Shared indexed ranking/filter queries, live reception
+  assessment (B4 still unresolved), remaining provider/raw/release reconciliation,
+  complete classification, full large artwork assessment and native verification
+  remain required. No S5 work, Thor mutation, credential change, ROM transfer,
+  SD cleanup, release or monitoring recreation occurred.
+
 ### S4 aggregate-source checkpoint (2026-10-03)
 
 - META-05: IGDB's documented externally defined overall score is retained without

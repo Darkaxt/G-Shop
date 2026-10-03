@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/library_identity.dart';
@@ -179,5 +181,137 @@ void main() {
         .putGame(GameIdentity(id: 'g1', platformId: 'snes', title: 'Example'));
     expect(await store.metadata('e1', 'screenscraper'), isNull,
         reason: 'a platform correction cannot retain the old platform score');
+  });
+
+  test('independent provider review preserves existing owned metadata',
+      () async {
+    await LibrarySchema.install(db);
+    final game = GameIdentity(
+        id: 'g1',
+        platformId: 'psx',
+        title: 'Example',
+        providerIds: {'screenscraper': '42'},
+        matchStatus: IdentityMatchStatus.manuallyMatched,
+        evidence: [
+          IdentityEvidence(
+              source: 'manual',
+              kind: 'providerId',
+              value: jsonEncode(['screenscraper', '42']))
+        ]);
+    await store.putGame(game);
+    await store.putEdition(
+        EditionIdentity(id: 'e1', gameId: 'g1', tags: {'official'}));
+    await store.putMetadata(MetadataRecord(
+        gameId: 'g1',
+        editionId: 'e1',
+        platformId: 'psx',
+        providerId: 'screenscraper',
+        providerGameId: '42',
+        retrievedAt: DateTime.utc(2026, 10, 3),
+        refreshGeneration: 1,
+        matchMethod: 'verifiedProviderId',
+        titles: const [MetadataText(text: 'Example')]));
+    final reviewed = GameIdentity.fromJson({
+      ...game.toJson(),
+      'providerIds': {'igdb': '100', 'screenscraper': '42'},
+      'evidence': [
+        ...game.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+            source: 'manual',
+            kind: 'providerId',
+            value: jsonEncode(['igdb', '100'])).toJson()
+      ]
+    });
+    await store.putGame(reviewed);
+    expect(await store.metadata('e1', 'screenscraper'), isNotNull,
+        reason:
+            'a second independently reviewed source must not erase the first');
+    await store.putGame(GameIdentity.fromJson({
+      ...reviewed.toJson(),
+      'providerIds': {'igdb': '100', 'screenscraper': '43'}
+    }));
+    expect(await store.metadata('e1', 'screenscraper'), isNull,
+        reason: 'the owning provider match still controls its score');
+    expect(await db.query('library_metadata'), hasLength(1));
+  });
+
+  test('provider-scoped bindings retain every non-provider identity boundary',
+      () {
+    final game = GameIdentity(
+        id: 'g',
+        platformId: 'psx',
+        title: 'Example',
+        providerIds: {'screenscraper': '42'},
+        matchStatus: IdentityMatchStatus.manuallyMatched);
+    final edition = EditionIdentity(id: 'e', gameId: 'g', tags: {'official'});
+    String binding(GameIdentity g, EditionIdentity e) =>
+        LibraryStore.metadataIdentity({
+          'game_json': jsonEncode(g.toJson()),
+          'edition_json': jsonEncode(e.toJson())
+        }, providerId: 'screenscraper');
+    final initial = binding(game, edition);
+    for (final change in [
+      {'platformId': 'snes'},
+      {'baseGameId': 'different-base'},
+      {'matchStatus': 'unmatched'},
+      {
+        'providerIds': {'screenscraper': '43'}
+      },
+      {
+        'evidence': [
+          IdentityEvidence(
+                  source: 'manual', kind: 'providerId', value: 'not-valid-json')
+              .toJson()
+        ]
+      },
+      {
+        'evidence': [
+          IdentityEvidence(
+                  source: 'igdb',
+                  kind: 'rawRomChecksum',
+                  value: 'different-raw-rom')
+              .toJson()
+        ]
+      }
+    ]) {
+      expect(
+          binding(
+              GameIdentity.fromJson({...game.toJson(), ...change}), edition),
+          isNot(initial),
+          reason: '$change must not be discarded as unrelated');
+    }
+    for (final change in [
+      {'releaseId': 'another-release'},
+      {'revision': '2'},
+      {'patchId': 'patch'},
+      {
+        'tags': ['Hack']
+      },
+      {
+        'regions': ['jp']
+      },
+      {
+        'languages': ['ja']
+      },
+      {
+        'providerIds': {'screenscraper': 'another-release'}
+      },
+      {
+        'members': [
+          EditionMember(
+              artifactId: RemoteArtifactId(
+                  providerId: 'drive',
+                  sourceId: 'source',
+                  providerFileId: 'replacement'),
+              rawRomChecksums: {'md5': 'different-bytes'}).toJson()
+        ]
+      }
+    ]) {
+      expect(
+          binding(
+              game, EditionIdentity.fromJson({...edition.toJson(), ...change})),
+          isNot(initial),
+          reason: '$change still defines exact edition ownership');
+    }
   });
 }

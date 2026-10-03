@@ -149,6 +149,43 @@ void main() {
     expect(await root.list().any((f) => f.path.endsWith('.part')), isFalse);
   });
 
+  test('independent provider review preserves pending and cached artwork',
+      () async {
+    final job = await jobs.createArtwork(
+        providerId: provider.providerId,
+        collectionGeneration: 'before-other-review',
+        editionIds: ['a']);
+    final store = LibraryStore(Future.value(db));
+    final game = (await store.game('a'))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'providerIds': {...game.providerIds, 'igdb': '100'},
+      'evidence': [
+        ...game.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+            source: 'manual',
+            kind: 'providerId',
+            value: jsonEncode(['igdb', '100'])).toJson()
+      ]
+    }));
+    expect((await jobs.run(job.id, provider, artworkCache: cache)).counts,
+        {'matched': 1});
+    expect(await cache.fileFor('a', provider.providerId, media), isNotNull);
+    final changed = (await store.game('a'))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...changed.toJson(),
+      'providerIds': {'screenscraper': '42', 'igdb': '101'}
+    }));
+    expect(await cache.fileFor('a', provider.providerId, media), isNotNull);
+    expect(provider.calls, 1,
+        reason: 'offline consumption never re-fetches artwork');
+    await store.putEdition(EditionIdentity(
+        id: 'a', gameId: 'a', patchId: 'different-project', tags: {'Hack'}));
+    expect(await cache.fileFor('a', provider.providerId, media), isNull,
+        reason:
+            'the owning edition still guards images from a different project');
+  });
+
   test('CRC-valid PNG with an invalid compressed image cannot publish',
       () async {
     // Keep valid dimensions/chunk CRCs; only the IDAT zlib stream is invalid.

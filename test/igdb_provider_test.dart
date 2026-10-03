@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/metadata/igdb_provider.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/library_store.dart';
@@ -238,15 +239,58 @@ void main() {
       is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
     await db.insert(
         'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World'});
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final original =
+        await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await db.query('metadata_refresh_items',
+            where: 'job_id = ?', whereArgs: [original.id]))
+        .single['edition_id'] as String;
+    final store = LibraryStore(Future.value(db));
+    final edition = (await store.edition(editionId))!;
+    final game = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'providerIds': {'screenscraper': '42'},
+      'matchStatus': 'manuallyMatched',
+      'evidence': [
+        ...game.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+            source: 'manual',
+            kind: 'providerId',
+            value: jsonEncode(['screenscraper', '42'])).toJson()
+      ]
+    }));
+    await store.putEdition(EditionIdentity.fromJson({
+      ...edition.toJson(),
+      'tags': ['official'],
+      'isTranslation': false,
+      'translatedLanguages': <String>[],
+      'evidence': [
+        ...edition.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+            source: 'manual',
+            kind: 'contentClassification',
+            value: jsonEncode(['official'])).toJson()
+      ]
+    }));
+    await store.putMetadata(MetadataRecord(
+        gameId: game.id,
+        editionId: editionId,
+        platformId: 'snes',
+        providerId: 'screenscraper',
+        providerGameId: '42',
+        retrievedAt: DateTime.utc(2026),
+        refreshGeneration: 1,
+        matchMethod: 'verifiedProviderId',
+        titles: const [MetadataText(text: 'Super Mario World')]));
     final transport = _Transport([fixture])..tokenStatus = 403;
     final api = provider(transport);
     addTearDown(api.close);
-    final jobs = MetadataRefreshJobs(Future.value(db));
     final snapshot = await jobs.createFromCatalogue(providerId: api.providerId);
     final blocked = await jobs.run(snapshot.id, api);
     expect(blocked.state, 'blocked');
     expect(blocked.counts, {'pending': 1});
-    expect(await db.query('library_metadata'), isEmpty);
+    expect(await store.metadata(editionId, 'screenscraper'), isNotNull);
     transport.tokenStatus = 200;
     final resumed = await jobs.run(snapshot.id, api);
     expect(resumed.state, 'completed');
@@ -265,6 +309,8 @@ void main() {
     expect(cached!.ratings.first.normalizedValue, 91.5);
     expect(cached.ratings.first.voteCount, 212);
     expect(cached.ratings.first.consensusValidated, isFalse);
+    expect(await store.metadata(editionId, 'screenscraper'), isNotNull,
+        reason: 'normal IGDB review cannot invalidate another verified source');
     final calls = transport.requests.length;
     await jobs.run(retry.id, api);
     expect(transport.requests.length, calls,

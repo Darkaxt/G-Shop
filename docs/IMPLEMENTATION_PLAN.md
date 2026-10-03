@@ -362,6 +362,16 @@ reconciliation and the accepted-score/rank-before-filter query remain S4 work.
 
 ### S4 aggregate-source assessment boundary
 
+Metadata, lookup snapshots and artwork ownership bind the exact edition and the
+owning provider's assigned IDs/manual assertions. An independently reviewed
+second provider must not erase the first provider's verified facts or images.
+All shared platform, artifact, raw-ROM, release, patch, classification and uncertain
+evidence remains bound; unrelated provider assertions are not equivalence proof.
+The v26 upgrade converts only still-current, full-identity v25 bindings in bounded
+pages, without refreshing dates or promoting stale records. Canonical grouping
+continues to use its complete identity projection; this does not supply source
+precedence, cross-provider equivalence or ranking approval.
+
 ScreenScraper remains the first candidate, not an approved ranking oracle. The
 standalone IGDB adapter reuses the existing explicit RomM/IGDB platform mapping
 and normal refresh/review worker. It retains IGDB's supplied `total_rating` and
