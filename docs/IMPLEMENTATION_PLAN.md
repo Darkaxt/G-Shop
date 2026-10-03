@@ -406,6 +406,16 @@ IDs and translation assertions not explained by the reviewed `T-Eng` classificat
 Keep the exact edition facts for review; correcting them reindexes grouping in
 the existing transaction rather than discarding metadata or changing the file.
 
+Release reconciliation preserves both reviewed game IDs and exact raw evidence.
+ScreenScraper documents that `gameid` lookups omit ROM information. When an
+explicit raw identifier is supplied, use the hash/size lookup instead, validate
+every supplied hash and size, and cross-check any reviewed game ID against its
+response. Exact compatible raw evidence may identify a revision-bearing edition;
+an ID-only revision request remains unresolved rather than guessing from names.
+Verify adapter -> persistent worker -> current metadata/grouping -> offline query,
+including wrong hash/size/game/platform and conflicting region/language results.
+No remote ROM-body reads or archive hash promotion are introduced.
+
 ### S4 aggregate-source assessment boundary
 
 Metadata, lookup snapshots and artwork ownership bind the exact edition and the

@@ -123,6 +123,8 @@ MetadataLookupRequest _request({
   String? baseProviderGameId,
   String? title,
   String? region,
+  String? language,
+  String? revision,
   MetadataRomIdentifier? identifier,
 }) =>
     MetadataLookupRequest(
@@ -134,6 +136,8 @@ MetadataLookupRequest _request({
       baseProviderGameId: baseProviderGameId,
       contentTags: tags,
       region: region,
+      language: language,
+      revision: revision,
       romIdentifier: identifier,
       refreshGeneration: 3,
     );
@@ -412,6 +416,76 @@ void main() {
       'response': {'jeu': wrong}
     })).lookup(request);
     expect(rejected.status, MetadataLookupStatus.unmatched);
+  });
+
+  test('reviewed game ID cannot override supplied raw release evidence',
+      () async {
+    final raw = MetadataRomIdentifier(
+        kind: RomIdentifierKind.rawRom,
+        filename: 'Fixture.sfc',
+        sizeBytes: 1024,
+        crc32: 'ABCDEF12',
+        md5: 'a' * 32,
+        sha1: 'b' * 40);
+    for (final wrongField in ['romcrc', 'rommd5', 'romsha1', 'romsize', 'id']) {
+      final game = _game();
+      (game['rom'] as Map)
+          .addAll(<String, String>{'rommd5': 'a' * 32, 'romsha1': 'b' * 40});
+      if (wrongField == 'id') {
+        game['id'] = '99';
+      } else {
+        (game['rom'] as Map)[wrongField] = switch (wrongField) {
+          'romcrc' => '11111111',
+          'rommd5' => 'c' * 32,
+          'romsha1' => 'd' * 40,
+          _ => '2048'
+        };
+      }
+      final wire = _Wire({
+        'response': {'jeu': game}
+      });
+      final api = _provider(wire);
+      addTearDown(api.close);
+      final result = await api.lookup(_request(identifier: raw));
+      expect(result.status, MetadataLookupStatus.unmatched, reason: wrongField);
+      expect(result.record, isNull);
+    }
+  });
+
+  test('exact raw release resolves revision without an ID-only ROM request',
+      () async {
+    const raw = MetadataRomIdentifier(
+        kind: RomIdentifierKind.rawRom,
+        filename: 'Fixture (Rev 1).sfc',
+        sizeBytes: 1024,
+        crc32: 'ABCDEF12');
+    for (final id in [null, '42']) {
+      final wire = _Wire({
+        'response': {'jeu': _game()}
+      });
+      final api = _provider(wire);
+      addTearDown(api.close);
+      final result = await api.lookup(_request(
+          verifiedProviderGameId: id,
+          identifier: raw,
+          revision: 'Rev 1',
+          region: 'USA',
+          language: 'en'));
+      expect(result.status, MetadataLookupStatus.matched);
+      expect(result.record!.matchMethod, 'rawRomHashAndSize');
+      expect(
+          wire.requests.single.queryParameters.containsKey('gameid'), isFalse);
+      expect(wire.requests.single.queryParameters['crc'], 'ABCDEF12');
+      expect(wire.requests.single.queryParameters['romtaille'], '1024');
+      expect(wire.requests.single.uri.path, '/api2/jeuInfos.php');
+    }
+    final api = _provider(_Wire({
+      'response': {'jeu': _game()}
+    }));
+    addTearDown(api.close);
+    final unresolved = await api.lookup(_request(revision: 'Rev 1'));
+    expect(unresolved.status, MetadataLookupStatus.needsReview);
+    expect(unresolved.record, isNull);
   });
 
   test('base rating is not assigned to hacks, translations or unknown editions',

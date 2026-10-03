@@ -186,6 +186,158 @@ void main() {
     expect((await store.canonicalEditions(ids.first)).editions, hasLength(2));
   });
 
+  test('reviewed raw revision survives worker rejection and fresh re-scrape',
+      () async {
+    final ids = await catalogue();
+    final raw = MetadataRomIdentifier(
+        kind: RomIdentifierKind.rawRom,
+        filename: 'Fixture (Rev 1).sfc',
+        sizeBytes: 1024,
+        crc32: 'ABCDEF12',
+        md5: 'a' * 32,
+        sha1: 'b' * 40);
+    final originals = <String, String>{};
+    for (final id in ids) {
+      final edition = (await store.edition(id))!;
+      final game = (await store.game(edition.gameId))!;
+      await store.putGame(GameIdentity.fromJson({
+        ...game.toJson(),
+        'providerIds': {'screenscraper': '42'},
+        'matchStatus': 'manuallyMatched'
+      }));
+      final reviewed = EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'tags': ['official'],
+        'regions': ['USA'],
+        'languages': ['en'],
+        'revision': 'Rev 1',
+        'providerIds': {'screenscraper': '42'},
+        'evidence': [
+          ...edition.evidence.map((e) => e.toJson()),
+          IdentityEvidence(
+                  source: 'manual',
+                  kind: 'rawRomIdentifier',
+                  value: jsonEncode(raw.toJson()))
+              .toJson()
+        ]
+      });
+      await store.putEdition(reviewed);
+      originals[id] = jsonEncode(reviewed.toJson());
+    }
+    Map<String, dynamic> gameResponse() => {
+          'id': '42',
+          'systeme': {'id': '4'},
+          'noms': [
+            {'region': 'us', 'text': 'Fixture'}
+          ],
+          'note': {'text': '17'},
+          'rom': {
+            'romfilename': raw.filename,
+            'romsize': '1024',
+            'romcrc': raw.crc32,
+            'rommd5': raw.md5,
+            'romsha1': raw.sha1,
+            'romregions': 'us',
+            'romlangues': 'en',
+            'hack': '0',
+            'trad': '0'
+          }
+        };
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final wires = <_Wire>[];
+    Future<MetadataRefreshReport> refresh(Map<String, dynamic> game) async {
+      final wire = _Wire({
+        'response': {'jeu': game}
+      });
+      wires.add(wire);
+      final api = ScreenScraperProvider(
+          httpClientAdapter: wire,
+          readDeveloperCredentials: () async =>
+              const ScreenScraperDeveloperCredentials(
+                  developerId: 'fixture-dev',
+                  developerPassword: 'fixture-secret',
+                  softwareName: 'fixture'),
+          readUserCredentials: () async => const ScreenScraperUserCredentials(
+              username: 'fixture-user', password: 'fixture-secret'));
+      addTearDown(api.close);
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final snapshots = await db.query('metadata_refresh_items',
+          where: 'job_id = ?', whereArgs: [job.id]);
+      for (final row in snapshots) {
+        final request = jsonDecode(row['request_json'] as String) as Map;
+        expect(request['verifiedProviderGameId'], '42');
+        expect(request['revision'], 'Rev 1');
+        expect(request['romIdentifier'], raw.toJson());
+      }
+      final result = await jobs.run(job.id, api);
+      expect(result.state, 'completed');
+      expect(wire.requests, hasLength(2));
+      for (final request in wire.requests) {
+        expect(request.uri.path, '/api2/jeuInfos.php');
+        expect(request.queryParameters.containsKey('gameid'), isFalse);
+        expect(request.queryParameters['crc'], raw.crc32);
+        expect(request.queryParameters['md5'], raw.md5);
+        expect(request.queryParameters['sha1'], raw.sha1);
+      }
+      return result;
+    }
+
+    for (final field in [
+      'id',
+      'systeme',
+      'romsize',
+      'romcrc',
+      'rommd5',
+      'romsha1',
+      'romregions',
+      'romlangues'
+    ]) {
+      final game = gameResponse();
+      if (field == 'id') {
+        game[field] = '99';
+      } else if (field == 'systeme') {
+        game[field] = {'id': '1'};
+      } else {
+        (game['rom'] as Map)[field] = switch (field) {
+          'romsize' => '2048',
+          'romcrc' => '11111111',
+          'rommd5' => 'c' * 32,
+          'romsha1' => 'd' * 40,
+          'romregions' => 'jp',
+          _ => 'ja'
+        };
+      }
+      expect((await refresh(game)).counts, {'unmatched': 2}, reason: field);
+      expect(await db.query('library_metadata'), isEmpty, reason: field);
+    }
+    for (var pass = 0; pass < 2; pass++) {
+      expect((await refresh(gameResponse())).counts, {'matched': 2});
+      for (final id in ids) {
+        final edition = (await store.edition(id))!;
+        expect(jsonEncode(edition.toJson()), originals[id]);
+        expect((await store.game(edition.gameId))!.providerIds,
+            {'screenscraper': '42'});
+      }
+      final records = await db.query('library_metadata');
+      expect(records, hasLength(2));
+      expect(
+          records.map(
+              (row) => jsonDecode(row['record_json'] as String)['matchMethod']),
+          everyElement('rawRomHashAndSize'));
+    }
+    final beforeRead = wires.fold<int>(0, (n, w) => n + w.requests.length);
+    final page =
+        await LibraryQuery(Future.value(db)).page(filter: LibraryQueryFilter());
+    expect(page.collectionGames, 1);
+    expect(page.items.single.score!.rating.normalizedValue, 85);
+    expect(page.items.single.rank, isNull);
+    final editions = (await store.canonicalEditions(ids.first)).editions;
+    expect(editions.map((e) => e.id).toSet(), ids.toSet());
+    expect(editions.map((e) => e.revision), everyElement('Rev 1'));
+    expect(wires.fold<int>(0, (n, w) => n + w.requests.length), beforeRead,
+        reason: 'Offline reads must not request metadata or ROM bodies.');
+  });
+
   test('ambiguous raw evidence cannot choose a hash or promote file checksums',
       () async {
     final ids = await catalogue();

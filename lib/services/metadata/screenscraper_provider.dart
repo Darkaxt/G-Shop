@@ -328,7 +328,9 @@ class ScreenScraperProvider
       if (authentication == null) {
         return _result(MetadataLookupStatus.setupRequired);
       }
-      final byId = request.verifiedProviderGameId != null;
+      // gameid lookups omit ROM information. Supplied raw evidence must still
+      // identify the exact release, then agree with any reviewed game identity.
+      final byId = request.verifiedProviderGameId != null && raw == null;
       final query = <String, dynamic>{
         ...authentication,
         'systemeid': '$platform',
@@ -371,7 +373,8 @@ class ScreenScraperProvider
             _text(_map(game['systeme'])?['id']) != '$platform') {
           continue;
         }
-        if (byId && id != request.verifiedProviderGameId) {
+        if (request.verifiedProviderGameId != null &&
+            id != request.verifiedProviderGameId) {
           continue;
         }
         if (!byId && raw != null && !_matchesIdentifier(game, raw)) {
@@ -421,7 +424,7 @@ class ScreenScraperProvider
           !official ||
           modifiedRom ||
           request.baseProviderGameId != null ||
-          request.revision?.isNotEmpty == true ||
+          (request.revision?.isNotEmpty == true && raw == null) ||
           _text(matched['notgame']) == 'true') {
         return _result(MetadataLookupStatus.needsReview,
             candidates: candidates, quota: quota);
