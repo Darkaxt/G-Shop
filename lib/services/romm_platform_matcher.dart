@@ -3,6 +3,9 @@ import 'romm_api_service.dart';
 class RommPlatformMatcher {
   RommPlatformMatcher._();
 
+  /// The same explicit platform namespace is used by standalone IGDB lookups.
+  static int? igdbPlatformIdFor(String systemId) => _igdbIdMap[systemId];
+
   static const Map<String, int> _igdbIdMap = {
     'nes': 18,
     'snes': 19,

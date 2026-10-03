@@ -1,5 +1,10 @@
 /// Provenance-bearing metadata is independent from the anonymous legacy cache.
-enum RatingKind { criticAggregate, communityAggregate, unknownAggregate }
+enum RatingKind {
+  criticAggregate,
+  communityAggregate,
+  unknownAggregate,
+  overallAggregate
+}
 
 class SourcedRating {
   final String sourceId;

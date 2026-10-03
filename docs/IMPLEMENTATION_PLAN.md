@@ -360,6 +360,20 @@ edition selection validates live catalogue bytes and current identity bindings;
 grouping does not authorize borrowing ratings. Additional provider/raw-identifier
 reconciliation and the accepted-score/rank-before-filter query remain S4 work.
 
+### S4 aggregate-source assessment boundary
+
+ScreenScraper remains the first candidate, not an approved ranking oracle. The
+standalone IGDB adapter reuses the existing explicit RomM/IGDB platform mapping
+and normal refresh/review worker. It retains IGDB's supplied `total_rating` and
+`total_rating_count`, alongside separately labelled critic and community scores
+and counts; it never computes a replacement average or chooses the largest score.
+Title search yields review candidates, not approved ratings. Project scores need
+a verified project ID and mod/fork classification, never a base-game ID.
+Request-time application credentials and in-memory expiry-bound tokens remain
+outside catalogues/exported configuration. Live access, the representative
+reception comparison, source precedence and native secure setup remain S4/S5
+acceptance work. No imported approval flag or successful image fetch enables Top.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.

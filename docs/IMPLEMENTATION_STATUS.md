@@ -330,6 +330,48 @@ S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
 
+### S4 aggregate-source checkpoint (2026-10-03)
+
+- META-05: IGDB's documented externally defined overall score is retained without
+  recomputing an average; critic/community scores and their independent counts
+  are separately attributed. Missing totals/counts stay missing. Low-vote extreme
+  scores and imported approval cannot establish consensus. This adapter is a
+  candidate remediation source, not completion of the required reception gate.
+- META-03/META-06: the existing worker, persistent catalogue snapshot, explicit
+  candidate review and SQLite metadata publication accept the standalone IGDB
+  adapter without a separate catalogue/provider-choice workflow. Synthetic wire
+  plus real SQLite proof covers authentication blockage -> same pending job
+  resume -> explicit review -> score publication -> provider close -> offline
+  consumption. Completed jobs do not repeat HTTP. Unsupported systems, wrong
+  platforms, base IDs on hacks and oversized responses cannot publish scores.
+- The opt-in real host workflow did NOT pass: Twitch's token endpoint returned
+  HTTP 403 with an invalid-client response before any `api.igdb.com` request.
+  The pair was read from `.env.local`, no environment override was present, and
+  the form-body protocol was checked against Twitch's official documentation.
+  Diagnostic capture retains only fixed endpoint/status/error classifications;
+  no secrets, raw errors or tokens are printed. No challenge bypass or substitute
+  credentials were used. B4 is this external application-authentication gap.
+  Resolution: supply a valid matching Twitch application client-ID/secret pair,
+  rerun the real integrated lookup, then perform the reception comparison. The
+  requested credential check remains unanswered. B4 prevents claiming live IGDB
+  integration or an IGDB-backed META-05 assessment; it does not prevent the
+  remaining offline S4 query/identity work, so S4 remains ACTIVE.
+- Focused IGDB, platform matcher, metadata worker/catalogue and score regressions
+  passed as one workload. The existing 30,000-edition snapshot check reported
+  62,133 ms, one coalesced request, 128-row pages and observed RSS endpoints
+  147,337,216 -> 223,436,800 bytes. That checks the existing worker, not the still
+  missing ranked query or large artwork assessment. The added normal-job IGDB
+  integration fixture passed separately. Changed-code analysis reports no issues.
+  Live failure is recorded, not counted as passed acceptance.
+- The final typed-overall-score and persistence checks passed, followed by clean
+  changed-code analysis. Cleanup 080cc70d33baea2fbdbf78df65c8349b removed only
+  regenerated unit-test assets/compiled cache (57,229,613 bytes, applied with no
+  errors); prior requested APKs and source assets remain intact.
+- No Thor testing, UI-stage work, ROM transfer, SD cleanup, credential change or
+  release occurred. S4 still requires complete score reception assessment, shared
+  indexed ranking/filter queries, provider/raw/release reconciliation,
+  classification, full large-fixture artwork assessment and native verification.
+
 ### S4 artwork cache checkpoint (2026-10-03)
 
 - META-01/META-03/META-06: explicit image jobs snapshot current edition-owned
