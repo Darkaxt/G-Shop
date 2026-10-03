@@ -375,6 +375,26 @@ split them; include new neighbours when joining components. Existing query
 mutation triggers invalidate every changed member. Preserve exact original
 identity/metadata/artwork/installation records and view membership during upgrade.
 
+The additive v30 migration extends this same projection for current,
+provenance-consistent ScreenScraper
+`rawRomHashAndSize` results and IGDB `verifiedProjectId` results, using the shared
+ownership validator. Raw results join the ordinary provider-game namespace;
+verified projects use a distinct namespace and cannot join their base game.
+Bind those assertions to the exact current edition/provider metadata identity,
+not to equal filenames or container checksums. Reindex publication/correction
+within the identity transaction; an indexed base dependency permits correction
+of a linked original to invalidate project assertions without scanning all games.
+Backfill existing current assertions additively, preserving exact records.
+The refresh worker may consume an explicitly recorded `rawRomIdentifier` evidence
+value in the existing typed identifier format; it never computes a remote hash or
+promotes a provider-file checksum. Conflicting/malformed evidence cannot establish
+a raw match. Verify real adapter-to-worker publication, grouping, correction,
+query no-backfill and production upgrade/reopen before claiming this gap closed.
+Assigned ordinary-game aliases also reject conflicting edition-level provider
+IDs and translation assertions not explained by the reviewed `T-Eng` classification.
+Keep the exact edition facts for review; correcting them reindexes grouping in
+the existing transaction rather than discarding metadata or changing the file.
+
 ### S4 aggregate-source assessment boundary
 
 Metadata, lookup snapshots and artwork ownership bind the exact edition and the

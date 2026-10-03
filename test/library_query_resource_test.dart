@@ -53,25 +53,44 @@ class _ObservedTransaction implements Transaction {
 
   @override
   Future<List<Map<String, Object?>>> query(String table,
-          {bool? distinct,
-          List<String>? columns,
-          String? where,
-          List<Object?>? whereArgs,
-          String? groupBy,
-          String? having,
-          String? orderBy,
-          int? limit,
-          int? offset}) =>
-      db.query(table,
-          distinct: distinct,
-          columns: columns,
-          where: where,
-          whereArgs: whereArgs,
-          groupBy: groupBy,
-          having: having,
-          orderBy: orderBy,
-          limit: limit,
-          offset: offset);
+      {bool? distinct,
+      List<String>? columns,
+      String? where,
+      List<Object?>? whereArgs,
+      String? groupBy,
+      String? having,
+      String? orderBy,
+      int? limit,
+      int? offset}) async {
+    final rows = await db.query(table,
+        distinct: distinct,
+        columns: columns,
+        where: where,
+        whereArgs: whereArgs,
+        groupBy: groupBy,
+        having: having,
+        orderBy: orderBy,
+        limit: limit,
+        offset: offset);
+    if (table == 'library_metadata' && rows.length > owner.maxMetadataRows) {
+      owner.maxMetadataRows = rows.length;
+    }
+    if (table == 'library_game_identities' &&
+        rows.length > owner.maxIdentityRows) {
+      owner.maxIdentityRows = rows.length;
+    }
+    return rows;
+  }
+
+  @override
+  Future<int> rawInsert(String sql, [List<Object?>? arguments]) =>
+      db.rawInsert(sql, arguments);
+  @override
+  Future<int> rawUpdate(String sql, [List<Object?>? arguments]) =>
+      db.rawUpdate(sql, arguments);
+  @override
+  Future<int> rawDelete(String sql, [List<Object?>? arguments]) =>
+      db.rawDelete(sql, arguments);
   @override
   Future<int> insert(String table, Map<String, Object?> values,
       {String? nullColumnHack, ConflictAlgorithm? conflictAlgorithm}) {

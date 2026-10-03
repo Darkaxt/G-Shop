@@ -39,8 +39,16 @@ class LibrarySchema {
     )''');
     await db.execute('''CREATE TABLE IF NOT EXISTS library_canonical_groups (
       edition_id TEXT PRIMARY KEY, group_key TEXT NOT NULL,
-      platform_id TEXT, identity_key TEXT NOT NULL
+      platform_id TEXT, identity_key TEXT NOT NULL, base_game_id TEXT
     )''');
+    final groupColumns =
+        await db.rawQuery('PRAGMA table_info(library_canonical_groups)');
+    if (!groupColumns.any((column) => column['name'] == 'base_game_id')) {
+      await db.execute(
+          'ALTER TABLE library_canonical_groups ADD COLUMN base_game_id TEXT');
+    }
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_library_canonical_base
+      ON library_canonical_groups(base_game_id, edition_id)''');
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_library_canonical_group
       ON library_canonical_groups(group_key, edition_id)''');
     await db
@@ -122,10 +130,12 @@ class LibraryStore {
     await db.execute('''CREATE TEMP TABLE canonical_reindex_component (
       claim_key TEXT PRIMARY KEY)''');
     try {
-      final scope = '''${gameId == null ? '' : 'AND e.game_id = ?'}
+      final scope =
+          '''${gameId == null ? '' : '''AND (e.game_id = ? OR e.edition_id IN (
+          SELECT edition_id FROM library_canonical_groups WHERE base_game_id = ?))'''}
         ${editionId == null ? '' : 'AND e.edition_id = ?'}''';
       final scopeArgs = [
-        if (gameId != null) gameId,
+        if (gameId != null) ...[gameId, gameId],
         if (editionId != null) editionId
       ];
       // Capture old neighbours before removing the corrected assertions. A
@@ -156,18 +166,48 @@ class LibraryStore {
         e.record_json AS edition_json, g.record_json AS game_json
         FROM library_editions e JOIN library_game_identities g ON g.game_id = e.game_id
         WHERE 1 = 1 ${cursor == null ? '' : 'AND e.edition_id > ?'}
-        ${gameId == null ? '' : 'AND e.game_id = ?'}
-        ${editionId == null ? '' : 'AND e.edition_id = ?'}
+        $scope
         ORDER BY e.edition_id LIMIT 128''', [
           if (cursor != null) cursor,
-          if (gameId != null) gameId,
-          if (editionId != null) editionId,
+          ...scopeArgs,
         ]);
-        for (final row in rows) {
-          final game =
-              GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
-          final edition = EditionIdentity.fromJson(
-              jsonDecode(row['edition_json'] as String));
+        final page = rows
+            .map((row) => (
+                  row: row,
+                  game: GameIdentity.fromJson(
+                      jsonDecode(row['game_json'] as String)),
+                  edition: EditionIdentity.fromJson(
+                      jsonDecode(row['edition_json'] as String)),
+                ))
+            .toList(growable: false);
+        final metadata = <String, List<Map<String, Object?>>>{};
+        final bases = <String, GameIdentity>{};
+        if (page.isNotEmpty) {
+          final ids = page.map((item) => item.edition.id).toList();
+          for (final record in await db.query('library_metadata',
+              where:
+                  "edition_id IN (${List.filled(ids.length, '?').join(',')}) AND provider_id IN ('screenscraper', 'igdb')",
+              whereArgs: ids)) {
+            (metadata[record['edition_id'] as String] ??= []).add(record);
+          }
+          final baseIds = page
+              .map((item) => item.game.baseGameId)
+              .nonNulls
+              .toSet()
+              .toList();
+          if (baseIds.isNotEmpty) {
+            for (final base in await db.query('library_game_identities',
+                columns: ['game_id', 'record_json'],
+                where:
+                    'game_id IN (${List.filled(baseIds.length, '?').join(',')})',
+                whereArgs: baseIds)) {
+              bases[base['game_id'] as String] = GameIdentity.fromJson(
+                  jsonDecode(base['record_json'] as String));
+            }
+          }
+        }
+        for (final item in page) {
+          final (:row, :game, :edition) = item;
           await db.insert(
               'library_canonical_groups',
               {
@@ -175,9 +215,44 @@ class LibraryStore {
                 'group_key': jsonEncode(['game', game.id]),
                 'platform_id': game.platformId,
                 'identity_key': metadataIdentity(row),
+                'base_game_id': game.baseGameId,
               },
               conflictAlgorithm: ConflictAlgorithm.replace);
-          for (final claim in _canonicalClaims(game, edition)) {
+          final claims = _canonicalClaims(game, edition);
+          for (final stored
+              in metadata[edition.id] ?? const <Map<String, Object?>>[]) {
+            final provider = stored['provider_id'] as String;
+            if (stored['identity_key'] !=
+                metadataIdentity(row, providerId: provider)) {
+              continue;
+            }
+            final record = MetadataRecord.fromJson(
+                jsonDecode(stored['record_json'] as String));
+            if (!hasConsistentProvenance(record)) continue;
+            final ownership = metadataOverallOwnership(
+                game, edition, record, bases[game.baseGameId]);
+            if (provider == 'screenscraper' &&
+                record.matchMethod == 'rawRomHashAndSize' &&
+                ownership == OverallRatingOwnership.game) {
+              claims.add(jsonEncode([
+                'provider-game',
+                game.platformId,
+                provider,
+                record.providerGameId
+              ]));
+            } else if (provider == 'igdb' &&
+                record.matchMethod == 'verifiedProjectId' &&
+                ownership == OverallRatingOwnership.project) {
+              // A project-specific match never bridges an original-game ID.
+              claims.add(jsonEncode([
+                'provider-project',
+                game.platformId,
+                provider,
+                record.providerGameId
+              ]));
+            }
+          }
+          for (final claim in claims) {
             await db.insert('library_canonical_claims',
                 {'edition_id': edition.id, 'claim_key': claim});
           }
@@ -238,7 +313,8 @@ class LibraryStore {
         originalGameModifications.containsAll(edition.tags) &&
         (!edition.tags.contains('T-Eng') ||
             (edition.isTranslation == true &&
-                edition.translatedLanguages.contains('en')));
+                edition.translatedLanguages.contains('en'))) &&
+        (edition.isTranslation != true || edition.tags.contains('T-Eng'));
     final verified = game.matchStatus == IdentityMatchStatus.matched ||
         game.matchStatus == IdentityMatchStatus.manuallyMatched;
     // Only implemented, reviewed global identity namespaces are aliases. A
@@ -247,7 +323,10 @@ class LibraryStore {
     if (verified && game.platformId != null && (official || modifiedRelease)) {
       for (final provider in ['screenscraper', 'igdb']) {
         final id = game.providerIds[provider];
-        if (id != null && id.trim().isNotEmpty) {
+        final editionId = edition.providerIds[provider];
+        if (id != null &&
+            id.trim().isNotEmpty &&
+            (editionId == null || editionId == id)) {
           claims.add(
               jsonEncode(['provider-game', game.platformId, provider, id]));
         }
@@ -619,7 +698,7 @@ class LibraryStore {
             'Metadata cannot replace an assigned provider identity');
       }
       final previous = await txn.query('library_metadata',
-          columns: ['generation_id'],
+          columns: ['generation_id', 'record_json'],
           where: 'edition_id = ? AND provider_id = ?',
           whereArgs: [record.editionId, record.providerId],
           limit: 1);
@@ -642,6 +721,15 @@ class LibraryStore {
             'record_json': jsonEncode(record.toJson()),
           },
           conflictAlgorithm: ConflictAlgorithm.replace);
+      const groupingMethods = {'rawRomHashAndSize', 'verifiedProjectId'};
+      final previousMethod = previous.isEmpty
+          ? null
+          : (jsonDecode(previous.single['record_json'] as String)
+              as Map<String, dynamic>)['matchMethod'];
+      if (groupingMethods.contains(record.matchMethod) ||
+          groupingMethods.contains(previousMethod)) {
+        await indexCanonicalGroups(txn, editionId: record.editionId);
+      }
     }
 
     if (transaction != null) {

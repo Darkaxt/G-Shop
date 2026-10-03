@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,143 @@ void main() {
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+  });
+  test('production v29 upgrade backfills raw/project matches and exact facts',
+      () async {
+    final original = await databaseFactory.getDatabasesPath();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-query-migration-');
+    Database? db;
+    try {
+      await databaseFactory.setDatabasesPath(root.path);
+      DatabaseService.resetForTesting();
+      db = await DatabaseService().database;
+      final store = LibraryStore(Future.value(db));
+      final at = DateTime.utc(2026, 10, 3);
+      for (final n in [1, 2]) {
+        await db.insert('games', {
+          'id': n,
+          'systemSlug': 'snes',
+          'filename': 'Fixture$n.sfc',
+          'displayName': 'Fixture $n',
+          'url': 'https://example.invalid/$n'
+        });
+        await store.putGame(GameIdentity(
+            id: 'game:$n', platformId: 'snes', title: 'Fixture $n'));
+        await store.putEdition(EditionIdentity(
+            id: 'edition:$n', gameId: 'game:$n', tags: {'official'}));
+        await store.putMetadata(MetadataRecord(
+            gameId: 'game:$n',
+            editionId: 'edition:$n',
+            platformId: 'snes',
+            providerId: 'screenscraper',
+            providerGameId: '42',
+            retrievedAt: at,
+            refreshGeneration: 1,
+            matchMethod: 'rawRomHashAndSize',
+            titles: [MetadataText(text: 'Fixture $n')]));
+      }
+      await store.putGame(GameIdentity(
+          id: 'base',
+          platformId: 'snes',
+          title: 'Base',
+          providerIds: {'igdb': '100'},
+          matchStatus: IdentityMatchStatus.manuallyMatched));
+      for (final n in [3, 4]) {
+        await store.putGame(GameIdentity(
+            id: 'game:$n',
+            platformId: 'snes',
+            title: 'Project',
+            providerIds: {'igdb': '99'},
+            baseGameId: 'base',
+            matchStatus: IdentityMatchStatus.manuallyMatched));
+        await store.putEdition(EditionIdentity(
+            id: 'edition:$n',
+            gameId: 'game:$n',
+            tags: {'Hack'},
+            patchId: 'patch:$n'));
+        await store.putMetadata(MetadataRecord(
+            gameId: 'game:$n',
+            editionId: 'edition:$n',
+            platformId: 'snes',
+            providerId: 'igdb',
+            providerGameId: '99',
+            retrievedAt: at,
+            refreshGeneration: 1,
+            matchMethod: 'verifiedProjectId',
+            titles: const [MetadataText(text: 'Project')]));
+      }
+      await LibraryQuery(Future.value(db))
+          .replaceViewMembers('shelf:fixture', ['edition:1', 'edition:2']);
+      final factsBefore = await db.query('library_metadata');
+      final editionsBefore = await db.query('library_editions');
+      final filesBefore = await db.query('games');
+      final viewsBefore = await db.query('library_query_views');
+      // Recreate the actual v29 projection, which did not include raw matches.
+      await db.delete('library_canonical_claims');
+      for (final n in [1, 2, 3, 4]) {
+        await db.insert('library_canonical_claims', {
+          'edition_id': 'edition:$n',
+          'claim_key': jsonEncode(['game', 'game:$n'])
+        });
+        await db.update(
+            'library_canonical_groups',
+            {
+              'group_key': jsonEncode(['game', 'game:$n'])
+            },
+            where: 'edition_id = ?',
+            whereArgs: ['edition:$n']);
+      }
+      await db.execute('DROP INDEX idx_library_canonical_base');
+      await db.execute(
+          'ALTER TABLE library_canonical_groups DROP COLUMN base_game_id');
+      await db.setVersion(29);
+      await db.close();
+      DatabaseService.resetForTesting();
+      db = await DatabaseService().database;
+      expect(await db.getVersion(), 30);
+      expect(await db.query('library_metadata'), factsBefore);
+      expect(await db.query('library_editions'), editionsBefore);
+      expect(await db.query('games'), filesBefore);
+      expect(await db.query('library_query_views'), viewsBefore);
+      expect(
+          (await LibraryStore(Future.value(db)).canonicalEditions('edition:1'))
+              .editions
+              .map((e) => e.id),
+          ['edition:1', 'edition:2']);
+      await db.close();
+      DatabaseService.resetForTesting();
+      db = await DatabaseService().database;
+      expect(
+          (await LibraryStore(Future.value(db)).canonicalEditions('edition:2'))
+              .editions,
+          hasLength(2));
+      expect(
+          (await LibraryStore(Future.value(db)).canonicalEditions('edition:3'))
+              .editions
+              .map((e) => e.id),
+          ['edition:3', 'edition:4']);
+      await LibraryStore(Future.value(db)).putGame(GameIdentity(
+          id: 'base',
+          platformId: 'snes',
+          title: 'Corrected base',
+          providerIds: {'igdb': '99'},
+          matchStatus: IdentityMatchStatus.manuallyMatched));
+      expect(
+          (await LibraryStore(Future.value(db)).canonicalEditions('edition:3'))
+              .editions,
+          hasLength(1));
+      expect(await db.query('library_metadata'), factsBefore);
+    } finally {
+      await db?.close();
+      DatabaseService.resetForTesting();
+      await databaseFactory.setDatabasesPath(original);
+      if (!p.isWithin(Directory.systemTemp.path, root.path) ||
+          !p.basename(root.path).startsWith('rshop-query-migration-')) {
+        throw StateError('Unexpected fixture cleanup root');
+      }
+      await root.delete(recursive: true);
+    }
   });
   test('production v27 upgrade and cold reopen preserve facts and query views',
       () async {
@@ -96,7 +234,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 29);
+      expect(await db.getVersion(), 30);
       expect(await db.query('library_metadata'), before);
       expect(await db.query('games'), filesBefore);
       final basis = AssessedOverallScoreBasis(
@@ -119,14 +257,14 @@ void main() {
       // Upgrade must preserve existing scores/views and backfill real aliases.
       final viewsBefore = await db.query('library_query_views');
       await db.execute('DROP TABLE library_canonical_claims');
-      await db.update('library_canonical_groups',
-          {'group_key': '["game","${game.id}"]'},
+      await db.update(
+          'library_canonical_groups', {'group_key': '["game","${game.id}"]'},
           where: 'edition_id = ?', whereArgs: [id]);
       await db.setVersion(28);
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 29);
+      expect(await db.getVersion(), 30);
       expect(await db.query('library_canonical_claims'), hasLength(1));
       expect(await db.query('library_query_views'), viewsBefore);
       query = LibraryQuery(Future.value(db));

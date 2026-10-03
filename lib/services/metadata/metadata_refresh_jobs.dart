@@ -375,6 +375,7 @@ class MetadataRefreshJobs {
                     ? edition.languages.single
                     : null,
                 revision: edition.revision,
+                romIdentifier: _rawIdentifier(edition),
                 refreshGeneration: generation);
         final keyData = request?.toJson()
           ?..remove('editionId')
@@ -413,6 +414,24 @@ class MetadataRefreshJobs {
     }
     if (value is List) return value.map(_canonical).toList();
     return value;
+  }
+
+  /// Explicit compatible ROM evidence, not a provider-file/container checksum.
+  /// The edition binding preserves this assertion through lookup/publication.
+  /// Conflicting or malformed assertions leave title discovery for review; the
+  /// adapter still checks kind, filename, hash syntax, size and returned hash.
+  static MetadataRomIdentifier? _rawIdentifier(EditionIdentity edition) {
+    final evidence = edition.evidence
+        .where((item) => item.kind == 'rawRomIdentifier')
+        .toList(growable: false);
+    if (evidence.length != 1) return null;
+    try {
+      final value = jsonDecode(evidence.single.value);
+      if (value is! Map<String, dynamic>) return null;
+      return MetadataRomIdentifier.fromJson(value);
+    } on FormatException {
+      return null;
+    }
   }
 
   /// Local paged review only: displaying outcomes never starts provider requests.

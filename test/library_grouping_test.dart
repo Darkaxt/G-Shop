@@ -167,6 +167,43 @@ void main() {
   });
 
   test(
+      'inconsistent edition translation classification cannot bridge originals',
+      () async {
+    await edition('ordinary');
+    await edition('audio', tags: {'Undub'});
+    expect(await group('audio'), await group('ordinary'));
+    // A known audio modification does not explain a separately asserted
+    // translation. It must not silently become an English translation alias.
+    await edition('unclassified-translation',
+        tags: {'Undub'}, translation: true, translatedLanguages: ['fr']);
+    expect(await group('unclassified-translation'),
+        isNot(await group('ordinary')));
+    expect((await store.edition('unclassified-translation'))!.isTranslation,
+        isTrue);
+    expect(
+        (await store.edition('unclassified-translation'))!.translatedLanguages,
+        ['fr']);
+  });
+
+  test('inconsistent edition provider ID cannot bridge reviewed game IDs',
+      () async {
+    await edition('ordinary');
+    await edition('conflicting');
+    final exactEdition = (await store.edition('conflicting'))!;
+    await store.putEdition(EditionIdentity.fromJson({
+      ...exactEdition.toJson(),
+      'providerIds': {'screenscraper': '43'}
+    }));
+    expect(await group('conflicting'), isNot(await group('ordinary')));
+    // Correcting the exact edition restores the reviewed alias transactionally.
+    await store.putEdition(EditionIdentity.fromJson({
+      ...exactEdition.toJson(),
+      'providerIds': {'screenscraper': '42'}
+    }));
+    expect(await group('conflicting'), await group('ordinary'));
+  });
+
+  test(
       'identity correction and classification changes update grouping atomically',
       () async {
     await edition('first');

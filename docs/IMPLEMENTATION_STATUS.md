@@ -56,6 +56,63 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S4 verified raw/project grouping checkpoint (2026-10-03)
+
+- S4 remains the sole ACTIVE stage. The normal catalogue/refresh worker now
+  consumes one explicit typed `rawRomIdentifier` evidence value. It does not read
+  or decompress a remote ROM, promote a provider-file/container checksum, or
+  select between conflicting assertions. Malformed/ambiguous evidence remains
+  unverified discovery, with no fabricated provider identity or rating approval.
+- Current, provenance-consistent ScreenScraper `rawRomHashAndSize` metadata can
+  join renamed ordinary releases without assigning IDs to their source records.
+  Current IGDB `verifiedProjectId` metadata can join modification-project variants
+  in a separate namespace, never their original game's namespace. Publication,
+  correction and identity changes reindex in the existing SQLite transaction.
+  Exact patches/discs/editions remain selectable; an explicitly assigned unscraped
+  disc is not lost when its sibling gains a raw match.
+- An indexed base dependency revalidates project grouping when the linked original
+  changes. Invalid current bindings cannot restore a cleared assertion during
+  backfill. Stored facts remain intact for review; grouping is not authority to
+  borrow scores, install/remove files or qualify a source for Top membership.
+- Focused reproductions also exposed ordinary aliases accepting an unexplained
+  translation flag and conflicting edition/game provider IDs. Both failed before
+  production changes. Grouping now rejects those assertions consistently with
+  score ownership; correcting the exact edition restores its reviewed alias.
+- Additive v30 backfills only current assertions. The actual production v29
+  upgrade/cold-reopen fixture preserves metadata, exact editions, cached files
+  and view membership, groups raw and project variants, and invalidates project
+  grouping after base correction. Earlier v27/v28 query, v25 ownership and v26
+  freshness upgrade/reopen fixtures passed against the current v30 implementation.
+- Fresh normal worker -> actual ScreenScraper/IGDB adapters with synthetic wire
+  responses -> metadata -> offline query checks passed. They demonstrate shared
+  host integration, not live IGDB authorization or a real modified-project score.
+  No source was granted ranking eligibility. The serialized affected grouping,
+  query and migration workload exited zero (framework duration 1m13s).
+- The populated file-backed 30,000-game query passed after repairing its observer's
+  missing raw SQL forwarding. Both `query` and `rawQuery` reads are now measured.
+  Identity/metadata reads stayed at 128 rows; filters rewrote no projections and
+  ranked SQL used compact query indexes, not metadata/artwork bodies or network.
+  First projection build was 219,549 ms; two warm paged/intersection queries took
+  1,458 ms. Peak RSS was 239,411,200 bytes. This is bounded host evidence, not a
+  native latency claim. The subsequent classification/ID guards do not alter this
+  fixture's official, non-translated, non-conflicting identities. Fresh standalone
+  grouping of 30,000 games measured RSS 143,749,120 -> 215,322,624 bytes.
+- Scoped analysis of all changed production and regression files reported no
+  issues. Git whitespace checks passed. Reviewed transactional cleanup
+  `9f4bca1480f8a0809d530561ad157e09` applied all exact generated test-assets/cache
+  entries, reclaiming 57,803,685 bytes with no warnings/errors. These outputs are
+  rebuildable; original assets, private artwork-wait forensic evidence, credentials,
+  ROMs and requested APK deliverables were not cleanup targets.
+- Reconciliation: CORE-02/META-03/META-04/META-07 raw/project equivalence,
+  conflict rejection and exact-edition preservation have focused host evidence;
+  CORE-03 has additive production migration evidence. This does not close S4.
+  Remaining release/classification reconciliation, META-05 reception remediation
+  (external B4), the unexplained earlier artwork wait, and native query/artwork/
+  integration/resource acceptance remain required in S4. S1 is still BLOCKED
+  at B3/elapsed renewal; S2/S3 COMPLETE; S5-S8 NOT STARTED. No gap is deferred away.
+  No Thor, credentials, ROM bodies, SD migration or release changed. Monitoring
+  stays canceled; device testing still awaits the owner's response.
+
 ### S4 live reception assessment checkpoint (2026-10-03)
 
 - S4 remains the sole ACTIVE stage. The normal persistent worker retrieved and
@@ -340,7 +397,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed ScreenScraper/IGDB canonical grouping and rank-before-filter query; bounded edition and shared effective-score selection; additive v29 projection and disk-reopen preservation; debugger-assisted full 30,000-game artwork workflow and interrupted-job recovery | Required work remains: remaining raw-identifier/release/project reconciliation, full classification evidence, live reception assessment/B4, unexplained earlier host artwork wait and native query/artwork/integration verification |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed provider/raw/project canonical grouping and rank-before-filter query; bounded edition and shared effective-score selection; additive v30 projection and disk-reopen preservation; populated 30,000-game indexed query; debugger-assisted full 30,000-game artwork workflow and interrupted-job recovery | Required work remains: release reconciliation, full classification evidence, live reception assessment/B4, unexplained earlier host artwork wait and native query/artwork/integration/resource verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
