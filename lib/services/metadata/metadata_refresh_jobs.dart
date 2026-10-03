@@ -441,6 +441,7 @@ class MetadataRefreshJobs {
           await txn.update('library_editions',
               {'record_json': jsonEncode(correctedEdition.toJson())},
               where: 'edition_id = ?', whereArgs: [editionId]);
+          await LibraryStore.indexCanonicalGroups(txn, gameId: game.id);
           yield editionId;
         });
   }

@@ -36,6 +36,15 @@ class LibrarySchema {
       retrieved_at TEXT NOT NULL, identity_key TEXT NOT NULL, record_json TEXT NOT NULL,
       PRIMARY KEY (edition_id, provider_id)
     )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS library_canonical_groups (
+      edition_id TEXT PRIMARY KEY, group_key TEXT NOT NULL,
+      platform_id TEXT, identity_key TEXT NOT NULL
+    )''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_library_canonical_group
+      ON library_canonical_groups(group_key, edition_id)''');
+    await db
+        .execute('''CREATE INDEX IF NOT EXISTS idx_library_canonical_platform
+      ON library_canonical_groups(platform_id, group_key, edition_id)''');
   }
 }
 
@@ -48,16 +57,19 @@ class LibraryStore {
 
   Future<void> putGame(GameIdentity game) async {
     final db = await _database;
-    await db.insert(
-        'library_game_identities',
-        {
-          'game_id': game.id,
-          'platform_id': game.platformId,
-          'title': game.title,
-          'match_status': game.matchStatus.name,
-          'record_json': jsonEncode(game.toJson()),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.transaction((txn) async {
+      await txn.insert(
+          'library_game_identities',
+          {
+            'game_id': game.id,
+            'platform_id': game.platformId,
+            'title': game.title,
+            'match_status': game.matchStatus.name,
+            'record_json': jsonEncode(game.toJson()),
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      await indexCanonicalGroups(txn, gameId: game.id);
+    });
   }
 
   Future<void> putEdition(EditionIdentity edition) async {
@@ -88,6 +100,119 @@ class LibraryStore {
             'record_json': jsonEncode(edition.toJson()),
           },
           conflictAlgorithm: ConflictAlgorithm.replace);
+      await indexCanonicalGroups(txn, editionId: edition.id);
+    });
+  }
+
+  /// Indexed grouping is a projection, not a destructive identity merge. Exact
+  /// editions, patches, members, metadata ownership and transfer state survive.
+  /// Rebuild in bounded keyset pages inside the caller's identity transaction.
+  static Future<void> indexCanonicalGroups(DatabaseExecutor db,
+      {String? gameId, String? editionId}) async {
+    String? cursor;
+    while (true) {
+      final rows = await db.rawQuery('''SELECT e.edition_id,
+        e.record_json AS edition_json, g.record_json AS game_json
+        FROM library_editions e JOIN library_game_identities g ON g.game_id = e.game_id
+        WHERE 1 = 1 ${cursor == null ? '' : 'AND e.edition_id > ?'}
+        ${gameId == null ? '' : 'AND e.game_id = ?'}
+        ${editionId == null ? '' : 'AND e.edition_id = ?'}
+        ORDER BY e.edition_id LIMIT 128''', [
+        if (cursor != null) cursor,
+        if (gameId != null) gameId,
+        if (editionId != null) editionId,
+      ]);
+      for (final row in rows) {
+        final game =
+            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+        final edition =
+            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+        await db.insert(
+            'library_canonical_groups',
+            {
+              'edition_id': edition.id,
+              'group_key': _canonicalGroupKey(game, edition),
+              'platform_id': game.platformId,
+              'identity_key': metadataIdentity(row),
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      if (rows.length < 128) break;
+      cursor = rows.last['edition_id'] as String;
+    }
+  }
+
+  static String _canonicalGroupKey(GameIdentity game, EditionIdentity edition) {
+    const originalGameModifications = {'T-Eng', 'Dub', 'Undub', 'Uncensor'};
+    final official = edition.tags.length == 1 &&
+        edition.tags.contains('official') &&
+        edition.isTranslation != true;
+    final modifiedRelease = edition.tags.isNotEmpty &&
+        originalGameModifications.containsAll(edition.tags) &&
+        (!edition.tags.contains('T-Eng') ||
+            (edition.isTranslation == true &&
+                edition.translatedLanguages.contains('en')));
+    final verified = game.matchStatus == IdentityMatchStatus.matched ||
+        game.matchStatus == IdentityMatchStatus.manuallyMatched;
+    // ScreenScraper is the currently implemented identity namespace. A base ID
+    // on a hack/homebrew/demo/unknown classification cannot identify its project.
+    // Explicit editions of the same project still share their stable game ID.
+    final providerGameId = game.providerIds['screenscraper'];
+    if (verified &&
+        game.platformId != null &&
+        providerGameId != null &&
+        providerGameId.trim().isNotEmpty &&
+        (official || modifiedRelease)) {
+      return jsonEncode(
+          ['provider-game', game.platformId, 'screenscraper', providerGameId]);
+    }
+    return jsonEncode(['game', game.id]);
+  }
+
+  /// Select exact editions of one canonical game without loading its entire
+  /// metadata or artwork. A cursor covers the examined rows, including stale
+  /// rows omitted from consumption, so an empty page need not end traversal.
+  /// This does not transfer a rating, patch identity or installation ownership.
+  Future<({List<EditionIdentity> editions, String? nextEditionId})>
+      canonicalEditions(String editionId,
+          {String? afterEditionId, int limit = 50}) async {
+    if (limit < 1 || limit > 128) {
+      throw ArgumentError.value(limit, 'limit', 'Must be within 1..128');
+    }
+    final db = await _database;
+    return db.transaction((txn) async {
+      const selection = '''SELECT c.group_key, c.identity_key, c.edition_id,
+        g.record_json AS game_json, e.record_json AS edition_json
+        FROM library_canonical_groups c
+        JOIN library_editions e ON e.edition_id = c.edition_id
+        JOIN library_game_identities g ON g.game_id = e.game_id''';
+      Future<bool> current(Map<String, Object?> row) async =>
+          row['identity_key'] == metadataIdentity(row) &&
+          await isCurrentCatalogueIdentity(txn, row);
+      final anchor = await txn
+          .rawQuery('$selection WHERE c.edition_id = ? LIMIT 1', [editionId]);
+      if (anchor.isEmpty || !await current(anchor.single)) {
+        return (editions: <EditionIdentity>[], nextEditionId: null);
+      }
+      final rows = await txn.rawQuery('''$selection WHERE c.group_key = ?
+        ${afterEditionId == null ? '' : 'AND c.edition_id > ?'}
+        ORDER BY c.edition_id LIMIT ?''', [
+        anchor.single['group_key'],
+        if (afterEditionId != null) afterEditionId,
+        limit,
+      ]);
+      final editions = <EditionIdentity>[];
+      for (final row in rows) {
+        if (await current(row)) {
+          editions.add(EditionIdentity.fromJson(
+              jsonDecode(row['edition_json'] as String)));
+        }
+      }
+      return (
+        editions: editions,
+        nextEditionId:
+            rows.length == limit ? rows.last['edition_id'] as String : null
+      );
     });
   }
 
@@ -269,6 +394,7 @@ class LibraryStore {
               'record_json': jsonEncode(edition.toJson()),
             },
             conflictAlgorithm: ConflictAlgorithm.replace);
+        await indexCanonicalGroups(db, editionId: edition.id);
         yield editionId;
       }
       if (rows.length < 128) break;

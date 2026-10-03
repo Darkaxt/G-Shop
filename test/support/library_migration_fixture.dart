@@ -13,7 +13,7 @@ import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 /// Shared by the host FFI and actual Android SQLite tests. Only the caller's
 /// test-private temporary database is changed; the normal app DB is not opened.
 Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
-  if (previousVersion < 13 || previousVersion > 22) {
+  if (previousVersion < 13 || previousVersion > 23) {
     throw ArgumentError.value(previousVersion, 'previousVersion');
   }
   final previousPath = await databaseFactory.getDatabasesPath();
@@ -40,6 +40,8 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
           id: 'existing-v14',
           platformId: 'psx',
           title: 'Pre-existing identity'));
+      await LibraryStore(Future.value(opened)).putEdition(EditionIdentity(
+          id: 'existing-edition', gameId: 'existing-v14', tags: {'unknown'}));
     }
     if (previousVersion >= 15) {
       await service.saveGames('psx', [
@@ -60,7 +62,8 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
-      'metadata_provider_limits',
+      'library_canonical_groups',
+      if (previousVersion < 23) 'metadata_provider_limits',
       if (previousVersion < 21) 'transfer_replacements',
       if (previousVersion < 19) 'owned_removals',
       if (previousVersion < 18) ...[
@@ -118,7 +121,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 23);
+    expect(await opened.getVersion(), 24);
     expect(await opened.query('metadata_provider_limits'), isEmpty);
     expect(await opened.query('transfer_replacements'), isEmpty);
     expect(await opened.query('owned_removals'), isEmpty);
@@ -136,6 +139,12 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     if (previousVersion >= 14) {
       expect(
           (await store.game('existing-v14'))!.title, 'Pre-existing identity');
+      expect(
+          (await store.canonicalEditions('existing-edition'))
+              .editions
+              .single
+              .id,
+          'existing-edition');
     }
     expect(await opened.query('transfer_records'), isEmpty);
     expect(await opened.query('installed_artifacts'), isEmpty);
@@ -174,7 +183,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 23);
+    expect(await opened.getVersion(), 24);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');
@@ -193,6 +202,9 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     expect((await reopened.game('smoke-game'))!.title, 'Synthetic');
     expect(
         (await reopened.edition('smoke-edition'))!.tags, {'T-Eng', 'Uncensor'});
+    expect(
+        (await reopened.canonicalEditions('smoke-edition')).editions.single.id,
+        'smoke-edition');
   } finally {
     if (opened?.isOpen == true) await opened!.close();
     DatabaseService.resetForTesting();

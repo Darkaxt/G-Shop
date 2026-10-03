@@ -28,4 +28,6 @@ void main() {
       () => verifyLibraryMigration(previousVersion: 21));
   test('real v22 upgrade adds provider limits without changing cached games',
       () => verifyLibraryMigration(previousVersion: 22));
+  test('real v23 upgrade backfills canonical groups and reopens intact',
+      () => verifyLibraryMigration(previousVersion: 23));
 }

@@ -221,6 +221,47 @@ void main() {
   });
 
   test(
+      'catalogue review groups verified conversions without confusing changed bytes',
+      () async {
+    final firstRow = await cache('snes', 'Game.zip', artifact: remote('zip'));
+    await cache('snes', 'Game.sfc', artifact: remote('raw'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, _ReviewProvider());
+    final reviews = await jobs.reviewItems(job.id);
+    expect(reviews, hasLength(2));
+    for (final review in reviews) {
+      await jobs.acceptCandidate(job.id,
+          editionId: review.editionId,
+          providerGameId: '42',
+          contentTags: {'official'});
+    }
+    final anchor = reviews.first.editionId;
+    expect((await store.canonicalEditions(anchor)).editions, hasLength(2));
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await store.canonicalEditions(anchor)).editions, hasLength(2),
+        reason: 'Re-scraping retains reviewed grouping and exact members.');
+
+    await db.update('games',
+        {'remote_artifact': jsonEncode(remote('zip', checksum: 'b').toJson())},
+        where: 'id = ?', whereArgs: [firstRow]);
+    final unchanged =
+        reviews.singleWhere((r) => r.editionId != anchor).editionId;
+    // Either selected anchor can be the changed artifact. The unchanged exact
+    // member remains browsable; the changed object's prior binding is rejected.
+    final ids = <String>{};
+    for (final id in [anchor, unchanged]) {
+      ids.addAll((await store.canonicalEditions(id)).editions.map((e) => e.id));
+    }
+    expect(ids, hasLength(1));
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    for (final review in reviews) {
+      expect((await store.canonicalEditions(review.editionId)).editions,
+          hasLength(1),
+          reason: 'Changed bytes return to their unmatched group.');
+    }
+  });
+
+  test(
       'unoffered candidate and conflicting official tags roll back review and retry',
       () async {
     await cache('snes', 'Game.zip', artifact: remote('file'));

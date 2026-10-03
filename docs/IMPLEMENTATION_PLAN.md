@@ -333,6 +333,19 @@ reset timer or poll. Retain Retry-After and current identity checks. Account sta
 does not publish game metadata. Artwork-body fetches must use the same provider
 budget before META-06 can be closed; their cache remains required S4 work.
 
+### S4 canonical grouping boundary
+
+Maintain an indexed edition-to-group projection in the identity transaction,
+backfilled in bounded pages on upgrade. Verified ScreenScraper game IDs plus the
+platform identify ordinary/known translated/audio/restored editions; candidate
+IDs, titles, container hashes and unknown classification do not merge identities.
+Hack projects without verified project-specific identity remain under their
+explicit stable game identity, never the base provider ID. Keep exact editions,
+patches, discs, metadata bindings and installation ownership unchanged. Bounded
+edition selection validates live catalogue bytes and current identity bindings;
+grouping does not authorize borrowing ratings. Additional provider/raw-identifier
+reconciliation and the accepted-score/rank-before-filter query remain S4 work.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.

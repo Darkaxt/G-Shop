@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue full/system/item snapshots, paged local review/correction, selective failed/unmatched retry and byte-bound publication verified; provider-wide rate/daily quota persistence and explicit access recovery verified; actual ScreenScraper access-to-catalogue-to-review-to-cache host workflow passes | Required work remains: canonical grouping/conversion reconciliation, full release/classification evidence, quota-aware artwork-body cache, shared indexed ranking query, live reception assessment and native integration verification |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; provider budget and explicit recovery; actual ScreenScraper host workflow; indexed verified-game grouping, bounded edition selection and v24 backfill/reopen verified | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, quota-aware artwork-body cache, shared indexed ranking query, live reception assessment and native integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -329,6 +329,34 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 canonical grouping checkpoint (2026-10-03)
+
+- META-03/META-07: reviewed same-platform ScreenScraper identities group regional
+  and known translated/audio/restored editions once without merging exact edition,
+  patch or artifact records. Explicit multi-disc/project identities remain intact.
+  Candidate IDs, matching names, wrong platforms, unknown classification and
+  unrelated hacks carrying a base ID cannot merge. Grouping alone publishes no
+  rating and cannot establish translation/patch quality or consensus support.
+- Identity writes, review acceptance and catalogue recapture update the indexed
+  projection atomically. Host catalogue -> review -> group -> re-scrape proof
+  verifies conversion candidates only after independent explicit identity review;
+  changed bytes invalidate the old binding and return to unmatched grouping.
+  This is not automatic matching by CHD/ZIP container hashes. Remaining raw/release
+  and additional-provider reconciliation is still S4 work.
+- Bounded canonicalEditions selects at most 128 examined rows, uses stable keyset
+  cursors including omitted stale rows, validates current identity/live catalogue
+  content, and fetches no metadata/artwork bodies. EXPLAIN confirms the group
+  index. This exact-edition selector is not the still-required ranked library query.
+- Additive v24 backfills existing editions in 128-row pages; file-backed v13-v23
+  production upgrade/reopen fixtures preserve cache rows, anonymous legacy scores,
+  identities, pending work and provider quota state. Focused grouping/store and
+  catalogue/retry regressions pass. A 30,000-game projection/query fixture passes;
+  observed worker RSS was 137,609,216 bytes before and 192,233,472 bytes after.
+  These are observed endpoints, not a peak-memory claim or a full ranking proof.
+- No Thor wake/install/test, ROM transfer, SD cleanup, account modification or
+  release occurred. The unanswered native-test request remains the device boundary.
+  S4 remains the sole ACTIVE stage; no remaining criterion has been deferred away.
 
 ### S4 selective retry and provider budget checkpoint (2026-10-03)
 
