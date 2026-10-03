@@ -9,6 +9,32 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_cacheLoading => 'Chargement des métadonnées en cache…';
+
+  @override
+  String get metadata_cacheError =>
+      'Métadonnées indisponibles. Les actions ROM restent disponibles.';
+
+  @override
+  String get metadata_fieldSources => 'Sources des champs';
+
+  @override
+  String get metadata_description => 'Description';
+
+  @override
+  String get metadata_developer => 'Développeur';
+
+  @override
+  String get metadata_publisher => 'Éditeur';
+
+  @override
+  String get metadata_releaseDate => 'Date de sortie';
+
+  @override
+  String get metadata_empty =>
+      'Aucune métadonnée vérifiée en cache pour cette édition.';
+
+  @override
   String get filter_oneLimit =>
       'Une seule limite pour les consoles sélectionnées';
 

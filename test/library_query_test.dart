@@ -135,6 +135,110 @@ void main() {
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
 
+  test('normal details use the selected cached score, not a legacy average',
+      () async {
+    await seed(1, score: 82);
+    await db.execute('''CREATE TABLE game_metadata(filename TEXT,
+      system_slug TEXT, rating REAL, last_updated INTEGER)''');
+    await db.insert('game_metadata', {
+      'filename': 'Game 1.7z',
+      'system_slug': 'psx',
+      'rating': 99.0,
+      'last_updated': 0,
+    });
+    final detail = await _CacheDatabase(db).getGameMetadata('Game 1.7z', 'psx');
+    expect(detail?.rating, 82);
+    final cover = (await query.cachedRatings([1]))[1];
+    expect(detail?.overallRating?.rating.toJson(), cover?.rating.toJson());
+    expect(detail?.editionId, isNotNull);
+    expect(detail?.contentTags, {'official'});
+  });
+
+  test(
+      'details retain exact independent tags and never borrow an unrated sibling score',
+      () async {
+    await seed(1, score: 93, group: 'same-game');
+    await seed(2, group: 'same-game', tags: {'T-Eng', 'Undub', 'Uncensor'});
+    final selected = await query.cachedMetadata('Game 2.7z', 'psx');
+    expect(selected?.overallRating, isNull);
+    expect(selected?.rating, isNull);
+    expect(selected?.contentTags, {'T-Eng', 'Undub', 'Uncensor'});
+    await seed(3, tags: {'Official', 'Hack'});
+    expect((await query.cachedMetadata('Game 3.7z', 'psx'))?.contentTags,
+        {'Hack', 'unknown'});
+  });
+
+  test('details separate consoles and reject duplicate selection bindings',
+      () async {
+    await seed(1, score: 82);
+    await seed(2, score: 70, platform: 'ps2');
+    await db.update('games', {'filename': 'Game 1.7z'}, where: 'id = 2');
+    expect((await query.cachedMetadata('Game 1.7z', 'psx'))?.rating, 82);
+    expect((await query.cachedMetadata('Game 1.7z', 'ps2'))?.rating, 70);
+    await db.insert('games', {
+      'id': 3,
+      'systemSlug': 'psx',
+      'displayName': 'Other',
+      'filename': 'Game 1.7z'
+    });
+    final ambiguous = await query.cachedMetadata('Game 1.7z', 'psx');
+    expect(ambiguous, isNotNull);
+    expect(ambiguous?.editionId, isNull);
+    expect(ambiguous?.rating, isNull);
+    expect(ambiguous?.overallRating, isNull);
+  });
+
+  test('unresolved current details never promote anonymous legacy metadata',
+      () async {
+    await seed(1);
+    await db.execute('''CREATE TABLE game_metadata(filename TEXT,
+      system_slug TEXT, rating REAL, last_updated INTEGER)''');
+    await db.insert('game_metadata', {
+      'filename': 'Game 1.7z',
+      'system_slug': 'psx',
+      'rating': 99,
+      'last_updated': 0
+    });
+    final database = _CacheDatabase(db);
+    final selected = await database.getGameMetadata('Game 1.7z', 'psx');
+    expect(selected?.cacheRowId, 1);
+    expect(selected?.rating, isNull);
+    expect(selected?.hasContent, true);
+    expect(await database.getGameMetadata('artifact:missing', 'psx'), isNull);
+  });
+
+  test(
+      'detail field provenance and requested language survive cached projection',
+      () async {
+    final id = await seed(1, score: 82);
+    final current = (await store.metadata(id, 'igdb'))!;
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...current.toJson(),
+      'descriptions': [
+        const MetadataText(text: 'English', language: 'en').toJson(),
+        const MetadataText(text: 'Español', language: 'es').toJson()
+      ],
+      'fieldProvenance': {
+        'description': MetadataFieldProvenance(
+                providerId: 'igdb',
+                providerGameId: '1',
+                field: 'description',
+                retrievedAt: at)
+            .toJson()
+      }
+    }));
+    final selected =
+        await query.cachedMetadata('Game 1.7z', 'psx', language: 'es');
+    expect(selected?.summary, 'Español');
+    expect(selected?.provenance['description']?.providerId, 'igdb');
+    expect(selected?.providerMatches, {'igdb': 'verifiedProviderIdGlobalGame'});
+    await MetadataRefreshJobs(Future.value(db))
+        .createFromCatalogue(providerId: 'igdb');
+    expect(
+        (await query.cachedMetadata('Game 1.7z', 'psx'))?.overallRating?.fresh,
+        false);
+  });
+
   test(
       'console Top and tags use production scores and persist without a scrape',
       () async {

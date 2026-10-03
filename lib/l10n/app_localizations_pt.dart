@@ -9,6 +9,32 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_cacheLoading => 'Carregando metadados em cache…';
+
+  @override
+  String get metadata_cacheError =>
+      'Metadados indisponíveis. As ações de ROM continuam disponíveis.';
+
+  @override
+  String get metadata_fieldSources => 'Fontes dos campos';
+
+  @override
+  String get metadata_description => 'Descrição';
+
+  @override
+  String get metadata_developer => 'Desenvolvedor';
+
+  @override
+  String get metadata_publisher => 'Editora';
+
+  @override
+  String get metadata_releaseDate => 'Data de lançamento';
+
+  @override
+  String get metadata_empty =>
+      'Não há metadados verificados em cache para esta edição.';
+
+  @override
   String get filter_oneLimit => 'Um único limite para as consolas selecionadas';
 
   @override

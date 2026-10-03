@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/game_metadata_info.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../utils/game_metadata.dart';
+import 'metadata_score_details.dart';
 
 /// Unified game info overlay showing RomM metadata and filename tags.
 /// Opened via Quick Menu → Game Info.
@@ -32,10 +33,10 @@ class GameDetailOverlay extends StatelessWidget {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.gameButtonB,
             includeRepeats: false): onClose,
-        const SingleActivator(LogicalKeyboardKey.escape,
-            includeRepeats: false): onClose,
-        const SingleActivator(LogicalKeyboardKey.goBack,
-            includeRepeats: false): onClose,
+        const SingleActivator(LogicalKeyboardKey.escape, includeRepeats: false):
+            onClose,
+        const SingleActivator(LogicalKeyboardKey.goBack, includeRepeats: false):
+            onClose,
       },
       child: Focus(
         autofocus: true,
@@ -108,8 +109,7 @@ class GameDetailOverlay extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child:
-                  const Icon(Icons.close, color: Colors.white54, size: 18),
+              child: const Icon(Icons.close, color: Colors.white54, size: 18),
             ),
           ),
         ],
@@ -131,7 +131,10 @@ class GameDetailOverlay extends StatelessWidget {
             _buildCreditsRow(meta),
 
           // Rating
-          if (meta.rating != null) ...[
+          if (meta.overallRating != null) ...[
+            const SizedBox(height: 8),
+            MetadataScoreDetails(score: meta.overallRating!),
+          ] else if (meta.rating != null) ...[
             const SizedBox(height: 8),
             _buildRating(meta.rating!),
           ],
@@ -157,12 +160,14 @@ class GameDetailOverlay extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.08), height: 1),
             ),
             if (meta.franchiseList.isNotEmpty)
-              _buildDetailRow(l.gameDetail_franchise, meta.franchiseList.join(', ')),
-            if (meta.gameModeList.isNotEmpty)
-              _buildDetailRow(l.gameDetail_gameModes, meta.gameModeList.join(', ')),
-            if (meta.playerPerspectiveList.isNotEmpty)
               _buildDetailRow(
-                  l.gameDetail_perspective, meta.playerPerspectiveList.join(', ')),
+                  l.gameDetail_franchise, meta.franchiseList.join(', ')),
+            if (meta.gameModeList.isNotEmpty)
+              _buildDetailRow(
+                  l.gameDetail_gameModes, meta.gameModeList.join(', ')),
+            if (meta.playerPerspectiveList.isNotEmpty)
+              _buildDetailRow(l.gameDetail_perspective,
+                  meta.playerPerspectiveList.join(', ')),
             if (meta.ageRating != null)
               _buildDetailRow(l.gameDetail_ageRating, meta.ageRating!),
             if (meta.themeList.isNotEmpty)
@@ -185,12 +190,52 @@ class GameDetailOverlay extends StatelessWidget {
           ],
         ],
 
+        if (meta != null && meta.provenance.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _buildSectionLabel(l.metadata_fieldSources),
+          const SizedBox(height: 8),
+          for (final entry in meta.provenance.entries)
+            _buildDetailRow(
+                switch (entry.key) {
+                  'description' => l.metadata_description,
+                  'developer' => l.metadata_developer,
+                  'publisher' => l.metadata_publisher,
+                  'releaseDate' => l.metadata_releaseDate,
+                  'genres' => l.filter_genres,
+                  _ => entry.key,
+                },
+                '${entry.value.providerId} #${entry.value.providerGameId} · '
+                '${entry.value.retrievedAt.toIso8601String().split('T').first}'),
+        ],
+        if (meta?.cacheRowId != null &&
+            meta!.provenance.isEmpty &&
+            meta.overallRating == null &&
+            meta.summary == null &&
+            meta.genres == null)
+          Text(l.metadata_empty, style: const TextStyle(color: Colors.white70)),
+
+        if (meta != null && meta.contentTags.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _buildSectionLabel(l.filter_contentTags),
+          const SizedBox(height: 8),
+          Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: meta.contentTags
+                  .map((tag) => _GenreChip(
+                      label: tag == 'official'
+                          ? l.filter_official
+                          : tag == 'unknown'
+                              ? l.filter_unknown
+                              : tag,
+                      accentColor: accentColor))
+                  .toList()),
+        ],
         // --- File tags section ---
         if (hasTags) ...[
           if (meta != null && meta.hasContent) ...[
             const SizedBox(height: 14),
-            Divider(
-                color: Colors.white.withValues(alpha: 0.08), height: 1),
+            Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
             const SizedBox(height: 14),
           ],
           _buildSectionLabel(l.gameDetail_fileTags),
@@ -251,8 +296,19 @@ class GameDetailOverlay extends StatelessWidget {
       final parts = date.split('-');
       if (parts.length >= 3) {
         const months = [
-          '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         final month = int.tryParse(parts[1]) ?? 0;
         final day = int.tryParse(parts[2]) ?? 0;

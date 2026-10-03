@@ -64,6 +64,52 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 exact cached game-details integration (2026-10-03)
+
+- S5 remains the sole ACTIVE stage. The normal detail screen and Game Info
+  action now read the selected file/artifact's identity-bound cached metadata,
+  rather than the first metadata-bearing sibling. Details, covers and Top use
+  the same effective sourced score and unchanged production reception policy.
+  Raw scale, available/unknown count, retrieval date, ownership and stale/advisory
+  state are exposed in visible details and accessibility/tooltip text.
+- The common detail model carries current summary, genres, release/credits,
+  field provenance and independent content tags. It validates provider-scoped
+  identities/provenance before consuming records. Unrated or ambiguous current
+  bindings remain unrated; they cannot inherit a sibling or anonymous legacy
+  score. Contradictory official classification is handled identically by details
+  and discovery. Cache reads do not start scraping or fetch ROM payloads.
+- Reproduced failures before fixing: normal details returned legacy 99 instead
+  of cached 82, the existing detail card omitted sourced-score explanations,
+  and contradictory official/hack tags differed from discovery. Focused
+  regressions pass, including cross-console duplicate filenames, duplicate
+  selection rejection, independent translation/audio/censorship tags, requested
+  language, per-field provenance and stale generation after a refresh job.
+- Fresh normal-screen host proof (`788183`, exit 0; included in `60537`, exit 0)
+  uses SQLite and the actual screen/provider path at landscape desktop, 1280x720
+  and portrait 720x1280: pending indicator, controller Start to normal menu,
+  touch Game Info, sourced explanation/tags/provenance, controller close,
+  cache-error state and retry restoration. ROM actions remain independent.
+  External containers remain alive during route disposal. Synthetic fixtures
+  use Flutter's no-network test boundary; this is not Thor/live-provider proof.
+- Focused query/details/model/badge/database/discovery regression run `60537`
+  passed. Additional exact-selection checks `46673` passed. An initial command
+  referenced a nonexistent grid test path; it was corrected, not counted as a
+  pass. Scoped analysis `86088` exited 0 with no issues; formatting and Git
+  whitespace checks pass. No test/analyzer workload remains running.
+- Transactional cleanup `30cc22ad2c65a9ecc7656b5f01c9e6aa` permanently removed
+  only generated build/unit_test_assets and build/test_cache (82,637,373 bytes),
+  terminal APPLIED, no errors. All manifest candidates were inspected. These
+  compiler outputs are reproducible; source, goldens, credentials and retained
+  forensic/native evidence remain untouched. No accounts, secrets, device,
+  ROMs, cloud files, release or deployment were changed.
+- UI-02 is not COMPLETE: normal provider setup, refresh/re-scrape progress,
+  match correction and remaining cached media/detail integration still require
+  implementation/verification. UI-01/UI-03's remaining handheld/controller,
+  compact/localized and offline-scroll/request evidence also remains required.
+  These are unfinished S5 acceptance items, not later-stage deferrals. S1/B3
+  and S4/B5 remain BLOCKED; S2/S3 COMPLETE; S6-S8 NOT STARTED. The user's two
+  accepted renewals do not authorize another secret rotation or consent request.
+
 ### S5 integrated discovery filters checkpoint (2026-10-03)
 
 - S5 is the sole ACTIVE stage. Existing console filters and the library/shelf

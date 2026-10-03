@@ -1,4 +1,12 @@
 {
+  "metadata_cacheLoading": "Loading cached metadata…",
+  "metadata_cacheError": "Cached metadata is unavailable. ROM actions remain available.",
+  "metadata_fieldSources": "Field sources",
+  "metadata_description": "Description",
+  "metadata_developer": "Developer",
+  "metadata_publisher": "Publisher",
+  "metadata_releaseDate": "Release date",
+  "metadata_empty": "No verified metadata is cached for this edition.",
   "filter_oneLimit": "One limit across the selected consoles",
   "filter_scope": "Console scope",
   "filter_allScope": "All consoles · one collection-wide limit",

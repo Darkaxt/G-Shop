@@ -9,6 +9,32 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_cacheLoading => 'Metadaten aus dem Cache werden geladen…';
+
+  @override
+  String get metadata_cacheError =>
+      'Metadaten sind nicht verfügbar. ROM-Aktionen bleiben verfügbar.';
+
+  @override
+  String get metadata_fieldSources => 'Feldquellen';
+
+  @override
+  String get metadata_description => 'Beschreibung';
+
+  @override
+  String get metadata_developer => 'Entwickler';
+
+  @override
+  String get metadata_publisher => 'Herausgeber';
+
+  @override
+  String get metadata_releaseDate => 'Veröffentlichungsdatum';
+
+  @override
+  String get metadata_empty =>
+      'Für diese Edition sind keine bestätigten Metadaten gespeichert.';
+
+  @override
   String get filter_oneLimit =>
       'Ein gemeinsames Limit für die ausgewählten Konsolen';
 

@@ -9,6 +9,30 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_cacheLoading => 'キャッシュ済みメタデータを読み込み中…';
+
+  @override
+  String get metadata_cacheError => 'メタデータを利用できません。ROMの操作は引き続き利用できます。';
+
+  @override
+  String get metadata_fieldSources => '項目の情報源';
+
+  @override
+  String get metadata_description => '説明';
+
+  @override
+  String get metadata_developer => '開発元';
+
+  @override
+  String get metadata_publisher => '販売元';
+
+  @override
+  String get metadata_releaseDate => '発売日';
+
+  @override
+  String get metadata_empty => 'この版の確認済みメタデータはキャッシュされていません。';
+
+  @override
   String get filter_oneLimit => '選択したゲーム機全体で1つの上限';
 
   @override

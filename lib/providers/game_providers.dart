@@ -60,9 +60,8 @@ final visibleSystemsProvider = FutureProvider<List<SystemModel>>((ref) async {
   final hideEmpty = ref.watch(hideEmptyConsolesProvider);
 
   // Filter to systems that have a valid config entry
-  final withConfig = configured
-      .where((s) => config.systemById(s.id) != null)
-      .toList();
+  final withConfig =
+      configured.where((s) => config.systemById(s.id) != null).toList();
 
   if (!hideEmpty) return withConfig;
 
@@ -100,20 +99,23 @@ final systemSourceCountsProvider =
   final remoteCounts = await db.getRemoteGameCountsPerSystem();
   final installed = await ref.watch(installedFilesProvider.future);
 
-  final archiveExts = SystemModel.archiveExtensions
-      .map((e) => e.toLowerCase())
-      .toSet();
+  final archiveExts =
+      SystemModel.archiveExtensions.map((e) => e.toLowerCase()).toSet();
   final extsBySystem = {
-    for (final s in SystemModel.supportedSystems) s.id: {
-      ...s.romExtensions.map((e) => e.toLowerCase()),
-      if (s.multiFileExtensions != null)
-        ...s.multiFileExtensions!.map((e) => e.toLowerCase()),
-      ...archiveExts,
-    },
+    for (final s in SystemModel.supportedSystems)
+      s.id: {
+        ...s.romExtensions.map((e) => e.toLowerCase()),
+        if (s.multiFileExtensions != null)
+          ...s.multiFileExtensions!.map((e) => e.toLowerCase()),
+        ...archiveExts,
+      },
   };
 
-  final systemIds = {...remoteCounts.keys, ...installed.bySystem.keys,
-      ...installed.exactBySystem.keys};
+  final systemIds = {
+    ...remoteCounts.keys,
+    ...installed.bySystem.keys,
+    ...installed.exactBySystem.keys
+  };
   return {
     for (final id in systemIds)
       id: (
@@ -136,11 +138,14 @@ int _countRomFiles(Set<String>? filenames, Set<String>? extensions) {
 }
 
 /// Cached game metadata lookup for the detail screen.
-final gameMetadataProvider = FutureProvider.autoDispose.family<GameMetadataInfo?,
-    ({String filename, String systemSlug})>(
+final gameMetadataProvider = FutureProvider.autoDispose
+    .family<GameMetadataInfo?, ({String filename, String systemSlug})>(
   (ref, params) async {
-    final db = DatabaseService();
-    return db.getGameMetadata(params.filename, params.systemSlug);
+    ref.watch(gameDbChangedProvider);
+    final language = ref.watch(localeProvider)?.languageCode ?? 'en';
+    return ref.watch(libraryDbProvider).getGameMetadata(
+        params.filename, params.systemSlug,
+        language: language);
   },
 );
 
@@ -148,8 +153,8 @@ final gameMetadataProvider = FutureProvider.autoDispose.family<GameMetadataInfo?
 /// Returns the first metadata with content found, so grouped games show
 /// metadata even when the selected variant has none (e.g. non-RomM source).
 /// [filenames] is a '\n'-joined string to ensure stable Riverpod family equality.
-final groupMetadataProvider = FutureProvider.autoDispose.family<GameMetadataInfo?,
-    ({String filenames, String systemSlug})>(
+final groupMetadataProvider = FutureProvider.autoDispose
+    .family<GameMetadataInfo?, ({String filenames, String systemSlug})>(
   (ref, params) async {
     final db = DatabaseService();
     for (final filename in params.filenames.split('\n')) {
@@ -169,7 +174,8 @@ final groupMetadataProvider = FutureProvider.autoDispose.family<GameMetadataInfo
 ///
 /// Returns a record: `cancelled` is true when the user dismissed the picker,
 /// `error` is non-null on failure, and both false/null means success.
-Future<({bool cancelled, String? error, AppConfig? config})> importConfigFile(WidgetRef ref) async {
+Future<({bool cancelled, String? error, AppConfig? config})> importConfigFile(
+    WidgetRef ref) async {
   try {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,

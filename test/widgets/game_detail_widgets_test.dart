@@ -6,6 +6,9 @@ import 'package:retro_eshop/features/game_detail/widgets/version_card.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/game_metadata_info.dart';
 import 'package:retro_eshop/models/system_model.dart';
+import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import '../helpers/pump_helpers.dart';
 
 // ─── Test Fixtures ───────────────────────────────────────
@@ -48,6 +51,56 @@ final _testSystem = SystemModel.supportedSystems.first;
 // ─── GameMetadataInfo Model Tests ────────────────────────
 
 void main() {
+  testWidgets('normal detail card explains the same sourced score as its cover',
+      (tester) async {
+    final at = DateTime.utc(2026, 10, 3);
+    final score = selectEffectiveOverallRating(
+      game: GameIdentity(
+          id: 'game',
+          platformId: 'psx',
+          title: 'Game',
+          matchStatus: IdentityMatchStatus.manuallyMatched,
+          providerIds: const {'screenscraper': '1'}),
+      edition: EditionIdentity(
+          id: 'edition', gameId: 'game', tags: const {'official'}),
+      records: [
+        MetadataRecord(
+            gameId: 'game',
+            editionId: 'edition',
+            platformId: 'psx',
+            providerId: 'screenscraper',
+            providerGameId: '1',
+            retrievedAt: at,
+            refreshGeneration: 1,
+            matchMethod: 'verifiedProviderId',
+            titles: const [],
+            ratings: [
+              SourcedRating.parse(
+                  sourceId: 'screenscraper',
+                  sourceLabel: 'ScreenScraper',
+                  providerGameId: '1',
+                  rawValue: '17',
+                  scaleMinimum: 0,
+                  scaleMaximum: 20,
+                  kind: RatingKind.unknownAggregate,
+                  retrievedAt: at)!
+            ])
+      ],
+    )!;
+    await tester.pumpWidget(createTestApp(GameInfoCard(
+        metadata: GameMetadataInfo(
+            filename: 'game.chd',
+            systemSlug: 'psx',
+            lastUpdated: 0,
+            rating: 85,
+            overallRating: score),
+        accentColor: Colors.teal)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ScreenScraper: 85/100'), findsOneWidget);
+    expect(find.textContaining('17 (0–20)'), findsOneWidget);
+    expect(find.textContaining('Unknown ratings'), findsOneWidget);
+    expect(find.textContaining('Advisory'), findsOneWidget);
+  });
   group('GameMetadataInfo', () {
     test('hasContent true when summary set', () {
       expect(_makeMetadata(summary: 'A great game').hasContent, true);
@@ -226,10 +279,12 @@ void main() {
       expect(find.text('Nintendo EAD'), findsOneWidget);
     });
 
-    testWidgets('shows credits line with developer and publisher', (tester) async {
+    testWidgets('shows credits line with developer and publisher',
+        (tester) async {
       await tester.pumpWidget(createTestApp(
         GameInfoCard(
-          metadata: _makeMetadata(developer: 'Squaresoft', publisher: 'Nintendo'),
+          metadata:
+              _makeMetadata(developer: 'Squaresoft', publisher: 'Nintendo'),
           accentColor: Colors.redAccent,
         ),
       ));
@@ -307,7 +362,8 @@ void main() {
     testWidgets('shows truncated summary', (tester) async {
       await tester.pumpWidget(createTestApp(
         GameInfoCard(
-          metadata: _makeMetadata(summary: 'A great adventure game with puzzles.'),
+          metadata:
+              _makeMetadata(summary: 'A great adventure game with puzzles.'),
           accentColor: Colors.redAccent,
         ),
       ));

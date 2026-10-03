@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/library_identity.dart';
+import '../models/game_metadata_info.dart';
 import '../models/scraped_metadata.dart';
 import 'library_store.dart';
 
@@ -535,20 +536,8 @@ class LibraryQuery {
             }
           }
         }
-        final contradictoryOfficial = edition.tags.contains('official') &&
-            (edition.tags.length != 1 ||
-                edition.isTranslation == true ||
-                edition.translatedLanguages.isNotEmpty);
-        final tagFacets = {
-          ...edition.tags
-              .where((tag) => tag != 'official' || !contradictoryOfficial),
-          if (edition.tags.isEmpty ||
-              !EditionIdentity.knownContentTags.containsAll(edition.tags) ||
-              contradictoryOfficial)
-            'unknown'
-        };
         final facets = {
-          'tag': tagFacets,
+          'tag': _contentTags(edition),
           'genre': genres,
           'region': edition.regions.toSet(),
           'language': edition.languages.toSet()
@@ -571,6 +560,151 @@ class LibraryQuery {
         await batch.commit(noResult: true);
       }
     }
+  }
+
+  static Set<String> _contentTags(EditionIdentity edition) {
+    final contradictoryOfficial = edition.tags.contains('official') &&
+        (edition.tags.length != 1 ||
+            edition.isTranslation == true ||
+            edition.translatedLanguages.isNotEmpty);
+    return Set.unmodifiable({
+      ...edition.tags
+          .where((tag) => tag != 'official' || !contradictoryOfficial),
+      if (edition.tags.isEmpty ||
+          !EditionIdentity.knownContentTags.containsAll(edition.tags) ||
+          contradictoryOfficial)
+        'unknown',
+    });
+  }
+
+  /// One exact selected ROM's current, identity-bound metadata. This does not
+  /// look through siblings, read payloads or start a provider refresh.
+  Future<GameMetadataInfo?> cachedMetadata(
+      String selectionKey, String systemSlug,
+      {String language = 'en'}) async {
+    final db = await _database;
+    return db.transaction((txn) async {
+      final artifact = selectionKey.startsWith('artifact:');
+      final files = await txn.query('games',
+          columns: ['id', 'filename'],
+          where: 'systemSlug = ? AND is_folder = 0 AND '
+              '${artifact ? 'artifact_key = ?' : 'filename = ? AND artifact_key IS NULL'}',
+          whereArgs: [
+            systemSlug,
+            artifact ? selectionKey.substring(9) : selectionKey
+          ],
+          limit: 2);
+      if (files.isEmpty) return null;
+      // Duplicate bindings cannot inherit whichever score happens to be first.
+      if (files.length != 1) {
+        return GameMetadataInfo(
+            filename: selectionKey,
+            systemSlug: systemSlug,
+            lastUpdated: 0,
+            cacheRowId: files.first['id'] as int);
+      }
+      await _refresh(txn, productionOverallScoreBases);
+      final cacheId = files.single['id'] as int;
+      final rows = await txn.rawQuery('''SELECT e.edition_id,
+        e.record_json AS edition_json, g.record_json AS game_json
+        FROM library_query_editions q JOIN library_editions e
+          ON e.edition_id = q.edition_id
+        JOIN library_game_identities g ON g.game_id = e.game_id
+        WHERE q.cache_row_id = ? AND q.member = 1 LIMIT 2''', [cacheId]);
+      if (rows.length != 1) {
+        return GameMetadataInfo(
+            filename: selectionKey,
+            systemSlug: systemSlug,
+            lastUpdated: 0,
+            cacheRowId: cacheId);
+      }
+      final row = rows.single;
+      final game =
+          GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+      final edition =
+          EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+      GameIdentity? base;
+      if (game.baseGameId != null) {
+        final bases = await txn.query('library_game_identities',
+            where: 'game_id = ?', whereArgs: [game.baseGameId], limit: 1);
+        if (bases.isNotEmpty) {
+          base = GameIdentity.fromJson(
+              jsonDecode(bases.single['record_json'] as String));
+        }
+      }
+      final scores = await LibraryStore.readEffectiveRatings(txn, [edition.id]);
+      final overall = scores[edition.id];
+      final records = <MetadataRecord>[];
+      final stored = await txn.query('library_metadata',
+          where:
+              "edition_id = ? AND provider_id IN ('screenscraper','igdb','romm')",
+          whereArgs: [edition.id],
+          limit: 3);
+      for (final provider in ['screenscraper', 'igdb', 'romm']) {
+        for (final item in stored.where((v) => v['provider_id'] == provider)) {
+          if (item['identity_key'] !=
+              LibraryStore.metadataIdentity(row, providerId: provider)) {
+            continue;
+          }
+          final record = MetadataRecord.fromJson(
+              jsonDecode(item['record_json'] as String));
+          if (LibraryStore.hasConsistentProvenance(record) &&
+              metadataOverallOwnership(game, edition, record, base) != null) {
+            records.add(record);
+          }
+        }
+      }
+      String? localized(List<MetadataText> texts) {
+        final values = texts.where((v) => v.text.trim().isNotEmpty).toList();
+        return values.where((v) => v.language == language).firstOrNull?.text ??
+            values.where((v) => v.language == 'en').firstOrNull?.text ??
+            values.firstOrNull?.text;
+      }
+
+      final provenance = <String, MetadataFieldProvenance>{};
+      String? field(String name, String? Function(MetadataRecord) select) {
+        for (final record in records) {
+          final value = select(record);
+          if (value == null || value.trim().isEmpty) continue;
+          final evidence = record.fieldProvenance[name];
+          if (evidence != null) provenance[name] = evidence;
+          return value;
+        }
+        return null;
+      }
+
+      final summary = field('description', (r) => localized(r.descriptions));
+      final genres = field(
+          'genres',
+          (r) => r.genres
+              .map((g) => localized(g.names))
+              .whereType<String>()
+              .join(', '));
+      final developer = field('developer', (r) => r.developer);
+      final publisher = field('publisher', (r) => r.publisher);
+      final release = field('releaseDate', (r) => localized(r.releaseDates));
+      return GameMetadataInfo(
+          filename: files.single['filename'] as String,
+          systemSlug: systemSlug,
+          cacheRowId: cacheId,
+          editionId: edition.id,
+          overallRating: overall,
+          rating: overall?.rating.normalizedValue,
+          summary: summary,
+          genres: genres,
+          developer: developer,
+          publisher: publisher,
+          releaseDate: release,
+          releaseYear:
+              release == null ? null : int.tryParse(release.split('-').first),
+          contentTags: _contentTags(edition),
+          provenance: Map.unmodifiable(provenance),
+          providerMatches: Map.unmodifiable(
+              {for (final r in records) r.providerId: r.matchMethod}),
+          lastUpdated: records.isEmpty
+              ? 0
+              : records.first.retrievedAt.millisecondsSinceEpoch);
+    });
   }
 
   /// Cover badges need every exact cached edition, including non-representative

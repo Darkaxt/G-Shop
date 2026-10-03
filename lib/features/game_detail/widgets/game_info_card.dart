@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/util/color_contrast.dart';
 import '../../../models/game_metadata_info.dart';
+import 'metadata_score_details.dart';
 
 /// Compact metadata card showing genres, date, credits, summary, and rating.
 /// Full details (themes, franchise, etc.) are in the unified Game Info overlay.
@@ -70,7 +71,10 @@ class GameInfoCard extends StatelessWidget {
             ),
             if (metadata.rating != null) SizedBox(height: rs.spacing.sm),
           ],
-          if (metadata.rating != null) _buildRating(rs),
+          if (metadata.overallRating != null)
+            MetadataScoreDetails(score: metadata.overallRating!)
+          else if (metadata.rating != null)
+            _buildRating(rs),
         ],
       ),
     );
@@ -84,11 +88,14 @@ class GameInfoCard extends StatelessWidget {
             child: Wrap(
               spacing: 6,
               runSpacing: 4,
-              children: genres.take(3).map((genre) => _GenrePill(
-                    label: genre,
-                    accentColor: accentColor,
-                    isSmall: rs.isSmall,
-                  )).toList(),
+              children: genres
+                  .take(3)
+                  .map((genre) => _GenrePill(
+                        label: genre,
+                        accentColor: accentColor,
+                        isSmall: rs.isSmall,
+                      ))
+                  .toList(),
             ),
           ),
         if (metadata.releaseYear != null) ...[
@@ -112,8 +119,19 @@ class GameInfoCard extends StatelessWidget {
       final parts = date.split('-');
       if (parts.length >= 2) {
         const months = [
-          '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         final month = int.tryParse(parts[1]) ?? 0;
         final year = parts[0];

@@ -88,7 +88,8 @@ class DatabaseService {
     await db.execute('''
       CREATE UNIQUE INDEX idx_games_system_filename ON $_tableName (systemSlug, filename) WHERE artifact_key IS NULL
     ''');
-    await db.execute('CREATE UNIQUE INDEX idx_games_system_artifact ON $_tableName (systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
+    await db.execute(
+        'CREATE UNIQUE INDEX idx_games_system_artifact ON $_tableName (systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
 
     // RetroAchievements tables
     await db.execute('''
@@ -103,8 +104,8 @@ class DatabaseService {
         last_updated INTEGER NOT NULL
       )
     ''');
-    await db.execute(
-        'CREATE INDEX idx_ra_games_console ON ra_games(console_id)');
+    await db
+        .execute('CREATE INDEX idx_ra_games_console ON ra_games(console_id)');
     await db.execute(
         'CREATE INDEX idx_ra_games_norm_title ON ra_games(normalized_title)');
     await db.execute('''
@@ -114,8 +115,8 @@ class DatabaseService {
         rom_name TEXT
       )
     ''');
-    await db.execute(
-        'CREATE INDEX idx_ra_hashes_game ON ra_hashes(ra_game_id)');
+    await db
+        .execute('CREATE INDEX idx_ra_hashes_game ON ra_hashes(ra_game_id)');
     await db.execute('''
       CREATE TABLE ra_matches (
         game_filename TEXT NOT NULL,
@@ -172,14 +173,13 @@ class DatabaseService {
     }
     if (oldVersion < 3) {
       await db.transaction((txn) async {
-        await txn.execute(
-            'ALTER TABLE $_tableName ADD COLUMN provider_config TEXT');
+        await txn
+            .execute('ALTER TABLE $_tableName ADD COLUMN provider_config TEXT');
       });
     }
     if (oldVersion < 4) {
       await db.transaction((txn) async {
-        await txn.execute(
-            'ALTER TABLE $_tableName ADD COLUMN thumb_hash TEXT');
+        await txn.execute('ALTER TABLE $_tableName ADD COLUMN thumb_hash TEXT');
         await txn.execute(
             'ALTER TABLE $_tableName ADD COLUMN has_thumbnail INTEGER NOT NULL DEFAULT 0');
       });
@@ -276,28 +276,26 @@ class DatabaseService {
     }
     if (oldVersion < 11) {
       await db.transaction((txn) async {
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN publisher TEXT');
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN release_date TEXT');
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN franchises TEXT');
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN themes TEXT');
+        await txn
+            .execute('ALTER TABLE game_metadata ADD COLUMN publisher TEXT');
+        await txn
+            .execute('ALTER TABLE game_metadata ADD COLUMN release_date TEXT');
+        await txn
+            .execute('ALTER TABLE game_metadata ADD COLUMN franchises TEXT');
+        await txn.execute('ALTER TABLE game_metadata ADD COLUMN themes TEXT');
         await txn.execute(
             'ALTER TABLE game_metadata ADD COLUMN player_perspectives TEXT');
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN age_rating TEXT');
+        await txn
+            .execute('ALTER TABLE game_metadata ADD COLUMN age_rating TEXT');
       });
     }
     if (oldVersion < 12) {
       await db.transaction((txn) async {
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN screenshots TEXT');
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN file_size INTEGER');
-        await txn.execute(
-            'ALTER TABLE game_metadata ADD COLUMN siblings TEXT');
+        await txn
+            .execute('ALTER TABLE game_metadata ADD COLUMN screenshots TEXT');
+        await txn
+            .execute('ALTER TABLE game_metadata ADD COLUMN file_size INTEGER');
+        await txn.execute('ALTER TABLE game_metadata ADD COLUMN siblings TEXT');
       });
     }
     if (oldVersion < 13) {
@@ -367,8 +365,10 @@ class DatabaseService {
     await db.execute('ALTER TABLE games ADD COLUMN artifact_key TEXT');
     await db.execute('ALTER TABLE games ADD COLUMN remote_artifact TEXT');
     await db.execute('DROP INDEX idx_games_system_filename');
-    await db.execute('CREATE UNIQUE INDEX idx_games_system_filename ON games (systemSlug, filename) WHERE artifact_key IS NULL');
-    await db.execute('CREATE UNIQUE INDEX idx_games_system_artifact ON games (systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
+    await db.execute(
+        'CREATE UNIQUE INDEX idx_games_system_filename ON games (systemSlug, filename) WHERE artifact_key IS NULL');
+    await db.execute(
+        'CREATE UNIQUE INDEX idx_games_system_artifact ON games (systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
   }
 
   Future<void> saveGames(
@@ -391,7 +391,8 @@ class DatabaseService {
           whereArgs: [systemSlug],
         );
         String rowKey(Map<String, Object?> row) => row['artifact_key'] == null
-            ? 'legacy:${row['filename']}' : 'artifact:${row['artifact_key']}';
+            ? 'legacy:${row['filename']}'
+            : 'artifact:${row['artifact_key']}';
         final existingFiles = existing.map(rowKey).toSet();
         final incomingFiles = games.map((g) => g.identityKey).toSet();
 
@@ -410,11 +411,15 @@ class DatabaseService {
               'Looks like incomplete fetch data.',
             );
           }
-          final orphanList = existing.where((row) =>
-              orphans.contains(rowKey(row)) &&
-              (forceDeleteOrphans || (row['artifact_key'] != null
-                  ? _isAuthoritativeDriveOrphan(row, authoritativeDriveSourceIds)
-                  : !guardIncompleteSnapshot))).toList();
+          final orphanList = existing
+              .where((row) =>
+                  orphans.contains(rowKey(row)) &&
+                  (forceDeleteOrphans ||
+                      (row['artifact_key'] != null
+                          ? _isAuthoritativeDriveOrphan(
+                              row, authoritativeDriveSourceIds)
+                          : !guardIncompleteSnapshot)))
+              .toList();
           for (var i = 0; i < orphanList.length; i += 100) {
             final chunk = orphanList.skip(i).take(100).toList();
             final placeholders = List.filled(chunk.length, '?').join(',');
@@ -423,10 +428,13 @@ class DatabaseService {
               [systemSlug, ...chunk.map((row) => row['id'])],
             );
             // Only legacy orphan rows own these historical filename keys.
-            final legacyNames = chunk.where((row) => row['artifact_key'] == null)
-                .map((row) => row['filename']).toList();
+            final legacyNames = chunk
+                .where((row) => row['artifact_key'] == null)
+                .map((row) => row['filename'])
+                .toList();
             if (legacyNames.isEmpty) continue;
-            final legacyPlaceholders = List.filled(legacyNames.length, '?').join(',');
+            final legacyPlaceholders =
+                List.filled(legacyNames.length, '?').join(',');
             await txn.rawDelete(
               'DELETE FROM game_metadata WHERE system_slug = ? AND filename IN ($legacyPlaceholders)',
               [systemSlug, ...legacyNames],
@@ -476,7 +484,9 @@ class DatabaseService {
               : jsonEncode(
                   game.alternativeSources.map((a) => a.toJson()).toList()),
           game.remoteArtifact?.id.key,
-          game.remoteArtifact == null ? null : jsonEncode(game.remoteArtifact!.toJson()),
+          game.remoteArtifact == null
+              ? null
+              : jsonEncode(game.remoteArtifact!.toJson()),
         ]);
       }
       await batch.commit(noResult: true);
@@ -488,7 +498,8 @@ class DatabaseService {
   /// establishes authority to delete another source's cache entries.
   static bool _isAuthoritativeDriveOrphan(
       Map<String, Object?> row, Set<String> authoritativeSourceIds) {
-    if (authoritativeSourceIds.isEmpty || row['remote_artifact'] == null ||
+    if (authoritativeSourceIds.isEmpty ||
+        row['remote_artifact'] == null ||
         row['artifact_key'] == null) {
       return false;
     }
@@ -510,8 +521,7 @@ class DatabaseService {
       'SELECT systemSlug, COUNT(*) as count FROM $_tableName GROUP BY systemSlug',
     );
     return {
-      for (final row in rows)
-        row['systemSlug'] as String: row['count'] as int,
+      for (final row in rows) row['systemSlug'] as String: row['count'] as int,
     };
   }
 
@@ -638,13 +648,17 @@ class DatabaseService {
               displayName: map['displayName'] as String,
               url: map['url'] as String,
               cachedCoverUrl: map['cover_url'] as String?,
-              providerConfig: _decodeProviderConfig(
-                  map['provider_config'] as String?),
+              providerConfig:
+                  _decodeProviderConfig(map['provider_config'] as String?),
               hasThumbnail: (map['has_thumbnail'] as int?) == 1,
               isFolder: (map['is_folder'] as int?) == 1,
               alternativeSources: _decodeAlternativeSources(
                   map['alternative_sources'] as String?),
-              remoteArtifact: map['remote_artifact'] == null ? null : RemoteArtifact.fromJson(jsonDecode(map['remote_artifact'] as String) as Map<String, dynamic>),
+              remoteArtifact: map['remote_artifact'] == null
+                  ? null
+                  : RemoteArtifact.fromJson(
+                      jsonDecode(map['remote_artifact'] as String)
+                          as Map<String, dynamic>),
             ))
         .toList();
   }
@@ -704,7 +718,9 @@ class DatabaseService {
       // Exact remote references never acquire installation ownership merely
       // because a local filename exists. This only removes their cache row;
       // installation records and local files remain untouched.
-      if (row['artifact_key'] == null && folder != null && _isFilenameOnDisk(folder, filename)) {
+      if (row['artifact_key'] == null &&
+          folder != null &&
+          _isFilenameOnDisk(folder, filename)) {
         installedRows.add(row['id'] as int);
       } else {
         orphanRows.add(row['id'] as int);
@@ -780,8 +796,10 @@ class DatabaseService {
     });
   }
 
-  static String _escapeLike(String input) =>
-      input.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+  static String _escapeLike(String input) => input
+      .replaceAll('\\', '\\\\')
+      .replaceAll('%', '\\%')
+      .replaceAll('_', '\\_');
 
   Future<List<Map<String, dynamic>>> getAllGames({
     String? orderBy,
@@ -851,8 +869,7 @@ class DatabaseService {
   static ProviderConfig? _decodeProviderConfig(String? json) {
     if (json == null) return null;
     try {
-      return ProviderConfig.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+      return ProviderConfig.fromJson(jsonDecode(json) as Map<String, dynamic>);
     } catch (e) {
       debugPrint('Failed to decode provider config: $e');
       return null;
@@ -864,9 +881,12 @@ class DatabaseService {
   );
 
   static const _regionMap = {
-    'USA': 'USA', 'U': 'USA',
-    'Europe': 'Europe', 'E': 'Europe',
-    'Japan': 'Japan', 'J': 'Japan',
+    'USA': 'USA',
+    'U': 'USA',
+    'Europe': 'Europe',
+    'E': 'Europe',
+    'Japan': 'Japan',
+    'J': 'Japan',
     'Germany': 'Germany',
     'France': 'France',
     'Spain': 'Spain',
@@ -898,9 +918,14 @@ class DatabaseService {
     });
   }
 
-  Future<GameMetadataInfo?> getGameMetadata(
-      String filename, String systemSlug) async {
+  Future<GameMetadataInfo?> getGameMetadata(String filename, String systemSlug,
+      {String language = 'en'}) async {
     final db = await database;
+    final current = await LibraryQuery(Future.value(db))
+        .cachedMetadata(filename, systemSlug, language: language);
+    if (current != null) return current;
+    // Exact artifact selections must never fall back to a filename-only record.
+    if (filename.startsWith('artifact:')) return null;
     final rows = await db.query(
       'game_metadata',
       where: 'filename = ? AND system_slug = ?',
@@ -934,8 +959,8 @@ class DatabaseService {
     final now = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {
       // Clear existing games for this console
-      await txn.delete('ra_games',
-          where: 'console_id = ?', whereArgs: [consoleId]);
+      await txn
+          .delete('ra_games', where: 'console_id = ?', whereArgs: [consoleId]);
       // Also clear hashes for games of this console (cascading cleanup)
       await txn.rawDelete('''
         DELETE FROM ra_hashes WHERE ra_game_id NOT IN (
@@ -1015,8 +1040,7 @@ class DatabaseService {
     );
   }
 
-  Future<void> saveRaHashes(
-      int raGameId, List<RaHashEntry> hashes) async {
+  Future<void> saveRaHashes(int raGameId, List<RaHashEntry> hashes) async {
     final db = await database;
     await db.transaction((txn) async {
       final batch = txn.batch();

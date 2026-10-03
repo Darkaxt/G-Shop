@@ -1,4 +1,12 @@
 {
+  "metadata_cacheLoading": "Chargement des métadonnées en cache…",
+  "metadata_cacheError": "Métadonnées indisponibles. Les actions ROM restent disponibles.",
+  "metadata_fieldSources": "Sources des champs",
+  "metadata_description": "Description",
+  "metadata_developer": "Développeur",
+  "metadata_publisher": "Éditeur",
+  "metadata_releaseDate": "Date de sortie",
+  "metadata_empty": "Aucune métadonnée vérifiée en cache pour cette édition.",
   "filter_oneLimit": "Une seule limite pour les consoles sélectionnées",
   "filter_scope": "Consoles incluses",
   "filter_allScope": "Toutes les consoles · une seule limite",

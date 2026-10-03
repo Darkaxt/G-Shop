@@ -94,20 +94,36 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   @override
   Map<Type, Action<Intent>> get screenActions => {
         BackIntent: CallbackAction<BackIntent>(
-          onInvoke: (_) { _handleBack(); return null; },
+          onInvoke: (_) {
+            _handleBack();
+            return null;
+          },
         ),
-        ConfirmIntent: OverlayGuardedAction<ConfirmIntent>(ref,
-          onInvoke: (_) { _handleConfirm(); return null; },
+        ConfirmIntent: OverlayGuardedAction<ConfirmIntent>(
+          ref,
+          onInvoke: (_) {
+            _handleConfirm();
+            return null;
+          },
           isEnabledOverride: _dialogOrNoOverlay,
         ),
-        NavigateIntent: OverlayGuardedAction<NavigateIntent>(ref,
-          onInvoke: (intent) { _handleNavigate(intent.direction); return null; },
+        NavigateIntent: OverlayGuardedAction<NavigateIntent>(
+          ref,
+          onInvoke: (intent) {
+            _handleNavigate(intent.direction);
+            return null;
+          },
           isEnabledOverride: _dialogOrNoOverlay,
         ),
-        FavoriteIntent: OverlayGuardedAction<FavoriteIntent>(ref,
-          onInvoke: (_) { _handleFavorite(); return null; },
+        FavoriteIntent: OverlayGuardedAction<FavoriteIntent>(
+          ref,
+          onInvoke: (_) {
+            _handleFavorite();
+            return null;
+          },
         ),
-        ToggleOverlayIntent: ToggleOverlayAction(ref, onToggle: toggleQuickMenu),
+        ToggleOverlayIntent:
+            ToggleOverlayAction(ref, onToggle: toggleQuickMenu),
       };
 
   @override
@@ -133,7 +149,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     );
     _controller!.addListener(_onControllerChanged);
 
-    _romChangeSubscription = ref.listenManual(romChangeSignalProvider, (prev, next) {
+    _romChangeSubscription =
+        ref.listenManual(romChangeSignalProvider, (prev, next) {
       if (!mounted) return;
       if (prev != null && prev != next) {
         _controller?.checkInstallationStatus();
@@ -152,7 +169,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
     final error = _controller?.state.error;
     if (error != null) {
-      showErrorNotification(context, ref, message: L.of(context).gameDetail_errorPrefix(error));
+      showErrorNotification(context, ref,
+          message: L.of(context).gameDetail_errorPrefix(error));
     }
   }
 
@@ -332,7 +350,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (controller.state.isOverlayOpen || controller.state.isSharing) return;
 
     if (!controller.state.isVariantInstalled) {
-      showConsoleNotification(context, message: L.of(context).gameDetail_gameNotInstalled);
+      showConsoleNotification(context,
+          message: L.of(context).gameDetail_gameNotInstalled);
       ref.read(feedbackServiceProvider).cancel();
       return;
     }
@@ -356,7 +375,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     } catch (e) {
       debugPrint('Share failed: $e');
       if (mounted) {
-        showConsoleNotification(context, message: L.of(context).gameDetail_couldNotShare);
+        showConsoleNotification(context,
+            message: L.of(context).gameDetail_couldNotShare);
       }
     } finally {
       controller.setSharing(false);
@@ -380,7 +400,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ref: ref,
         shelves: addable,
         onSelect: (shelfId) {
-          ref.read(customShelvesProvider.notifier)
+          ref
+              .read(customShelvesProvider.notifier)
               .addGameToShelf(shelfId, variant.selectionKey);
         },
       );
@@ -401,10 +422,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             (r) => r.matches(variant.displayName, widget.system.id),
           );
           if (matchesFilter) {
-            ref.read(customShelvesProvider.notifier)
+            ref
+                .read(customShelvesProvider.notifier)
                 .excludeGameFromShelf(shelfId, variant.selectionKey);
           } else {
-            ref.read(customShelvesProvider.notifier)
+            ref
+                .read(customShelvesProvider.notifier)
                 .removeGameFromShelf(shelfId, variant.selectionKey);
           }
         },
@@ -420,8 +443,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     ref.read(feedbackServiceProvider).tick();
     controller.toggleFullFilename();
     ref.read(storageServiceProvider).setShowFullFilename(
-      controller.state.showFullFilename,
-    );
+          controller.state.showFullFilename,
+        );
   }
 
   void _handleFavorite() {
@@ -430,7 +453,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (controller.state.isOverlayOpen) return;
 
     ref.read(feedbackServiceProvider).tick();
-    ref.read(favoriteGamesProvider.notifier).toggleFavorite(controller.selectedVariant.selectionKey);
+    ref
+        .read(favoriteGamesProvider.notifier)
+        .toggleFavorite(controller.selectedVariant.selectionKey);
   }
 
   void _tryNavigateToAchievements() {
@@ -479,7 +504,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
     final queueManager = ref.read(downloadQueueManagerProvider);
     final sizeBefore = queueManager.state.queue.length;
-    queueManager.addToQueue(modifiedGame, widget.system, widget.targetFolder, autoExtract: widget.autoExtract);
+    queueManager.addToQueue(modifiedGame, widget.system, widget.targetFolder,
+        autoExtract: widget.autoExtract);
     if (queueManager.state.queue.length > sizeBefore) {
       _fireAddToQueueAnimation();
     }
@@ -492,8 +518,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       await _emulatorLauncher.open(game, widget.system, widget.targetFolder);
     } catch (error) {
       if (!mounted) return;
-      final code = error is PlatformException ? error.code : 'installation_unavailable';
-      showConsoleNotification(context, message: 'Could not open verified ROM: $code');
+      final code =
+          error is PlatformException ? error.code : 'installation_unavailable';
+      showConsoleNotification(context,
+          message: 'Could not open verified ROM: $code');
     }
   }
 
@@ -502,24 +530,32 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (controller == null) return [];
     final variant = controller.selectedVariant;
     final metadata = GameMetadata.parse(variant.filename);
-    final isFavorite = ref.read(favoriteGamesProvider).contains(variant.selectionKey);
+    final isFavorite =
+        ref.read(favoriteGamesProvider).contains(variant.selectionKey);
     final hasDownloads = ref.read(hasQueueItemsProvider);
     final hasAlternatives = variant.alternativeSources.isNotEmpty;
-    final variantFilenames = widget.variants.map((v) => v.selectionKey).join('\n');
-    final richMetadata = ref.read(groupMetadataProvider(
-      (filenames: variantFilenames, systemSlug: widget.system.id),
-    )).valueOrNull;
+    final richMetadata = ref
+        .read(gameMetadataProvider(
+          (filename: variant.selectionKey, systemSlug: widget.system.id),
+        ))
+        .valueOrNull;
     final hasDetails = richMetadata?.hasContent ?? false;
     final raMatches =
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.raMatchKey];
     return [
-      if (controller.state.isVariantInstalled && OwnedEmulatorLauncher.supports(variant, widget.system))
-        QuickMenuItem(label: 'Open in Dolphin', icon: Icons.play_arrow_rounded,
+      if (controller.state.isVariantInstalled &&
+          OwnedEmulatorLauncher.supports(variant, widget.system))
+        QuickMenuItem(
+            label: 'Open in Dolphin',
+            icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
       QuickMenuItem(
-        label: isFavorite ? L.of(context).common_unfavorite : L.of(context).common_favorite,
-        icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        label: isFavorite
+            ? L.of(context).common_unfavorite
+            : L.of(context).common_favorite,
+        icon:
+            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         shortcutHint: '−',
         onSelect: _handleFavorite,
         highlight: isFavorite,
@@ -537,20 +573,25 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           onSelect: () => _navigateToAchievements(raMatch),
         ),
       QuickMenuItem(
-        label: controller.state.showFullFilename ? L.of(context).gameDetail_showTitle : L.of(context).gameDetail_showFilename,
+        label: controller.state.showFullFilename
+            ? L.of(context).gameDetail_showTitle
+            : L.of(context).gameDetail_showFilename,
         icon: Icons.text_fields_rounded,
         onSelect: _handleFilenameToggle,
       ),
       if (hasAlternatives && !controller.state.isVariantInstalled) ...[
         null,
         QuickMenuItem(
-          label: L.of(context).gameDetail_fromProvider(variant.providerConfig?.detailLabel ?? 'Primary'),
+          label: L.of(context).gameDetail_fromProvider(
+              variant.providerConfig?.detailLabel ?? 'Primary'),
           icon: Icons.cloud_download_outlined,
           onSelect: () => controller.performAction(),
         ),
         for (final alt in variant.alternativeSources)
           QuickMenuItem(
-            label: L.of(context).gameDetail_fromProvider(alt.providerConfig.detailLabel),
+            label: L
+                .of(context)
+                .gameDetail_fromProvider(alt.providerConfig.detailLabel),
             icon: Icons.cloud_download_outlined,
             onSelect: () => _downloadFromSource(alt),
           ),
@@ -573,7 +614,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                   ref: ref,
                   shelves: addable,
                   onSelect: (shelfId) {
-                    ref.read(customShelvesProvider.notifier)
+                    ref
+                        .read(customShelvesProvider.notifier)
                         .addGameToShelf(shelfId, variant.selectionKey);
                   },
                 );
@@ -581,8 +623,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             );
           } else {
             final containing = allShelves
-                .where((s) => s.containsGame(
-                    variant.selectionKey, variant.displayName, widget.system.id))
+                .where((s) => s.containsGame(variant.selectionKey,
+                    variant.displayName, widget.system.id))
                 .toList();
             return QuickMenuItem(
               label: L.of(context).gameDetail_removeFromShelf,
@@ -599,10 +641,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                       (r) => r.matches(variant.displayName, widget.system.id),
                     );
                     if (matchesFilter) {
-                      ref.read(customShelvesProvider.notifier)
+                      ref
+                          .read(customShelvesProvider.notifier)
                           .excludeGameFromShelf(shelfId, variant.selectionKey);
                     } else {
-                      ref.read(customShelvesProvider.notifier)
+                      ref
+                          .read(customShelvesProvider.notifier)
                           .removeGameFromShelf(shelfId, variant.selectionKey);
                     }
                   },
@@ -692,17 +736,19 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final GameMetadataFull fileMetadata =
         GameMetadata.parse(selectedVariant.filename);
     final isMultiRom = widget.variants.length > 1;
-    final isFavorite = ref.watch(favoriteGamesProvider).contains(controller.selectedVariant.selectionKey);
+    final isFavorite = ref
+        .watch(favoriteGamesProvider)
+        .contains(controller.selectedVariant.selectionKey);
     final raMatches =
         ref.watch(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[selectedVariant.raMatchKey];
 
     // Fetch rich metadata
-    final variantFilenames = widget.variants.map((v) => v.selectionKey).join('\n');
-    final gameMetadata = ref.watch(groupMetadataProvider(
-      (filenames: variantFilenames, systemSlug: widget.system.id),
+    final gameMetadata = ref.watch(gameMetadataProvider(
+      (filename: selectedVariant.selectionKey, systemSlug: widget.system.id),
     ));
-    final richMetadata = gameMetadata.valueOrNull;
+    final richMetadata =
+        gameMetadata.isLoading ? null : gameMetadata.valueOrNull;
 
     // Update available sections based on current data
     controller.updateAvailableSections(
@@ -718,8 +764,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final hasShelves = ref.watch(customShelvesProvider).isNotEmpty;
     final isShareable = state.isVariantInstalled && !state.isSharing;
     final disabledButtons = <int>{
-      if (!isShareable) 1,  // Share button index
-      if (!hasShelves) 2,    // Collection button index
+      if (!isShareable) 1, // Share button index
+      if (!hasShelves) 2, // Collection button index
     };
 
     controller.clampHorizontalIndices(
@@ -739,109 +785,147 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         },
         child: Scaffold(
           backgroundColor: Colors.black,
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: _CoverBackground(
-                coverUrl: selectedVariant.cachedCoverUrl ?? coverUrls.firstOrNull,
-                accentColor: widget.system.accentColor,
-              ),
-            ),
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                // Reserve space at the bottom so content never sits behind the HUD
-                padding: const EdgeInsets.only(bottom: 56),
-                child: rs.isPortrait
-                    ? _buildPortraitLayout(rs, state, controller, fileMetadata,
-                        richMetadata, isMultiRom, coverUrls, selectedVariant,
-                        isFavorite, raMatch)
-                    : _buildLandscapeLayout(rs, state, controller, fileMetadata,
-                        richMetadata, isMultiRom, coverUrls, selectedVariant,
-                        isFavorite, raMatch),
-              ),
-            ),
-            _buildControls(state, controller),
-            if (showQuickMenu)
-              QuickMenuOverlay(
-                items: _buildQuickMenuItems(),
-                onClose: closeQuickMenu,
-              ),
-            DialogFocusScope(
-              isVisible: state.isDialogOpen,
-              onClose: controller.cancelDialog,
-              child: ConfirmDialog(
-                type: ConfirmDialogType.delete,
-                selection: state.dialogSelection,
-                gameTitle: controller.cleanTitle,
-                details: controller.removalPreview,
-                onPrimary: () async {
-                  await controller.deleteRom();
-                  ref.read(romChangeSignalProvider.notifier).state++;
-                  ref.invalidate(visibleSystemsProvider);
-                  controller.cancelDialog();
-                  requestScreenFocus();
-                },
-                onSecondary: controller.cancelDialog,
-              ),
-            ),
-            if (state.showGameInfo)
-              OverlayFocusScope(
-                priority: OverlayPriority.dialog,
-                isVisible: state.showGameInfo,
-                onClose: controller.closeGameInfo,
-                child: Builder(
-                  builder: (context) {
-                    return GameDetailOverlay(
-                      richMetadata: richMetadata,
-                      fileMetadata: fileMetadata,
-                      gameTitle: controller.cleanTitle,
-                      accentColor: widget.system.accentColor,
-                      onClose: controller.closeGameInfo,
-                    );
-                  },
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: _CoverBackground(
+                  coverUrl:
+                      selectedVariant.cachedCoverUrl ?? coverUrls.firstOrNull,
+                  accentColor: widget.system.accentColor,
                 ),
               ),
-            if (state.showVariantPicker && isMultiRom)
-              VariantPickerOverlay(
-                variants: widget.variants,
-                system: widget.system,
-                installedStatus: state.installedStatus,
-                onDownload: (index) async {
-                  final success = await controller.addVariantToQueue(index);
-                  if (success) _fireAddToQueueAnimation();
-                  return success;
-                },
-                onDelete: (index) {
-                  controller.selectVariant(index);
-                  controller.closeVariantPicker();
-                  controller.showDeleteDialog();
-                },
-                onClose: () {
-                  controller.closeVariantPicker();
-                  requestScreenFocus();
-                },
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  // Reserve space at the bottom so content never sits behind the HUD
+                  padding: const EdgeInsets.only(bottom: 56),
+                  child: Column(children: [
+                    if (gameMetadata.isLoading)
+                      Semantics(
+                          label: L.of(context).metadata_cacheLoading,
+                          child: const LinearProgressIndicator())
+                    else if (gameMetadata.hasError)
+                      Row(children: [
+                        Expanded(
+                            child: Text(L.of(context).metadata_cacheError,
+                                style: const TextStyle(color: Colors.white70))),
+                        TextButton(
+                            onPressed: () => ref.invalidate(
+                                    gameMetadataProvider((
+                                  filename: selectedVariant.selectionKey,
+                                  systemSlug: widget.system.id
+                                ))),
+                            child: Text(L.of(context).common_retry)),
+                      ]),
+                    Expanded(
+                        child: rs.isPortrait
+                            ? _buildPortraitLayout(
+                                rs,
+                                state,
+                                controller,
+                                fileMetadata,
+                                richMetadata,
+                                isMultiRom,
+                                coverUrls,
+                                selectedVariant,
+                                isFavorite,
+                                raMatch)
+                            : _buildLandscapeLayout(
+                                rs,
+                                state,
+                                controller,
+                                fileMetadata,
+                                richMetadata,
+                                isMultiRom,
+                                coverUrls,
+                                selectedVariant,
+                                isFavorite,
+                                raMatch)),
+                  ]),
+                ),
               ),
-            if (state.showScreenshotViewer &&
-                (richMetadata?.screenshotUrlList.isNotEmpty ?? false))
-              ScreenshotFullscreen(
-                screenshots: richMetadata!.screenshotUrlList,
-                initialIndex: state.screenshotIndex,
-                accentColor: widget.system.accentColor,
-                onClose: () {
-                  controller.closeScreenshotViewer();
-                  requestScreenFocus();
-                },
+              _buildControls(state, controller),
+              if (showQuickMenu)
+                QuickMenuOverlay(
+                  items: _buildQuickMenuItems(),
+                  onClose: closeQuickMenu,
+                ),
+              DialogFocusScope(
+                isVisible: state.isDialogOpen,
+                onClose: controller.cancelDialog,
+                child: ConfirmDialog(
+                  type: ConfirmDialogType.delete,
+                  selection: state.dialogSelection,
+                  gameTitle: controller.cleanTitle,
+                  details: controller.removalPreview,
+                  onPrimary: () async {
+                    await controller.deleteRom();
+                    ref.read(romChangeSignalProvider.notifier).state++;
+                    ref.invalidate(visibleSystemsProvider);
+                    controller.cancelDialog();
+                    requestScreenFocus();
+                  },
+                  onSecondary: controller.cancelDialog,
+                ),
               ),
-          ],
+              if (state.showGameInfo)
+                OverlayFocusScope(
+                  priority: OverlayPriority.dialog,
+                  isVisible: state.showGameInfo,
+                  onClose: controller.closeGameInfo,
+                  child: Builder(
+                    builder: (context) {
+                      return GameDetailOverlay(
+                        richMetadata: richMetadata,
+                        fileMetadata: fileMetadata,
+                        gameTitle: controller.cleanTitle,
+                        accentColor: widget.system.accentColor,
+                        onClose: controller.closeGameInfo,
+                      );
+                    },
+                  ),
+                ),
+              if (state.showVariantPicker && isMultiRom)
+                VariantPickerOverlay(
+                  variants: widget.variants,
+                  system: widget.system,
+                  installedStatus: state.installedStatus,
+                  onDownload: (index) async {
+                    final success = await controller.addVariantToQueue(index);
+                    if (success) _fireAddToQueueAnimation();
+                    return success;
+                  },
+                  onDelete: (index) {
+                    controller.selectVariant(index);
+                    controller.closeVariantPicker();
+                    controller.showDeleteDialog();
+                  },
+                  onClose: () {
+                    controller.closeVariantPicker();
+                    requestScreenFocus();
+                  },
+                ),
+              if (state.showScreenshotViewer &&
+                  (richMetadata?.screenshotUrlList.isNotEmpty ?? false))
+                ScreenshotFullscreen(
+                  screenshots: richMetadata!.screenshotUrlList,
+                  initialIndex: state.screenshotIndex,
+                  accentColor: widget.system.accentColor,
+                  onClose: () {
+                    controller.closeScreenshotViewer();
+                    requestScreenFocus();
+                  },
+                ),
+            ],
+          ),
         ),
-      ),
       ),
       onKeyEvent: _handleKeyEvent,
     );
   }
 
-  int _getSiblingOrVariantCount(GameMetadataInfo? richMetadata, bool isMultiRom) {
+  int _getSiblingOrVariantCount(
+      GameMetadataInfo? richMetadata, bool isMultiRom) {
     return OtherVersionsSection.entryCount(
       variants: widget.variants,
       siblings: richMetadata?.siblingList ?? const [],
@@ -906,15 +990,22 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                 SizedBox(height: rs.spacing.sm),
                 // Action buttons always anchored at bottom of left column
                 _buildSection(
-                  rs, state, controller, DetailSection.primaryAction,
+                  rs,
+                  state,
+                  controller,
+                  DetailSection.primaryAction,
                   fileMetadata: fileMetadata,
                   richMetadata: richMetadata,
                   isMultiRom: isMultiRom,
                   raMatch: raMatch,
-                  isFocused: controller.focusedSection == DetailSection.primaryAction,
+                  isFocused:
+                      controller.focusedSection == DetailSection.primaryAction,
                 ),
                 _buildSection(
-                  rs, state, controller, DetailSection.actions,
+                  rs,
+                  state,
+                  controller,
+                  DetailSection.actions,
                   fileMetadata: fileMetadata,
                   richMetadata: richMetadata,
                   isMultiRom: isMultiRom,
@@ -1010,7 +1101,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         for (final section in sections)
           if (!(excludeActions && leftColumnSections.contains(section)))
             _buildSection(
-              rs, state, controller, section,
+              rs,
+              state,
+              controller,
+              section,
               fileMetadata: fileMetadata,
               richMetadata: richMetadata,
               isMultiRom: isMultiRom,
@@ -1059,10 +1153,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         );
 
       case DetailSection.primaryAction:
-        content = _buildPrimaryActionSection(state, controller, isMultiRom, isFocused: isFocused);
+        content = _buildPrimaryActionSection(state, controller, isMultiRom,
+            isFocused: isFocused);
 
       case DetailSection.actions:
-        content = _buildIconButtonsSection(state, controller, isFocused: isFocused);
+        content =
+            _buildIconButtonsSection(state, controller, isFocused: isFocused);
 
       case DetailSection.screenshots:
         content = ScreenshotsCarousel(
@@ -1132,7 +1228,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   // HUD controls
   // ---------------------------------------------------------------------------
 
-  Widget _buildControls(GameDetailState state, GameDetailController controller) {
+  Widget _buildControls(
+      GameDetailState state, GameDetailController controller) {
     if (showQuickMenu) return const SizedBox.shrink();
 
     final l = L.of(context);
@@ -1178,9 +1275,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     return ConsoleHud(
       b: HudAction(l.common_back, onTap: () => Navigator.pop(context)),
       a: aHint.isNotEmpty ? HudAction(aHint, onTap: _handleConfirm) : null,
-      dpad: hasHorizontalNav
-          ? (label: '', action: l.common_navigate)
-          : null,
+      dpad: hasHorizontalNav ? (label: '', action: l.common_navigate) : null,
       select: HudAction(l.common_favorite, onTap: _handleFavorite),
       start: HudAction(l.common_menu, onTap: toggleQuickMenu),
     );
@@ -1208,8 +1303,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                 ? titleFontSize * 0.8
                 : titleFontSize,
             fontWeight: FontWeight.bold,
-            fontFamily:
-                controller.state.showFullFilename ? 'monospace' : null,
+            fontFamily: controller.state.showFullFilename ? 'monospace' : null,
             height: 1.1,
             shadows: const [
               Shadow(
@@ -1274,7 +1368,6 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     );
   }
 
-
   Widget _buildPrimaryActionSection(
     GameDetailState state,
     GameDetailController controller,
@@ -1290,9 +1383,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     // For multi-ROM: check all variants, pick the most "active" one.
     if (baseState == DownloadButtonState.download ||
         baseState == DownloadButtonState.delete) {
-      final variantsToCheck = isMultiRom
-          ? widget.variants
-          : [controller.selectedVariant];
+      final variantsToCheck =
+          isMultiRom ? widget.variants : [controller.selectedVariant];
 
       for (final variant in variantsToCheck) {
         final gameId = DownloadQueueManager.idFor(variant, widget.system);
@@ -1342,7 +1434,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     GameDetailController controller, {
     required bool isFocused,
   }) {
-    final isFavorite = ref.watch(favoriteGamesProvider)
+    final isFavorite = ref
+        .watch(favoriteGamesProvider)
         .contains(controller.selectedVariant.selectionKey);
 
     final hasShelves = ref.watch(customShelvesProvider).isNotEmpty;
@@ -1360,7 +1453,6 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       onCollection: () => _handleCollection(controller),
     );
   }
-
 
   // ---------------------------------------------------------------------------
   // Shared helpers

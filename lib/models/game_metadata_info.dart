@@ -1,4 +1,6 @@
 import 'dart:convert';
+import '../services/metadata/effective_overall_rating.dart';
+import 'scraped_metadata.dart';
 
 class SiblingInfo {
   final String name;
@@ -39,6 +41,14 @@ class GameMetadataInfo {
   final String? siblings;
   final int lastUpdated;
 
+  /// Runtime cache projection only; never written into the legacy RomM table.
+  final int? cacheRowId;
+  final String? editionId;
+  final EffectiveOverallRating? overallRating;
+  final Set<String> contentTags;
+  final Map<String, MetadataFieldProvenance> provenance;
+  final Map<String, String> providerMatches;
+
   const GameMetadataInfo({
     required this.filename,
     required this.systemSlug,
@@ -58,9 +68,16 @@ class GameMetadataInfo {
     this.fileSizeBytes,
     this.siblings,
     required this.lastUpdated,
+    this.cacheRowId,
+    this.editionId,
+    this.overallRating,
+    this.contentTags = const {},
+    this.provenance = const {},
+    this.providerMatches = const {},
   });
 
   bool get hasContent =>
+      cacheRowId != null ||
       summary != null ||
       genres != null ||
       developer != null ||
@@ -72,6 +89,7 @@ class GameMetadataInfo {
 
   /// Whether enough metadata exists to show the compact card.
   bool get hasCardContent =>
+      overallRating != null ||
       summary != null ||
       genres != null ||
       developer != null ||

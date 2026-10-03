@@ -9,6 +9,32 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_cacheLoading => 'Loading cached metadata…';
+
+  @override
+  String get metadata_cacheError =>
+      'Cached metadata is unavailable. ROM actions remain available.';
+
+  @override
+  String get metadata_fieldSources => 'Field sources';
+
+  @override
+  String get metadata_description => 'Description';
+
+  @override
+  String get metadata_developer => 'Developer';
+
+  @override
+  String get metadata_publisher => 'Publisher';
+
+  @override
+  String get metadata_releaseDate => 'Release date';
+
+  @override
+  String get metadata_empty =>
+      'No verified metadata is cached for this edition.';
+
+  @override
   String get filter_oneLimit => 'One limit across the selected consoles';
 
   @override

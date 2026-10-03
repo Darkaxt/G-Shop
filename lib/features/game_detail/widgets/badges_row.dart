@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/util/color_contrast.dart';
 import '../../../models/game_metadata_info.dart';
+import 'metadata_score_details.dart';
 
 class BadgesRow extends StatelessWidget {
   final GameMetadataInfo metadata;
@@ -53,7 +54,9 @@ class BadgesRow extends StatelessWidget {
           isSmall: rs.isSmall,
         ),
         // Star rating with numeric value
-        if (metadata.rating != null)
+        if (metadata.overallRating != null)
+          MetadataScoreDetails(score: metadata.overallRating!, compact: true)
+        else if (metadata.rating != null)
           _CompactRating(
             rating: metadata.rating!,
             accentColor: accentColor,
@@ -78,8 +81,19 @@ class BadgesRow extends StatelessWidget {
       final parts = date.split('-');
       if (parts.length >= 3) {
         const months = [
-          '', 'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.',
-          'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.',
+          '',
+          'Jan.',
+          'Feb.',
+          'Mar.',
+          'Apr.',
+          'May',
+          'Jun.',
+          'Jul.',
+          'Aug.',
+          'Sep.',
+          'Oct.',
+          'Nov.',
+          'Dec.',
         ];
         final month = int.tryParse(parts[1]) ?? 0;
         final day = int.tryParse(parts[2]) ?? 0;
@@ -90,8 +104,19 @@ class BadgesRow extends StatelessWidget {
       }
       if (parts.length >= 2) {
         const months = [
-          '', 'Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.',
-          'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.',
+          '',
+          'Jan.',
+          'Feb.',
+          'Mar.',
+          'Apr.',
+          'May',
+          'Jun.',
+          'Jul.',
+          'Aug.',
+          'Sep.',
+          'Oct.',
+          'Nov.',
+          'Dec.',
         ];
         final month = int.tryParse(parts[1]) ?? 0;
         final year = parts[0];
@@ -156,7 +181,8 @@ class _AgeRatingBadge extends StatelessWidget {
   });
 
   /// Splits a comma-separated rating string into individual badge widgets.
-  static List<Widget> fromRatingString(String? rating, {required bool isSmall}) {
+  static List<Widget> fromRatingString(String? rating,
+      {required bool isSmall}) {
     if (rating == null || rating.isEmpty) return const [];
     return rating
         .split(',')

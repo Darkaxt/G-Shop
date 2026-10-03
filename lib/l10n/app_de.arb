@@ -1,4 +1,12 @@
 {
+  "metadata_cacheLoading": "Metadaten aus dem Cache werden geladen…",
+  "metadata_cacheError": "Metadaten sind nicht verfügbar. ROM-Aktionen bleiben verfügbar.",
+  "metadata_fieldSources": "Feldquellen",
+  "metadata_description": "Beschreibung",
+  "metadata_developer": "Entwickler",
+  "metadata_publisher": "Herausgeber",
+  "metadata_releaseDate": "Veröffentlichungsdatum",
+  "metadata_empty": "Für diese Edition sind keine bestätigten Metadaten gespeichert.",
   "filter_oneLimit": "Ein gemeinsames Limit für die ausgewählten Konsolen",
   "filter_scope": "Konsolenumfang",
   "filter_allScope": "Alle Konsolen · ein gemeinsames Limit",

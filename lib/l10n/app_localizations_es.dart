@@ -9,6 +9,32 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_cacheLoading => 'Cargando metadatos en caché…';
+
+  @override
+  String get metadata_cacheError =>
+      'Los metadatos no están disponibles. Las acciones de ROM siguen disponibles.';
+
+  @override
+  String get metadata_fieldSources => 'Fuentes de los campos';
+
+  @override
+  String get metadata_description => 'Descripción';
+
+  @override
+  String get metadata_developer => 'Desarrollador';
+
+  @override
+  String get metadata_publisher => 'Editor';
+
+  @override
+  String get metadata_releaseDate => 'Fecha de lanzamiento';
+
+  @override
+  String get metadata_empty =>
+      'No hay metadatos verificados en caché para esta edición.';
+
+  @override
   String get filter_oneLimit =>
       'Un único límite para las consolas seleccionadas';
 

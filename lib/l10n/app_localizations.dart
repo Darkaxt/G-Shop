@@ -105,6 +105,54 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_cacheLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading cached metadata…'**
+  String get metadata_cacheLoading;
+
+  /// No description provided for @metadata_cacheError.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached metadata is unavailable. ROM actions remain available.'**
+  String get metadata_cacheError;
+
+  /// No description provided for @metadata_fieldSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Field sources'**
+  String get metadata_fieldSources;
+
+  /// No description provided for @metadata_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get metadata_description;
+
+  /// No description provided for @metadata_developer.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer'**
+  String get metadata_developer;
+
+  /// No description provided for @metadata_publisher.
+  ///
+  /// In en, this message translates to:
+  /// **'Publisher'**
+  String get metadata_publisher;
+
+  /// No description provided for @metadata_releaseDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Release date'**
+  String get metadata_releaseDate;
+
+  /// No description provided for @metadata_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No verified metadata is cached for this edition.'**
+  String get metadata_empty;
+
   /// No description provided for @filter_oneLimit.
   ///
   /// In en, this message translates to:
