@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../models/library_identity.dart';
 import '../models/scraped_metadata.dart';
+import 'metadata/effective_overall_rating.dart';
 
 /// Additive v14 schema. Legacy file-keyed cache and anonymous ratings remain
 /// untouched; they are not promoted into the fresh identity/metadata namespace.
@@ -593,6 +594,112 @@ class LibraryStore {
     return MetadataRecord.fromJson(
         jsonDecode(rows.single['record_json'] as String)
             as Map<String, dynamic>);
+  }
+
+  /// Shared page-level score selection for cards, details and the S4 query.
+  /// Reads at most 128 requested identities and their selected providers, never
+  /// the entire library. This is not a collection-membership or Top query.
+  /// Identity edits and live catalogue byte/removal changes are checked within
+  /// the same read transaction; retained obsolete facts cannot supply a score.
+  Future<Map<String, EffectiveOverallRating?>> effectiveRatings(
+      List<String> editionIds,
+      {List<AssessedOverallScoreBasis> assessedBases = const []}) async {
+    if (editionIds.length > 128 || editionIds.any((id) => id.trim().isEmpty)) {
+      throw ArgumentError(
+          'Rating pages require at most 128 nonempty edition IDs');
+    }
+    final ids = editionIds.toSet().toList(growable: false);
+    final bases = List<AssessedOverallScoreBasis>.unmodifiable(assessedBases);
+    final sources = {
+      'screenscraper',
+      'igdb',
+      'romm',
+      ...bases.map((basis) => basis.sourceId)
+    }.toList(growable: false);
+    if (sources.length > 8) {
+      throw ArgumentError('Rating pages require at most eight score sources');
+    }
+    final result = {for (final id in ids) id: null as EffectiveOverallRating?};
+    if (ids.isEmpty) return Map.unmodifiable(result);
+    final db = await _database;
+    return db.transaction((txn) async {
+      final marks = List.filled(ids.length, '?').join(',');
+      final identities = await txn.rawQuery('''SELECT e.edition_id,
+        g.record_json AS game_json, e.record_json AS edition_json
+        FROM library_editions e
+        JOIN library_game_identities g ON g.game_id = e.game_id
+        WHERE e.edition_id IN ($marks)''', ids);
+      final decoded = <String,
+          ({
+        Map<String, Object?> row,
+        GameIdentity game,
+        EditionIdentity edition
+      })>{};
+      final baseIds = <String>{};
+      for (final row in identities) {
+        final game =
+            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+        final edition =
+            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+        decoded[edition.id] = (row: row, game: game, edition: edition);
+        if (game.baseGameId != null) baseIds.add(game.baseGameId!);
+      }
+      final baseGames = <String, GameIdentity>{};
+      if (baseIds.isNotEmpty) {
+        final rows = await txn.query('library_game_identities',
+            columns: ['record_json'],
+            where: 'game_id IN (${List.filled(baseIds.length, '?').join(',')})',
+            whereArgs: baseIds.toList());
+        for (final row in rows) {
+          final game =
+              GameIdentity.fromJson(jsonDecode(row['record_json'] as String));
+          baseGames[game.id] = game;
+        }
+      }
+      final metadata = await txn.rawQuery('''SELECT m.edition_id, m.provider_id,
+        m.identity_key, m.record_json,
+        EXISTS (SELECT 1 FROM metadata_refresh_items i
+          JOIN metadata_refresh_jobs j ON j.id = i.job_id
+          WHERE i.edition_id = m.edition_id AND i.identity_key = m.identity_key
+            AND j.provider_id = m.provider_id AND j.is_artwork = 0
+            AND j.generation > m.generation_id) AS newer_requested
+        FROM library_metadata m
+        WHERE m.edition_id IN ($marks) AND m.provider_id IN
+          (${List.filled(sources.length, '?').join(',')}) LIMIT ?''',
+          [...ids, ...sources, ids.length * sources.length]);
+      final records = <String, List<MetadataRecord>>{};
+      final staleSources = <String, Set<String>>{};
+      for (final row in metadata) {
+        final id = row['edition_id'] as String;
+        final identity = decoded[id];
+        if (identity == null ||
+            row['identity_key'] !=
+                metadataIdentity(identity.row,
+                    providerId: row['provider_id'] as String)) {
+          continue;
+        }
+        final record =
+            MetadataRecord.fromJson(jsonDecode(row['record_json'] as String));
+        if (hasConsistentProvenance(record)) {
+          (records[id] ??= []).add(record);
+          if (row['newer_requested'] == 1) {
+            (staleSources[id] ??= {}).add(record.providerId);
+          }
+        }
+      }
+      for (final entry in decoded.entries) {
+        final identity = entry.value;
+        if (!await isCurrentCatalogueIdentity(txn, identity.row)) continue;
+        result[entry.key] = selectEffectiveOverallRating(
+            game: identity.game,
+            edition: identity.edition,
+            records: records[entry.key] ?? const [],
+            baseGame: baseGames[identity.game.baseGameId],
+            assessedBases: bases,
+            staleProviderIds: staleSources[entry.key] ?? const {});
+      }
+      return Map<String, EffectiveOverallRating?>.unmodifiable(result);
+    });
   }
 
   /// Metadata stays stored as evidence, but cannot be consumed under a changed

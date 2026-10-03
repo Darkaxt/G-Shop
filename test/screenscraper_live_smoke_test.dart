@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
@@ -173,6 +174,16 @@ void main() {
     expect(artwork.counts, {'matched': 2});
     expect(artwork.requested, 2);
     provider.close();
+    final rating = (await LibraryStore(Future.value(db))
+        .effectiveRatings([review.editionId]))[review.editionId];
+    expect(rating, isNotNull);
+    expect(rating!.rating.toJson(), cached.ratings.single.toJson());
+    expect(rating.ownership, OverallRatingOwnership.game);
+    expect(rating.fresh, isTrue);
+    expect(rating.rankingEligible, isFalse,
+        reason:
+            'A real successful lookup is not the META-05 reception assessment.');
+    expect(rating.assessmentReference, isNull);
     final offline = MetadataArtworkCache(Future.value(db), root);
     for (final media in selected) {
       final file =
@@ -186,6 +197,13 @@ void main() {
         await jobs.createFromCatalogue(providerId: provider.providerId);
     expect(fresh.counts, {'pending': 1},
         reason: 'Cached success cannot skip an explicit fresh scrape.');
+    final retained = (await LibraryStore(Future.value(db))
+        .effectiveRatings([review.editionId]))[review.editionId]!;
+    expect(retained.rating.toJson(), cached.ratings.single.toJson());
+    expect(retained.fresh, isFalse,
+        reason:
+            'An explicit newer scrape retains, but marks stale, the old score.');
+    expect(retained.rankingEligible, isFalse);
   },
       skip: developer.isConfigured && user.isConfigured
           ? false

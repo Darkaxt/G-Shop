@@ -74,6 +74,7 @@ class MetadataRefreshJobs {
       ON metadata_refresh_items(job_id, status, edition_id)''');
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_metadata_refresh_lookup
       ON metadata_refresh_items(job_id, lookup_key, status, edition_id)''');
+    await installRatingFreshnessIndex(db);
     // One worker across job objects sharing this database, without a timer lease.
     await db
         .execute('''CREATE UNIQUE INDEX IF NOT EXISTS idx_metadata_one_worker
@@ -111,6 +112,12 @@ class MetadataRefreshJobs {
       ON metadata_artwork_items(job_id, media_key, status, edition_id)''');
     await MetadataArtworkCache.install(db);
   }
+
+  /// Exact edition lookup for current score-generation checks, not a scan of
+  /// historical jobs for every card. Installed additively by the v27 upgrade.
+  static Future<void> installRatingFreshnessIndex(DatabaseExecutor db) =>
+      db.execute('''CREATE INDEX IF NOT EXISTS idx_metadata_refresh_edition
+        ON metadata_refresh_items(edition_id, job_id)''');
 
   /// Called once by database startup, never by a second live job runner.
   static Future<void> recoverInterrupted(DatabaseExecutor db) async {

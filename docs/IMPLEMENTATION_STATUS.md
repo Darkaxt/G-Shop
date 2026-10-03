@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow with offline reads; indexed verified-game grouping; bounded edition selection; additive v25 upgrade and disk-reopen proof | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, shared indexed ranking query, live reception assessment, full large-fixture artwork/resource assessment and native integration verification |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow with offline score reads; indexed verified-game grouping; bounded edition and shared effective-score selection; additive v27 upgrade/current-generation index and disk-reopen proof | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, shared indexed ranking query, live reception assessment, full large-fixture artwork/resource assessment and native integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -329,6 +329,68 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 shared effective-score checkpoint (2026-10-03)
+
+- A single sourced-overall selector now preserves raw scale, attribution, count
+  and ownership for shared cache consumers. Assessed source precedence, when
+  eventually backed by the required live reception evidence, selects the same
+  score for display and ranking. It never selects the highest provider score or
+  averages critic/community components. Production accepts no ranking basis yet;
+  explicit synthetic policies in tests are not a live assessment or a user option.
+- Unassessed ordinary display has fixed candidate precedence, preferring current
+  records over legacy generations. Imported approval flags, low sample counts,
+  unknown counts without a separately recorded confidence assessment, mismatched
+  basis scale/platform and stale generations cannot establish ranked membership.
+  Scores remain sourced facts, not declarations that unrated games are inferior.
+- Verified project ownership is distinct from explicitly labelled original-game
+  scores on known combined translation/audio/restoration tags. Unknown/candidate
+  identities, contradictory classification, conflicting edition/game/provider
+  assignments and a hack's base ID cannot supply an overlay. Compatible verified
+  raw-ROM metadata can supply an ordinary official-game score without requiring
+  an unnecessary manual provider-ID correction.
+- `LibraryStore.effectiveRatings` supplies an immutable page of at most 128
+  requested editions in a SQLite transaction. It validates current owning-provider
+  bindings and live catalogue bytes/removal; pure renames remain usable. Patch,
+  provider-ID and content changes do not reuse obsolete scores, and independent
+  provider records survive another provider's correction. Cache facts are retained,
+  not deleted. This page reader is not the indexed collection/Top/filter query.
+- A newer requested refresh for the same current edition/provider binding marks
+  the retained score stale, including pending and blocked jobs after a service
+  restart. It cannot remain ranking-eligible merely because its historical
+  generation is positive. A current successful publication restores eligibility
+  only under the separate accepted-basis gate. Artwork and unrelated owners do
+  not supersede game-score generations; no age timer or automatic request runs.
+  The reproduction failed before correction and now passes. Production v26->v27
+  upgrade/reopen preserves metadata, dates, work-item progress and paused recovery;
+  SQLite EXPLAIN confirms use of the new exact-edition/job index. Earlier v13-v25
+  upgrade/reopen checks also pass against v27.
+- The new behavior was checked first against failing selection cases, then real
+  SQLite current-cache/correction/rename/removal fixtures. The focused selector,
+  store and existing provenance/identity checks passed. Additional reproductions
+  exposed stale-primary preference, conflicting edition-ID override and
+  contradictory official/Hack classification; those now pass after fixing the
+  actual selection rules. No full-suite run or broad resource proof is claimed.
+- Real host proof used the normal ScreenScraper catalogue -> candidate review ->
+  retry -> metadata/cover/screenshot pipeline. After closing its connection, the
+  shared score reader returned exactly the fetched raw/provenance score, marked
+  current but unranked. Its explicit next-generation request retains that exact
+  score as stale, without a new network read. The final focused live test exited
+  zero (7 seconds); this is
+  one live title, not the required 20-game/four-console reception assessment.
+  Final scoped analysis of the affected production/test files exited zero with
+  no issues after the v27 generation check; the verified implementation remained
+  unchanged afterwards.
+- Transactional cleanup `d09a3bac1eef595ee5240f29cbdb213b` removed only reviewed,
+  task-generated Flutter test assets/compiled cache (57,013,805 bytes); applied
+  with no warnings or errors. Source assets, requested APKs, credentials and ROMs
+  remain intact.
+- S4 remains the sole ACTIVE stage. Indexed current-collection ranking/filter
+  queries, remaining provider/raw/release reconciliation and classification,
+  live reception assessment/B4, full large-fixture artwork/resource assessment
+  and native integration remain required. S1 stays BLOCKED at B3 and elapsed
+  renewal evidence; S2/S3 are COMPLETE; S5-S8 remain NOT STARTED. Monitoring stays
+  cancelled. No Thor, credentials, ROMs, SD retention policy or release changed.
 
 ### S4 independent metadata ownership checkpoint (2026-10-03)
 

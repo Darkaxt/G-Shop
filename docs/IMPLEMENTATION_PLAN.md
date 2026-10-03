@@ -384,6 +384,38 @@ outside catalogues/exported configuration. Live access, the representative
 reception comparison, source precedence and native secure setup remain S4/S5
 acceptance work. No imported approval flag or successful image fetch enables Top.
 
+### S4 effective overall-score boundary
+
+Use one selector for cached card/detail scores and ranking eligibility. Select
+one sourced overall, not the highest value or an average of provider components.
+The application supplies benchmark-established source precedence and scope only
+after META-05's live assessment passes; provider/import JSON cannot supply that
+policy. No source is accepted by default. Each accepted basis retains its evidence
+reference, original scale/kind, assessed platform coverage and assessed sample
+support. Unknown counts require their separately recorded confidence assessment;
+known counts below the assessed threshold cannot become ranked consensus.
+
+Before acceptance, ordinary score display uses current ScreenScraper, identified
+IGDB overall, then identified RomM overall in fixed order, with retained legacy
+generations only after current records. A newer requested refresh for the same
+edition/provider binding marks retained facts stale until current publication;
+pending or blocked refreshes do not keep old scores ranking-eligible. Artwork
+and unrelated providers do not supersede that binding. No age timer is used.
+This order is display-only, not source
+reliability approval. Accepted, supported sources take their assessed precedence
+for both display and ranking. Omit uncertain identities/classifications and
+conflicting provider IDs; label a verified original-game score on a known
+translation/audio/restoration separately from a verified modification project's
+score. Never qualify a hack using its base-game score.
+
+Page-level cache reads are capped at 128 requested exact editions and revalidate
+owning-provider identity bindings plus current catalogue bytes/removal inside one
+SQLite transaction. The additive v27 edition/job index supports that generation
+check without replacing stored facts or job progress. These reads do not establish
+collection membership, canonical ranks
+or filter intersection. The indexed collection-scoped Top/filter query, large
+ranked fixture and native integration remain required S4 acceptance work.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.
