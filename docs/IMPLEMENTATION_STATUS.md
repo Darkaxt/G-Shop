@@ -18,10 +18,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
   verified transfer, native process recovery, bundles and owned installations.
-  S4 is BLOCKED at B4 after native query/artwork and metadata ownership checks.
-  S5-S8 NOT STARTED. The next permitted implementation stage is S5, using the
-  verified cache/query interfaces; its Top acceptance still depends on resolving
-  S4/META-05. No parallel ACTIVE stage is created by this checkpoint.
+  S4 is ACTIVE again: B4 application authentication is resolved by the authorized
+  dedicated Twitch app and a real review/publication/offline-consumption check.
+  Its representative reception assessment and earlier unexplained host artwork
+  wait remain required. S5-S8 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; ScreenScraper developer credentials are stored in the ignored local
@@ -57,6 +57,64 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S4 dedicated Twitch registration and live IGDB verification (2026-10-03)
+
+- The owner explicitly authorized a separate Twitch application and local
+  configuration update, then completed sign-in. `R-Shop Metadata Private` is
+  registered as Confidential/Application Integration with an unused loopback
+  redirect. The existing application is untouched. Only the two IGDB keys in
+  ignored `.env.local` were replaced; ScreenScraper configuration is preserved.
+  No credentials or bearer tokens are embedded, committed or displayed in logs.
+- Secret-generation clicks reported browser dispatch failures after opening the
+  confirmation. The owner accepted two generations before the ambiguity was
+  recognized. No further generation occurred; the latest displayed pair was
+  saved and subsequently authenticated successfully. This was an execution error,
+  not a reason to keep renewing credentials.
+- The first real workflow reached authenticated IGDB HTTP 200 but exposed the
+  existing scalar platform filter: `platforms = 19` excludes originals available
+  on additional platforms. Searches returned single-platform mods instead;
+  the original-score ownership guard correctly refused to publish a hack's score
+  as official. The documented membership filter `platforms = (19)` corrects the
+  discovery query without adding requests, retries or fallback branches.
+- A focused multiplatform-query regression failed against the old query and
+  passed after correction. The provider/normal persistent-job ownership checks
+  passed. The live smoke review now selects the literal public title instead of
+  punctuation-stripped equivalence, so `Super "Mario" World` cannot stand in for
+  `Super Mario World`.
+- Fresh real adapter -> catalogue discovery -> explicit candidate review ->
+  sourced overall/critic/community scores with counts -> persisted SQLite ->
+  provider closed/offline consumption passed, exit 0. The API pair is working;
+  B4 is resolved. This is not approval of scores for Top membership: the broader
+  META-05 reception assessment remains ordinary required S4 work. S4 is ACTIVE,
+  S1 remains BLOCKED at B3/elapsed renewal, S2/S3 COMPLETE, S5-S8 NOT STARTED.
+  No Thor mutation, bulk scrape, ROM transfer, migration, monitoring or release.
+- Scoped analysis of the changed provider and test files passed with no issues,
+  exit 0. Final Git whitespace/scope review passed. Reviewed cleanup
+  `be2ef810d105f9d819d6b08c015e9df6` is terminal APPLIED: regenerated test assets
+  and kernel cache only, 57,347,389 bytes removed, no warnings/errors. These are
+  reproducible outputs, not source assets or APKs; credentials and prior
+  diagnostics are outside the cleanup roots.
+
+### B4 credential-boundary revalidation (2026-10-03)
+
+- The owner correctly pointed out that IGDB credentials are already supplied.
+  Both keys are present in the ignored `.env.local`, with no enclosing quotes,
+  outer whitespace, inline comment or process-environment override. Presence is
+  not the blocker and no replacement application/account is required by this
+  finding.
+- A fresh independent PowerShell form POST, outside Dart/Dio/the job worker,
+  returned HTTP 403 with the fixed classification `invalid-client-secret` and
+  no token. This narrows B4 to rejection of the supplied secret, not an absent
+  setup, Thor availability or an inferred user-password problem. Request data,
+  response bodies and credentials were not printed or persisted. The documented
+  Twitch token form was rechecked; no app credential or secret was changed.
+- The earlier Twitch tab is no longer present. The new existing-application
+  management tab reaches Twitch's unauthenticated login form. Owner sign-in/MFA
+  is needed to inspect the actual registered application and reconcile its secret.
+  At that checkpoint no new app was authorized. The owner's subsequent explicit
+  authorization and sign-in resolved this handoff as recorded above. Never reset
+  another application's secret or reuse another service's user password.
 
 ### S4 native metadata ownership and classification reconciliation (2026-10-03)
 

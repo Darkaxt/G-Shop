@@ -35,6 +35,27 @@ the resulting package and restore the normal `lib/main.dart` debug APK afterward
 with `adb install -r`; never use uninstall/reinstall as a testing reset. Synthetic
 fixtures already clean only their registered paths, not application data.
 
+## Dedicated IGDB development registration (2026-10-03)
+
+The owner-authorized Twitch application `R-Shop Metadata Private` is registered
+as Confidential / Application Integration. Its loopback redirect is unused by
+IGDB's app-token flow. The existing Twitch application was not modified.
+The matching `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` are stored only in the ignored
+`.env.local`; do not embed this private application's secret in an APK or Git.
+
+The actual adapter's authenticated catalogue search, manual identity review,
+score publication and offline SQLite consumption passed with:
+
+```powershell
+& D:\Tools\flutter\bin\flutter.bat test --no-pub --concurrency=1 --tags=live test/igdb_live_smoke_test.dart
+```
+
+Discovery uses array membership rather than scalar platform equality, following
+[IGDB's filter contract](https://api-docs.igdb.com/#filters). This admits games
+released on the selected platform and others; returned platform and reviewed
+identity checks still apply. Live access does not itself approve score reception
+or Top membership under META-05.
+
 ## Android identity before consent or installation
 
 | Variant | Application ID | Label | Signer |

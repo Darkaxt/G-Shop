@@ -80,9 +80,11 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
           readCredentials: () async =>
               const IgdbCredentials('fixture-id', 'fixture-secret'));
 
-  test('title discovery needs review and cannot publish an extreme score',
+  test('title discovery includes multiplatform games and still requires review',
       () async {
-    final transport = _Transport([fixture]);
+    final transport = _Transport([
+      {...fixture, 'platforms': [19, 5]}
+    ]);
     final api = provider(transport);
     addTearDown(api.close);
     final result = await api.lookup(request());
@@ -90,6 +92,8 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     expect(result.record, isNull);
     expect(result.candidates.single.providerGameId, '123');
     expect(result.candidates.single.titleMatched, isTrue);
+    expect(transport.requests.last.data, contains('where platforms = (19);'),
+        reason: 'Scalar equality excludes originals released on other platforms.');
   });
 
   test(

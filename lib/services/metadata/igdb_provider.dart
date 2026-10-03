@@ -120,7 +120,7 @@ class IgdbMetadataProvider implements MetadataProvider {
         _tokenOwner = credentials;
       }
       final query = 'fields $_fields; '
-          '${id == null ? 'search ${jsonEncode(request.title)}; where platforms = $platform;' : 'where id = $id;'} limit 30;';
+          '${id == null ? 'search ${jsonEncode(request.title)}; where platforms = ($platform);' : 'where id = $id;'} limit 30;';
       final response = await _post(
           'https://api.igdb.com/v4/games',
           query,

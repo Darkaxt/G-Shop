@@ -73,6 +73,7 @@ Map<String, String> _configuration() {
 }
 
 void main() {
+  const liveGameTitle = 'Super Mario World';
   final configuration = _configuration();
   final credentials = IgdbCredentials(configuration['IGDB_CLIENT_ID'] ?? '',
       configuration['IGDB_CLIENT_SECRET'] ?? '');
@@ -93,7 +94,7 @@ void main() {
       displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
     await db.insert(
-        'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World'});
+        'games', {'systemSlug': 'snes', 'displayName': liveGameTitle});
     final jobs = MetadataRefreshJobs(Future.value(db));
     final transport = _BoundaryTransport();
     final provider = IgdbMetadataProvider(
@@ -106,7 +107,10 @@ void main() {
             'Provider boundary: ${first.blockedStatus}; ${transport.boundaries}');
     expect(first.rated, 0);
     final review = (await jobs.reviewItems(job.id)).single;
-    final exact = review.candidates.where((c) => c.titleMatched);
+    // Review the actual public title, not punctuation-stripped equivalence:
+    // Super "Mario" World is a distinct hack, not Super Mario World.
+    final exact = review.candidates.where((c) => c.titleMatched &&
+        c.titles.any((title) => title.text == liveGameTitle));
     expect(exact.length, 1,
         reason:
             'A platform/title candidate needs an explicit review identity.');
@@ -115,7 +119,9 @@ void main() {
         providerGameId: exact.single.providerGameId,
         contentTags: {'official'});
     final accepted = await jobs.run(retry.id, provider);
-    expect(accepted.counts, {'matched': 1});
+    expect(accepted.counts, {'matched': 1},
+        reason: 'Reviewed public IGDB game ${exact.single.providerGameId}; '
+            'boundary ${transport.boundaries}');
     expect(accepted.rated, 1);
     provider.close();
     final cached =
