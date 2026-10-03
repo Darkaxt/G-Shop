@@ -495,6 +495,12 @@ Verify real SQLite mutation/reopen, source and edition ownership, no-backfill,
 multi-disc/region grouping, sparse coverage and the indexed 30,000-game query.
 These host checks do not replace reception assessment or native/UI acceptance.
 
+The S4 native query/artwork resource entrypoint and its safety/measurement
+contract are documented in [S4_NATIVE_VERIFICATION.md](S4_NATIVE_VERIFICATION.md).
+It uses the same host assertions with Android's real database factory; writing
+the entrypoint is not native acceptance and does not close the unexplained host
+artwork wait. Obtain the user's requested Thor-testing handoff before deploying.
+
 ## S5 — Cover overlays, filters and unified metadata UX
 
 Requirements: UI-01, UI-02, UI-03.
