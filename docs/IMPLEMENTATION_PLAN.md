@@ -350,8 +350,8 @@ artwork/resource assessment remain acceptance work, not inferred from host proof
 ### S4 canonical grouping boundary
 
 Maintain an indexed edition-to-group projection in the identity transaction,
-backfilled in bounded pages on upgrade. Verified ScreenScraper game IDs plus the
-platform identify ordinary/known translated/audio/restored editions; candidate
+backfilled in bounded pages on upgrade. Verified ScreenScraper and IGDB game IDs
+plus the platform identify ordinary/known translated/audio/restored editions; candidate
 IDs, titles, container hashes and unknown classification do not merge identities.
 Hack projects without verified project-specific identity remain under their
 explicit stable game identity, never the base provider ID. Keep exact editions,
@@ -359,6 +359,16 @@ patches, discs, metadata bindings and installation ownership unchanged. Bounded
 edition selection validates live catalogue bytes and current identity bindings;
 grouping does not authorize borrowing ratings. Additional provider/raw-identifier
 reconciliation and the accepted-score/rank-before-filter query remain S4 work.
+
+The additive v29 projection records only these implemented, reviewed provider
+assertions. Multiple assigned IDs on one eligible edition establish a bridge;
+titles, provider candidates and hack base IDs do not. Resolve connected assertions
+in SQLite and keep affected editions/components in transaction-local tables,
+with bounded identity pages rather than a full-library Dart graph. Capture old
+component members before replacing assertions so a corrected/removed bridge can
+split them; include new neighbours when joining components. Existing query
+mutation triggers invalidate every changed member. Preserve exact original
+identity/metadata/artwork/installation records and view membership during upgrade.
 
 ### S4 aggregate-source assessment boundary
 

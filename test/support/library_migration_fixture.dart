@@ -62,6 +62,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
+      'library_canonical_claims',
       'metadata_artwork_items',
       'metadata_artwork_cache',
       if (previousVersion < 24) 'library_canonical_groups',
@@ -131,7 +132,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 28);
+    expect(await opened.getVersion(), 29);
     expect(await opened.query('metadata_provider_limits'), isEmpty);
     expect(await opened.query('transfer_replacements'), isEmpty);
     expect(await opened.query('owned_removals'), isEmpty);
@@ -193,7 +194,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 28);
+    expect(await opened.getVersion(), 29);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');

@@ -313,7 +313,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; indexed verified-game grouping and rank-before-filter query; bounded edition and shared effective-score selection; additive v28 projection and disk-reopen proof | Required work remains: remaining provider/raw-identifier/release reconciliation, full classification evidence, live reception assessment/B4, full large-fixture artwork/resource assessment and native query/integration verification |
+| S4 | ACTIVE | Cached-catalogue snapshots/review/selective retry and byte-bound publication; shared metadata/artwork budget and explicit recovery; actual ScreenScraper metadata/cover/screenshot host workflow reaching offline collection queries; reviewed ScreenScraper/IGDB canonical grouping and rank-before-filter query; bounded edition and shared effective-score selection; additive v29 projection and disk-reopen preservation; debugger-assisted full 30,000-game artwork workflow and interrupted-job recovery | Required work remains: remaining raw-identifier/release/project reconciliation, full classification evidence, live reception assessment/B4, unexplained earlier host artwork wait and native query/artwork/integration verification |
 | S5 | NOT STARTED | None | UI-01, UI-02, UI-03 |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -329,6 +329,65 @@ reclassified as a deferral. S1 is now parked at B3; S4 is the sole ACTIVE stage.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.
+
+### S4 provider grouping and artwork resource checkpoint (2026-10-03)
+
+- IGDB-only region/disc variants previously kept different canonical game keys;
+  independently reviewed ScreenScraper and IGDB assignments could not join them.
+  Both focused reproductions failed before changing production grouping. Additive
+  v29 now projects these implemented, reviewed IDs as aliases on eligible ordinary
+  or known translation/audio/restoration editions. Multiple assigned IDs provide
+  the bridge; ambiguous/candidate IDs, wrong platforms, unknown classification
+  and a hack's base-game IDs do not. Exact editions and score bindings survive.
+- Corrections capture the old component before replacing aliases, then reindex
+  split components and newly joined neighbours in the same SQLite identity
+  transaction. The ordinary cached collection query verifies joined/split counts,
+  score ownership and Top-before-shelf filtering without lower-rank backfill.
+  Real v28-without-alias-table upgrade/reopen preserves scores and view membership;
+  earlier production migration fixtures preserve their source/queue/metadata data.
+- The first graph backfill exposed a planner-dependent full claim-table scan for
+  each component. Actual SQLite EXPLAIN showed `SCAN claim`; making the affected
+  component drive the lookup showed the covering claim index instead. After that
+  join-order correction, the fresh 30,000-game grouping fixture completed in about
+  65 seconds, measured RSS 144,826,368 -> 218,533,888 bytes. This is host evidence,
+  not an Android latency promise or a lifecycle deadline.
+- Fresh serialized focused grouping, query, v27/v28 and earlier-version migration,
+  metadata ownership/freshness migration and database-service checks exited zero
+  (framework duration 1m25s). No full-suite run was performed. The separate
+  integration assertion initially assumed missing ratings were omitted; it was
+  corrected to assert the reader's nullable entries, not to weaken ownership.
+  Scoped analysis of the changed production and regression files reported no
+  issues (68.2 seconds). Git whitespace checks passed.
+- `metadata_artwork_resource_test.dart` exercises 30,000 distinct game identities,
+  current metadata selectors, the normal artwork job/cache and disk close/reopen.
+  A real 4,002,288-byte PNG is decoded; writes are awaited in at most 65,536-byte
+  chunks, with one active request. Content-addressed publication retained two
+  image bodies and all 30,000 selectors; completed/offline reads contacted no
+  provider. The debugger-assisted full run exited zero, capture 80,370 ms,
+  total 701,373 ms, measured peak RSS 236,986,368 bytes. VM inspection/GC occurred;
+  this does not establish native timing or resolve the earlier host wait.
+- The preceding artwork fixture stopped advancing at 9,026 committed items.
+  Resource observations did not show memory exhaustion. Read-only native/VM
+  diagnostics did not establish its cause; only its validated tester was
+  intentionally stopped before another workload began. Its exact DB/journal
+  snapshot remains private diagnostic evidence. Normal interrupted-job recovery
+  then completed that actual fixture: only the 20,974 pending items were requested,
+  with no repeated committed selector. The in-flight uncommitted attempt explains
+  requested=30,001; measured recovery peak RSS was 237,490,176 bytes, exit zero.
+  Passing recovery/subsequent execution is not a claim that the wait was fixed.
+- The artwork proof is applicable to the unchanged worker/cache and direct-row
+  fixture; the new canonical indexing is not called by that resource workflow.
+  Reviewed cleanup removed the disposable one-off recovery/query-plan helper
+  (4,123 bytes) and regenerated test assets/compiled cache (75,459,381 bytes),
+  with no warnings/errors. The interrupted snapshot and recovered comparison
+  database/cache remain private evidence for the unresolved wait; they are not
+  published or treated as expendable while diagnosis remains open.
+  Raw-ROM-only equivalence and verified modification-project provider grouping
+  remain ordinary S4 work, not silently covered by the implemented aliases.
+  Live reception assessment/B4 and native integration remain required. S4 stays
+  ACTIVE; S1 BLOCKED at B3/elapsed renewal, S2/S3 COMPLETE, S5-S8 NOT STARTED.
+  No Thor, credential, ROM, SD migration or release changes occurred. Monitoring
+  remains cancelled.
 
 ### S4 reviewed original-game modification checkpoint (2026-10-03)
 

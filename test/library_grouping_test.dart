@@ -20,6 +20,7 @@ void main() {
   Future<void> edition(String id,
       {String platform = 'psx',
       String providerId = '42',
+      Map<String, String>? providerIds,
       IdentityMatchStatus status = IdentityMatchStatus.manuallyMatched,
       Set<String> tags = const {'official'},
       String? patch,
@@ -29,7 +30,7 @@ void main() {
         id: 'game:$id',
         platformId: platform,
         title: 'Same title',
-        providerIds: {'screenscraper': providerId},
+        providerIds: providerIds ?? {'screenscraper': providerId},
         matchStatus: status));
     await store.putEdition(EditionIdentity(
         id: id,
@@ -78,6 +79,77 @@ void main() {
       groups.add(await group(id));
     }
     expect(groups, hasLength(5));
+  });
+
+  test('verified IGDB-only regions and discs identify one canonical game',
+      () async {
+    await edition('igdb-us', providerIds: {'igdb': '42'});
+    await edition('igdb-eu-disc2', providerIds: {'igdb': '42'});
+    await edition('igdb-translation',
+        providerIds: {'igdb': '42'},
+        tags: {'T-Eng', 'Undub'},
+        translation: true,
+        translatedLanguages: ['en'],
+        patch: 'english-audio');
+    await edition('igdb-base-hack',
+        providerIds: {'igdb': '42'}, tags: {'Hack'}, patch: 'project');
+    expect(await group('igdb-us'), await group('igdb-eu-disc2'));
+    expect(await group('igdb-us'), await group('igdb-translation'));
+    expect(await group('igdb-base-hack'), isNot(await group('igdb-us')));
+    expect((await store.edition('igdb-translation'))!.patchId, 'english-audio');
+  });
+
+  test('reviewed provider bridge joins variants and correction splits them',
+      () async {
+    await edition('ss-only', providerIds: {'screenscraper': '42'});
+    await edition('igdb-only', providerIds: {'igdb': '99'});
+    await edition('bridge', providerIds: {'screenscraper': '42', 'igdb': '99'});
+    expect(await group('ss-only'), await group('igdb-only'));
+    expect(await group('ss-only'), await group('bridge'));
+    await store.putGame(GameIdentity(
+        id: 'game:bridge',
+        platformId: 'psx',
+        title: 'Reviewed correction',
+        providerIds: {'screenscraper': '42', 'igdb': '100'},
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    expect(await group('ss-only'), await group('bridge'));
+    expect(await group('ss-only'), isNot(await group('igdb-only')));
+    await edition('corrected-igdb', providerIds: {'igdb': '100'});
+    expect(await group('corrected-igdb'), await group('bridge'));
+    expect((await store.canonicalEditions('bridge')).editions.map((e) => e.id),
+        ['bridge', 'corrected-igdb', 'ss-only']);
+  });
+
+  test('unverified wrong-platform and hack IDs cannot bridge providers',
+      () async {
+    await edition('ss-only', providerIds: {'screenscraper': '42'});
+    await edition('igdb-only', providerIds: {'igdb': '99'});
+    for (final kind in ['candidate', 'unknown', 'hack', 'wrong-platform']) {
+      await edition(kind,
+          providerIds: {'screenscraper': '42', 'igdb': '99'},
+          status: kind == 'candidate'
+              ? IdentityMatchStatus.unmatched
+              : IdentityMatchStatus.manuallyMatched,
+          tags: kind == 'unknown'
+              ? {}
+              : kind == 'hack'
+                  ? {'Hack'}
+                  : {'official'},
+          platform: kind == 'wrong-platform' ? 'snes' : 'psx');
+    }
+    expect(await group('ss-only'), isNot(await group('igdb-only')));
+    final distinct = <String>{};
+    for (final id in [
+      'ss-only',
+      'igdb-only',
+      'candidate',
+      'unknown',
+      'hack',
+      'wrong-platform'
+    ]) {
+      distinct.add(await group(id));
+    }
+    expect(distinct, hasLength(6));
   });
 
   test('base provider ID cannot group unrelated hack projects', () async {

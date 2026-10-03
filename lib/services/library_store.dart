@@ -46,6 +46,11 @@ class LibrarySchema {
     await db
         .execute('''CREATE INDEX IF NOT EXISTS idx_library_canonical_platform
       ON library_canonical_groups(platform_id, group_key, edition_id)''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS library_canonical_claims (
+      edition_id TEXT NOT NULL, claim_key TEXT NOT NULL,
+      PRIMARY KEY (edition_id, claim_key))''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_library_canonical_claim
+      ON library_canonical_claims(claim_key, edition_id)''');
   }
 }
 
@@ -110,40 +115,121 @@ class LibraryStore {
   /// Rebuild in bounded keyset pages inside the caller's identity transaction.
   static Future<void> indexCanonicalGroups(DatabaseExecutor db,
       {String? gameId, String? editionId}) async {
-    String? cursor;
-    while (true) {
-      final rows = await db.rawQuery('''SELECT e.edition_id,
+    // The caller owns the identity transaction. Keep affected components in
+    // SQLite, not an in-memory graph or a full metadata/artwork collection.
+    await db.execute('''CREATE TEMP TABLE canonical_reindex_work (
+      edition_id TEXT PRIMARY KEY)''');
+    await db.execute('''CREATE TEMP TABLE canonical_reindex_component (
+      claim_key TEXT PRIMARY KEY)''');
+    try {
+      final scope = '''${gameId == null ? '' : 'AND e.game_id = ?'}
+        ${editionId == null ? '' : 'AND e.edition_id = ?'}''';
+      final scopeArgs = [
+        if (gameId != null) gameId,
+        if (editionId != null) editionId
+      ];
+      // Capture old neighbours before removing the corrected assertions. A
+      // removed bridge may split a component; updating only its owner is wrong.
+      if (gameId == null && editionId == null) {
+        await db.execute('''INSERT OR IGNORE INTO canonical_reindex_work
+          SELECT edition_id FROM library_canonical_groups''');
+      } else {
+        await db.rawInsert('''INSERT OR IGNORE INTO canonical_reindex_work
+          SELECT edition_id FROM library_canonical_groups WHERE group_key IN (
+            SELECT c.group_key FROM library_canonical_groups c
+            JOIN library_editions e ON e.edition_id = c.edition_id
+            WHERE 1 = 1 $scope)''', scopeArgs);
+      }
+      await db.rawInsert('''INSERT OR IGNORE INTO canonical_reindex_work
+        SELECT e.edition_id FROM library_editions e WHERE 1 = 1 $scope''',
+          scopeArgs);
+      if (gameId == null && editionId == null) {
+        await db.delete('library_canonical_claims');
+      } else {
+        await db.rawDelete('''DELETE FROM library_canonical_claims
+          WHERE edition_id IN (SELECT e.edition_id FROM library_editions e
+            WHERE 1 = 1 $scope)''', scopeArgs);
+      }
+      String? cursor;
+      while (true) {
+        final rows = await db.rawQuery('''SELECT e.edition_id,
         e.record_json AS edition_json, g.record_json AS game_json
         FROM library_editions e JOIN library_game_identities g ON g.game_id = e.game_id
         WHERE 1 = 1 ${cursor == null ? '' : 'AND e.edition_id > ?'}
         ${gameId == null ? '' : 'AND e.game_id = ?'}
         ${editionId == null ? '' : 'AND e.edition_id = ?'}
         ORDER BY e.edition_id LIMIT 128''', [
-        if (cursor != null) cursor,
-        if (gameId != null) gameId,
-        if (editionId != null) editionId,
-      ]);
-      for (final row in rows) {
-        final game =
-            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
-        final edition =
-            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
-        await db.insert(
-            'library_canonical_groups',
-            {
-              'edition_id': edition.id,
-              'group_key': _canonicalGroupKey(game, edition),
-              'platform_id': game.platformId,
-              'identity_key': metadataIdentity(row),
-            },
-            conflictAlgorithm: ConflictAlgorithm.replace);
+          if (cursor != null) cursor,
+          if (gameId != null) gameId,
+          if (editionId != null) editionId,
+        ]);
+        for (final row in rows) {
+          final game =
+              GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+          final edition = EditionIdentity.fromJson(
+              jsonDecode(row['edition_json'] as String));
+          await db.insert(
+              'library_canonical_groups',
+              {
+                'edition_id': edition.id,
+                'group_key': jsonEncode(['game', game.id]),
+                'platform_id': game.platformId,
+                'identity_key': metadataIdentity(row),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
+          for (final claim in _canonicalClaims(game, edition)) {
+            await db.insert('library_canonical_claims',
+                {'edition_id': edition.id, 'claim_key': claim});
+          }
+        }
+        if (rows.length < 128) break;
+        cursor = rows.last['edition_id'] as String;
       }
-      if (rows.length < 128) break;
-      cursor = rows.last['edition_id'] as String;
+      while (true) {
+        final next = await db.query('canonical_reindex_work',
+            orderBy: 'edition_id', limit: 1);
+        if (next.isEmpty) break;
+        final id = next.single['edition_id'];
+        final anchor = await db.query('library_canonical_claims',
+            where: 'edition_id = ?',
+            whereArgs: [id],
+            orderBy: 'claim_key',
+            limit: 1);
+        if (anchor.isEmpty) {
+          await db.delete('library_canonical_groups',
+              where: 'edition_id = ?', whereArgs: [id]);
+          await db.delete('canonical_reindex_work',
+              where: 'edition_id = ?', whereArgs: [id]);
+          continue;
+        }
+        await db.delete('canonical_reindex_component');
+        await db.rawInsert('''WITH RECURSIVE component(claim_key) AS (
+          SELECT ? UNION
+          SELECT neighbour.claim_key FROM component
+          JOIN library_canonical_claims edge ON edge.claim_key = component.claim_key
+          JOIN library_canonical_claims neighbour ON neighbour.edition_id = edge.edition_id
+        ) INSERT INTO canonical_reindex_component SELECT claim_key FROM component''',
+            [anchor.single['claim_key']]);
+        final key = (await db.rawQuery('''SELECT MIN(claim_key) AS value
+          FROM canonical_reindex_component''')).single['value'];
+        const members =
+            '''SELECT claim.edition_id FROM canonical_reindex_component component
+          CROSS JOIN library_canonical_claims claim ON component.claim_key = claim.claim_key''';
+        // Includes new neighbours outside the old component. Existing query
+        // triggers invalidate every changed member, not just the reviewed one.
+        await db.rawUpdate('''UPDATE library_canonical_groups SET group_key = ?
+          WHERE group_key != ? AND edition_id IN ($members)''', [key, key]);
+        await db.execute('''DELETE FROM canonical_reindex_work
+          WHERE edition_id IN ($members)''');
+      }
+    } finally {
+      await db.execute('DROP TABLE canonical_reindex_component');
+      await db.execute('DROP TABLE canonical_reindex_work');
     }
   }
 
-  static String _canonicalGroupKey(GameIdentity game, EditionIdentity edition) {
+  static Set<String> _canonicalClaims(
+      GameIdentity game, EditionIdentity edition) {
     const originalGameModifications = {'T-Eng', 'Dub', 'Undub', 'Uncensor'};
     final official = edition.tags.length == 1 &&
         edition.tags.contains('official') &&
@@ -155,19 +241,23 @@ class LibraryStore {
                 edition.translatedLanguages.contains('en')));
     final verified = game.matchStatus == IdentityMatchStatus.matched ||
         game.matchStatus == IdentityMatchStatus.manuallyMatched;
-    // ScreenScraper is the currently implemented identity namespace. A base ID
-    // on a hack/homebrew/demo/unknown classification cannot identify its project.
-    // Explicit editions of the same project still share their stable game ID.
-    final providerGameId = game.providerIds['screenscraper'];
-    if (verified &&
-        game.platformId != null &&
-        providerGameId != null &&
-        providerGameId.trim().isNotEmpty &&
-        (official || modifiedRelease)) {
-      return jsonEncode(
-          ['provider-game', game.platformId, 'screenscraper', providerGameId]);
+    // Only implemented, reviewed global identity namespaces are aliases. A
+    // base ID on a hack/unknown edition cannot identify its modification project.
+    final claims = <String>{};
+    if (verified && game.platformId != null && (official || modifiedRelease)) {
+      for (final provider in ['screenscraper', 'igdb']) {
+        final id = game.providerIds[provider];
+        if (id != null && id.trim().isNotEmpty) {
+          claims.add(
+              jsonEncode(['provider-game', game.platformId, provider, id]));
+        }
+      }
     }
-    return jsonEncode(['game', game.id]);
+    return claims.isEmpty
+        ? {
+            jsonEncode(['game', game.id])
+          }
+        : claims;
   }
 
   /// Select exact editions of one canonical game without loading its entire

@@ -309,6 +309,52 @@ void main() {
     expect(result.provisional, isTrue);
   });
 
+  test('reviewed provider bridges recompute ranks without borrowing scores',
+      () async {
+    final a = await seed(1, score: 95);
+    final b = await seed(2, score: 90);
+    final c = await seed(3, score: 80);
+    Future<void> assign(String id, Map<String, String> providers) async {
+      final edition = (await store.edition(id))!;
+      final game = (await store.game(edition.gameId))!;
+      await store.putGame(GameIdentity.fromJson({
+        ...game.toJson(),
+        'providerIds': providers,
+      }));
+    }
+
+    await assign(a, {'screenscraper': '1'});
+    await assign(b, {'igdb': '2'});
+    expect((await read()).collectionGames, 3);
+    await assign(c, {'screenscraper': '1', 'igdb': '2'});
+    final joined = await read(filter: LibraryQueryFilter(top: 25));
+    expect(joined.collectionGames, 1);
+    expect(joined.rankedGames, 1);
+    expect(joined.items.single.editionId, b);
+    expect(joined.items.single.score!.rating.normalizedValue, 90);
+    final owned =
+        await store.effectiveRatings([a, b, c], assessedBases: [basis]);
+    expect(owned[a], isNull);
+    expect(owned[c], isNull,
+        reason: 'Grouping cannot transfer exact score ownership.');
+    expect(owned[b]!.rating.normalizedValue, 90);
+    expect((await store.canonicalEditions(b)).editions, hasLength(3));
+
+    await assign(c, {'screenscraper': '1', 'igdb': '3'});
+    final split = await read(filter: LibraryQueryFilter(top: 1));
+    expect(split.collectionGames, 2);
+    expect(split.rankedGames, 2);
+    expect(split.items.single.editionId, b);
+    expect(split.items.single.rank, 1);
+    await query.replaceViewMembers('shelf:other', [a, c]);
+    expect(
+        (await read(
+                filter: LibraryQueryFilter(top: 1, viewIds: {'shelf:other'})))
+            .items,
+        isEmpty,
+        reason: 'Changing the view cannot refill Top 1 with the lower group.');
+  });
+
   test('successful score publication recomputes ranks under the same policy',
       () async {
     final a = await seed(1, score: 90);

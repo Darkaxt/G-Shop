@@ -96,7 +96,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 28);
+      expect(await db.getVersion(), 29);
       expect(await db.query('library_metadata'), before);
       expect(await db.query('games'), filesBefore);
       final basis = AssessedOverallScoreBasis(
@@ -115,9 +115,20 @@ void main() {
       expect(result.items.single.editionId, id);
       expect(result.items.single.rank, 1);
       final projection = await db.query('library_query_editions');
+      // Recreate v28's missing alias projection and old game-only IGDB group.
+      // Upgrade must preserve existing scores/views and backfill real aliases.
+      final viewsBefore = await db.query('library_query_views');
+      await db.execute('DROP TABLE library_canonical_claims');
+      await db.update('library_canonical_groups',
+          {'group_key': '["game","${game.id}"]'},
+          where: 'edition_id = ?', whereArgs: [id]);
+      await db.setVersion(28);
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
+      expect(await db.getVersion(), 29);
+      expect(await db.query('library_canonical_claims'), hasLength(1));
+      expect(await db.query('library_query_views'), viewsBefore);
       query = LibraryQuery(Future.value(db));
       result = await query.page(
           filter: LibraryQueryFilter(top: 25, viewIds: {'shelf:fixture'}),

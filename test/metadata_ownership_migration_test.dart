@@ -110,7 +110,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 28);
+      expect(await db.getVersion(), 29);
       final reopened = LibraryStore(Future.value(db));
       for (final id in oldKeys.keys) {
         final cached = await reopened.metadata(id, 'screenscraper');
