@@ -64,6 +64,59 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 normal console refresh and v33 migration proof (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. The normal console fixture exposed a real
+  cached-catalogue refresh failure: SQLite's outer UPSERT conflict policy overrides
+  `OR IGNORE` inside invalidation triggers. Overlapping OLD/NEW edition bindings
+  therefore attempted duplicate dirty keys and aborted the refresh. A minimal
+  host reproduction and the new cache-UPSERT regression failed with the original
+  unique-constraint error before the production fix; this is not Android-only.
+- Indexed `NOT EXISTS` guards now coalesce invalidations inside the owning write
+  transaction. The additive v33 migration replaces only these named triggers,
+  preserving cached games, identities, metadata, jobs, shelves and pending dirty
+  work. Production upgrade from reconstructed faulty v32 triggers, two reopens,
+  unchanged saved rows and repeated normal `saveGames` refresh passed on both
+  host and Android SQLite. No retry, exception suppression or timing workaround.
+- Focused query/migration/console checks passed (`72129`). The affected legacy
+  migration checks and Library workflow passed in `60147`; that workload's only
+  failure was the console fixture treating host `pumpAndSettle` as background-I/O
+  completion. The fixture correction retains direct real cache UPSERT assertions
+  and additionally verifies the normal screen's committed sync timestamp on
+  Android. One attempted fake-zone wait was stopped and its process exit checked
+  before another workload; no overlapping test runs were launched.
+- Corrected console and query-resource checks passed (`63856`). The 30,000-game
+  query retained 128-row identity/metadata bounds; peak RSS was 261,652,480 bytes,
+  and the two warm queries took 669 ms. Affected-path analysis passed (`93854`).
+  Existing migration results remain applicable: production did not change after
+  those checks. No full-suite rerun was needed for this isolated trigger contract.
+- The gated native assembly passed (`63776`, 22 seconds): actual mutex acquisition,
+  two workers, no parallel projects and 3,221,225,472-byte Gradle heap. Existing JVM
+  flags were preserved; in-process Kotlin was requested, but its tasks were
+  UP-TO-DATE/NO-SOURCE, not a fresh compiler-memory measurement. Test configuration
+  retains one 512 MiB fork (not run by assemble). Actual current Ninja files under
+  `build/.cxx/debug/334d1i5j` show depth-one `rshop_native` compile/link pools for
+  all app ABIs; the older `android/app/.cxx` tree is not this build's output.
+  No memory failure, heap increase or interruption of another build occurred.
+- The inspected native report and four screenshots verify the normal console
+  screen/provider/cache/query/card workflow: controller Top 10, touch sparse
+  Top 25, console scope, independent any/all tags, no backfill after score changes,
+  persisted/cleared filters, identity-preserving focus, large grid and Systematic
+  media with cached score overlays. The fixture uses a synthetic Drive snapshot;
+  all 321 existing cover attempts were blocked before socket creation, with zero
+  metadata or ROM requests. This is not real Drive access or a collection scrape.
+- Restored the exact normal APK (SHA-256 matched the recovery file), preserving
+  all seven protected database/config/preferences/secure-storage fingerprints.
+  Removed only the task's ADB forward and confirmed both display controllers OFF.
+  Transactional cleanup removed two disposable fixture APK copies, reclaiming
+  362,084,066 bytes with zero failures. Recovery APK, report, logs and screenshots
+  remain under `D:/Temp/rshop-s5-native-20261004`; no release was produced.
+- Console discovery and refresh are now verified against synthetic data on the
+  Thor. UI-01's remaining badge/title/localization/resource acceptance and UI-02's
+  Sources action-menu navigation/localization remain ordinary unfinished S5 work.
+  S1/B3 and S4/B5 remain BLOCKED; S6-S9 NOT STARTED. This checkpoint does not close
+  S5 or the full specification.
+
 ### S5 exact-game match correction and native proof (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. UI-02 previously could refresh a saved

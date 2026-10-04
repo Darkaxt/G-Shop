@@ -133,6 +133,23 @@ class LibraryQuery {
     await db
         .execute('''CREATE INDEX IF NOT EXISTS idx_library_query_view_edition
       ON library_query_views(edition_id, view_id, position)''');
+    await installInvalidationTriggers(db);
+    // Upgrade retains original facts. Its first ordinary query rebuilds pages.
+    await db.execute('''INSERT OR IGNORE INTO library_query_dirty
+      SELECT edition_id FROM library_editions''');
+    await db.execute('''INSERT OR IGNORE INTO library_query_cache_dirty
+      SELECT id FROM games WHERE is_folder = 0''');
+  }
+
+  /// Replace only our invalidation triggers, preserving facts and pending work.
+  /// An outer UPSERT/OR ABORT overrides a trigger's OR IGNORE policy. Avoid the
+  /// duplicate insert itself instead; SQL executes these indexed guards within
+  /// the owning write transaction, including OLD/NEW and overlapping bindings.
+  static Future<void> installInvalidationTriggers(DatabaseExecutor db) async {
+    String markEditions(String selection) => '''INSERT INTO library_query_dirty
+      SELECT edition_id FROM ($selection) AS affected WHERE NOT EXISTS
+      (SELECT 1 FROM library_query_dirty AS dirty
+       WHERE dirty.edition_id = affected.edition_id);''';
     for (final table in [
       'library_editions',
       'library_metadata',
@@ -140,22 +157,22 @@ class LibraryQuery {
       'metadata_refresh_items'
     ]) {
       for (final event in ['INSERT', 'UPDATE', 'DELETE']) {
-        await db.execute(
-            '''CREATE TRIGGER IF NOT EXISTS query_${table}_${event.toLowerCase()}
+        final name = 'query_${table}_${event.toLowerCase()}';
+        await db.execute('DROP TRIGGER IF EXISTS $name');
+        await db.execute('''CREATE TRIGGER $name
           AFTER $event ON $table BEGIN
-          ${event == 'INSERT' ? '' : 'INSERT OR IGNORE INTO library_query_dirty VALUES (OLD.edition_id);'}
-          ${event == 'DELETE' ? '' : 'INSERT OR IGNORE INTO library_query_dirty VALUES (NEW.edition_id);'}
+          ${event == 'INSERT' ? '' : markEditions('SELECT OLD.edition_id AS edition_id')}
+          ${event == 'DELETE' ? '' : markEditions('SELECT NEW.edition_id AS edition_id')}
           END''');
       }
     }
     for (final event in ['UPDATE', 'DELETE']) {
-      await db.execute(
-          '''CREATE TRIGGER IF NOT EXISTS query_game_${event.toLowerCase()}
+      final name = 'query_game_${event.toLowerCase()}';
+      await db.execute('DROP TRIGGER IF EXISTS $name');
+      await db.execute('''CREATE TRIGGER $name
         AFTER $event ON library_game_identities BEGIN
-          INSERT OR IGNORE INTO library_query_dirty SELECT edition_id
-          FROM library_editions WHERE game_id = OLD.game_id;
-          INSERT OR IGNORE INTO library_query_dirty SELECT edition_id
-          FROM library_query_editions WHERE base_game_id = OLD.game_id;
+          ${markEditions('SELECT edition_id FROM library_editions WHERE game_id = OLD.game_id')}
+          ${markEditions('SELECT edition_id FROM library_query_editions WHERE base_game_id = OLD.game_id')}
         END''');
     }
     for (final event in ['INSERT', 'UPDATE', 'DELETE']) {
@@ -163,32 +180,27 @@ class LibraryQuery {
         if (event != 'INSERT') 'OLD',
         if (event != 'DELETE') 'NEW'
       ];
-      await db.execute(
-          '''CREATE TRIGGER IF NOT EXISTS query_cache_${event.toLowerCase()}
+      final name = 'query_cache_${event.toLowerCase()}';
+      await db.execute('DROP TRIGGER IF EXISTS $name');
+      await db.execute('''CREATE TRIGGER $name
         AFTER $event ON games BEGIN
-        ${references.map((ref) => '''INSERT OR IGNORE INTO library_query_cache_dirty VALUES ($ref.id);
-          INSERT OR IGNORE INTO library_query_dirty
-          SELECT edition_id FROM library_query_editions WHERE cache_row_id = $ref.id;
-          INSERT OR IGNORE INTO library_query_dirty SELECT edition_id
-          FROM library_query_editions WHERE legacy_row_id = $ref.id;
-          INSERT OR IGNORE INTO library_query_dirty SELECT edition_id
-          FROM library_query_editions WHERE platform_id = $ref.systemSlug
-            AND catalogue_key = $ref.artifact_key;''').join('\n')}
+        ${references.map((ref) => '''INSERT INTO library_query_cache_dirty
+          SELECT $ref.id WHERE NOT EXISTS (SELECT 1 FROM library_query_cache_dirty
+            WHERE cache_row_id = $ref.id);
+          ${markEditions('SELECT edition_id FROM library_query_editions WHERE cache_row_id = $ref.id')}
+          ${markEditions('SELECT edition_id FROM library_query_editions WHERE legacy_row_id = $ref.id')}
+          ${markEditions('SELECT edition_id FROM library_query_editions WHERE platform_id = $ref.systemSlug AND catalogue_key = $ref.artifact_key')}
+          ''').join('\n')}
         END''');
     }
-    await db.execute('''CREATE TRIGGER IF NOT EXISTS query_refresh_owner
+    await db.execute('DROP TRIGGER IF EXISTS query_refresh_owner');
+    await db.execute('''CREATE TRIGGER query_refresh_owner
       AFTER UPDATE OF provider_id, generation, is_artwork ON metadata_refresh_jobs
-      BEGIN INSERT OR IGNORE INTO library_query_dirty SELECT edition_id
-        FROM metadata_refresh_items WHERE job_id = NEW.id; END''');
-    await db.execute('''CREATE TRIGGER IF NOT EXISTS query_refresh_delete
+      BEGIN ${markEditions('SELECT edition_id FROM metadata_refresh_items WHERE job_id = NEW.id')} END''');
+    await db.execute('DROP TRIGGER IF EXISTS query_refresh_delete');
+    await db.execute('''CREATE TRIGGER query_refresh_delete
       BEFORE DELETE ON metadata_refresh_jobs
-      BEGIN INSERT OR IGNORE INTO library_query_dirty SELECT edition_id
-        FROM metadata_refresh_items WHERE job_id = OLD.id; END''');
-    // Upgrade retains original facts. Its first ordinary query rebuilds pages.
-    await db.execute('''INSERT OR IGNORE INTO library_query_dirty
-      SELECT edition_id FROM library_editions''');
-    await db.execute('''INSERT OR IGNORE INTO library_query_cache_dirty
-      SELECT id FROM games WHERE is_folder = 0''');
+      BEGIN ${markEditions('SELECT edition_id FROM metadata_refresh_items WHERE job_id = OLD.id')} END''');
   }
 
   /// S5 supplies exact edition membership from existing favorite/install/shelf

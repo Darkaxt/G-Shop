@@ -135,6 +135,36 @@ void main() {
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
 
+  test('cache UPSERT coalesces invalidations without rolling back refresh',
+      () async {
+    final id = await seed(1, score: 82);
+    await read(); // Bind the cache row and consume its initial invalidations.
+    for (final title in ['Renamed', 'Renamed again']) {
+      await db.rawInsert('''INSERT INTO games
+        (id, systemSlug, filename, displayName) VALUES (1, 'psx', 'Game 1.7z', ?)
+        ON CONFLICT(id) DO UPDATE SET displayName = excluded.displayName''',
+          [title]);
+      expect((await db.query('games')).single['displayName'], title);
+      expect(await db.query('library_query_cache_dirty'), [
+        {'cache_row_id': 1}
+      ]);
+      expect(await db.query('library_query_dirty'), [
+        {'edition_id': id}
+      ]);
+    }
+    // An outer conflict policy also overrides OR IGNORE in edition triggers.
+    await db.rawUpdate('''UPDATE OR ABORT library_editions SET
+      record_json = record_json WHERE edition_id = ?''', [id]);
+    expect(await db.query('library_query_dirty'), [
+      {'edition_id': id}
+    ]);
+    final result = await read();
+    expect(result.items.single.editionId, id);
+    expect(result.items.single.score!.rating.normalizedValue, 82);
+    expect(await db.query('library_query_dirty'), isEmpty);
+    expect(await db.query('library_query_cache_dirty'), isEmpty);
+  });
+
   test('normal details use the selected cached score, not a legacy average',
       () async {
     await seed(1, score: 82);
