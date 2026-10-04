@@ -149,6 +149,20 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
               onPressed: onPressed,
               child: Text(label)));
 
+  void _openReview() => Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => MetadataReviewScreen(
+              systemSlug: _scope,
+              editionId: widget.editionId,
+              cacheRowId: widget.cacheRowId)));
+
+  Future<void> _rediscover() async {
+    await ref.read(metadataControlsProvider.notifier).rediscoverMatch(
+        cacheRowId: widget.cacheRowId!, editionId: widget.editionId!);
+    if (mounted && !ref.read(metadataControlsProvider).error) _openReview();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
@@ -318,18 +332,16 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                               : null),
                     ]),
                     const SizedBox(height: 12),
-                    _button(
-                        l.metadata_openReview,
-                        'metadata-open-review',
-                        enabled
-                            ? () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => MetadataReviewScreen(
-                                        systemSlug: _scope,
-                                        editionId: widget.editionId,
-                                        cacheRowId: widget.cacheRowId)))
-                            : null),
+                    if (widget.cacheRowId != null &&
+                        widget.editionId != null) ...[
+                      Text(l.metadata_rediscoverHelp),
+                      const SizedBox(height: 8),
+                      _button(l.metadata_rediscover, 'metadata-rediscover',
+                          enabled ? _rediscover : null),
+                      const SizedBox(height: 12),
+                    ],
+                    _button(l.metadata_openReview, 'metadata-open-review',
+                        enabled ? _openReview : null),
                     if (state.busy)
                       const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),

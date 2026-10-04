@@ -126,7 +126,7 @@ void main() {
             assessedBases: [basis]);
         expect(result.items.map((i) => i.editionId), [id]);
         expect(result.items.single.score!.rating.normalizedValue, 85);
-        expect(await currentDb.getVersion(), 31);
+        expect(await currentDb.getVersion(), 32);
         expect((await LibraryStore(Future.value(currentDb)).edition(id))!.tags,
             {'official'});
         expect(await LibraryStore(Future.value(currentDb)).metadata(id, 'igdb'),
@@ -245,7 +245,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 31);
+      expect(await db.getVersion(), 32);
       expect(await db.query('library_metadata'), factsBefore);
       expect(await db.query('library_editions'), editionsBefore);
       expect(await db.query('games'), filesBefore);
@@ -370,7 +370,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 31);
+      expect(await db.getVersion(), 32);
       expect(await db.query('library_metadata'), before);
       expect(await db.query('games'), filesBefore);
       final basis = AssessedOverallScoreBasis(
@@ -400,7 +400,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 31);
+      expect(await db.getVersion(), 32);
       expect(await db.query('library_canonical_claims'), hasLength(1));
       expect(await db.query('library_query_views'), viewsBefore);
       query = LibraryQuery(Future.value(db));

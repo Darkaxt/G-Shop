@@ -9,6 +9,13 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_rediscover => '別の一致候補を探す';
+
+  @override
+  String get metadata_rediscoverHelp =>
+      '保存済みの一致情報を使わず、このゲームを再検索します。既存の情報は、置き換える候補を選択して検証するまで保持されます。ROMはダウンロードされません。';
+
+  @override
   String get metadata_reviewChanged =>
       'ファイルまたは識別が変更されています。保存された候補は確定できません。現在の版を再取得してください。';
 

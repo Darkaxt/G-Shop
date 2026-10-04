@@ -64,6 +64,62 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 exact-game match correction and native proof (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. UI-02 previously could refresh a saved
+  provider ID or review unresolved outcomes, but could not reconsider an already
+  matched wrong ID. Exact-game settings now offer localized **Find another
+  match**. A durable correction job searches without the disputed provider/base/
+  raw identifier; saved identities and metadata remain intact before review.
+- Even a confident provider response is an offered identity, not publication.
+  Explicit candidate/classification selection creates the existing normal
+  verification job. Fresh facts publish only through that worker. Ordinary
+  refresh thereafter uses the corrected ID. No ROM/body lookup is introduced.
+- Focused host verification passed: exact-game touch search -> cached review ->
+  controller approval -> verified replacement -> ordinary refresh, plus retry/
+  restart mode preservation, confident-response review-only behavior and atomic
+  rejection of stale cache-row/edition bindings. Existing controls/review/settings/
+  detail checks passed (`19072`, exit 0). The adapted dark-theme correction
+  fixture passed in `17026`; that workload's only failure was a wrong table name
+  in the new migration fixture, corrected without production changes.
+- Production v31-to-v32 upgrade/reopen then passed (`88189`, migration exit 0):
+  actual v31 job-column layout, seeded saved manual identity/facts and lookup
+  item, unchanged existing rows, default normal-refresh mode, and second reopen.
+  Existing v25/v26/v27/v29/v30 preservation checks also passed in `17026`.
+  The directly affected shared production migration fixture also passed from
+  v13/v14/v15/v16/v17/v18/v20/v21/v22/v23/v24 through upgrade and reopen.
+  Affected-path analysis found no issues after using the existing sqflite
+  dependency, with no new dependency added. Diff whitespace check passed.
+- The first native fixture failed because its pause/join shortcut opened review
+  before a resumed lookup committed. The inspected screenshot showed an empty
+  review, not a missing or clipped card. The fixture now waits for a new job's
+  actual completed/idle event; no sleep, production change or weakened assertion.
+  The corrected host workflow passed, then native driver completed with exit 0.
+  Its inspected report and three screenshots prove Android SQLite plus normal
+  touch search, cached review, controller approval, worker publication and a
+  subsequent refresh retaining the corrected ID. Provider responses are synthetic;
+  no real account/provider/socket/ROM access or collection scrape is claimed.
+- Both required assemblies (`66718`, `12313`) passed after actual host-wide gate
+  acquisition. Observed two workers, no parallel projects and 3,221,225,472-byte
+  Gradle heap, preserving metaspace/code-cache/JVM flags. In-process Kotlin was
+  requested, but Kotlin tasks were UP-TO-DATE or NO-SOURCE: no fresh compiler
+  memory-use claim. Test tasks configure one 512 MiB fork (not run by assemble);
+  actual generated Ninja compile/link rules retain depth-one `rshop_native`
+  pools per ABI. No memory failure or budget increase occurred. Workloads ran
+  sequentially; no existing build was interrupted.
+- Restored the exact normal APK (installed SHA-256 matched the recovery file).
+  All seven database/config/preferences/secure-storage fingerprints are unchanged.
+  Removed only the two fixture ADB forwards and confirmed both displays OFF.
+  Final affected-path analysis and diff whitespace checks passed. Native private
+  evidence remains under `D:/Temp/rshop-s5-native-20261004`.
+  The two regenerated fixture APK copies were removed transactionally after
+  restoration, reclaiming 290,237,854 bytes with zero failures. Recovery APK,
+  source and diagnostic/screenshot evidence remain; no release artifact is made.
+- UI-02's wrong-match correction is now implemented and verified against a
+  synthetic provider on the real Thor. Remaining UI-01 console/badge/localization/
+  resource proof and other integrated S5 acceptance remain unfinished. S1/S4
+  blockers and S6-S9 are unchanged; this does not close S5 or the overall fork.
+
 ### S5 Systematic media integration and native proof (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. The selected upstream family now replaces

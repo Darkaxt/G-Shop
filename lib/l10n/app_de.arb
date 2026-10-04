@@ -1,4 +1,6 @@
 {
+  "metadata_rediscover": "Andere Zuordnung suchen",
+  "metadata_rediscoverHelp": "Dieses Spiel erneut suchen, ohne die gespeicherte Zuordnung zu verwenden. Vorhandene Daten bleiben gespeichert, bis ein Ersatz ausgewählt und geprüft wurde. Keine ROM wird heruntergeladen.",
   "metadata_reviewChanged": "Datei oder Identität geändert. Diese gespeicherten Kandidaten können nicht bestätigt werden; die aktuelle Edition erneut abrufen.",
   "metadata_openReview": "Gespeicherte Zuordnungen prüfen",
   "metadata_reviewTitle": "Gespeicherte Zuordnungen prüfen",

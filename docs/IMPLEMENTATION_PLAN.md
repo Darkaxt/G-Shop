@@ -551,6 +551,14 @@ Depends on: S4 provenance/cache and S1/S2 setup states.
   Accept through the existing atomic correction/retry transaction and worker,
   never publish a candidate's score. Verify restart continuity, scope isolation,
   stale/foreign candidates, cancellation and normal controller/touch navigation.
+- Exact-game settings also let an already matched game be reconsidered. Snapshot
+  the current cache-row/edition binding and search without its disputed saved
+  provider/base/raw identifier. Keep existing facts; even a confident result is
+  offered for explicit review, not published automatically. Persist this job
+  mode through pause/retry/restart, and verify the selected replacement through
+  the normal worker. Subsequent ordinary refresh must retain the correction.
+  Verify additive v31-to-v32 migration, rejected stale bindings and the normal
+  touch/controller correction workflow with Android SQLite on the Thor.
 - Wire the tested shared queries into existing filters: `Hack`, `T-Eng`, `Dub`,
   `Undub`, `Uncensor` and other content tags, any/all matching, genres, and dynamic
   Best rated 10/25/50/100/All within the user's collection with explicit scope,

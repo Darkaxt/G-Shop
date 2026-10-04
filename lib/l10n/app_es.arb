@@ -1,4 +1,6 @@
 {
+  "metadata_rediscover": "Buscar otra coincidencia",
+  "metadata_rediscoverHelp": "Buscar de nuevo este juego concreto sin reutilizar la coincidencia guardada. Los datos existentes se conservan hasta que selecciones y verifiques un reemplazo. No se descarga ninguna ROM.",
   "metadata_reviewChanged": "Este archivo o identidad ha cambiado. No se pueden aceptar estos candidatos guardados; vuelve a recopilar la edición actual.",
   "metadata_openReview": "Revisar coincidencias guardadas",
   "metadata_reviewTitle": "Revisar coincidencias guardadas",

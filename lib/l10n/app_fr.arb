@@ -1,4 +1,6 @@
 {
+  "metadata_rediscover": "Chercher une autre correspondance",
+  "metadata_rediscoverHelp": "Rechercher ce jeu précis sans réutiliser sa correspondance enregistrée. Les données existantes restent en cache jusqu'à la sélection et la vérification d'un remplacement. Aucune ROM n'est téléchargée.",
   "metadata_reviewChanged": "Ce fichier ou cette identité a changé. Ces candidats ne peuvent pas être confirmés ; relancez la collecte de l'édition actuelle.",
   "metadata_openReview": "Vérifier les correspondances en cache",
   "metadata_reviewTitle": "Vérifier les correspondances en cache",

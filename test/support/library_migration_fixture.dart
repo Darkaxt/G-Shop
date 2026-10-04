@@ -132,7 +132,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 31);
+    expect(await opened.getVersion(), 32);
     expect(await opened.query('metadata_provider_limits'), isEmpty);
     expect(await opened.query('transfer_replacements'), isEmpty);
     expect(await opened.query('owned_removals'), isEmpty);
@@ -194,7 +194,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 31);
+    expect(await opened.getVersion(), 32);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');

@@ -174,6 +174,19 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         await _run(job.id);
       });
 
+  Future<void> rediscoverMatch(
+          {required int cacheRowId, required String editionId}) =>
+      _perform(() async {
+        final job = await _jobs.createMatchReview(
+            providerId: state.providerId,
+            cacheRowId: cacheRowId,
+            editionId: editionId);
+        _set(state.copyWith(report: job));
+        if (_closed) return;
+        _catalogueChanged();
+        await _run(job.id);
+      });
+
   Future<void> resume() => _perform(() async {
         final id = state.report?.id;
         if (id != null) await _run(id);

@@ -1,4 +1,6 @@
 {
+  "metadata_rediscover": "Find another match",
+  "metadata_rediscoverHelp": "Search for this exact game again without reusing its saved match. Existing facts stay cached until you select and verify a replacement. No ROM is downloaded.",
   "metadata_reviewChanged": "This file or identity changed. These saved candidates cannot be accepted; re-scrape the current edition.",
   "metadata_openReview": "Review cached matches",
   "metadata_reviewTitle": "Review cached matches",

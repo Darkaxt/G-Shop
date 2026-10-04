@@ -103,6 +103,7 @@ class MetadataRefreshJobs {
       await db.execute(
           'ALTER TABLE metadata_refresh_jobs ADD COLUMN is_artwork INTEGER NOT NULL DEFAULT 0');
     }
+    await installMatchReviewMode(db);
     final limitColumns =
         await db.rawQuery('PRAGMA table_info(metadata_provider_limits)');
     if (!limitColumns.any((r) => r['name'] == 'remaining_requests')) {
@@ -127,6 +128,16 @@ class MetadataRefreshJobs {
   static Future<void> installRatingFreshnessIndex(DatabaseExecutor db) =>
       db.execute('''CREATE INDEX IF NOT EXISTS idx_metadata_refresh_edition
         ON metadata_refresh_items(edition_id, job_id)''');
+
+  /// Additive v32 migration: retain all jobs, facts and existing refresh modes.
+  static Future<void> installMatchReviewMode(DatabaseExecutor db) async {
+    final columns =
+        await db.rawQuery('PRAGMA table_info(metadata_refresh_jobs)');
+    if (!columns.any((r) => r['name'] == 'is_match_review')) {
+      await db.execute('ALTER TABLE metadata_refresh_jobs '
+          'ADD COLUMN is_match_review INTEGER NOT NULL DEFAULT 0');
+    }
+  }
 
   /// Called once by database startup, never by a second live job runner.
   static Future<void> recoverInterrupted(DatabaseExecutor db) async {
@@ -168,6 +179,28 @@ class MetadataRefreshJobs {
         providerId: providerId,
         editions: (txn) => LibraryStore.catalogueEditions(txn,
             systemSlug: systemSlug, cacheRowId: cacheRowId));
+  }
+
+  /// Reconsider only the exact edition shown in details. Keep its saved identity
+  /// and facts until explicit review; do not reuse the disputed lookup evidence.
+  Future<MetadataRefreshReport> createMatchReview(
+      {required String providerId,
+      required int cacheRowId,
+      required String editionId}) {
+    if (cacheRowId < 1 || editionId.trim().isEmpty) {
+      throw ArgumentError('An exact current game is required');
+    }
+    return _create(
+        providerId: providerId,
+        matchReview: true,
+        editions: (txn) async* {
+          final current =
+              await LibraryStore.cachedCatalogueEditionId(txn, cacheRowId);
+          if (current != editionId) {
+            throw StateError('The selected catalogue edition changed');
+          }
+          yield editionId;
+        });
   }
 
   static const _retryable = {
@@ -275,6 +308,7 @@ class MetadataRefreshJobs {
     return _create(
         providerId: job['provider_id'] as String,
         collectionGeneration: job['collection_generation'] as String,
+        matchReview: job['is_match_review'] == 1,
         recordMissingIdentities: true,
         editions: (txn) async* {
           if ((await _job(txn, id))['state'] == 'running') {
@@ -305,6 +339,7 @@ class MetadataRefreshJobs {
       {required String providerId,
       String? collectionGeneration,
       bool recordMissingIdentities = false,
+      bool matchReview = false,
       required Stream<String> Function(Transaction) editions}) async {
     if (providerId.trim().isEmpty ||
         collectionGeneration?.trim().isEmpty == true) {
@@ -322,6 +357,7 @@ class MetadataRefreshJobs {
         'collection_generation':
             collectionGeneration ?? 'cached-catalogue:$generation',
         'state': 'paused',
+        'is_match_review': matchReview ? 1 : 0,
       });
       // Consume explicit membership incrementally; never discover the collection
       // by scanning historical metadata or load every record into a Dart list.
@@ -369,13 +405,14 @@ class MetadataRefreshJobs {
                 editionId: edition.id,
                 platformId: game.platformId!,
                 title: game.title,
-                verifiedProviderGameId: {
-                  IdentityMatchStatus.matched,
-                  IdentityMatchStatus.manuallyMatched
-                }.contains(game.matchStatus)
+                verifiedProviderGameId: !matchReview &&
+                        {
+                          IdentityMatchStatus.matched,
+                          IdentityMatchStatus.manuallyMatched
+                        }.contains(game.matchStatus)
                     ? game.providerIds[providerId]
                     : null,
-                baseProviderGameId: baseProviderId,
+                baseProviderGameId: matchReview ? null : baseProviderId,
                 contentTags: edition.tags,
                 region:
                     edition.regions.length == 1 ? edition.regions.single : null,
@@ -383,7 +420,7 @@ class MetadataRefreshJobs {
                     ? edition.languages.single
                     : null,
                 revision: edition.revision,
-                romIdentifier: _rawIdentifier(edition),
+                romIdentifier: matchReview ? null : _rawIdentifier(edition),
                 refreshGeneration: generation);
         final keyData = request?.toJson()
           ?..remove('editionId')
@@ -780,6 +817,7 @@ class MetadataRefreshJobs {
       return true;
     });
     if (!claimed) return report(id);
+    final matchReview = (await _job(db, id))['is_match_review'] == 1;
     Timer? budgetTimer;
     Completer<void>? budgetWait;
     // One cancellation listener per run, not one retained listener per item.
@@ -917,8 +955,9 @@ class MetadataRefreshJobs {
           await _block(db, id, result.status, result.retryAfter);
           return await report(id);
         }
-        await _commitResult(db, id, item, request, result, provider.providerId,
-            cancel, publish);
+        await _commitResult(
+            db, id, item, request, result, provider.providerId, cancel, publish,
+            matchReview: matchReview);
         if (cancel.isCancelled) break;
         final quota = result.quota;
         if ((quota?.requestsToday != null &&
@@ -1242,7 +1281,8 @@ class MetadataRefreshJobs {
       MetadataLookupResult result,
       String providerId,
       CancelToken cancel,
-      void Function(Map<String, int>, int) committed) async {
+      void Function(Map<String, int>, int) committed,
+      {bool matchReview = false}) async {
     final record = result.record;
     final originalBaseScore = record != null &&
         request.baseProviderGameId != null &&
@@ -1262,7 +1302,25 @@ class MetadataRefreshJobs {
                 (providerId == 'igdb' &&
                     record.matchMethod == 'verifiedProviderIdGlobalGame' &&
                     record.providerGameId == request.verifiedProviderGameId)));
-    final status = valid ? result.status.name : 'invalidResponse';
+    final reviewMatched =
+        matchReview && valid && result.status == MetadataLookupStatus.matched;
+    final status = !valid
+        ? 'invalidResponse'
+        : reviewMatched
+            ? 'needsReview'
+            : result.status.name;
+    // A provider's confident lookup is still only an offered identity during
+    // explicit correction. It cannot replace cached facts before user selection.
+    final candidates = reviewMatched && result.candidates.isEmpty
+        ? [
+            MetadataLookupCandidate(
+                providerGameId: record!.providerGameId,
+                platformId: record.platformId,
+                titles: record.titles,
+                titleMatched: false,
+                evidence: record.matchMethod)
+          ]
+        : result.candidates;
     final store = LibraryStore(_database);
     // Each bounded page commits its metadata and item results together. A crash
     // leaves the remaining page pending, never a done item with missing metadata.
@@ -1334,7 +1392,7 @@ class MetadataRefreshJobs {
               {
                 'status': outcome,
                 'rated': rated,
-                'candidates_json': jsonEncode(result.candidates
+                'candidates_json': jsonEncode(candidates
                     .map((candidate) => {
                           'providerGameId': candidate.providerGameId,
                           'platformId': candidate.platformId,

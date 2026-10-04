@@ -9,6 +9,13 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_rediscover => 'Chercher une autre correspondance';
+
+  @override
+  String get metadata_rediscoverHelp =>
+      'Rechercher ce jeu précis sans réutiliser sa correspondance enregistrée. Les données existantes restent en cache jusqu\'à la sélection et la vérification d\'un remplacement. Aucune ROM n\'est téléchargée.';
+
+  @override
   String get metadata_reviewChanged =>
       'Ce fichier ou cette identité a changé. Ces candidats ne peuvent pas être confirmés ; relancez la collecte de l\'édition actuelle.';
 

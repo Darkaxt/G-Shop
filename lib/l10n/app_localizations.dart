@@ -105,6 +105,18 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_rediscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Find another match'**
+  String get metadata_rediscover;
+
+  /// No description provided for @metadata_rediscoverHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for this exact game again without reusing its saved match. Existing facts stay cached until you select and verify a replacement. No ROM is downloaded.'**
+  String get metadata_rediscoverHelp;
+
   /// No description provided for @metadata_reviewChanged.
   ///
   /// In en, this message translates to:

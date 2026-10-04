@@ -9,6 +9,13 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_rediscover => 'Buscar outra correspondência';
+
+  @override
+  String get metadata_rediscoverHelp =>
+      'Buscar novamente este jogo específico sem reutilizar a correspondência salva. Os dados existentes permanecem em cache até você selecionar e verificar uma substituição. Nenhuma ROM é baixada.';
+
+  @override
   String get metadata_reviewChanged =>
       'Este ficheiro ou identidade mudou. Estes candidatos guardados não podem ser aceites; recolha novamente a edição atual.';
 

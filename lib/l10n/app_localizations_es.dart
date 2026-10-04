@@ -9,6 +9,13 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_rediscover => 'Buscar otra coincidencia';
+
+  @override
+  String get metadata_rediscoverHelp =>
+      'Buscar de nuevo este juego concreto sin reutilizar la coincidencia guardada. Los datos existentes se conservan hasta que selecciones y verifiques un reemplazo. No se descarga ninguna ROM.';
+
+  @override
   String get metadata_reviewChanged =>
       'Este archivo o identidad ha cambiado. No se pueden aceptar estos candidatos guardados; vuelve a recopilar la edición actual.';
 

@@ -9,6 +9,13 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_rediscover => 'Find another match';
+
+  @override
+  String get metadata_rediscoverHelp =>
+      'Search for this exact game again without reusing its saved match. Existing facts stay cached until you select and verify a replacement. No ROM is downloaded.';
+
+  @override
   String get metadata_reviewChanged =>
       'This file or identity changed. These saved candidates cannot be accepted; re-scrape the current edition.';
 

@@ -9,6 +9,13 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_rediscover => 'Andere Zuordnung suchen';
+
+  @override
+  String get metadata_rediscoverHelp =>
+      'Dieses Spiel erneut suchen, ohne die gespeicherte Zuordnung zu verwenden. Vorhandene Daten bleiben gespeichert, bis ein Ersatz ausgewählt und geprüft wurde. Keine ROM wird heruntergeladen.';
+
+  @override
   String get metadata_reviewChanged =>
       'Datei oder Identität geändert. Diese gespeicherten Kandidaten können nicht bestätigt werden; die aktuelle Edition erneut abrufen.';
 

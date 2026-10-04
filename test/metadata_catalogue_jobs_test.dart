@@ -11,6 +11,8 @@ import 'package:retro_eshop/models/scraped_metadata.dart';
 
 class _ReviewProvider implements MetadataProvider {
   int calls = 0;
+  final requests = <MetadataLookupRequest>[];
+  Future<MetadataLookupResult> Function(MetadataLookupRequest)? reply;
   Future<void> Function()? beforeResult;
   @override
   String get providerId => 'screenscraper';
@@ -28,7 +30,9 @@ class _ReviewProvider implements MetadataProvider {
   Future<MetadataLookupResult> lookup(MetadataLookupRequest request,
       {CancelToken? cancelToken}) async {
     calls++;
+    requests.add(request);
     await beforeResult?.call();
+    if (reply != null) return reply!(request);
     return MetadataLookupResult(
         status: MetadataLookupStatus.needsReview,
         message: 'Review required',
@@ -511,5 +515,126 @@ void main() {
     expect(edition.tags, {'official'});
     expect(edition.isTranslation, isFalse);
     expect(edition.translatedLanguages, isEmpty);
+  });
+
+  test(
+      'disputed match survives retry and restart without publishing a candidate',
+      () async {
+    final rowId = await cache('snes', 'Game.zip', artifact: remote('file'));
+    final initial = await jobs.createFromCatalogue(
+        providerId: 'screenscraper', cacheRowId: rowId);
+    final editionId = (await items(initial.id)).single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    final game = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'providerIds': {'screenscraper': '99'},
+      'matchStatus': 'manuallyMatched'
+    }));
+    final at = DateTime.utc(2026, 10, 4);
+    final previous = MetadataRecord(
+        gameId: game.id,
+        editionId: editionId,
+        platformId: 'snes',
+        providerId: 'screenscraper',
+        providerGameId: '99',
+        retrievedAt: at,
+        refreshGeneration: initial.generation,
+        matchMethod: 'verifiedProviderId',
+        titles: const [MetadataText(text: 'Old wrong match')]);
+    await store.putMetadata(previous);
+    final review = await jobs.createMatchReview(
+        providerId: 'screenscraper', cacheRowId: rowId, editionId: editionId);
+    final provider = _ReviewProvider();
+    provider.reply = (_) async => MetadataLookupResult(
+        status: MetadataLookupStatus.unmatched, message: 'Not found');
+    await jobs.run(review.id, provider);
+    final retry = await jobs.retryUnresolved(review.id);
+    expect(
+        (await db.query('metadata_refresh_jobs',
+                where: 'id = ?', whereArgs: [retry.id]))
+            .single['is_match_review'],
+        1);
+    final reopened = MetadataRefreshJobs(Future.value(db));
+    provider.reply = (r) async => MetadataLookupResult(
+        status: MetadataLookupStatus.matched,
+        message: 'Confident result',
+        record: MetadataRecord(
+            gameId: r.gameId,
+            editionId: r.editionId,
+            platformId: r.platformId,
+            providerId: 'screenscraper',
+            providerGameId: r.verifiedProviderGameId ?? '42',
+            retrievedAt: at,
+            refreshGeneration: r.refreshGeneration,
+            matchMethod: 'verifiedProviderId',
+            titles: const [
+              MetadataText(text: 'Correct candidate')
+            ],
+            ratings: [
+              SourcedRating.parse(
+                  sourceId: 'screenscraper',
+                  sourceLabel: 'ScreenScraper',
+                  providerGameId: '42',
+                  rawValue: 20,
+                  scaleMinimum: 0,
+                  scaleMaximum: 20,
+                  kind: RatingKind.overallAggregate,
+                  retrievedAt: at)!
+            ]));
+    final result = await reopened.run(retry.id, provider);
+    expect(result.counts, {'needsReview': 1});
+    expect(result.rated, 0);
+    expect(
+        provider.requests.every((r) =>
+            r.verifiedProviderGameId == null &&
+            r.baseProviderGameId == null &&
+            r.romIdentifier == null),
+        isTrue);
+    expect((await store.game(game.id))!.providerIds['screenscraper'], '99');
+    expect((await store.metadata(editionId, 'screenscraper'))!.toJson(),
+        previous.toJson());
+    final candidates = await reopened.reviewQueue('screenscraper',
+        cacheRowId: rowId, editionId: editionId);
+    expect(candidates.single.candidates.single.providerGameId, '42');
+    final accepted = await reopened.acceptCandidate(retry.id,
+        editionId: editionId, providerGameId: '42', contentTags: {'official'});
+    expect(
+        (await db.query('metadata_refresh_jobs',
+                where: 'id = ?', whereArgs: [accepted.id]))
+            .single['is_match_review'],
+        0);
+    expect((await db.query('library_metadata')).single['generation_id'],
+        previous.refreshGeneration,
+        reason: 'Selection alone cannot publish new facts.');
+    await reopened.run(accepted.id, provider);
+    expect((await store.metadata(editionId, 'screenscraper'))!.providerGameId,
+        '42');
+    expect((await reopened.reviewQueue('screenscraper')), isEmpty);
+  });
+
+  test('match rediscovery rejects a stale exact-game binding atomically',
+      () async {
+    final first = await cache('snes', 'First.zip');
+    final second = await cache('snes', 'Second.zip');
+    final seed = await jobs.createFromCatalogue(
+        providerId: 'screenscraper', cacheRowId: first);
+    final editionId = (await items(seed.id)).single['edition_id'] as String;
+    final before = await db.query('metadata_refresh_jobs');
+    await expectLater(
+        jobs.createMatchReview(
+            providerId: 'screenscraper',
+            cacheRowId: second,
+            editionId: editionId),
+        throwsStateError);
+    expect(await db.query('metadata_refresh_jobs'), before);
+    await db.delete('games', where: 'id = ?', whereArgs: [first]);
+    await expectLater(
+        jobs.createMatchReview(
+            providerId: 'screenscraper',
+            cacheRowId: first,
+            editionId: editionId),
+        throwsStateError);
+    expect(await db.query('metadata_refresh_jobs'), before);
   });
 }
