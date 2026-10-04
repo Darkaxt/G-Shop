@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -67,12 +68,19 @@ class _ProofState extends State<_Proof> {
   DriveAuthorization? _auth;
   DriveAuthorizationGrant? _grant;
   bool _busy = false;
+  StreamIterator<void>? _expiryChecks;
+  bool _expiryCancelled = false;
   final _messages = <String>[];
 
   void _record(String message) {
     // Only fixed proof codes and HTTP status cross the diagnostic boundary.
     debugPrint('AUTH_PROOF $message');
-    if (mounted) setState(() => _messages.add(message));
+    if (mounted) {
+      setState(() {
+        if (_messages.length == 100) _messages.removeAt(0);
+        _messages.add(message);
+      });
+    }
   }
 
   Future<void> _run(Future<void> Function() operation) async {
@@ -143,6 +151,66 @@ class _ProofState extends State<_Proof> {
     _record('PASS_native_cache_clear_noninteractive_root');
   }
 
+  Future<int> _heldRootStatus(DriveAuthorizationGrant grant) async {
+    final http = HttpClient();
+    try {
+      final request = await http.getUrl(Uri.https(
+          'www.googleapis.com', '/drive/v3/files/root', {'fields': 'id'}));
+      request.followRedirects = false;
+      request.headers
+          .set(HttpHeaders.authorizationHeader, 'Bearer ${grant.accessToken}');
+      final response = await request.close();
+      final status = response.statusCode;
+      await response.listen((_) {}).cancel();
+      return status;
+    } finally {
+      http.close(force: true);
+    }
+  }
+
+  Future<void> _observeExpiry() async {
+    _require(_grant != null && _expiryChecks == null);
+    final held = _grant!;
+    _require(await _heldRootStatus(held) == 200);
+    _record('START_held_grant_valid_HTTP200');
+    _expiryCancelled = false;
+    // Read-only health observations, not an expiry deadline or success timer.
+    // Only Google's actual rejection allows renewal proof. No native cache
+    // invalidation, revocation or token persistence occurs while observing.
+    final checks = StreamIterator<void>(
+        Stream<void>.periodic(const Duration(minutes: 1), (_) {}));
+    _expiryChecks = checks;
+    try {
+      while (await checks.moveNext()) {
+        final status = await _heldRootStatus(held);
+        if (_expiryCancelled) break;
+        if (status == 200) {
+          _record('WAIT_held_grant_still_valid_HTTP200');
+          continue;
+        }
+        _require(status == 401);
+        _record('OBSERVED_held_grant_rejected_HTTP401');
+        _grant = await _auth!.acquire(
+            expectedAccountId: _config!.accountId,
+            rejectedToken: held.accessToken);
+        _require(_grant!.accessToken != held.accessToken);
+        await _root();
+        _record('PASS_elapsed_rejection_noninteractive_renewal_root');
+        return;
+      }
+      _record('CANCELLED_expiry_observation');
+    } finally {
+      await checks.cancel();
+      _expiryChecks = null;
+    }
+  }
+
+  Future<void> _cancelExpiry() async {
+    _expiryCancelled = true;
+    await _expiryChecks?.cancel();
+    // _run remains busy until any in-flight read-only request has completed.
+  }
+
   Future<void> _mismatch() async {
     _require(_grant != null);
     try {
@@ -203,12 +271,17 @@ class _ProofState extends State<_Proof> {
                 'Load': _load,
                 'Connect': _connect,
                 'Renew cached token': _renew,
+                'Observe natural expiry': _observeExpiry,
                 'Foreign binding': _mismatch,
                 'Revoke': _revoke,
               }.entries)
                 ElevatedButton(
                     onPressed: _busy ? null : () => _run(action.value),
                     child: Text(action.key)),
+              if (_expiryChecks != null)
+                ElevatedButton(
+                    onPressed: _cancelExpiry,
+                    child: const Text('Cancel expiry observation')),
             ]),
             for (final message in _messages) Text(message),
             if (_busy) const Text('Awaiting native/API completion'),

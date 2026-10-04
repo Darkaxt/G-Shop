@@ -10,15 +10,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
-- Feature implementation: S1 BLOCKED at the owner's second Google test-account
-  choice, with elapsed-expiry verification also remaining. ScreenScraper access
+- Feature implementation: S1 COMPLETE after actual elapsed rejection, silent
+  renewal and verified normal-app/settings restoration on 2026-10-04;
+  B6 connectivity was verified resolved after hotel authorization on 2026-10-04.
+  The user waived live second-account verification on 2026-10-04; B3 is resolved
+  by authorized scope change, not by live proof. ScreenScraper access
   B2 is resolved by the actual adapter's authenticated live lookup on 2026-10-03.
   Additional required authorization evidence is retained below. First online
   authorization, cancellation/reconnect and QA-03 release naming are verified.
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
   verified transfer, native process recovery, bundles and owned installations.
-  S4 is BLOCKED at B5 (missing original host-wait runtime evidence): B4 application authentication is resolved by the authorized
+  S4 is parked BLOCKED at B5 (missing original host-wait runtime evidence): B4 application authentication is resolved by the authorized
   dedicated Twitch app and a real review/publication/offline-consumption check.
   The representative older/newer/project reception assessment now supplies a
   scoped IGDB community basis, verified through the real worker/cache/offline
@@ -27,7 +30,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   requirement backend reconciliation is recorded in S4_ACCEPTANCE_RECONCILIATION.md.
   Unassessed console scopes remain advisory, not silently approved. S5 is
   COMPLETE, using verified provenance/cache/query/setup contracts. No stage is
-  currently ACTIVE; S1/B3 and S4/B5 remain parked BLOCKED.
+  ACTIVE at this checkpoint; S4 reconciliation is next. Live second-account
+  verification no longer blocks delivery.
   S6-S9 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
@@ -40,8 +44,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 - Live account setup: Drive API enabled, both test clients created using the
   actual debug APK signer, single owner test user saved, and read-only Drive
   scope verified after reload (see DEVELOPMENT_SETUP.md). Authorized native
-  consent and initial Drive API access succeeded; full auth lifecycle proof
-  remains pending.
+  consent, Drive API access and the required auth lifecycle are verified;
+  current S1 closure evidence is recorded below.
   Full scraping, existing-library migration and releases have not been performed.
   An isolated real Drive/SD/emulator round trip is now verified (see S3 live
   checkpoint below); this does not authorize bulk removal. An isolated
@@ -64,6 +68,126 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S1 closure: actual renewal and verified restoration (2026-10-04)
+
+- Native PID 19140 held the initially valid token without native invalidation
+  or revocation until Google's HTTP 401 at `21:48:58.810`. Native cache clear
+  returned at `21:48:58.924`, noninteractive authorization completed at
+  `21:48:59.578`, and real root metadata succeeded at `21:49:00.644`.
+  `PASS_elapsed_rejection_noninteractive_renewal_root` followed at
+  `21:49:00.645`; observer session 65017 exited zero (`7db79d`). The proof
+  requires a different renewed token; elapsed time alone cannot pass.
+- Restoration was verified, not merely requested: SleepManager's Wi-Fi toggle
+  is checked true again, while Bluetooth/Battery Saver remain checked (`4fb8d8`).
+  In-place normal APK install succeeded (`e64c88`); installed SHA-256 equals the
+  preserved normal recovery APK, and all seven protected file hashes match
+  (`0b24e3`). Both task-owned UI dumps were removed and a fresh display check
+  confirmed both actual controllers OFF (`4d3992`). No second account was added.
+- Transaction `0cc1d229a278ebeb26fb578415f13869` was reviewed, ticketed and
+  applied (`24ef9f`): only two expendable proof APK copies, 266,756,648 bytes,
+  were removed; four pre-existing entries were protected and no error remains.
+  Proof APKs are reproducible, not recycle-bin recoverable; retained recovery
+  APK/logs remain available. No additional Gradle build or test workload ran
+  during the observation. Ticket 49's already verified gated low-memory profile
+  remains the applicable build evidence; no memory-related failure occurred.
+- [S1_ACCEPTANCE_RECONCILIATION.md](S1_ACCEPTANCE_RECONCILIATION.md) maps every
+  assigned requirement to inspected evidence. S1 is COMPLETE with no remaining
+  blocker or tracked deferral. S4 remains parked pending its own reconciliation;
+  S6-S9 are NOT STARTED. Overall completion is not claimed.
+
+### S1 elapsed-renewal verification resumed (2026-10-04)
+
+- Requirement-level reconciliation is recorded in
+  [S1_ACCEPTANCE_RECONCILIATION.md](S1_ACCEPTANCE_RECONCILIATION.md). Current
+  remaining acceptance is the live renewal observation and verified restoration,
+  not account enrollment or a new network setup. PID 19140 still returned HTTP
+  200 at `10-04 21:08:40.894`; observer session 65017 remains running.
+
+- Latest native observation start: device log time `10-04 20:58:36.507`, native
+  PID 19140, terminal-code log observer session 65017 (`db3f25`). The observer
+  uses that exact start marker, so earlier failed attempts cannot be mistaken
+  for this attempt's result. Actual Wi-Fi is connected and both display
+  controllers are OFF (`6d511e`). No elapsed-renewal success is claimed yet.
+- Screen-off attempts exposed a real environment dependency: SleepManager is
+  active and its Wi-Fi management toggle was checked true, explicitly labelled
+  "Turn off during sleep. Restore previous state on wake." Device Wi-Fi became
+  Disabled after screen-off, removing the default network and DNS. The earlier
+  observations terminated `FAILED_unclassified` before expiry evidence; their
+  production authorization adapter is unchanged. Re-enabling Wi-Fi alone was
+  insufficient while that management policy remained enabled.
+- Temporary live-test adjustment: only SleepManager's Wi-Fi management toggle
+  was switched from checked true to checked false and verified (`f4f8e1`).
+  SleepManager itself remains active; Bluetooth/Battery Saver/other preferences
+  were not changed. REQUIRED recovery after observer success/failure/cancellation:
+  wake Thor, reopen SleepManager Home/System controls, restore that Wi-Fi toggle
+  to checked true and verify it; restore the normal R-Shop APK, verify protected
+  hashes, remove the two task-owned UI dumps, then switch both screens off and
+  verify both actual controllers OFF. No persistent settings change is intended.
+
+- Actual live observation now started (`e2291a`, `b51938`): selecting the existing
+  default account succeeded with the unchanged authorization adapter and real
+  root-folder API response. The debug proof holds an HTTP-200-valid grant only
+  in memory and records `START_held_grant_valid_HTTP200`. Native process 19140
+  is alive; both display controllers are OFF. Renewal is not yet verified;
+  only actual server rejection followed by noninteractive renewal can pass.
+- The resumed gated build ticket 49/session 99901 exited zero (`ba7aa9`), with
+  actual gate acquisition, safe preflight, two workers/no parallel, 3 GB Gradle
+  heap and Kotlin in-process; configured test forks one/512 MiB, no test task
+  executed and no memory failure. The resulting proof APK hash matches the
+  previously independently inspected bytes exactly. No new account or consent
+  registration was required. Normal recovery APK remains preserved for restore.
+- Reviewed cleanup removed the two expendable offline-attempt APK copies
+  (266,756,648 bytes) and the temporary failed hotspot probe (3,375 bytes);
+  original recovery APK and diagnostic build logs remain. Resumed-build APK
+  cleanup is registered in transaction `0cc1d229a278ebeb26fb578415f13869` and
+  must wait until native observation is terminal and normal restoration verified.
+
+- Hotel connectivity subsequently resolved B6 (`2ee048`): the actual default
+  Wi-Fi network is VALIDATED, Google DNS resolves and a device reachability
+  probe succeeds. The user authorized hotel access. S1 resumes ACTIVE with
+  unchanged verification code; S4 is parked BLOCKED at B5 before that resume.
+  No hotspot service, network configuration or Google-account setup was changed.
+
+- Earlier offline attempt (superseded by the verified recovery above): native
+  verification was parked BLOCKED at B6, not running.
+  The Thor's current network is CAPTIVE_PORTAL rather than VALIDATED;
+  `accounts.google.com` fails device DNS resolution. Selecting the authorized
+  default account produced microG internal error 8/null account, reported as
+  cancellation 16. No expiry observation began. The laptop has internet, but
+  its hotspot service is Disabled and enabling it was denied by Windows;
+  the service remains Stopped/Disabled. No hotspot or account was added.
+- B6 is external and blocks only the remaining live elapsed-renewal acceptance:
+  resolve with a validated Thor connection (or an available authorized laptop
+  hotspot), then require actual held-token rejection and silent renewal. It is
+  not resolved by an elapsed timer or another cached-token test. S1/final closure
+  remains dependent on that evidence; S4 is now ACTIVE for reconciliation.
+- Gated build ticket 47/session 72454 completed successfully (`35da74`): mutex
+  acquired, preflight safe, two workers/no parallel, actual 3 GB Gradle heap,
+  Kotlin in-process, test tasks configured one fork/512 MiB (not executed),
+  native SoLoud Ninja pool depth one; no memory failure. Scoped analysis and
+  unchanged formatting passed (`331098`). Proof APK SHA-256
+  `C04D79BABD05EC882EF0652BE3FF98AEC2E7888D73291ADEB1AFE1090CAFD945`
+  retained the existing debug package/version/signer before in-place installation.
+- Normal APK was restored and its installed bytes verified (`393a6a`), SHA-256
+  `DAA8B182C8F722F4E3DC75685EE346B8919BFEFB1159C62AF6CFCE3EBDD7FFEE`.
+  All seven protected database/preferences/config hashes matched the pre-test
+  baseline. Both actual display controllers were OFF. The task-owned device UI
+  snapshot was removed; no ROM, catalogue, settings or source was changed.
+
+- S1 ACTIVE for real elapsed-token evidence, not another credential rotation.
+  The debug-only native proof adds a read-only held-grant observation: first
+  establish HTTP 200, retain that token only in memory, inspect root status once
+  per minute, and require Google's actual HTTP 401 before native cache clear,
+  noninteractive renewal and real root success. An elapsed timer alone cannot
+  pass. No revoke, scope change, catalogue/ROM request or source write occurs.
+- Cancellation cancels monitoring and joins any in-flight read-only request;
+  build/native verification remains unfinished. On 2026-10-04 the user explicitly
+  declined second-account enrollment and waived that live test, emphasizing
+  delivery of features. B3 is resolved by that scope change; offline isolation
+  contracts remain required and no live second-account success is claimed.
+  No account was added to the Thor or Google project. The task-owned audience
+  inspection tab was closed. S4 stays BLOCKED at B5; S6-S9 remain NOT STARTED.
 
 ### S5 closure and compact service-icon proof (2026-10-04)
 
@@ -1589,10 +1713,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Stage | State | Evidence | Required gaps / next action |
 | --- | --- | --- | --- |
 | S0 | COMPLETE | 65a421b; fork main and preparation branch verified equal; clean worktree; documentation-only scope checked | None |
-| S1 | BLOCKED | Additive v14/v15 migrations, native adapters and secure credentials; OAuth clients registered; actual native consent/root/folder requests, chooser cancellation/reconnect, microG token-clear plus silent authorization, remote revocation HTTP401 and scope decline/reconnect verified; processed release manifest preserves R-Shop branding/fork package; actual standalone ScreenScraper adapter live lookup, metadata/media/score parsing verified | External B3: owner must identify a second Google test account for DRIVE-01's real two-account isolation check; only the default account is selected so far. Elapsed-expiry renewal also remains required. Neither is waived by B2 closure |
+| S1 | COMPLETE | S1_ACCEPTANCE_RECONCILIATION.md; additive identity/migration preservation, native consent/decline/reconnect, actual natural HTTP401 followed by different-token silent renewal/root, remote revocation, offline isolation/privacy contracts, legitimate standalone ScreenScraper lookup and release identity verified; normal APK/settings/protected hashes restored | None. B3 resolved by explicit user waiver of live second-account verification, not live isolation proof; B6 resolved by working hotel connectivity |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | BLOCKED | Backend requirement reconciliation in S4_ACCEPTANCE_RECONCILIATION.md; fresh jobs/review/retry, exact raw/project/release ownership, independent tags, native query/artwork resources, real reception assessment and integrated production community policy verified; both VM-enabled and VM-disabled 30,000-item observed host workflows completed with offline reopen/replay | B5: original live async/FFI wait state was not captured before process stop; no available repeat reproduces it. Needs a recurrence with exact runtime state or additional original diagnostics, then cause/fix verification. No original fix is claimed. B4 resolved; no more IGDB credential renewal. Unassessed scopes remain advisory. S4/final closure stays blocked, not deferred |
+| S4 | BLOCKED | Backend requirement reconciliation in S4_ACCEPTANCE_RECONCILIATION.md; fresh jobs/review/retry, exact raw/project/release ownership, independent tags, native query/artwork resources, real reception assessment and integrated production community policy verified; both VM-enabled and VM-disabled 30,000-item observed host workflows completed with offline reopen/replay | Reconcile B5's historical tester-wait condition against actual META-06/QA-01 acceptance and current unchanged source/evidence. No original fix is claimed. B4 resolved; no more IGDB credential renewal. Unassessed scopes remain advisory |
 | S5 | COMPLETE | Normal native shared-card layout/overlays/media and pinned IGDB service icon, decoded cached cover replacement in console/Library/shelf, independent tags/unrated paths, filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | None for UI-01/UI-02/UI-03; S9 owns the expressly named final complete cartridge/legacy-platform asset coverage |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
@@ -1601,15 +1725,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This
-does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocked META-02's
+did not alone satisfy DRIVE-01 auth lifecycle acceptance. B2 blocked META-02's
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at B3; S4 is parked at B5; S5 is COMPLETE.
-No stage is currently ACTIVE. Earlier chronological checkpoints retain their then-current state.
+reclassified as a deferral. S1 is COMPLETE after actual renewal and verified restoration,
+with B3 resolved by the user's explicit scope change; S4 is parked at B5; S5 is COMPLETE. Earlier chronological
+checkpoints retain their then-current state.
 S3's explicit dependencies were S2 exact artefacts/queue
-and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
-criteria remain required and prevent final feature completion.
+and S1 migrated state, not ScreenScraper lookup. S1 auth lifecycle criteria are now
+satisfied; S4 and S6-S9 still require their own closure before overall completion.
 
 ### S4 provider grouping and artwork resource checkpoint (2026-10-03)
 

@@ -77,7 +77,9 @@ Required evidence: reproduce both failures on the actual native adapter; focused
 redaction/ordinary-GMS/microG/account-binding/revoke-failure contracts; native cache
 clear plus silent authorized metadata; prior grant rejected after server revoke;
 scope decline/reconnect; unchanged sources/files and both displays OFF. Cache
-invalidation proof does not become elapsed-expiry or second-live-account proof.
+invalidation proof does not become elapsed-expiry proof. The user explicitly
+waived live second-account verification on 2026-10-04; retain offline isolation
+contracts without enrolling another account or blocking delivery on that check.
 
 ## S2 — Drive catalogue and source integration
 

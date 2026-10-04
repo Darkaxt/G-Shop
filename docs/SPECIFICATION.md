@@ -160,9 +160,12 @@ account-wide read access: the selected library folder is an app-enforced boundar
 not a folder-scoped OAuth permission. `drive.file` must not be represented as
 automatically granting every existing descendant of a selected folder.
 
-Acceptance: consent/decline, renewal, revoked access and two-account isolation
-tests; native live authorization evidence before feature completion. No Drive
-mutation methods are invoked.
+Acceptance: consent/decline, renewal, revoked access and offline two-account
+isolation tests; native live authorization evidence before feature completion.
+On 2026-10-04 the user explicitly waived the live second-account isolation check:
+do not require adding another account to a device or the Google project, and do
+not let that check block delivery. Offline isolation contracts remain required.
+This waiver is not live isolation evidence. No Drive mutation methods are invoked.
 
 ### DRIVE-02 — Folder selection and paginated catalogue
 
