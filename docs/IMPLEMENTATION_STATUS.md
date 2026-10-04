@@ -64,6 +64,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 shared-card layout and native proof (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. Regression checks reproduced independent
+  source-dot/title/footer overlap, enlarged rating/achievement overlap on compact
+  cards and transfer indicators painted underneath the caption. The owning card
+  now measures header, transfer indicator and caption in one bounded layout;
+  footer labels and capped source dots share a row. Title line count uses actual
+  scaled line metrics; fonts/text scaling are not clamped. Localized installed
+  labels retain their full semantics while ellipsizing in available space.
+- Focused shared-card/media/Library/console host checks passed (`f1c088`, terminal
+  `02fddd`, exit 0), including comparison of the inspected golden without update
+  mode. After the native fixture correction, the affected layout checks and
+  four-file analysis passed (`9c7a16`, exit 0). Production was unchanged between
+  these results. No full-suite rerun was needed for this isolated layout contract.
+- The first native fixture failed because it treated fractional glyph-selection
+  boxes as the paragraph's rounded paint bounds. Tracing RenderParagraph/TextPainter
+  established the measurement mismatch; the corrected assertion measures a full
+  first line with the actual paragraph font, locale, scale and configuration.
+  It does not weaken the visibility criterion or change production behavior.
+- Corrected native driver passed (`2b31d2`, exit 0). The inspected private report
+  and all eleven screenshots verify compact/large selected/unselected cards,
+  six localized enlarged-label configurations, every active transfer state and
+  normal console/Library/manual-shelf focus/filter/cache-refresh workflows. Real
+  Android SQLite is used with synthetic data, not the user's library. All 321
+  console cover attempts were rejected before sockets; Library attempted none.
+  Pure fallback cards, metadata and ROMs initiated zero requests.
+- Required assembly passed (`16d8a4`, exit 0); gate ticket 26 actually acquired
+  Local\\Darka.AndroidGradleBuildGate. Observed two workers, no parallel projects
+  and a 3,221,225,472-byte Gradle heap with other JVM flags preserved. In-process
+  Kotlin shares that budget, but tasks were UP-TO-DATE/NO-SOURCE, not fresh compiler
+  memory evidence. Tests retain one 512 MiB fork (not executed by assemble);
+  current Ninja app compile/link pools retain depth 1. No memory failure, budget
+  increase or interruption of another build occurred.
+- Corrected fixture SHA-256 was
+  `27829896977b5240db050aa31852bdb22ee29a6b5f7d3c23af3024fe9930d240`.
+  Existing package/signature matched before installation. Restored the exact
+  normal APK and verified its installed SHA-256 plus all seven protected data
+  fingerprints unchanged. Removed only the fixture forward and confirmed both
+  display controllers OFF; no normal bootstrap, release or real-provider scrape.
+- Reviewed transactional cleanup `db59a5274ea2726d00f8396502afcd56` is APPLIED:
+  475,408,117 bytes reclaimed, zero failures. Only two rebuildable fixture APK
+  copies and generated test assets/cache were removed. Source assets, goldens,
+  recovery APK, private reports/screenshots and logs remain. The cleanup does not
+  remove user ROMs or settings and those compiler outputs can be regenerated.
+- Card geometry/localization/transfer-state proof is now satisfied. S5 still
+  requires final UI-01/02/03 reconciliation, including normal native details and
+  bounded offline scrolling evidence. S1/B3 and S4/B5 remain BLOCKED; S6-S9 remain
+  NOT STARTED. This verified checkpoint is not overall feature completion.
+
 ### S5 Sources touch/controller menus and native proof (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. Focused screen regressions reproduced dead

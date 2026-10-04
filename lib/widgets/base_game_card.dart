@@ -110,7 +110,6 @@ class BaseGameCard extends StatelessWidget {
     final innerBorderRadius = rs.isSmall ? 6.0 : 8.0;
     final favoritePadding = rs.isSmall ? 3.0 : 4.0;
     final favoriteIconSize = rs.isSmall ? 10.0 : 14.0;
-    final favoriteHeight = favoriteIconSize + 2 * favoritePadding;
 
     Widget card = GestureDetector(
       onTapDown: (_) => onTapSelect?.call(),
@@ -154,168 +153,214 @@ class BaseGameCard extends StatelessWidget {
                       accentColor: accentColor,
                     ),
                   ),
-                // Top-left badges (system + installed)
-                if (systemLabel != null || isInstalled)
-                  Positioned(
-                    top: padding,
-                    left: padding,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (systemLabel != null)
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: rs.isSmall ? 4.0 : 5.0,
-                              vertical: rs.isSmall ? 1.5 : 2.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  accentColor.forText.withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Text(
-                              systemLabel!.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: rs.isSmall ? 5.0 : 6.0,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        if (isInstalled) ...[
-                          if (systemLabel != null)
-                            SizedBox(height: rs.isSmall ? 2.0 : 3.0),
-                          _InstalledBadge(isSmall: rs.isSmall),
-                        ],
-                      ],
-                    ),
-                  ),
-                // Favorite heart — top right
-                if (isFavorite)
-                  Positioned(
-                    top: padding,
-                    right: padding,
-                    child: Container(
-                      padding: EdgeInsets.all(favoritePadding),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.favorite,
-                        size: favoriteIconSize,
-                        color: Colors.redAccent,
-                      ),
-                    ),
-                  ),
-                // RA achievement badge — top right (below favorite)
-                if (raAchievementCount != null &&
-                    raAchievementCount! > 0 &&
-                    raMatchType != RaMatchType.none)
-                  Positioned(
-                    top: isFavorite
-                        ? padding + favoriteHeight + (rs.isSmall ? 2.0 : 3.0)
-                        : padding,
-                    right: padding,
-                    child: _RaBadge(
-                      count: raAchievementCount!,
-                      matchType: raMatchType,
-                      isMastered: isMastered,
-                      isSmall: rs.isSmall,
-                    ),
-                  ),
-                // Title gradient overlay
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: EdgeInsets.fromLTRB(
-                      padding,
-                      rs.isSmall ? 16 : 24,
-                      padding,
-                      padding,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.95),
-                        ],
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (showRating && overallRating != null) ...[
-                          _CoverRating(
-                              rating: overallRating!, isSmall: rs.isSmall),
-                          SizedBox(height: rs.isSmall ? 3 : 4),
-                        ],
-                        Text(
-                          displayName,
-                          style: TextStyle(
-                            fontSize: titleFontSize,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            height: 1.2,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withValues(alpha: 0.9),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (variantCount > 1 || providerLabel != null)
-                          Row(
-                            children: [
-                              if (variantCount > 1)
-                                Flexible(
+                // Header and caption share a bounded column. Actual localized
+                // badge heights reserve space instead of overlapping the title
+                // or score when text is enlarged on compact cards.
+                Positioned.fill(
+                  child: Column(children: [
+                    Padding(
+                      padding:
+                          EdgeInsets.fromLTRB(padding, padding, padding, 0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (systemLabel != null)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: rs.isSmall ? 4.0 : 5.0,
+                                      vertical: rs.isSmall ? 1.5 : 2.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: accentColor.forText
+                                          .withValues(alpha: 0.85),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
                                     child: Text(
-                                  L
-                                      .of(context)
-                                      .gameCard_variantCount(variantCount),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: variantFontSize,
-                                    color: Colors.grey[400],
-                                  ),
-                                )),
-                              if (providerLabel != null) ...[
-                                if (variantCount > 1)
-                                  Text(
-                                    ' · ',
-                                    style: TextStyle(
-                                      fontSize: variantFontSize,
-                                      color: Colors.grey[600],
+                                      systemLabel!.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: rs.isSmall ? 5.0 : 6.0,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
                                     ),
                                   ),
-                                Flexible(
-                                    child: Text(
-                                  providerLabel!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: rs.isSmall ? 6.0 : 7.0,
-                                    color: Colors.grey[500],
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
+                                if (isInstalled) ...[
+                                  if (systemLabel != null)
+                                    SizedBox(height: rs.isSmall ? 2.0 : 3.0),
+                                  _InstalledBadge(isSmall: rs.isSmall),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (isFavorite)
+                                Container(
+                                  padding: EdgeInsets.all(favoritePadding),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    shape: BoxShape.circle,
                                   ),
-                                )),
+                                  child: Icon(
+                                    Icons.favorite,
+                                    size: favoriteIconSize,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              if (raAchievementCount != null &&
+                                  raAchievementCount! > 0 &&
+                                  raMatchType != RaMatchType.none) ...[
+                                if (isFavorite)
+                                  SizedBox(height: rs.isSmall ? 2.0 : 3.0),
+                                _RaBadge(
+                                  count: raAchievementCount!,
+                                  matchType: raMatchType,
+                                  isMastered: isMastered,
+                                  isSmall: rs.isSmall,
+                                ),
                               ],
                             ],
                           ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                    if (downloadStatus != null && !downloadStatus!.isTerminal)
+                      _DownloadStatusIndicator(
+                        status: downloadStatus!,
+                        progress: downloadProgress,
+                      ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          padding: EdgeInsets.fromLTRB(
+                            padding,
+                            0,
+                            padding,
+                            padding,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.95),
+                              ],
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (showRating && overallRating != null) ...[
+                                _CoverRating(
+                                    rating: overallRating!,
+                                    isSmall: rs.isSmall),
+                                SizedBox(height: rs.isSmall ? 3 : 4),
+                              ],
+                              Flexible(
+                                child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                  final style = TextStyle(
+                                    fontSize: titleFontSize,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    height: 1.2,
+                                    shadows: [
+                                      Shadow(
+                                        color:
+                                            Colors.black.withValues(alpha: 0.9),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  );
+                                  final metrics = TextPainter(
+                                    text: TextSpan(text: 'M', style: style),
+                                    textDirection: Directionality.of(context),
+                                    textScaler:
+                                        MediaQuery.textScalerOf(context),
+                                  )..layout();
+                                  final lines = (constraints.maxHeight /
+                                          metrics.preferredLineHeight)
+                                      .floor()
+                                      .clamp(1, 2);
+                                  metrics.dispose();
+                                  return Text(
+                                    displayName,
+                                    style: style,
+                                    maxLines: lines,
+                                    overflow: TextOverflow.ellipsis,
+                                  );
+                                }),
+                              ),
+                              if (variantCount > 1 ||
+                                  providerLabel != null ||
+                                  sourceDotColor != null)
+                                Row(
+                                  children: [
+                                    Expanded(
+                                        child: Row(children: [
+                                      if (variantCount > 1)
+                                        Flexible(
+                                            child: Text(
+                                          L.of(context).gameCard_variantCount(
+                                              variantCount),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: variantFontSize,
+                                            color: Colors.grey[400],
+                                          ),
+                                        )),
+                                      if (providerLabel != null) ...[
+                                        if (variantCount > 1)
+                                          Text(
+                                            ' · ',
+                                            style: TextStyle(
+                                              fontSize: variantFontSize,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        Flexible(
+                                            child: Text(
+                                          providerLabel!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: rs.isSmall ? 6.0 : 7.0,
+                                            color: Colors.grey[500],
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        )),
+                                      ],
+                                    ])),
+                                    if (sourceDotColor != null) ...[
+                                      const SizedBox(width: 4),
+                                      _SourceDotRow(
+                                        primary: SourceDotData(
+                                          color: sourceDotColor!,
+                                          borrowed: sourceDotBorrowed,
+                                        ),
+                                        extras: extraSourceDots ?? const [],
+                                        isSmall: rs.isSmall,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]),
                 ),
                 // Installed LED strip (above gradient so it's visible)
                 if (isInstalled)
@@ -328,21 +373,6 @@ class BaseGameCard extends StatelessWidget {
                         bottomLeft: Radius.circular(innerBorderRadius),
                         bottomRight: Radius.circular(innerBorderRadius),
                       ),
-                    ),
-                  ),
-                // Source dot — bottom right, above the title gradient.
-                // Solid circle = owned, hollow ring = borrowed.
-                if (sourceDotColor != null)
-                  Positioned(
-                    right: padding,
-                    bottom: padding,
-                    child: _SourceDotRow(
-                      primary: SourceDotData(
-                        color: sourceDotColor!,
-                        borrowed: sourceDotBorrowed,
-                      ),
-                      extras: extraSourceDots ?? const [],
-                      isSmall: rs.isSmall,
                     ),
                   ),
                 // Selection line
@@ -500,8 +530,11 @@ class _InstalledBadge extends StatelessWidget {
             color: Colors.greenAccent,
           ),
           SizedBox(width: isSmall ? 2 : 3),
-          Text(
+          Flexible(
+              child: Text(
             L.of(context).common_installed,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
@@ -509,7 +542,7 @@ class _InstalledBadge extends StatelessWidget {
               letterSpacing: 0.5,
               height: 1.0,
             ),
-          ),
+          )),
         ],
       ),
     );
@@ -531,7 +564,8 @@ class _RaBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color bg, Color accent, Color border) = switch ((matchType, isMastered)) {
+    final (Color bg, Color accent, Color border) =
+        switch ((matchType, isMastered)) {
       (RaMatchType.hashIncompatible, _) => (
           const Color(0xCC424242),
           Colors.grey,
@@ -716,8 +750,6 @@ class _DownloadRevealOverlay extends StatelessWidget {
         status == DownloadStatus.verifying ||
         status == DownloadStatus.publishing;
     final isDownloading = status == DownloadStatus.downloading;
-    final isPaused = status == DownloadStatus.paused;
-    final needsAuthorization = status == DownloadStatus.awaitingAuthorization;
 
     // Curtain covers (1 - progress) of the card from the top.
     // At 0% → fully covered. At 100% → fully revealed.
@@ -751,7 +783,8 @@ class _DownloadRevealOverlay extends StatelessWidget {
                 left: 0,
                 right: 0,
                 bottom: (1.0 - value) *
-                    (context.findRenderObject()?.paintBounds.height ?? 200) -
+                        (context.findRenderObject()?.paintBounds.height ??
+                            200) -
                     1,
                 child: Container(
                   height: 2,
@@ -767,54 +800,58 @@ class _DownloadRevealOverlay extends StatelessWidget {
                   ),
                 ),
               ),
-            // Center info
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isDownloading && progress > 0.01)
-                    Text(
-                      '${(progress * 100).toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    )
-                  else if (isQueued)
-                    Icon(
-                      Icons.schedule_rounded,
-                      size: 22,
-                      color: Colors.white.withValues(alpha: 0.6),
-                    )
-                  else if (isIndeterminate)
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.amber.withValues(alpha: 0.8),
-                      ),
-                    )
-                  else if (isPaused || needsAuthorization)
-                    Tooltip(
-                      message: needsAuthorization
-                          ? L.of(context).downloadStatus_awaitingAuthorization
-                          : L.of(context).downloadStatus_paused,
-                      child: Icon(
-                        needsAuthorization
-                            ? Icons.lock_outline_rounded
-                            : Icons.pause_rounded,
-                        size: 22,
-                        color: Colors.amber.withValues(alpha: 0.8),
-                      ),
-                    ),
-                ],
-              ),
-            ),
           ],
         );
       },
     );
+  }
+}
+
+/// Participates in the card's measured layout; the reveal curtain still paints
+/// behind it, but the score/title can no longer cover transfer status.
+class _DownloadStatusIndicator extends StatelessWidget {
+  final DownloadStatus status;
+  final double progress;
+  const _DownloadStatusIndicator(
+      {required this.status, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = context.rs.isSmall;
+    final iconSize = compact ? 12.0 : 22.0;
+    if (status == DownloadStatus.downloading && progress > 0.01) {
+      return Text('${(progress * 100).toStringAsFixed(0)}%',
+          style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: compact ? 8 : 16,
+              fontWeight: FontWeight.w800));
+    }
+    if (status == DownloadStatus.queued) {
+      return Icon(Icons.schedule_rounded,
+          size: iconSize, color: Colors.white.withValues(alpha: 0.6));
+    }
+    if (status == DownloadStatus.extracting ||
+        status == DownloadStatus.moving ||
+        status == DownloadStatus.verifying ||
+        status == DownloadStatus.publishing) {
+      return SizedBox(
+          width: compact ? 12 : 20,
+          height: compact ? 12 : 20,
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: Colors.amber.withValues(alpha: 0.8)));
+    }
+    if (status == DownloadStatus.paused ||
+        status == DownloadStatus.awaitingAuthorization) {
+      final authorization = status == DownloadStatus.awaitingAuthorization;
+      return Tooltip(
+          message: authorization
+              ? L.of(context).downloadStatus_awaitingAuthorization
+              : L.of(context).downloadStatus_paused,
+          child: Icon(
+              authorization ? Icons.lock_outline_rounded : Icons.pause_rounded,
+              size: iconSize,
+              color: Colors.amber.withValues(alpha: 0.8)));
+    }
+    return const SizedBox.shrink();
   }
 }
