@@ -1,0 +1,208 @@
+{
+  "repository": "https://github.com/libretro/retroarch-assets",
+  "revision": "b177f250e42948708e753d30809bd4dd9c0a2cdc",
+  "theme": "Systematic",
+  "license": "CC-BY-4.0",
+  "assets": {
+    "nes": {
+      "path": "xmb/systematic/png/Nintendo - Nintendo Entertainment System-content.png",
+      "git_blob_sha1": "deb26ccf5b527cd8b9d0c05581c42ce2d56e200a"
+    },
+    "snes": {
+      "path": "xmb/systematic/png/Nintendo - Super Nintendo Entertainment System-content.png",
+      "git_blob_sha1": "a751932d699c5fb054699e62e84e7394ae611828"
+    },
+    "n64": {
+      "path": "xmb/systematic/png/Nintendo - Nintendo 64-content.png",
+      "git_blob_sha1": "d832f19e807bf730a82ddb81140ee2a0fd5f5efc"
+    },
+    "gb": {
+      "path": "xmb/systematic/png/Nintendo - Game Boy-content.png",
+      "git_blob_sha1": "df242ec5dea2ee00637cfe9d79ee0a5743634821"
+    },
+    "gbc": {
+      "path": "xmb/systematic/png/Nintendo - Game Boy Color-content.png",
+      "git_blob_sha1": "ca8068407077c341224f36350203479197c6de1a"
+    },
+    "gba": {
+      "path": "xmb/systematic/png/Nintendo - Game Boy Advance-content.png",
+      "git_blob_sha1": "8991bfcb095e8d8a330ecde98448ef327da397cf"
+    },
+    "virtualboy": {
+      "path": "xmb/systematic/png/Nintendo - Virtual Boy-content.png",
+      "git_blob_sha1": "5810b96207bbe6bcf1c25e414dab153f67ea3d4c"
+    },
+    "mastersystem": {
+      "path": "xmb/systematic/png/Sega - Master System - Mark III-content.png",
+      "git_blob_sha1": "007a5e2178caea84c89bb65b6c0704bab0124b19"
+    },
+    "megadrive": {
+      "path": "xmb/systematic/png/Sega - Mega Drive - Genesis-content.png",
+      "git_blob_sha1": "045f2c887c5078282ebbef83ea1a30448244a084"
+    },
+    "gamegear": {
+      "path": "xmb/systematic/png/Sega - Game Gear-content.png",
+      "git_blob_sha1": "35047280accd9090d9fbbc76f32127b6fe305e48"
+    },
+    "sega32x": {
+      "path": "xmb/systematic/png/Sega - 32X-content.png",
+      "git_blob_sha1": "5b2662873c78e35a4264211008c3dd6496f0683f"
+    },
+    "sg1000": {
+      "path": "xmb/systematic/png/Sega - SG-1000-content.png",
+      "git_blob_sha1": "01a55a138414b65935e04e1393c216c4188b1287"
+    },
+    "ngp": {
+      "path": "xmb/systematic/png/SNK - Neo Geo Pocket-content.png",
+      "git_blob_sha1": "b3b2c0542393ce68655da944fd36ecec028df5eb"
+    },
+    "wonderswan": {
+      "path": "xmb/systematic/png/Bandai - WonderSwan-content.png",
+      "git_blob_sha1": "a50a4a4f90ee392d72a9b512917e20feb1e50d45"
+    },
+    "colecovision": {
+      "path": "xmb/systematic/png/Coleco - ColecoVision-content.png",
+      "git_blob_sha1": "4f4f2105e230213f287eef8db7306321ab9cc7f5"
+    },
+    "intellivision": {
+      "path": "xmb/systematic/png/Mattel - Intellivision-content.png",
+      "git_blob_sha1": "f852823774761ec6791c21da1162ad319c5b6c03"
+    },
+    "vectrex": {
+      "path": "xmb/systematic/png/GCE - Vectrex-content.png",
+      "git_blob_sha1": "663350349859861e120f51cfd85634b1a209dfac"
+    },
+    "channelf": {
+      "path": "xmb/systematic/png/Fairchild - Channel F-content.png",
+      "git_blob_sha1": "c359015115c5724da569cf63870d342f12ae38b4"
+    },
+    "odyssey2": {
+      "path": "xmb/systematic/png/Magnavox - Odyssey2-content.png",
+      "git_blob_sha1": "5459f5ebd1d0d3b8bf57d7221f25b146027a834d"
+    },
+    "jaguar": {
+      "path": "xmb/systematic/png/Atari - Jaguar-content.png",
+      "git_blob_sha1": "b83b51897963c5f57b24da78076bbe55c41fd972"
+    },
+    "atari2600": {
+      "path": "xmb/systematic/png/Atari - 2600-content.png",
+      "git_blob_sha1": "137cf7e3162cd2e25f603fc142c95fdaa3f5bd0b"
+    },
+    "atari5200": {
+      "path": "xmb/systematic/png/Atari - 5200-content.png",
+      "git_blob_sha1": "9d68baf7d6291e95b236c25c3e1d6d2d1dffba5f"
+    },
+    "atari7800": {
+      "path": "xmb/systematic/png/Atari - 7800-content.png",
+      "git_blob_sha1": "1fdccbe3cee379f43f08a954be79c8f371a4305b"
+    },
+    "lynx": {
+      "path": "xmb/systematic/png/Atari - Lynx-content.png",
+      "git_blob_sha1": "299f3f4ebdfc54c4c51317b973f8f5861343e377"
+    },
+    "arcadia2001": {
+      "path": "xmb/systematic/png/Emerson - Arcadia 2001-content.png",
+      "git_blob_sha1": "6c90eb2db86c2539ff368bca490d754e2405f423"
+    },
+    "switch": {
+      "path": "xmb/systematic/png/Nintendo - Switch-content.png",
+      "git_blob_sha1": "f46952d5817d8025fc611a19343e6a1ca7e19a06"
+    },
+    "nds": {
+      "path": "xmb/systematic/png/Nintendo - Nintendo DS-content.png",
+      "git_blob_sha1": "283427c57f6a844d867ae724d6a7268cfe420ae0"
+    },
+    "dsi": {
+      "path": "xmb/systematic/png/Nintendo - Nintendo DSi-content.png",
+      "git_blob_sha1": "3b65f6d3b30dce178926b04a231fd90b5b096d97"
+    },
+    "n3ds": {
+      "path": "xmb/systematic/png/Nintendo - Nintendo 3DS-content.png",
+      "git_blob_sha1": "242d9cd3ad564cadb32bf642bdb2a879b20658c2"
+    },
+    "psvita": {
+      "path": "xmb/systematic/png/Sony - PlayStation Vita-content.png",
+      "git_blob_sha1": "cbaed4e9975b2aaae3c480d8d28757caad63f5ad"
+    },
+    "tg16": {
+      "path": "xmb/systematic/png/NEC - PC Engine - TurboGrafx 16-content.png",
+      "git_blob_sha1": "b36b0635669c0e13a2f4b8851f820a4a78ae0abf"
+    },
+    "ngage": {
+      "path": "xmb/systematic/png/Nokia - N-Gage-content.png",
+      "git_blob_sha1": "b15f740156b639fb9aef01ef560044041b8bfb5a"
+    },
+    "gc": {
+      "path": "xmb/systematic/png/Nintendo - GameCube-content.png",
+      "git_blob_sha1": "e817259148c92385ac04e0c3e7ae83a2fbe9b41d"
+    },
+    "wii": {
+      "path": "xmb/systematic/png/Nintendo - Wii-content.png",
+      "git_blob_sha1": "f4c3471908099b162f588ea78127cce25f7a5c2a"
+    },
+    "wiiu": {
+      "path": "xmb/systematic/png/Nintendo - Wii U-content.png",
+      "git_blob_sha1": "3a6159828cc72321c29501e9c3f29dd095e4beb6"
+    },
+    "psx": {
+      "path": "xmb/systematic/png/Sony - PlayStation-content.png",
+      "git_blob_sha1": "70a42b48d847924a4846c062493118d095897a9d"
+    },
+    "ps2": {
+      "path": "xmb/systematic/png/Sony - PlayStation 2-content.png",
+      "git_blob_sha1": "bbc8810b4cf2432138dd892c085487608c650bc0"
+    },
+    "ps3": {
+      "path": "xmb/systematic/png/Sony - PlayStation 3-content.png",
+      "git_blob_sha1": "4b8006457b488bb80c0e425ccdaa377ec00e4a11"
+    },
+    "segacd": {
+      "path": "xmb/systematic/png/Sega - Mega-CD - Sega CD-content.png",
+      "git_blob_sha1": "6144a50e41f83c5d5ebc5fc7d6e3adea79c86556"
+    },
+    "dreamcast": {
+      "path": "xmb/systematic/png/Sega - Dreamcast-content.png",
+      "git_blob_sha1": "4390a7d09fa8b27dce6d2610d0c60ac484808198"
+    },
+    "saturn": {
+      "path": "xmb/systematic/png/Sega - Saturn-content.png",
+      "git_blob_sha1": "9730e18282985d93e58ac986aa037342aa52d5ee"
+    },
+    "tgcd": {
+      "path": "xmb/systematic/png/NEC - PC Engine CD - TurboGrafx-CD-content.png",
+      "git_blob_sha1": "6144a50e41f83c5d5ebc5fc7d6e3adea79c86556"
+    },
+    "neogeocd": {
+      "path": "xmb/systematic/png/SNK - Neo Geo CD-content.png",
+      "git_blob_sha1": "a4715b849fd8bc11dc9dd9e6eda9dcfbc6fb5bf2"
+    },
+    "jaguarcd": {
+      "path": "xmb/systematic/png/Atari - Jaguar CD-content.png",
+      "git_blob_sha1": "6144a50e41f83c5d5ebc5fc7d6e3adea79c86556"
+    },
+    "pcfx": {
+      "path": "xmb/systematic/png/NEC - PC-FX-content.png",
+      "git_blob_sha1": "6144a50e41f83c5d5ebc5fc7d6e3adea79c86556"
+    },
+    "cdi": {
+      "path": "xmb/systematic/png/Philips - CDi-content.png",
+      "git_blob_sha1": "6144a50e41f83c5d5ebc5fc7d6e3adea79c86556"
+    },
+    "3do": {
+      "path": "xmb/systematic/png/The 3DO Company - 3DO-content.png",
+      "git_blob_sha1": "6144a50e41f83c5d5ebc5fc7d6e3adea79c86556"
+    },
+    "psp": {
+      "path": "xmb/systematic/png/Sony - PlayStation Portable-content.png",
+      "git_blob_sha1": "66eff1465107035bc18287e9c9f13d8f1bb03bca"
+    },
+    "fds": {
+      "path": "xmb/systematic/png/Nintendo - Family Computer Disk System-content.png",
+      "git_blob_sha1": "e471949d43bda5f61dbf6ab01367b2e4828dcc91"
+    },
+    "neutral": {
+      "path": "xmb/systematic/png/default-content.png",
+      "git_blob_sha1": "cec6d6bc6838dcfaa520e40b2cb84d47c382c671"
+    }
+  }
+}

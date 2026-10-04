@@ -58,6 +58,12 @@ class _SettingsAboutTabState extends ConsumerState<SettingsAboutTab> {
             onSelect: () => launchUrl(Uri.parse(
                 'https://github.com/AverageConsumer/R-Shop/issues')),
           ),
+          SettingsEntry.nav(
+            icon: Icons.description_outlined,
+            title: MaterialLocalizations.of(context).licensesPageTitle,
+            subtitle: 'Systematic media icons · CC BY 4.0',
+            onSelect: () => showLicensePage(context: context),
+          ),
           SettingsEntry.custom(
             child: ConsoleFocusableListItem(
               onSelect: () {

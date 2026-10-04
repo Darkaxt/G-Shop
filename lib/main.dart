@@ -33,6 +33,7 @@ import 'widgets/download/global_progress_bar.dart';
 import 'widgets/download_overlay.dart';
 import 'widgets/app_overlay_host.dart';
 import 'widgets/sync_badge.dart';
+import 'widgets/media_cover_fallback.dart';
 import 'l10n/app_localizations.dart';
 
 class NoGlowScrollBehavior extends ScrollBehavior {
@@ -48,6 +49,7 @@ void main() {
 
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    LicenseRegistry.addLicense(mediaArtworkLicenses);
     installGamepadKeyFix();
 
     // Initialize crash log service early

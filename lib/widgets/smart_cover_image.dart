@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 
 import '../services/image_cache_service.dart';
 import '../services/thumbnail_service.dart';
+import 'media_cover_fallback.dart';
 
 Uint8List? _reencodeAsJpeg(Uint8List input) {
   try {
@@ -22,6 +23,7 @@ Uint8List? _reencodeAsJpeg(Uint8List input) {
 
 class SmartCoverImage extends StatefulWidget {
   final List<String> urls;
+  final String? systemId;
   final String? cachedUrl;
   final double? width;
   final double? height;
@@ -37,6 +39,7 @@ class SmartCoverImage extends StatefulWidget {
   const SmartCoverImage({
     super.key,
     required this.urls,
+    this.systemId,
     this.cachedUrl,
     this.width,
     this.height,
@@ -333,6 +336,7 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
         width: widget.width,
         height: widget.height,
         gaplessPlayback: true,
+        frameBuilder: _coverFrame,
         errorBuilder: (_, __, ___) {
           _resolvedThumbnail = null;
           return _buildNetworkFallback();
@@ -352,6 +356,7 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
         width: widget.width,
         height: widget.height,
         gaplessPlayback: true,
+        frameBuilder: _coverFrame,
         errorBuilder: (_, __, ___) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) setState(() => _dartDecodedBytes = null);
@@ -425,6 +430,7 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
             width: widget.width,
             height: widget.height,
             gaplessPlayback: true,
+            frameBuilder: _coverFrame,
           );
         },
       );
@@ -470,34 +476,25 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
           width: widget.width,
           height: widget.height,
           gaplessPlayback: true,
+          frameBuilder: _coverFrame,
         );
       },
     );
   }
 
+  Widget _coverFrame(BuildContext context, Widget child, int? frame,
+      bool wasSynchronouslyLoaded) {
+    return frame != null || wasSynchronouslyLoaded
+        ? child
+        : widget.placeholder ?? _buildDefaultPlaceholder();
+  }
+
   Widget _buildDefaultPlaceholder() {
-    return const _StaticPlaceholder();
+    return MediaCoverFallback(
+        systemId: widget.systemId, width: widget.width, height: widget.height);
   }
 
   Widget _buildDefaultError() {
-    return Container(
-      color: const Color(0xFF1E1E1E),
-      child: const Center(
-        child: Icon(
-          Icons.broken_image,
-          color: Colors.grey,
-          size: 32,
-        ),
-      ),
-    );
-  }
-}
-
-class _StaticPlaceholder extends StatelessWidget {
-  const _StaticPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(color: const Color(0xFF1E1E1E));
+    return _buildDefaultPlaceholder();
   }
 }

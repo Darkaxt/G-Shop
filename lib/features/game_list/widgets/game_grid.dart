@@ -304,6 +304,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
         selectedIndexNotifier: widget.selectedIndexNotifier,
         index: index,
         builder: (isSelected) => BaseGameCard(
+          systemId: widget.system.id,
           displayName: first.displayName,
           coverUrls: coverUrls,
           cachedUrl: cachedUrl,

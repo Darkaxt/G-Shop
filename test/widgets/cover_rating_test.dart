@@ -7,6 +7,7 @@ import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
 import '../helpers/pump_helpers.dart';
+import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 
 EffectiveOverallRating score({bool stale = false, bool original = false}) {
   final game = GameIdentity(
@@ -68,6 +69,7 @@ void main() {
                   child: BaseGameCard(
                     displayName:
                         'A long game title with regional and revision information',
+                    systemId: 'psx',
                     coverUrls: const [],
                     cachedUrl: null,
                     isInstalled: crowded,
@@ -170,6 +172,7 @@ void main() {
                             child: BaseGameCard(
                               displayName:
                                   'Long game title with edition information',
+                              systemId: 'psx',
                               coverUrls: const [],
                               cachedUrl: null,
                               isInstalled: true,
@@ -188,6 +191,11 @@ void main() {
               ])),
         ),
         size: const Size(1280, 720)));
+    await tester.runAsync(() async {
+      await precacheImage(AssetImage(mediaFallbackAsset('psx')),
+          tester.element(find.byKey(const ValueKey('cover-rating-reference'))));
+    });
+    await tester.pumpAndSettle();
     await expectLater(find.byKey(const ValueKey('cover-rating-reference')),
         matchesGoldenFile('goldens/cover_rating_states.png'));
   });

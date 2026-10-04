@@ -1,6 +1,7 @@
 import 'package:confetti/confetti.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:retro_eshop/features/settings/widgets/about_tab.dart';
@@ -15,6 +16,7 @@ import 'package:retro_eshop/services/device_info_service.dart';
 import 'package:retro_eshop/services/feedback_service.dart';
 import 'package:retro_eshop/services/haptic_service.dart';
 import 'package:retro_eshop/services/storage_service.dart';
+import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import '../helpers/pump_helpers.dart';
 
 // ─── Fakes ───────────────────────────────────────────────
@@ -406,6 +408,21 @@ void main() {
       await tester.pumpWidget(buildAboutTab());
       expect(find.text('Issues'), findsOneWidget);
       expect(find.text('Report bugs or request features'), findsOneWidget);
+    });
+
+    testWidgets('opens the bundled artwork license without online access',
+        (tester) async {
+      LicenseRegistry.reset();
+      LicenseRegistry.addLicense(mediaArtworkLicenses);
+      addTearDown(LicenseRegistry.reset);
+      await tester.pumpWidget(buildAboutTab());
+      await tester.tap(find.text('Licenses'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LicensePage), findsOneWidget);
+      expect(find.text('Systematic media icons'), findsOneWidget);
+      await tester.tap(find.text('Systematic media icons'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('CC BY 4.0'), findsWidgets);
     });
 
     testWidgets('renders tagline', (tester) async {

@@ -11,6 +11,7 @@ import 'smart_cover_image.dart';
 class BaseGameCard extends StatelessWidget {
   // Core
   final String displayName;
+  final String? systemId;
   final List<String> coverUrls;
   final String? cachedUrl;
   final bool isInstalled;
@@ -65,6 +66,7 @@ class BaseGameCard extends StatelessWidget {
   const BaseGameCard({
     super.key,
     required this.displayName,
+    this.systemId,
     required this.coverUrls,
     required this.cachedUrl,
     required this.isInstalled,
@@ -132,6 +134,7 @@ class BaseGameCard extends StatelessWidget {
                 Container(
                   color: const Color(0xFF151515),
                   child: SmartCoverImage(
+                    systemId: systemId,
                     urls: coverUrls,
                     cachedUrl: cachedUrl,
                     fit: BoxFit.contain,

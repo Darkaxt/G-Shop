@@ -64,6 +64,67 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 Systematic media integration and native proof (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. The selected upstream family now replaces
+  generated app artwork: 50 unchanged Systematic `-content.png` icons, with
+  exact pinned Git blob identities in `systematic/SOURCES.json`. The explicit
+  mapping covers the current supported IDs; mixed-media computers without
+  release-format evidence and unknown platforms use upstream neutral content,
+  not a fabricated medium. N64 cartridges, handheld cards, PSP UMDs, optical
+  discs and Famicom disks retain their own shapes. S9's final coverage audit is
+  still NOT STARTED.
+- Source/creator attribution, filename-only changes, no-endorsement notice and
+  full upstream CC BY 4.0 text are bundled. Main registers the license provider;
+  normal About -> Licenses opens the offline notice through Flutter's localized
+  license page. The focused About group passed (`38991`, exit 0).
+- Current focused asset/cover/Library checks passed (`4679`, exit 0): pinned
+  bytes, actual Flutter decoding (including upstream 16-bit grayscale-alpha
+  PNGs), immediate missing/error/suppressed art, explicit caller overrides,
+  resolved cached cover replacement without HTTP, compact/large overlay golden
+  verification and normal Library/shelf behavior. Scoped analysis (`13303`)
+  found only the two pre-existing cacheExtent deprecation infos; the final
+  affected-path analysis (`68536`, exit 0) confirms the same result. No new
+  production dependency, image rewrite or image generation was introduced.
+- Native normal-Library verification initially failed because the fixture
+  assumed a lower filter row was mounted at the Thor's smaller logical viewport.
+  Production uses a lazy ListView. The shared fixture now traverses its real
+  scroll controller until the keyed option is mounted, makes it visible and
+  taps it; it does not change production filters or weaken assertions. The
+  corrected focused host check passed (`72836`, exit 0).
+- Native assembly passed (`65704`, exit 0). The host-wide gate was acquired;
+  observed two workers, no parallel projects and 3,221,225,472-byte Gradle heap.
+  Kotlin in-process strategy was requested to share that heap; Kotlin tasks in
+  this incremental build were UP-TO-DATE or NO-SOURCE, so it does not establish
+  fresh compiler memory usage. Configured test tasks
+  report one 512 MiB fork (not run by assemble); generated Ninja compile/link
+  rules use the `rshop_native` pool at depth 1 per ABI, alongside Gradle's
+  two-worker task limit. No memory failure or budget increase occurred. The
+  earlier absolute-target invocation failed before compilation; the supported
+  Flutter project-relative target was used for the successful builds.
+- The current fixture APK's existing package/signature was checked before
+  in-place installation. The Thor driver completed with exit 0 and its inspected
+  report verifies actual Android SQLite, normal Library controller Top 10,
+  touch sparse Top 25, one cross-console cap, scope/tag intersections without
+  backfill, publication-driven recomputation, manual shelf preservation,
+  explicit rating order/focus and filter persistence. Four inspected native
+  screenshots show Systematic PS1/PS2 discs beside the real title/rating layers.
+  This is synthetic cache proof, not a real collection metadata pass: all 335
+  existing cover attempts were rejected before socket creation; no provider or
+  ROM access occurred. The fallback itself starts no requests.
+- Restored the exact previous normal APK (SHA-256 matched), with all seven
+  database/config/preferences/secure-storage fingerprints unchanged. Removed
+  only the two task-created ADB forwards and confirmed both display controllers
+  OFF. No ROM, source settings, account credentials or release was changed.
+- Removed the eight superseded generated app PNG copies transactionally:
+  8,787,487 bytes reclaimed, zero failures; original image-tool outputs remain.
+  Current source, recovery APK and native evidence are preserved. Native fixture
+  artifacts/report/screenshots are under `D:/Temp/rshop-s5-native-20261004`.
+- Remaining UI-01 per-console native proof, full badge/title/size combinations,
+  localization and resource acceptance, plus UI-02 wrong-match correction and
+  remaining UI-03 integrated acceptance remain ordinary unfinished S5 work.
+  This checkpoint does not close S5, S9 or the overall fork.
+
 ### S5 upstream media-theme selection (2026-10-04)
 
 - User requested an existing RetroArch asset family instead of generated artwork,

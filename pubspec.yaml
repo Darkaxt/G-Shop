@@ -65,6 +65,8 @@ flutter:
     - assets/sounds/
     - assets/icon.png
     - assets/platform_icons/
+    - assets/media_fallbacks/
+    - assets/media_fallbacks/systematic/
     - assets/gamepad/nintendo/
     - assets/gamepad/xbox/
     - assets/gamepad/playstation/

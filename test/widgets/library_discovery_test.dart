@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/library/library_screen.dart';
+import 'package:retro_eshop/features/game_list/widgets/filter_overlay.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/custom_shelf.dart';
 import 'package:retro_eshop/models/library_identity.dart';
@@ -24,6 +25,7 @@ import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
+import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import '../helpers/pump_helpers.dart';
 
 class _Database extends DatabaseService {
@@ -39,16 +41,28 @@ class _Config extends ConfigStorageService {
 }
 
 void main() {
+  defineLibraryDiscoveryChecks();
+}
+
+/// Reuse the normal Library assertions with Android SQLite and actual display
+/// metrics. Native checkpoints capture the real UI before teardown, not a
+/// substitute grid or a production-data bootstrap.
+void defineLibraryDiscoveryChecks({
+  DatabaseFactory? factory,
+  Future<void> Function(String name, WidgetTester tester)? checkpoint,
+}) {
   testWidgets(
       'library Top is one scoped cap; tags intersect and shelves keep order',
       (tester) async {
-    tester.view.physicalSize = const Size(1920, 1080);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    sqfliteFfiInit();
-    final db =
-        await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    if (factory == null) {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      sqfliteFfiInit();
+    }
+    final db = await (factory ?? databaseFactoryFfiNoIsolate)
+        .openDatabase(inMemoryDatabasePath);
     addTearDown(db.close);
     await LibrarySchema.install(db);
     await MetadataRefreshJobs.install(db);
@@ -146,32 +160,102 @@ void main() {
         .widgetList<BaseGameCard>(find.byType(BaseGameCard))
         .map((c) => c.displayName)
         .toList();
+    List<String> firstGames(int count) => List.generate(
+        count, (i) => 'Game ${(i + 1).toString().padLeft(2, '0')}');
+    Future<void> tapFilter(String key) async {
+      final option = find.byKey(ValueKey(key));
+      final list = tester.widget<ListView>(find.descendant(
+          of: find.byType(FilterOverlay), matching: find.byType(ListView)));
+      final scroll = list.controller!;
+      scroll.jumpTo(0);
+      await tester.pumpAndSettle();
+      while (option.evaluate().isEmpty &&
+          scroll.position.pixels < scroll.position.maxScrollExtent) {
+        final before = scroll.position.pixels;
+        scroll.jumpTo((before + scroll.position.viewportDimension)
+            .clamp(0, scroll.position.maxScrollExtent));
+        await tester.pumpAndSettle();
+        expect(scroll.position.pixels, greaterThan(before));
+      }
+      expect(option, findsOneWidget);
+      await tester.ensureVisible(option);
+      await tester.pumpAndSettle();
+      await tester.tap(option);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> expectCards(List<String> expected) async {
+      // A real handheld lazily mounts only visible/cache-extent children.
+      // Check the actual grid membership and traverse its real scroll positions,
+      // rather than treating the currently mounted widgets as the whole result.
+      final grid = tester.widget<GridView>(find.byType(GridView));
+      expect(grid.childrenDelegate.estimatedChildCount, expected.length);
+      final scroll = grid.controller!;
+      scroll.jumpTo(0);
+      await tester.pumpAndSettle();
+      final seen = <String>[];
+      void capture() {
+        for (final card
+            in tester.widgetList<BaseGameCard>(find.byType(BaseGameCard))) {
+          expect(card.systemId, anyOf('psx', 'ps2'));
+          expect(mediaFallbackAsset(card.systemId),
+              endsWith('/systematic/${card.systemId}.png'));
+        }
+        for (final title in cards()) {
+          if (!seen.contains(title)) seen.add(title);
+        }
+        expect(find.byKey(const ValueKey('cover-rating')),
+            findsNWidgets(cards().length));
+        expect(find.byType(MediaCoverFallback), findsNWidgets(cards().length),
+            reason:
+                'Offline Library and shelf cards retain physical-media art');
+      }
+
+      capture();
+      while (scroll.position.pixels < scroll.position.maxScrollExtent) {
+        final before = scroll.position.pixels;
+        final next = before + scroll.position.viewportDimension;
+        scroll.jumpTo(next.clamp(0, scroll.position.maxScrollExtent));
+        await tester.pumpAndSettle();
+        expect(scroll.position.pixels, greaterThan(before));
+        capture();
+      }
+      expect(seen, expected);
+      scroll.jumpTo(0);
+      await tester.pumpAndSettle();
+    }
+
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(cards(), hasLength(12));
+    await container.read(cachedCoverRatingsProvider('').future);
+    await tester.pumpAndSettle();
+    await expectCards(firstGames(12));
     await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
     await tester.pumpAndSettle();
     expect(find.textContaining('one collection-wide limit'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('discovery-top-10')));
-    await tester.pumpAndSettle();
-    expect(cards(), hasLength(10));
-    await tester.tap(find.byKey(const ValueKey('discovery-platform-psx')));
-    await tester.pumpAndSettle();
-    expect(cards(),
-        ['Game 01', 'Game 03', 'Game 05', 'Game 07', 'Game 09', 'Game 11']);
-    await tester.tap(find.byKey(const ValueKey('discovery-platform-ps2')));
-    await tester.pumpAndSettle();
-    expect(cards(), hasLength(10));
-    for (final scope in ['psx', 'ps2']) {
-      await tester.tap(find.byKey(ValueKey('discovery-platform-$scope')));
+    // The existing panel owns controller navigation; select Best 10 with it.
+    for (var i = 0; i < 3; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pumpAndSettle();
     }
-    expect(cards(), hasLength(10));
-    await tester
-        .ensureVisible(find.byKey(const ValueKey('discovery-tag-Hack')));
-    await tester.tap(find.byKey(const ValueKey('discovery-tag-Hack')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
     await tester.pumpAndSettle();
-    expect(cards(), ['Game 01']);
+    await expectCards(firstGames(10));
+    await checkpoint?.call('library-top-10-scope', tester);
+    await tapFilter('discovery-top-25');
+    await expectCards(firstGames(12));
+    await tapFilter('discovery-top-10');
+    await tapFilter('discovery-platform-psx');
+    await expectCards(
+        ['Game 01', 'Game 03', 'Game 05', 'Game 07', 'Game 09', 'Game 11']);
+    await tapFilter('discovery-platform-ps2');
+    await expectCards(firstGames(10));
+    for (final scope in ['psx', 'ps2']) {
+      await tapFilter('discovery-platform-$scope');
+    }
+    await expectCards(firstGames(10));
+    await tapFilter('discovery-tag-Hack');
+    await expectCards(['Game 01']);
     expect(jsonDecode(storage.getFilters('library:all')!)['top'], 10);
     final original = (await store.metadata(editions[1]!, 'igdb'))!;
     await store.putMetadata(MetadataRecord.fromJson({
@@ -193,13 +277,14 @@ void main() {
     container.read(gameDbChangedProvider.notifier).state++;
     container.read(gameDbChangedProvider.notifier).state++;
     await tester.pumpAndSettle();
-    expect(cards(), ['Game 01']);
+    await expectCards(['Game 01']);
     // Close the real panel, then select the real manual shelf tab.
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     await tester.tap(find.text('MANUAL').first);
     await tester.pumpAndSettle();
-    expect(cards(), ['Game 09', 'Game 01', 'Game 12']);
+    await expectCards(['Game 09', 'Game 01', 'Game 12']);
+    await checkpoint?.call('library-manual-shelf', tester);
     tester
         .widgetList<BaseGameCard>(find.byType(BaseGameCard))
         .singleWhere((c) => c.displayName == 'Game 09')
@@ -207,12 +292,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('discovery-top-10')));
-    await tester.pumpAndSettle();
-    expect(cards(), ['Game 09', 'Game 01']);
-    await tester.tap(find.byKey(const ValueKey('discovery-order')));
-    await tester.pumpAndSettle();
-    expect(cards(), ['Game 01', 'Game 09']);
+    await tapFilter('discovery-top-10');
+    await expectCards(['Game 09', 'Game 01']);
+    await tapFilter('discovery-order');
+    await expectCards(['Game 01', 'Game 09']);
     expect(
         tester
             .widgetList<BaseGameCard>(find.byType(BaseGameCard))
@@ -221,6 +304,7 @@ void main() {
         isTrue);
     expect(storage.getCustomShelves().single.manualGameIds,
         ['Game 09.7z', 'Game 01.7z', 'Game 12.7z']);
+    await checkpoint?.call('library-explicit-rating-order', tester);
     expect(jsonDecode(storage.getFilters('library:all')!)['tags'], ['Hack']);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
@@ -228,7 +312,8 @@ void main() {
     expect(await db.query('library_query_views'), isEmpty);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(cards(), ['Game 01']);
+    await expectCards(['Game 01']);
+    await checkpoint?.call('library-restored-filters', tester);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

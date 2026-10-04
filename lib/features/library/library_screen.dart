@@ -1754,6 +1754,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 selectedIndexNotifier: _selectedIndexNotifier,
                 index: index,
                 builder: (isSelected) => BaseGameCard(
+                  systemId: entry.systemSlug,
                   displayName: entry.cardTitle,
                   variantCount: variants.length,
                   systemLabel: systemLabel,

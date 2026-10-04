@@ -63,6 +63,7 @@ class CoverSection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: SmartCoverImage(
+                          systemId: system.id,
                           urls: coverUrls,
                           cachedUrl: cachedUrl,
                           fit: BoxFit.contain,
