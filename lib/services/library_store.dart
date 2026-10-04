@@ -463,17 +463,7 @@ class LibraryStore {
             ? null
             : RemoteArtifact.fromJson(
                 jsonDecode(artifactJson) as Map<String, dynamic>);
-        if (row['artifact_key'] != artifact?.id.key) {
-          throw StateError('Cached artifact identity is inconsistent');
-        }
-        final suffix = sha256
-            .convert(utf8.encode(jsonEncode([
-              row['systemSlug'],
-              artifact == null
-                  ? ['legacy-cache-row', row['id']]
-                  : ['artifact', artifact.id.key],
-            ])))
-            .toString();
+        final suffix = _catalogueSuffix(row, artifact);
         final gameId = 'catalogue-game:$suffix';
         final editionId = 'catalogue-edition:$suffix';
         final existingGame = await db.query('library_game_identities',
@@ -578,6 +568,39 @@ class LibraryStore {
       if (rows.length < 128) break;
       cursor = rows.last['id'] as int;
     }
+  }
+
+  static String _catalogueSuffix(
+      Map<String, Object?> row, RemoteArtifact? artifact) {
+    if (row['artifact_key'] != artifact?.id.key) {
+      throw StateError('Cached artifact identity is inconsistent');
+    }
+    return sha256
+        .convert(utf8.encode(jsonEncode([
+          row['systemSlug'],
+          artifact == null
+              ? ['legacy-cache-row', row['id']]
+              : ['artifact', artifact.id.key],
+        ])))
+        .toString();
+  }
+
+  /// Read the exact current cache binding without creating an identity or
+  /// depending on a previously published metadata record.
+  static Future<String?> cachedCatalogueEditionId(
+      DatabaseExecutor db, int cacheRowId) async {
+    final rows = await db.query('games',
+        columns: ['id', 'systemSlug', 'artifact_key', 'remote_artifact'],
+        where: 'id = ? AND is_folder = 0',
+        whereArgs: [cacheRowId],
+        limit: 1);
+    if (rows.isEmpty) return null;
+    final row = rows.single;
+    final json = row['remote_artifact'] as String?;
+    final artifact = json == null
+        ? null
+        : RemoteArtifact.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    return 'catalogue-edition:${_catalogueSuffix(row, artifact)}';
   }
 
   static String _artifactContentMarker(RemoteArtifact artifact) {

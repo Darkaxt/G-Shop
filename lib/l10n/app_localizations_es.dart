@@ -9,6 +9,55 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_reviewChanged =>
+      'Este archivo o identidad ha cambiado. No se pueden aceptar estos candidatos guardados; vuelve a recopilar la edición actual.';
+
+  @override
+  String get metadata_openReview => 'Revisar coincidencias guardadas';
+
+  @override
+  String get metadata_reviewTitle => 'Revisar coincidencias guardadas';
+
+  @override
+  String get metadata_reviewInfo =>
+      'Los candidatos son pistas de identidad, no puntuaciones verificadas. Selecciona el juego/proyecto correcto y clasifica esta edición explícitamente. Las etiquetas pueden combinarse; una edición oficial no puede ser también una modificación. Confirmar guarda la corrección y vuelve a comprobar solo este juego. No se descarga ninguna ROM.';
+
+  @override
+  String get metadata_chooseCandidate =>
+      'Elegir identidad del juego / proyecto';
+
+  @override
+  String get metadata_candidateEvidence => 'Evidencia del candidato';
+
+  @override
+  String get metadata_reviewAccept => 'Guardar coincidencia y comprobar';
+
+  @override
+  String get metadata_reviewEmpty =>
+      'No hay resultados pendientes de revisión en esta página. Los juegos sin coincidencia o pendientes no reciben puntuaciones automáticamente.';
+
+  @override
+  String get metadata_noCandidates =>
+      'El proveedor no devolvió candidatos. Vuelve a recopilar tras corregir el título/plataforma o comprobar el acceso; no se adivinará la identidad.';
+
+  @override
+  String get metadata_reviewReload => 'Recargar revisiones guardadas';
+
+  @override
+  String get metadata_reviewNext => 'Página siguiente';
+
+  @override
+  String get metadata_reviewPrevious => 'Página anterior';
+
+  @override
+  String get metadata_reviewSaved =>
+      'Selección guardada. Comprueba la cobertura del nuevo trabajo: guardar una coincidencia no verifica su puntuación.';
+
+  @override
+  String get metadata_reviewError =>
+      'No se pudo completar la revisión o comprobación. La identidad/candidato puede haber cambiado o el proveedor puede no estar disponible. Recarga las revisiones o reanuda el trabajo guardado; las acciones de ROM siguen disponibles.';
+
+  @override
   String get metadata_setupTitle => 'Metadatos de juegos';
 
   @override

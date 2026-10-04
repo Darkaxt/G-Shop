@@ -9,6 +9,54 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_reviewChanged =>
+      'ファイルまたは識別が変更されています。保存された候補は確定できません。現在の版を再取得してください。';
+
+  @override
+  String get metadata_openReview => '保存された候補を確認';
+
+  @override
+  String get metadata_reviewTitle => '保存された候補を確認';
+
+  @override
+  String get metadata_reviewInfo =>
+      '候補は識別の手掛かりであり、確認済みの評価ではありません。正しいゲーム／プロジェクトと、この版の分類を明示的に選択してください。タグは併用できますが、公式版を改造版として分類することはできません。確定すると修正を保存し、このゲームのみ再確認します。ROMはダウンロードしません。';
+
+  @override
+  String get metadata_chooseCandidate => 'ゲーム／プロジェクトを選択';
+
+  @override
+  String get metadata_candidateEvidence => '候補の根拠';
+
+  @override
+  String get metadata_reviewAccept => '対応を保存して再確認';
+
+  @override
+  String get metadata_reviewEmpty =>
+      'このページに確認待ちの保存結果はありません。未対応や保留中のゲームを自動的に評価することはありません。';
+
+  @override
+  String get metadata_noCandidates =>
+      '候補がありません。タイトル／機種やアクセスを確認して再取得してください。識別を推測することはありません。';
+
+  @override
+  String get metadata_reviewReload => '保存された候補を再読込';
+
+  @override
+  String get metadata_reviewNext => '次のページ';
+
+  @override
+  String get metadata_reviewPrevious => '前のページ';
+
+  @override
+  String get metadata_reviewSaved =>
+      '選択を保存しました。再取得の処理状況を確認してください。対応の保存だけでは評価の確認になりません。';
+
+  @override
+  String get metadata_reviewError =>
+      '確認または再取得を完了できませんでした。識別／候補が変更されたか、提供元にアクセスできない可能性があります。候補を再読込するか保存された処理を再開してください。ROM操作は引き続き利用できます。';
+
+  @override
   String get metadata_setupTitle => 'ゲームのメタデータ';
 
   @override

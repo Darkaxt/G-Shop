@@ -14,12 +14,15 @@ import 'package:sqflite/sqflite.dart';
 import 'package:retro_eshop/features/settings/widgets/general_tab.dart';
 import 'package:retro_eshop/core/theme/app_theme.dart';
 import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
+import 'package:retro_eshop/features/settings/metadata_review_screen.dart';
 import 'package:retro_eshop/l10n/app_localizations.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/storage_service.dart';
+import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/models/scraped_metadata.dart';
 
 import '../test/metadata_controls_test.dart'
     show controlsDatabase, MemorySecrets, ControlsProvider;
@@ -67,6 +70,11 @@ void main() {
       storageServiceProvider.overrideWithValue(storage),
       metadataControlsProvider.overrideWith((_) => controls),
     ]);
+    addTearDown(() async {
+      await controls.close();
+      container.dispose();
+      await db.close();
+    });
     final first = FocusNode();
     await tester.pumpWidget(UncontrolledProviderScope(
         container: container,
@@ -149,14 +157,120 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.byType(MetadataSettingsScreen), findsNothing);
-    // Leave the normal metadata screen visible for an actual-font screenshot.
+    // Cached candidate review uses the same normal UI and native SQLite, with
+    // no real provider access or normal application data.
+    provider.reply = (request, _) async => MetadataLookupResult(
+            status: MetadataLookupStatus.needsReview,
+            message: 'Review',
+            candidates: [
+              MetadataLookupCandidate(
+                  providerGameId: '42',
+                  platformId: request.platformId,
+                  titles: [MetadataText(text: 'Candidate ${request.title}')],
+                  titleMatched: true,
+                  evidence: 'platformAndTitle')
+            ]);
+    await controls.refresh();
+    final reviews = await controls.reviewQueue();
+    final selected = reviews.singleWhere((r) => r.request!.title == 'Game 1');
+    final lookupsBeforeReview = provider.calls.length;
     first.requestFocus();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.textContaining('does not mean every game'));
+    final openReview = find.byKey(const ValueKey('metadata-open-review'));
+    await tester.ensureVisible(openReview);
     await tester.pumpAndSettle();
-    await controls.close();
-    await db.close();
+    await tester.tap(openReview);
+    await tester.pumpAndSettle();
+    expect(find.byType(MetadataReviewScreen), findsOneWidget);
+    expect(provider.calls.length, lookupsBeforeReview);
+    final candidate =
+        find.byKey(ValueKey('review-candidate-${selected.editionId}'));
+    await tester.ensureVisible(candidate);
+    await tester.pumpAndSettle();
+    await tester.tap(candidate);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Candidate Game 1 · psx · #42').last);
+    await tester.pumpAndSettle();
+    final approve = find.byKey(ValueKey('review-accept-${selected.editionId}'));
+    expect(tester.widget<FilledButton>(approve).onPressed, isNull);
+    for (final tag in ['T-Eng', 'Undub', 'Uncensor']) {
+      final chip =
+          find.byKey(ValueKey('review-tag-${selected.editionId}-$tag'));
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+    }
+    provider.reply = (request, _) async => MetadataLookupResult(
+        status: MetadataLookupStatus.matched,
+        message: 'Verified',
+        record: MetadataRecord(
+            gameId: request.gameId,
+            editionId: request.editionId,
+            platformId: request.platformId,
+            providerId: 'screenscraper',
+            providerGameId: request.verifiedProviderGameId!,
+            retrievedAt: DateTime.now().toUtc(),
+            refreshGeneration: request.refreshGeneration,
+            matchMethod: 'verifiedProviderId',
+            titles: [MetadataText(text: request.title)]));
+    await tester.ensureVisible(approve);
+    await tester.pumpAndSettle();
+    tester
+        .widget<Focus>(
+            find.ancestor(of: approve, matching: find.byType(Focus)).first)
+        .focusNode!
+        .requestFocus();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await controls.pause();
+    if (controls.state.report!.state != 'completed') await controls.resume();
+    await tester.pumpAndSettle();
+    expect(controls.state.report!.counts, {'matched': 1});
+    expect(find.text('Game 2'), findsOneWidget);
+    expect((await controls.reviewQueue()).single.request!.title, 'Game 2');
+    final edition =
+        await LibraryStore(Future.value(db)).edition(selected.editionId);
+    expect(edition!.tags, {'T-Eng', 'Undub', 'Uncensor'});
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonB);
+    await tester.pumpAndSettle();
+    expect(find.byType(MetadataReviewScreen), findsNothing);
+    expect(find.byType(MetadataSettingsScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    binding.reportData!.addAll({
+      'cached_review': true,
+      'independent_tags': true,
+      'controller_candidate_accept': true,
+      'verified_publication': true,
+      'remaining_review_preserved': true,
+      'review_back': true,
+    });
+    // Exact-game settings must not need an already published metadata ID.
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+            key: const ValueKey('exact-game-review-app'),
+            theme: AppTheme.darkTheme,
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            home: const Scaffold(
+                body: MetadataSettingsScreen(
+                    cacheRowId: 2, systemSlug: 'psp', gameTitle: 'Game 2')))));
+    await tester.pumpAndSettle();
+    final beforeExactReview = provider.calls.length;
+    await tester.ensureVisible(openReview);
+    await tester.pumpAndSettle();
+    await tester.tap(openReview);
+    await tester.pumpAndSettle();
+    expect(find.byType(MetadataReviewScreen), findsOneWidget);
+    expect(find.text('ScreenScraper · Selected game'), findsOneWidget);
+    expect(find.text('Game 2'), findsOneWidget);
+    expect(provider.calls.length, beforeExactReview);
+    binding.reportData!['exact_cache_row_review_without_metadata_id'] = true;
+    // Leave this exact cached review visible for an actual-font screenshot.
   });
 }

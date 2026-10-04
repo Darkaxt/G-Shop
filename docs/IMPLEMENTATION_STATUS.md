@@ -64,6 +64,87 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 cached candidate review and shared Windows build gate (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. Normal metadata settings and the exact
+  selected game's metadata action now expose a bounded cached-review page.
+  Latest outcomes are selected per provider/edition across jobs, so correcting
+  one game does not hide the other unresolved games from an earlier full job.
+  Console/exact-edition scope, cursor pages, changed artifact identities and
+  newer pending generations are checked without provider or ROM requests.
+- Review shows the original release/platform context and candidate evidence.
+  Selection and independent classification are explicit; a candidate alone never
+  publishes a rating. Acceptance uses the existing atomic identity correction,
+  one-edition retry snapshot and verified worker publication. Wrong-platform,
+  duplicate, unoffered and superseded candidates cannot overwrite current data.
+  Remaining reviews survive correction and controller recreation.
+- The focused host catalogue/controller/settings/review/details run (`29316`)
+  passed, including landscape controller selection, portrait touch selection,
+  independent T-Eng/Undub/Uncensor tags and Back after a reviewed card disappears.
+  Route-event evidence traced the Back defect to restoration focus outside the
+  screen action boundary. An opt-in local scope includes the restoration node;
+  existing unrelated callers retain their prior behavior. The inspected updated
+  progress golden was rerun without update mode. Initial scoped analysis found
+  only three style findings; their corrected files passed analysis (`36534`).
+- Final reconciliation reproduced an exact-game entry defect (`92873`): without
+  a previously published metadata ID, review stayed disabled after scraping.
+  Cache-row scope now resolves through the same artifact/platform identity rule
+  as snapshot capture, with no identity creation or catalogue mutation on read.
+  The corrected landscape/portrait/exact-game workflow and affected backend
+  checks passed (`60408`); bounded missing/stale/uncaptured-row assertions passed
+  (`af9f0f`). Exact scope never falls back to the full queue. Changed source and
+  native fixture analysis passed (`4558`). Updated native exact-scope verification
+  passed on 2026-10-04: the required queued build (`13453`) completed without
+  interrupting the other builds. Its standard-name APK has SHA-256
+  `A3DEF3F52643D9CF41F98E15577DA7A19754CC39F0D23370E83413FA99E2E483`.
+  The native fixture and directly attached standard integration driver (`af4533`)
+  passed, including exact cache-row review without a previously published metadata
+  ID. Actual-font evidence is `D:/Temp/rshop-s5-native-20261004/native-review-exact.png`;
+  the retained report records the exact-scope assertion. These remain synthetic
+  cache/provider checks, not a fresh live-library scrape.
+  The first host attachment was cancelled after process evidence showed Flutter
+  discovering an unrelated emulator; the same running Thor VM was then attached
+  directly through its verified endpoint, with no emulator interruption or test
+  restart. Normal APK restoration (`57248`) verified its original digest and all
+  seven protected data fingerprints, with both displays OFF/asleep.
+- The Thor's actual native SQLite/normal UI fixture passed in logcat and attached
+  driver (`16338`): settings entry, touch setup, pause/resume, cached candidate
+  selection, independent tags, verified publication, remaining reviews and Back.
+  The inspected standard-name test APK has SHA-256
+  `5443DB951ED959F0212729DA5908EFD2A5D149D69F535AA202C3620D172B6510`
+  and the existing debug signer/package. Actual-font evidence is
+  `D:/Temp/rshop-s5-native-20261004/native-review.png`. Data/provider access was
+  synthetic and in-memory; this is not a fresh real-library scrape.
+- Both required Gradle attempts acquired `Local\Darka.AndroidGradleBuildGate`
+  through the installed supervisor. Its preflight used daemon lifecycle/log
+  identities and no active client connections, not CPU or age. The first build
+  failed because PowerShell split the unquoted C: target argument; a read-only
+  argv reproduction established the cause. The quoted retry (`29958`) passed.
+  No existing build was interrupted and neither attempt reported a memory error.
+  Observed Gradle profile: two workers, parallel projects off, 3,221,225,472-byte
+  maximum heap; required 1 GB metaspace/256 MB code-cache flags were retained.
+  Kotlin was configured in-process for the existing Kotlin 2.2.20/AGP 8.11.1
+  project; compiler tasks were up-to-date, so no fresh compiler-memory proof is
+  claimed. A separate daemon's configured ceiling remains 3 GB. Test tasks were
+  observed configured for one 512 MB fork; this assembly did not execute them.
+  Generated app Ninja files verify depth-one shared compile/link pools for its
+  ABI tasks, bounding app native concurrency under two Gradle workers. Existing
+  audio-plugin Ninja logs remained dated 2026-10-01: no audio compilation occurred.
+  This is not a total host-memory cap or exclusion of uncoordinated launchers.
+- Normal APK restoration was verified against
+  `DAA8B182C8F722F4E3DC75685EE346B8919BFEFB1159C62AF6CFCE3EBDD7FFEE`;
+  all seven original database/preferences/credential/config fingerprints match.
+  The test-only forward was removed, both screens report OFF and power state is
+  Asleep. Transactional cleanup removed only four obsolete host golden diagnostic
+  images and their empty folder (1,354,027 reported bytes). Evidence and the
+  defined normal-APK recovery copy remain available.
+- Ordinary unfinished S5 work: rediscover/correct an already matched wrong ID,
+  cached media/details, normal Library overlays/filter/manual-shelf/controller
+  acceptance, and localized/compact/badge/offline-scroll measurements. Existing
+  S2 source-action layout/touch/localization deferrals remain assigned to S5.
+  S1/B3 and S4/B5 remain BLOCKED; S6-S8 remain NOT STARTED. No acceptance criterion
+  or required deferral has been waived and no stage/full-feature closure is claimed.
+
 ### S5 normal metadata setup and refresh controls (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. Existing General settings and the exact

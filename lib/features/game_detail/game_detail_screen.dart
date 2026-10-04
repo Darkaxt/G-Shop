@@ -568,13 +568,19 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           onSelect: () => controller.openGameInfo(),
         ),
       if (richMetadata?.cacheRowId != null)
-        QuickMenuItem(label: L.of(context).metadata_setupTitle,
+        QuickMenuItem(
+            label: L.of(context).metadata_setupTitle,
             icon: Icons.auto_stories_outlined,
             onSelect: () {
               closeQuickMenu();
-              Navigator.push(context, MaterialPageRoute(builder: (_) =>
-                  MetadataSettingsScreen(systemSlug: widget.system.id,
-                      cacheRowId: richMetadata!.cacheRowId, gameTitle: variant.displayName)));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => MetadataSettingsScreen(
+                          systemSlug: widget.system.id,
+                          cacheRowId: richMetadata!.cacheRowId,
+                          editionId: richMetadata.editionId,
+                          gameTitle: variant.displayName)));
             }),
       if (raMatch != null && raMatch.hasMatch && raMatch.raGameId != null)
         QuickMenuItem(

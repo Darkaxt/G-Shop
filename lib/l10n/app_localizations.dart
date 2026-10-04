@@ -105,6 +105,90 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_reviewChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This file or identity changed. These saved candidates cannot be accepted; re-scrape the current edition.'**
+  String get metadata_reviewChanged;
+
+  /// No description provided for @metadata_openReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review cached matches'**
+  String get metadata_openReview;
+
+  /// No description provided for @metadata_reviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review cached matches'**
+  String get metadata_reviewTitle;
+
+  /// No description provided for @metadata_reviewInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidates are identity hints, not verified scores. Select the correct game/project and classify this edition explicitly. Tags may overlap; an official release cannot also be a modification. Confirming saves the correction and rechecks only this game. No ROM is downloaded.'**
+  String get metadata_reviewInfo;
+
+  /// No description provided for @metadata_chooseCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose game / project identity'**
+  String get metadata_chooseCandidate;
+
+  /// No description provided for @metadata_candidateEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidate evidence'**
+  String get metadata_candidateEvidence;
+
+  /// No description provided for @metadata_reviewAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Save match and recheck'**
+  String get metadata_reviewAccept;
+
+  /// No description provided for @metadata_reviewEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No cached review outcomes on this page. Unmatched or pending games are not automatically rated.'**
+  String get metadata_reviewEmpty;
+
+  /// No description provided for @metadata_noCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'No candidate was returned. Re-scrape after correcting the title/platform or checking provider access; no match will be guessed.'**
+  String get metadata_noCandidates;
+
+  /// No description provided for @metadata_reviewReload.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload cached reviews'**
+  String get metadata_reviewReload;
+
+  /// No description provided for @metadata_reviewNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get metadata_reviewNext;
+
+  /// No description provided for @metadata_reviewPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get metadata_reviewPrevious;
+
+  /// No description provided for @metadata_reviewSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection saved. Check the refreshed job\'s coverage: a saved match alone is not a verified rating.'**
+  String get metadata_reviewSaved;
+
+  /// No description provided for @metadata_reviewError.
+  ///
+  /// In en, this message translates to:
+  /// **'Review or recheck could not finish. The identity/candidate may have changed, or provider access may be unavailable. Reload cached reviews or resume the saved job; existing ROM actions remain available.'**
+  String get metadata_reviewError;
+
   /// No description provided for @metadata_setupTitle.
   ///
   /// In en, this message translates to:

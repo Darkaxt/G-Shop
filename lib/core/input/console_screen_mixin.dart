@@ -111,16 +111,21 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   int? get savedSelectedIndex => getSavedFocusState()?.selectedIndex;
 
   Widget buildWithActions(Widget child,
-      {KeyEventResult Function(FocusNode, KeyEvent)? onKeyEvent}) {
+      {KeyEventResult Function(FocusNode, KeyEvent)? onKeyEvent,
+      bool localFocusScope = false}) {
+    final content = Focus(
+      focusNode: screenFocusNode,
+      onKeyEvent: onKeyEvent,
+      autofocus: true,
+      child: child,
+    );
     return ScreenActionsWrapper(
       screenActions: screenActions,
       additionalShortcuts: additionalShortcuts,
-      child: Focus(
-        focusNode: screenFocusNode,
-        onKeyEvent: onKeyEvent,
-        autofocus: true,
-        child: child,
-      ),
+      // The screen's own restoration node must be inside this scope too.
+      // An inner scope around controls alone still lets unfocus fall back to
+      // the route scope outside Actions after a focused control is removed.
+      child: localFocusScope ? FocusScope(child: content) : content,
     );
   }
 }

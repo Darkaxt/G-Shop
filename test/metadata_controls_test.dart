@@ -7,6 +7,7 @@ import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class MemorySecrets implements MetadataSecretStorage {
@@ -74,6 +75,69 @@ Future<Database> controlsDatabase({DatabaseFactory? factory}) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+      'normal review explicitly corrects an identity then verifies publication',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsProvider();
+    provider.reply = (request, _) async => MetadataLookupResult(
+            status: MetadataLookupStatus.needsReview,
+            message: 'Review',
+            candidates: [
+              MetadataLookupCandidate(
+                  providerGameId: '42',
+                  platformId: request.platformId,
+                  titles: [MetadataText(text: request.title)],
+                  titleMatched: true,
+                  evidence: 'platformAndTitle')
+            ]);
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+    });
+    await controls.load();
+    await controls.refresh();
+    final reviews = await controls.reviewQueue();
+    expect(reviews, hasLength(2));
+    expect(provider.calls, hasLength(2),
+        reason: 'Review reads cached candidates only.');
+    await controls.acceptReview(reviews.first,
+        providerGameId: 'unoffered', contentTags: {'official'});
+    expect(controls.state.error, isTrue);
+    expect(await controls.reviewQueue(), hasLength(2));
+    provider.reply = (request, _) async => MetadataLookupResult(
+        status: MetadataLookupStatus.matched,
+        message: 'Verified',
+        record: MetadataRecord(
+            gameId: request.gameId,
+            editionId: request.editionId,
+            platformId: request.platformId,
+            providerId: 'screenscraper',
+            providerGameId: request.verifiedProviderGameId!,
+            retrievedAt: DateTime.now().toUtc(),
+            refreshGeneration: request.refreshGeneration,
+            matchMethod: 'verifiedProviderId',
+            titles: [MetadataText(text: request.title)]));
+    await controls.acceptReview(reviews.first,
+        providerGameId: '42', contentTags: {'T-Eng', 'Undub', 'Uncensor'});
+    expect(controls.state.error, isFalse);
+    expect(controls.state.report!.counts, {'matched': 1});
+    expect(provider.calls.last.verifiedProviderGameId, '42');
+    expect(provider.calls.last.contentTags, {'T-Eng', 'Undub', 'Uncensor'});
+    expect((await controls.reviewQueue()).single.editionId,
+        reviews.last.editionId);
+    final saved = await LibraryStore(Future.value(db))
+        .metadata(reviews.first.editionId, 'screenscraper');
+    expect(saved!.providerGameId, '42');
+  });
   test('pause during snapshot creation prevents starting provider work',
       () async {
     final db = await controlsDatabase();

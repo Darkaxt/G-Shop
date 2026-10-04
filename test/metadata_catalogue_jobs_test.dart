@@ -221,6 +221,127 @@ void main() {
   });
 
   test(
+      'review queue retains other editions across single-game retry and restart',
+      () async {
+    await cache('snes', 'First.zip', artifact: remote('first'));
+    await cache('psx', 'Second.chd', artifact: remote('second'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, _ReviewProvider());
+    final reviews = await jobs.reviewQueue('screenscraper');
+    expect(reviews, hasLength(2));
+    expect(reviews.every((r) => r.jobId == job.id), isTrue);
+    expect(reviews.map((r) => r.request!.platformId).toSet(), {'snes', 'psx'});
+    final chosen = reviews.first;
+    await jobs.acceptCandidate(chosen.jobId,
+        editionId: chosen.editionId,
+        providerGameId: '42',
+        contentTags: {'T-Eng', 'Undub'});
+    final restored = MetadataRefreshJobs(Future.value(db));
+    final remaining = await restored.reviewQueue('screenscraper');
+    expect(remaining.map((r) => r.editionId), [reviews.last.editionId],
+        reason: 'A latest one-game job must not hide the remaining full job.');
+    expect(
+        await restored.reviewQueue('screenscraper',
+            editionId: chosen.editionId),
+        isEmpty,
+        reason: 'A superseded candidate cannot be accepted again.');
+    await jobs.createFromCatalogue(providerId: 'igdb');
+    expect(await restored.reviewQueue('screenscraper'), hasLength(1),
+        reason: 'Another provider does not supersede this provider\'s review.');
+  });
+
+  test(
+      'review queue pages and scopes newest outcomes without provider requests',
+      () async {
+    final firstCacheId =
+        await cache('snes', 'First.zip', artifact: remote('first'));
+    await cache('snes', 'Second.zip', artifact: remote('second'));
+    await cache('psx', 'Third.chd', artifact: remote('third'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final provider = _ReviewProvider();
+    await jobs.run(job.id, provider);
+    final first = await jobs.reviewQueue('screenscraper', limit: 1);
+    final next = await jobs.reviewQueue('screenscraper',
+        afterEditionId: first.single.editionId, limit: 2);
+    expect({...first, ...next}.map((r) => r.editionId).toSet(), hasLength(3));
+    final scoped = await jobs.reviewQueue('screenscraper', systemSlug: 'snes');
+    expect(scoped, hasLength(2));
+    expect(scoped.every((r) => r.request!.platformId == 'snes'), isTrue);
+    expect(
+        await jobs.reviewQueue('screenscraper', editionId: next.last.editionId),
+        hasLength(1));
+    expect(provider.calls, 3);
+    final exact =
+        await jobs.reviewQueue('screenscraper', cacheRowId: firstCacheId);
+    expect(exact.single.editionId,
+        await LibraryStore.cachedCatalogueEditionId(db, firstCacheId));
+    expect(await jobs.reviewQueue('screenscraper', cacheRowId: 999), isEmpty);
+    expect(
+        await jobs.reviewQueue('screenscraper',
+            cacheRowId: firstCacheId,
+            editionId: scoped
+                .firstWhere((r) => r.editionId != exact.single.editionId)
+                .editionId),
+        isEmpty,
+        reason:
+            'A stale route binding must not select another cache artifact.');
+    final uncaptured = await cache('snes', 'New.zip', artifact: remote('new'));
+    expect(await jobs.reviewQueue('screenscraper', cacheRowId: uncaptured),
+        isEmpty);
+    expect(await db.query('library_editions'), hasLength(3),
+        reason: 'Opening cached reviews must not create catalogue identities.');
+    await expectLater(
+        jobs.reviewQueue('screenscraper', limit: 129), throwsArgumentError);
+    await jobs.createFromCatalogue(
+        providerId: 'screenscraper', systemSlug: 'snes');
+    expect(await jobs.reviewQueue('screenscraper'), hasLength(1),
+        reason: 'Pending newer snapshots suppress obsolete review evidence.');
+  });
+
+  test(
+      'superseded review cannot override a newer snapshot with unchanged bytes',
+      () async {
+    await cache('snes', 'First.zip', artifact: remote('first'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, _ReviewProvider());
+    final old = (await jobs.reviewQueue('screenscraper')).single;
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await expectLater(
+        jobs.acceptCandidate(old.jobId,
+            editionId: old.editionId,
+            providerGameId: '42',
+            contentTags: {'official'}),
+        throwsStateError);
+    expect(await db.query('metadata_refresh_jobs'), hasLength(2));
+    expect(
+        (await store.game((await store.edition(old.editionId))!.gameId))!
+            .providerIds,
+        isEmpty);
+  });
+
+  test(
+      'review page exposes changed or removed catalogue identity as not current',
+      () async {
+    final id = await cache('snes', 'First.zip', artifact: remote('first'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, _ReviewProvider());
+    expect((await jobs.reviewQueue('screenscraper')).single.identityCurrent,
+        isTrue);
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode(remote('first', checksum: 'b').toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
+    expect((await jobs.reviewQueue('screenscraper')).single.identityCurrent,
+        isFalse);
+    await db.delete('games');
+    expect((await jobs.reviewQueue('screenscraper')).single.identityCurrent,
+        isFalse);
+  });
+
+  test(
       'reviewed tag aliases persist canonical classification and retry evidence',
       () async {
     await cache('snes', 'Fixture.zip', artifact: remote('file'));

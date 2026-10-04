@@ -9,6 +9,54 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_reviewChanged =>
+      'Ce fichier ou cette identité a changé. Ces candidats ne peuvent pas être confirmés ; relancez la collecte de l\'édition actuelle.';
+
+  @override
+  String get metadata_openReview => 'Vérifier les correspondances en cache';
+
+  @override
+  String get metadata_reviewTitle => 'Vérifier les correspondances en cache';
+
+  @override
+  String get metadata_reviewInfo =>
+      'Les candidats sont des indices d\'identité, pas des notes vérifiées. Choisissez le bon jeu/projet et classez explicitement cette édition. Les tags se combinent ; une édition officielle ne peut pas être une modification. La confirmation enregistre la correction et revérifie seulement ce jeu. Aucune ROM n\'est téléchargée.';
+
+  @override
+  String get metadata_chooseCandidate => 'Choisir l\'identité du jeu / projet';
+
+  @override
+  String get metadata_candidateEvidence => 'Preuve du candidat';
+
+  @override
+  String get metadata_reviewAccept => 'Enregistrer et revérifier';
+
+  @override
+  String get metadata_reviewEmpty =>
+      'Aucun résultat en cache à vérifier sur cette page. Les jeux en attente ou sans correspondance ne sont pas notés automatiquement.';
+
+  @override
+  String get metadata_noCandidates =>
+      'Aucun candidat reçu. Relancez la collecte après correction du titre/plateforme ou vérification de l\'accès ; aucune identité ne sera devinée.';
+
+  @override
+  String get metadata_reviewReload => 'Recharger les vérifications en cache';
+
+  @override
+  String get metadata_reviewNext => 'Page suivante';
+
+  @override
+  String get metadata_reviewPrevious => 'Page précédente';
+
+  @override
+  String get metadata_reviewSaved =>
+      'Sélection enregistrée. Vérifiez la couverture du nouveau travail : une correspondance enregistrée n\'est pas une note vérifiée.';
+
+  @override
+  String get metadata_reviewError =>
+      'La vérification n\'a pas pu aboutir. L\'identité/candidat a peut-être changé ou le fournisseur est indisponible. Rechargez les vérifications ou reprenez le travail enregistré ; les actions ROM restent disponibles.';
+
+  @override
   String get metadata_setupTitle => 'Métadonnées des jeux';
 
   @override

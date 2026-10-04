@@ -189,6 +189,37 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         await _run(job.id);
       });
 
+  /// Read bounded cached review outcomes; never start provider or ROM requests.
+  Future<List<MetadataReviewItem>> reviewQueue(
+          {String afterEditionId = '',
+          int limit = 50,
+          String? systemSlug,
+          String? editionId,
+          int? cacheRowId}) =>
+      _jobs.reviewQueue(state.providerId,
+          afterEditionId: afterEditionId,
+          limit: limit,
+          systemSlug: systemSlug,
+          editionId: editionId,
+          cacheRowId: cacheRowId);
+
+  Future<void> acceptReview(MetadataReviewItem item,
+          {required String providerGameId, required Set<String> contentTags}) =>
+      _perform(() async {
+        final original = await _jobs.report(item.jobId);
+        if (original.providerId != state.providerId) {
+          throw StateError('Review belongs to another metadata provider');
+        }
+        final job = await _jobs.acceptCandidate(item.jobId,
+            editionId: item.editionId,
+            providerGameId: providerGameId,
+            contentTags: contentTags);
+        _set(state.copyWith(report: job));
+        if (_closed) return;
+        _catalogueChanged();
+        await _run(job.id);
+      });
+
   Future<void> _run(int id) async {
     // Snapshot publication can still be in flight before the job runner owns
     // its cancellation token. Preserve that pause intent across this boundary.

@@ -9,6 +9,55 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_reviewChanged =>
+      'Este ficheiro ou identidade mudou. Estes candidatos guardados não podem ser aceites; recolha novamente a edição atual.';
+
+  @override
+  String get metadata_openReview => 'Rever correspondências em cache';
+
+  @override
+  String get metadata_reviewTitle => 'Rever correspondências em cache';
+
+  @override
+  String get metadata_reviewInfo =>
+      'Os candidatos são pistas de identidade, não classificações verificadas. Selecione o jogo/projeto correto e classifique esta edição explicitamente. As etiquetas podem combinar-se; uma edição oficial não pode também ser uma modificação. Confirmar guarda a correção e verifica apenas este jogo. Nenhuma ROM é descarregada.';
+
+  @override
+  String get metadata_chooseCandidate =>
+      'Escolher identidade do jogo / projeto';
+
+  @override
+  String get metadata_candidateEvidence => 'Evidência do candidato';
+
+  @override
+  String get metadata_reviewAccept => 'Guardar correspondência e verificar';
+
+  @override
+  String get metadata_reviewEmpty =>
+      'Não existem resultados em cache para rever nesta página. Jogos pendentes ou sem correspondência não são classificados automaticamente.';
+
+  @override
+  String get metadata_noCandidates =>
+      'Nenhum candidato recebido. Recolha novamente após corrigir título/plataforma ou verificar o acesso; nenhuma identidade será adivinhada.';
+
+  @override
+  String get metadata_reviewReload => 'Recarregar revisões em cache';
+
+  @override
+  String get metadata_reviewNext => 'Página seguinte';
+
+  @override
+  String get metadata_reviewPrevious => 'Página anterior';
+
+  @override
+  String get metadata_reviewSaved =>
+      'Seleção guardada. Verifique a cobertura do novo trabalho: uma correspondência guardada não é uma classificação verificada.';
+
+  @override
+  String get metadata_reviewError =>
+      'A revisão ou verificação não pôde terminar. A identidade/candidato pode ter mudado ou o fornecedor pode estar indisponível. Recarregue as revisões ou retome o trabalho guardado; as ações ROM continuam disponíveis.';
+
+  @override
   String get metadata_setupTitle => 'Metadados dos jogos';
 
   @override

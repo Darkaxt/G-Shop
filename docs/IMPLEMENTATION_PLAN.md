@@ -524,6 +524,13 @@ Depends on: S4 provenance/cache and S1/S2 setup states.
   calls per frame or a library-only implementation.
 - Add optional source-labelled overlays, stale/base-game labeling and accessible
   details/correction/refresh controls in existing screens.
+- Match review uses bounded cache-only pages of the newest outcome per exact
+  edition/provider, including remaining outcomes from earlier full jobs after a
+  one-game retry. Show the original platform/release context, candidate identity
+  evidence and independent edition tags; require explicit selection/classification.
+  Accept through the existing atomic correction/retry transaction and worker,
+  never publish a candidate's score. Verify restart continuity, scope isolation,
+  stale/foreign candidates, cancellation and normal controller/touch navigation.
 - Wire the tested shared queries into existing filters: `Hack`, `T-Eng`, `Dub`,
   `Undub`, `Uncensor` and other content tags, any/all matching, genres, and dynamic
   Best rated 10/25/50/100/All within the user's collection with explicit scope,

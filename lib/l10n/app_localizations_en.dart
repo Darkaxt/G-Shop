@@ -9,6 +9,54 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_reviewChanged =>
+      'This file or identity changed. These saved candidates cannot be accepted; re-scrape the current edition.';
+
+  @override
+  String get metadata_openReview => 'Review cached matches';
+
+  @override
+  String get metadata_reviewTitle => 'Review cached matches';
+
+  @override
+  String get metadata_reviewInfo =>
+      'Candidates are identity hints, not verified scores. Select the correct game/project and classify this edition explicitly. Tags may overlap; an official release cannot also be a modification. Confirming saves the correction and rechecks only this game. No ROM is downloaded.';
+
+  @override
+  String get metadata_chooseCandidate => 'Choose game / project identity';
+
+  @override
+  String get metadata_candidateEvidence => 'Candidate evidence';
+
+  @override
+  String get metadata_reviewAccept => 'Save match and recheck';
+
+  @override
+  String get metadata_reviewEmpty =>
+      'No cached review outcomes on this page. Unmatched or pending games are not automatically rated.';
+
+  @override
+  String get metadata_noCandidates =>
+      'No candidate was returned. Re-scrape after correcting the title/platform or checking provider access; no match will be guessed.';
+
+  @override
+  String get metadata_reviewReload => 'Reload cached reviews';
+
+  @override
+  String get metadata_reviewNext => 'Next page';
+
+  @override
+  String get metadata_reviewPrevious => 'Previous page';
+
+  @override
+  String get metadata_reviewSaved =>
+      'Selection saved. Check the refreshed job\'s coverage: a saved match alone is not a verified rating.';
+
+  @override
+  String get metadata_reviewError =>
+      'Review or recheck could not finish. The identity/candidate may have changed, or provider access may be unavailable. Reload cached reviews or resume the saved job; existing ROM actions remain available.';
+
+  @override
   String get metadata_setupTitle => 'Game metadata';
 
   @override

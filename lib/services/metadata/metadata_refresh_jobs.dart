@@ -39,13 +39,19 @@ class MetadataRefreshReport {
 }
 
 class MetadataReviewItem {
+  final int jobId;
   final String editionId;
   final String status;
   final List<MetadataLookupCandidate> candidates;
+  final MetadataLookupRequest? request;
+  final bool identityCurrent;
   const MetadataReviewItem(
-      {required this.editionId,
+      {required this.jobId,
+      required this.editionId,
       required this.status,
-      required this.candidates});
+      required this.candidates,
+      this.request,
+      this.identityCurrent = true});
 }
 
 class MetadataRefreshJobs {
@@ -452,13 +458,82 @@ class MetadataRefreshJobs {
         ],
         orderBy: 'edition_id',
         limit: limit);
-    return List.unmodifiable(rows.map((row) => MetadataReviewItem(
-          editionId: row['edition_id'] as String,
-          status: row['status'] as String,
-          candidates:
-              List.unmodifiable(_candidates(row['candidates_json'] as String?)),
-        )));
+    return List.unmodifiable(rows.map(_reviewItem));
   }
+
+  /// Latest outcome per provider/edition, not only the latest job. A one-game
+  /// correction must not hide the remaining reviews from a full-library job.
+  /// A newer pending/resolved outcome supersedes its old candidates. Pages are
+  /// cache-only and bounded even when all preceding jobs remain in the audit.
+  Future<List<MetadataReviewItem>> reviewQueue(String providerId,
+      {String afterEditionId = '',
+      int limit = 50,
+      String? systemSlug,
+      String? editionId,
+      int? cacheRowId}) async {
+    if (providerId.trim().isEmpty || limit < 1 || limit > 128) {
+      throw ArgumentError('Provider and bounded review page are required');
+    }
+    final db = await _database;
+    return db.transaction((txn) async {
+      var selectedEditionId = editionId;
+      if (cacheRowId != null) {
+        final currentEditionId =
+            await LibraryStore.cachedCatalogueEditionId(txn, cacheRowId);
+        if (currentEditionId == null ||
+            (editionId != null && currentEditionId != editionId)) {
+          return <MetadataReviewItem>[];
+        }
+        selectedEditionId = currentEditionId;
+      }
+      final rows =
+          await txn.rawQuery('''SELECT i.* FROM metadata_refresh_items i
+      JOIN metadata_refresh_jobs j ON j.id = i.job_id
+      JOIN library_editions e ON e.edition_id = i.edition_id
+      JOIN library_game_identities g ON g.game_id = e.game_id
+      WHERE j.provider_id = ? AND j.is_artwork = 0 AND i.edition_id > ?
+        AND i.status IN ('needsReview', 'ambiguous', 'unmatched')
+        ${systemSlug == null ? '' : 'AND g.platform_id = ?'}
+        ${selectedEditionId == null ? '' : 'AND i.edition_id = ?'}
+        AND NOT EXISTS (SELECT 1 FROM metadata_refresh_items n
+          JOIN metadata_refresh_jobs nj ON nj.id = n.job_id
+          WHERE n.edition_id = i.edition_id AND nj.provider_id = j.provider_id
+            AND nj.is_artwork = 0 AND nj.generation > j.generation)
+      ORDER BY i.edition_id LIMIT ?''', [
+        providerId,
+        afterEditionId,
+        if (systemSlug != null) systemSlug,
+        if (selectedEditionId != null) selectedEditionId,
+        limit
+      ]);
+      final items = <MetadataReviewItem>[];
+      for (final row in rows) {
+        final current = await _identity(txn, row['edition_id'] as String);
+        items.add(_reviewItem(row,
+            identityCurrent: current != null &&
+                row['identity_key'] ==
+                    LibraryStore.metadataIdentity(current,
+                        providerId: providerId)));
+      }
+      return List.unmodifiable(items);
+    });
+  }
+
+  static MetadataReviewItem _reviewItem(Map<String, Object?> row,
+          {bool identityCurrent = true}) =>
+      MetadataReviewItem(
+        jobId: row['job_id'] as int,
+        editionId: row['edition_id'] as String,
+        status: row['status'] as String,
+        identityCurrent: identityCurrent,
+        candidates:
+            List.unmodifiable(_candidates(row['candidates_json'] as String?)),
+        request: row['request_json'] == null
+            ? null
+            : MetadataLookupRequest.fromJson(
+                jsonDecode(row['request_json'] as String)
+                    as Map<String, dynamic>),
+      );
 
   static List<MetadataLookupCandidate> _candidates(String? json) =>
       (json == null ? <dynamic>[] : jsonDecode(json) as List).map((value) {
@@ -495,7 +570,14 @@ class MetadataRefreshJobs {
               whereArgs: [id, editionId],
               limit: 1);
           final current = await _identity(txn, editionId);
+          final newer = await txn.rawQuery(
+              '''SELECT 1 FROM metadata_refresh_items i
+            JOIN metadata_refresh_jobs j ON j.id = i.job_id
+            WHERE i.edition_id = ? AND j.provider_id = ? AND j.is_artwork = 0
+              AND j.generation > ? LIMIT 1''',
+              [editionId, providerId, job['generation']]);
           if (items.isEmpty ||
+              newer.isNotEmpty ||
               current == null ||
               !{'needsReview', 'ambiguous'}.contains(items.single['status']) ||
               items.single['identity_key'] !=

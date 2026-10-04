@@ -9,6 +9,54 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_reviewChanged =>
+      'Datei oder Identität geändert. Diese gespeicherten Kandidaten können nicht bestätigt werden; die aktuelle Edition erneut abrufen.';
+
+  @override
+  String get metadata_openReview => 'Gespeicherte Zuordnungen prüfen';
+
+  @override
+  String get metadata_reviewTitle => 'Gespeicherte Zuordnungen prüfen';
+
+  @override
+  String get metadata_reviewInfo =>
+      'Kandidaten sind Identitätshinweise, keine bestätigten Bewertungen. Wähle das richtige Spiel/Projekt und klassifiziere diese Edition ausdrücklich. Tags sind kombinierbar; eine offizielle Ausgabe kann nicht zugleich eine Modifikation sein. Bestätigen speichert die Korrektur und prüft nur dieses Spiel erneut. Keine ROM wird heruntergeladen.';
+
+  @override
+  String get metadata_chooseCandidate => 'Spiel- / Projektidentität wählen';
+
+  @override
+  String get metadata_candidateEvidence => 'Kandidatenbeleg';
+
+  @override
+  String get metadata_reviewAccept => 'Zuordnung speichern und prüfen';
+
+  @override
+  String get metadata_reviewEmpty =>
+      'Keine gespeicherten Prüfergebnisse auf dieser Seite. Offene oder nicht zugeordnete Spiele werden nicht automatisch bewertet.';
+
+  @override
+  String get metadata_noCandidates =>
+      'Keine Kandidaten erhalten. Nach Korrektur von Titel/Plattform oder Prüfung des Zugangs erneut abrufen; die Zuordnung wird nicht geraten.';
+
+  @override
+  String get metadata_reviewReload => 'Gespeicherte Prüfungen neu laden';
+
+  @override
+  String get metadata_reviewNext => 'Nächste Seite';
+
+  @override
+  String get metadata_reviewPrevious => 'Vorherige Seite';
+
+  @override
+  String get metadata_reviewSaved =>
+      'Auswahl gespeichert. Prüfe die Abdeckung des neuen Auftrags: eine gespeicherte Zuordnung ist noch keine bestätigte Bewertung.';
+
+  @override
+  String get metadata_reviewError =>
+      'Prüfung oder erneuter Abruf nicht abgeschlossen. Identität/Kandidat kann geändert oder der Anbieter nicht verfügbar sein. Gespeicherte Prüfungen neu laden oder Auftrag fortsetzen; ROM-Aktionen bleiben verfügbar.';
+
+  @override
   String get metadata_setupTitle => 'Spielmetadaten';
 
   @override

@@ -10,13 +10,18 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/metadata_providers.dart';
 import '../../services/metadata/metadata_credentials.dart';
 import '../../services/metadata/metadata_refresh_jobs.dart';
+import 'metadata_review_screen.dart';
 
 /// Normal settings entry, also scoped to the exact selected cached game.
 class MetadataSettingsScreen extends ConsumerStatefulWidget {
-  final String? systemSlug, gameTitle;
+  final String? systemSlug, gameTitle, editionId;
   final int? cacheRowId;
   const MetadataSettingsScreen(
-      {super.key, this.systemSlug, this.cacheRowId, this.gameTitle});
+      {super.key,
+      this.systemSlug,
+      this.cacheRowId,
+      this.gameTitle,
+      this.editionId});
   @override
   ConsumerState<MetadataSettingsScreen> createState() =>
       _MetadataSettingsScreenState();
@@ -152,196 +157,222 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
     final enabled = !state.busy && !state.loading;
     final ss = state.providerId == 'screenscraper';
     final report = state.report;
-    // Keep unfocused/disabled controls inside this screen's action boundary.
-    // Otherwise unfocus falls back to the route scope outside its shortcuts.
-    return buildWithActions(FocusScope(
-        child: ScreenLayout(
+    // Include the screen restoration node in its local action/focus boundary.
+    return buildWithActions(
+        ScreenLayout(
             body: FocusTraversalGroup(
-      child: ListView(padding: const EdgeInsets.all(24), children: [
-        Row(children: [
-          IconButton(
-              tooltip: l.common_back,
-              onPressed: () => Navigator.maybePop(context),
-              icon: const Icon(Icons.arrow_back)),
-          Expanded(
-              child: Text(l.metadata_setupTitle,
-                  style: Theme.of(context).textTheme.headlineSmall)),
-        ]),
-        const SizedBox(height: 16),
-        Center(
-            child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 880),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(l.metadata_accessInfo),
+          child: ListView(padding: const EdgeInsets.all(24), children: [
+            Row(children: [
+              IconButton(
+                  tooltip: l.common_back,
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.arrow_back)),
+              Expanded(
+                  child: Text(l.metadata_setupTitle,
+                      style: Theme.of(context).textTheme.headlineSmall)),
+            ]),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-                key: const ValueKey('metadata-provider'),
-                focusNode: _providerFocus,
-                initialValue: state.providerId,
-                decoration: InputDecoration(labelText: l.metadata_provider),
-                items: const [
-                  DropdownMenuItem(
-                      value: 'screenscraper', child: Text('ScreenScraper')),
-                  DropdownMenuItem(value: 'igdb', child: Text('IGDB'))
-                ],
-                onChanged: !enabled
-                    ? null
-                    : (id) async {
-                        if (id == null) return;
-                        _clearFields();
-                        setState(() => _invalid = false);
-                        await controls.selectProvider(id);
-                      }),
-            if (state.loading) const LinearProgressIndicator(),
-            const SizedBox(height: 12),
-            if (ss) ...[
-              Text(
-                  '${l.providerForm_username}: ${state.accountConfigured ? l.metadata_saved : l.metadata_notConfigured}'),
-              _field(_username, l.providerForm_username, 'metadata-username',
-                  enabled: enabled),
-              _field(_password, l.providerForm_password, 'metadata-password',
-                  secret: true, enabled: enabled),
-            ],
-            Text(
-                '${l.metadata_applicationAccess}: ${state.applicationConfigured ? l.metadata_saved : l.metadata_notConfigured}'),
-            if (ss)
-              ExpansionTile(
-                  title: Text(l.metadata_applicationAccess),
+            Center(
+                child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 880),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _field(_applicationId, l.metadata_clientId,
-                        'metadata-client-id',
-                        enabled: enabled),
-                    _field(_applicationSecret, l.metadata_clientSecret,
-                        'metadata-client-secret',
-                        secret: true, enabled: enabled),
-                    _field(
-                        _software, l.metadata_softwareName, 'metadata-software',
-                        enabled: enabled),
-                  ])
-            else ...[
-              _field(_applicationId, l.metadata_clientId, 'metadata-client-id',
-                  enabled: enabled),
-              _field(_applicationSecret, l.metadata_clientSecret,
-                  'metadata-client-secret',
-                  secret: true, enabled: enabled),
-            ],
-            if (_invalid)
-              Text(l.metadata_invalidInput,
-                  style: const TextStyle(color: Colors.amber)),
-            Wrap(spacing: 12, runSpacing: 8, children: [
-              _button(l.common_save, 'metadata-save', enabled ? _save : null),
-              _button(
-                  l.metadata_forget,
-                  'metadata-forget',
-                  enabled &&
-                          (state.accountConfigured ||
-                              state.applicationConfigured)
-                      ? () async {
-                          _clearFields();
-                          await controls.removeCredentials();
-                        }
-                      : null),
-            ]),
-            const Divider(height: 40),
-            if (widget.cacheRowId != null)
-              Text(
-                  '${l.metadata_gameScope}: ${widget.gameTitle ?? widget.cacheRowId}')
-            else
-              DropdownButtonFormField<String>(
-                  key: const ValueKey('metadata-scope'),
-                  initialValue: _scope ?? '',
-                  decoration:
-                      InputDecoration(labelText: l.metadata_systemScope),
-                  items: [
-                    DropdownMenuItem(
-                        value: '', child: Text(l.metadata_fullScope)),
-                    for (final system in {
-                      ...state.systems,
-                      if (_scope != null) _scope!
-                    })
-                      DropdownMenuItem(value: system, child: Text(system))
-                  ],
-                  onChanged: enabled
-                      ? (value) =>
-                          setState(() => _scope = value == '' ? null : value)
-                      : null),
-            const SizedBox(height: 12),
-            Wrap(spacing: 12, runSpacing: 8, children: [
-              _button(
-                  l.metadata_refresh,
-                  'metadata-refresh',
-                  enabled
-                      ? () => controls.refresh(
-                          systemSlug: _scope, cacheRowId: widget.cacheRowId)
-                      : null),
-              _button(
-                  l.metadata_pause,
-                  'metadata-pause',
-                  state.busy && report?.state == 'running'
-                      ? controls.pause
-                      : null),
-              _button(
-                  l.metadata_resume,
-                  'metadata-resume',
-                  enabled && report != null && report.state != 'completed'
-                      ? controls.resume
-                      : null),
-              _button(
-                  l.metadata_retryOutcomes,
-                  'metadata-retry',
-                  enabled &&
-                          report != null &&
-                          [
-                            'unmatched',
-                            'invalidRequest',
-                            'invalidResponse',
-                            'unsupportedPlatform',
-                            'identityChanged'
-                          ].any((s) => (report.counts[s] ?? 0) > 0)
-                      ? controls.retryUnresolved
-                      : null),
-            ]),
-            if (state.busy)
-              const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: LinearProgressIndicator()),
-            if (state.error)
-              Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(l.metadata_controlsError,
-                      style: const TextStyle(color: Colors.amber))),
-            if (state.error && report == null)
-              _button(l.common_retry, 'metadata-reload',
-                  enabled ? controls.load : null),
-            if (report != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                  switch (report.state) {
-                    'completed' => l.metadata_jobCompleted,
-                    'running' => l.metadata_jobRunning,
-                    'queued' => l.metadata_jobQueued,
-                    _ => l.downloadStatus_paused,
-                  },
-                  style: Theme.of(context).textTheme.titleMedium),
-              _coverage(l, report),
-              if (report.blockedStatus != null)
-                Text(switch (report.blockedStatus) {
-                  'setupRequired' ||
-                  'authenticationRequired' ||
-                  'developerAccessRequired' =>
-                    l.metadata_configureAccess,
-                  'quotaExceeded' || 'throttled' => l.metadata_quotaWait,
-                  _ => l.metadata_offlineWait,
-                }),
-              if (report.notBefore != null)
-                Text(report.notBefore!.toLocal().toString()),
-              Text(l.metadata_completeNote),
-            ],
+                    Text(l.metadata_accessInfo),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                        key: const ValueKey('metadata-provider'),
+                        focusNode: _providerFocus,
+                        initialValue: state.providerId,
+                        decoration:
+                            InputDecoration(labelText: l.metadata_provider),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'screenscraper',
+                              child: Text('ScreenScraper')),
+                          DropdownMenuItem(value: 'igdb', child: Text('IGDB'))
+                        ],
+                        onChanged: !enabled
+                            ? null
+                            : (id) async {
+                                if (id == null) return;
+                                _clearFields();
+                                setState(() => _invalid = false);
+                                await controls.selectProvider(id);
+                              }),
+                    if (state.loading) const LinearProgressIndicator(),
+                    const SizedBox(height: 12),
+                    if (ss) ...[
+                      Text(
+                          '${l.providerForm_username}: ${state.accountConfigured ? l.metadata_saved : l.metadata_notConfigured}'),
+                      _field(_username, l.providerForm_username,
+                          'metadata-username',
+                          enabled: enabled),
+                      _field(_password, l.providerForm_password,
+                          'metadata-password',
+                          secret: true, enabled: enabled),
+                    ],
+                    Text(
+                        '${l.metadata_applicationAccess}: ${state.applicationConfigured ? l.metadata_saved : l.metadata_notConfigured}'),
+                    if (ss)
+                      ExpansionTile(
+                          title: Text(l.metadata_applicationAccess),
+                          children: [
+                            _field(_applicationId, l.metadata_clientId,
+                                'metadata-client-id',
+                                enabled: enabled),
+                            _field(_applicationSecret, l.metadata_clientSecret,
+                                'metadata-client-secret',
+                                secret: true, enabled: enabled),
+                            _field(_software, l.metadata_softwareName,
+                                'metadata-software',
+                                enabled: enabled),
+                          ])
+                    else ...[
+                      _field(_applicationId, l.metadata_clientId,
+                          'metadata-client-id',
+                          enabled: enabled),
+                      _field(_applicationSecret, l.metadata_clientSecret,
+                          'metadata-client-secret',
+                          secret: true, enabled: enabled),
+                    ],
+                    if (_invalid)
+                      Text(l.metadata_invalidInput,
+                          style: const TextStyle(color: Colors.amber)),
+                    Wrap(spacing: 12, runSpacing: 8, children: [
+                      _button(l.common_save, 'metadata-save',
+                          enabled ? _save : null),
+                      _button(
+                          l.metadata_forget,
+                          'metadata-forget',
+                          enabled &&
+                                  (state.accountConfigured ||
+                                      state.applicationConfigured)
+                              ? () async {
+                                  _clearFields();
+                                  await controls.removeCredentials();
+                                }
+                              : null),
+                    ]),
+                    const Divider(height: 40),
+                    if (widget.cacheRowId != null)
+                      Text(
+                          '${l.metadata_gameScope}: ${widget.gameTitle ?? widget.cacheRowId}')
+                    else
+                      DropdownButtonFormField<String>(
+                          key: const ValueKey('metadata-scope'),
+                          initialValue: _scope ?? '',
+                          decoration: InputDecoration(
+                              labelText: l.metadata_systemScope),
+                          items: [
+                            DropdownMenuItem(
+                                value: '', child: Text(l.metadata_fullScope)),
+                            for (final system in {
+                              ...state.systems,
+                              if (_scope != null) _scope!
+                            })
+                              DropdownMenuItem(
+                                  value: system, child: Text(system))
+                          ],
+                          onChanged: enabled
+                              ? (value) => setState(
+                                  () => _scope = value == '' ? null : value)
+                              : null),
+                    const SizedBox(height: 12),
+                    Wrap(spacing: 12, runSpacing: 8, children: [
+                      _button(
+                          l.metadata_refresh,
+                          'metadata-refresh',
+                          enabled
+                              ? () => controls.refresh(
+                                  systemSlug: _scope,
+                                  cacheRowId: widget.cacheRowId)
+                              : null),
+                      _button(
+                          l.metadata_pause,
+                          'metadata-pause',
+                          state.busy && report?.state == 'running'
+                              ? controls.pause
+                              : null),
+                      _button(
+                          l.metadata_resume,
+                          'metadata-resume',
+                          enabled &&
+                                  report != null &&
+                                  report.state != 'completed'
+                              ? controls.resume
+                              : null),
+                      _button(
+                          l.metadata_retryOutcomes,
+                          'metadata-retry',
+                          enabled &&
+                                  report != null &&
+                                  [
+                                    'unmatched',
+                                    'invalidRequest',
+                                    'invalidResponse',
+                                    'unsupportedPlatform',
+                                    'identityChanged'
+                                  ].any((s) => (report.counts[s] ?? 0) > 0)
+                              ? controls.retryUnresolved
+                              : null),
+                    ]),
+                    const SizedBox(height: 12),
+                    _button(
+                        l.metadata_openReview,
+                        'metadata-open-review',
+                        enabled
+                            ? () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => MetadataReviewScreen(
+                                        systemSlug: _scope,
+                                        editionId: widget.editionId,
+                                        cacheRowId: widget.cacheRowId)))
+                            : null),
+                    if (state.busy)
+                      const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: LinearProgressIndicator()),
+                    if (state.error)
+                      Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(l.metadata_controlsError,
+                              style: const TextStyle(color: Colors.amber))),
+                    if (state.error && report == null)
+                      _button(l.common_retry, 'metadata-reload',
+                          enabled ? controls.load : null),
+                    if (report != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                          switch (report.state) {
+                            'completed' => l.metadata_jobCompleted,
+                            'running' => l.metadata_jobRunning,
+                            'queued' => l.metadata_jobQueued,
+                            _ => l.downloadStatus_paused,
+                          },
+                          style: Theme.of(context).textTheme.titleMedium),
+                      _coverage(l, report),
+                      if (report.blockedStatus != null)
+                        Text(switch (report.blockedStatus) {
+                          'setupRequired' ||
+                          'authenticationRequired' ||
+                          'developerAccessRequired' =>
+                            l.metadata_configureAccess,
+                          'quotaExceeded' ||
+                          'throttled' =>
+                            l.metadata_quotaWait,
+                          _ => l.metadata_offlineWait,
+                        }),
+                      if (report.notBefore != null)
+                        Text(report.notBefore!.toLocal().toString()),
+                      Text(l.metadata_completeNote),
+                    ],
+                  ]),
+            )),
           ]),
         )),
-      ]),
-    ))));
+        localFocusScope: true);
   }
 
   Widget _coverage(L l, MetadataRefreshReport report) {
