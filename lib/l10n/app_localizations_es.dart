@@ -1023,6 +1023,30 @@ class LEs extends L {
   String get sources_title => 'FUENTES';
 
   @override
+  String get sources_refreshCatalogue => 'Actualizar catálogo';
+
+  @override
+  String get sources_configureDrive => 'Conectar / configurar';
+
+  @override
+  String get sources_disconnectDrive =>
+      'Desconectar Google Drive (todas las fuentes de Drive)';
+
+  @override
+  String get sources_revokeDrive =>
+      'Revocar acceso a Google Drive (todas las fuentes de Drive)';
+
+  @override
+  String get sources_sourceTypeDriveHint =>
+      'Carpeta privada de solo lectura con autorización nativa de Google';
+
+  @override
+  String get sources_sourceTypeSmbHint => 'Recurso de red de Windows / NAS';
+
+  @override
+  String get sources_sourceTypeFtpHint => 'Servidor FTP/FTPS';
+
+  @override
   String get sources_noSourcesConfigured => 'No hay fuentes configuradas';
 
   @override

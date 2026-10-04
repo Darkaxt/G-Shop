@@ -326,6 +326,13 @@
   "systemDetail_sectionSources": "Quellen",
 
   "sources_title": "QUELLEN",
+  "sources_refreshCatalogue": "Katalog aktualisieren",
+  "sources_configureDrive": "Verbinden / konfigurieren",
+  "sources_disconnectDrive": "Google Drive trennen (alle Drive-Quellen)",
+  "sources_revokeDrive": "Google-Drive-Zugriff widerrufen (alle Drive-Quellen)",
+  "sources_sourceTypeDriveHint": "Privater schreibgeschützter Ordner mit nativer Google-Autorisierung",
+  "sources_sourceTypeSmbHint": "Windows- / NAS-Netzwerkfreigabe",
+  "sources_sourceTypeFtpHint": "FTP-/FTPS-Server",
   "sources_noSourcesConfigured": "Keine Quellen konfiguriert",
   "sources_noSourcesYet": "Noch keine Quellen",
   "sources_noSourcesDescription": "Verbinde einen RomM-Server, um Spiele herunterzuladen. ",

@@ -1024,6 +1024,30 @@ class LFr extends L {
   String get sources_title => 'SOURCES';
 
   @override
+  String get sources_refreshCatalogue => 'Actualiser le catalogue';
+
+  @override
+  String get sources_configureDrive => 'Connecter / configurer';
+
+  @override
+  String get sources_disconnectDrive =>
+      'Déconnecter Google Drive (toutes les sources Drive)';
+
+  @override
+  String get sources_revokeDrive =>
+      'Révoquer l’accès à Google Drive (toutes les sources Drive)';
+
+  @override
+  String get sources_sourceTypeDriveHint =>
+      'Dossier privé en lecture seule avec autorisation native Google';
+
+  @override
+  String get sources_sourceTypeSmbHint => 'Partage réseau Windows / NAS';
+
+  @override
+  String get sources_sourceTypeFtpHint => 'Serveur FTP/FTPS';
+
+  @override
   String get sources_noSourcesConfigured => 'Aucune source configurée';
 
   @override

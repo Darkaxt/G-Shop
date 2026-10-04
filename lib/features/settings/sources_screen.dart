@@ -1135,9 +1135,19 @@ class _SourceActionsOverlay extends ConsumerStatefulWidget {
 }
 
 class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
-  final FocusNode _scopeFocus =
-      FocusNode(debugLabel: 'source_actions_overlay');
+  final FocusNode _scopeFocus = FocusNode(debugLabel: 'source_actions_overlay');
   int _selectedIndex = 0;
+
+  final List<GlobalKey> _actionKeys = List.generate(8, (_) => GlobalKey());
+
+  void _selectIndex(int index) {
+    setState(() => _selectedIndex = index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selected = _actionKeys[_selectedIndex].currentContext;
+      if (selected != null) Scrollable.ensureVisible(selected);
+    });
+  }
 
   /// Build the ordered list of actions for the current source. Re-pair is
   /// only offered for RomM sources because the QR/code flow is RomM-only.
@@ -1160,25 +1170,25 @@ class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
       if (src.type == SourceType.drive)
         _OverlayAction(
           icon: Icons.refresh,
-          label: 'Refresh catalogue',
+          label: l.sources_refreshCatalogue,
           onActivate: widget.onRefreshDrive,
         ),
       if (src.type == SourceType.drive)
         _OverlayAction(
           icon: Icons.settings_outlined,
-          label: 'Connect / configure',
+          label: l.sources_configureDrive,
           onActivate: widget.onConfigureDrive,
         ),
       if (src.type == SourceType.drive)
         _OverlayAction(
           icon: Icons.logout,
-          label: 'Disconnect Google Drive (all Drive sources)',
+          label: l.sources_disconnectDrive,
           onActivate: widget.onDisconnectDrive,
         ),
       if (src.type == SourceType.drive)
         _OverlayAction(
           icon: Icons.link_off,
-          label: 'Revoke Google Drive access (all Drive sources)',
+          label: l.sources_revokeDrive,
           destructive: true,
           onActivate: widget.onRevokeDrive,
         ),
@@ -1216,16 +1226,12 @@ class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
 
     final count = _actions(context).length;
     if (key == LogicalKeyboardKey.arrowUp) {
-      setState(() {
-        _selectedIndex = (_selectedIndex - 1 + count) % count;
-      });
+      _selectIndex((_selectedIndex - 1 + count) % count);
       ref.read(feedbackServiceProvider).tick();
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowDown) {
-      setState(() {
-        _selectedIndex = (_selectedIndex + 1) % count;
-      });
+      _selectIndex((_selectedIndex + 1) % count);
       ref.read(feedbackServiceProvider).tick();
       return KeyEventResult.handled;
     }
@@ -1245,7 +1251,8 @@ class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
     return KeyEventResult.ignored;
   }
 
-  void _activate() {
+  void _activate([int? index]) {
+    if (index != null) _selectIndex(index);
     final action = _actions(context)[_selectedIndex];
     if (action.cancelStyle) {
       ref.read(feedbackServiceProvider).cancel();
@@ -1269,62 +1276,73 @@ class _SourceActionsOverlayState extends ConsumerState<_SourceActionsOverlay> {
         onKeyEvent: _onKeyEvent,
         child: Container(
           color: Colors.black.withValues(alpha: 0.75),
-          child: Center(
-            child: Material(
-              type: MaterialType.transparency,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1C),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        src.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        src.hostLabel,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      for (int i = 0; i < actions.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 8),
-                        _OverlayButton(
-                          icon: actions[i].icon,
-                          label: actions[i].label,
-                          selected: _selectedIndex == i,
-                          destructive: actions[i].destructive,
-                          subdued: actions[i].cancelStyle,
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      const Center(
-                        child: Text(
-                          '↑↓ navigate · [A] select · [B] back',
-                          style: TextStyle(
-                            color: Colors.white30,
-                            fontSize: 10,
-                            letterSpacing: 0.5,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: Material(
+                type: MaterialType.transparency,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1C),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            src.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            src.hostLabel,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          for (int i = 0; i < actions.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            KeyedSubtree(
+                              key: _actionKeys[i],
+                              child: _OverlayButton(
+                                key: ValueKey('source-action-$i'),
+                                icon: actions[i].icon,
+                                label: actions[i].label,
+                                selected: _selectedIndex == i,
+                                destructive: actions[i].destructive,
+                                subdued: actions[i].cancelStyle,
+                                onTap: () => _activate(i),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Text(
+                              '↑↓ ${L.of(context).common_navigate} · [A] ${L.of(context).common_select} · [B] ${L.of(context).common_back}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white30,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1354,9 +1372,11 @@ class _OverlayAction {
 
 class _OverlayButton extends StatelessWidget {
   const _OverlayButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.selected,
+    required this.onTap,
     this.destructive = false,
     this.subdued = false,
   });
@@ -1364,6 +1384,7 @@ class _OverlayButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
+  final VoidCallback onTap;
   final bool destructive;
   final bool subdued;
 
@@ -1374,39 +1395,50 @@ class _OverlayButton extends StatelessWidget {
         : subdued
             ? Colors.white70
             : AppTheme.primaryColor;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: selected ? 0.25 : 0.10),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        canRequestFocus: false,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: selected ? color : color.withValues(alpha: 0.3),
-          width: selected ? 2 : 1,
-        ),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.35),
-                  blurRadius: 12,
-                ),
-              ]
-            : null,
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: selected ? 0.25 : 0.10),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? color : color.withValues(alpha: 0.3),
+              width: selected ? 2 : 1,
             ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                    ),
+                  ]
+                : null,
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1433,50 +1465,64 @@ class _SourceTypePickerOverlay extends ConsumerStatefulWidget {
 
 class _SourceTypePickerOverlayState
     extends ConsumerState<_SourceTypePickerOverlay> {
-  final FocusNode _scopeFocus =
-      FocusNode(debugLabel: 'source_type_picker');
+  final FocusNode _scopeFocus = FocusNode(debugLabel: 'source_type_picker');
   int _selectedIndex = 0;
   List<_TypeOption> _options = const [];
+  final List<GlobalKey> _optionKeys = List.generate(6, (_) => GlobalKey());
+
+  void _selectIndex(int index) {
+    setState(() => _selectedIndex = index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selected = _optionKeys[_selectedIndex].currentContext;
+      if (selected != null) Scrollable.ensureVisible(selected);
+    });
+  }
+
+  void _pick(int index) {
+    ref.read(feedbackServiceProvider).confirm();
+    widget.onPick(_options[index]);
+  }
 
   static List<_TypeOption> _buildOptions(L l) => [
-    _TypeOption(
-      type: SourceType.romm,
-      icon: Icons.qr_code_2,
-      label: l.sources_sourceTypeRomm,
-      hint: l.sources_sourceTypeRommHint,
-    ),
-    _TypeOption(
-      type: SourceType.romm,
-      icon: Icons.password,
-      label: l.sources_sourceTypeRommLegacy,
-      hint: l.onboarding_legacyLoginSubtitle,
-      isLegacy: true,
-    ),
-    _TypeOption(
-      type: SourceType.drive,
-      icon: Icons.add_to_drive,
-      label: 'Google Drive',
-      hint: 'Private read-only folder via native Google authorization',
-    ),
-    _TypeOption(
-      type: SourceType.smb,
-      icon: Icons.folder_shared,
-      label: l.sources_sourceTypeSmb,
-      hint: 'Windows / NAS network share',
-    ),
-    _TypeOption(
-      type: SourceType.ftp,
-      icon: Icons.cloud_queue,
-      label: l.sources_sourceTypeFtp,
-      hint: 'Classic FTP/FTPS host',
-    ),
-    _TypeOption(
-      type: SourceType.web,
-      icon: Icons.public,
-      label: l.sources_sourceTypeWeb,
-      hint: l.sources_sourceTypeWebHint,
-    ),
-  ];
+        _TypeOption(
+          type: SourceType.romm,
+          icon: Icons.qr_code_2,
+          label: l.sources_sourceTypeRomm,
+          hint: l.sources_sourceTypeRommHint,
+        ),
+        _TypeOption(
+          type: SourceType.romm,
+          icon: Icons.password,
+          label: l.sources_sourceTypeRommLegacy,
+          hint: l.onboarding_legacyLoginSubtitle,
+          isLegacy: true,
+        ),
+        _TypeOption(
+          type: SourceType.drive,
+          icon: Icons.add_to_drive,
+          label: 'Google Drive',
+          hint: l.sources_sourceTypeDriveHint,
+        ),
+        _TypeOption(
+          type: SourceType.smb,
+          icon: Icons.folder_shared,
+          label: l.sources_sourceTypeSmb,
+          hint: l.sources_sourceTypeSmbHint,
+        ),
+        _TypeOption(
+          type: SourceType.ftp,
+          icon: Icons.cloud_queue,
+          label: l.sources_sourceTypeFtp,
+          hint: l.sources_sourceTypeFtpHint,
+        ),
+        _TypeOption(
+          type: SourceType.web,
+          icon: Icons.public,
+          label: l.sources_sourceTypeWeb,
+          hint: l.sources_sourceTypeWebHint,
+        ),
+      ];
 
   @override
   void dispose() {
@@ -1490,22 +1536,19 @@ class _SourceTypePickerOverlayState
     }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.arrowUp) {
-      setState(() => _selectedIndex =
-          (_selectedIndex - 1 + _options.length) % _options.length);
+      _selectIndex((_selectedIndex - 1 + _options.length) % _options.length);
       ref.read(feedbackServiceProvider).tick();
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowDown) {
-      setState(() =>
-          _selectedIndex = (_selectedIndex + 1) % _options.length);
+      _selectIndex((_selectedIndex + 1) % _options.length);
       ref.read(feedbackServiceProvider).tick();
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.gameButtonA ||
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.select) {
-      ref.read(feedbackServiceProvider).confirm();
-      widget.onPick(_options[_selectedIndex]);
+      _pick(_selectedIndex);
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.gameButtonB ||
@@ -1532,60 +1575,69 @@ class _SourceTypePickerOverlayState
         onKeyEvent: _onKeyEvent,
         child: Container(
           color: Colors.black.withValues(alpha: 0.78),
-          child: Center(
-            child: Material(
-              type: MaterialType.transparency,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1C),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l.sources_addSource,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l.sources_whereDoGamesComeFrom,
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      for (int i = 0; i < _options.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 8),
-                        _TypeOptionTile(
-                          option: _options[i],
-                          selected: _selectedIndex == i,
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-                      const Center(
-                        child: Text(
-                          '↑↓ navigate · [A] select · [B] back',
-                          style: TextStyle(
-                            color: Colors.white30,
-                            fontSize: 10,
-                            letterSpacing: 0.5,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: Material(
+                type: MaterialType.transparency,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1C),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.sources_addSource,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l.sources_whereDoGamesComeFrom,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          for (int i = 0; i < _options.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            KeyedSubtree(
+                              key: _optionKeys[i],
+                              child: _TypeOptionTile(
+                                key: ValueKey('source-type-$i'),
+                                option: _options[i],
+                                selected: _selectedIndex == i,
+                                onTap: () => _pick(i),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+                          Center(
+                            child: Text(
+                              '↑↓ ${l.common_navigate} · [A] ${l.common_select} · [B] ${l.common_back}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white30,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
                   ),
                 ),
               ),
@@ -1613,56 +1665,73 @@ class _TypeOption {
 }
 
 class _TypeOptionTile extends StatelessWidget {
-  const _TypeOptionTile({required this.option, required this.selected});
+  const _TypeOptionTile(
+      {super.key,
+      required this.option,
+      required this.selected,
+      required this.onTap});
   final _TypeOption option;
   final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = AppTheme.primaryColor;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: selected ? 0.22 : 0.08),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        canRequestFocus: false,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: selected ? color : color.withValues(alpha: 0.3),
-          width: selected ? 2 : 1,
-        ),
-        boxShadow: selected
-            ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 12)]
-            : null,
-      ),
-      child: Row(
-        children: [
-          Icon(option.icon, color: color, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  option.label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  option.hint,
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: selected ? 0.22 : 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? color : color.withValues(alpha: 0.3),
+              width: selected ? 2 : 1,
             ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                        color: color.withValues(alpha: 0.35), blurRadius: 12)
+                  ]
+                : null,
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(option.icon, color: color, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      option.label,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      option.hint,
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

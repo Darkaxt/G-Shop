@@ -326,6 +326,13 @@
   "systemDetail_sectionSources": "Fontes",
 
   "sources_title": "FONTES",
+  "sources_refreshCatalogue": "Atualizar catálogo",
+  "sources_configureDrive": "Ligar / configurar",
+  "sources_disconnectDrive": "Desligar Google Drive (todas as fontes Drive)",
+  "sources_revokeDrive": "Revogar acesso ao Google Drive (todas as fontes Drive)",
+  "sources_sourceTypeDriveHint": "Pasta privada só de leitura com autorização nativa do Google",
+  "sources_sourceTypeSmbHint": "Partilha de rede Windows / NAS",
+  "sources_sourceTypeFtpHint": "Servidor FTP/FTPS",
   "sources_noSourcesConfigured": "Nenhuma fonte configurada",
   "sources_noSourcesYet": "Nenhuma fonte ainda",
   "sources_noSourcesDescription": "Pareie um servidor RomM pra come\u00e7ar a baixar jogos. ",

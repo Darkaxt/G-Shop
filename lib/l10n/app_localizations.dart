@@ -1966,6 +1966,48 @@ abstract class L {
   /// **'SOURCES'**
   String get sources_title;
 
+  /// No description provided for @sources_refreshCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh catalogue'**
+  String get sources_refreshCatalogue;
+
+  /// No description provided for @sources_configureDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect / configure'**
+  String get sources_configureDrive;
+
+  /// No description provided for @sources_disconnectDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect Google Drive (all Drive sources)'**
+  String get sources_disconnectDrive;
+
+  /// No description provided for @sources_revokeDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke Google Drive access (all Drive sources)'**
+  String get sources_revokeDrive;
+
+  /// No description provided for @sources_sourceTypeDriveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Private read-only folder via native Google authorization'**
+  String get sources_sourceTypeDriveHint;
+
+  /// No description provided for @sources_sourceTypeSmbHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows / NAS network share'**
+  String get sources_sourceTypeSmbHint;
+
+  /// No description provided for @sources_sourceTypeFtpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'FTP/FTPS server'**
+  String get sources_sourceTypeFtpHint;
+
   /// No description provided for @sources_noSourcesConfigured.
   ///
   /// In en, this message translates to:

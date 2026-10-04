@@ -1019,6 +1019,30 @@ class LEn extends L {
   String get sources_title => 'SOURCES';
 
   @override
+  String get sources_refreshCatalogue => 'Refresh catalogue';
+
+  @override
+  String get sources_configureDrive => 'Connect / configure';
+
+  @override
+  String get sources_disconnectDrive =>
+      'Disconnect Google Drive (all Drive sources)';
+
+  @override
+  String get sources_revokeDrive =>
+      'Revoke Google Drive access (all Drive sources)';
+
+  @override
+  String get sources_sourceTypeDriveHint =>
+      'Private read-only folder via native Google authorization';
+
+  @override
+  String get sources_sourceTypeSmbHint => 'Windows / NAS network share';
+
+  @override
+  String get sources_sourceTypeFtpHint => 'FTP/FTPS server';
+
+  @override
   String get sources_noSourcesConfigured => 'No sources configured';
 
   @override

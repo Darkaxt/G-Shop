@@ -346,6 +346,13 @@
   "systemDetail_sectionSources": "Sources",
 
   "sources_title": "SOURCES",
+  "sources_refreshCatalogue": "Refresh catalogue",
+  "sources_configureDrive": "Connect / configure",
+  "sources_disconnectDrive": "Disconnect Google Drive (all Drive sources)",
+  "sources_revokeDrive": "Revoke Google Drive access (all Drive sources)",
+  "sources_sourceTypeDriveHint": "Private read-only folder via native Google authorization",
+  "sources_sourceTypeSmbHint": "Windows / NAS network share",
+  "sources_sourceTypeFtpHint": "FTP/FTPS server",
   "sources_noSourcesConfigured": "No sources configured",
   "sources_noSourcesYet": "No sources yet",
   "sources_noSourcesDescription": "Pair a RomM server to start downloading games. ",

@@ -64,6 +64,54 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 Sources touch/controller menus and native proof (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. Focused screen regressions reproduced dead
+  touch actions/type tiles, horizontal overflow of Drive action labels, vertical
+  overflow in a short landscape viewport and off-screen controller selection.
+  The owning menus now use their existing activation callbacks for touch,
+  bounded scrolling, wrapping labels and event-driven selected-row visibility.
+  Overlay keyboard focus and cancel/return behavior remain unchanged; no source,
+  authentication, catalogue or queue lifecycle changes were made.
+- Four Drive action labels and three source-type hints now use the existing
+  localization system in all six supported languages. Navigation hints reuse
+  existing localized strings. Existing tonal/disabled styling is retained.
+- Focused host menu checks and existing Sources screen regressions passed
+  (`427369`); the corrected native-viewport fixture also passed on the host
+  (`7384ee`). Final affected-path analysis passed (`74df8f`) and whitespace checks
+  passed. No broad-suite rerun was required for these isolated menu contracts.
+- The first native attempt failed because the fixture tapped an off-screen row
+  and retained screenshot-conversion state across cases, although Flutter resets
+  that state in each case's teardown. The actual hit-test warning and framework
+  teardown established those causes. Only the fixture changed: scroll before
+  tapping, and convert the screenshot surface in each case.
+- Corrected native driver passed (`1b3d4c`, exit 0). Its inspected report and
+  three screenshots prove normal Sources screen/notifier touch enable/persistence,
+  controller wrap/scroll/cancel and restored card focus, large-text Spanish labels,
+  and source-type controller scrolling plus touch routing. Synthetic config and
+  mocked platform preferences isolate user data; zero HTTP clients were created.
+  This is real-device UI proof, not real provider authorization or scraping.
+- Both required assemblies passed with the shared named gate acquired. Corrected
+  build ticket 24 verified two workers, no parallel projects and a 3,221,225,472-byte
+  Gradle heap. Existing JVM arguments were preserved. In-process Kotlin shares that
+  budget, but its tasks were UP-TO-DATE/NO-SOURCE, not a new compiler measurement.
+  Test configuration retains one 512 MiB fork (not executed by assemble); current
+  generated Ninja rules retain depth-one app compile/link pools per ABI. No memory
+  failure, budget increase or interruption of another build occurred.
+- Corrected fixture SHA-256 was
+  `a9dee873c80f1397b9b1f4bc57904251035024254d385422ac64c9e55f5831fa`;
+  package and signer matched the existing debug application. Restored the exact
+  normal APK, verified its installed hash and all seven protected database/config/
+  preference/secure-storage hashes unchanged, removed only the fixture ADB forward,
+  and confirmed both display controllers OFF. No normal app bootstrap was launched.
+- Transactional cleanup removed only two disposable fixture APK copies, reclaiming
+  359,180,724 bytes with zero errors. They are rebuildable; recovery APK and private
+  reports/screenshots/build evidence remain in `D:/Temp/rshop-s5-native-20261004`.
+- Sources menu touch/controller/localized-action behavior is now verified. UI-01
+  badge/title/localization/resource reconciliation and remaining integrated S5
+  acceptance are still unfinished. S1/B3 and S4/B5 remain BLOCKED; S6-S9 remain
+  NOT STARTED. This checkpoint does not close S5 or the full specification.
+
 ### S5 normal console refresh and v33 migration proof (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. The normal console fixture exposed a real

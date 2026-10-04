@@ -1022,6 +1022,30 @@ class LDe extends L {
   String get sources_title => 'QUELLEN';
 
   @override
+  String get sources_refreshCatalogue => 'Katalog aktualisieren';
+
+  @override
+  String get sources_configureDrive => 'Verbinden / konfigurieren';
+
+  @override
+  String get sources_disconnectDrive =>
+      'Google Drive trennen (alle Drive-Quellen)';
+
+  @override
+  String get sources_revokeDrive =>
+      'Google-Drive-Zugriff widerrufen (alle Drive-Quellen)';
+
+  @override
+  String get sources_sourceTypeDriveHint =>
+      'Privater schreibgeschützter Ordner mit nativer Google-Autorisierung';
+
+  @override
+  String get sources_sourceTypeSmbHint => 'Windows- / NAS-Netzwerkfreigabe';
+
+  @override
+  String get sources_sourceTypeFtpHint => 'FTP-/FTPS-Server';
+
+  @override
   String get sources_noSourcesConfigured => 'Keine Quellen konfiguriert';
 
   @override

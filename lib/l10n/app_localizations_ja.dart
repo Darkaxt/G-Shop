@@ -997,6 +997,27 @@ class LJa extends L {
   String get sources_title => 'ソース';
 
   @override
+  String get sources_refreshCatalogue => 'カタログを更新';
+
+  @override
+  String get sources_configureDrive => '接続 / 設定';
+
+  @override
+  String get sources_disconnectDrive => 'Google Drive を切断（すべての Drive ソース）';
+
+  @override
+  String get sources_revokeDrive => 'Google Drive のアクセス権を取り消す（すべての Drive ソース）';
+
+  @override
+  String get sources_sourceTypeDriveHint => 'Google のネイティブ認証による読み取り専用の非公開フォルダー';
+
+  @override
+  String get sources_sourceTypeSmbHint => 'Windows / NAS のネットワーク共有';
+
+  @override
+  String get sources_sourceTypeFtpHint => 'FTP/FTPS サーバー';
+
+  @override
   String get sources_noSourcesConfigured => 'ソースが設定されていません';
 
   @override

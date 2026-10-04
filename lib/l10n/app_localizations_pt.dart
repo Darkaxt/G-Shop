@@ -1023,6 +1023,30 @@ class LPt extends L {
   String get sources_title => 'FONTES';
 
   @override
+  String get sources_refreshCatalogue => 'Atualizar catálogo';
+
+  @override
+  String get sources_configureDrive => 'Ligar / configurar';
+
+  @override
+  String get sources_disconnectDrive =>
+      'Desligar Google Drive (todas as fontes Drive)';
+
+  @override
+  String get sources_revokeDrive =>
+      'Revogar acesso ao Google Drive (todas as fontes Drive)';
+
+  @override
+  String get sources_sourceTypeDriveHint =>
+      'Pasta privada só de leitura com autorização nativa do Google';
+
+  @override
+  String get sources_sourceTypeSmbHint => 'Partilha de rede Windows / NAS';
+
+  @override
+  String get sources_sourceTypeFtpHint => 'Servidor FTP/FTPS';
+
+  @override
   String get sources_noSourcesConfigured => 'Nenhuma fonte configurada';
 
   @override
