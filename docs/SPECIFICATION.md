@@ -550,6 +550,21 @@ timeouts and provider retry-after delays stay at their transport boundary.
 Bound retries and preserve state when exhausted; no spin on unavailable work.
 Record process/resource evidence for large-catalogue and large-transfer tests.
 
+For remaining Windows verification, the supervising process must acquire
+`Local\Darka.AndroidGradleBuildGate` before checking wrapper clients, Android
+Studio builds, daemon identities, connections and lifecycle logs. Retain it
+through any wait and the Gradle command's confirmed exit. Active or ambiguous
+builds must finish without interruption; neither an abandoned mutex, low CPU nor
+an old log proves completion. The Local mutex covers cooperating launchers in
+the current Windows session, not uncoordinated external launchers.
+Start with two workers, no parallel projects and explicit 3 GB Gradle/separate
+Kotlin heaps, preserving other required JVM arguments. Assess the actual plugin
+versions before using in-process Kotlin; limit test forks and native build jobs.
+Raise only a diagnosed insufficient budget, and record observed effective
+settings, actual gate acquisition and any memory failure with the next required
+focused verification. Do not modify another task's configuration or interrupt
+its build to enforce this constraint.
+
 ### QA-02 — Regression and end-to-end evidence
 
 Cover existing file providers, source merge/configuration, queue persistence,

@@ -25,6 +25,10 @@ source/licensing when that stage starts, not during earlier-stage implementation
 - During implementation, run one test workload at a time. Use bounded fixtures,
   deterministic events/cancellation, and streaming IO. Do not start another test
   process while the previous process is still running.
+- Run Windows Gradle through the installed shared build-gate helper, holding
+  `Local\Darka.AndroidGradleBuildGate` through inspection, waits and command exit.
+  Follow QA-01's two-worker, no-parallel, 3 GB heap and native/test-fork profile;
+  report observed settings and never interrupt another build to acquire the gate.
 - Prefer `D:\Temp` for attributable temporary work; keep permanent source here.
   Remove only task-owned temporary artifacts after verification.
 - Reconcile each implemented stage against the specification and record fresh
