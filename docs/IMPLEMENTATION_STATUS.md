@@ -25,8 +25,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   query, including Android SQLite's reviewed production-policy workflow. The
   earlier unexplained host artwork wait remains required; the requirement-by-
   requirement backend reconciliation is recorded in S4_ACCEPTANCE_RECONCILIATION.md.
-  Unassessed console scopes remain advisory, not silently approved. S5 is the
-  sole ACTIVE stage, using verified provenance/cache/query/setup contracts.
+  Unassessed console scopes remain advisory, not silently approved. S5 is
+  COMPLETE, using verified provenance/cache/query/setup contracts. No stage is
+  currently ACTIVE; S1/B3 and S4/B5 remain parked BLOCKED.
   S6-S9 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
@@ -63,6 +64,77 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S5 closure and compact service-icon proof (2026-10-04)
+
+- S5 COMPLETE: all UI-01/UI-02/UI-03 acceptance criteria are reconciled in
+  S5_ACCEPTANCE_RECONCILIATION.md. Earlier chronological statements below retain
+  their then-current status. S6-S9 remain NOT STARTED; S1/B3 and S4/B5 are not waived.
+- The shared card uses bundled pinned Simple Icons IGDB artwork instead of
+  visible source text, retaining tooltip/accessibility/details provenance and
+  text labels for other providers. No runtime favicon/network requests or score
+  policy changes. Host affected checks/golden comparison passed (`fe6c0b`);
+  scoped analysis passed (`fa0161`).
+- Updated native driver `490d62` passed all normal console/Library/shelf cover
+  replacement and independent filters/unrated paths, plus localized compact/
+  large/source/transfer badge geometry. Inspected report and actual-font native
+  screenshots; zero network sockets, ROM and resolved-cover requests.
+- Gate ticket 43 was acquired; actual Gradle heap 3,221,225,472 bytes, two workers,
+  no parallel projects, required JVM flags retained. Kotlin in-process was
+  configured; compiler tasks UP-TO-DATE/NO-SOURCE. One 512 MiB test fork was
+  configured but not executed by assemble; actual native Ninja pool depth 1.
+  No memory-related failure or budget increase.
+- Normal APK restored to exact SHA-256
+  `daa8b182c8f722f4e3dc75685ee346b8919bfefb1159c62af6cfce3ebdd7ffee`;
+  seven protected data hashes match and both actual display controllers OFF
+  (`0da336`). Removed only this fixture's ADB forward. No release/deployment.
+- Reviewed cleanup transactions `88890acbc26163be92cf9ae8f032e80c` and
+  `e3ac1007bf4e1048ee79c4f4486486ea` are APPLIED, zero errors: removed
+  468,366,709 bytes of rebuildable test APK/assets/cache and 709,508 bytes of
+  disposable public font copies. Source/assets/goldens and private reports,
+  screenshots, logs and normal-APK recovery remain; these deletions are
+  reproducible outputs, not user ROMs or application data.
+
+### S5 shared resolved-cover host proof (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. The focused normal-screen fixture now proves
+  decoded cached artwork replaces Systematic fallback in console, Library and
+  manual shelf callers, with the same title, sourced score and Library/shelf
+  selection. Independent Hack/T-Eng/Dub/Undub/Uncensor any/all controls, genre,
+  empty ranked results and ordinary unrated browsing also pass in that workflow.
+  Host run `1d8518` passed; eight-file scoped analysis `d190a9` found no issues.
+- The earlier fixture mounted filesystem-backed image streams under the host's
+  fake-clock zone. Moving mounting/refresh and actual decode joining into the
+  real-I/O zone corrected the failure without changing production behavior.
+  Theme fonts are loaded from the existing public font cache before isolating
+  cover storage; engine-retained fonts no longer lock copies in fixture cleanup.
+  The fixture rejects HTTP before sockets and seeds only a private test cache.
+- Native acceptance remains unfinished. Gated ticket 33 acquired the mutex,
+  verified two workers/no parallel/3 GB Gradle heap and test configuration of one
+  fork/512 MB, then failed because Flutter resolves its target relative to the
+  repository root, not `android`. No APK was installed and no OOM occurred.
+  The corrected quoted `-Ptarget=integration_test/resolved_cover_test.dart`
+  invocation passed as ticket 35/session 61491 (`875de1`, exit 0). It held the
+  shared gate throughout the confirmed wait and build. Observed two workers,
+  no parallel projects, 3 GB Gradle heap, retained metaspace/code-cache flags,
+  one 512 MiB test-fork configuration and app Ninja pool depth 1. Kotlin used
+  in-process mode; compiler tasks were UP-TO-DATE/NO-SOURCE. No OOM occurred.
+  The original quoted-path correction separately avoids PowerShell splitting.
+  Normal APK recovery and seven protected device-file hashes were reverified;
+  the fixture then passed native driver `022c2e` with decoded cached pixels in
+  all three normal callers and independent controls/unrated paths. Inspected
+  seven screenshots and the native report: zero sockets/ROM/cover-URL requests.
+  Exact normal APK and all seven protected file hashes were restored unchanged;
+  only its ADB forward was removed and both display controllers report OFF.
+  Reviewed cleanup removed three failed
+  fixture directories (1,799,787 bytes), retaining logs, normal recovery and the
+  reusable host-font cache. No S6-S9 implementation has started.
+
+- The user's subsequent compact-source request remains S5 work: replace visible
+  IGDB badge text with a bundled, pinned service icon while retaining full
+  semantics/tooltip/details and other providers' labels. Specification and plan
+  record the authorized change. Icon decoding, layout and updated native proof
+  remain required; S5 is still ACTIVE, not prematurely closed.
 
 ### S5 normal game-details native proof and acceptance audit (2026-10-04)
 
@@ -1521,10 +1593,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
 | S4 | BLOCKED | Backend requirement reconciliation in S4_ACCEPTANCE_RECONCILIATION.md; fresh jobs/review/retry, exact raw/project/release ownership, independent tags, native query/artwork resources, real reception assessment and integrated production community policy verified; both VM-enabled and VM-disabled 30,000-item observed host workflows completed with offline reopen/replay | B5: original live async/FFI wait state was not captured before process stop; no available repeat reproduces it. Needs a recurrence with exact runtime state or additional original diagnostics, then cause/fix verification. No original fix is claimed. B4 resolved; no more IGDB credential renewal. Unassessed scopes remain advisory. S4/final closure stays blocked, not deferred |
-| S5 | ACTIVE | Normal native shared-card layout/overlays/media, console/Library/shelf filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | Native resolved-cover replacement and final independent-control/unrated UI audit remain ordinary unfinished S5 work; no stage closure claimed |
+| S5 | COMPLETE | Normal native shared-card layout/overlays/media and pinned IGDB service icon, decoded cached cover replacement in console/Library/shelf, independent tags/unrated paths, filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | None for UI-01/UI-02/UI-03; S9 owns the expressly named final complete cartridge/legacy-platform asset coverage |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
+| S9 | NOT STARTED | User complete physical-media coverage choice recorded in revision 5 | ART-01: complete cartridge/legacy-media asset matrix and native cover-state audit; final integrated reconciliation |
 
 B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This
@@ -1532,8 +1605,8 @@ does not satisfy the remaining DRIVE-01 auth lifecycle acceptance. B2 blocked ME
 authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
-reclassified as a deferral. S1 is parked at B3; S4 is parked at B5; S5 is the sole
-ACTIVE stage. Earlier chronological checkpoints retain their then-current state.
+reclassified as a deferral. S1 is parked at B3; S4 is parked at B5; S5 is COMPLETE.
+No stage is currently ACTIVE. Earlier chronological checkpoints retain their then-current state.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. The remaining S1 auth lifecycle
 criteria remain required and prevent final feature completion.

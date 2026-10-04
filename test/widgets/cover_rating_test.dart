@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:retro_eshop/models/download_item.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/ra_models.dart';
@@ -9,13 +10,18 @@ import 'package:retro_eshop/widgets/base_game_card.dart';
 import '../helpers/pump_helpers.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 
-EffectiveOverallRating score({bool stale = false, bool original = false}) {
+EffectiveOverallRating score(
+    {bool stale = false,
+    bool original = false,
+    String sourceId = 'igdb',
+    String sourceLabel = 'IGDB users',
+    RatingKind kind = RatingKind.communityAggregate}) {
   final game = GameIdentity(
       id: 'game',
       platformId: 'psx',
       title: 'Test',
       matchStatus: IdentityMatchStatus.manuallyMatched,
-      providerIds: {'igdb': '123'});
+      providerIds: {sourceId: '123'});
   final edition = EditionIdentity(
       id: 'edition',
       gameId: game.id,
@@ -25,13 +31,13 @@ EffectiveOverallRating score({bool stale = false, bool original = false}) {
       game: game,
       edition: edition,
       assessedBases: productionOverallScoreBases,
-      staleProviderIds: stale ? {'igdb'} : {},
+      staleProviderIds: stale ? {sourceId} : {},
       records: [
         MetadataRecord(
             gameId: game.id,
             editionId: edition.id,
             platformId: 'psx',
-            providerId: 'igdb',
+            providerId: sourceId,
             providerGameId: '123',
             retrievedAt: at,
             refreshGeneration: 1,
@@ -41,14 +47,14 @@ EffectiveOverallRating score({bool stale = false, bool original = false}) {
             ],
             ratings: [
               SourcedRating.parse(
-                  sourceId: 'igdb',
-                  sourceLabel: 'IGDB users',
+                  sourceId: sourceId,
+                  sourceLabel: sourceLabel,
                   providerGameId: '123',
                   rawValue: 90,
                   scaleMinimum: 0,
                   scaleMaximum: 100,
                   voteCount: 100,
-                  kind: RatingKind.communityAggregate,
+                  kind: kind,
                   retrievedAt: at)!
             ])
       ])!;
@@ -93,7 +99,8 @@ void main() {
       'source-labelled score is optional; stale and original are explicit',
       (tester) async {
     await tester.pumpWidget(card(score()));
-    expect(find.text('IGDB users 90/100'), findsOneWidget);
+    expect(find.text('90/100'), findsOneWidget);
+    expect(find.byKey(const ValueKey('rating-source-igdb')), findsOneWidget);
     final semantics = tester.ensureSemantics();
     expect(
         find.bySemanticsLabel(
@@ -104,9 +111,35 @@ void main() {
     expect(find.textContaining('Stale score'), findsOneWidget);
     expect(find.textContaining('Original game'), findsOneWidget);
     await tester.pumpWidget(card(score(), enabled: false));
-    expect(find.text('IGDB users 90/100'), findsNothing);
+    expect(find.text('90/100'), findsNothing);
+    expect(find.byKey(const ValueKey('rating-source-igdb')), findsNothing);
     await tester.pumpWidget(card(null));
     expect(find.textContaining('/100'), findsNothing);
+  });
+
+  testWidgets('service icon replaces only its own source text offline',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(card(score()));
+    await tester.pumpAndSettle();
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(find.byKey(const ValueKey('rating-source-igdb')), findsOneWidget);
+    expect(find.text('90/100'), findsOneWidget);
+    expect(find.textContaining('IGDB'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp(r'IGDB users.*100 ratings')),
+        findsOneWidget);
+    expect(tester.widget<Tooltip>(find.byType(Tooltip).first).message,
+        contains('IGDB users'));
+    semantics.dispose();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(card(score(
+        sourceId: 'screenscraper',
+        sourceLabel: 'ScreenScraper',
+        kind: RatingKind.unknownAggregate)));
+    await tester.pumpAndSettle();
+    expect(find.byType(SvgPicture), findsNothing);
+    expect(find.text('ScreenScraper 90/100'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   for (final compact in [true, false]) {

@@ -39,6 +39,10 @@ void main() {
         }
         await tester.pump();
         await binding.takeScreenshot(name);
+        if (name.startsWith('library-independent-tags') ||
+            name.startsWith('library-unrated-')) {
+          binding.reportData![name] = true;
+        }
         if (name == 'library-restored-filters') {
           // Existing cover fallbacks are distinct from metadata/ROM requests.
           expect(offline.attempts.every((uri) => uri.path.endsWith('.png')),

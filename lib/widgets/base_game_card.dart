@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../core/responsive/responsive.dart';
 import '../core/util/color_contrast.dart';
 import '../l10n/app_localizations.dart';
@@ -470,15 +471,36 @@ class _CoverRating extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                    '${source.sourceLabel} ${_number(source.normalizedValue)}/100',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: isSmall ? 7 : 9,
-                        height: isSmall ? 1 : null,
-                        fontWeight: FontWeight.w700,
-                        color: color)),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (source.sourceId == 'igdb') ...[
+                    // The upstream square canvas contains a wide wordmark.
+                    // Crop only its transparent vertical margin in layout so
+                    // the icon does not increase the caption's line height.
+                    ClipRect(
+                        child: Align(
+                            widthFactor: 1,
+                            heightFactor: 0.5,
+                            child: SvgPicture.asset(
+                                'assets/rating_sources/igdb.svg',
+                                key: const ValueKey('rating-source-igdb'),
+                                width: isSmall ? 14 : 18,
+                                height: isSmall ? 14 : 18,
+                                excludeFromSemantics: true,
+                                colorFilter:
+                                    ColorFilter.mode(color, BlendMode.srcIn)))),
+                    const SizedBox(width: 3),
+                  ],
+                  Flexible(
+                      child: Text(
+                          '${source.sourceId == 'igdb' ? '' : '${source.sourceLabel} '}${_number(source.normalizedValue)}/100',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: isSmall ? 7 : 9,
+                              height: isSmall ? 1 : null,
+                              fontWeight: FontWeight.w700,
+                              color: color))),
+                ]),
                 if (states.isNotEmpty)
                   Text(states.join(' · '),
                       maxLines: isSmall ? 1 : 2,

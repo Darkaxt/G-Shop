@@ -439,6 +439,13 @@ platform/favorite/achievement badges and download progress. No badge for unknown
 or untrusted matches; stale and original-game scores must not look current or
 hack-specific. Allow rating overlays to be disabled.
 
+Compact source presentation authorized on 2026-10-04: use the bundled IGDB
+service icon instead of the visible IGDB text in cover badges to reduce their
+width. Preserve the full source name, score basis and provenance in semantics,
+tooltip and details, and retain source text for providers without an approved
+icon. Never fetch service icons while rendering cards. Verify offline decoding,
+compact/large layout and unchanged score, stale/original/project distinctions.
+
 Scope addition authorized on 2026-10-04: never leave a blank black cover square
 while artwork is unresolved. Use bundled, consistently styled raster artwork
 representing the original platform's physical media (cartridge, game card,

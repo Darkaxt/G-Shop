@@ -16,6 +16,10 @@ Future<void> main() =>
         'layout-library-manual-shelf',
         'layout-library-explicit-rating-order',
         'layout-library-restored-filters',
+        'layout-library-independent-tags-any',
+        'layout-library-independent-tags-all',
+        'layout-library-unrated-top-empty',
+        'layout-library-unrated-browsable',
       };
       if (!names.contains(name)) return false;
       final root = Directory('D:/Temp/rshop-s5-native-20261004');

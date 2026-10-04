@@ -96,7 +96,13 @@ void defineLibraryDiscoveryChecks({
       }));
       await store.putEdition(EditionIdentity.fromJson({
         ...edition.toJson(),
-        'tags': [i == 1 || i == 12 ? 'Hack' : 'official']
+        'tags': i == 1
+            ? ['Hack', 'T-Eng', 'Uncensor']
+            : i == 2
+                ? ['Dub']
+                : i == 3
+                    ? ['Undub']
+                    : [i == 12 ? 'Hack' : 'official']
       }));
       await store.putMetadata(MetadataRecord(
           gameId: game.id,
@@ -106,6 +112,8 @@ void defineLibraryDiscoveryChecks({
           providerGameId: '$i',
           retrievedAt: at,
           refreshGeneration: 1,
+          // Hack projects have their own score. Dub/Undub use the explicitly
+          // labelled original-game score, not an official-release tag.
           matchMethod: i == 1 || i == 12
               ? 'verifiedProjectId'
               : 'verifiedProviderIdGlobalGame',
@@ -185,6 +193,11 @@ void defineLibraryDiscoveryChecks({
     }
 
     Future<void> expectCards(List<String> expected) async {
+      if (expected.isEmpty) {
+        expect(find.text('No games match these filters'), findsOneWidget);
+        expect(find.byType(BaseGameCard), findsNothing);
+        return;
+      }
       // A real handheld lazily mounts only visible/cache-extent children.
       // Check the actual grid membership and traverse its real scroll positions,
       // rather than treating the currently mounted widgets as the whole result.
@@ -204,8 +217,14 @@ void defineLibraryDiscoveryChecks({
         for (final title in cards()) {
           if (!seen.contains(title)) seen.add(title);
         }
-        expect(find.byKey(const ValueKey('cover-rating')),
-            findsNWidgets(cards().length));
+        for (final element in find.byType(BaseGameCard).evaluate()) {
+          final card = element.widget as BaseGameCard;
+          expect(
+              find.descendant(
+                  of: find.byWidget(card),
+                  matching: find.byKey(const ValueKey('cover-rating'))),
+              card.overallRating == null ? findsNothing : findsOneWidget);
+        }
         expect(find.byType(MediaCoverFallback), findsNWidgets(cards().length),
             reason:
                 'Offline Library and shelf cards retain physical-media art');
@@ -256,6 +275,26 @@ void defineLibraryDiscoveryChecks({
     await expectCards(firstGames(10));
     await tapFilter('discovery-tag-Hack');
     await expectCards(['Game 01']);
+    for (final tag in ['T-Eng', 'Dub', 'Undub', 'Uncensor']) {
+      await tapFilter('discovery-tag-$tag');
+    }
+    await expectCards(['Game 01', 'Game 02', 'Game 03']);
+    // Query facets are canonical lowercase values; UI keys retain that value.
+    await tapFilter('discovery-genre-action');
+    await expectCards(['Game 01', 'Game 02', 'Game 03']);
+    await checkpoint?.call('library-independent-tags-any', tester);
+    await tapFilter('discovery-match');
+    await expectCards([]);
+    for (final tag in ['Dub', 'Undub']) {
+      await tapFilter('discovery-tag-$tag');
+    }
+    await expectCards(['Game 01']);
+    await checkpoint?.call('library-independent-tags-all', tester);
+    for (final tag in ['T-Eng', 'Uncensor']) {
+      await tapFilter('discovery-tag-$tag');
+    }
+    await tapFilter('discovery-match');
+    await tapFilter('discovery-genre-action');
     expect(jsonDecode(storage.getFilters('library:all')!)['top'], 10);
     final original = (await store.metadata(editions[1]!, 'igdb'))!;
     await store.putMetadata(MetadataRecord.fromJson({
@@ -314,6 +353,33 @@ void defineLibraryDiscoveryChecks({
     await tester.pumpAndSettle();
     await expectCards(['Game 01']);
     await checkpoint?.call('library-restored-filters', tester);
+    await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
+    await tester.pumpAndSettle();
+    // Unrated catalogue members stay browsable but never acquire a fabricated
+    // overlay/rank, even when a sparse Top has room for them.
+    final last = (await store.metadata(editions[12]!, 'igdb'))!;
+    await store.putMetadata(MetadataRecord.fromJson(
+        {...last.toJson(), 'refreshGeneration': 4, 'ratings': <Object>[]}));
+    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.pumpAndSettle();
+    await expectCards(firstGames(12));
+    await tapFilter('discovery-top-25');
+    await expectCards(firstGames(11));
+    for (var i = 1; i <= 11; i++) {
+      final record = (await store.metadata(editions[i]!, 'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson(
+          {...record.toJson(), 'refreshGeneration': 4, 'ratings': <Object>[]}));
+    }
+    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.pumpAndSettle();
+    await expectCards([]);
+    await checkpoint?.call('library-unrated-top-empty', tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
+    await tester.pumpAndSettle();
+    await expectCards(firstGames(12));
+    await checkpoint?.call('library-unrated-browsable', tester);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

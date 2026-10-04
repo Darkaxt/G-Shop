@@ -526,7 +526,10 @@ Depends on: S4 provenance/cache and S1/S2 setup states.
   calls per frame or a library-only implementation.
 - Add optional source-labelled overlays, stale/base-game labeling and accessible
   details/correction/refresh controls in existing screens.
-- **S5-FORMAT-FALLBACK (UI-01, required, verification in progress):** replace blank
+- Replace visible IGDB source text in cover badges with a bundled service icon;
+  retain full source semantics/tooltip/details and text for other providers.
+  Verify offline decoding and compact/large badge geometry before S5 closure.
+- **S5-FORMAT-FALLBACK (UI-01, required, verified):** replace blank
   unresolved covers with bundled stylized physical-media raster assets. Inspect
   licensed artwork first, then use the image-generation tool for one consistent
   family if a complete coherent family cannot be sourced. Do not hand-generate

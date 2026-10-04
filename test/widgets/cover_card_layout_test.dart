@@ -115,6 +115,12 @@ void defineCoverCardLayoutChecks({
         greaterThanOrEqualTo(firstLineHeight),
         reason: 'The title must paint a full first line, not merely exist');
     final rating = tester.getRect(find.byKey(const ValueKey('cover-rating')));
+    expect(find.byKey(const ValueKey('rating-source-igdb')), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('cover-rating')),
+            matching: find.textContaining('IGDB')),
+        findsNothing);
     final trophy =
         tester.getRect(find.byKey(const ValueKey('achievement-badge')));
     // The borrowed primary dot's nearest Row is the complete capped dot group.
