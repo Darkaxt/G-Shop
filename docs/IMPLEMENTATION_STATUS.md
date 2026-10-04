@@ -64,6 +64,43 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 normal game-details native proof and acceptance audit (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. The normal dark-theme game detail screen,
+  exact cached edition/provider and common Game Info path passed on Android
+  SQLite (`5ef060`, exit 0). Inspected report and four actual-font screenshots
+  show the same IGDB community score, raw scale/vote count/source/date, independent
+  tags, pending/error/retry and exact-game refresh completion/Back. Existing ROM
+  actions remain independent; no real accounts or ROM operations were involved.
+- The first native fixture (`9fd5bc`, exit 1) reached every screenshot but inspected
+  a null job report after prematurely pausing immediately after a tap. The corrected
+  fixture settles the visible scroll, asserts the enabled button actually starts
+  its owning job and joins the controller's durable completed-job event. No
+  production timeout, delay, retry or refresh change was introduced.
+- Host routing checks also exposed a distinct fixture cadence issue: Start
+  events were 139/124 ms apart, below the existing 150 ms real-time input debounce.
+  Host-only routing checks isolate that cooldown; native proof retains the actual
+  production debouncer. This does not diagnose or close S4/B5's original wait.
+  Affected host checks passed (`8d1be3`); three-file analysis passed (`93d4a9`).
+- Corrected assembly (`34d5ed`, exit 0) held shared gate ticket 28; observed two
+  workers, no parallel projects and 3,221,225,472-byte Gradle maximum heap with
+  other flags preserved. Kotlin was in-process, with relevant tasks UP-TO-DATE/
+  NO-SOURCE; no fresh Kotlin compiler-memory claim. Test configuration remains
+  one 512 MiB fork; assemble did not execute it. Current app Ninja pools have
+  depth 1. No memory failure or budget increase occurred.
+- Corrected fixture SHA-256:
+  `ee185f654d318831acbc9d2ddf8fbbe9671df75a9f48b63bab7f84c0c8ed5001`.
+  Exact normal APK/signature was restored; installed SHA-256 and all seven
+  protected DB/preferences/credential/config fingerprints match. Removed only
+  its ADB forward; both actual display controllers report OFF. No release.
+- Cleanup `bd271a3b949586153eabec6839a70dfd` is APPLIED: 467,054,804 bytes reclaimed,
+  zero failures, only reviewed rebuildable test APKs/assets/cache. Normal recovery
+  APK, source/goldens and private diagnostic reports/screenshots/logs are retained.
+- Current requirement-by-requirement state is consolidated in
+  [S5_ACCEPTANCE_RECONCILIATION.md](S5_ACCEPTANCE_RECONCILIATION.md). Native resolved
+  cover replacement and the final independent-control/unrated UI audit remain
+  ordinary unfinished S5 work. S1/B3 and S4/B5 remain BLOCKED; S6-S9 NOT STARTED.
+
 ### S5 shared-card layout and native proof (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. Regression checks reproduced independent
@@ -1484,7 +1521,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
 | S4 | BLOCKED | Backend requirement reconciliation in S4_ACCEPTANCE_RECONCILIATION.md; fresh jobs/review/retry, exact raw/project/release ownership, independent tags, native query/artwork resources, real reception assessment and integrated production community policy verified; both VM-enabled and VM-disabled 30,000-item observed host workflows completed with offline reopen/replay | B5: original live async/FFI wait state was not captured before process stop; no available repeat reproduces it. Needs a recurrence with exact runtime state or additional original diagnostics, then cause/fix verification. No original fix is claimed. B4 resolved; no more IGDB credential renewal. Unassessed scopes remain advisory. S4/final closure stays blocked, not deferred |
-| S5 | ACTIVE | Verified S4 provenance/cache/query and S1/S2 setup contracts available; normal shared-card/view integration is the current implementation work | UI-01, UI-02, UI-03: real overlays, unified discovery filters, setup/refresh/details and controller/device proof still required |
+| S5 | ACTIVE | Normal native shared-card layout/overlays/media, console/Library/shelf filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | Native resolved-cover replacement and final independent-control/unrated UI audit remain ordinary unfinished S5 work; no stage closure claimed |
 | S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |

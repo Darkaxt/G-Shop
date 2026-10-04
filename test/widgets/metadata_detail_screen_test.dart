@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/game_detail/game_detail_screen.dart';
+import 'package:retro_eshop/core/theme/app_theme.dart';
+import 'package:retro_eshop/l10n/app_localizations.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/game_metadata_info.dart';
@@ -24,7 +26,7 @@ import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/storage_service.dart';
-import '../helpers/pump_helpers.dart';
+import 'package:retro_eshop/services/input_debouncer.dart';
 import '../metadata_controls_test.dart' show MemorySecrets, ControlsProvider;
 
 class _Database extends DatabaseService {
@@ -45,22 +47,43 @@ class _Database extends DatabaseService {
   }
 }
 
-void main() {
+/// Host frames run faster than a human's input cadence. The owning debounce
+/// uses real DateTime (not Flutter's fake clock); this fixture checks routing,
+/// not that independent cooldown contract. Native proof retains real debounce.
+class _HostInput extends InputDebouncer {
+  @override
+  bool canPerformAction() => true;
+}
+
+void main() => defineMetadataDetailScreenChecks();
+
+/// The normal detail screen/provider/cache path, reused with Android SQLite.
+/// No production bootstrap, credentials, provider account or ROM is involved.
+void defineMetadataDetailScreenChecks({
+  DatabaseFactory? factory,
+  bool native = false,
+  Future<void> Function(String name, WidgetTester tester)? checkpoint,
+}) {
   for (final size in [
-    const Size(1920, 1080),
-    const Size(1280, 720),
-    const Size(720, 1280)
+    if (native) null,
+    if (!native) ...[
+      const Size(1920, 1080),
+      const Size(1280, 720),
+      const Size(720, 1280)
+    ],
   ]) {
     testWidgets(
         'normal details show exact cached score and retry a failed read ($size)',
         (tester) async {
-      tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      sqfliteFfiInit();
-      final db =
-          await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+      if (size != null) {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+      }
+      if (factory == null) sqfliteFfiInit();
+      final db = await (factory ?? databaseFactoryFfiNoIsolate)
+          .openDatabase(inMemoryDatabasePath);
       addTearDown(db.close);
       await LibrarySchema.install(db);
       await MetadataRefreshJobs.install(db);
@@ -131,12 +154,19 @@ void main() {
       await storage.init();
       final database = _Database(db);
       final secrets = MemorySecrets();
-      final controls = MetadataControlsController(database: Future.value(db),
-          providers: {'screenscraper': ControlsProvider(), 'igdb': ControlsProvider('igdb')},
-          screenScraperCredentials: ScreenScraperCredentialStore(storage: secrets),
-          igdbCredentials: IgdbCredentialStore(storage: secrets), catalogueChanged: () {});
+      final controls = MetadataControlsController(
+          database: Future.value(db),
+          providers: {
+            'screenscraper': ControlsProvider(),
+            'igdb': ControlsProvider('igdb')
+          },
+          screenScraperCredentials:
+              ScreenScraperCredentialStore(storage: secrets),
+          igdbCredentials: IgdbCredentialStore(storage: secrets),
+          catalogueChanged: () {});
       await controls.load();
       final container = ProviderContainer(overrides: [
+        if (!native) inputDebouncerProvider.overrideWith((_) => _HostInput()),
         libraryDbProvider.overrideWithValue(database),
         storageServiceProvider.overrideWithValue(storage),
         bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
@@ -149,18 +179,42 @@ void main() {
           url: 'https://example.invalid/game');
       await tester.pumpWidget(UncontrolledProviderScope(
           container: container,
-          child: createTestApp(GameDetailScreen(
-              game: game,
-              variants: [game],
-              system:
-                  SystemModel.supportedSystems.firstWhere((s) => s.id == 'psx'),
-              targetFolder: 'D:/Temp/rshop-no-installed-ROM'))));
+          child: MaterialApp(
+              theme: AppTheme.darkTheme,
+              localizationsDelegates: L.localizationsDelegates,
+              supportedLocales: L.supportedLocales,
+              home: Scaffold(
+                  body: GameDetailScreen(
+                      game: game,
+                      variants: [game],
+                      system: SystemModel.supportedSystems
+                          .firstWhere((s) => s.id == 'psx'),
+                      targetFolder: native
+                          ? '/data/local/tmp/rshop-no-installed-ROM'
+                          : 'D:/Temp/rshop-no-installed-ROM')))));
+      final cachedMetadata = gameMetadataProvider(
+          (filename: game.selectionKey, systemSlug: 'psx'));
+      Future<void> finishCacheRead({bool failed = false}) async {
+        // Native SQLite completes outside Flutter's fake clock. Join the actual
+        // provider operation rather than using frame settling as an IO signal.
+        if (native) {
+          final operation = container.read(cachedMetadata.future);
+          if (failed) {
+            await expectLater(operation, throwsStateError);
+          } else {
+            await operation;
+          }
+        }
+        await tester.pumpAndSettle();
+      }
+
       await tester.pump();
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       database.ready.complete();
-      await tester.pumpAndSettle();
+      await finishCacheRead();
       expect(find.textContaining('IGDB users 89/100'), findsOneWidget);
       expect(find.textContaining('Avg Rating'), findsNothing);
+      await checkpoint?.call('detail-cached-score', tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonStart);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Game Info'));
@@ -169,33 +223,54 @@ void main() {
       expect(find.textContaining('100'), findsWidgets);
       expect(find.textContaining('igdb #1'), findsOneWidget);
       expect(find.text('Official releases'), findsOneWidget);
+      await checkpoint?.call('detail-score-provenance', tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       database.fail = true;
       container.read(gameDbChangedProvider.notifier).state++;
-      await tester.pumpAndSettle();
+      await finishCacheRead(failed: true);
       expect(
           find.text(
               'Cached metadata is unavailable. ROM actions remain available.'),
           findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
+      await checkpoint?.call('detail-cache-error', tester);
       database.fail = false;
       await tester.tap(find.text('Retry'));
-      await tester.pumpAndSettle();
+      await finishCacheRead();
       expect(find.textContaining('IGDB users 89/100'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonStart);
       await tester.pumpAndSettle();
+      expect(find.text('Game metadata'), findsOneWidget,
+          reason: 'Retry -> Start must open metadata actions; '
+              'focus=${FocusManager.instance.primaryFocus}, '
+              'priority=${container.read(overlayPriorityProvider)}');
       await tester.tap(find.text('Game metadata'));
       await tester.pumpAndSettle();
       expect(find.text('Selected game: Game'), findsOneWidget);
       expect(find.byKey(const ValueKey('metadata-scope')), findsNothing);
+      await checkpoint?.call('detail-exact-game-controls', tester);
       final refresh = find.byKey(const ValueKey('metadata-refresh'));
       await tester.ensureVisible(refresh);
-      await tester.tap(refresh);
-      // Keep these controller futures in the zone that owns the fixture DB.
-      await controls.pause();
-      if (controls.state.report!.state != 'completed') {
-        await controls.resume();
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(refresh).onPressed, isNotNull);
+      final completed = Completer<void>();
+      final removeListener = controls.addListener((state) {
+        if (!state.busy &&
+            state.report?.state == 'completed' &&
+            !completed.isCompleted) {
+          completed.complete();
+        }
+      });
+      try {
+        // Wait for the actual durable job transition. Pausing immediately after
+        // a tap changes the workflow and frame settling does not join SQLite IO.
+        await tester.tap(refresh);
+        expect(controls.state.busy, isTrue,
+            reason: 'The visible refresh button must start the owning job');
+        await completed.future;
+      } finally {
+        removeListener();
       }
       await tester.pumpAndSettle();
       expect(controls.state.report!.counts, {'unmatched': 1});
