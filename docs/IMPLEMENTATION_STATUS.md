@@ -64,6 +64,58 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 upstream media-theme selection (2026-10-04)
+
+- User requested an existing RetroArch asset family instead of generated artwork,
+  clarified `-content` (media, not console/controller icons), and delegated theme
+  selection. Selected **Systematic's colored media PNGs**, pinned to
+  `b177f250e42948708e753d30809bd4dd9c0a2cdc`; S5 remains sole ACTIVE.
+- Compared N64 media PNGs from Systematic, RetroActive, NeoActive, FlatUI,
+  RetroSystem, Daite, Pixel and Dot-art against the current dark card golden.
+  Systematic supplies recognizable flat shapes with a contrast border, without
+  RetroSystem's label branding or Pixel/Dot-art's deliberately pixelated style.
+  Its N64 PNG and RetroActive's are byte-identical (SHA-256
+  `7a2e544d09506c500c18cdd01674816afca2382da8fc4442c9efb882ebdc92a3`).
+- Complete, untruncated directory trees at that revision contain 242 Systematic
+  `-content` entries versus 198 RetroActive, 177 NeoActive and 56 FlatUI entries.
+  These counts inform source selection, not product progress or proof of complete
+  R-Shop platform coverage. Visually inspected Systematic's N64 cartridge, DS
+  card, PlayStation disc, PSP UMD, C64 cassette and generic content icon too.
+- Upstream Systematic/RetroActive documentation establishes the intended flat
+  style and contrast border; root COPYING supplies CC BY 4.0. Asset provenance,
+  attribution, source subset replacement, refreshed goldens and app/device proof
+  remain required. The generated-asset checkpoint below is historical, not
+  verification of the newly selected upstream artwork. S9 is NOT STARTED.
+
+### S5 bundled-media host verification (2026-10-04)
+
+- S5 remains the sole ACTIVE stage. The shared card/detail cover now uses bundled
+  generated raster media artwork during loading and missing/error/offline states;
+  explicit caller fallbacks are preserved. Library/shelf and console callers pass
+  canonical platform IDs. Original media is never inferred from provider names
+  or archive suffixes. The distinct N64 shape is integrated; final per-console
+  cartridge and legacy-format visual completeness remains ART-01/S9 work.
+- The inspected generated family and exact prompts are recorded in
+  `assets/media_fallbacks/PROVENANCE.md`. Runtime fallback decoding is capped at
+  256 pixels wide with shared image-cache keys, not full 1280-pixel decodes per
+  card. Host checks verify every supported system has an explicit mapping and
+  every mapped PNG is decodable, nonempty and transparent.
+- Focused host verification (`82490`, terminal exit 0) verifies immediate
+  suppression/error media art, caller override preservation, a decoded real
+  cached cover replacing the fallback with zero network requests, compact/large
+  rating goldens without update mode, and the normal Library/shelf offline media
+  art alongside rank-before-filter, scope, recomputation, focus and persistence.
+  Cache-fixture filesystem work must start and complete in the real IO zone;
+  the first new check's fake-time/IO wait was stopped before another run, with
+  process exit confirmed. This was a fixture correction, not a production change.
+- Scoped analysis (`78179`) reports only two pre-existing `cacheExtent`
+  deprecation notices in the Library/console grids, confirmed in HEAD; no new
+  diagnostics. Native assembly (`76906`, ticket 4) completed with exit 0 and
+  BUILD SUCCESSFUL. Its inputs still contain the generated artwork; do not
+  install it as proof of the newly selected Systematic asset set. Native proof,
+  per-console callers and remaining S5 badge,
+  localization, independent-tag and resource acceptance are not yet satisfied.
+
 ### S9 visual-coverage scope addition (2026-10-04)
 
 - Revision 5 adds ART-01 and final S9 at the user's request: audit every supported

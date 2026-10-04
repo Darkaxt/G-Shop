@@ -38,6 +38,13 @@ User decisions incorporated:
 
 - Google Drive and metadata expansion are the two features.
 - Per-ROM dual-display companion launching is the additional S8 feature.
+- Physical-media fallback selection (2026-10-04): use Systematic's colored
+  `-content.png` raster icons from libretro/retroarch-assets, pinned to
+  `b177f250e42948708e753d30809bd4dd9c0a2cdc`. Only game-media icons are selected,
+  not console/controller icons or the theme's fonts/backgrounds/UI styling.
+  Retain required source/creator attribution and the upstream CC BY 4.0 notice.
+  Keep the existing S5 verification gates and final S9 coverage audit; selecting
+  a theme is not evidence that its app integration or complete mapping passes.
 - Use the supplied standard ScreenScraper account; do not require the user to
   obtain a developer account. Verify actual provider access rather than assuming
   missing developer fields alone prove that access is blocked.

@@ -526,7 +526,7 @@ Depends on: S4 provenance/cache and S1/S2 setup states.
   calls per frame or a library-only implementation.
 - Add optional source-labelled overlays, stale/base-game labeling and accessible
   details/correction/refresh controls in existing screens.
-- **S5-FORMAT-FALLBACK (UI-01, required, not yet implemented):** replace blank
+- **S5-FORMAT-FALLBACK (UI-01, required, verification in progress):** replace blank
   unresolved covers with bundled stylized physical-media raster assets. Inspect
   licensed artwork first, then use the image-generation tool for one consistent
   family if a complete coherent family cannot be sourced. Do not hand-generate
@@ -536,10 +536,14 @@ Depends on: S4 provenance/cache and S1/S2 setup states.
   unavailable covers, and let a valid cover replace it. Verify offline behavior,
   mappings, compact/large grids, all badge/title/focus states and shared Library/
   console/shelf device behavior without extra network requests.
-  Research references: [Delapouite's optical-disc PNG](https://game-icons.net/1x1/delapouite/compact-disc.html)
-  (CC BY 3.0) and [existing cartridge artwork](https://www.flaticon.com/free-icon/game-cartridge_1985846)
-  (attribution required). These are references, not a selected matching family;
-  complete format coverage/style and redistribution terms must be verified.
+  Selected family (2026-10-04): colored **Systematic `-content.png`** media icons
+  from [libretro/retroarch-assets](https://github.com/libretro/retroarch-assets/tree/b177f250e42948708e753d30809bd4dd9c0a2cdc/xmb/systematic/png),
+  pinned to `b177f250e42948708e753d30809bd4dd9c0a2cdc`. Bundle only the required
+  unchanged raster subset, with source/creator attribution and the upstream
+  CC BY 4.0 notice. Do not use console/controller icons or import the theme's UI.
+  Replace the generated app asset copies, inspect compact/large cards and rerun
+  affected cover-state/offline checks before claiming the replacement verified.
+  Complete per-platform cartridge/legacy-format coverage remains required in S9.
 - Match review uses bounded cache-only pages of the newest outcome per exact
   edition/provider, including remaining outcomes from earlier full jobs after a
   one-game retry. Show the original platform/release context, candidate identity
