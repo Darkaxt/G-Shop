@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 3.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 4.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S8
@@ -524,6 +524,20 @@ Depends on: S4 provenance/cache and S1/S2 setup states.
   calls per frame or a library-only implementation.
 - Add optional source-labelled overlays, stale/base-game labeling and accessible
   details/correction/refresh controls in existing screens.
+- **S5-FORMAT-FALLBACK (UI-01, required, not yet implemented):** replace blank
+  unresolved covers with bundled stylized physical-media raster assets. Inspect
+  licensed artwork first, then use the image-generation tool for one consistent
+  family if a complete coherent family cannot be sourced. Do not hand-generate
+  SVG/Canvas/code illustrations. Map known platform/media families explicitly;
+  never infer the physical format from `.7z`, ZIP, CHD or the source provider.
+  Keep a neutral fallback for unknown media, render immediately for loading and
+  unavailable covers, and let a valid cover replace it. Verify offline behavior,
+  mappings, compact/large grids, all badge/title/focus states and shared Library/
+  console/shelf device behavior without extra network requests.
+  Research references: [Delapouite's optical-disc PNG](https://game-icons.net/1x1/delapouite/compact-disc.html)
+  (CC BY 3.0) and [existing cartridge artwork](https://www.flaticon.com/free-icon/game-cartridge_1985846)
+  (attribution required). These are references, not a selected matching family;
+  complete format coverage/style and redistribution terms must be verified.
 - Match review uses bounded cache-only pages of the newest outcome per exact
   edition/provider, including remaining outcomes from earlier full jobs after a
   one-game retry. Show the original platform/release context, candidate identity
@@ -605,7 +619,7 @@ Depends on: S1-S7 acceptance and the established ordinary emulator handoff.
   activation without false paired-launch success or duplicate launches.
 - Prove two independently linked ROMs and actual top/bottom placement with
   controller/touch on the Thor, then switch both displays off.
-- Reconcile the entire revision-3 specification, including S7 migration and S8,
+- Reconcile the entire revision-4 specification, including S7 migration and S8,
   resolve all required gaps, verify and commit. Publication remains separate.
 
 Evidence: persistence/identity and native launch contract tests, Cocoon source and

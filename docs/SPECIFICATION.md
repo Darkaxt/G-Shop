@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion and per-ROM companions
 
-Authoritative specification, revision 3, 2026-10-02.
+Authoritative specification, revision 4, 2026-10-04.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -426,9 +426,31 @@ platform/favorite/achievement badges and download progress. No badge for unknown
 or untrusted matches; stale and original-game scores must not look current or
 hack-specific. Allow rating overlays to be disabled.
 
+Scope addition authorized on 2026-10-04: never leave a blank black cover square
+while artwork is unresolved. Use bundled, consistently styled raster artwork
+representing the original platform's physical media (cartridge, game card,
+optical disc, UMD or another supported format) immediately during loading and
+when artwork is missing, failed or unavailable offline. Use explicit supported
+platform/media mappings, not the download provider or archive/container suffix:
+a CHD or ZIP is not the original physical format. Prefer exact known media;
+where a platform supports multiple formats and no release evidence identifies
+one, use its generic media-family illustration, not a fabricated exact edition.
+Unsupported/unknown mappings receive a consistent neutral game-media fallback.
+
+Select one coherent licensed raster asset family, recording source/license and
+required attribution; if existing artwork cannot cover the formats consistently,
+use the image-generation tool with one shared style/reference. Do not draw or
+generate the artwork manually with SVG, Canvas, code or similar mechanisms.
+Preserve titles, focus, platform/favorite/achievement/rating/progress badges and
+existing cover aspect ratios. A valid resolved cover replaces the fallback;
+fallback selection must not initiate scraping, artwork or ROM network requests.
+
 Acceptance: widget/golden tests for compact and large grids, selected/unselected
 cards, missing covers, all existing badge combinations, long titles, stale scores
-and unrated games; controller and touch proof on target device.
+and unrated games; controller and touch proof on target device. Also verify
+physical-media mappings, immediate loading/missing/error/offline fallback,
+replacement by a resolved cover, and no extra requests or badge/title collisions
+in the shared Library, console and shelf card callers on the Thor.
 
 ### UI-02 — Metadata controls and details
 

@@ -64,6 +64,44 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Repository baseline
 
+### S5 normal Library native-verification checkpoint (2026-10-04)
+
+- The user added required task S5-FORMAT-FALLBACK under UI-01. Specification
+  revision 4 and the S5 plan now require a consistent physical-media raster
+  fallback while covers load or remain unavailable; no hand-generated SVG/code
+  illustrations. Online disc/cartridge sources are recorded as research, not an
+  adopted asset set. The task has not been implemented or verified. It remains
+  ordinary unfinished S5 work, not a later-stage deferral or an additional stage.
+- S5 is still ACTIVE. The existing normal Library assertion sequence is now
+  reusable with Android SQLite and the device's real display metrics, rather
+  than a replacement grid. Host verification (`72272`, exit 0) covers cached
+  overlays, controller Best 10, sparse Best 25, one cross-console cap, scope
+  changes, tag intersection without backfill, score-change recomputation,
+  manual shelf order, identity-preserving explicit rating sort and restored
+  filters. These assertions do not yet cover every independent tag combination,
+  per-console UI, localization, badge combination or scrolling-resource gate.
+- The native entrypoint uses only an in-memory synthetic catalogue, mock settings
+  and a network boundary rejecting requests before opening sockets. It does not
+  bootstrap normal user sources, accounts or ROM operations. Four checkpoints
+  capture the actual normal Library; screenshots/report are verification evidence,
+  not feature acceptance until the device run passes and is inspected.
+- Scoped entrypoint/driver/shared-check analysis (`94116`, exit 0) passed after
+  correcting two SDK API assumptions from the installed source. The required
+  native assembly (`89890`, exit 0) subsequently acquired the shared gate and
+  completed in 1m with two workers, parallelism off and a 3 GB Gradle heap. No
+  memory failure was reported. Kotlin compilation was up-to-date; test-fork
+  markers establish configuration, not test execution. App native depth-one pools
+  remain in place, not a verified universal native-job or host-memory cap.
+- Actual Thor run of APK SHA-256
+  `B9F7A1504A02E87B394A6400990A2F9B6F57B462A612D6E803E8F19F1E505A32`
+  failed at the fixture's first membership assertion: it counted mounted widgets
+  as the entire result, but the actual-density lazy grid mounted 8 of 12 cards.
+  Production was not changed. The fixture now checks the real grid item count and
+  scrolls actual positions to inspect every rendered card/overlay in order;
+  focused host verification (`45168`, exit 0) passed. Corrected native proof is
+  still required. Normal APK restoration (`47710`, exit 0) verified its original
+  digest and all seven protected fingerprints; both displays are OFF/asleep.
+
 ### S5 cached candidate review and shared Windows build gate (2026-10-04)
 
 - S5 remains the sole ACTIVE stage. Normal metadata settings and the exact
