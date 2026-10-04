@@ -1,13 +1,15 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 4.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 5.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S8
+Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S9
 without new routine approval gates. Provider account setup is new; fixtures do
 not replace the required live evidence. The user selected Top 25 per console as
 the final offline sample; S7 applies the reviewed, cloud-verified migration.
 S8 was added by the user on 2026-10-02; it must not open a second active stage.
+S9 was added on 2026-10-04 as the final cartridge/legacy-media visual audit;
+its status is NOT STARTED. It does not open another implementation front in S5.
 
 ## S0 — Fork and specification preparation
 
@@ -560,7 +562,7 @@ order. No burnt-in artwork or metadata-only ROM fetches.
 ## S6 — Final reconciliation and remediation
 
 Requirements: QA-01, QA-02, QA-04; integrated recheck of S1-S6 requirements,
-with final QA-04 reconciliation repeated after S7 and S8.
+with final QA-04 reconciliation repeated after S7, S8 and S9.
 Depends on: S1-S5, including all required live acceptance evidence.
 
 - Re-read the full specification, not just this plan. Resolve every required
@@ -573,8 +575,8 @@ Depends on: S1-S5, including all required live acceptance evidence.
   authorized outcome; do not auto-publish an APK at each stage.
 
 Evidence: requirement-by-requirement pass/fail for feature stages S1-S6 with
-commands, fixture identifiers, source commit and device/build identity. S7
-and S8 are still required before overall completion. Public evidence must not contain
+commands, fixture identifiers, source commit and device/build identity. S7,
+S8 and S9 are still required before overall completion. Public evidence must not contain
 private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
@@ -598,7 +600,7 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
 Evidence: bounded migration fault/restart/identity-change tests, private live
 manifest, fresh metadata coverage, Top-25 retention audit, before/after space,
-actual recovery proof and no unresolved S1-S7 blockers/deferrals. S8 remains
+actual recovery proof and no unresolved S1-S7 blockers/deferrals. S8 and S9 remain
 required before overall completion.
 
 ## S8 — Per-ROM dual-display companion launching
@@ -619,13 +621,38 @@ Depends on: S1-S7 acceptance and the established ordinary emulator handoff.
   activation without false paired-launch success or duplicate launches.
 - Prove two independently linked ROMs and actual top/bottom placement with
   controller/touch on the Thor, then switch both displays off.
-- Reconcile the entire revision-4 specification, including S7 migration and S8,
-  resolve all required gaps, verify and commit. Publication remains separate.
+- Reconcile the revision-5 requirements delivered through S8, including S7
+  migration. ART-01 belongs to the final S9; no S8 criterion is waived. Verify
+  and commit completed scope. Publication remains separate.
 
 Evidence: persistence/identity and native launch contract tests, Cocoon source and
 license review, actual Thor display-placement/controller proof, failure-path and
 ordinary-launch regression evidence, save/settings preservation and final
-S1-S8 reconciliation with zero unresolved required blockers/deferrals.
+S1-S8 reconciliation with zero unresolved required blockers/deferrals for those
+stages. Overall completion still requires S9.
+
+## S9 — Final cartridge and legacy-media visual coverage
+
+Status: NOT STARTED.
+Requirements: ART-01; recheck UI-01 and QA-04.
+Depends on: S1-S8 acceptance. This is the last stage, not a second ACTIVE stage.
+
+- Inventory the then-supported cartridge consoles and their actual physical
+  shapes, plus older game cards, floppy sizes/types and cassette formats.
+  Create the evidence-backed platform/format/asset matrix; shared correct shapes
+  need not be duplicated per console. Unknown/mixed releases stay honest.
+- Review every mapped asset for recognizability and consistency. Generate/source
+  additional raster artwork only for observed gaps, using the existing style
+  anchor and recording provenance. No manually generated SVG/Canvas/code art.
+- Verify bundling/decoding/mappings and the normal compact/large cover states,
+  cover replacement and badges/focus on the Thor; preserve settings/ROMs and
+  switch both displays off after testing.
+- Resolve every ART-01 gap, reconcile all S1-S9 requirements, perform applicable
+  final verification and commit. No publication is implied.
+
+Evidence: complete format/asset matrix, zero unfilled supported cartridge or
+legacy-format gaps, asset provenance, inspected renders and native behavior,
+full-spec reconciliation with zero unresolved required blockers/deferrals.
 
 ## Source extension map (baseline, not implemented classes)
 
@@ -708,3 +735,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | QA-04 | S6 | Full-spec reconciliation; no unresolved required gaps |
 | MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |
 | COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |
+| ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |

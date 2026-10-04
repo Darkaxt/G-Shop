@@ -27,7 +27,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   requirement backend reconciliation is recorded in S4_ACCEPTANCE_RECONCILIATION.md.
   Unassessed console scopes remain advisory, not silently approved. S5 is the
   sole ACTIVE stage, using verified provenance/cache/query/setup contracts.
-  S6-S8 NOT STARTED; no parallel ACTIVE stage is opened.
+  S6-S9 NOT STARTED; no parallel ACTIVE stage is opened.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; ScreenScraper developer credentials are stored in the ignored local
@@ -63,6 +63,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
 ## Repository baseline
+
+### S9 visual-coverage scope addition (2026-10-04)
+
+- Revision 5 adds ART-01 and final S9 at the user's request: audit every supported
+  cartridge console and the older card/floppy/cassette formats, then fill actual
+  visual gaps using the same raster family. S9 is NOT STARTED, not an ACTIVE
+  stage or an excuse to defer existing S5 acceptance. S5 remains sole ACTIVE.
+- The user explicitly allows new shapes to be generated as needed; no full
+  console-art catalogue is being generated during S5. A distinct N64 silhouette
+  is being integrated in the current fallback task after its mapping assertion
+  reproduced the generic-cartridge mismatch.
+- S9 requires the complete format/asset matrix, recognizable accurate shapes,
+  provenance, bundled checks and Thor compact/large cover-state proof. Overall
+  completion still requires ART-01 and final S1-S9 reconciliation.
 
 ### S5 normal Library native-verification checkpoint (2026-10-04)
 

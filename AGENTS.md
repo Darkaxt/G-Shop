@@ -6,6 +6,8 @@ metadata-backed filters.
 An additional authorized S8 adds per-ROM companion launching: emulator/ROM on
 the Thor's top display, linked installed Android app on the bottom. Review Cocoon
 source/licensing when that stage starts, not during earlier-stage implementation.
+Final S9 audits supported cartridge and legacy-media artwork coverage. It must
+not open a second ACTIVE stage or trigger speculative console-art generation.
 
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.

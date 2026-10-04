@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion and per-ROM companions
 
-Authoritative specification, revision 4, 2026-10-04.
+Authoritative specification, revision 5, 2026-10-04.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -27,6 +27,12 @@ Scope extension authorized on 2026-10-02: add S8 for per-ROM companion launching
 on the Thor, with the ROM/emulator on the top display and its linked Android
 application on the bottom display. Review Cocoon Launcher's source and reuse
 terms when S8 starts; do not begin that implementation during earlier stages.
+
+Scope extension authorized on 2026-10-04: add a final S9 visual-coverage audit
+for every supported cartridge console and older floppy/tape/card formats. It is
+not a prerequisite for earlier functional stages. Generate additional accurate
+physical-media shapes as needed, using the established raster style, rather than
+preemptively generating a complete console-art catalogue during S5.
 
 User decisions incorporated:
 
@@ -559,8 +565,34 @@ controller/touch proof; actual Thor ROM on top plus linked APK on bottom;
 independent associations for two ROMs; repeated launch, missing app, launch
 rejection and unavailable-display coverage; ordinary launch without a companion;
 save/settings preservation and both displays switched off after live testing.
-Reconcile all S1-S8 requirements before overall completion. S8 being planned is
+Reconcile all S1-S9 requirements before overall completion. S8 being planned is
 not implementation or acceptance evidence.
+
+## 6c. Final original-media visual audit (S9)
+
+### ART-01 — Complete supported physical-format coverage
+
+After S8, audit the current supported-platform list against bundled fallback
+artwork. Every cartridge-based console must resolve to a recognizable,
+physically appropriate cartridge shape; consoles sharing that shape may share
+an asset. Do not represent N64 with the generic handheld cartridge. Inspect the
+older game-card, floppy and cassette families too, including materially distinct
+disk formats where supported. Record the original formats and their evidence;
+archive/container suffixes do not establish an original release medium.
+
+Keep the same visual family. Source or generate missing raster shapes only when
+the audit identifies a real supported-format gap; no hand-generated SVG/Canvas
+illustrations. Preserve S5's immediate loading/error/offline fallback, valid-cover
+replacement, badges/focus and bounded decode behavior. Mixed/unknown release
+formats retain honest generic/neutral fallbacks rather than fabricated claims.
+
+Acceptance: a complete platform-to-original-format-to-asset matrix for the then
+supported systems, no unresolved cartridge or legacy-format gaps, provenance for
+added assets, decoded/bundled/mapping checks and visual review of compact/large
+cards on the Thor. Recheck cover replacement and badge/focus preservation, switch
+both displays off, and reconcile the full specification before final completion.
+S9 is required at final closure, but does not retroactively block earlier stages
+or permit their existing acceptance criteria to be weakened.
 
 ## 7. Quality and delivery requirements
 
