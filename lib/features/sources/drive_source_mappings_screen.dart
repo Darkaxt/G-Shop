@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -184,42 +185,134 @@ class _DriveSourceMappingsScreenState
         .where((system) => system.id == systemId)
         .firstOrNull;
     final selected = _selectedBySystem[systemId];
-    final selectedIsObserved = folders.any((folder) => folder.id == selected);
+    final selectedFolder =
+        folders.where((folder) => folder.id == selected).firstOrNull;
+    final selectedIsObserved = selectedFolder != null;
     final selectedIsPersisted =
         selected != null && _persistedBySystem[systemId] == selected;
-    final validSelected =
-        selectedIsObserved || selectedIsPersisted ? selected : null;
+    final label = selectedIsObserved
+        ? '${selectedFolder.name} · ${_shortId(selectedFolder.id)}'
+        : selectedIsPersisted
+            ? 'Previously mapped · ${_shortId(selected)}'
+            : 'Not mapped';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<String?>(
-        initialValue: validSelected,
-        dropdownColor: const Color(0xFF252525),
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          labelText: supported?.name ?? fallbackName,
-          labelStyle: const TextStyle(color: Colors.white70),
-        ),
-        items: [
-          const DropdownMenuItem<String?>(
-            value: null,
-            child: Text('Not mapped'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(supported?.name ?? fallbackName,
+              style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 6),
+          OutlinedButton(
+            onPressed: _busy || _folders == null
+                ? null
+                : () =>
+                    _chooseFolder(systemId, supported?.name ?? fallbackName),
+            style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+            child: Row(children: [
+              Expanded(
+                  child: Text(label,
+                      maxLines: 1, overflow: TextOverflow.ellipsis)),
+              const Icon(Icons.arrow_drop_down),
+            ]),
           ),
-          if (selectedIsPersisted && !selectedIsObserved)
-            DropdownMenuItem<String?>(
-              value: selected,
-              child: Text('Previously mapped · ${_shortId(selected)}'),
-            ),
-          for (final folder in folders)
-            DropdownMenuItem<String?>(
-              value: folder.id,
-              child: Text('${folder.name} · ${_shortId(folder.id)}'),
-            ),
         ],
-        onChanged: _busy
-            ? null
-            : (value) => setState(() => _selectedBySystem[systemId] = value),
       ),
     );
+  }
+
+  Future<void> _chooseFolder(String systemId, String name) async {
+    final folders = _folders;
+    if (folders == null || _busy) return;
+    final selected = _selectedBySystem[systemId];
+    final options = <({String? id, String label})>[
+      (id: null, label: 'Not mapped'),
+      if (selected != null &&
+          _persistedBySystem[systemId] == selected &&
+          !folders.any((folder) => folder.id == selected))
+        (id: selected, label: 'Previously mapped · ${_shortId(selected)}'),
+      for (final folder in folders)
+        (id: folder.id, label: '${folder.name} · ${_shortId(folder.id)}'),
+    ];
+    var query = '';
+    // One selector owns one lazy option list. Closed console rows never build
+    // or lay out the entire source's folder options in hidden dropdown stacks.
+    final choice = await showDialog<({String? id})>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(builder: (context, update) {
+        final filtered = options
+            .where((option) => option.label.toLowerCase().contains(query))
+            .toList();
+        return Shortcuts(
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.gameButtonB,
+                includeRepeats: false): DismissIntent(),
+          },
+          child: Focus(
+            autofocus: true,
+            child: AlertDialog(
+              backgroundColor: const Color(0xFF252525),
+              title: Text('Choose folder · $name',
+                  style: const TextStyle(color: Colors.white)),
+              content: SizedBox(
+                width: 720,
+                height: 400,
+                child: Column(children: [
+                  Shortcuts(
+                    // The application's I shortcut opens Library search. While
+                    // typing here, leave that key to the platform text input.
+                    shortcuts: const {
+                      SingleActivator(LogicalKeyboardKey.keyI):
+                          DoNothingAndStopPropagationIntent(),
+                    },
+                    child: TextField(
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                          hintText: 'Search folders',
+                          hintStyle: TextStyle(color: Colors.white60),
+                          prefixIcon:
+                              Icon(Icons.search, color: Colors.white60)),
+                      onChanged: (value) =>
+                          update(() => query = value.toLowerCase()),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final option = filtered[index];
+                        return ListTile(
+                          selected: option.id == selected,
+                          textColor: Colors.white,
+                          selectedColor: Colors.white,
+                          title: Text(option.label,
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          onTap: () =>
+                              Navigator.of(dialogContext).pop((id: option.id)),
+                        );
+                      },
+                    ),
+                  ),
+                ]),
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.white))),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+    if (!mounted || choice == null || _busy) return;
+    setState(() => _selectedBySystem[systemId] = choice.id);
   }
 
   Widget _unsupportedExistingRow(String systemId, String name) {

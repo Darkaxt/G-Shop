@@ -31,8 +31,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   unresolved outcomes and a normal reviewed recheck. This is not yet whole-SD
   coverage. A third PSP-only source completed its read-only catalogue traversal
   and normal mapping; the Library now opens with 585 artifacts after a 1919 ms
-  cold launch. Existing sources/systems/targets stayed unchanged; the new PSP
-  internal default is not yet an SD migration destination. Exact reviewed
+  cold launch. The earlier source addition preserved existing settings; subsequent
+  normal configuration now saves PSP and Game Gear's actual SD restore folders,
+  with only the two target fields changed. This does not adopt existing files.
+  Exact reviewed
   migration, eligible membership and remaining console mappings are unfinished;
   no ROM removal has begun. See S7_ACCEPTANCE_RECONCILIATION.md.
   PSP's normal ScreenScraper pass now also completed with 269 explicit unresolved
@@ -45,6 +47,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   The first native attempt exposed Android SQLite's missing JSON1 extension;
   the exact encoded source/account lookup now uses core SQLite and the corrected
   normal refresh starts successfully. No later stage has been opened.
+  PSP's IGDB Fresh pass also completed with explicit unresolved outcomes; two
+  normal reviewed rechecks preserved the unrated PSP port and advisory ten-vote
+  score distinctions. The private PSP audit finished with 169 cached size/digest
+  matches; none authorizes removal. PS1's first catalogue generation published
+  5,162 observations, including 1,336 folders. Its normal PS1-only mapping and
+  SD restore destination are now saved; no fresh PS1 scrape is yet claimed.
+  A reproduced mapping-screen overflow/ANR was traced to repeated all-folder
+  dropdowns and corrected with one searchable, lazy picker. The same native
+  source now scrolls, clears the unrelated PSP suggestion and saves normally.
+  The Library exposes 904 remote artifacts and 524 additional local rows;
+  these are not reviewed canonical games or managed installations.
+  These observations do not close S7's whole-collection, retention
+  or recovery criteria. See S7_ACCEPTANCE_RECONCILIATION.md for the boundaries.
 - B7's alternative owner-directed reconstruction is verified and its operational
   blocker resolved. The seven historically lost private files are not recovered,
   and the failed preservation attempt is not retroactively passed. Normal APK
@@ -62,7 +77,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   Gradle 3 GiB, assessed Kotlin in-process sharing that heap; configured tests one
   fork/512 MiB (not executed), app native pools one. Full plugin native concurrency
   is not claimed measured. No memory failure or budget increase occurred.
-- Owner normal S6 APK `d9563f4` remains installed; cold offline launch reached
+- Historical owner normal S6 APK `d9563f4` cold offline launch reached
   the Library in 2350 ms. All 37 inspected private files retained hashes before
   launch; the separately read app_flutter configuration exactly matched its
   pre-update source/mapping/target object. No uninstall or secret re-entry occurred.
@@ -73,6 +88,17 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   or external release has occurred. The overall plan remains incomplete: S7-S9
   must still satisfy their own criteria. The reported logo hang was not reproduced;
   no historical root cause or speculative startup fix is claimed.
+- The current normal mapper-fix APK is installed in place with the same package
+  and signer. The final cold launch took 2635 ms and controller navigation opened
+  the 1,428-row Library. The first in-place update preserved 37 inspected private
+  file hashes; the final update preserved all 29 files in its own pre-update
+  inspection and the separately checked configuration before first launch.
+  Tickets 148, 149 and 151 held the shared Gradle gate through exit zero with observed workers
+  2, parallel false and Gradle 3 GiB; assessed Kotlin 2.2.20 ran in-process in
+  that heap. Test forks were configured one/512 MiB but not executed; app native
+  pools were one and unchanged plugin native tasks were up-to-date. No memory
+  failure or budget increase occurred. Detailed scope and evidence are in S7's
+  reconciliation; this does not claim the earlier intermittent logo issue fixed.
 
 ### Historical checkpoints
 
