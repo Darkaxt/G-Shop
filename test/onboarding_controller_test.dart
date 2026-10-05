@@ -1,11 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/features/onboarding/onboarding_controller.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
+import 'package:retro_eshop/models/config/drive_source_config.dart';
+import 'package:retro_eshop/models/config/source.dart';
 import 'package:retro_eshop/models/config/system_config.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/config_storage_service.dart';
 import 'package:retro_eshop/services/romm_api_service.dart';
+import 'package:retro_eshop/services/sources_notifier.dart';
 
 /// Fake ConfigStorageService that records exportConfig calls without I/O.
 class FakeConfigStorageService extends ConfigStorageService {
@@ -61,6 +67,52 @@ const _testPlatformSnes = RommPlatform(
 );
 
 void main() {
+  test('manual onboarding retains committed mapping after stale view snapshot',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('rshop_onboarding_mapping_');
+    addTearDown(() => directory.delete(recursive: true));
+    final storage =
+        ConfigStorageService(directoryProvider: () async => directory);
+    final initial = AppConfig(systems: [_systemConfig('gc')]);
+    await storage.saveConfig(jsonEncode(initial.toJson()));
+    final controller = OnboardingController(storage)..loadFromConfig(initial);
+    addTearDown(controller.dispose);
+    final sources = SourcesNotifier(storage);
+    addTearDown(sources.dispose);
+    await sources.ready;
+    const source = Source(
+        id: 'drive-mapping',
+        name: 'Drive',
+        type: SourceType.drive,
+        drive: DriveSourceConfig(
+            accountId: 'account',
+            rootFolderId: 'root-folder',
+            serverClientId: 'client'));
+    await sources.addSource(source);
+    await sources.setMappingsForSource(
+        source.id, const {'gamegear': 'observed-folder'},
+        targetBasePath: '/roms');
+    final committed = (await storage.loadConfig())!.systemById('gamegear')!;
+    expect(committed.providers.single.type, ProviderType.drive);
+
+    // The mapping editor invalidates its async config before returning. A
+    // transient view snapshot contains no IDs; committed storage still owns
+    // the exact console, target, provider and folder mapping.
+    await controller.completeFromManualSource(
+        sourceId: source.id, mappedSystemIds: const [], basePath: '/roms');
+    expect(controller.state.configuredSystems['gamegear'], isNotNull);
+    expect(controller.state.configuredSystems['gamegear']!.toJson(),
+        committed.toJson());
+    final finalConfig = await controller.buildFinalConfig();
+    expect(finalConfig.systemById('gamegear')!.toJson(), committed.toJson());
+    expect(finalConfig.systemById('gc')!.toJson(), initial.systems.single.toJson());
+    expect(finalConfig.sources.single.id, source.id);
+    await storage.saveConfig(jsonEncode(finalConfig.toJson()));
+    expect((await storage.loadConfig())!.systemById('gamegear')!.toJson(),
+        committed.toJson());
+  });
+
   // =========================================================================
   // 1. Initial State
   // =========================================================================

@@ -11,7 +11,13 @@ abstract interface class MetadataSecretStorage {
 class FlutterMetadataSecretStorage implements MetadataSecretStorage {
   final FlutterSecureStorage _storage;
   FlutterMetadataSecretStorage({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              // Startup's StorageService migrates this same namespace to
+              // encrypted preferences. Mixing Android modes makes subsequent
+              // default-mode reads return null after that migration.
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            );
   @override
   Future<String?> read(String key) => _storage.read(key: key);
   @override

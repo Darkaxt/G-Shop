@@ -105,17 +105,24 @@ class OnboardingController extends StateNotifier<OnboardingState> {
 
   /// Welcome chooser → "Add server" path. The source + mappings have
   /// already been persisted by [ManualSourceAddScreen]/[SourceMappingsScreen]
-  /// via SourcesNotifier. We only need to create matching SystemConfigs
-  /// for the systems the user mapped, so the home screen knows about
-  /// them. The actual provider list will be filled in by the next
-  /// SourcesNotifier rebuild — we don't need to set it here.
+  /// via SourcesNotifier. Load that committed configuration rather than
+  /// completing from an invalidated view snapshot: final onboarding must
+  /// retain its mappings, providers and existing console settings.
   Future<void> completeFromManualSource({
     required String sourceId,
     required Iterable<String> mappedSystemIds,
     String? basePath,
   }) async {
     final base = basePath ?? _welcomeChooserDefaultBase;
-    final updated = Map<String, SystemConfig>.from(state.configuredSystems);
+    final committed = await _configStorage.loadConfig();
+    if (committed == null ||
+        !committed.sources.any((source) => source.id == sourceId)) {
+      throw StateError('Manual source configuration has not been committed');
+    }
+    final updated = <String, SystemConfig>{
+      ...state.configuredSystems,
+      for (final system in committed.systems) system.id: system,
+    };
     for (final systemId in mappedSystemIds) {
       if (updated.containsKey(systemId)) continue;
       final model = SystemModel.supportedSystems
