@@ -80,3 +80,38 @@ above are ordinary unfinished work, not grounds to open S8.
   policy change or public release has occurred. Full metadata coverage, candidate
   review, trusted Top-25 retention and the strict migration manifest/journal
   remain required work in this ACTIVE stage.
+
+## Subsequent S7 execution — 2026-10-05
+
+- Normal per-console ScreenScraper job 13 completed the PSP-only 269-artifact
+  generation: 269 requested, 144 needing review, 35 ambiguous, 90 unmatched,
+  zero matched/rated, failed/unsupported or pending. Its follow-on artwork job
+  14 completed with zero requests. No duplicate metadata worker was launched;
+  the confirmed live owner and the same job were observed through completion.
+- Created the bounded read-only audit command in `scripts/`. The focused
+  contracts exercised changed files, duplicate candidates, missing identity/
+  version/digest, path boundaries and cached-match non-authorization. The first
+  live read exposed an extra adb exec-out quoting layer; it was reproduced,
+  corrected and verified before journaling. No source/app state was repaired.
+- Its private exclusive-create Game Gear journal contains 369 exact SD file
+  observations: 180 cached Drive size/MD5 matches (35,066,195 bytes), two size
+  mismatches (330,866 bytes), 184 ZIPs without cloud candidates (32,458,894 bytes),
+  and three preserved non-ROM files. Every disposition is preserve and every
+  removal authorization is false. An independent streaming reader reconciled
+  the terminal summary against all records. The updated bounded adb reader also
+  passed a live stable-file/checksum comparison without any ROM body transfer.
+  This journal is a required private review artifact outside Git, not evidence
+  of live cloud revalidation, ranking, restoration or migration completion.
+- Found the next internal classification gap: all 269 PSP lookup requests had
+  empty content tags, including the 96 artifacts under the explicit T-En source
+  bucket (94 CHDs and two archives). `LibraryStore.catalogueEditions` creates
+  editions without carrying catalogue classification evidence. S7 must resolve
+  this provenance gap while preserving manual corrections and uncertain
+  classifications; it must not infer translation from official English or
+  promote a guessed provider match. This remains ordinary current-stage work,
+  not an external blocker or a deferral to S8.
+- Final idle app database quick_check passed; all metadata jobs and the single
+  transfer were completed. Both physical displays were verified OFF and the
+  exact expendable UI dump was removed. The private journal remains available
+  for the required migration review. No Gradle command, SD removal, app-data
+  clearing or external publication occurred.

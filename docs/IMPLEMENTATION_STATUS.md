@@ -35,6 +35,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   internal default is not yet an SD migration destination. Exact reviewed
   migration, eligible membership and remaining console mappings are unfinished;
   no ROM removal has begun. See S7_ACCEPTANCE_RECONCILIATION.md.
+  PSP's normal ScreenScraper pass now also completed with 269 explicit unresolved
+  outcomes and no accepted scores. The private exact Game Gear audit journal
+  records 180 cached cloud digest matches, protects all files and is not removal
+  authority. Carrying explicit source classification into catalogue editions is
+  the next identified internal S7 gap; no later stage has been opened.
 - B7's alternative owner-directed reconstruction is verified and its operational
   blocker resolved. The seven historically lost private files are not recovered,
   and the failed preservation attempt is not retroactively passed. Normal APK
