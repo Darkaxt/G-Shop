@@ -706,8 +706,8 @@ order. No burnt-in artwork or metadata-only ROM fetches.
 ## S6 — Final reconciliation and remediation
 
 Status: COMPLETE (2026-10-05). Requirement-level closure and the combined normal
-Thor workflow are recorded in `S6_ACCEPTANCE_RECONCILIATION.md`. S7-S9 remain
-required and NOT STARTED; this is not overall completion.
+Thor workflow are recorded in `S6_ACCEPTANCE_RECONCILIATION.md`. S7 is now ACTIVE;
+S8/S9 remain required and NOT STARTED. This is not overall completion.
 
 The following execution description is retained as the S6 acceptance contract.
 Begin with complete specification/source reconciliation and affected existing-
@@ -735,6 +735,10 @@ S8 and S9 are still required before overall completion. Public evidence must not
 private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
+
+Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
+Current scope reconciliation and private-evidence boundaries are recorded in
+`S7_ACCEPTANCE_RECONCILIATION.md`.
 
 Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
 QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.

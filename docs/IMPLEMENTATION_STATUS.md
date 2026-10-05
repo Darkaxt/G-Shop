@@ -25,8 +25,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   denial/regrant and expendable-package reinstall, exact ES-DE publication/reuse,
   supported score semantics and bounded query/resource evidence are verified.
 - S6 is COMPLETE with no remaining assigned acceptance, blocker or tracked
-  deferral. S7, S8 and S9 are NOT STARTED. There is currently no ACTIVE stage;
-  S7 is next, not silently opened alongside S6 verification.
+  deferral, committed as `ea63586`. S7 is now the sole ACTIVE stage. S8 and S9
+  are NOT STARTED. S7's normal fresh ScreenScraper and IGDB traversals completed
+  against the stable 316-entry GameCube/Game Gear catalogue, with explicit
+  unresolved outcomes and a normal reviewed recheck. This is not yet whole-SD
+  coverage. A third PSP-only source completed its read-only catalogue traversal
+  and normal mapping; the Library now opens with 585 artifacts after a 1919 ms
+  cold launch. Existing sources/systems/targets stayed unchanged; the new PSP
+  internal default is not yet an SD migration destination. Exact reviewed
+  migration, eligible membership and remaining console mappings are unfinished;
+  no ROM removal has begun. See S7_ACCEPTANCE_RECONCILIATION.md.
 - B7's alternative owner-directed reconstruction is verified and its operational
   blocker resolved. The seven historically lost private files are not recovered,
   and the failed preservation attempt is not retroactively passed. Normal APK
@@ -50,7 +58,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   pre-update source/mapping/target object. No uninstall or secret re-entry occurred.
   Both physical Thor screens were verified OFF. Expendable task screenshots,
   synthetic save fixture, UI XML and superseded APK were cleaned. The authorized
-  normal test installation and current APK remain. No bulk scrape, SD migration
+  normal test installation and current APK remain. S7's provider traversals cover
+  the earlier two-console generation; no whole-collection scrape, SD migration
   or external release has occurred. The overall plan remains incomplete: S7-S9
   must still satisfy their own criteria. The reported logo hang was not reproduced;
   no historical root cause or speculative startup fix is claimed.
@@ -2362,8 +2371,8 @@ ledger. Failed attempts remain failed; later verification is identified explicit
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
 | S4 | COMPLETE | S4_ACCEPTANCE_RECONCILIATION.md: current normal artwork, matching/tags/assessed score/query, durable bounded shared rebuild, exact ES-DE fields/media and actual Thor permission/restart/expendable-reinstall workflows verified; owner-directed setup reconstruction verified | None for assigned S4 criteria. B7's old private bytes remain irreversibly lost, not claimed recovered; its operational reconstruction resolution is verified. Other score scopes remain explicitly advisory, not silently accepted |
 | S5 | COMPLETE | Normal native shared-card layout/overlays/media and pinned IGDB service icon, decoded cached cover replacement in console/Library/shelf, independent tags/unrated paths, filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | None for UI-01/UI-02/UI-03; S9 owns the expressly named final complete cartridge/legacy-platform asset coverage |
-| S6 | ACTIVE | S4 closure supplies the prerequisite current shared-metadata/native evidence; no S6 completion claim | QA-01, QA-02, QA-04: complete integrated reconciliation, affected existing-provider/config/queue regressions and combined normal real workflow/privacy/resource recheck |
-| S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
+| S6 | COMPLETE | ea63586; S6_ACCEPTANCE_RECONCILIATION.md: combined normal real Drive/metadata/artwork/SD/emulator/remove/re-download/offline workflow and focused integration/privacy/resource checks | None for assigned S6 criteria; no bulk scrape or SD migration claimed |
+| S7 | ACTIVE | S7_ACCEPTANCE_RECONCILIATION.md; fresh provider traversals completed on the stable 316-entry generation; third PSP mapping and 585-entry cold-launch/navigation verified; exact partial read-only SD/host audit | MIGRATE-01: whole-collection coverage, reviewed identities and defensible ranking, live cloud recovery, exact reviewed removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
 | S9 | NOT STARTED | User complete physical-media coverage choice recorded in revision 5 | ART-01: complete cartridge/legacy-media asset matrix and native cover-state audit; final integrated reconciliation |
 
@@ -2374,7 +2383,7 @@ authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
 reclassified as a deferral. S1 is COMPLETE after actual renewal and verified restoration,
-with B3 resolved by the user's explicit scope change; S4 and S5 are COMPLETE; S6 is ACTIVE. Earlier chronological
+with B3 resolved by the user's explicit scope change; S4, S5 and S6 are COMPLETE; S7 is ACTIVE. Earlier chronological
 checkpoints retain their then-current state.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. S1 auth lifecycle criteria are now
