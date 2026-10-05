@@ -263,7 +263,7 @@ class CoverPreloadService extends StateNotifier<CoverPreloadState> {
       if (fuzzyResult) return true;
 
       // Last resort: use RA game icon as cover art
-      return _tryRaCover(
+      return await _tryRaCover(
         db: db,
         filename: filename,
         systemSlug: systemSlug,

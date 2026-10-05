@@ -7,6 +7,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current authoritative checkpoint — 2026-10-05
 
+- S4 closure is committed locally as `145b5a3`. S6's current source/provider/
+  queue/migration and details/artwork checks are recorded in
+  [S6_ACCEPTANCE_RECONCILIATION.md](S6_ACCEPTANCE_RECONCILIATION.md). A reproduced
+  async RA-cover error now stays inside its existing failure handler; the details
+  fixture correctly forwards artwork and joins real IO without fake-clock waits.
+  S6 remains ACTIVE for the combined real-device workflow and final reconciliation.
+  The current normal S6 APK is now installed in place; cold launch reaches the
+  183-record Library in 2336 ms. Configuration/database/credential hashes were
+  unchanged before launch. This is startup proof, not combined S6 acceptance.
+
 - S0, S1, S2, S3, S4 and S5 are COMPLETE against their assigned criteria.
   S4's current requirement-by-requirement closure is in
   [S4_ACCEPTANCE_RECONCILIATION.md](S4_ACCEPTANCE_RECONCILIATION.md): normal
@@ -29,13 +39,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   refresh-to-decoded-artwork and offline-restore workflow. Final catalogue/job/
   quota/grouping/score/store checks `5b4c68` / `64e0ba` exited zero. Scoped analysis
   `e2a8df` / `726ad5` has no errors/warnings, with two existing deprecation infos.
-- No new Gradle command was needed for this closure. Latest normal build ticket
-  142 held the shared mutex through exit zero: observed workers 2, parallel false,
+- No new Gradle command was needed for S4 closure. Subsequent normal S6 ticket
+  143 held the shared mutex through exit zero: observed workers 2, parallel false,
   Gradle 3 GiB, assessed Kotlin in-process sharing that heap; configured tests one
   fork/512 MiB (not executed), app native pools one. Full plugin native concurrency
   is not claimed measured. No memory failure or budget increase occurred.
-- Owner normal APK remains installed; both physical Thor screens were verified
-  OFF. No further device use occurred during this focused reconciliation. No bulk
+- Owner normal S6 APK remains installed; both physical Thor screens were verified
+  OFF after its current cold-launch check. No bulk
   scrape, SD migration or external release has occurred. The overall plan remains
   incomplete: S6-S9 must still satisfy their own criteria.
 

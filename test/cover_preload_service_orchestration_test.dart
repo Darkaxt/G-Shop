@@ -2,6 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/services/cover_preload_service.dart';
 import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/models/system_model.dart';
+import 'package:retro_eshop/services/image_cache_service.dart';
+import 'package:retro_eshop/utils/image_helper.dart';
+
+class _FailingRaCoverDatabase extends DatabaseService {
+  @override
+  Future<String?> getRaImageIconForGame(
+          String filename, String systemSlug) async =>
+      throw StateError('Synthetic RA cache read failure');
+}
 
 // ---------------------------------------------------------------------------
 // Testable subclass: overrides processWithCoverUrl / processWithoutCoverUrl
@@ -113,6 +123,31 @@ void main() {
   }
 
   // ─── preloadAll orchestration ──────────────────────────────────
+
+  test('asynchronous RA cache failure returns unavailable instead of escaping',
+      () async {
+    final system =
+        SystemModel.supportedSystems.firstWhere((system) => system.id == 'gba');
+    const filename = 'Unavailable RA cover.gba';
+    final urls = ImageHelper.getCoverUrlsForSingle(system, filename);
+    expect(urls, isNotEmpty);
+    for (final url in urls) {
+      FailedUrlsCache.instance.markFailed(url);
+    }
+    final service = CoverPreloadService();
+    try {
+      expect(
+          await service.processWithoutCoverUrl(
+              db: _FailingRaCoverDatabase(),
+              filename: filename,
+              systemSlug: system.id,
+              systemMap: {system.id: system}),
+          isFalse);
+    } finally {
+      service.dispose();
+      FailedUrlsCache.instance.clear();
+    }
+  });
 
   group('preloadAll orchestration', () {
     test('double-start guard (returns if already running)', () async {

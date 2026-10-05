@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -1692,7 +1693,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       onNotification: _handleScrollNotification,
       child: RepaintBoundary(
         child: GridView.builder(
-          cacheExtent: deviceMemory.libraryCacheExtent,
+          scrollCacheExtent:
+              ScrollCacheExtent.pixels(deviceMemory.libraryCacheExtent),
           controller: _scrollController,
           padding: EdgeInsets.only(
             left: rs.spacing.lg,

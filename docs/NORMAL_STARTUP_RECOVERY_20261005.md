@@ -71,13 +71,16 @@ one; plugin CMake task labels alone do not prove full native concurrency.
 No memory-related failure or budget increase occurred. Log:
 `5c0e8b5a636b4df9a5028b02cb714bf8.log` under the host gate log directory.
 
-## Remaining broader work
+## Historical broader-work checkpoint
 
 S4 remains ACTIVE. Historical B7 is not retroactively passed. Native
 permission-enforcement proof is distinct from already verified storage
 loss/remount and expendable-package reinstall recovery. Full metadata gathering,
 integrated acceptance, SD migration and the later stages are not declared done
 by this startup/credential correction. No external release was published.
+
+This paragraph records the earlier checkpoint, not current stage status. S4
+subsequently closed in `145b5a3`; S6 is now the sole ACTIVE stage.
 
 ## Latest normal APK verification
 
@@ -102,3 +105,15 @@ one fork / 512 MiB, not executed; app native pools are configured at one, withou
 claiming a measured cap for every plugin's native build. No memory failure or
 heap-budget increase occurred. No further build was needed for this cold-start
 verification. The logo incident is resolved; this does not complete the fork.
+
+## Subsequent normal S6 build
+
+The latest inspected normal APK is
+`D:\Temp\rshop-s6-normal-20261005\app-debug.apk`, SHA256
+`bbb07c08455c92fcc5a9a62adb8d5268597d84fb5a3c9ea726ecaa6a4de78729`.
+It is installed in place with the existing signer. All 46 pre-launch private
+file paths were retained; only Android's installation-profile marker changed.
+Fresh cold launch `a7e9b7` returned COLD / Status ok / 2336 ms and the actual
+hierarchy showed the 183-record Library. Both physical screens were verified
+OFF / committedState OFF afterward (`19aed0`). Current gate/profile and exact
+S6 acceptance limits are in `S6_ACCEPTANCE_RECONCILIATION.md`.

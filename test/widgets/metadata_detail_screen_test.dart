@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/game_detail/game_detail_screen.dart';
@@ -21,6 +24,7 @@ import 'package:retro_eshop/providers/game_providers.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/library_store.dart';
@@ -40,10 +44,11 @@ class _Database extends DatabaseService {
 
   @override
   Future<GameMetadataInfo?> getGameMetadata(String filename, String systemSlug,
-      {String language = 'en'}) async {
+      {String language = 'en', MetadataArtworkCache? artworkCache}) async {
     await ready.future;
     if (fail) throw StateError('Synthetic cache read failure');
-    return super.getGameMetadata(filename, systemSlug, language: language);
+    return super.getGameMetadata(filename, systemSlug,
+        language: language, artworkCache: artworkCache);
   }
 }
 
@@ -55,7 +60,38 @@ class _HostInput extends InputDebouncer {
   bool canPerformAction() => true;
 }
 
-void main() => defineMetadataDetailScreenChecks();
+void main() {
+  // The normal reader now joins shared-cache readiness and real filesystem IO.
+  // Keep its futures and UI in one real clock, as in the Android fixture.
+  LiveTestWidgetsFlutterBinding.ensureInitialized().framePolicy =
+      LiveTestWidgetsFlutterBindingFramePolicy.onlyPumps;
+  final previousPaths = PathProviderPlatform.instance;
+  final previousFontFetching = GoogleFonts.config.allowRuntimeFetching;
+  setUpAll(() async {
+    final support = Platform.environment['RSHOP_TEST_FONT_CACHE'];
+    if (support == null || !await Directory(support).exists()) {
+      throw StateError('RSHOP_TEST_FONT_CACHE must identify the existing font cache');
+    }
+    PathProviderPlatform.instance = _DetailHostPaths(support);
+    GoogleFonts.config.allowRuntimeFetching = false;
+    AppTheme.darkTheme;
+    await GoogleFonts.pendingFonts();
+  });
+  tearDownAll(() {
+    PathProviderPlatform.instance = previousPaths;
+    GoogleFonts.config.allowRuntimeFetching = previousFontFetching;
+  });
+  defineMetadataDetailScreenChecks();
+}
+
+class _DetailHostPaths extends PathProviderPlatform {
+  final String support;
+  _DetailHostPaths(this.support);
+  @override
+  Future<String?> getApplicationSupportPath() async => support;
+  @override
+  Future<String?> getTemporaryPath() async => Directory.systemTemp.path;
+}
 
 /// The normal detail screen/provider/cache path, reused with Android SQLite.
 /// No production bootstrap, credentials, provider account or ROM is involved.
@@ -168,6 +204,13 @@ void defineMetadataDetailScreenChecks({
       final container = ProviderContainer(overrides: [
         if (!native) inputDebouncerProvider.overrideWith((_) => _HostInput()),
         libraryDbProvider.overrideWithValue(database),
+        // This fixture has no image bodies. Keep its real empty artwork index
+        // isolated instead of opening the host's normal application directory.
+        metadataArtworkCacheProvider.overrideWithValue(Future.value(
+            MetadataArtworkCache(Future.value(db),
+                Directory(native
+                    ? '/data/local/tmp/rshop-detail-no-artwork'
+                    : 'D:/Temp/rshop-detail-no-artwork')))),
         storageServiceProvider.overrideWithValue(storage),
         bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
         metadataControlsProvider.overrideWith((_) => controls),
@@ -195,15 +238,13 @@ void defineMetadataDetailScreenChecks({
       final cachedMetadata = gameMetadataProvider(
           (filename: game.selectionKey, systemSlug: 'psx'));
       Future<void> finishCacheRead({bool failed = false}) async {
-        // Native SQLite completes outside Flutter's fake clock. Join the actual
-        // provider operation rather than using frame settling as an IO signal.
-        if (native) {
-          final operation = container.read(cachedMetadata.future);
-          if (failed) {
-            await expectLater(operation, throwsStateError);
-          } else {
-            await operation;
-          }
+        // Join cache IO before settling frames; animation completion is not
+        // a metadata-read signal on either the host or Android.
+        final operation = container.read(cachedMetadata.future);
+        if (failed) {
+          await expectLater(operation, throwsStateError);
+        } else {
+          await operation;
         }
         await tester.pumpAndSettle();
       }

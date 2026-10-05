@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/responsive/responsive.dart';
@@ -195,7 +196,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
         onNotification: widget.onScrollNotification,
         child: RepaintBoundary(
           child: GridView.builder(
-            cacheExtent: widget.gridCacheExtent,
+            scrollCacheExtent: ScrollCacheExtent.pixels(widget.gridCacheExtent),
             controller: widget.scrollController,
             padding: EdgeInsets.only(
               left: rs.spacing.lg,
