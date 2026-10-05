@@ -524,45 +524,63 @@ class LibraryStore {
                   .toJson(),
             ]
           });
-          await db.insert(
-              'library_artifacts',
-              {
-                'artifact_id': artifact.id.key,
-                'provider_id': artifact.id.providerId,
-                'source_id': artifact.id.sourceId,
-                'account_id': artifact.id.accountId,
-                'provider_file_id': artifact.id.providerFileId,
-                'record_json': jsonEncode(artifact.toJson()),
-              },
+          final artifactRow = <String, Object?>{
+            'artifact_id': artifact.id.key,
+            'provider_id': artifact.id.providerId,
+            'source_id': artifact.id.sourceId,
+            'account_id': artifact.id.accountId,
+            'provider_file_id': artifact.id.providerFileId,
+            'record_json': jsonEncode(artifact.toJson()),
+          };
+          final storedArtifact = await db.query('library_artifacts',
+              where: 'artifact_id = ?', whereArgs: [artifact.id.key], limit: 1);
+          if (storedArtifact.isEmpty ||
+              artifactRow.entries.any(
+                  (entry) => storedArtifact.single[entry.key] != entry.value)) {
+            await db.insert('library_artifacts', artifactRow,
+                conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+        final gameRow = <String, Object?>{
+          'game_id': game.id,
+          'platform_id': game.platformId,
+          'title': game.title,
+          'match_status': game.matchStatus.name,
+          'record_json': jsonEncode(game.toJson()),
+        };
+        final editionRow = <String, Object?>{
+          'edition_id': edition.id,
+          'game_id': edition.gameId,
+          // Catalogue capture updates artifact evidence, not reviewed tag
+          // facts. Preserve old spellings in their identity binding; reading
+          // canonical aliases must not invalidate metadata or queued work.
+          'record_json': jsonEncode({
+            ...edition.toJson(),
+            if (existingEdition.isNotEmpty)
+              'tags': jsonDecode(
+                  existingEdition.single['record_json'] as String)['tags'],
+          }),
+        };
+        final gameChanged = existingGame.isEmpty ||
+            gameRow.entries
+                .any((entry) => existingGame.single[entry.key] != entry.value);
+        final editionChanged = existingEdition.isEmpty ||
+            editionRow.entries.any(
+                (entry) => existingEdition.single[entry.key] != entry.value);
+        if (gameChanged) {
+          await db.insert('library_game_identities', gameRow,
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
-        await db.insert(
-            'library_game_identities',
-            {
-              'game_id': game.id,
-              'platform_id': game.platformId,
-              'title': game.title,
-              'match_status': game.matchStatus.name,
-              'record_json': jsonEncode(game.toJson()),
-            },
-            conflictAlgorithm: ConflictAlgorithm.replace);
-        await db.insert(
-            'library_editions',
-            {
-              'edition_id': edition.id,
-              'game_id': edition.gameId,
-              // Catalogue capture updates artifact evidence, not reviewed tag
-              // facts. Preserve old spellings in their identity binding; reading
-              // canonical aliases must not invalidate metadata or queued work.
-              'record_json': jsonEncode({
-                ...edition.toJson(),
-                if (existingEdition.isNotEmpty)
-                  'tags': jsonDecode(
-                      existingEdition.single['record_json'] as String)['tags'],
-              }),
-            },
-            conflictAlgorithm: ConflictAlgorithm.replace);
-        await indexCanonicalGroups(db, editionId: edition.id);
+        if (editionChanged) {
+          await db.insert('library_editions', editionRow,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+        // The identity transaction already indexed unchanged records. A query
+        // following durable recovery must not rebuild that graph a second time.
+        // Real changes still use the same component correction/invalidation path.
+        if (gameChanged || editionChanged) {
+          await indexCanonicalGroups(db, editionId: edition.id);
+        }
         yield editionId;
       }
       if (rows.length < 128) break;

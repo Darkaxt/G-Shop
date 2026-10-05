@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
@@ -102,6 +103,76 @@ void main() {
   Future<List<Map<String, Object?>>> items(int job) =>
       db.query('metadata_refresh_items',
           where: 'job_id = ?', whereArgs: [job], orderBy: 'edition_id');
+
+  test('unchanged catalogue capture preserves identities and canonical indexes',
+      () async {
+    await LibraryQuery.install(db);
+    final cacheId = await cache('snes', 'Game.zip', artifact: remote('file'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(first.id)).single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    final game = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'providerIds': {'screenscraper': '42'},
+      'matchStatus': 'manuallyMatched'
+    }));
+    await store.putEdition(EditionIdentity.fromJson({
+      ...edition.toJson(),
+      'tags': ['official']
+    }));
+    final identityBefore = await db.query('library_game_identities');
+    final editionBefore = await db.query('library_editions');
+    final claimsBefore = await db.query('library_canonical_claims');
+    await db.execute('CREATE TABLE identity_mutations (name TEXT)');
+    for (final table in [
+      'library_game_identities',
+      'library_editions',
+      'library_artifacts',
+      'library_canonical_groups',
+      'library_canonical_claims'
+    ]) {
+      for (final event in ['INSERT', 'UPDATE', 'DELETE']) {
+        await db.execute('''CREATE TRIGGER observe_${table}_$event
+          AFTER $event ON $table BEGIN
+          INSERT INTO identity_mutations VALUES ('$table'); END''');
+      }
+    }
+    // Fresh jobs must still revisit each identity, but unchanged catalogue
+    // capture and the ensuing normal query must not rebuild its identity graph.
+    final next = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect(next.generation, greaterThan(first.generation));
+    expect(next.counts, {'pending': 1});
+    final request =
+        jsonDecode((await items(next.id)).single['request_json'] as String);
+    expect(request['verifiedProviderGameId'], '42');
+    expect(await db.query('identity_mutations'), isEmpty);
+    final page =
+        await LibraryQuery(Future.value(db)).page(filter: LibraryQueryFilter());
+    expect(page.collectionGames, 1);
+    expect(await db.query('identity_mutations'), isEmpty);
+    expect(await db.query('library_game_identities'), identityBefore);
+    expect(await db.query('library_editions'), editionBefore);
+    expect(await db.query('library_canonical_claims'), claimsBefore);
+
+    // A real content change still invalidates the match and reindexes claims.
+    await db.update(
+        'games',
+        {
+          'remote_artifact':
+              jsonEncode(remote('file', version: '2', checksum: 'b').toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [cacheId]);
+    final changed = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final changedRequest =
+        jsonDecode((await items(changed.id)).single['request_json'] as String);
+    expect(changedRequest['verifiedProviderGameId'], isNull);
+    expect((await store.game(game.id))!.matchStatus,
+        IdentityMatchStatus.unmatched);
+    expect(await db.query('identity_mutations'), isNotEmpty);
+    expect(await db.query('library_canonical_claims'), isNot(claimsBefore));
+  }, timeout: Timeout.none);
 
   test(
       'cached catalogue snapshots all games, excludes folders and scopes systems',
