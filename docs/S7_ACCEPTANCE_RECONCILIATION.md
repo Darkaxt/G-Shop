@@ -36,6 +36,18 @@ setup. Its first catalogue generation is still unpublished and it has no console
 mappings. All six existing sources and all console settings remain unchanged.
 It has not extended Library membership or established whole-collection coverage.
 
+The normal console-settings Export action produced `r_shop_config.json` and
+opened Android's share chooser. The chooser was cancelled without selecting a
+destination. The generated JSON was read and independently compared with the
+current configuration: all seven sources and all six system/mapping/target
+objects are identical; no authentication fields are present. A private reusable
+snapshot is retained outside Git (SHA-256
+`4839d43a5fcf1c3a5b3d7291c245bdf8787941ac868435ae84fe7daf9bb6344c`).
+This verifies normal native export, not native import into the release package.
+The final handoff must refresh the snapshot after setup is finished and verify
+its import; Google consent, secure provider credentials and storage grants are
+not transferred by this file. No settings, ROMs or FolderSync state changed.
+
 ## Live execution — 2026-10-05
 
 - The reported logo hang was not reproduced. The current normal APK cold-started
