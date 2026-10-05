@@ -150,6 +150,64 @@ ScreenScraperProvider _provider(_Wire wire, {bool configured = true}) =>
         clock: () => DateTime.utc(2026, 9, 8));
 
 void main() {
+  test('reviewed edition region selects its cover instead of provider order',
+      () async {
+    final game = _game();
+    game['medias'] = [
+      {
+        'type': 'box-2D',
+        'region': 'jp',
+        'url': _authenticatedMedia(media: 'box-2D(jp)')
+      },
+      {
+        'type': 'box-2D',
+        'region': 'wor',
+        'url': _authenticatedMedia(media: 'box-2D(wor)')
+      },
+      {
+        'type': 'box-3D',
+        'region': 'us',
+        'url': _authenticatedMedia(media: 'box-3D(us)')
+      },
+      {'type': 'ss', 'url': 'https://www.screenscraper.fr/image/screen.png'},
+    ];
+    final result = await _provider(_Wire({
+      'response': {'jeu': game}
+    })).lookup(_request(region: 'USA'));
+    expect(result.status, MetadataLookupStatus.matched);
+    final covers = result.record!.media
+        .where((m) => {'box-2D', 'box-3D', 'cover'}.contains(m.type));
+    expect(covers.map((m) => m.region), ['us']);
+    expect(result.record!.media.any((m) => m.type == 'ss'), isTrue);
+  });
+
+  test('missing regional cover keeps neutral media, not another release',
+      () async {
+    final game = _game();
+    game['medias'] = [
+      {
+        'type': 'box-2D',
+        'region': 'jp',
+        'url': _authenticatedMedia(media: 'box-2D(jp)')
+      },
+      {
+        'type': 'box-2D',
+        'region': 'wor',
+        'url': _authenticatedMedia(media: 'box-2D(wor)')
+      },
+    ];
+    final result = await _provider(_Wire({
+      'response': {'jeu': game}
+    })).lookup(_request(region: 'us'));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(result.record!.media.map((m) => m.region), ['wor']);
+    game['medias'] = [(game['medias'] as List).first];
+    final foreignOnly = await _provider(_Wire({
+      'response': {'jeu': game}
+    })).lookup(_request(region: 'us'));
+    expect(foreignOnly.record!.media, isEmpty);
+  });
+
   test('explicit access check reads only documented account quota fields',
       () async {
     final wire = _Wire({

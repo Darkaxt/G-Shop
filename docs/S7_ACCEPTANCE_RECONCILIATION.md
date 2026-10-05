@@ -9,6 +9,20 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Current 2026-10-06 update: normal native feedback has now demonstrated ambiguous,
+matched and single-unverified-candidate cover outcomes and actual provider quota
+with observation time. Ape Escape's reviewed identity populated description,
+genre, developer/publisher, screenshots and sourced advisory rating in normal
+details. Those observations close the candidate-feedback gap below, not broad
+match coverage or migration. A shared regional cover-selection/correction fix
+is host-verified and installed as normal build 176; its native input control was
+observed, but final corrected artwork was not confirmed. At the user's direction,
+individual-entry curation was stopped; remaining integration verification belongs
+to the collection workflow. S7 stays ACTIVE, with all other statuses unchanged.
+
+The following checkpoints are historical; the current update above supersedes
+their outstanding candidate-feedback observation.
+
 The 2026-10-06 latest-product/cover preview and ScreenScraper daily quota display
 are integrated and host-verified, but their normal Thor verification is still
 required. They remain ordinary unfinished acceptance work; S8-S10 stay NOT

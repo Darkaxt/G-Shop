@@ -146,6 +146,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<FilledButton>(approve).onPressed, isNull,
           reason: 'Selecting an ID must not guess that a release is official.');
+      final region =
+          find.byKey(ValueKey('review-region-${selected.editionId}'));
+      await tester.ensureVisible(region);
+      await tester.pumpAndSettle();
+      await tester.enterText(region, 'Japan');
+      await tester.pumpAndSettle();
       for (final tag in ['T-Eng', 'Undub', 'Uncensor']) {
         final chip =
             find.byKey(ValueKey('review-tag-${selected.editionId}-$tag'));
@@ -195,6 +201,14 @@ void main() {
       final edition =
           await LibraryStore(Future.value(db)).edition(selected.editionId);
       expect(edition!.tags, {'T-Eng', 'Undub', 'Uncensor'});
+      expect(edition.regions, ['Japan']);
+      expect(provider.calls.last.region, 'Japan');
+      expect(
+          edition.evidence.any((e) =>
+              e.source == 'manual' &&
+              e.kind == 'releaseRegion' &&
+              e.value == 'Japan'),
+          isTrue);
       expect(tester.takeException(), isNull);
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();

@@ -63,10 +63,11 @@ class _MetadataReviewScreenState extends ConsumerState<MetadataReviewScreen>
     }
   }
 
-  Future<void> _accept(
-      MetadataReviewItem item, String id, Set<String> tags) async {
+  Future<void> _accept(MetadataReviewItem item, String id, Set<String> tags,
+      String? region) async {
     final controls = ref.read(metadataControlsProvider.notifier);
-    await controls.acceptReview(item, providerGameId: id, contentTags: tags);
+    await controls.acceptReview(item,
+        providerGameId: id, contentTags: tags, reviewedRegion: region);
     if (!mounted) return;
     setState(() => _saved = !ref.read(metadataControlsProvider).error);
     await _load();
@@ -206,8 +207,8 @@ class _MetadataReviewScreenState extends ConsumerState<MetadataReviewScreen>
                                     ValueKey('${item.jobId}:${item.editionId}'),
                                 item: item,
                                 enabled: enabled && item.identityCurrent,
-                                onAccept: (id, tags) =>
-                                    _accept(item, id, tags)),
+                                onAccept: (id, tags, region) =>
+                                    _accept(item, id, tags, region)),
                         ]))),
           ]),
         )),
@@ -218,7 +219,7 @@ class _MetadataReviewScreenState extends ConsumerState<MetadataReviewScreen>
 class _ReviewCard extends StatefulWidget {
   final MetadataReviewItem item;
   final bool enabled;
-  final void Function(String id, Set<String> tags) onAccept;
+  final void Function(String id, Set<String> tags, String? region) onAccept;
   const _ReviewCard(
       {super.key,
       required this.item,
@@ -230,6 +231,9 @@ class _ReviewCard extends StatefulWidget {
 
 class _ReviewCardState extends State<_ReviewCard> {
   int? _candidate;
+  // Null preserves existing release evidence. An explicitly cleared field
+  // records Unknown; neither the filename nor a game-ID choice supplies it.
+  String? _reviewedRegion;
   late final Set<String> _tags = {
     ...widget.item.request?.contentTags ?? <String>{}
   }..retainAll(EditionIdentity.knownContentTags);
@@ -304,6 +308,15 @@ class _ReviewCardState extends State<_ReviewCard> {
                     child: Text(
                         '${l.metadata_candidateEvidence}: ${selected.evidence}')),
               const SizedBox(height: 16),
+              TextFormField(
+                  key: ValueKey('review-region-${item.editionId}'),
+                  initialValue: request?.region ?? '',
+                  enabled: widget.enabled,
+                  maxLength: 32,
+                  decoration: InputDecoration(
+                      labelText: l.filter_regions, hintText: l.filter_unknown),
+                  onChanged: (value) => _reviewedRegion = value.trim()),
+              const SizedBox(height: 16),
               Text(l.filter_contentTags),
               Wrap(spacing: 8, runSpacing: 4, children: [
                 for (final tag in EditionIdentity.knownContentTags)
@@ -336,15 +349,15 @@ class _ReviewCardState extends State<_ReviewCard> {
               ConsoleFocusable(
                   focusScale: 1,
                   onSelect: widget.enabled && selected != null && validTags
-                      ? () => widget.onAccept(
-                          selected.providerGameId, Set.of(_tags))
+                      ? () => widget.onAccept(selected.providerGameId,
+                          Set.of(_tags), _reviewedRegion)
                       : null,
                   child: FilledButton(
                       key: ValueKey('review-accept-${item.editionId}'),
                       style: AppTheme.primaryButtonStyle,
                       onPressed: widget.enabled && selected != null && validTags
-                          ? () => widget.onAccept(
-                              selected.providerGameId, Set.of(_tags))
+                          ? () => widget.onAccept(selected.providerGameId,
+                              Set.of(_tags), _reviewedRegion)
                           : null,
                       child: Text(l.metadata_reviewAccept))),
             ],

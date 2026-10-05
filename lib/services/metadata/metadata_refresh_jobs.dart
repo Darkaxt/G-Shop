@@ -889,8 +889,17 @@ class MetadataRefreshJobs {
   Future<MetadataRefreshReport> acceptCandidate(int id,
       {required String editionId,
       required String providerGameId,
-      required Set<String> contentTags}) async {
+      required Set<String> contentTags,
+      String? reviewedRegion}) async {
     final classification = EditionIdentity.normalizeContentTags(contentTags);
+    final region = reviewedRegion?.trim();
+    if (region != null &&
+        (region.length > 32 ||
+            (region.isNotEmpty &&
+                !RegExp(r'^[A-Za-z]{2,}(?:[ -][A-Za-z]{2,})*$')
+                    .hasMatch(region)))) {
+      throw ArgumentError('Invalid reviewed region');
+    }
     final db = await _database;
     final job = await _job(db, id);
     final providerId = job['provider_id'] as String;
@@ -952,6 +961,7 @@ class MetadataRefreshJobs {
           final correctedEdition = EditionIdentity.fromJson({
             ...edition.toJson(),
             'tags': tags,
+            if (region != null) 'regions': [if (region.isNotEmpty) region],
             if (classification.contains('T-Eng')) ...{
               'isTranslation': true,
               'translatedLanguages': [
@@ -966,8 +976,15 @@ class MetadataRefreshJobs {
             'evidence': [
               ...edition.evidence
                   .where((e) => !(e.source == 'manual' &&
-                      e.kind == 'contentClassification'))
+                      (e.kind == 'contentClassification' ||
+                          (region != null && e.kind == 'releaseRegion'))))
                   .map((e) => e.toJson()),
+              if (region != null)
+                IdentityEvidence(
+                        source: 'manual',
+                        kind: 'releaseRegion',
+                        value: region.isEmpty ? 'unknown' : region)
+                    .toJson(),
               IdentityEvidence(
                       source: 'manual',
                       kind: 'contentClassification',

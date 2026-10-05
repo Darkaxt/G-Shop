@@ -5,6 +5,53 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 regional metadata correction — 2026-10-06
+
+- The normal exact-game PS1 workflow now has real single-unverified-candidate
+  cover feedback evidence: its title/platform/Needs review label appeared with
+  a parsed candidate image, without publishing a score. Explicit identity and
+  ordinary-release review then completed the lookup/artwork job. The normal
+  details screen showed description, genre, developer/publisher, screenshot and
+  a sourced advisory ScreenScraper 85/100 score. This closes the outstanding
+  candidate-feedback observation, not whole-collection ranking or migration.
+- Native inspection exposed a separate defect: the provider's first regional
+  cover was displayed for a USA artifact while its reviewed edition had no
+  region. Review did not offer a regional correction. The focused regression
+  reproduced both the foreign-first cover selection and missing review control.
+  Review now records an explicitly entered region in the existing atomic
+  correction/retry transaction; leaving it unchanged preserves existing evidence,
+  clearing it records Unknown, and invalid input creates no orphan retry.
+  A filename or provider-ID choice never supplies verified regional evidence.
+- ScreenScraper snapshots cover selectors for the reviewed region, falling back
+  only to neutral/world art when that region is absent, or the physical-media
+  fallback if only foreign art exists. Screenshots and other facts remain.
+  Focused provider, normal review/controller, catalogue/retry persistence,
+  artwork and durable shared-recovery checks passed; scoped analysis reports no
+  issues. Normal build 176 was installed in place and its installed SHA-256
+  independently matched `b618b41376fd2f1e36d9e4e705c395241faa0916a4ac363ca55a44b3fdccc271`.
+  Native normal review displayed the regional field and accepted USA input.
+  The subsequent save/provider/artwork result was not confirmed; the user
+  explicitly redirected effort away from individual-entry walkthroughs.
+  Do not claim a native regional-artwork fix from this partial observation.
+  The shared provider selection and atomic correction are host-verified;
+  whole-collection integrated verification remains ordinary S7 work.
+- Build 176 acquired `Local\Darka.AndroidGradleBuildGate`; effective workers=2,
+  parallel=false and Gradle heap=3 GiB. Kotlin was configured in-process,
+  sharing that budget; required JVM flags were preserved. Test fork/heap limits
+  are configuration evidence, not executed native test proof. All-plugin native
+  concurrency remains unverified. No memory failure or budget increase occurred.
+  The preceding build 175 exited with a PowerShell-split `.dart` task argument,
+  not memory exhaustion; the corrected invocation started only after it exited.
+  Successful gate log: `52051adeaa0f422487b93a7ea2d260e7.log`.
+- Collection generation 1 was observed advancing at 66,984 entries / 9,405
+  folders / 5,030 pending folders, still unpublished. The same counts survived
+  build 176's update, as did the configuration hash; no continued traversal is
+  claimed solely from this unchanged observation. Its current metadata
+  artwork job 41 was completed. No duplicate worker, ROM removal, source change
+  or FolderSync action was started. Both displays were confirmed OFF.
+  S7 remains the sole ACTIVE stage. Subsequent verification must prove shared
+  collection behavior rather than repeatedly curate one game.
+
 ### Native feedback and checkpoint recovery — 2026-10-06
 
 - S7 remains ACTIVE; S8/S9/S10 are NOT STARTED. Normal debug build 174 was

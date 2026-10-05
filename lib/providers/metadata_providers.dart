@@ -414,7 +414,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           cacheRowId: cacheRowId);
 
   Future<void> acceptReview(MetadataReviewItem item,
-          {required String providerGameId, required Set<String> contentTags}) =>
+          {required String providerGameId,
+          required Set<String> contentTags,
+          String? reviewedRegion}) =>
       _perform(() async {
         final original = await _jobs.report(item.jobId);
         if (original.providerId != state.providerId) {
@@ -423,7 +425,8 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         final job = await _jobs.acceptCandidate(item.jobId,
             editionId: item.editionId,
             providerGameId: providerGameId,
-            contentTags: contentTags);
+            contentTags: contentTags,
+            reviewedRegion: reviewedRegion);
         _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;
         _catalogueChanged();

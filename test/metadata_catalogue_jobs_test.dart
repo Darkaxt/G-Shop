@@ -610,6 +610,50 @@ void main() {
     expect(await store.metadata(review.editionId, 'screenscraper'), isNull);
   });
 
+  for (final region in <String?>[null, '', 'USA']) {
+    test(
+        'reviewed region ${region ?? 'unchanged'} is atomic and survives capture',
+        () async {
+      await cache('snes', 'Game (Japan).zip', artifact: remote('region-file'));
+      final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final editionId = (await items(first.id)).single['edition_id'] as String;
+      final edition = (await store.edition(editionId))!;
+      await store.putEdition(EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'regions': ['jp', 'eu']
+      }));
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      await jobs.run(job.id, _ReviewProvider());
+      final beforeJobs = (await db.query('metadata_refresh_jobs')).length;
+      await expectLater(
+          jobs.acceptCandidate(job.id,
+              editionId: editionId,
+              providerGameId: '42',
+              contentTags: {'official'},
+              reviewedRegion: 'us\ninvalid'),
+          throwsArgumentError);
+      expect((await db.query('metadata_refresh_jobs')).length, beforeJobs);
+      expect((await store.edition(editionId))!.regions, ['jp', 'eu']);
+      final retry = await jobs.acceptCandidate(job.id,
+          editionId: editionId,
+          providerGameId: '42',
+          contentTags: {'official'},
+          reviewedRegion: region);
+      final expected =
+          region == null ? ['jp', 'eu'] : [if (region.isNotEmpty) region];
+      expect((await store.edition(editionId))!.regions, expected);
+      final refresh =
+          await jobs.createFromCatalogue(providerId: 'screenscraper');
+      expect((await store.edition(editionId))!.regions, expected);
+      final request =
+          jsonDecode((await items(retry.id)).single['request_json'] as String);
+      final persisted = jsonDecode(
+          (await items(refresh.id)).single['request_json'] as String);
+      expect(request['region'], region == 'USA' ? 'USA' : null);
+      expect(persisted['region'], request['region']);
+    });
+  }
+
   test(
       'review queue retains other editions across single-game retry and restart',
       () async {

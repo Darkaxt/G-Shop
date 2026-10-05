@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 7.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 8.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S10
