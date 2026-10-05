@@ -7,6 +7,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current authoritative checkpoint — 2026-10-05
 
+- A seventh normal read-only Drive source rooted at the ROM collection is saved,
+  with no mappings and its first catalogue traversal still unpublished. Fresh
+  object comparison confirms the six existing sources and every console setting
+  unchanged. The N64 metadata job remains running, not blocked or restarted.
+  The extra console setup serves S7's whole-collection migration, not initial
+  feature proof. Final console/source settings must be privately exported and
+  their import verified before any separately authorized release handoff;
+  credentials/consent and the shared-directory selection remain package-local.
+  Existing focused Drive config checks passed, but native debug-to-release
+  transfer is not claimed. Required gated build 170 passed at the two-worker,
+  no-parallel, 3 GiB in-process profile without a memory failure; its verified
+  normal debug APK is not yet installed over the live jobs. Both Thor displays
+  were confirmed OFF. See the latest S7 reconciliation for exact evidence.
+
 - The sixth (N64) source now has a verified published catalogue and normal
   mapping. Normal folder selection and exiting console settings persisted the
   actual SD targets for N64 and GameCube; object comparison found only those two

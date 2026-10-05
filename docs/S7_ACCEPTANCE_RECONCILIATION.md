@@ -31,6 +31,11 @@ earlier two-console GameCube pass does not cover its newly included local rows.
 All other acceptance rows remain unresolved as stated; cached digest matches do
 not authorize migration or replace live restore/version verification.
 
+The seventh, collection-rooted source has now been saved through normal native
+setup. Its first catalogue generation is still unpublished and it has no console
+mappings. All six existing sources and all console settings remain unchanged.
+It has not extended Library membership or established whole-collection coverage.
+
 ## Live execution — 2026-10-05
 
 - The reported logo hang was not reproduced. The current normal APK cold-started
@@ -584,3 +589,48 @@ not authorize migration or replace live restore/version verification.
   helper is retained outside Git until this active job's terminal outcome can be
   inspected; its exact registered cleanup transaction and private migration
   journals are preserved. No external release, save backup or SD removal occurred.
+
+### Collection-root setup and configuration reuse — 2026-10-05
+
+- Normal native setup saved one additional read-only Drive source rooted at the
+  owner's ROM collection. One Refresh catalogue action started generation 1.
+  The latest read-only native observation found active=null, pending=1, 56,338
+  observations, 5,457 folders and 5,061 pending folder work rows. Those are
+  unpublished traversal observations, not mapped games or payload downloads.
+  Native configuration comparison verified all six prior source objects and
+  every existing console object unchanged; the new source still has no mappings.
+- The original N64 ScreenScraper job 31 remains running with no blocked status:
+  1,267 requested, 277 pending, 860 needing review, 218 ambiguous, 188 unmatched,
+  zero accepted/rated. No duplicate worker or new IGDB pass was started.
+- The owner's configuration-reuse question distinguishes feature verification
+  from S7's collection-wide metadata/migration. A PS1 workflow suffices for the
+  former; additional console mappings serve the latter. Existing config export
+  preserves source/account/root identities, manual folder mappings, source
+  priorities and console SD targets without bearer tokens or provider secrets.
+  Normal import validates that configuration before saving it. Focused Drive
+  persistence/resolution checks passed on the current source, exit zero.
+- Before any separately authorized release handoff, produce a private export
+  of the final console/source configuration and verify its normal import without
+  repeating folder selection. Do not publish that export or embed owner-specific
+  mappings in an APK. The metadata/artwork bodies already use durable shared
+  storage; the other package must select the same directory and regain access.
+  OAuth consent and secure metadata credentials are package-local, not exported.
+  Actual debug-to-release setup transfer has not yet been live-verified and is
+  not claimed here; a shared cache is not automatic transfer of all preferences.
+- Required normal debug build 170 passed through the shared supervisor after
+  waiting its FIFO turn. Gate acquisition and observed two-worker/no-parallel/
+  3 GiB Gradle profile were reported. Kotlin 2.2.20 remains configured in-process,
+  sharing that heap; Metaspace 1 GiB and code cache 256 MiB were preserved.
+  Test-task configuration reported one fork/512 MiB, not executed test-JVM proof.
+  Full plugin-native concurrency remains a verification gap. No memory failure
+  or heap increase occurred. The preceding gated attempt 168 failed because an
+  unquoted PowerShell target argument produced a stray `.dart` task; the retry
+  used whole-argument quoting only after that process had exited.
+- The resulting normal debug APK has SHA-256
+  `0bc2b340706705cf968809ecb1897d6dc726d4f3e18fd4806235680c45c50966`,
+  package `com.darkaxt.rshop.debug`, version 1.7.0/12 and the unchanged debug
+  signer. It has not been installed over the live jobs. Build log:
+  `28f5ea42b00d4d38b826b84d867ef12f.log` in the shared build-gate log directory.
+  Both physical displays were freshly confirmed OFF. S7 remains the sole ACTIVE
+  stage; no FolderSync change, SD removal, save-backup implementation or external
+  publication occurred.
