@@ -33,6 +33,30 @@ checkpoint, not the unresolved canonical membership/ranking criteria.
 
 ### UI-02 scraping-feedback recheck — 2026-10-06
 
+Native continuation at source `8325a3f`: same-signer normal debug build 174 was
+installed in place and its installed hash independently verified. A focused
+catalogue recovery check passed first. Configuration bytes and completed N64
+job 33 were preserved; pending collection generation 1 survived the update
+without losing committed entries. Normal default-account connection and source
+refresh resumed that same checkpoint; a later observation showed 65,300 entries,
+8,563 folders and 5,030 pending folders. No generation restart was requested.
+
+The normal exact-game metadata workflow demonstrated the latest PS1 title,
+platform and ambiguous outcome with the disc fallback, without accepting a
+rating. An explicit original-versus-sequel cached review and provider recheck
+then demonstrated the matched parsed-cover path. Both renders were captured and
+visually inspected privately. The real provider's 20,000 daily and 2,000
+failed-request allowances, observation timestamp, and separately reserved local
+budget (19,998 after artwork) were visible. Existing credentials were retained;
+initial loading defaults were not credential loss. Both displays were confirmed
+OFF. No ROM payload, SD removal, cloud mutation, FolderSync action, release or
+new Gradle build was performed for this check. **Still required:** a real-provider
+single-unverified-candidate cover/label observation, then the remaining S7 whole-
+collection, canonical-ranking, recovery and migration acceptance. The host
+candidate/cadence/isolation checks are not represented as native observations.
+
+The following earlier checkpoint records host verification before that install:
+
 - Normal settings now display the latest title/platform/outcome and bounded cover
   context. A fixed three-second UI clock coalesces intermediate previews; leaving
   the screen cancels only that clock, not the existing app-scoped worker.

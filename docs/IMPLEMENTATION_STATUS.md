@@ -5,6 +5,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Native feedback and checkpoint recovery — 2026-10-06
+
+- S7 remains ACTIVE; S8/S9/S10 are NOT STARTED. Normal debug build 174 was
+  installed in place with `adb install -r`, without uninstalling, clearing data,
+  signing out, or resetting the source. Its installed APK SHA-256 matches
+  `a318cf7b1a08d56ee8dae4a982003f165da35a993a2b69db9e7581979dc75515`.
+  Configuration bytes and completed N64 job 33 were unchanged across installation.
+  Collection generation 1 retained all committed entries: 64,604 before the
+  update, 64,616 immediately afterward. A focused catalogue recovery check passed
+  before installation. No Gradle command or additional build was launched.
+- The normal Connect action renewed access through the previously authorized
+  default account. Exiting setup without saving preserved source settings. The
+  collection source's normal Refresh action resumed the same pending generation,
+  subsequently observed at 65,300 entries / 8,563 folders / 5,030 pending folders.
+  This is verified checkpoint recovery and continued traversal, not publication.
+- A single exact PS1 game was refreshed through normal details/settings. The
+  real ScreenScraper response remained ambiguous and published no rating; the
+  latest-result panel rendered its title, platform, truthful outcome and disc
+  fallback. Normal cached review then distinguished the original game from its
+  sequel, explicitly classified the ordinary release and rechecked the selected
+  provider identity. The resulting matched panel rendered its validated parsed
+  cover. Private screenshots were visually inspected; no ROM download/removal
+  or cloud mutation was initiated by these metadata actions.
+- The normal panel displayed ScreenScraper's actual reported daily 20,000/20,000
+  remaining allowance and separate 2,000/2,000 failed-request allowance, including
+  observation date/time. After image work it separately displayed local remaining
+  budget 19,998, rather than misrepresenting it as a new provider counter. The
+  transient initial unconfigured labels resolved after secure configuration load;
+  credentials were not changed. Native unverified single-candidate image feedback
+  still needs a real-provider check; host candidate/isolation/cadence checks remain
+  applicable. Broad match coverage and defensible Top-25 migration are unfinished.
+- Both physical displays were confirmed OFF. FolderSync, ROMs and save paths were
+  untouched. Private screenshot evidence is retained outside Git. No release or
+  overall completion is claimed.
+
 ### Current authoritative checkpoint — 2026-10-06
 
 - S7 remains the sole ACTIVE stage. UI-02's latest processed-game feedback is
