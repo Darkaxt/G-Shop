@@ -132,6 +132,28 @@ void main() {
     expect(select([record('screenscraper', 17)], identity: rawGame), isNull);
   });
 
+  test('capped provider size keeps exact SHA-1 advisory ownership, not Top',
+      () {
+    final rawGame = GameIdentity(id: 'g', title: 'Fixture', platformId: 'psx');
+    final records = [
+      record('screenscraper', 17, method: 'rawRomSha1AndCappedSize')
+    ];
+    final selected = select(records, identity: rawGame)!;
+    expect(selected.rating.normalizedValue, 85);
+    expect(selected.ownership, OverallRatingOwnership.game);
+    expect(selected.rankingEligible, isFalse);
+    expect(
+        select(records,
+            identity: rawGame,
+            edition: EditionIdentity(id: 'e', gameId: 'g', tags: {'unknown'})),
+        isNull);
+    expect(
+        select(records,
+            identity: rawGame,
+            edition: EditionIdentity(id: 'e', gameId: 'g', tags: {'Hack'})),
+        isNull);
+  });
+
   test('accepted sourced overall drives both display and ranking', () {
     final selected = select(
         [record('screenscraper', 19), record('igdb', 81, votes: 100)],

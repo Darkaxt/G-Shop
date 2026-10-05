@@ -3,6 +3,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/services/library_store.dart';
@@ -58,6 +59,54 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   });
+
+  test('declared DVD CHD original identifiers match the real provider',
+      () async {
+    final samples = jsonDecode(values['RSHOP_LIVE_CHD_SAMPLES']!) as List;
+    expect(samples.length, greaterThanOrEqualTo(2));
+    final api = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(api.close);
+    for (final sample in samples.cast<Map<String, dynamic>>()) {
+      final platform = sample['platform'] as String;
+      expect({'psp', 'ps2'}, contains(platform));
+      final file = File(sample['path'] as String);
+      final reader = await file.open();
+      late Uint8List header;
+      try {
+        header = await reader.read(140);
+      } finally {
+        await reader.close();
+      }
+      final raw = MetadataRomIdentifier.fromChdDvdHeader(
+          header, file.uri.pathSegments.last);
+      expect(raw, isNotNull);
+      final result = await api.lookup(MetadataLookupRequest(
+          gameId: 'live-header-$platform',
+          editionId: 'live-header-edition-$platform',
+          platformId: platform,
+          // Deliberately not a title: the provider must match the raw identifier.
+          title: 'CHD identifier verification',
+          romIdentifier: raw,
+          contentTags: {'official'},
+          refreshGeneration: 1));
+      expect(result.status, MetadataLookupStatus.matched);
+      final evidence = raw!.sizeBytes > 0x7fffffff
+          ? 'rawRomSha1AndCappedSize'
+          : 'rawRomHashAndSize';
+      expect(result.candidates.single.evidence, evidence);
+      expect(result.record!.matchMethod, evidence);
+      expect(result.record!.descriptions, isNotEmpty);
+      expect(result.record!.media, isNotEmpty);
+    }
+  },
+      skip: developer.isConfigured &&
+              user.isConfigured &&
+              values.containsKey('RSHOP_LIVE_CHD_SAMPLES')
+          ? false
+          : 'Live CHD evidence samples were not explicitly configured.',
+      timeout: Timeout.none);
 
   test('normal controls live review publishes cached cover and screenshots',
       () async {

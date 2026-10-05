@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../models/library_identity.dart';
@@ -20,6 +22,45 @@ class MetadataRomIdentifier {
     this.md5,
     this.sha1,
   });
+
+  /// Read only the declared original ISO identity, not CHD/combined checksums.
+  /// This is lookup evidence, not an integrity check or installation claim.
+  /// MAME v5 layout: src/lib/util/chd.h. Unsupported layouts stay unresolved.
+  static MetadataRomIdentifier? fromChdDvdHeader(
+      Uint8List bytes, String containerName) {
+    if (bytes.length < 140 ||
+        !containerName.toLowerCase().endsWith('.chd') ||
+        containerName.length <= 4 ||
+        containerName.contains(RegExp(r'[/\\:\x00]')) ||
+        String.fromCharCodes(bytes.sublist(0, 8)) != 'MComprHD') {
+      return null;
+    }
+    final data = ByteData.sublistView(bytes);
+    final size = data.getUint64(32);
+    final hunk = data.getUint32(56);
+    if (data.getUint32(8) != 124 ||
+        data.getUint32(12) != 5 ||
+        data.getUint64(48) != 124 ||
+        data.getUint32(60) != 2048 ||
+        size <= 0 ||
+        size % 2048 != 0 ||
+        hunk == 0 ||
+        hunk > 512 * 1024 ||
+        hunk % 2048 != 0 ||
+        bytes.sublist(104, 124).any((v) => v != 0) ||
+        !bytes.sublist(64, 84).any((v) => v != 0) ||
+        String.fromCharCodes(bytes.sublist(124, 128)) != 'DVD ') {
+      return null;
+    }
+    return MetadataRomIdentifier(
+        kind: RomIdentifierKind.rawIso,
+        filename: '${containerName.substring(0, containerName.length - 4)}.iso',
+        sizeBytes: size,
+        sha1: bytes
+            .sublist(64, 84)
+            .map((v) => v.toRadixString(16).padLeft(2, '0'))
+            .join());
+  }
 
   Map<String, dynamic> toJson() => {
         'kind': kind.name,

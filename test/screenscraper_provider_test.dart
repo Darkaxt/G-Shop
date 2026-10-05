@@ -504,6 +504,90 @@ void main() {
     expect(rejected.status, MetadataLookupStatus.unmatched);
   });
 
+  test('large ISO SHA-1 match records the provider capped-size limitation',
+      () async {
+    final game = _game(system: '58');
+    (game['rom'] as Map).addAll(<String, String>{
+      'romsize': '2147483647',
+      'romsha1': 'b' * 40,
+    });
+    final wire = _Wire({
+      'response': {'jeu': game}
+    });
+    final api = _provider(wire);
+    addTearDown(api.close);
+    final result = await api.lookup(_request(
+        platform: 'ps2',
+        verifiedProviderGameId: null,
+        identifier: MetadataRomIdentifier(
+            kind: RomIdentifierKind.rawIso,
+            filename: 'Fixture.iso',
+            sizeBytes: 4440719360,
+            sha1: 'b' * 40)));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(result.record!.matchMethod, 'rawRomSha1AndCappedSize');
+    expect(result.candidates.single.evidence, 'rawRomSha1AndCappedSize');
+    expect(result.message, contains('size'));
+    expect(wire.requests.single.queryParameters['romtaille'], '4440719360');
+  });
+
+  test('capped size never excuses a weaker hash or conflicting evidence',
+      () async {
+    for (final failure in [
+      'crcOnly',
+      'md5Only',
+      'wrongSha1',
+      'wrongMd5',
+      'rawRom',
+      'wrongSize',
+      'smallIso',
+      'wrongPlatform',
+      'unknownTags',
+      'hack',
+      'zeroSha1'
+    ]) {
+      final game = _game(system: failure == 'wrongPlatform' ? '61' : '58');
+      (game['rom'] as Map).addAll(<String, String>{
+        'romsize': failure == 'wrongSize' ? '2147483646' : '2147483647',
+        'romsha1': failure == 'wrongSha1'
+            ? 'c' * 40
+            : failure == 'zeroSha1'
+                ? '0' * 40
+                : 'b' * 40,
+        'rommd5': failure == 'wrongMd5' ? 'c' * 32 : 'a' * 32,
+        'hack': failure == 'hack' ? '1' : '0',
+      });
+      final api = _provider(_Wire({
+        'response': {'jeu': game}
+      }));
+      addTearDown(api.close);
+      final result = await api.lookup(_request(
+          platform: 'ps2',
+          verifiedProviderGameId: null,
+          tags: failure == 'unknownTags' ? {} : {'official'},
+          identifier: MetadataRomIdentifier(
+              kind: failure == 'rawRom'
+                  ? RomIdentifierKind.rawRom
+                  : RomIdentifierKind.rawIso,
+              filename: 'Fixture.iso',
+              sizeBytes: failure == 'smallIso' ? 1024 : 4440719360,
+              crc32: failure == 'crcOnly' ? 'ABCDEF12' : null,
+              md5: {'md5Only', 'wrongMd5'}.contains(failure) ? 'a' * 32 : null,
+              sha1: {'crcOnly', 'md5Only'}.contains(failure)
+                  ? null
+                  : failure == 'zeroSha1'
+                      ? '0' * 40
+                      : 'b' * 40)));
+      expect(result.record, isNull, reason: failure);
+      expect(
+          result.status,
+          {'unknownTags', 'hack'}.contains(failure)
+              ? MetadataLookupStatus.needsReview
+              : MetadataLookupStatus.unmatched,
+          reason: failure);
+    }
+  });
+
   test('reviewed game ID cannot override supplied raw release evidence',
       () async {
     final raw = MetadataRomIdentifier(

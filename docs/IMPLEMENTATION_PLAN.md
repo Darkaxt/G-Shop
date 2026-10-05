@@ -751,6 +751,14 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   and does not waive identity, ranking or migration acceptance criteria.
   Establish defensible Top-25 retention per console; no fabricated scores or
   automatic deletion of unresolved games. Count canonical games, retain bundles.
+- Resolve shared matching defects rather than curate individual games. The
+  supported DVD CHD original-identifier parser and observed ScreenScraper ISO
+  size cap are bounded S7 work, not a new stage. Verify header -> live adapter
+  and adapter -> persistent job -> grouping/advisory query independently.
+  Automatic collection binding remains unfinished until the actual normal
+  workflow persists exact version-bound evidence without full-ROM downloads,
+  guessed official tags or weakened migration checks. No header declaration
+  substitutes for download/cloud integrity or reliable Top acceptance.
 - Prove Drive restoration on the Thor, inventory exact SD files and cloud
   IDs/version/digests, and build a private keep/remove/preserve manifest.
 - Preserve saves/BIOS/settings, uncertain paths and files without identical

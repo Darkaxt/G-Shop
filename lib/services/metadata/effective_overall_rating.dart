@@ -250,7 +250,8 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
             (record.matchMethod == 'verifiedProviderId' ||
                 record.matchMethod == 'verifiedProviderIdGlobalGame')) ||
         (record.providerId == 'screenscraper' &&
-            record.matchMethod == 'rawRomHashAndSize')) {
+            {'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
+                .contains(record.matchMethod))) {
       return OverallRatingOwnership.game;
     }
     return null;

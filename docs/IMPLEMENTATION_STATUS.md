@@ -5,6 +5,42 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 shared original-ISO identification — 2026-10-06
+
+- Individual-entry curation remains stopped. A bounded parser accepts the
+  supported DVD CHD v5 layout from 140 bytes and extracts its declared original
+  ISO SHA-1/logical size. It ignores the combined checksum and rejects CD,
+  parent-dependent, malformed and unsupported layouts. This declaration is not
+  verification of archive integrity. Reference: MAME `src/lib/util/chd.h`.
+- A real PSP lookup succeeded with its original hash/size. A large PS2 lookup
+  initially failed because the real provider returned `romsize=2147483647`
+  despite the matching original SHA-1. Two large PS2 samples independently
+  reproduced that cap; API documentation does not promise this behavior.
+  The adapter now isolates that exact raw-ISO/nonzero-SHA-1 case as
+  `rawRomSha1AndCappedSize`, keeping the true requested size. Other supplied
+  hashes, platform and release evidence must agree. CRC/MD5-only, zero/wrong
+  SHA-1, other bad sizes and non-ISO requests cannot use the exception.
+- The positive cap regression failed before correction. Focused parser/provider,
+  score ownership and real SQLite worker/grouping/query checks passed after it.
+  Two exact editions group as one game and display a sourced advisory score;
+  they acquire no rank. Unknown/modified classifications remain unaccepted.
+  Scoped analysis reports no issues. The opt-in real-provider test passed for
+  four existing host CHDs: PSP, a smaller PS2 ISO and two large PS2 ISOs, reading
+  only 140 header bytes each. It returned description/media facts by hash with
+  a deliberately non-game search title. No images or full ISO were downloaded.
+- **Still unfinished:** automatic extraction/persistence bound to the normal
+  current collection's exact artifacts and versions, then broad fresh metadata,
+  defensible ranking, restore proof and reviewed migration. The parser/live
+  lookup is not native automatic scraping or whole-collection acceptance.
+  S7 remains the sole ACTIVE stage; S8/S9/S10 remain NOT STARTED.
+- Normal default-account connection and Refresh resumed the same pending
+  collection generation after interactionRequired was observed. Its subsequent
+  read-only observation advanced from 66,984 to 69,114 entries, 10,283 folders
+  and 5,027 pending folders, still unpublished. The existing configuration hash
+  remains unchanged. No duplicate worker, ROM removal, cloud mutation, APK
+  install, Gradle build, FolderSync action or release occurred. Both physical
+  displays were confirmed OFF.
+
 ### S7 regional metadata correction — 2026-10-06
 
 - The normal exact-game PS1 workflow now has real single-unverified-candidate

@@ -377,7 +377,8 @@ class ScreenScraperProvider
             id != request.verifiedProviderGameId) {
           continue;
         }
-        if (!byId && raw != null && !_matchesIdentifier(game, raw)) {
+        final rawEvidence = raw == null ? null : _identifierEvidence(game, raw);
+        if (!byId && raw != null && rawEvidence == null) {
           continue;
         }
         if (!_compatibleRelease(game, request)) {
@@ -408,7 +409,7 @@ class ScreenScraperProvider
             evidence: byId
                 ? 'verifiedProviderId'
                 : raw != null
-                    ? 'rawRomHashAndSize'
+                    ? rawEvidence!
                     : titleMatched
                         ? 'platformAndTitle'
                         : 'providerTitleCandidate'));
@@ -443,7 +444,10 @@ class ScreenScraperProvider
           record: record,
           candidates: candidates,
           quota: quota,
-          message: 'Metadata matched; rating confidence is unassessed.');
+          message: candidates.single.evidence == 'rawRomSha1AndCappedSize'
+              ? 'Metadata matched by original ISO SHA-1; provider size is capped. '
+                  'This is not file-integrity verification; rating confidence is unassessed.'
+              : 'Metadata matched; rating confidence is unassessed.');
     } catch (error) {
       return _safeFailure(error, cancelToken);
     }
@@ -693,20 +697,32 @@ class ScreenScraperProvider
             RegExp('^[0-9a-fA-F]{${entry.key}}\$').hasMatch(entry.value!));
   }
 
-  static bool _matchesIdentifier(
+  static String? _identifierEvidence(
       Map<String, dynamic> game, MetadataRomIdentifier identifier) {
     final rom = _rom(game);
-    if (rom == null ||
-        _nonnegativeInt(rom['romsize']) != identifier.sizeBytes) {
-      return false;
-    }
-    return {
+    if (rom == null) return null;
+    final hashesMatch = {
       'romcrc': identifier.crc32,
       'rommd5': identifier.md5,
       'romsha1': identifier.sha1
     }.entries.every((entry) =>
         entry.value == null ||
         _text(rom[entry.key])?.toLowerCase() == entry.value!.toLowerCase());
+    if (!hashesMatch) return null;
+    final size = _nonnegativeInt(rom['romsize']);
+    if (size == identifier.sizeBytes) return 'rawRomHashAndSize';
+    // Live API v2 observations for large original DVDs return INT32_MAX even
+    // with the exact original SHA-1. Preserve the actual requested size and
+    // report this limitation distinctly; never relax transport verification.
+    const cappedSize = 0x7fffffff;
+    if (identifier.kind == RomIdentifierKind.rawIso &&
+        identifier.sizeBytes > cappedSize &&
+        size == cappedSize &&
+        identifier.sha1 != null &&
+        !RegExp(r'^0+$').hasMatch(identifier.sha1!)) {
+      return 'rawRomSha1AndCappedSize';
+    }
+    return null;
   }
 
   static bool _compatibleRelease(

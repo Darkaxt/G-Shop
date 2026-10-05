@@ -9,6 +9,20 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Shared-identification checkpoint (2026-10-06): the supported DVD CHD header
+parser and live PSP/PS2 original-ISO lookup path are verified without decoding
+ROMs or using container checksums. ScreenScraper's observed large-ISO size cap
+is recorded distinctly; exact supplied hashes/platform/release and existing
+ownership/reception/integrity gates remain enforced. Real SQLite worker tests
+verify publication, canonical grouping and unranked advisory query behavior.
+The four-sample real-provider lookup is host evidence, not native automatic
+collection binding. That binding and broad match/ranking/migration acceptance
+remain ordinary unfinished S7 work, with no later stage opened. The same native
+collection generation was observed advancing to 69,114 entries / 10,283 folders
+/ 5,027 pending folders, still unpublished; source settings remain unchanged.
+Both displays are OFF. No ROM removal, cloud write, FolderSync change or build
+was performed at this checkpoint.
+
 Current 2026-10-06 update: normal native feedback has now demonstrated ambiguous,
 matched and single-unverified-candidate cover outcomes and actual provider quota
 with observation time. Ape Escape's reviewed identity populated description,

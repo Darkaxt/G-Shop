@@ -233,7 +233,8 @@ class LibraryStore {
             final ownership = metadataOverallOwnership(
                 game, edition, record, bases[game.baseGameId]);
             if (provider == 'screenscraper' &&
-                record.matchMethod == 'rawRomHashAndSize' &&
+                {'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
+                    .contains(record.matchMethod) &&
                 ownership == OverallRatingOwnership.game) {
               claims.add(jsonEncode([
                 'provider-game',
@@ -928,7 +929,11 @@ class LibraryStore {
             'record_json': jsonEncode(record.toJson()),
           },
           conflictAlgorithm: ConflictAlgorithm.replace);
-      const groupingMethods = {'rawRomHashAndSize', 'verifiedProjectId'};
+      const groupingMethods = {
+        'rawRomHashAndSize',
+        'rawRomSha1AndCappedSize',
+        'verifiedProjectId'
+      };
       final previousMethod = previous.isEmpty
           ? null
           : (jsonDecode(previous.single['record_json'] as String)

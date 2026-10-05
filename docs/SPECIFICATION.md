@@ -331,6 +331,20 @@ Acceptance: ordinary releases, punctuation/localization variants, wrong-platform
 matches, container hashes, conversion/rename and conflicting candidates; false
 matches are rejected and correction survives re-scraping.
 
+S7 identification detail (2026-10-06): a supported DVD CHD v5 header can supply
+its declared original ISO SHA-1 and logical size, never the container or combined
+metadata checksum. Treat this as lookup evidence, not validation of the CHD body.
+Unsupported/CD/parent-dependent layouts remain unresolved. The shared provider
+must retain the actual requested ISO size. Live API v2 responses for two large
+PS2 DVDs returned an exact original SHA-1 but capped `romsize` at 2,147,483,647;
+this is observed wire behavior, not a documented provider guarantee. Only a
+raw-ISO request larger than that boundary with an exact nonzero SHA-1 and every
+other supplied hash agreeing can record `rawRomSha1AndCappedSize`. It must not
+claim exact size verification. Other size/hash/platform conflicts still fail;
+classification, patch ownership, reception, transfer and migration gates remain
+unchanged. This does not authorize downloading every remote ROM or replacing
+strict cloud/local integrity checks with a CHD header declaration.
+
 ### META-04 — Hacks, translations and score ownership
 
 Support distinct content tags for `Hack`, `T-Eng`, `Dub`, `Undub`, `Uncensor`,

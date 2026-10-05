@@ -96,7 +96,7 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
               where: 'edition_id = ?', whereArgs: [id]))
           .single['group_key'] as String;
 
-  Future<List<String>> catalogue() async {
+  Future<List<String>> catalogue({String platform = 'snes'}) async {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
       systemSlug TEXT, displayName TEXT, artifact_key TEXT, remote_artifact TEXT,
@@ -104,88 +104,92 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
     await LibraryQuery.install(db);
     for (final n in [1, 2]) {
       await db.insert('games',
-          {'id': n, 'systemSlug': 'snes', 'displayName': 'Fixture $n'});
+          {'id': n, 'systemSlug': platform, 'displayName': 'Fixture $n'});
     }
     return db
         .transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
   }
 
-  test(
-      'normal raw lookup worker publishes one canonical game with exact editions',
-      () async {
-    final ids = await catalogue();
-    final identifier = MetadataRomIdentifier(
-        kind: RomIdentifierKind.rawRom,
-        filename: 'Fixture.sfc',
-        sizeBytes: 1024,
-        sha1: 'a' * 40);
-    for (final id in ids) {
-      final edition = (await store.edition(id))!;
-      await store.putEdition(EditionIdentity.fromJson({
-        ...edition.toJson(),
-        'tags': ['official'],
-        'evidence': [
-          ...edition.evidence.map((e) => e.toJson()),
-          IdentityEvidence(
-                  source: 'manual',
-                  kind: 'rawRomIdentifier',
-                  value: jsonEncode(identifier.toJson()))
-              .toJson()
-        ]
-      }));
-    }
-    final jobs = MetadataRefreshJobs(Future.value(db));
-    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
-    final requests = await db.query('metadata_refresh_items',
-        where: 'job_id = ?', whereArgs: [job.id]);
-    expect(
-        requests.map(
-            (r) => jsonDecode(r['request_json'] as String)['romIdentifier']),
-        everyElement(identifier.toJson()));
-    final wire = _Wire({
-      'response': {
-        'jeu': {
-          'id': '42',
-          'systeme': {'id': '4'},
-          'noms': [
-            {'region': 'us', 'text': 'Fixture'}
-          ],
-          'note': {'text': '17'},
-          'rom': {
-            'romfilename': 'Fixture.sfc',
-            'romsize': '1024',
-            'romsha1': 'a' * 40,
-            'hack': '0',
-            'trad': '0'
+  for (final capped in [false, true]) {
+    test(
+        'normal raw lookup worker publishes one canonical game with exact editions${capped ? ' and capped size' : ''}',
+        () async {
+      final ids = await catalogue(platform: capped ? 'ps2' : 'snes');
+      final identifier = MetadataRomIdentifier(
+          kind: capped ? RomIdentifierKind.rawIso : RomIdentifierKind.rawRom,
+          filename: capped ? 'Fixture.iso' : 'Fixture.sfc',
+          sizeBytes: capped ? 4440719360 : 1024,
+          sha1: 'a' * 40);
+      for (final id in ids) {
+        final edition = (await store.edition(id))!;
+        await store.putEdition(EditionIdentity.fromJson({
+          ...edition.toJson(),
+          'tags': ['official'],
+          'evidence': [
+            ...edition.evidence.map((e) => e.toJson()),
+            IdentityEvidence(
+                    source: 'manual',
+                    kind: 'rawRomIdentifier',
+                    value: jsonEncode(identifier.toJson()))
+                .toJson()
+          ]
+        }));
+      }
+      final jobs = MetadataRefreshJobs(Future.value(db));
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final requests = await db.query('metadata_refresh_items',
+          where: 'job_id = ?', whereArgs: [job.id]);
+      expect(
+          requests.map(
+              (r) => jsonDecode(r['request_json'] as String)['romIdentifier']),
+          everyElement(identifier.toJson()));
+      final wire = _Wire({
+        'response': {
+          'jeu': {
+            'id': '42',
+            'systeme': {'id': capped ? '58' : '4'},
+            'noms': [
+              {'region': 'us', 'text': 'Fixture'}
+            ],
+            'note': {'text': '17'},
+            'rom': {
+              'romfilename': identifier.filename,
+              'romsize': capped ? '2147483647' : '1024',
+              'romsha1': 'a' * 40,
+              'hack': '0',
+              'trad': '0'
+            }
           }
         }
-      }
+      });
+      final api = ScreenScraperProvider(
+          httpClientAdapter: wire,
+          readDeveloperCredentials: () async =>
+              const ScreenScraperDeveloperCredentials(
+                  developerId: 'fixture-dev',
+                  developerPassword: 'fixture-secret',
+                  softwareName: 'fixture'),
+          readUserCredentials: () async => const ScreenScraperUserCredentials(
+              username: 'fixture-user', password: 'fixture-secret'));
+      addTearDown(api.close);
+      final result = await jobs.run(job.id, api);
+      expect(result.state, 'completed');
+      expect(result.counts, {'matched': 2});
+      expect(wire.requests, hasLength(2));
+      expect(wire.requests.map((r) => r.uri.path),
+          everyElement('/api2/jeuInfos.php'));
+      expect(await key(ids.first), await key(ids.last));
+      final page = await LibraryQuery(Future.value(db))
+          .page(filter: LibraryQueryFilter());
+      expect(page.collectionGames, 1);
+      expect(page.items.single.score!.rating.normalizedValue, 85);
+      expect(page.items.single.rank, isNull,
+          reason: 'A raw identity match does not approve reception consensus.');
+      expect((await store.canonicalEditions(ids.first)).editions, hasLength(2));
+      expect((await store.metadata(ids.first, 'screenscraper'))!.matchMethod,
+          capped ? 'rawRomSha1AndCappedSize' : 'rawRomHashAndSize');
     });
-    final api = ScreenScraperProvider(
-        httpClientAdapter: wire,
-        readDeveloperCredentials: () async =>
-            const ScreenScraperDeveloperCredentials(
-                developerId: 'fixture-dev',
-                developerPassword: 'fixture-secret',
-                softwareName: 'fixture'),
-        readUserCredentials: () async => const ScreenScraperUserCredentials(
-            username: 'fixture-user', password: 'fixture-secret'));
-    addTearDown(api.close);
-    final result = await jobs.run(job.id, api);
-    expect(result.state, 'completed');
-    expect(result.counts, {'matched': 2});
-    expect(wire.requests, hasLength(2));
-    expect(wire.requests.map((r) => r.uri.path),
-        everyElement('/api2/jeuInfos.php'));
-    expect(await key(ids.first), await key(ids.last));
-    final page =
-        await LibraryQuery(Future.value(db)).page(filter: LibraryQueryFilter());
-    expect(page.collectionGames, 1);
-    expect(page.items.single.score!.rating.normalizedValue, 85);
-    expect(page.items.single.rank, isNull,
-        reason: 'A raw identity match does not approve reception consensus.');
-    expect((await store.canonicalEditions(ids.first)).editions, hasLength(2));
-  });
+  }
 
   test('reviewed raw revision survives worker rejection and fresh re-scrape',
       () async {
