@@ -115,3 +115,58 @@ above are ordinary unfinished work, not grounds to open S8.
   exact expendable UI dump was removed. The private journal remains available
   for the required migration review. No Gradle command, SD removal, app-data
   clearing or external publication occurred.
+
+## Published source classification — 2026-10-05
+
+- Reproduced the missing folder facts in a test before implementation. Catalogue
+  capture now follows actual published Drive parent IDs in the exact source/account
+  generation, rather than splitting a display path or guessing from filenames.
+  Explicit Hack, T-Eng, Dub, Undub and Uncensor declarations can overlap. General
+  Translations does not imply English. Ordinary English releases remain unknown.
+  Generated facts have source-folder provenance; manual corrections and unchanged
+  identity bindings are preserved. Moving an artifact changes only owned facts.
+- Focused catalogue/query/identity/grouping/migration regression verification
+  passed. The final opaque encoded scope regression and scoped Dart analysis also
+  passed. No full-suite run or additional test worker was needed.
+- The first normal native refresh failed before creating a job. Android's actual
+  SQLite log established `no such function: json_extract`; host SQLite tests had
+  not demonstrated that native extension. The query was replaced with exact
+  bound JSON-tuple-prefix matching using core SQLite `substr` and `length`.
+  Escaped quotes, Unicode and similar-but-different accounts have regression
+  coverage. This failed native attempt is not recorded as a passing gate.
+- The corrected normal APK installed in place with its existing package/signing
+  identity. Cold startup reached Home in 2675 ms; controller navigation opened the
+  real 585-artifact Library. The reported logo hang was not reproduced and no
+  speculative startup patch was made. Existing configuration and secure credential
+  fingerprints remained unchanged; no uninstall, clearing or secret re-entry was
+  performed. Post-launch metadata/database and filter preferences changed normally;
+  regenerable thumbnail cache differences are not claimed as exact preservation.
+- A single normal PSP Fresh re-scrape created job 15 and captured all 269 requests.
+  Native Library PSP scope plus T-Eng reported 96 matching artifacts, with zero
+  trusted ranked games, and rendered real PSP translation entries. The unfiltered
+  Library view was restored afterward. Folder evidence does not approve a provider
+  match, classify patch archives as games, or authorize removal.
+- The same native job 15 completed: 269 requested, 144 needing review, 35
+  ambiguous, 90 unmatched, zero matched/rated, failed/unsupported or pending.
+  Its follow-on artwork job 16 completed with zero requests. The idle database
+  passed quick_check; all 96 T-Eng facts are present in the captured provider
+  requests, with no active metadata or transfer worker. Configuration still
+  matches its pre-update fingerprint. A live host copy made during writes was
+  inconsistent and was discarded, not treated as production corruption or
+  repaired; subsequent idle inspection is the applicable database evidence.
+- After job completion, normal cold startup took 1975 ms and controller Left/A
+  opened the unfiltered 585-artifact Library. No current-owner fatal, JSON1 or
+  unhandled exception appeared in the inspected native log. Both physical
+  displays were confirmed OFF. The exact task-owned UI XML was removed; the
+  current normal APK and required diagnostic evidence are retained.
+- Build tickets 146 and 147 acquired `Local\Darka.AndroidGradleBuildGate` and held
+  it through exit zero. Observed settings: workers 2, parallel false, Gradle heap
+  3 GiB; Kotlin 2.2.20 in-process shares that heap. Tests were configured for one
+  fork/512 MiB but not executed by these builds; app native pool was one. Plugin
+  native tasks were up-to-date, so fresh full-plugin concurrency is not claimed.
+  No memory failure, budget increase or interruption of another build occurred.
+  Corrected APK SHA-256:
+  `0e002253682c049711713b231b89b611fbd42a70e564ce3b518eb7d35016c2f3`.
+- S7 remains ACTIVE. Whole-SD mappings, reviewed eligible membership, defensible
+  per-console retention and live cloud/restore verification remain unsatisfied.
+  No ROM has been moved, deleted or adopted by this change.

@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../models/library_identity.dart';
 import '../models/scraped_metadata.dart';
+import 'drive/drive_api.dart';
 import 'metadata/effective_overall_rating.dart';
 
 /// Additive v14 schema. Legacy file-keyed cache and anonymous ratings remain
@@ -437,6 +438,10 @@ class LibraryStore {
   /// name is a search hint, never evidence for merging projects or rating them.
   static Stream<String> catalogueEditions(DatabaseExecutor db,
       {String? systemSlug, int? cacheRowId}) async* {
+    final hasDriveCatalogue = (await db.query('sqlite_master',
+            columns: ['name'],
+            where: "type='table' AND name='drive_catalogue_entries'"))
+        .isNotEmpty;
     var cursor = 0;
     while (true) {
       final rows = await db.query('games',
@@ -499,7 +504,16 @@ class LibraryStore {
               )
             : EditionIdentity.fromJson(
                 jsonDecode(existingEdition.single['record_json'] as String));
+        var classificationChanged = false;
         if (artifact != null) {
+          if (hasDriveCatalogue &&
+              game.matchStatus != IdentityMatchStatus.manuallyMatched) {
+            final classified =
+                await _classifyCatalogueFolders(db, artifact, edition);
+            classificationChanged =
+                jsonEncode(classified.toJson()) != jsonEncode(edition.toJson());
+            edition = classified;
+          }
           final marker = _artifactContentMarker(artifact);
           final previousMarkers = edition.evidence.where(
               (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
@@ -551,12 +565,11 @@ class LibraryStore {
         final editionRow = <String, Object?>{
           'edition_id': edition.id,
           'game_id': edition.gameId,
-          // Catalogue capture updates artifact evidence, not reviewed tag
-          // facts. Preserve old spellings in their identity binding; reading
-          // canonical aliases must not invalidate metadata or queued work.
+          // Preserve reviewed/unchanged raw aliases. Only an actual change to
+          // this capture's own source-folder facts writes new generated tags.
           'record_json': jsonEncode({
             ...edition.toJson(),
-            if (existingEdition.isNotEmpty)
+            if (existingEdition.isNotEmpty && !classificationChanged)
               'tags': jsonDecode(
                   existingEdition.single['record_json'] as String)['tags'],
           }),
@@ -586,6 +599,142 @@ class LibraryStore {
       if (rows.length < 128) break;
       cursor = rows.last['id'] as int;
     }
+  }
+
+  /// Folder declarations are catalogue evidence, not provider matches or proof
+  /// of a patch's quality. Follow actual published parent IDs: a Drive name may
+  /// contain '/', so splitting displayPath would invent classification facts.
+  static Future<EditionIdentity> _classifyCatalogueFolders(DatabaseExecutor db,
+      RemoteArtifact artifact, EditionIdentity edition) async {
+    if (artifact.id.providerId != 'drive' ||
+        artifact.id.accountId == null ||
+        artifact.parentId == null ||
+        edition.evidence.any(
+            (e) => e.source == 'manual' && e.kind == 'contentClassification')) {
+      return edition;
+    }
+    bool owned(IdentityEvidence e) =>
+        e.source == 'catalogue' && e.kind == 'sourceFolderClassification';
+    final previous = edition.evidence.where(owned).toList();
+    if (previous.isEmpty &&
+        (edition.tags.isNotEmpty ||
+            edition.isTranslation != null ||
+            edition.translatedLanguages.isNotEmpty)) {
+      return edition; // Existing explicitly assigned facts are not ours to replace.
+    }
+    if (previous.isNotEmpty) {
+      final facts = jsonDecode(previous.single.value) as Map<String, dynamic>;
+      if (jsonEncode(facts['tags']) != jsonEncode(edition.toJson()['tags']) ||
+          facts['isTranslation'] != edition.isTranslation ||
+          jsonEncode(facts['translatedLanguages']) !=
+              jsonEncode(edition.translatedLanguages)) {
+        return edition;
+      }
+    }
+    // Scope is the catalogue's JSON-encoded [source, account, root] tuple.
+    // Match its exact first two elements and comma boundary, without JSON1:
+    // the target Android SQLite build does not provide json_extract.
+    final encodedScope =
+        jsonEncode([artifact.id.sourceId, artifact.id.accountId]);
+    final scopePrefix =
+        '${encodedScope.substring(0, encodedScope.length - 1)},';
+    final files = await db.rawQuery('''SELECT e.* FROM drive_catalogue_entries e
+      JOIN drive_catalogue_state s ON s.scope=e.scope AND s.active=e.generation
+      WHERE e.file_id=? AND e.is_folder=0
+      AND substr(e.scope, 1, length(?))=?
+      LIMIT 2''', [
+      artifact.id.providerFileId,
+      scopePrefix,
+      scopePrefix,
+    ]);
+    if (files.length != 1 || files.single['parent_id'] != artifact.parentId) {
+      return edition;
+    }
+    final fileRow = files.single;
+    final file =
+        DriveFile.fromJson(jsonDecode(fileRow['record_json'] as String));
+    final published = file.artifact(
+        sourceId: artifact.id.sourceId,
+        accountId: artifact.id.accountId!,
+        displayPath: artifact.displayPath);
+    if (file.id != artifact.id.providerFileId ||
+        file.parents.length != 1 ||
+        file.parents.single != artifact.parentId ||
+        !file.isSupportedBinary ||
+        _artifactContentMarker(published) != _artifactContentMarker(artifact)) {
+      return edition;
+    }
+    final tags = <String>{};
+    bool? translation;
+    final languages = <String>[];
+    final declarations = <Map<String, String>>[];
+    final visited = <String>{};
+    var parent = artifact.parentId;
+    while (parent != null) {
+      if (!visited.add(parent)) return edition;
+      final folders = await db.query('drive_catalogue_entries',
+          where: 'scope=? AND generation=? AND file_id=? AND is_folder=1',
+          whereArgs: [fileRow['scope'], fileRow['generation'], parent],
+          limit: 1);
+      if (folders.isEmpty) return edition;
+      final folderRow = folders.single;
+      final folder =
+          DriveFile.fromJson(jsonDecode(folderRow['record_json'] as String));
+      final nextParent = folderRow['parent_id'] as String?;
+      if (folder.id != parent ||
+          !folder.isFolder ||
+          (nextParent != null &&
+              (folder.parents.length != 1 ||
+                  folder.parents.single != nextParent))) {
+        return edition;
+      }
+      final label = folder.name.trim().toLowerCase();
+      final canonical = EditionIdentity.normalizeContentTags([label]).single;
+      final tag = label == 'hacks' ? 'Hack' : canonical;
+      if ({'Hack', 'T-Eng', 'Dub', 'Undub', 'Uncensor', 'homebrew', 'demo'}
+          .contains(tag)) {
+        tags.add(tag);
+        declarations.add({'folderId': parent, 'label': folder.name});
+        if (tag == 'T-Eng') {
+          translation = true;
+          if (languages.isEmpty) languages.add('en');
+        }
+      } else if (label == 'translations') {
+        translation = true;
+        declarations.add({'folderId': parent, 'label': folder.name});
+      }
+      parent = nextParent;
+      if (parent == null &&
+          folder.id != (jsonDecode(fileRow['scope'] as String) as List)[2]) {
+        return edition;
+      }
+    }
+    if (declarations.isEmpty && previous.isEmpty) return edition;
+    final evidence = edition.evidence
+        .where((e) => !owned(e))
+        .map((e) => e.toJson())
+        .toList();
+    if (declarations.isNotEmpty) {
+      evidence.add(IdentityEvidence(
+          source: 'catalogue',
+          kind: 'sourceFolderClassification',
+          value: jsonEncode({
+            'artifactId': artifact.id.key,
+            'folders': declarations,
+            'tags': tags.toList()..sort(),
+            'isTranslation': translation,
+            'translatedLanguages': languages
+          })).toJson());
+    }
+    final record = {
+      ...edition.toJson(),
+      'tags': tags.toList()..sort(),
+      'translatedLanguages': languages,
+      'evidence': evidence
+    };
+    record.remove('isTranslation');
+    if (translation != null) record['isTranslation'] = translation;
+    return EditionIdentity.fromJson(record);
   }
 
   static String _catalogueSuffix(

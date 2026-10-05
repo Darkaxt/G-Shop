@@ -6,6 +6,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
+import 'package:retro_eshop/services/drive/drive_catalogue.dart';
+import 'package:retro_eshop/services/drive/drive_api.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
@@ -103,6 +105,319 @@ void main() {
   Future<List<Map<String, Object?>>> items(int job) =>
       db.query('metadata_refresh_items',
           where: 'job_id = ?', whereArgs: [job], orderBy: 'edition_id');
+
+  Future<RemoteArtifact> inFolder(String path, {List<String>? folders}) async {
+    await DriveCatalogueSchema.install(db);
+    const scope = '["source","account","root-folder"]';
+    await db.insert(
+        'drive_catalogue_state',
+        {
+          'scope': scope,
+          'active': 1,
+          'next_generation': 2,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.delete('drive_catalogue_entries',
+        where: 'scope = ?', whereArgs: [scope]);
+    final labels = folders ?? (path.split('/')..removeLast());
+    String? parent;
+    for (var i = 0; i < labels.length; i++) {
+      final id = i == 0 ? 'root-folder' : 'folder-$i';
+      final folder = DriveFile(
+          id: id,
+          name: labels[i],
+          mimeType: DriveFile.folderMime,
+          parents: [if (parent != null) parent]);
+      await db.insert('drive_catalogue_entries', {
+        'scope': scope,
+        'generation': 1,
+        'file_id': id,
+        'parent_id': parent,
+        'display_path': labels.take(i + 1).join('/'),
+        'is_folder': 1,
+        'record_json': jsonEncode(folder.toJson()),
+      });
+      parent = id;
+    }
+    final file = DriveFile(
+        id: 'classified-file',
+        name: 'Game.chd',
+        mimeType: 'application/octet-stream',
+        parents: [parent!],
+        sizeBytes: 100,
+        version: '1',
+        checksums: {'md5': 'a' * 32});
+    await db.insert('drive_catalogue_entries', {
+      'scope': scope,
+      'generation': 1,
+      'file_id': file.id,
+      'parent_id': parent,
+      'display_path': path,
+      'is_folder': 0,
+      'record_json': jsonEncode(file.toJson()),
+    });
+    return file.artifact(
+        sourceId: 'source', accountId: 'account', displayPath: path);
+  }
+
+  test(
+      'catalogue folder classification carries declared overlapping tags into lookup',
+      () async {
+    await LibraryQuery.install(db);
+    await cache('psp', 'Game (Japan).chd',
+        artifact: await inFolder(
+            'Sony - PlayStation Portable/T-En/Undub/Uncensor/Game (Japan).chd'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final row = (await items(job.id)).single;
+    final request = jsonDecode(row['request_json'] as String);
+    final edition = (await store.edition(row['edition_id'] as String))!;
+    expect(request['contentTags'],
+        unorderedEquals(['T-Eng', 'Undub', 'Uncensor']));
+    expect(request['verifiedProviderGameId'], isNull);
+    expect(request['romIdentifier'], isNull);
+    expect(edition.isTranslation, true);
+    expect(edition.translatedLanguages, ['en']);
+    expect(
+        edition.evidence.any((e) =>
+            e.source == 'catalogue' && e.kind == 'sourceFolderClassification'),
+        true);
+    expect((await store.game(edition.gameId))!.matchStatus,
+        IdentityMatchStatus.unmatched);
+    final query = await LibraryQuery(Future.value(db)).page(
+        filter: LibraryQueryFilter(
+            tags: {'T-Eng', 'Undub', 'Uncensor'}, matchAllTags: true));
+    expect(query.items.single.editionId, edition.id);
+    expect(query.rankedGames, 0);
+  });
+
+  test(
+      'catalogue folder classification does not guess ordinary or filename tags',
+      () async {
+    for (final path in [
+      'Sony - PlayStation Portable/Game (USA) (En).chd',
+      'Sony - PlayStation Portable/Not T-En/Game.chd',
+      'Sony - PlayStation Portable/Game T-En.chd',
+    ]) {
+      await db.delete('games');
+      await cache('psp', 'Game.chd', artifact: await inFolder(path));
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final row = (await items(job.id)).single;
+      final request = jsonDecode(row['request_json'] as String);
+      expect(request['contentTags'], isEmpty);
+      expect((await store.edition(row['edition_id'] as String))!.isTranslation,
+          isNull);
+    }
+  });
+
+  test(
+      'catalogue folder classification does not assume translations are English',
+      () async {
+    await cache('psp', 'Game.chd',
+        artifact: await inFolder(
+            'Sony - PlayStation Portable/Translations/Game.chd'));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final row = (await items(job.id)).single;
+    final edition = (await store.edition(row['edition_id'] as String))!;
+    expect(edition.tags, isEmpty);
+    expect(edition.isTranslation, true);
+    expect(edition.translatedLanguages, isEmpty);
+  });
+
+  test('catalogue folder classification updates owned evidence after a move',
+      () async {
+    final id = await cache('psp', 'Game.chd',
+        artifact: await inFolder('Sony - PlayStation Portable/T-En/Game.chd'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(first.id)).single['edition_id'] as String;
+    expect((await store.edition(editionId))!.tags, {'T-Eng'});
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode(
+              (await inFolder('Sony - PlayStation Portable/Undub/Game.chd'))
+                  .toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
+    final moved = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await items(moved.id)).single['edition_id'], editionId);
+    final edition = (await store.edition(editionId))!;
+    expect(edition.tags, {'Undub'});
+    expect(edition.isTranslation, isNull);
+    expect(edition.translatedLanguages, isEmpty);
+  });
+
+  test(
+      'catalogue folder classification preserves reviewed corrections and raw aliases',
+      () async {
+    final id = await cache('psp', 'Game.chd',
+        artifact: await inFolder('Sony - PlayStation Portable/T-En/Game.chd'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(first.id)).single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    final corrected = {
+      ...edition.toJson(),
+      'tags': ['Dubbed'],
+      'isTranslation': false,
+      'translatedLanguages': <String>[],
+      'evidence': [
+        IdentityEvidence(
+                source: 'manual',
+                kind: 'contentClassification',
+                value: '["Dub"]')
+            .toJson()
+      ]
+    };
+    await db.update('library_editions', {'record_json': jsonEncode(corrected)},
+        where: 'edition_id = ?', whereArgs: [editionId]);
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode((await inFolder(
+                  'Sony - PlayStation Portable/Hacks/Undub/Game.chd'))
+              .toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final stored = (await db.query('library_editions',
+            where: 'edition_id = ?', whereArgs: [editionId]))
+        .single;
+    final after = jsonDecode(stored['record_json'] as String);
+    expect(after['tags'], ['Dubbed']);
+    expect(after['isTranslation'], false);
+    expect(after['translatedLanguages'], isEmpty);
+  });
+
+  test('catalogue folder classification does not split a Drive folder name',
+      () async {
+    await cache('psp', 'Game.chd',
+        artifact: await inFolder(
+            'Sony - PlayStation Portable/Not/T-En/Game.chd',
+            folders: ['Sony - PlayStation Portable', 'Not/T-En']));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(job.id)).single['edition_id'] as String;
+    expect((await store.edition(editionId))!.tags, isEmpty);
+  });
+
+  test(
+      'catalogue folder classification clears only its own facts outside declared folders',
+      () async {
+    final id = await cache('psp', 'Game.chd',
+        artifact: await inFolder('Sony - PlayStation Portable/T-En/Game.chd'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(first.id)).single['edition_id'] as String;
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode(
+              (await inFolder('Sony - PlayStation Portable/Game.chd')).toJson())
+        },
+        where: 'id=?',
+        whereArgs: [id]);
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final edition = (await store.edition(editionId))!;
+    expect(edition.tags, isEmpty);
+    expect(edition.isTranslation, isNull);
+    expect(edition.translatedLanguages, isEmpty);
+    expect(
+        edition.evidence.where((e) => e.kind == 'sourceFolderClassification'),
+        isEmpty);
+  });
+
+  test(
+      'catalogue folder classification requires its own published account scope',
+      () async {
+    final artifact =
+        await inFolder('Sony - PlayStation Portable/T-En/Game.chd');
+    await cache('psp', 'Game.chd',
+        artifact: RemoteArtifact.fromJson({
+          ...artifact.toJson(),
+          'id': {...artifact.id.toJson(), 'accountId': 'other-account'},
+        }));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(job.id)).single['edition_id'] as String;
+    expect((await store.edition(editionId))!.tags, isEmpty);
+  });
+
+  test('catalogue folder classification binds opaque encoded scope elements',
+      () async {
+    final original =
+        await inFolder('Sony - PlayStation Portable/T-En/Game.chd');
+    const source = 'source-"/😀';
+    const account = 'account-"/😀';
+    final scope = jsonEncode([source, account, 'root-folder']);
+    await db.update('drive_catalogue_state', {'scope': scope});
+    await db.update('drive_catalogue_entries', {'scope': scope});
+    final artifact = RemoteArtifact.fromJson({
+      ...original.toJson(),
+      'id': {
+        ...original.id.toJson(),
+        'sourceId': source,
+        'accountId': account,
+      }
+    });
+    final id = await cache('psp', 'Game.chd', artifact: artifact);
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(job.id)).single['edition_id'] as String;
+    expect((await store.edition(editionId))!.tags, {'T-Eng'});
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode(RemoteArtifact.fromJson({
+            ...artifact.toJson(),
+            'id': {
+              ...artifact.id.toJson(),
+              'accountId': '$account-other',
+            }
+          }).toJson()),
+          'artifact_key': RemoteArtifactId(
+                  providerId: 'drive',
+                  sourceId: source,
+                  accountId: '$account-other',
+                  providerFileId: 'classified-file')
+              .key
+        },
+        where: 'id=?',
+        whereArgs: [id]);
+    final other = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final otherEdition = (await items(other.id)).single['edition_id'] as String;
+    expect((await store.edition(otherEdition))!.tags, isEmpty);
+  });
+
+  test(
+      'catalogue folder classification ignores unpublished and missing ancestors',
+      () async {
+    final artifact =
+        await inFolder('Sony - PlayStation Portable/T-En/Game.chd');
+    await cache('psp', 'Game.chd', artifact: artifact);
+    await db.update('drive_catalogue_state', {'active': null, 'pending': 1});
+    final pending = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(pending.id)).single['edition_id'] as String;
+    expect((await store.edition(editionId))!.tags, isEmpty);
+    await db.update('drive_catalogue_state', {'active': 1, 'pending': null});
+    await db.delete('drive_catalogue_entries',
+        where: 'file_id=?', whereArgs: ['root-folder']);
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await store.edition(editionId))!.tags, isEmpty);
+  });
+
+  test('catalogue folder classification preserves unchanged identity bindings',
+      () async {
+    await cache('psp', 'Game.chd',
+        artifact: await inFolder('Sony - PlayStation Portable/T-En/Game.chd'));
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final before = await db.query('library_editions');
+    await db.execute('CREATE TABLE identity_mutations (name TEXT)');
+    for (final event in ['INSERT', 'UPDATE', 'DELETE']) {
+      await db.execute('''CREATE TRIGGER observe_edition_$event
+        AFTER $event ON library_editions BEGIN
+        INSERT INTO identity_mutations VALUES ('edition'); END''');
+    }
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect(await db.query('library_editions'), before);
+    expect(await db.query('identity_mutations'), isEmpty);
+  });
 
   test('unchanged catalogue capture preserves identities and canonical indexes',
       () async {

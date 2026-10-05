@@ -38,8 +38,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   PSP's normal ScreenScraper pass now also completed with 269 explicit unresolved
   outcomes and no accepted scores. The private exact Game Gear audit journal
   records 180 cached cloud digest matches, protects all files and is not removal
-  authority. Carrying explicit source classification into catalogue editions is
-  the next identified internal S7 gap; no later stage has been opened.
+  authority. Explicit published Drive folder declarations now reach catalogue
+  editions, lookup requests and the normal Library filter, with provenance and
+  manual corrections preserved. Native PSP scope plus T-Eng displays 96 matching
+  artifacts; this does not establish canonical-game membership or trusted scores.
+  The first native attempt exposed Android SQLite's missing JSON1 extension;
+  the exact encoded source/account lookup now uses core SQLite and the corrected
+  normal refresh starts successfully. No later stage has been opened.
 - B7's alternative owner-directed reconstruction is verified and its operational
   blocker resolved. The seven historically lost private files are not recovered,
   and the failed preservation attempt is not retroactively passed. Normal APK
