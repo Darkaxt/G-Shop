@@ -120,6 +120,51 @@ void main() {
   });
 
   test(
+      'unchanged catalogue seeding preserves reviewed evidence and cached score',
+      () async {
+    final id = await seed();
+    final original = (await store.edition(id))!;
+    final records = [
+      (await store.metadata(id, 'screenscraper'))!,
+      (await store.metadata(id, 'igdb'))!,
+    ];
+    // Normal review appends classification after the existing content marker.
+    final reviewed = EditionIdentity.fromJson({
+      ...original.toJson(),
+      'evidence': [
+        ...original.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+            source: 'manual',
+            kind: 'contentClassification',
+            value: jsonEncode(['official'])).toJson(),
+      ],
+    });
+    await store.putEdition(reviewed);
+    for (final record in records) {
+      await store.putMetadata(record);
+    }
+    expect(
+        (await store.effectiveRatings([id], assessedBases: [assessment]))[id]!
+            .rankingEligible,
+        isTrue);
+
+    for (var refresh = 0; refresh < 2; refresh++) {
+      await db
+          .transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+      final rating =
+          (await store.effectiveRatings([id], assessedBases: [assessment]))[id];
+      expect(rating, isNotNull,
+          reason:
+              'Unchanged source content must not invalidate a reviewed score');
+      expect(rating!.rating.normalizedValue, 81);
+      expect(rating.rankingEligible, isTrue);
+      expect((await store.edition(id))!.toJson(), reviewed.toJson());
+      expect(await store.metadata(id, 'screenscraper'), isNotNull);
+      expect(await store.metadata(id, 'igdb'), isNotNull);
+    }
+  });
+
+  test(
       'provider correction invalidates its score but preserves the independent owner',
       () async {
     final id = await seed();

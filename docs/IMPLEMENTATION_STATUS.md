@@ -7,6 +7,24 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current authoritative checkpoint — 2026-10-05
 
+- S7's fifth normal Drive source/mapping and SD restore target now cover PS2.
+  Its first catalogue generation published 1,482 observations/463 folders,
+  preserving the prior four source/console objects. Stable cached scope is
+  1,106 remote plus 547 local rows across five consoles, not reviewed canonical
+  membership. The PS2 read-only audit completed: 23 exact SD artifacts match
+  cached Drive size/digests and one non-ROM is preserved; no removal is authorized.
+  Fresh ScreenScraper job 25 paused before lookup when hotel access expired.
+  Normal Android portal authorization restored access and one Resume saved job
+  action resumed the same 225-row job. ScreenScraper and the subsequent IGDB
+  pass both completed that scope; unresolved matches remain unpublished.
+  A normal exact-game IGDB review exposed an unchanged-evidence ordering defect
+  during Home sync. The focused fix passed regression checks and native build
+  166; a fresh one-game lookup now retains its rating and ranking eligibility
+  after the same Home sync. Canonical membership/ranking and migration remain
+  unfinished.
+  See S7_ACCEPTANCE_RECONCILIATION.md. No FolderSync action or S10 implementation
+  occurred; focused tests, not the full repository suite, verified this fix.
+
 - Revision 7 records the user-authorized S10 emulator save/save-state backup
   feature. S10 is NOT STARTED; S7 remains the sole ACTIVE stage and S8/S9 remain
   NOT STARTED. FolderSync must stay installed with its existing configuration.
@@ -2438,7 +2456,7 @@ ledger. Failed attempts remain failed; later verification is identified explicit
 | S4 | COMPLETE | S4_ACCEPTANCE_RECONCILIATION.md: current normal artwork, matching/tags/assessed score/query, durable bounded shared rebuild, exact ES-DE fields/media and actual Thor permission/restart/expendable-reinstall workflows verified; owner-directed setup reconstruction verified | None for assigned S4 criteria. B7's old private bytes remain irreversibly lost, not claimed recovered; its operational reconstruction resolution is verified. Other score scopes remain explicitly advisory, not silently accepted |
 | S5 | COMPLETE | Normal native shared-card layout/overlays/media and pinned IGDB service icon, decoded cached cover replacement in console/Library/shelf, independent tags/unrated paths, filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | None for UI-01/UI-02/UI-03; S9 owns the expressly named final complete cartridge/legacy-platform asset coverage |
 | S6 | COMPLETE | ea63586; S6_ACCEPTANCE_RECONCILIATION.md: combined normal real Drive/metadata/artwork/SD/emulator/remove/re-download/offline workflow and focused integration/privacy/resource checks | None for assigned S6 criteria; no bulk scrape or SD migration claimed |
-| S7 | ACTIVE | S7_ACCEPTANCE_RECONCILIATION.md; fresh provider traversals completed on the earlier 316-entry scope and separate PSP scope; PS1 ScreenScraper job 20 completed 405 rows with explicit unresolved outcomes; four mappings expose 904 remote plus 524 local rows; exact partial read-only SD/host audit | MIGRATE-01: whole-collection coverage, reviewed identities and defensible ranking, live cloud recovery, exact reviewed removals, retained-set and space audit |
+| S7 | ACTIVE | S7_ACCEPTANCE_RECONCILIATION.md; both fresh provider traversals completed on the earlier two-console/PSP/PS1 scopes and the 225-row PS2 scope; five mappings expose 1,106 remote plus 547 local rows; PS2 cached checksum audit preserves all files; unchanged-evidence binding regression reproduced/fixed and a fresh reviewed score survives normal Thor Home sync | MIGRATE-01: whole-collection coverage, reviewed identities and defensible ranking, live cloud recovery, exact reviewed removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
 | S9 | NOT STARTED | User complete physical-media coverage choice recorded in revision 5 | ART-01: complete cartridge/legacy-media asset matrix and native cover-state audit; final integrated reconciliation |
 | S10 | NOT STARTED | User save-backup and most-installed-emulator coverage instructions recorded in revision 7; initial read-only package discovery, not save-access proof | SAVE-01: every accessible installed-emulator route, evidence for inaccessible routes, separate backup consent, real backup/restore/emulator-load workflows, conflicts and last-good recovery; leave FolderSync unchanged |

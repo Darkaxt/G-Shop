@@ -10,7 +10,7 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 | Boundary | Current evidence | Remaining work |
 | --- | --- | --- |
-| Real collection membership and fresh metadata | Four rooted cloud mappings expose 904 remote artifacts (GameCube, Game Gear, PSP and PS1), not the complete SD collection. Normal local scanning adds 524 local rows, giving 1,428 Library rows; these are not reviewed canonical games or managed installations. Both providers completed the earlier 316-entry two-console scope and the separate 269-artifact PSP scope, with unresolved outcomes retained. PS1 generation 1 published 5,162 observations/1,336 folders and its normal PS1-only mapping is saved. ScreenScraper job 20 completed 405 PS1 rows (319 remote plus 86 local): 214 need review, 136 ambiguous, 55 unmatched, zero accepted/rated. Artwork job 21 completed with zero items. IGDB job 22 completed the same 405-row scope: 233 need review, 135 ambiguous, 37 unmatched. Two exact native reviews/rechecks subsequently accepted fresh independently supported community ratings; this is not complete canonical membership. Initial read-only SD census confirms additional occupied consoles and multi-file MSU content. | Reconcile explicit cloud/console mappings and eligible game membership; extend fresh coverage to the remaining stable-generation console scopes, including explicit unmatched/ambiguous/failed/rated coverage. |
+| Real collection membership and fresh metadata | Five rooted cloud mappings expose 1,106 remote artifacts (GameCube, Game Gear, PSP, PS1 and PS2), not the complete SD collection. Normal local scanning adds 547 local rows, giving 1,653 Library rows; these are not reviewed canonical games or managed installations. Both providers completed the earlier 316-entry two-console scope and the separate 269-artifact PSP scope, with unresolved outcomes retained. PS1 generation 1 published 5,162 observations/1,336 folders and its normal PS1-only mapping is saved. ScreenScraper job 20 completed 405 PS1 rows (319 remote plus 86 local): 214 need review, 136 ambiguous, 55 unmatched, zero accepted/rated. Artwork job 21 completed with zero items. IGDB job 22 completed the same 405-row scope: 233 need review, 135 ambiguous, 37 unmatched. Two exact native reviews/rechecks subsequently accepted fresh independently supported community ratings; this is not complete canonical membership. PS2 generation 1 is published and its normal mapping/SD target saved; ScreenScraper job 25 and IGDB job 27 completed the 225-row scope after hotel access was restored (all outcomes unresolved); an exact normal PS2 review/recheck subsequently accepted one fresh independently supported community rating, which survives native Home sync after the unchanged-evidence fix. Initial read-only SD census confirms additional occupied consoles and multi-file MSU content. | Reconcile explicit cloud/console mappings and eligible game membership; extend fresh coverage to the remaining stable-generation console scopes, including explicit unmatched/ambiguous/failed/rated coverage. |
 | Defensible Top-25 retention per console | S4 validated the score contract; S6's one real ScreenScraper score remains advisory. No full-library ranking proof exists. | Gather accepted current scores, audit canonical game/disc/bundle groups, preserve unresolved consoles/games until ranking is defensible. |
 | Identical cloud recovery and exact paths | S6 proves one normal SD on-demand restore/remove/re-download and offline Dolphin path. Existing SD files are not thereby owned by R-Shop. | Inventory private exact paths, file identities, cloud IDs/version/digests; prove applicable restore routes; build/review the strict one-time manifest and interruption-safe journal. |
 | Preserve saves/BIOS/settings/unknown content and prevent refill | No existing SD paths have been removed or adopted. Current LoLSuite device manifests exist and must be reconciled, not treated as removal authority. | Establish save/config baselines and on-demand sync coordination without changing H: archival profiles; revalidate each eligible removal. |
@@ -378,3 +378,89 @@ above are ordinary unfinished work, not grounds to open S8.
   preservation. No ROM, save, BIOS, FolderSync configuration or cloud archive was
   changed by this fix. Required S7 membership/ranking/recovery/migration work
   remains unfinished; S7 is ACTIVE and S8-S10 are NOT STARTED.
+
+### PS2 catalogue, interrupted connectivity and checksum audit — 2026-10-05
+
+- The normal native Sources workflow added a fifth read-only Drive source rooted
+  at the actual PS2 archive. Existing four source and console objects were checked
+  unchanged; no second account, new OAuth client or backup-write grant was used.
+  The source-add refresh and subsequent explicit Refresh shared the same active
+  scope future rather than creating a second worker.
+- Generation 1 published 1,482 observations, including 463 folders, with no
+  remaining traversal work. Stable device-before/device-after/host database
+  digests and quick_check passed. The mapper correctly disabled selections before
+  publication. Comparison of current platform aliases with all published folder
+  names offered only PS2; normal Save mappings created only that mapping.
+- Normal console settings/Android folder selection saved the actual SD PS2
+  directory. Object comparison verified the prior four sources/console objects
+  unchanged and the new physical target/mapping correct. No existing file was
+  adopted, installed, moved or removed. The stable Library now contains 202
+  remote PS2 artifacts plus 23 local rows, not 225 canonical games.
+- ScreenScraper Fresh job 25 was created once. It paused before the first lookup
+  with blocked_status `unavailable`, preserving all 225 pending items. A current
+  microG authentication crash reported Host unreachable; R-Shop's original
+  process stayed alive and the selected SD target persisted. Direct Thor HTTP
+  checks then proved an expired hotel captive-portal session, despite Android's
+  stale validated-network report. The laptop hotspot could not start because
+  icssvc was disabled; its attempted service change was denied and it remained
+  disabled. No VPN, firewall, service configuration or credentials were changed.
+- Android's normal Wi-Fi Sign in to network action opened the hotel portal.
+  Its existing Continue to the Internet action restored access; direct Thor
+  checks returned HTTP 204 for connectivity and HTTP 200 for ScreenScraper.
+  One normal Resume saved job action resumed job 25, without a new generation,
+  process restart or Fresh retry. Live progress subsequently processed lookups.
+  This resolved connectivity incident is not an outstanding stage blocker.
+  Job 25 completed 225 lookups: 118 need review, 43 ambiguous, 64 unmatched,
+  zero matched/rated/failed/unsupported/pending. Artwork job 26 completed with
+  zero items. The subsequent normal IGDB Fresh job 27 completed the same scope:
+  142 need review, 47 ambiguous, 36 unmatched, zero accepted/rated or failures.
+  Stable device/host database digests and quick_check verified terminal results.
+- The single read-only PS2 checksum audit joined exit zero. Its private durable
+  journal contains 24 exact SD files: 23 stable artifacts totaling 45,166,984,325
+  bytes match their cached Drive size/digest identities, and one 576-byte non-ROM
+  file is preserved. All dispositions are preserve and removalAuthorized=false.
+  Cached checksums do not prove current cloud readability/version, canonical
+  grouping, ranking or a tested format restore. Those migration gates remain.
+- S7 remains the sole ACTIVE stage; S8-S10 are NOT STARTED, and FolderSync is
+  untouched. The subsequent rating-binding defect and its verification follow.
+
+### Unchanged reviewed evidence survives catalogue sync — 2026-10-05
+
+- A normal exact PS2 review selected the original game/platform rather than an
+  alternate edition, explicitly classified it as official, and rechecked it in
+  job 28. The accepted community score had 1,341 votes, above the assessed floor.
+  Returning to Home then removed its usable score despite unchanged source
+  bytes and classification. The raw provider record remained stored.
+- Reproduction traced the failure to catalogue seeding removing/reappending
+  unchanged artifact evidence after manual classification. Reversing only those
+  unchanged facts reproduced the saved binding; other identity facts had not
+  changed. The fix preserves existing evidence order for unchanged content and
+  unchanged folder declarations. Changed bytes/classification retain existing
+  invalidation behavior; there is no global hash migration or stale promotion.
+- The store regression failed before the fix. Focused effective-rating,
+  metadata-job and library-store checks passed after correction, including
+  changed-content invalidation and unchanged folder bindings. Scoped analysis
+  and diff checks passed; no full suite was run.
+- Build 166 ran once through the shared gate supervisor and exited zero.
+  Observed workers 2, parallel false, Gradle maximum heap 3 GiB and assessed
+  Kotlin 2.2.20 in-process compilation sharing that heap. Test tasks configured
+  one fork/512 MiB were not executed; app native pools remain one, with native
+  tasks mostly up-to-date. Full plugin-native concurrency is not measured.
+  No memory-failure evidence or budget increase occurred. The supervisor's
+  gate-acquired result field was truncated from the retained tool output; this
+  records the successful gated invocation, not an independently captured receipt.
+- APK package/activity and signing certificate matched the existing owner.
+  Independently inspected SHA-256:
+  `e53e507c7747090a6b21beb4b8cd25151def778c5e524d2afbb2cd056b789a1b`.
+  Normal in-place installation preserved configuration, both secure credential
+  fingerprints, all 28 terminal metadata jobs, three raw reviewed provider
+  records and the 1,653-row Library. No uninstall or data clearing occurred.
+- On the updated Thor, normal selected-game Fresh produced job 29 with one
+  matched/rated lookup and no pending work. Returning through the normal Home
+  sync and reopening the same details retained the 89.1/100 user score, 1,341
+  votes and provenance. A stable database/quick_check observation confirmed
+  score 89.12546853689747 and ranking_eligible=1 after Home sync. Already-stale
+  earlier records were not silently rebound; exact fresh rechecks own recovery.
+- This verifies the specific refresh regression, not whole-library identity,
+  canonical ranking or migration completion. No ROM download, adoption, removal,
+  cloud mutation, FolderSync change or S10 implementation occurred.

@@ -517,27 +517,32 @@ class LibraryStore {
           final marker = _artifactContentMarker(artifact);
           final previousMarkers = edition.evidence.where(
               (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
-          if (previousMarkers.isNotEmpty &&
-              previousMarkers.single.value != marker) {
+          final contentChanged =
+              previousMarkers.isEmpty || previousMarkers.single.value != marker;
+          if (previousMarkers.isNotEmpty && contentChanged) {
             // Retain the correction as candidate evidence, but a replaced blob
             // must not silently inherit the old blob's verified provider match.
             game = GameIdentity.fromJson(
                 {...game.toJson(), 'matchStatus': 'unmatched'});
           }
-          edition = EditionIdentity.fromJson({
-            ...edition.toJson(),
-            'evidence': [
-              ...edition.evidence
-                  .where((e) =>
-                      !(e.source == 'catalogue' && e.kind == 'artifactContent'))
-                  .map((e) => e.toJson()),
-              IdentityEvidence(
-                      source: 'catalogue',
-                      kind: 'artifactContent',
-                      value: marker)
-                  .toJson(),
-            ]
-          });
+          if (contentChanged) {
+            edition = EditionIdentity.fromJson({
+              ...edition.toJson(),
+              'evidence': [
+                ...edition.evidence
+                    .where((e) => !(e.source == 'catalogue' &&
+                        e.kind == 'artifactContent'))
+                    .map((e) => e.toJson()),
+                IdentityEvidence(
+                        source: 'catalogue',
+                        kind: 'artifactContent',
+                        value: marker)
+                    .toJson(),
+              ]
+            });
+          }
+          // An unchanged marker must retain its position relative to manual
+          // review evidence: the metadata binding owns that exact identity.
           final artifactRow = <String, Object?>{
             'artifact_id': artifact.id.key,
             'provider_id': artifact.id.providerId,
@@ -715,7 +720,7 @@ class LibraryStore {
         .map((e) => e.toJson())
         .toList();
     if (declarations.isNotEmpty) {
-      evidence.add(IdentityEvidence(
+      final declaration = IdentityEvidence(
           source: 'catalogue',
           kind: 'sourceFolderClassification',
           value: jsonEncode({
@@ -724,7 +729,11 @@ class LibraryStore {
             'tags': tags.toList()..sort(),
             'isTranslation': translation,
             'translatedLanguages': languages
-          })).toJson());
+          }));
+      if (previous.isNotEmpty && previous.single.value == declaration.value) {
+        return edition; // Preserve unchanged fact order and identity bindings.
+      }
+      evidence.add(declaration.toJson());
     }
     final record = {
       ...edition.toJson(),
