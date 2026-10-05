@@ -9,6 +9,76 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_esDe => 'Publication des métadonnées ES-DE';
+
+  @override
+  String get metadata_esDeReviewArtwork =>
+      'Vérifier et réutiliser les images existantes';
+
+  @override
+  String get metadata_esDeReviewArtworkHelp =>
+      'Confirmez que la jaquette ou capture correspond exactement à cette console et édition, région, révision et patch compris. Seul le chemin ES-DE explicitement associé est accepté. L’image reste sous le contrôle du lanceur ; les anciennes métadonnées ne sont pas une nouvelle réponse du fournisseur.';
+
+  @override
+  String get metadata_esDeHelp =>
+      'Associez cette édition à la destination ROM configurée, puis sélectionnez son dossier gamelist ES-DE. Les actualisations normales préparent les mises à jour. Fermez ES-DE et laissez-le fermé pendant la publication. Les ROM absentes ne sont ni créées ni rendues exécutables.';
+
+  @override
+  String get metadata_esDeMap => 'Associer cette édition à ES-DE';
+
+  @override
+  String get metadata_esDeRomRoot =>
+      'Sélectionner le dossier ROM ES-DE de cette console';
+
+  @override
+  String get metadata_esDeMediaRoot =>
+      'Sélectionner le dossier média ES-DE de cette console (pas covers/screenshots)';
+
+  @override
+  String get metadata_esDeGamelist =>
+      'Sélectionner le dossier gamelist ES-DE de cette console';
+
+  @override
+  String get metadata_esDeClosed =>
+      'ES-DE est fermé et le restera pendant la publication';
+
+  @override
+  String get metadata_esDePublish => 'Publier les métadonnées en attente';
+
+  @override
+  String get metadata_esDePublished => 'Métadonnées en attente publiées';
+
+  @override
+  String get metadata_esDeConflict =>
+      'Publication suspendue : vérifiez les chemins, identités ou champs manuels modifiés. Les mises à jour en attente et les données du lanceur sont conservées.';
+
+  @override
+  String get metadata_esDeNoMapping =>
+      'Ouvrez les paramètres d\'une édition récemment identifiée pour l\'associer. Un stockage partagé des métadonnées est nécessaire.';
+
+  @override
+  String get metadata_sharedStorage => 'Métadonnées partagées persistantes';
+
+  @override
+  String get metadata_sharedUnavailable =>
+      'Le stockage partagé des métadonnées est indisponible ou illisible. Reconnectez-le et sélectionnez à nouveau le même dossier. Les données en cache restent utilisables ; l’actualisation et la publication nécessitent le rétablissement de l’accès.';
+
+  @override
+  String get metadata_sharedStorageHelp =>
+      'Choisissez un dossier partagé pour les données et images. Le cache existant est copié, pas supprimé. Ces données survivent à la désinstallation ; reconnectez la source et sélectionnez le dossier pour restaurer les fiches correspondantes. Les identifiants et installations ne sont pas sauvegardés. La publication ES-DE se configure séparément.';
+
+  @override
+  String get metadata_privateStorage =>
+      'Non sélectionné — cache privé de l’application';
+
+  @override
+  String get metadata_chooseSharedStorage =>
+      'Choisir / reconnecter le dossier partagé';
+
+  @override
+  String get metadata_artwork => 'Illustrations';
+
+  @override
   String get metadata_rediscover => 'Chercher une autre correspondance';
 
   @override

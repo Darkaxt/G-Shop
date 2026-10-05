@@ -105,6 +105,120 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_esDe.
+  ///
+  /// In en, this message translates to:
+  /// **'ES-DE metadata publication'**
+  String get metadata_esDe;
+
+  /// No description provided for @metadata_esDeReviewArtwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Review and reuse existing artwork'**
+  String get metadata_esDeReviewArtwork;
+
+  /// No description provided for @metadata_esDeReviewArtworkHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this cover or screenshot belongs to this exact console and edition, including its region/revision/patch. Only its explicitly mapped ES-DE path is accepted. Existing artwork remains launcher-owned; old metadata is not imported as fresh evidence.'**
+  String get metadata_esDeReviewArtworkHelp;
+
+  /// No description provided for @metadata_esDeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Map this edition to the configured ROM destination, then select its ES-DE system gamelist folder. Updates are queued by normal refreshes. Close ES-DE and keep it closed during publication. Missing ROMs are not created or made launchable.'**
+  String get metadata_esDeHelp;
+
+  /// No description provided for @metadata_esDeMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Map this edition to ES-DE'**
+  String get metadata_esDeMap;
+
+  /// No description provided for @metadata_esDeRomRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the ES-DE ROM folder for this console'**
+  String get metadata_esDeRomRoot;
+
+  /// No description provided for @metadata_esDeMediaRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the ES-DE media folder for this console (not covers/screenshots)'**
+  String get metadata_esDeMediaRoot;
+
+  /// No description provided for @metadata_esDeGamelist.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the ES-DE gamelist folder for this console'**
+  String get metadata_esDeGamelist;
+
+  /// No description provided for @metadata_esDeClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'ES-DE is closed and will remain closed during publication'**
+  String get metadata_esDeClosed;
+
+  /// No description provided for @metadata_esDePublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish pending metadata'**
+  String get metadata_esDePublish;
+
+  /// No description provided for @metadata_esDePublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending metadata published'**
+  String get metadata_esDePublished;
+
+  /// No description provided for @metadata_esDeConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Publication paused: review changed paths, identities or manual fields. Pending updates and existing launcher data are preserved.'**
+  String get metadata_esDeConflict;
+
+  /// No description provided for @metadata_esDeNoMapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a freshly matched edition\'s metadata settings to map it. Shared metadata storage is required.'**
+  String get metadata_esDeNoMapping;
+
+  /// No description provided for @metadata_sharedStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Persistent shared metadata'**
+  String get metadata_sharedStorage;
+
+  /// No description provided for @metadata_sharedUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared metadata storage is unavailable or could not be read. Reconnect storage and choose the same folder again. Cached facts remain usable; refresh and publication require restored access.'**
+  String get metadata_sharedUnavailable;
+
+  /// No description provided for @metadata_sharedStorageHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a shared folder for scraped facts and artwork. Existing cache is copied, not deleted. This data survives uninstall; reconnect your source and reselect the folder to recover matching records. Credentials and installations are not backed up. ES-DE publication is configured separately.'**
+  String get metadata_sharedStorageHelp;
+
+  /// No description provided for @metadata_privateStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Not selected — current cache is app-private'**
+  String get metadata_privateStorage;
+
+  /// No description provided for @metadata_chooseSharedStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose / reconnect shared folder'**
+  String get metadata_chooseSharedStorage;
+
+  /// No description provided for @metadata_artwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Artwork'**
+  String get metadata_artwork;
+
   /// No description provided for @metadata_rediscover.
   ///
   /// In en, this message translates to:

@@ -143,6 +143,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Future<void> _loadGenres() async {
     try {
+      await ref.read(cachedMetadataReadinessProvider.future);
+      if (!mounted) return;
       final genres =
           await LibraryQuery(ref.read(libraryDbProvider).database).genres();
       if (mounted) setState(() => _availableGenres = genres);
@@ -222,6 +224,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // Pre-computed cover URLs per filtered index
   Map<int, List<String>> _coverUrlCache = {};
   Map<String, EffectiveOverallRating?> _ratings = const {};
+  Map<String, String?> _metadataCovers = const {};
   bool _showRatings = true;
 
   int get _totalTabCount => _fixedTabCount + _shelves.length;
@@ -637,6 +640,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         final filters = _filters;
         final entries = _discoveryEntries;
         try {
+          await ref.read(cachedMetadataReadinessProvider.future);
+          if (!mounted) return;
           final result =
               await LibraryQuery(ref.read(libraryDbProvider).database).discover(
                   filter: LibraryQueryFilter(
@@ -1434,6 +1439,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Widget build(BuildContext context) {
     final rs = context.rs;
     _showRatings = ref.watch(ratingOverlaysProvider);
+    _metadataCovers =
+        ref.watch(cachedMetadataCoversProvider('')).asData?.value ?? const {};
     final ratings =
         _showRatings ? ref.watch(cachedCoverRatingsProvider('')) : null;
     _ratings = ratings == null || ratings.isLoading || ratings.hasError
@@ -1760,7 +1767,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   systemLabel: systemLabel,
                   accentColor: systemColor,
                   coverUrls: coverUrls,
-                  cachedUrl: entry.coverUrl,
+                  cachedUrl: _metadataCovers[coverRatingKey(
+                          entry.systemSlug, entry.selectionKey)] ??
+                      entry.coverUrl,
                   hasThumbnail: entry.hasThumbnail,
                   memCacheWidth: optimalCacheWidth,
                   scrollSuppression: _scrollSuppression,

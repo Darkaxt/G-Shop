@@ -119,6 +119,7 @@ class GameListController extends ChangeNotifier {
   final UnifiedGameService _unifiedService;
   final DatabaseService _databaseService;
   final StorageService? _storage;
+  final Future<void> Function()? _prepareMetadata;
   bool _disposed = false;
   Timer? _thumbnailDebounce;
   int _discoveryGeneration = 0;
@@ -131,6 +132,8 @@ class GameListController extends ChangeNotifier {
 
   Future<void> _loadDiscoveryGenres() async {
     try {
+      await _prepareMetadata?.call();
+      if (_disposed) return;
       final genres = await LibraryQuery(_databaseService.database)
           .genres(platformIds: {system.id});
       if (_disposed) return;
@@ -176,9 +179,11 @@ class GameListController extends ChangeNotifier {
     UnifiedGameService? unifiedService,
     DatabaseService? databaseService,
     StorageService? storage,
+    Future<void> Function()? prepareMetadata,
   })  : _unifiedService = unifiedService ?? UnifiedGameService(),
         _databaseService = databaseService ?? DatabaseService(),
-        _storage = storage {
+        _storage = storage,
+        _prepareMetadata = prepareMetadata {
     _pendingInstalledFilenames = installedFilenames;
     _installedArtifacts = installedArtifacts;
     loadGames();
@@ -522,6 +527,8 @@ class GameListController extends ChangeNotifier {
         final filters = _state.activeFilters;
         final keys = _discoveryKeys;
         try {
+          await _prepareMetadata?.call();
+          if (_disposed) return;
           final result = await LibraryQuery(_databaseService.database).discover(
               filter: LibraryQueryFilter(
                   platformIds: {system.id},

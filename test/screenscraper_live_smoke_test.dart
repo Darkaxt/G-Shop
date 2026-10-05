@@ -13,6 +13,11 @@ import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
+import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/services/database_service.dart';
+import 'metadata_controls_test.dart' show MemorySecrets;
 
 /// Explicit opt-in only; secrets remain in the ignored local file or environment.
 /// No provider body, credentials, media URL or private account data is printed.
@@ -53,6 +58,115 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   });
+
+  test('normal controls live review publishes cached cover and screenshots',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    final root = await Directory.systemTemp.createTemp('rshop-live-controls-');
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
+      systemSlug TEXT, filename TEXT, displayName TEXT, is_folder INTEGER DEFAULT 0,
+      artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
+    await db.insert('games', {
+      'id': 1,
+      'systemSlug': 'snes',
+      'filename': 'Super Mario World (USA).sfc',
+      'displayName': 'Super Mario World'
+    });
+    final secrets = MemorySecrets();
+    final ss = ScreenScraperCredentialStore(storage: secrets);
+    await ss.saveDeveloper(developer);
+    await ss.saveUser(user);
+    final provider = ScreenScraperProvider(
+        readDeveloperCredentials: ss.readDeveloper,
+        readUserCredentials: ss.readUser);
+    final shared = await SharedMetadataStore.open(root);
+    final cache = MetadataArtworkCache(Future.value(db), shared.artworkRoot,
+        sharedStore: shared);
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials: ss,
+        igdbCredentials: IgdbCredentialStore(storage: secrets),
+        artworkCache: Future.value(cache),
+        sharedStore: Future.value(shared),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await shared.close();
+      await db.close();
+      expect(root.parent.path, Directory.systemTemp.absolute.path);
+      expect(root.path.split(Platform.pathSeparator).last,
+          startsWith('rshop-live-controls-'));
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    await controls.refresh(cacheRowId: 1);
+    final review = (await controls.reviewQueue()).single;
+    final exact = review.candidates.where((c) => c.titleMatched).single;
+    await controls.acceptReview(review,
+        providerGameId: exact.providerGameId, contentTags: {'official'});
+    expect(controls.state.error, isFalse);
+    expect(controls.state.report!.counts, {'matched': 1});
+    final record = (await LibraryStore(Future.value(db))
+        .metadata(review.editionId, 'screenscraper'))!;
+    final selected = MetadataArtworkCache.displayMedia(record);
+    expect(selected.any((m) => m.type == 'box-2D'), isTrue);
+    expect(selected.any((m) => m.type == 'ss'), isTrue);
+    expect(controls.state.artworkReport!.counts, {'matched': selected.length});
+    final child = controls.state.artworkReport!.id;
+    final requests = controls.state.artworkReport!.requested;
+    // Normal query/decoder references, not a manually inserted game cover URL.
+    final local = await cache.artworkForEdition(review.editionId);
+    expect(Uri.parse(local.cover!).scheme, 'file');
+    expect(local.screenshots, isNotEmpty);
+    expect(
+        local.screenshots.every((s) => Uri.parse(s).scheme == 'file'), isTrue);
+    final covers =
+        await LibraryQuery(Future.value(db)).cachedCovers([1], cache);
+    expect(covers[1], local.cover);
+    DatabaseService.testDatabase = db;
+    addTearDown(DatabaseService.resetForTesting);
+    final details = await DatabaseService().getGameMetadata(
+        'Super Mario World (USA).sfc', 'snes',
+        artworkCache: cache);
+    expect(details!.cachedCover, local.cover);
+    expect(details.screenshotUrlList, local.screenshots);
+    await controls.resume();
+    expect(controls.state.artworkReport!.id, child);
+    expect(controls.state.artworkReport!.requested, requests);
+    provider.close(); // Offline recovery must not rely on another API request.
+    await db.delete('library_metadata');
+    await db.delete('metadata_artwork_cache');
+    await shared.close();
+    final reopened = await SharedMetadataStore.open(root, existingOnly: true);
+    try {
+      expect(await reopened.restore(db), 1);
+      final recovered = await LibraryStore(Future.value(db))
+          .metadata(review.editionId, 'screenscraper');
+      expect(recovered!.toJson(), record.toJson());
+      final offline = MetadataArtworkCache(
+          Future.value(db), reopened.artworkRoot,
+          sharedStore: reopened);
+      expect((await offline.artworkForEdition(review.editionId)).cover,
+          local.cover);
+      expect(
+          (await LibraryQuery(Future.value(db)).cachedCovers([1], offline))[1],
+          local.cover);
+    } finally {
+      await reopened.close();
+    }
+    expect(
+        await cache.root.list().any((f) => f.path.endsWith('.part')), isFalse);
+  },
+      skip: developer.isConfigured && user.isConfigured
+          ? false
+          : 'Live credentials are not configured.',
+      timeout: Timeout.none);
 
   test('public reception assessment capture through persistent worker',
       () async {

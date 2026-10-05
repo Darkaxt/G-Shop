@@ -5,8 +5,72 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current authoritative checkpoint — 2026-10-05
+
+- S0, S1, S2, S3, S4 and S5 are COMPLETE against their assigned criteria.
+  S4's current requirement-by-requirement closure is in
+  [S4_ACCEPTANCE_RECONCILIATION.md](S4_ACCEPTANCE_RECONCILIATION.md): normal
+  refresh/artwork/offline rendering, durable shared rebuild, actual permission
+  denial/regrant and expendable-package reinstall, exact ES-DE publication/reuse,
+  supported score semantics and bounded query/resource evidence are verified.
+- S6 is the sole ACTIVE stage. Remaining acceptance: complete integrated
+  S1-S5 reconciliation, existing-provider/config/queue/migration regressions,
+  combined real on-demand workflow and privacy/resource verification. No current
+  S6 blocker or tracked deferral has been identified. S7, S8 and S9 are NOT STARTED.
+- B7's alternative owner-directed reconstruction is verified and its operational
+  blocker resolved. The seven historically lost private files are not recovered,
+  and the failed preservation attempt is not retroactively passed. Normal APK
+  cold launch reaches the 183-record Library with persisted setup/credentials;
+  current in-place updates preserve private fingerprints except shader cache.
+  B8 handoff and the actual shared-permission criterion are resolved.
+- Current focused verification: `ff42bc` / `069831` passed its backend/widget
+  checks but exited nonzero from missing cover-fixture font-cache configuration.
+  Corrected cover-only `4adc91` / `c6658c` passed the normal console/Library/shelf
+  refresh-to-decoded-artwork and offline-restore workflow. Final catalogue/job/
+  quota/grouping/score/store checks `5b4c68` / `64e0ba` exited zero. Scoped analysis
+  `e2a8df` / `726ad5` has no errors/warnings, with two existing deprecation infos.
+- No new Gradle command was needed for this closure. Latest normal build ticket
+  142 held the shared mutex through exit zero: observed workers 2, parallel false,
+  Gradle 3 GiB, assessed Kotlin in-process sharing that heap; configured tests one
+  fork/512 MiB (not executed), app native pools one. Full plugin native concurrency
+  is not claimed measured. No memory failure or budget increase occurred.
+- Owner normal APK remains installed; both physical Thor screens were verified
+  OFF. No further device use occurred during this focused reconciliation. No bulk
+  scrape, SD migration or external release has occurred. The overall plan remains
+  incomplete: S6-S9 must still satisfy their own criteria.
+
+### Historical checkpoints
+
+The following checkpoints retain their original observations and stage states.
+They do not supersede the current authoritative checkpoint or reconciliation
+ledger. Failed attempts remain failed; later verification is identified explicitly.
+
+- Latest checkpoint (2026-10-05): actual Android permission denial/regrant,
+  process restart and expendable-package reinstall now pass against the
+  permission-aware shared IO implementation. Shared files stay unchanged,
+  denied strict IO fails and private cached facts remain readable. A fresh
+  Thor normal-controller publication/artwork/offline rebuild passes. The normal
+  owner APK is restored in place and a further cold launch reaches the real
+  183-record Library; current private data was preserved. Both physical screens
+  are OFF. S4 remains the sole ACTIVE stage for final source/specification
+  reconciliation, not for the now-verified permission gap. Chronological entries
+  below retain their historical states and do not supersede this checkpoint.
+
+- Current normal-owner reconstruction checkpoint (2026-10-05): the normal
+  `lib/main.dart` APK passes a fresh Thor cold launch and renders 182 rooted
+  remote Game Gear records plus the existing local GameCube record. The saved
+  Game Gear mapping now survives onboarding completion in the real-store
+  regression. Native reconstruction saved the mapping without resetting owner
+  onboarding. Shared metadata was selected through the Android picker at
+  `/storage/emulated/0/ES-DE/RShopMetadata`, without replacing ES-DE data.
+  Native restart exposed metadata/startup secure-storage mode mismatch; the
+  corrected normal APK now reads both providers' existing credentials after
+  cold launch, without re-entry. A normal one-title IGDB lookup/review/recheck
+  produced fresh advisory facts, persisted in the shared namespace. S4 remains
+  the only ACTIVE stage. See S4_NATIVE_VERIFICATION.md for current and historical
+  evidence; normal startup does not close B7 or the remaining META-08 criteria.
 - Work resumed at the user's request on 2026-10-01 after the LoLRoms work.
-  The Thor is connected again. Google OAuth branding was completed by the
+  The user handed over the connected Thor on 2026-10-05; isolated S4 device work is active. Google OAuth branding was completed by the
   account owner; both OAuth test clients are registered. Live provider evidence
   remains required.
 - Authorized now: implementation (2026-09-08, "go ahead then").
@@ -21,18 +85,35 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   S2 COMPLETE: rooted live refresh, explicit mapping, exact cached game references
   and offline cold-start browsing are verified. S3 COMPLETE against DRIVE-04/05/06:
   verified transfer, native process recovery, bundles and owned installations.
-  S4 is parked BLOCKED at B5 (missing original host-wait runtime evidence): B4 application authentication is resolved by the authorized
+  S4 is ACTIVE; B8 handoff is resolved by the user's go-ahead and live connection.
+  META-08 native verification exposed Android's locale-table guard and missing
+  SQLite JSON1 defects. Both corrections now pass the focused host checks and
+  Thor shared workflow/rebuild. Native restart, actual storage loss/remount and
+  expendable-package reinstall recovery also pass with inspected driver reports.
+  Permission denial alone did not prevent fixture-file access on this firmware;
+  that attempt is not a permission-enforcement pass. See S4_NATIVE_VERIFICATION.md.
+  B7 remains an unresolved historical data-loss incident after the native verification teardown deleted the debug
+  application's private state (incident below). B4 application authentication is resolved by the authorized
   dedicated Twitch app and a real review/publication/offline-consumption check.
   The representative older/newer/project reception assessment now supplies a
   scoped IGDB community basis, verified through the real worker/cache/offline
   query, including Android SQLite's reviewed production-policy workflow. The
-  earlier unexplained host artwork wait remains required; the requirement-by-
-  requirement backend reconciliation is recorded in S4_ACCEPTANCE_RECONCILIATION.md.
+  earlier unexplained host artwork wait is retained as diagnostic uncertainty,
+  not claimed fixed. Its missing historical runtime cannot be an additional
+  specification acceptance requirement. Current resource-contract verification
+  and the requirement-level reconciliation remain ordinary S4 work.
   Unassessed console scopes remain advisory, not silently approved. S5 is
   COMPLETE, using verified provenance/cache/query/setup contracts. No stage is
-  ACTIVE at this checkpoint; S4 reconciliation is next. Live second-account
+  ACTIVE other than S4; B7 is not retroactively passed by reconstruction. Live second-account
   verification no longer blocks delivery.
   S6-S9 NOT STARTED; no parallel ACTIVE stage is opened.
+- Current S4 normal artwork integration (2026-10-04): metadata refresh now owns a
+  durable artwork child and normal card/details readers consume its private
+  cache. Focused host/migration/normal-UI evidence `18343` and real ScreenScraper
+  controller sample `4585` pass. Native normal-workflow verification remains
+  complete for the synthetic provider workflow, but its teardown failed the
+  protected-data restoration check. B7 prevents closure. This is not S4
+  completion or the S7 entire-collection scrape. No hotspot was needed.
 - Google Cloud and ScreenScraper developer access are new setup, as confirmed
   by the user. Drive's first real read-only authorization was verified on
   2026-10-02; ScreenScraper developer credentials are stored in the ignored local
@@ -67,7 +148,554 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   intersect ranks without promoting or backfilling lower-ranked games. Score
   evidence must pass META-05's broader-reception gate, not merely exist in a field.
 
+### Current S4 handoff boundary and corrected workflow APK (2026-10-05)
+
+- Previous goal turn was progress: lifecycle fixture, path-guard regression/fix,
+  inspected host results and a verified gated lifecycle APK. This turn completed
+  the required corrected workflow APK; it did not rerun unchanged host suites.
+- Corrected shared workflow build `9ff470` / session `97867` joined exit 0,
+  BUILD SUCCESSFUL in 28s. Gate ticket 121 actually acquired/held the shared
+  mutex; inspected preflight proved the matching daemon idle without a connected
+  client. Observed workers 2, no parallel projects, Gradle heap 3 GiB, retained
+  required JVM flags. Kotlin configured in-process, all Kotlin tasks cached or
+  no-source. Test tasks configured one 512m fork, not run. Generated app Ninja
+  compile/link pool depth 1 per ABI; app/soloud/JNI native outputs had no work.
+  No memory failure/budget increase; new-load plugin concurrency is not inferred.
+- Independent package/label/v2 signer inspection and matching built/copied hashes
+  passed `b85d88`. Corrected workflow APK:
+  `D:/Temp/rshop-shared-workflow-corrected-20261005/app-debug.apk`, SHA-256
+  `3e9e468742376563e7f40fc84ee2bec47e99fa900a272ea0f81d094edec66461`.
+  Its compiled parent is `/storage/emulated/0/RShopSharedProof-20261005-workflow`.
+  Both this and the distinct lifecycle APK are preserved for the requested native
+  handoff. Neither has been installed or executed on the Thor.
+- **S4 BLOCKED, B8 external:** META-08 requires actual Thor remote-only shared
+  refresh/ES-DE publication, storage loss/regrant, restart and expendable-package
+  reinstall proof. The user released the Thor; the testing availability question
+  has no new handoff response. Device use cannot proceed until that response.
+  Resolution: user reconnects/makes the Thor available, then inspect and execute
+  the prepared native protocol, reconstruct current setup under B7, and reconcile
+  all S4 criteria. Availability alone resolves the scheduling boundary, not the
+  unexecuted acceptance checks or historical B7 failure. No goal-completion or
+  native-success claim is made.
+- No ACTIVE stage remains. S6 depends explicitly on complete S1-S5/live evidence
+  and cannot start around this gap; S6-S9 remain NOT STARTED. Required work is
+  neither dropped nor relabelled a tracked deferral. No ADB/device operation,
+  publication or release occurred; no build/test remains running. No additional
+  availability question is issued while the existing one is pending.
+
+### Earlier S4 lifecycle acceptance preparation (2026-10-05)
+
+- S4 is still the only ACTIVE stage; Thor remains RELEASED, with no ADB, wake,
+  installation, account or SD-library operation. Local work prepares the exact
+  remaining META-08 lifecycle boundary, not another stage.
+- The new expendable-package entrypoint uses one APK and explicit launch routes
+  for seed/restart/denial/regrant/reinstalled assertions. The shared domain fixture
+  runs normal refresh, cover/screenshot publication and ES-DE mapping, records
+  immutable external hashes, and keeps an independent private sentinel. Reinstall
+  verification requires that sentinel/database namespace to have disappeared;
+  it then republishes exact current catalogue identities and rebuilds offline.
+  No fixture deletes private state to pretend Android uninstalled it.
+- The host counterpart simulates remount/private loss and explicitly rejects a
+  false reinstall. Initial lifecycle check `3d0d2f`/`550e7d` exited zero. Native
+  analysis identified a nonexistent HttpOverrides getter; it was corrected before
+  any build. No native result is claimed from host execution.
+- Preparing the native workflow exposed its previous path validator rejecting
+  the compiled `/storage/emulated/0/...` parent. Regression `30d412` failed; the
+  first extraction also exposed host-platform normalization (`865cd7`/`ae7511`).
+  The corrected common POSIX validator accepts direct internal/UUID-SD children
+  and rejects library/app-data/nested/traversal paths. Path/lifecycle/normal
+  controller checks passed `c89081` (exit 0); the final affected path/lifecycle
+  check after closing an unexpectedly opened shared handle passed `976419`.
+  Focused analysis of both native entrypoints and new fixtures passed `1e59cb`.
+- The earlier `c40fa...` workflow APK is preserved evidence, not a ready corrected
+  artifact: its compiled parent would fail its old guard. See the native protocol
+  document for the new lifecycle sequence and required independent Android
+  process/grant/uninstall evidence. Device execution, B7 setup reconstruction
+  and final S4 reconciliation remain unmet acceptance, not tracked deferrals.
+- Required lifecycle APK build `f86a9a` / session `52261` joined exit 0
+  (`e3cef9`, BUILD SUCCESSFUL in 32s). Gate ticket 120 actually acquired and held
+  `Local\Darka.AndroidGradleBuildGate`; preflight identified the reusable 8.14
+  daemon idle with no client connection. Observed workers 2, parallel false,
+  heap 3,221,225,472 bytes; required metaspace/code-cache flags retained. Kotlin
+  is configured in-process for the assessed toolchain; all Kotlin tasks were
+  cached/no-source, not a new compiler-load measurement. Tests configured one
+  512m fork, none executed. Current generated Ninja compile/link pool depth is
+  1 per app ABI; app/soloud/JNI native outputs had no work. Plugin recompilation
+  concurrency is not proven by this incremental build. No memory failure or
+  heap increase. No competing build was interrupted.
+- Independent badging/signature inspection `a889ed`/`2993c2` verifies the
+  `.sharedproof` package, R-Shop Shared Proof label, 1.7.0+12 and established
+  debug signer. Preserved test APK:
+  `D:/Temp/rshop-shared-persistence-20261005/app-debug.apk`, SHA-256
+  `01dfb3655c1e721546ed8dc028262fbe27a0c934f77bbda67ff0ab3589a3e412`.
+  Its hash equals both built output copies. The compiled parent is
+  `/storage/emulated/0/RShopSharedProof-20261005-persistence`, reserved only
+  on the future device handoff. No install/device proof occurred. APK/log are
+  intentionally retained for that verification; host fixture roots auto-cleaned
+  and their absence was checked. The initial guessed build-tools path was absent;
+  inspection used the discovered installed 36.0.0 tools instead.
+
+### Earlier S4 shared rebuild resource checkpoint
+
+- S4 remains the only ACTIVE stage. The new shared rebuild fixture creates a
+  real durable producer record, validates the synthetic bulk format against it,
+  republishes exact remote identities under a reselected local source, and
+  restores a fresh file-backed private SQLite database. It exercises the normal
+  collection query and completed-record replay, not a mock restore or provider
+  workload. No inherited private metadata/projection is supplied.
+- The 129-edition extraction passed `da566e` / session `57679`, terminal
+  `55dc04` (exit 0): 129 restored/ranked, Top 25 membership, 128-row durable
+  read bound, zero network clients, 2,690 ms restore, 1,764 ms query, 480 ms
+  replay, peak RSS 254,808,064 bytes. This is not the 30,000-edition result.
+- The first 30,000-edition workload (`620b5a` / session `85602`) was stopped
+  after identifying a fixture defect: its hand-built catalogue omitted the
+  production `idx_games_system_artifact` access path, causing repeated identity
+  table scans. No timing/completion result from that run is accepted. Only the
+  exact confirmed test process was stopped; its launcher was joined to terminal
+  exit 1 (`4404fe`) before another test began. This was defect-driven cancellation,
+  not a timeout or memory failure. Its owned fixture is retained for reviewed
+  cleanup; no user or device file was involved. The preceding interrupted-context launch's result was
+  unavailable; the absence of its processes was confirmed before the inspected
+  129-edition run. No success is inferred from that missing output.
+- The corrected fixture installs the same partial unique catalogue indexes as
+  DatabaseService and asserts the actual artifact query plan uses that index.
+  Its host observer now dispatches real SQLite through the established
+  databaseFactoryFfiNoIsolate method, retaining real transactions/results and
+  row/request measurements without isolate message overhead. This is host
+  SQLite evidence, not a native transport result or a claimed B5 stall fix.
+  Corrected 129 extraction `16f090` / `d779f1` restored/ranked 129 with 128-row
+  bounds and zero clients: restore 1,764 ms, query 1,187 ms, replay 302 ms,
+  peak RSS 249,835,520 bytes. The same workload exposed the added ES-DE fixture
+  opening the same in-memory database twice; those facts/artwork assertions were
+  not accepted until producer and rebuilt projections used separate file-backed
+  private databases. The corrected normal controller/recovery checks passed
+  `53d0f9` / session `35419`, terminal `2bd1e3` (exit 0), including zero repeated
+  lookup/body requests and unchanged unrelated controller contracts.
+- The corrected full-size workload `70071` (`b7cf94`) was joined to terminal
+  exit 0 (`344fae`): 30,000 restored/ranked, Top 25 membership, 128-row durable
+  reads, maximum one identity row, zero network clients, 2,942,474 acknowledged
+  SQLite operations. Restore took 374,756 ms, query 133,924 ms, replay 51,939 ms,
+  total 576,506 ms; peak process RSS 330,465,280 bytes. These are measured host
+  costs, not completion deadlines, native timings or a memory-cap guarantee.
+  It proves full-size correctness/bounds for the pre-optimization implementation;
+  changed catalogue-capture behavior below requires its own current measurement.
+  A preceding filter-argument mistake (`5147a0` / `70c1f5`) ran no
+  tests and is not verification. Focused analysis of the five new/affected
+  fixture/native paths and diff check passed `58cd0d` with no issues.
+- A focused native shared workflow entrypoint is prepared, reusing the normal
+  controller/ES-DE contract with an Android database factory and a newly reserved
+  external fixture parent. It also checks private rebuild/artwork recovery and
+  never uninstalls the valuable owner package. Host verification of the added
+  recovery assertions now pass on the host; native execution is still pending. The entrypoint
+  itself is not acceptance evidence. See S4_NATIVE_VERIFICATION.md.
+- No ADB or Gradle command occurred; the Thor remains RELEASED. The gate/profile
+  have not been exercised. Native permission/regrant/persistence, B7 setup
+  reconstruction and S4 reconciliation remain required; S6-S9 are NOT STARTED.
+
+### S4 unchanged-catalogue capture and safe native packaging (2026-10-05)
+
+- Investigation of the shared rebuild/query path found catalogue capture always
+  replaced identical artifacts/game/edition rows and reindexed their canonical
+  claims, even when restore had already built the exact current identities.
+  SQLite trigger observation reproduced these redundant writes in `fd2135`
+  (exit 1). The preceding fixture compile failure `c88665` is not that red.
+- Catalogue capture now compares exact persisted rows inside the existing caller
+  transaction. Identical rows do not write or reindex; actual content/identity
+  changes retain the previous correction and component-invalidation path. It
+  preserves raw tag bindings, reviewed matches and fresh-job membership; it does
+  not skip new provider generations or completed/current-content validation.
+- Targeted regression passed `02d802` (exit 0). The affected catalogue/store/
+  query/shared-store checks and 129-edition recovery passed `222406` / session
+  `26692`, terminal `3d6020` (exit 0), including reselected sources, multi-member
+  base relationships, changed-content rejection and rank-before-filter behavior.
+  The 129 measurement restored/ranked all entries with zero clients and 128-row
+  bounds: restore 1,156 ms, query 243 ms, replay 171 ms; total 2,703 ms, peak RSS
+  179,228,672 bytes. Different process baselines preclude claiming a measured
+  full-library speedup from this extraction alone.
+- The changed-source full-size check `82953` (`eecb4c`) was joined to terminal
+  exit 0 (`e5683b`): 30,000 restored/ranked, Top 25 membership, 128-row durable
+  reads, at most one identity row, zero network clients, 2,342,475 acknowledged
+  operations. Restore took 250,837 ms, query 46,375 ms, replay 49,884 ms,
+  total 355,480 ms; peak process RSS 260,501,504 bytes. The same host fixture's
+  query cost fell from 133,924 ms and total from 576,506 ms. Actual correctness
+  assertions, not elapsed-time thresholds, determine completion. Native timings
+  and permission/persistence evidence are still outstanding. Selected analysis
+  and diff check passed `4b0811`, with no issues in the five affected Dart paths.
+- New shared native fixtures are restricted to opt-in debug package
+  `com.darkaxt.rshop.sharedproof` (`-PrshopSharedMetadataProof=true`). They reject
+  the valuable `.debug` owner app. Default debug/release identities are unchanged.
+  Native packaging passed the shared build supervisor: session `55834`
+  (`32e263`), ticket 119, joined to exit 0 after `BUILD SUCCESSFUL`. The returned
+  supervisor result confirms gate acquisition and verified Gradle workers 2,
+  parallel false and maximum heap 3,221,225,472 bytes, retaining metaspace/code
+  cache arguments. Kotlin is configured in-process with the existing Kotlin
+  2.2.20 / AGP 8.11.1 route and shares that heap; Kotlin compile tasks were
+  UP-TO-DATE/NO-SOURCE, so this incremental invocation is not a new compiler-load
+  measurement. Test tasks were configured for one 512m fork but were not run.
+  The generated app Ninja compile/link pool is depth 1 per ABI (`597831`);
+  app/soloud/JNI native tasks had no work. The helper's two-job environment is
+  not claimed as verified parallelism for plugin recompilation. No memory failure
+  or budget increase occurred. The helper retired only a verified-idle different-
+  version daemon through its native lifecycle; no active build was interrupted.
+  This is cooperating-session exclusion, not a universal lock on Android Studio.
+  No test workload overlapped the build.
+- Independent APK inspection (`948911`) confirms `.sharedproof`, label
+  `R-Shop Shared Proof`, 1.7.0+12 and the unchanged debug signer SHA-256
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+  APK SHA-256 is `c40fa665b92932593e6998c437d23562af30d154ded73fbd31150f525ed7bb2d`.
+  Its preserved copy and build log are under
+  `D:/Temp/rshop-shared-native-20261005-0556/`; copy equality was verified
+  (`d79df9`). The fixture parent define is
+  `/storage/emulated/0/RShopSharedProof-20261005-workflow`, which still must be
+  confirmed absent before authorized device use. This is a test APK, not a usable
+  feature release. No install, permission change, account access or device
+  operation occurred. Thor remains RELEASED; native results are still missing.
+- Reviewed cleanup transaction `1553560bb3e8f176e6cd4a5f558607ee` removed only the
+  cancelled invalid benchmark's synthetic SQLite/journal tree
+  `D:/Temp/rshop-test-runtime/rshop-shared-resource-e0d0aead`: six exact members,
+  532,751,320 bytes, terminal applied (`6d99e2`). These are reproducible expendable
+  fixtures, not original wait evidence, owner app state, APKs, artwork or ROMs.
+- S4 stays ACTIVE. Native shared-storage/regrant/persistence, B7 reconstruction
+  and final S4 reconciliation remain required. No later stage has started.
+- The verified unchanged-capture fix and its regression were committed locally
+  as `1a95f4e05fd1de3e8bd21d588d8a3e6dce4610a7` (`7d5526`). Only those two
+  previously clean paths were included. Existing META-08/UI work, new native
+  fixtures/packaging and this ledger remain in the preserved worktree pending
+  their required integration/native verification. This is not a final stage
+  commit, release, push or S4 completion claim.
+
+### S4 shared-storage failure/read separation (2026-10-05)
+
+- S4 remains the sole ACTIVE stage. CORE-01/META-08 require a storage outage to
+  preserve usable private projections, not turn a metadata dependency into a
+  browsing prerequisite. A fresh remount fixture reproduced the normal card
+  reader failing at shared-store open (`b88ee0`). A second assertion reproduced
+  settings losing catalogue choices and committed job progress (`1657a2`).
+- Normal console/Library filters, cached scores and exact details now join
+  available shared recovery but retain the actual failure as AsyncError data.
+  They may read the last usable private facts when recovery fails. Artwork reads
+  use only the recorded root/manifest, returning missing images without creating
+  a replacement cache. Refresh/publication still use the strict store/cache
+  futures: no network retry, private write fallback or fabricated restore success.
+- Settings retains independent catalogue/credentials/progress reads and shows a
+  localized storage-unavailable/reconnect message. Selecting the same remounted
+  directory does not await the failed old worker futures. The host fixture proves
+  unchanged facts, absent-root preservation, same covers after regrant/reopen,
+  and no additional provider lookup or artwork request.
+- The widget boundary also exposed an early failed Future escaping before load
+  awaited it (`2178dc`). The controller now immediately observes its owned store
+  and artwork futures, without replacing them or suppressing failures from later
+  awaits. The exact failed future remains reportable. The reconnect message and
+  reachable ordinary shared-folder action pass the widget reproduction
+  (`e4a12d`, terminal `b2c0c8`).
+- Final focused store/controller/query/settings/Library/normal-cover/ES-DE checks
+  passed `040043` / session `31072`, terminal `72a8e4` (exit 0). This includes
+  decoded cover/screenshots and offline restore in console, Library Top and shelf
+  callers, and unchanged settings goldens. Affected analysis `4f2e60` / `eca7cd`
+  exited 0 with only the existing Library cacheExtent deprecation info; no errors
+  or warnings. No new 30,000-edition shared-rebuild measurement is claimed.
+- Verification setup correction: the first cover run lacked
+  RSHOP_TEST_FONT_CACHE (`428073`); the existing isolated font-cache directory was
+  supplied rather than changing product fonts. One subsequent test launch was
+  mistakenly attempted while that cover run was still live; Flutter rejected it
+  before tests started due to the locked sqlite3.dll (`b032ea`). The live run was
+  joined to confirmed exit (`29a2ba`) before further launches. This violated the
+  single-workload launch rule, is not a passing run, and did not cause a
+  memory-related failure. Later launches were conditional on terminal exit.
+- No ADB, Gradle, emulator, cloud mutation, ROM download, SD deletion, release or
+  commit occurred. The Gradle gate/profile were not exercised. Thor remains
+  released to the owner. Large shared-rebuild resource evidence, safe native
+  permission/reinstall persistence and B7 reconstruction remain required S4 work;
+  S6-S9 remain NOT STARTED. No blocker or deferral is waived by these host results.
+
 ## Repository baseline
+
+### S4 META-08 field and recorded-layout checkpoint (2026-10-05)
+
+- S4 remains ACTIVE and is the sole ACTIVE stage; the Thor remains RELEASED.
+  Normal ES-DE publication now joins the cards/Top effective-score selector in
+  128-edition pages. It exports only accepted current game/project scores in
+  the supported 0..1 format. Low-vote extremes, stale/unassessed scores and
+  original-game scores that ES-DE cannot label are not exported as edition scores.
+  Rich provenance and original-game labels remain in R-Shop's records. Omission
+  does not erase last-good/manual launcher facts or fabricate a zero.
+- Details and ES-DE select release facts by exact edition region, independently
+  of UI language/provider response order. Conflicting, invalid and insufficiently
+  precise dates are not invented; full calendar dates export as YYYYMMDDT000000.
+  Normal controller publication of regional dates and an independently refreshed
+  IGDB community score passes, including preservation/conflict on a manual rating.
+- Shared schema v6 adds an expected installation-layout receipt, containing only
+  exact remote artifacts and entry/member paths. It reuses the existing normal
+  transfer journal's plan without starting transfers, reading ROM payloads,
+  creating ROM directories or exporting operational state. Explicit replacement
+  paths and playlist graphs are supported; no guessed namespace or archive layout.
+  Every dependency is checked against the current catalogue. Ambiguous plans
+  block rather than choose a path; ordinary cached filenames must agree with
+  their artifact. A saved expected layout survives private journal loss, without
+  restoring installation/transfer ownership or claiming absent ROMs launchable.
+- Evidence: behavioral red 81d94b proves mislabelled original-game score export;
+  red 10056a proves rejection of a valid recorded bundle. Field/controller/query/
+  store checks passed caedd5/2b44c6. Expanded entry-only/reviewed-member/single-path,
+  ambiguous-plan, changed-dependency, shared-only-layout and v4/v5 upgrade checks
+  passed 80b117/7990a7. The initial query check failed because its provider fixture
+  reached unconfigured platform preferences (a60005); explicit fixture storage
+  isolation and the exact-region details assertion pass e20894/60236c. An
+  inconsistent cached rename was caught 0d3c99 and corrected at the layout's
+  catalogue coherence check, not by weakening the assertion.
+  Final affected publication/control/store/query/date/artwork-job/settings
+  verification passed 1761dd/1b69e8, including unchanged settings goldens.
+  Full affected-item analysis passed 2dea13/3d6366 after fixing brace-style
+  diagnostics; no production/test compiler failure or memory failure remained.
+- These are host fixture results, not live Thor/ES-DE/provider acceptance. Still
+  required in S4: native shared-storage loss/regrant/rebuild/reinstall evidence
+  using expendable state, B7 reconstruction, and current integrated resource
+  verification. S6-S9 remain NOT STARTED. No ADB, Gradle, cloud mutation, ROM
+  payload, SD deletion, release or commit occurred in this checkpoint; no memory
+  failure was observed. No Gradle gate/profile claim is made (no build invoked).
+
+### S4 META-08 normal artwork publication/reuse (2026-10-05)
+
+- S4 remains ACTIVE, the only ACTIVE stage. Normal settings explicitly selects
+  the console's actual media directory; publication writes validated cover and
+  screenshot PNGs at the exact install-derived ROM-relative stem without ROM IO.
+  ES-DE must remain closed. The OS lock coordinates R-Shop publishers only.
+- Shared schema v5 preserves image ownership and recovery journals independently
+  from XML. Manual/unowned/alternate-format images and different editions are
+  conflicts. Owned partial stages and rename-before-ack interruptions recover
+  from verified immutable images. A media conflict does not erase published
+  facts or report the complete operation as successful.
+- Normal exact-edition settings adds explicit artwork review/confirmation.
+  PNG/JPG/WebP reuse validates console/edition/provider/artifact/install/path,
+  records local origin/hash/import date, and leaves the original launcher-owned.
+  Fresh facts still use provider lookups. Reuse is edition-scoped and never a
+  fresh provider-body receipt or authority to import old scores/descriptions.
+  Decode is bounded to 4 MiB / 4,194,304 source pixels before normalization to
+  a single-frame cache PNG. Changed bytes/selectors/mappings cannot reuse it.
+- Behavioral reds 2a8d14 (missing publication) and 836b4a (redundant body after
+  review) led to the implementation. Final focused import/controller/publication/
+  shared-store/settings/artwork-job checks passed cbea9f/47be09; expanded normal
+  cover-plus-screenshot workflow passed 183124. v4 upgrade preserves text
+  ownership/mappings; v1/v2 recovery remains verified. Native PNG/JPG/WebP decode,
+  body/pixel budgets and unchanged settings goldens pass. Analysis 944a63 has no
+  issues in affected code/tests. These are host fixtures, not Thor/provider proof.
+- Remaining S4 work at this earlier checkpoint: score/release selectors, explicit bundle paths, native
+  storage/regrant/rebuild/reinstall, B7 reconstruction and post-integration
+  resource reconciliation. S6-S9 remain NOT STARTED. No Thor/ADB, Gradle, cloud
+  mutation, ROM payload, SD deletion, release or commit occurred; no memory
+  failure was observed. No Gradle gate/profile claim is made (no build needed).
+
+### S4 META-08 normal ES-DE text publication (2026-10-05; earlier checkpoint)
+
+- S4 is ACTIVE, still the only ACTIVE stage. Shared metadata schema v4 adds exact
+  ES-DE mappings, pending text updates, per-field ownership and publication journals.
+  Earlier v1/v2 upgrades still retain facts/artwork and bounded identity recovery.
+  No credentials, ROM payloads or operational installation state are exported.
+- The normal per-edition metadata screen maps the cached artifact to its existing
+  configured install destination and an explicitly selected ES-DE console ROM/
+  gamelist folder. The normal controller uses that mapping after fresh refreshes;
+  the existing settings screen exposes pending publication with localized labels
+  in all six locales. Publication requires ES-DE to remain closed throughout.
+- Current host evidence proves normal remote catalogue -> provider refresh ->
+  durable pending fields -> real filesystem gamelist publication, preserving
+  favorites/history/custom fields and comments without creating a ROM directory,
+  placeholder or installation schema. Changing the configured install root or
+  exact queue filename rejects the old mapping. Publication pins the catalogue
+  in a transaction and makes no provider/image requests itself.
+- Journal fixtures cover prepare-before-replace, interruption during a stage
+  flush, rename-before-private acknowledgement, reopen recovery, path ambiguity,
+  changed identities and external edits. Manual fields remain conflicts. An
+  explicit subsequent publish can rebase a previously reported changed-file/
+  pending-generation preparation without overriding manual edits; missing prior
+  storage or modified unowned stages cannot be converted into an empty list.
+  Same-directory replacement preserves the prior XML until the prepared file
+  is flushed; actual Android storage behavior is not yet verified.
+- Behavioral red evidence: ce7535 reproduced an interrupted stage incorrectly
+  remaining blocked, 6752fe reproduced publication under an obsolete queue
+  filename, and d5cfc9 reproduced an unrecoverable changed-file preparation.
+  Current focused publication/controller/shared-store/settings verification
+  passed 09b92f/2a4a66. Selected changed-code analysis passed 020c63. The preceding
+  compilation and incorrect nonexistent-install-table assertions are fixture/
+  setup errors, not product regression evidence.
+- Golden failure 846b50/5c18b7 was inspected: the new footer increased the maximum
+  scroll offset by one row, shifting the progress capture while preserving the
+  form geometry. The reviewed progress golden was updated; the setup golden's
+  SHA256 remained unchanged. The final non-update run passed the golden and the
+  closed-window/disabled-unmapped controls. Only four attributable comparison
+  PNGs and their empty failure directory were transactionally removed (ddca18);
+  the intended goldens and older incident/recovery evidence were preserved.
+- This narrow text slice exports title/description/developer/publisher/genre,
+  not yet the full score/release/media projection. Identity-validated ES-DE media
+  reuse/publication, explicit bundle paths, native storage/regrant/reinstall
+  proof and the post-integration resource check remain ordinary S4 work. The
+  OS lock excludes cooperating R-Shop publishers, not ES-DE; the documented
+  closed-writer maintenance condition is not cross-writer CAS.
+- The Thor remains released, with no device use during this work. No Gradle
+  command ran, so no new gate acquisition or JVM profile is claimed. One focused
+  test workload at a time was used; no memory-related failure was observed. No
+  cloud mutation, ROM download, SD deletion, release or commit occurred. B7 and
+  the full-spec gaps remain recorded; S6-S9 are NOT STARTED.
+
+### S4 META-08 normal shared-cache slice (2026-10-05)
+
+- S4 remains ACTIVE, the sole implementation stage. Normal settings now selects
+  shared storage and migrates current owned metadata/artwork before changing its
+  saved root. Normal refresh/readers use that same root; private tokens,
+  installation/transfer ownership and source settings are not exported.
+- Focused host verification 84fe88 proves normal controller -> durable records/
+  blobs -> cleared private projections -> exact-identity offline recovery without
+  extra provider/artwork requests. It also verifies joined resume of a committed
+  same-generation response, fresh-generation lookups, changed-edition/cross-account
+  rejection, failed selection retaining the old root, and normal settings/ES-DE
+  merge behavior. 1c0b7f additionally verifies missing-root and unrelated-database
+  preservation. Selected analysis cda27e reports no issues.
+- Fresh operational-database fixtures now recover reviewed single-member Drive
+  identities after catalogue publication, including a re-created local source ID
+  and both ScreenScraper/IGDB assignments. Account/file/content evidence is required;
+  missing/changed/ambiguous inputs and current manual edits do not inherit facts.
+  Normal query/cover/detail consumers join projection recovery without interrupting
+  the store worker. v1/v2-to-v3 cache migration preserves facts and PNGs.
+- Durable artwork response replay passes the lost-private-acknowledgement fixture;
+  explicit fresh generations remain fresh. The real public ScreenScraper normal
+  review/artwork/shared-cache/offline check passed initially 686e39 and again on
+  current source 3aa452. Focused host recovery passed a24c9e; final controller,
+  artwork, catalogue, per-system and Library checks passed 791953;
+  settings/golden/Library passed 1036a0 and selected analysis passed 2f0e3e.
+  Subsequent tests explicitly use --concurrency=1; no parallel tester workloads.
+- v3 additionally persists exact edition/base identity snapshots, not fabricated
+  base metadata. Reopened host fixtures recover a two-disc translated edition
+  and its reviewed, unscraped original, including a source change only for that
+  original. Changed/missing disc/base objects and newer manual base corrections
+  cannot restore stale relationships. 53b11d, b85ca6/26392f and 825f69 reproduced
+  the stale-base, unchanged-primary/member and independent-base-ID failures;
+  production corrections pass ff09eb/e6cb5c and final reopened/manual-correction
+  cases pass 8cedfd. v2 migration/reselected-catalogue recovery of 129 distinct
+  editions crosses the bounded upgrade/restore page boundary (4a11c5/f9084f).
+  Selected store/test analysis passed 641f43 and the final expanded fixture
+  analysis passed 383242/5485e6. This is host evidence,
+  not native storage lifecycle or a new 30,000-edition resource proof.
+- This is not META-08 completion. Validated ES-DE media reuse,
+  writer-coordinated publication and real Thor storage/regrant/
+  reinstall proof remain S4 work. S6-S9 are NOT STARTED. B7 is unresolved;
+  no lost prior private bytes are claimed recovered.
+- Authorized native reconstruction restored normal onboarding/default-account
+  authorization and selected-root Drive traversal before the device was released.
+  The last inspected traversal had a committed checkpoint and was still pending;
+  neither catalogue completion nor provider-credential reconstruction is claimed.
+  Both displays were confirmed OFF (058b8f). No device use followed release.
+- No Gradle build was launched, so no new gate/profile verification is claimed.
+  One host test invocation at a time was used; the bounded runner measured peak
+  RSS 274,649,088 bytes with no memory failure. No deployment/release, cloud write,
+  bulk ROM download or SD deletion occurred. Golden-failure renders are the only
+  expendable cleanup targets; APK/incident/recovery evidence is retained.
+
+### Revision 6 — shared persistent metadata and ES-DE sync (2026-10-05)
+
+- The owner requested reusable shared metadata/artwork and keeping ES-DE metadata
+  current for remote games without locally installed ROMs. META-08 records the
+  behavior, safety boundaries and acceptance tests; S4 is its delivery owner,
+  with S6 integration and S7 full-pass rechecks. This is required unfinished work,
+  not delivered functionality or a tracked deferral.
+- At the time this requirement was added, facts were private in rshop.db and
+  artwork in metadata-artwork; the current implementation/evidence is recorded
+  in the shared-cache section above.
+  Read-only Thor inspection confirmed ES-DE/gamelists and downloaded_media under
+  /storage/emulated/0/ES-DE, including Game Boy gamelist and media-type directories.
+  This is layout evidence, not proof of per-game identity or export compatibility.
+- B7 remains recorded: the owner has no app-data backup. Existing .env.local
+  credentials enable setup reconstruction but cannot restore the lost private
+  database/settings bytes. No scope waiver or recovered-state claim is made.
+  The new requirement does not open a second ACTIVE stage. No device/shared
+  files, cloud records, credentials or settings were modified by this update.
+
+### B7 — native test teardown deleted debug application state (2026-10-05)
+
+- The focused native artwork workflow passed in console, Library Top-10 scope
+  and manual shelf (`c67901`): normal controller -> persistent jobs -> owned
+  files -> decoded cover/screenshots -> offline restore. Its private report
+  records no production bootstrap, provider network socket or ROM request.
+- The supervising command omitted `--keep-app-running` and used the install/
+  launch route instead of attaching to an explicitly launched existing app.
+  Flutter's installed `drive.dart` defaults to `driverService.stop()` on this
+  route; `drive_service.dart` stops and uninstalls the package. This is a main-
+  agent execution error, not an artwork/SQLite product defect. The existing
+  DEVELOPMENT_SETUP.md already documents the safe direct install/attach route;
+  no new timeout, retry, production fallback or speculative fix is justified.
+- The normal APK was restored, but all seven previously fingerprinted private
+  files were absent afterwards: database/journal, ordinary preferences, both
+  secure-storage preference files, Google sign-in preferences and config.
+  The freshly reinstalled debug directory contains only cache/code_cache.
+  Hashes are evidence, not recovery copies. Host filename searches and bounded
+  device recovery discovery found no app-data recovery archive. Android backup
+  is disabled by the manifest. Exact previous-state recovery is not established.
+- The restored on-device APK hash equals the retained normal APK
+  `daa8b182c8f722f4e3dc75685ee346b8919bfefb1159c62af6cfce3ebdd7ffee`.
+  Both retained internal/SD round-trip save files match their earlier hash
+  (`ff7087`), and both actual displays are OFF. These limited checks do not
+  claim that the lost private database/config/credentials have been restored.
+- Blocked requirement: standing installed-data/settings preservation and the
+  S4 native-workflow restoration gate. Cause: internal test-launch error;
+  resolution requires a verified previous-state recovery source, or explicit
+  owner direction for handling the irreversible lost state followed by real
+  reconstruction verification. Reconstruction must not be called byte-preserving
+  restoration or retroactively turn this failed execution into a pass.
+  S4 is BLOCKED; no later stage is activated. S6 integration, subsequent native
+  testing and S7 migration cannot be considered complete through this incident.
+- Build ticket 69 completed successfully (`be4f97`), with the shared mutex
+  actually acquired, observed workers 2/parallel false/3,221,225,472-byte heap,
+  in-process Kotlin configured, and no memory-failure evidence. JVM test markers
+  show one fork/512m at configuration time; this assemble ran no JVM tests.
+  Native effective concurrency is not claimed proved by the helper's environment
+  hints. APK package/signer were checked before installation (`79c658`).
+  No external release, bulk metadata scrape or SD cleanup occurred.
+
+### S4 resource pass and actual missing artwork integration (2026-10-04)
+
+- Focused current-source artwork fixture session 1132 exited zero (`e927bd`):
+  30,000 distinct matched selectors; 41,880 ms capture, 674,057 ms total;
+  208,420,864-byte peak RSS, 65,536-byte maximum chunk, one transport, two
+  immutable image bodies; database reopen/offline replay passed with no extra
+  transport. VM service was absent. All 600,315 observed FFI operations returned,
+  with no pending cache operation. Tester PID 88528 and loopback listener 50091
+  were absent afterwards; its exact D: fixture directory was also absent.
+  This does not diagnose or claim a fix for the historical wait.
+- Inspection then found real unfinished normal-app integration: the only
+  `createArtwork` and `MetadataArtworkCache` constructor occurrences under `lib`
+  are their definitions. `MetadataControlsController._run` runs only the metadata
+  phase; no artwork cache or image job is supplied. No normal consumer calls
+  `MetadataArtworkCache.fileFor`; cards still consume legacy cached-cover fields.
+  The previous decoded-cover fixture injected a valid file into those fields,
+  proving the renderer but not refresh -> artwork publication -> consumption.
+- S4 remains the sole ACTIVE stage for this META-06 integration. The compact
+  normal-artwork route and acceptance are recorded in IMPLEMENTATION_PLAN.md.
+  No additional feature/stage, credential setup, imagined external blocker or
+  speculative fix for the historical tester wait is introduced. S5's demonstrated
+  visual/filter/control contracts remain verified, but not proof of this link.
+- Cleanup transaction `9b343ba3553287b726de42ebff7fb6ed` reviewed all 514 exact
+  generated asset/cache entries (57,732,439 bytes), no excluded/errors. Ticket
+  `70992a014985603ba370689df8e88f1e23227bcebf95503466ef2286b8b99ed9`
+  is issued but not applied: these outputs remain useful for required focused
+  integration tests. Clean expendable output after those checks, retaining
+  original forensic/native/recovery evidence. No Gradle command ran in this check.
+
+### S4 current-source reconciliation resumed (2026-10-04)
+
+- S1 is COMPLETE at `68695d7`; S4 is now the sole ACTIVE stage. No later stage
+  is opened. Applicable source/evidence is being reconciled after S5's v32/v33
+  migrations, review-mode additions and shared query changes.
+- The old B5 resolution condition demanded recovering a terminated process's
+  missing async state and diagnosing its unreproduced Windows tester wait.
+  That extra condition was introduced in the derived ledger, not META-06/QA-01
+  or S4's authoritative acceptance. It is retired as a delivery blocker without
+  changing the specification, suppressing an observed current failure or claiming
+  the historical anomaly fixed. Original forensic evidence and opt-in diagnostics
+  remain preserved. A current recurrence would immediately fail verification and
+  require investigation, not a timeout, restart or guessed production patch.
+- Current META-06/QA-01 still require bounded 30,000-game work/cache plus joined
+  lifecycle and offline/recovery behavior. Relevant production schema/worker
+  changes invalidate wholesale reuse of the earlier large artwork run; one
+  focused current-source fixture is required. Existing inspected current query,
+  migration, native ownership and real provider/reception evidence remains
+  applicable where its code and conditions are unchanged. S4 is not COMPLETE.
 
 ### S1 closure: actual renewal and verified restoration (2026-10-04)
 
@@ -1716,9 +2344,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | S1 | COMPLETE | S1_ACCEPTANCE_RECONCILIATION.md; additive identity/migration preservation, native consent/decline/reconnect, actual natural HTTP401 followed by different-token silent renewal/root, remote revocation, offline isolation/privacy contracts, legitimate standalone ScreenScraper lookup and release identity verified; normal APK/settings/protected hashes restored | None. B3 resolved by explicit user waiver of live second-account verification, not live isolation proof; B6 resolved by working hotel connectivity |
 | S2 | COMPLETE | Focused rooted/paging/failure/identity/mixed-queue contracts pass; real selected Game Gear subtree published after resumed traversal; normal mapping/library shows 182 exact archive entries, retained through cold restart with Wi-Fi disabled and controller browsing | No unmet S2 criteria. Named final source-action touch/layout/localization work belongs to UI-02/S5; verified payload/offline emulator/removal belongs to S3 |
 | S3 | COMPLETE | Real Drive/SD/Dolphin/offline/remove/reinstall; native publication and replacement process-stop recovery; bounded large-file streams/measured copy space; exact achievement identity/hash; normal queue bundle resume/readiness/share/removal/save proof and native member grant gates; additive v22 preservation | No unmet S3 criteria. S5 owns the separately named final source-action UX work; it does not replace S3 acceptance |
-| S4 | BLOCKED | Backend requirement reconciliation in S4_ACCEPTANCE_RECONCILIATION.md; fresh jobs/review/retry, exact raw/project/release ownership, independent tags, native query/artwork resources, real reception assessment and integrated production community policy verified; both VM-enabled and VM-disabled 30,000-item observed host workflows completed with offline reopen/replay | Reconcile B5's historical tester-wait condition against actual META-06/QA-01 acceptance and current unchanged source/evidence. No original fix is claimed. B4 resolved; no more IGDB credential renewal. Unassessed scopes remain advisory |
+| S4 | COMPLETE | S4_ACCEPTANCE_RECONCILIATION.md: current normal artwork, matching/tags/assessed score/query, durable bounded shared rebuild, exact ES-DE fields/media and actual Thor permission/restart/expendable-reinstall workflows verified; owner-directed setup reconstruction verified | None for assigned S4 criteria. B7's old private bytes remain irreversibly lost, not claimed recovered; its operational reconstruction resolution is verified. Other score scopes remain explicitly advisory, not silently accepted |
 | S5 | COMPLETE | Normal native shared-card layout/overlays/media and pinned IGDB service icon, decoded cached cover replacement in console/Library/shelf, independent tags/unrated paths, filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | None for UI-01/UI-02/UI-03; S9 owns the expressly named final complete cartridge/legacy-platform asset coverage |
-| S6 | NOT STARTED | None | QA-01, QA-02, QA-04 and complete integrated reconciliation |
+| S6 | ACTIVE | S4 closure supplies the prerequisite current shared-metadata/native evidence; no S6 completion claim | QA-01, QA-02, QA-04: complete integrated reconciliation, affected existing-provider/config/queue regressions and combined normal real workflow/privacy/resource recheck |
 | S7 | NOT STARTED | User retention choice recorded in revision 2 | MIGRATE-01: full fresh metadata pass, live recovery, reviewed cloud-verified removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
 | S9 | NOT STARTED | User complete physical-media coverage choice recorded in revision 5 | ART-01: complete cartridge/legacy-media asset matrix and native cover-state audit; final integrated reconciliation |
@@ -1730,11 +2358,11 @@ authenticated lookup and S4's live matching/reception evidence; legitimate fork
 application credentials and a successful live lookup resolved it on 2026-10-03. Neither substitutes for the
 ordinary unfinished implementation listed above. No required work is dropped or
 reclassified as a deferral. S1 is COMPLETE after actual renewal and verified restoration,
-with B3 resolved by the user's explicit scope change; S4 is parked at B5; S5 is COMPLETE. Earlier chronological
+with B3 resolved by the user's explicit scope change; S4 and S5 are COMPLETE; S6 is ACTIVE. Earlier chronological
 checkpoints retain their then-current state.
 S3's explicit dependencies were S2 exact artefacts/queue
 and S1 migrated state, not ScreenScraper lookup. S1 auth lifecycle criteria are now
-satisfied; S4 and S6-S9 still require their own closure before overall completion.
+satisfied; S6-S9 still require their own closure before overall completion.
 
 ### S4 provider grouping and artwork resource checkpoint (2026-10-03)
 

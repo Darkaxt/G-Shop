@@ -1,6 +1,15 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
 import '../models/system_model.dart';
 
 class ImageHelper {
+  /// Metadata cache supplies file URIs; existing sources retain network images.
+  static ImageProvider<Object> imageProvider(String reference) {
+    final uri = Uri.parse(reference);
+    if (uri.scheme == 'file') return FileImage(File.fromUri(uri));
+    return NetworkImage(reference);
+  }
+
   static final _gameExtensions = SystemModel.allGameExtensions;
   static const String _baseUrl =
       'https://raw.githubusercontent.com/libretro-thumbnails/';

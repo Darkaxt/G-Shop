@@ -200,6 +200,10 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       installedArtifacts:
           installedData?.exactBySystem[widget.system.id] ?? const [],
       storage: ref.read(storageServiceProvider),
+      prepareMetadata: () async {
+        if (!mounted) return;
+        await ref.read(cachedMetadataReadinessProvider.future);
+      },
     )..addListener(_onControllerChanged);
 
     _controller.onGamesSaved = () {

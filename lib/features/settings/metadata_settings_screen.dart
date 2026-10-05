@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'package:path/path.dart' as p;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/input/app_intents.dart';
 import '../../core/input/console_screen_mixin.dart';
@@ -8,6 +13,7 @@ import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/metadata_providers.dart';
+import '../../providers/library_providers.dart';
 import '../../services/metadata/metadata_credentials.dart';
 import '../../services/metadata/metadata_refresh_jobs.dart';
 import 'metadata_review_screen.dart';
@@ -37,6 +43,8 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   final _providerFocus = FocusNode();
   String? _scope;
   bool _invalid = false;
+  bool _esDeClosed = false;
+  String? _esDeTarget;
   @override
   String get routeId => 'metadata_settings';
   @override
@@ -121,6 +129,151 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       await controls.saveIgdb(igdb);
     }
     if (mounted && !ref.read(metadataControlsProvider).error) _clearFields();
+  }
+
+  Future<void> _selectSharedStorage() async {
+    final controls = ref.read(metadataControlsProvider.notifier);
+    var selected = false;
+    await controls.selectSharedStorage(() async {
+      if (Platform.isAndroid &&
+          !(await Permission.manageExternalStorage.request()).isGranted) {
+        return null;
+      }
+      final path = await FilePicker.platform.getDirectoryPath();
+      selected = path != null;
+      return path == null ? null : Directory(path);
+    });
+    if (!mounted || !selected) return;
+    final state = ref.read(metadataControlsProvider);
+    if (state.error || state.sharedDirectory == null) return;
+    // Selection/migration has joined; do not dispose an active metadata worker.
+    ref.invalidate(sharedMetadataStoreProvider);
+    ref.invalidate(metadataArtworkCacheProvider);
+    ref.invalidate(metadataControlsProvider);
+  }
+
+  Future<void> _mapEsDe() async {
+    if (widget.cacheRowId == null || widget.editionId == null) return;
+    final l = L.of(context);
+    if (Platform.isAndroid &&
+        !(await Permission.manageExternalStorage.request()).isGranted) {
+      return;
+    }
+    final romRoot = await FilePicker.platform
+        .getDirectoryPath(dialogTitle: l.metadata_esDeRomRoot);
+    if (!mounted || romRoot == null) return;
+    final gamelistRoot = await FilePicker.platform
+        .getDirectoryPath(dialogTitle: l.metadata_esDeGamelist);
+    if (!mounted || gamelistRoot == null) return;
+    final mediaRoot = await FilePicker.platform
+        .getDirectoryPath(dialogTitle: l.metadata_esDeMediaRoot);
+    if (!mounted || mediaRoot == null) return;
+    await ref.read(metadataControlsProvider.notifier).mapEsDeEdition(
+        cacheRowId: widget.cacheRowId!,
+        editionId: widget.editionId!,
+        romRoot: Directory(romRoot),
+        mediaRoot: Directory(mediaRoot),
+        gamelist: File(p.join(gamelistRoot, 'gamelist.xml')));
+  }
+
+  Future<void> _reviewEsDeArtwork() async {
+    if (widget.editionId == null) return;
+    final l = L.of(context);
+    final selected = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'webp'],
+        allowMultiple: false,
+        withData: false,
+        dialogTitle: l.metadata_esDeReviewArtwork);
+    final path = selected?.files.single.path;
+    if (!mounted || path == null) return;
+    final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: Text(l.metadata_esDeReviewArtwork),
+                content: Text('${l.metadata_esDeReviewArtworkHelp}\n\n'
+                    '${widget.gameTitle ?? widget.editionId}\n'
+                    '${widget.systemSlug ?? ''}\n$path'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(l.common_cancel)),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(l.metadata_esDeReviewArtwork)),
+                ]));
+    if (!mounted || accepted != true) return;
+    await ref
+        .read(metadataControlsProvider.notifier)
+        .reviewEsDeArtwork(editionId: widget.editionId!, source: File(path));
+  }
+
+  Widget _esDeSection(L l, MetadataControlsState state, bool enabled) {
+    final selected = state.esDeTargets.contains(_esDeTarget)
+        ? _esDeTarget
+        : state.esDeTargets.firstOrNull;
+    return ExpansionTile(
+        key: const ValueKey('metadata-esde-section'),
+        title: Text(l.metadata_esDe),
+        children: [
+          Text(l.metadata_esDeHelp),
+          if (widget.cacheRowId == null || widget.editionId == null)
+            Text(l.metadata_esDeNoMapping),
+          _button(
+              l.metadata_esDeMap,
+              'metadata-esde-map',
+              enabled &&
+                      state.sharedDirectory != null &&
+                      widget.editionId != null &&
+                      widget.cacheRowId != null
+                  ? _mapEsDe
+                  : null),
+          _button(
+              l.metadata_esDeReviewArtwork,
+              'metadata-esde-review-artwork',
+              enabled &&
+                      state.sharedDirectory != null &&
+                      widget.editionId != null
+                  ? _reviewEsDeArtwork
+                  : null),
+          if (selected != null)
+            DropdownButton<String>(
+                key: const ValueKey('metadata-esde-target'),
+                value: selected,
+                isExpanded: true,
+                items: state.esDeTargets
+                    .map((path) => DropdownMenuItem(
+                        value: path,
+                        child: Text(path,
+                            maxLines: 2, overflow: TextOverflow.ellipsis)))
+                    .toList(),
+                onChanged: enabled
+                    ? (value) => setState(() => _esDeTarget = value)
+                    : null),
+          CheckboxListTile(
+              key: const ValueKey('metadata-esde-closed'),
+              title: Text(l.metadata_esDeClosed),
+              value: _esDeClosed,
+              onChanged: enabled
+                  ? (value) => setState(() => _esDeClosed = value ?? false)
+                  : null),
+          _button(
+              l.metadata_esDePublish,
+              'metadata-esde-publish',
+              enabled && selected != null && _esDeClosed
+                  ? () => ref
+                      .read(metadataControlsProvider.notifier)
+                      .publishEsDe(File(selected), esDeClosed: _esDeClosed)
+                  : null),
+          if (state.esDeReport case final report?) ...[
+            Text({'published', 'upToDate'}.contains(report.status)
+                ? l.metadata_esDePublished
+                : l.metadata_esDeConflict),
+            for (final conflict in report.conflicts)
+              Text(
+                  '${conflict.relativeRomPath}${conflict.field == null ? '' : ' · ${conflict.field}'}'),
+          ],
+        ]);
   }
 
   Widget _field(TextEditingController controller, String label, String key,
@@ -302,18 +455,17 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                                   systemSlug: _scope,
                                   cacheRowId: widget.cacheRowId)
                               : null),
-                      _button(
-                          l.metadata_pause,
-                          'metadata-pause',
-                          state.busy && report?.state == 'running'
-                              ? controls.pause
-                              : null),
+                      _button(l.metadata_pause, 'metadata-pause',
+                          state.busy ? controls.pause : null),
                       _button(
                           l.metadata_resume,
                           'metadata-resume',
                           enabled &&
                                   report != null &&
-                                  report.state != 'completed'
+                                  (report.state != 'completed' ||
+                                      (state.artworkReport != null &&
+                                          state.artworkReport!.state !=
+                                              'completed'))
                               ? controls.resume
                               : null),
                       _button(
@@ -327,7 +479,9 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                                     'invalidResponse',
                                     'unsupportedPlatform',
                                     'identityChanged'
-                                  ].any((s) => (report.counts[s] ?? 0) > 0)
+                                  ].any((s) =>
+                                      (report.counts[s] ?? 0) > 0 ||
+                                      (state.artworkReport?.counts[s] ?? 0) > 0)
                               ? controls.retryUnresolved
                               : null),
                     ]),
@@ -349,7 +503,10 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                     if (state.error)
                       Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(l.metadata_controlsError,
+                          child: Text(
+                              state.sharedStorageUnavailable
+                                  ? l.metadata_sharedUnavailable
+                                  : l.metadata_controlsError,
                               style: const TextStyle(color: Colors.amber))),
                     if (state.error && report == null)
                       _button(l.common_retry, 'metadata-reload',
@@ -380,6 +537,42 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                         Text(report.notBefore!.toLocal().toString()),
                       Text(l.metadata_completeNote),
                     ],
+                    if (state.artworkReport case final artwork?) ...[
+                      const SizedBox(height: 12),
+                      Text(l.metadata_artwork,
+                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(artwork.state == 'completed'
+                          ? l.metadata_jobCompleted
+                          : artwork.state == 'running'
+                              ? l.metadata_jobRunning
+                              : l.downloadStatus_paused),
+                      _coverage(l, artwork),
+                      if (artwork.blockedStatus != null)
+                        Text(switch (artwork.blockedStatus) {
+                          'setupRequired' ||
+                          'authenticationRequired' ||
+                          'developerAccessRequired' =>
+                            l.metadata_configureAccess,
+                          'quotaExceeded' ||
+                          'throttled' =>
+                            l.metadata_quotaWait,
+                          _ => l.metadata_offlineWait,
+                        }),
+                    ],
+                    const SizedBox(height: 16),
+                    ExpansionTile(
+                        key: const ValueKey('metadata-shared-storage-section'),
+                        title: Text(l.metadata_sharedStorage),
+                        children: [
+                          Text(l.metadata_sharedStorageHelp),
+                          Text(state.sharedDirectory ??
+                              l.metadata_privateStorage),
+                          _button(
+                              l.metadata_chooseSharedStorage,
+                              'metadata-shared-storage',
+                              enabled ? _selectSharedStorage : null),
+                        ]),
+                    _esDeSection(l, state, enabled),
                   ]),
             )),
           ]),
@@ -408,7 +601,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
             l.metadata_ambiguous: counts['ambiguous'] ?? 0,
             l.metadata_unmatched: counts['unmatched'] ?? 0,
             l.metadata_failed: failed,
-            l.metadata_rated: report.rated,
+            if (report.kind != 'artwork') l.metadata_rated: report.rated,
             l.metadata_pending: counts['pending'] ?? 0,
           }.entries)
             Text('${entry.key}: ${entry.value}'),

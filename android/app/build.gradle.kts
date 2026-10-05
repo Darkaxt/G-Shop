@@ -6,6 +6,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// META-08 native fixtures use expendable app data. This opt-in affects only
+// debug packaging; never install a test entrypoint over the owner's debug app.
+val sharedMetadataProof = providers.gradleProperty("rshopSharedMetadataProof").orNull
+require(sharedMetadataProof == null || sharedMetadataProof in listOf("true", "false")) {
+    "rshopSharedMetadataProof must be true or false"
+}
+
 // Load signing properties if available
 val keyPropertiesFile = rootProject.file("key.properties")
 val keyProperties = Properties().apply {
@@ -67,8 +74,9 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
-            manifestPlaceholders["appLabel"] = "R-Shop Drive Dev"
+            applicationIdSuffix = if (sharedMetadataProof == "true") ".sharedproof" else ".debug"
+            manifestPlaceholders["appLabel"] =
+                if (sharedMetadataProof == "true") "R-Shop Shared Proof" else "R-Shop Drive Dev"
         }
         release {
             signingConfig = if (keyPropertiesFile.exists()) {

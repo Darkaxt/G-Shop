@@ -14,13 +14,14 @@ import '../utils/ra_name_matcher.dart';
 import 'library_store.dart';
 import 'library_query.dart';
 import 'metadata/metadata_refresh_jobs.dart';
+import 'metadata/metadata_artwork_cache.dart';
 import 'drive/drive_catalogue.dart';
 import 'transfer_journal.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 33;
+  static const int _dbVersion = 34;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -362,6 +363,9 @@ class DatabaseService {
     }
     if (oldVersion < 33) {
       await LibraryQuery.installInvalidationTriggers(db);
+    }
+    if (oldVersion < 34) {
+      await MetadataRefreshJobs.installArtworkLinks(db);
     }
   }
 
@@ -925,11 +929,15 @@ class DatabaseService {
   }
 
   Future<GameMetadataInfo?> getGameMetadata(String filename, String systemSlug,
-      {String language = 'en'}) async {
+      {String language = 'en', MetadataArtworkCache? artworkCache}) async {
     final db = await database;
     final current = await LibraryQuery(Future.value(db))
         .cachedMetadata(filename, systemSlug, language: language);
-    if (current != null) return current;
+    if (current != null) {
+      if (artworkCache == null || current.editionId == null) return current;
+      final artwork = await artworkCache.artworkForEdition(current.editionId!);
+      return current.withArtwork(artwork.cover, artwork.screenshots);
+    }
     // Exact artifact selections must never fall back to a filename-only record.
     if (filename.startsWith('artifact:')) return null;
     final rows = await db.query(

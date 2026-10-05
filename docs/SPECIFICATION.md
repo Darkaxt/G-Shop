@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion and per-ROM companions
 
-Authoritative specification, revision 5, 2026-10-04.
+Authoritative specification, revision 6, 2026-10-05.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -36,6 +36,12 @@ preemptively generating a complete console-art catalogue during S5.
 
 User decisions incorporated:
 
+- Shared metadata persistence and ES-DE integration (2026-10-05): keep expensive
+  scraped facts and artwork in durable, user-selected shared storage, reusable
+  without ES-DE being the main launcher. Refresh from the remote catalogue even
+  when ROMs are absent locally, and keep compatible ES-DE metadata current.
+  Credentials remain private; this does not authorize Drive writes, ROM stubs,
+  importing old scores as fresh evidence, or changing ES-DE user settings.
 - Google Drive and metadata expansion are the two features.
 - Per-ROM dual-display companion launching is the additional S8 feature.
 - Physical-media fallback selection (2026-10-04): use Systematic's colored
@@ -430,6 +436,58 @@ multi-disc/region deduplication, overlapping tags, no unrequested extras,
 stable ties, collection-only membership, score/add/remove-driven recomputation,
 any/all tag matching, sparse/unrated coverage, restart persistence and indexed-query
 resource tests on the large fixture. No network requests while filtering.
+
+### META-08 — Durable shared metadata and ES-DE publication
+
+Persist credential-free scraped records and validated artwork outside the
+uninstall-scoped app directory, in an explicitly selected shared location.
+Keep exact source/account/artifact and edition/provider bindings, provenance,
+retrieval dates and schema/generation information with that data. Keep secrets,
+tokens and operational installation/transfer state private. The internal metadata
+and query projections must be rebuildable from the durable records without
+repeating completed provider lookups or artwork downloads. Reconnecting access
+and reselecting a shared directory after reinstall are not loss of scraped data;
+do not claim recovery of settings or installations not included in this store.
+Handle revoked storage permission, unavailable/remounted storage and interrupted
+publication explicitly without replacing the last usable generation. App-private
+metadata already present must migrate without dropping verified facts or files.
+
+Use the published remote catalogue, not local ROM presence, as the membership
+input for scraping and shared metadata updates. A successful catalogue/provider
+refresh updates exact affected identities and their current metadata; an outage
+or incomplete refresh cannot publish an empty collection or erase usable data.
+Drive remains read-only: catalogue changes come from Drive metadata, rich facts
+from the legitimate metadata providers. No ROM body requests are needed.
+
+Reuse existing ES-DE covers/screenshots only after validating their console,
+edition and expected relative ROM-path association. ES-DE filename conventions
+are not sufficient evidence to merge two games, regions, revisions or patches.
+Never treat an old gamelist score or description as a fresh provider response.
+Keep R-Shop's richer identity/provenance records alongside, rather than using
+gamelist.xml as the authoritative provider cache.
+
+Publish supported current fields into the selected ES-DE gamelist/media layout
+for explicitly mapped remote editions, including ROMs absent from local storage.
+Resolve their expected local paths from the established installation mapping,
+never guessed filenames or cloud URLs. Retain unrelated game/folder entries,
+favorites, play counts/history, emulator overrides, unknown fields and manual
+metadata edits; update only mapped provider-owned fields with recorded ownership
+and report conflicts rather than overwrite them. Persist R-Shop-only provenance
+in its own records, not invented ES-DE rating semantics. Coordinate with ES-DE's
+own writers and revalidate the file before publication; interruption/conflict
+must leave a parseable last-good gamelist and a recoverable pending update.
+Do not delete shared artwork when a ROM is removed. Do not create placeholder
+ROMs, change ES-DE launch/scanning settings, or claim absent ROMs are launchable.
+
+Acceptance: fixture plus Thor evidence for a remote-only title's metadata/artwork
+refresh and ES-DE-compatible publication with zero ROM payload requests; valid
+identity-based media reuse avoids redundant requests; ambiguous paths cannot
+overwrite another edition. Preserve seeded ES-DE user/unknown fields and manual
+edits. Cover changed remote metadata, interrupted publication, concurrent edits,
+provider outage, storage loss/regrant and database rebuild from durable records.
+Verify reinstall persistence using an expendable test package or isolated
+fixture, never uninstalling the owner's valuable app as a test technique. A
+fresh full scrape remains required by META-01; stale imports cannot satisfy it.
 
 ## 6. UI requirements
 

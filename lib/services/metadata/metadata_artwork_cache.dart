@@ -7,11 +7,13 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../models/scraped_metadata.dart';
 import '../library_store.dart';
 import 'metadata_provider.dart';
+import 'shared_metadata_store.dart';
 
 class MetadataArtworkBlob {
   final String key;
@@ -20,13 +22,31 @@ class MetadataArtworkBlob {
   MetadataArtworkBlob(this.key, this.filename, this.length);
 }
 
-/// App-private artwork, independent of ROM residency. Image selectors and hashed
+/// Selected-cache artwork, independent of ROM residency. Image selectors and hashed
 /// relative names are persisted, never authenticated URLs or arbitrary paths.
 class MetadataArtworkCache {
   static const maxBytes = 4 * 1024 * 1024;
   final Future<Database> _database;
   final Directory root;
-  MetadataArtworkCache(this._database, Directory root) : root = root.absolute;
+  final SharedMetadataStore? sharedStore;
+  MetadataArtworkCache(this._database, Directory root, {this.sharedStore})
+      : root = root.absolute;
+
+  static Future<MetadataArtworkCache> open(Future<Database> database) async =>
+      MetadataArtworkCache(
+          database,
+          Directory(p.join((await getApplicationSupportDirectory()).path,
+              'metadata-artwork')));
+
+  Future<void> _requireAccess() async {
+    if (sharedStore != null) {
+      await sharedStore!.requireAccess();
+    } else if (Platform.isAndroid && root.path.startsWith('/storage/')) {
+      // A read-only cache can still reference the selected shared root after
+      // opening its database failed. Do not bypass revoked permission there.
+      await SharedMetadataStore.requireStoragePermission();
+    }
+  }
 
   static Future<void> install(DatabaseExecutor db) => db.execute('''
     CREATE TABLE IF NOT EXISTS metadata_artwork_cache (
@@ -38,6 +58,101 @@ class MetadataArtworkCache {
       .convert(utf8.encode(jsonEncode([media.toJson(), 'png-1024-v1'])))
       .toString();
 
+  /// Explicit edition review permits reuse of a local image, not stale facts.
+  /// Bound the compressed body and encoded dimensions before native decoding.
+  Future<({MetadataArtworkBlob blob, String sourceHash, int sourceLength})>
+      importReviewedImage(File source, MetadataMedia media) async {
+    await _requireAccess();
+    var cursor = source.absolute.path;
+    while (true) {
+      if (await FileSystemEntity.type(cursor, followLinks: false) ==
+          FileSystemEntityType.link) {
+        throw const FormatException('Reviewed artwork cannot follow links');
+      }
+      final parent = p.dirname(cursor);
+      if (parent == cursor) break;
+      cursor = parent;
+    }
+    if (!{'.png', '.jpg', '.webp'}.contains(p.extension(source.path))) {
+      throw const FormatException('Unsupported ES-DE image format');
+    }
+    final body = BytesBuilder(copy: false);
+    await for (final chunk in source.openRead()) {
+      if (body.length + chunk.length > maxBytes) {
+        throw const FormatException('Reviewed image exceeds body budget');
+      }
+      body.add(chunk);
+    }
+    final original = body.takeBytes();
+    final buffer = await ui.ImmutableBuffer.fromUint8List(original);
+    ui.ImageDescriptor? descriptor;
+    ui.Codec? codec;
+    Uint8List bytes;
+    try {
+      descriptor = await ui.ImageDescriptor.encoded(buffer);
+      if (descriptor.width < 1 ||
+          descriptor.height < 1 ||
+          descriptor.width * descriptor.height > 4 * 1024 * 1024) {
+        throw const FormatException('Reviewed image exceeds pixel budget');
+      }
+      final longest = descriptor.width > descriptor.height
+          ? descriptor.width
+          : descriptor.height;
+      final scale = longest > 1024 ? 1024 / longest : 1.0;
+      codec = await descriptor.instantiateCodec(
+          targetWidth: (descriptor.width * scale).round().clamp(1, 1024),
+          targetHeight: (descriptor.height * scale).round().clamp(1, 1024));
+      if (codec.frameCount != 1) {
+        throw const FormatException('Animated artwork cannot be imported');
+      }
+      final frame = await codec.getNextFrame();
+      try {
+        final encoded =
+            await frame.image.toByteData(format: ui.ImageByteFormat.png);
+        if (encoded == null) {
+          throw const FormatException('Image encoding failed');
+        }
+        bytes = _validPng(original)
+            ? original
+            : encoded.buffer
+                .asUint8List(encoded.offsetInBytes, encoded.lengthInBytes);
+      } finally {
+        frame.image.dispose();
+      }
+    } finally {
+      codec?.dispose();
+      descriptor?.dispose();
+      buffer.dispose();
+    }
+    if (!_validPng(bytes)) {
+      throw const FormatException('Invalid normalized artwork');
+    }
+    await root.create(recursive: true);
+    final filename = '${sha256.convert(bytes)}.png';
+    final target = File(p.join(root.path, filename));
+    if (await target.exists()) {
+      if (await target.length() != bytes.length ||
+          sha256.convert(await target.readAsBytes()).toString() !=
+              filename.substring(0, 64)) {
+        throw const FormatException('Immutable artwork content changed');
+      }
+    } else {
+      final staging = await root.createTemp('reviewed-');
+      try {
+        final staged = File(p.join(staging.path, filename));
+        await staged.writeAsBytes(bytes, flush: true);
+        await staged.rename(target.path);
+      } finally {
+        await staging.delete(recursive: true);
+      }
+    }
+    return (
+      blob: MetadataArtworkBlob(key(media), filename, bytes.length),
+      sourceHash: sha256.convert(original).toString(),
+      sourceLength: original.length
+    );
+  }
+
   Future<({MetadataLookupResult result, MetadataArtworkBlob? blob})> download(
       MetadataMedia media,
       MetadataArtworkProvider provider,
@@ -47,6 +162,7 @@ class MetadataArtworkCache {
     final staging = File(p.join(root.path, '$mediaKey-$workId.part'));
     RandomAccessFile? writer;
     try {
+      await _requireAccess();
       await root.create(recursive: true);
       writer = await staging.open(mode: FileMode.write);
       var length = 0;
@@ -93,6 +209,7 @@ class MetadataArtworkCache {
       }
       final filename = '${sha256.convert(bytes)}.png';
       final target = File(p.join(root.path, filename));
+      await _requireAccess();
       // Immutable content-addressed publication; an older usable image survives
       // any failed refresh. An existing blob is never blindly overwritten.
       if (!await target.exists()) {
@@ -187,6 +304,16 @@ class MetadataArtworkCache {
   /// It never discovers/fetches missing media, and never looks at installed ROMs.
   Future<File?> fileFor(
       String editionId, String providerId, MetadataMedia media) async {
+    try {
+      await _requireAccess();
+    } on FileSystemException {
+      return null;
+    }
+    return _fileFor(editionId, providerId, media);
+  }
+
+  Future<File?> _fileFor(
+      String editionId, String providerId, MetadataMedia media) async {
     final metadata =
         await LibraryStore(_database).metadata(editionId, providerId);
     final mediaKey = key(media);
@@ -204,5 +331,50 @@ class MetadataArtworkCache {
             await file.length() == rows.single['byte_length']
         ? file
         : null;
+  }
+
+  /// Current, owned local media only. No selectors/URLs escape to card loaders.
+  /// This same selection is snapshotted by the normal refresh, so it does not
+  /// download every regional cover, logo, video or background the API offers.
+  static List<MetadataMedia> displayMedia(MetadataRecord record) {
+    MetadataMedia? cover;
+    for (final type in ['box-2D', 'box-3D', 'cover']) {
+      final matches = record.media.where((m) => m.type == type);
+      if (matches.isNotEmpty) {
+        cover = matches.first;
+        break;
+      }
+    }
+    return [
+      if (cover != null) cover,
+      ...record.media.where((m) => {'ss', 'screenshot'}.contains(m.type))
+    ];
+  }
+
+  Future<({String? cover, List<String> screenshots})> artworkForEdition(
+      String editionId) async {
+    try {
+      await _requireAccess();
+    } on FileSystemException {
+      return (cover: null, screenshots: const <String>[]);
+    }
+    String? cover;
+    final screenshots = <String>[];
+    for (final provider in ['screenscraper', 'romm']) {
+      final record =
+          await LibraryStore(_database).metadata(editionId, provider);
+      if (record == null) continue;
+      for (final item in displayMedia(record)) {
+        final isCover = {'box-2D', 'box-3D', 'cover'}.contains(item.type);
+        final isScreenshot = {'ss', 'screenshot'}.contains(item.type);
+        if ((!isCover || cover != null) && !isScreenshot) continue;
+        final file = await _fileFor(editionId, provider, item);
+        if (file == null) continue;
+        final uri = file.uri.toString();
+        if (isCover) cover ??= uri;
+        if (isScreenshot && !screenshots.contains(uri)) screenshots.add(uri);
+      }
+    }
+    return (cover: cover, screenshots: List<String>.unmodifiable(screenshots));
   }
 }

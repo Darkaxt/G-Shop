@@ -78,3 +78,27 @@ permission-enforcement proof is distinct from already verified storage
 loss/remount and expendable-package reinstall recovery. Full metadata gathering,
 integrated acceptance, SD migration and the later stages are not declared done
 by this startup/credential correction. No external release was published.
+
+## Latest normal APK verification
+
+The subsequent shared-permission correction is installed in the normal owner
+package, not the expendable integration-test package:
+
+`D:\Temp\rshop-normal-permission-20261005\app-debug.apk`
+
+SHA256 `e19d8799e263acc4e8d03623623fba30e1d243e82bc1f976472405c43284aecb`.
+The in-place update preserved all fingerprinted private files except Android's
+disposable `code_cache/flutter.impeller.vkcache`. No owner uninstall, data clear
+or credential re-entry occurred. A further cold launch (`9848c6`) returned
+Status ok, COLD, TotalTime 2186 ms; the actual accessibility hierarchy contained
+`182 / 1 / ALL GAMES / Library`, rather than the logo. Both physical display
+devices subsequently reported state OFF / committedState OFF (`646fbc`).
+
+The normal build used gate ticket 142, held through confirmed exit zero. Its
+inspected log `40150393b3164d55a6b5d424703d0c6d.log` reports BUILD SUCCESSFUL,
+workers 2, parallel false and maximum Gradle heap 3221225472 bytes. Kotlin uses
+the assessed in-process strategy, sharing that heap. Test tasks were configured
+one fork / 512 MiB, not executed; app native pools are configured at one, without
+claiming a measured cap for every plugin's native build. No memory failure or
+heap-budget increase occurred. No further build was needed for this cold-start
+verification. The logo incident is resolved; this does not complete the fork.

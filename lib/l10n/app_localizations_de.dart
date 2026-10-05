@@ -9,6 +9,75 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_esDe => 'ES-DE-Metadaten veröffentlichen';
+
+  @override
+  String get metadata_esDeReviewArtwork =>
+      'Vorhandene Bilder prüfen und wiederverwenden';
+
+  @override
+  String get metadata_esDeReviewArtworkHelp =>
+      'Bestätigen Sie, dass das Cover oder Bildschirmfoto zu dieser genauen Konsole und Edition einschließlich Region, Revision und Patch gehört. Nur der ausdrücklich zugeordnete ES-DE-Pfad wird akzeptiert. Das Bild bleibt Eigentum des Launchers; alte Metadaten gelten nicht als neue Anbieterantwort.';
+
+  @override
+  String get metadata_esDeHelp =>
+      'Ordne diese Edition dem konfigurierten ROM-Ziel zu und wähle ihren ES-DE-Gamelist-Ordner. Normale Aktualisierungen stellen Änderungen bereit. Beende ES-DE und lasse es während der Veröffentlichung geschlossen. Fehlende ROMs werden weder erstellt noch startbar gemacht.';
+
+  @override
+  String get metadata_esDeMap => 'Diese Edition ES-DE zuordnen';
+
+  @override
+  String get metadata_esDeRomRoot => 'ES-DE-ROM-Ordner dieser Konsole wählen';
+
+  @override
+  String get metadata_esDeMediaRoot =>
+      'ES-DE-Medienordner dieser Konsole wählen (nicht covers/screenshots)';
+
+  @override
+  String get metadata_esDeGamelist =>
+      'ES-DE-Gamelist-Ordner dieser Konsole wählen';
+
+  @override
+  String get metadata_esDeClosed =>
+      'ES-DE ist beendet und bleibt während der Veröffentlichung geschlossen';
+
+  @override
+  String get metadata_esDePublish => 'Ausstehende Metadaten veröffentlichen';
+
+  @override
+  String get metadata_esDePublished => 'Ausstehende Metadaten veröffentlicht';
+
+  @override
+  String get metadata_esDeConflict =>
+      'Veröffentlichung pausiert: geänderte Pfade, Identitäten oder manuelle Felder prüfen. Ausstehende Änderungen und vorhandene Launcher-Daten bleiben erhalten.';
+
+  @override
+  String get metadata_esDeNoMapping =>
+      'Öffne die Metadateneinstellungen einer frisch zugeordneten Edition. Gemeinsamer Metadatenspeicher ist erforderlich.';
+
+  @override
+  String get metadata_sharedStorage => 'Dauerhafte gemeinsame Metadaten';
+
+  @override
+  String get metadata_sharedUnavailable =>
+      'Der gemeinsame Metadatenspeicher ist nicht verfügbar oder konnte nicht gelesen werden. Verbinde den Speicher erneut und wähle denselben Ordner. Zwischengespeicherte Daten bleiben nutzbar; Aktualisierung und Veröffentlichung benötigen wiederhergestellten Zugriff.';
+
+  @override
+  String get metadata_sharedStorageHelp =>
+      'Wähle einen gemeinsamen Ordner für Metadaten und Bilder. Der vorhandene Cache wird kopiert, nicht gelöscht. Diese Daten bleiben nach einer Deinstallation erhalten; verbinde die Quelle erneut und wähle den Ordner, um passende Datensätze wiederherzustellen. Zugangsdaten und Installationen werden nicht gesichert. Die ES-DE-Veröffentlichung wird separat eingerichtet.';
+
+  @override
+  String get metadata_privateStorage =>
+      'Nicht ausgewählt – derzeitiger Cache ist app-intern';
+
+  @override
+  String get metadata_chooseSharedStorage =>
+      'Gemeinsamen Ordner wählen / neu verbinden';
+
+  @override
+  String get metadata_artwork => 'Bildmaterial';
+
+  @override
   String get metadata_rediscover => 'Andere Zuordnung suchen';
 
   @override

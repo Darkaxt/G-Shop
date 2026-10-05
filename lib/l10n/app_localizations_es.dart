@@ -9,6 +9,76 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_esDe => 'Publicación de metadatos en ES-DE';
+
+  @override
+  String get metadata_esDeReviewArtwork =>
+      'Revisar y reutilizar imágenes existentes';
+
+  @override
+  String get metadata_esDeReviewArtworkHelp =>
+      'Confirma que esta portada o captura pertenece a esta consola y edición exactas, incluida su región, revisión y parche. Solo se acepta la ruta ES-DE vinculada explícitamente. La imagen sigue perteneciendo al lanzador; los metadatos antiguos no se importan como datos recientes.';
+
+  @override
+  String get metadata_esDeHelp =>
+      'Asocia esta edición con el destino de ROM configurado y selecciona su carpeta gamelist de ES-DE. Las actualizaciones normales ponen los cambios en cola. Cierra ES-DE y mantenlo cerrado durante la publicación. No se crean ROM ausentes ni se vuelven ejecutables.';
+
+  @override
+  String get metadata_esDeMap => 'Asociar esta edición con ES-DE';
+
+  @override
+  String get metadata_esDeRomRoot =>
+      'Selecciona la carpeta de ROM de ES-DE para esta consola';
+
+  @override
+  String get metadata_esDeMediaRoot =>
+      'Selecciona la carpeta multimedia de ES-DE para esta consola (no covers/screenshots)';
+
+  @override
+  String get metadata_esDeGamelist =>
+      'Selecciona la carpeta gamelist de ES-DE para esta consola';
+
+  @override
+  String get metadata_esDeClosed =>
+      'ES-DE está cerrado y seguirá cerrado durante la publicación';
+
+  @override
+  String get metadata_esDePublish => 'Publicar metadatos pendientes';
+
+  @override
+  String get metadata_esDePublished => 'Metadatos pendientes publicados';
+
+  @override
+  String get metadata_esDeConflict =>
+      'Publicación pausada: revisa las rutas, identidades o campos manuales modificados. Se conservan los cambios pendientes y los datos existentes del lanzador.';
+
+  @override
+  String get metadata_esDeNoMapping =>
+      'Abre los ajustes de metadatos de una edición recién identificada para asociarla. Se requiere almacenamiento compartido de metadatos.';
+
+  @override
+  String get metadata_sharedStorage => 'Metadatos compartidos persistentes';
+
+  @override
+  String get metadata_sharedUnavailable =>
+      'El almacenamiento compartido de metadatos no está disponible o no se pudo leer. Reconecta el almacenamiento y vuelve a elegir la misma carpeta. Los datos en caché siguen disponibles; actualizar y publicar requiere recuperar el acceso.';
+
+  @override
+  String get metadata_sharedStorageHelp =>
+      'Elige una carpeta compartida para datos e imágenes. La caché existente se copia, no se borra. Estos datos sobreviven a la desinstalación; reconecta la fuente y selecciona la carpeta para recuperar registros coincidentes. No se guardan credenciales ni instalaciones. La publicación en ES-DE se configura por separado.';
+
+  @override
+  String get metadata_privateStorage =>
+      'Sin seleccionar: caché privada de la aplicación';
+
+  @override
+  String get metadata_chooseSharedStorage =>
+      'Elegir / reconectar carpeta compartida';
+
+  @override
+  String get metadata_artwork => 'Imágenes';
+
+  @override
   String get metadata_rediscover => 'Buscar otra coincidencia';
 
   @override

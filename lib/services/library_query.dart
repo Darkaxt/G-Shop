@@ -9,6 +9,7 @@ import '../models/scraped_metadata.dart';
 import 'library_store.dart';
 
 import 'metadata/effective_overall_rating.dart';
+import 'metadata/metadata_artwork_cache.dart';
 
 /// File identity shared by cached covers and discovery, never a cleaned title.
 String coverRatingKey(String systemSlug, String selectionKey) =>
@@ -694,7 +695,10 @@ class LibraryQuery {
               .join(', '));
       final developer = field('developer', (r) => r.developer);
       final publisher = field('publisher', (r) => r.publisher);
-      final release = field('releaseDate', (r) => localized(r.releaseDates));
+      final release = field(
+          'releaseDate',
+          (r) => selectEditionReleaseDate(r.releaseDates,
+              regions: edition.regions));
       return GameMetadataInfo(
           filename: files.single['filename'] as String,
           systemSlug: systemSlug,
@@ -747,6 +751,32 @@ class LibraryQuery {
       }
       return Map<int, EffectiveOverallRating?>.unmodifiable(result);
     });
+  }
+
+  /// Exact cache-only cover bindings in bounded pages, never per-frame requests.
+  Future<Map<int, String?>> cachedCovers(
+      List<int> cacheRowIds, MetadataArtworkCache cache) async {
+    if (cacheRowIds.length > 128 || cacheRowIds.any((id) => id < 1)) {
+      throw ArgumentError('Cover pages require at most 128 positive IDs');
+    }
+    final ids = cacheRowIds.toSet().toList();
+    final result = {for (final id in ids) id: null as String?};
+    if (ids.isEmpty) return Map.unmodifiable(result);
+    final db = await _database;
+    final rows = await db.transaction((txn) async {
+      await _refresh(txn, productionOverallScoreBases);
+      return txn.rawQuery('''SELECT cache_row_id,
+        MIN(edition_id) AS edition_id FROM library_query_editions
+        WHERE member = 1 AND cache_row_id IN
+          (${List.filled(ids.length, '?').join(',')})
+        GROUP BY cache_row_id HAVING COUNT(*) = 1''', ids);
+    });
+    for (final row in rows) {
+      final artwork =
+          await cache.artworkForEdition(row['edition_id'] as String);
+      result[row['cache_row_id'] as int] = artwork.cover;
+    }
+    return Map.unmodifiable(result);
   }
 
   Future<LibraryQueryPage> page(

@@ -9,6 +9,70 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_esDe => 'ES-DEメタデータの書き出し';
+
+  @override
+  String get metadata_esDeReviewArtwork => '既存の画像を確認して再利用';
+
+  @override
+  String get metadata_esDeReviewArtworkHelp =>
+      'この画像が機種と版（地域・リビジョン・パッチを含む）に正確に対応することを確認してください。明示的に関連付けたES-DEのパスのみ受け付けます。画像の所有権はランチャー側に残り、古いメタデータを新しい取得結果として扱いません。';
+
+  @override
+  String get metadata_esDeHelp =>
+      'この版を設定済みのROM保存先に関連付け、ES-DEのシステム別gamelistフォルダーを選択します。通常の更新で変更が保留されます。書き出し前にES-DEを終了し、完了するまで起動しないでください。存在しないROMの作成や起動可能化は行いません。';
+
+  @override
+  String get metadata_esDeMap => 'この版をES-DEに関連付ける';
+
+  @override
+  String get metadata_esDeRomRoot => 'この機種のES-DE ROMフォルダーを選択';
+
+  @override
+  String get metadata_esDeMediaRoot =>
+      'この機種のES-DEメディアフォルダーを選択（covers/screenshotsではない）';
+
+  @override
+  String get metadata_esDeGamelist => 'この機種のES-DE gamelistフォルダーを選択';
+
+  @override
+  String get metadata_esDeClosed => 'ES-DEは終了しており、書き出し中も起動しません';
+
+  @override
+  String get metadata_esDePublish => '保留中のメタデータを書き出す';
+
+  @override
+  String get metadata_esDePublished => '保留中のメタデータを書き出しました';
+
+  @override
+  String get metadata_esDeConflict =>
+      '書き出しを保留しました。変更されたパス、版の識別情報、手動編集項目を確認してください。保留中の更新と既存のランチャーデータは保持されています。';
+
+  @override
+  String get metadata_esDeNoMapping =>
+      '新しく識別された版のメタデータ設定から関連付けてください。共有メタデータ保存先が必要です。';
+
+  @override
+  String get metadata_sharedStorage => '永続的な共有メタデータ';
+
+  @override
+  String get metadata_sharedUnavailable =>
+      '共有メタデータの保存先が利用できないか、読み取れません。ストレージを再接続し、同じフォルダーを選び直してください。キャッシュ済みのデータは引き続き利用できます。更新と公開にはアクセスの復旧が必要です。';
+
+  @override
+  String get metadata_sharedStorageHelp =>
+      '取得した情報と画像を保存する共有フォルダーを選択してください。既存のキャッシュは削除せずコピーします。アンインストール後もデータは残ります。ソースを再接続し、同じフォルダーを選択すると一致する記録を復元できます。認証情報やインストール状態は保存されません。ES-DEへの書き出しは別途設定します。';
+
+  @override
+  String get metadata_privateStorage => '未選択 — 現在のキャッシュはアプリ内のみ';
+
+  @override
+  String get metadata_chooseSharedStorage => '共有フォルダーを選択・再接続';
+
+  @override
+  String get metadata_artwork => '画像';
+
+  @override
   String get metadata_rediscover => '別の一致候補を探す';
 
   @override

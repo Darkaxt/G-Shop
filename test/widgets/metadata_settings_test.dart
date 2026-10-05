@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
 import 'package:retro_eshop/l10n/app_localizations.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import '../metadata_controls_test.dart'
@@ -17,6 +20,76 @@ import '../metadata_controls_test.dart'
 import '../helpers/pump_helpers.dart';
 
 void main() {
+  testWidgets('unavailable shared storage has an actionable reconnect message',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = (await tester.runAsync(controlsDatabase))!;
+    SharedPreferences.setMockInitialValues({
+      sharedMetadataDirectoryKey: '/storage/fixture/RShopMetadata',
+    });
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final provider = ControlsProvider();
+    final secrets = MemorySecrets();
+    final controls = (await tester.runAsync(() async {
+      final controls = MetadataControlsController(
+          database: Future.value(db),
+          providers: {'screenscraper': provider},
+          screenScraperCredentials:
+              ScreenScraperCredentialStore(storage: secrets),
+          igdbCredentials: IgdbCredentialStore(storage: secrets),
+          sharedStore: () async {
+            throw const FileSystemException('Selected storage is unavailable');
+          }(),
+          catalogueChanged: () {});
+      await controls.load();
+      return controls;
+    }))!;
+    final container = ProviderContainer(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      metadataControlsProvider.overrideWith((_) => controls),
+    ]);
+    addTearDown(() async {
+      await tester.runAsync(() async {
+        await controls.close();
+        await db.close();
+      });
+      container.dispose();
+    });
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+            theme: ThemeData.dark(useMaterial3: true),
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            home: const MetadataSettingsScreen())));
+    await tester.pumpAndSettle();
+    final message =
+        find.textContaining('Shared metadata storage is unavailable');
+    await tester.ensureVisible(message);
+    await tester.pumpAndSettle();
+    expect(message, findsOneWidget);
+    expect(find.textContaining('Cached facts remain usable'), findsOneWidget);
+    final section =
+        find.byKey(const ValueKey('metadata-shared-storage-section'));
+    await tester.ensureVisible(section);
+    await tester.tap(section);
+    await tester.pumpAndSettle();
+    final choose = find.byKey(const ValueKey('metadata-shared-storage'));
+    await tester.ensureVisible(choose);
+    await tester.pumpAndSettle();
+    expect(choose.hitTestable(), findsOneWidget);
+    expect(tester.widget<FilledButton>(choose).onPressed, isNotNull);
+    expect(provider.calls, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   test('primary button labels retain contrast in enabled interaction states',
       () {
     final style = AppTheme.primaryButtonStyle;
@@ -193,6 +266,48 @@ void main() {
     await tester.pumpAndSettle();
     await expectLater(find.byType(MetadataSettingsScreen),
         matchesGoldenFile('goldens/metadata_settings_progress.png'));
+    final shared =
+        find.byKey(const ValueKey('metadata-shared-storage-section'));
+    await tester.ensureVisible(shared);
+    await tester.pumpAndSettle();
+    await tester.tap(shared);
+    await tester.pumpAndSettle();
+    expect(find.text('Not selected — current cache is app-private'),
+        findsOneWidget);
+    final choose = find.byKey(const ValueKey('metadata-shared-storage'));
+    await tester.ensureVisible(choose);
+    await tester.pumpAndSettle();
+    expect(choose.hitTestable(), findsOneWidget);
+    expect(
+        find.textContaining('Credentials and installations are not backed up'),
+        findsOneWidget);
+    final esDe = find.byKey(const ValueKey('metadata-esde-section'));
+    await tester.ensureVisible(esDe);
+    await tester.pumpAndSettle();
+    await tester.tap(esDe);
+    await tester.pumpAndSettle();
+    expect(
+        find.textContaining('Close ES-DE and keep it closed'), findsOneWidget);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('metadata-esde-map')))
+            .onPressed,
+        isNull,
+        reason: 'Global settings cannot guess an edition association');
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('metadata-esde-review-artwork')))
+            .onPressed,
+        isNull,
+        reason: 'Artwork review requires the exact open edition');
+    final closed = find.byKey(const ValueKey('metadata-esde-closed'));
+    await tester.ensureVisible(closed);
+    await tester.pumpAndSettle();
+    expect(tester.widget<CheckboxListTile>(closed).value, false);
+    final publish = find.byKey(const ValueKey('metadata-esde-publish'));
+    expect(tester.widget<FilledButton>(publish).onPressed, isNull);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

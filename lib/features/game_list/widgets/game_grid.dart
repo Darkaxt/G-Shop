@@ -77,6 +77,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
   int _optimalCacheWidth = 500;
   Map<String, List<String>> _coverUrlCache = {};
   Map<String, EffectiveOverallRating?> _ratings = const {};
+  Map<String, String?> _metadataCovers = const {};
   bool _showRatings = true;
 
   @override
@@ -175,6 +176,11 @@ class _GameGridState extends ConsumerState<GameGrid> {
     }
 
     _showRatings = ref.watch(ratingOverlaysProvider);
+    _metadataCovers = ref
+            .watch(cachedMetadataCoversProvider(widget.system.id))
+            .asData
+            ?.value ??
+        const {};
     final ratings = _showRatings
         ? ref.watch(cachedCoverRatingsProvider(widget.system.id))
         : null;
@@ -307,7 +313,9 @@ class _GameGridState extends ConsumerState<GameGrid> {
           systemId: widget.system.id,
           displayName: first.displayName,
           coverUrls: coverUrls,
-          cachedUrl: cachedUrl,
+          cachedUrl: _metadataCovers[
+                  coverRatingKey(widget.system.id, first.selectionKey)] ??
+              cachedUrl,
           variantCount: variants.length,
           isInstalled: isInstalled,
           isSelected: isSelected,

@@ -11,6 +11,7 @@ import '../library_store.dart';
 import 'effective_overall_rating.dart';
 import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
+import 'shared_metadata_store.dart';
 
 class MetadataRefreshReport {
   final int id;
@@ -56,14 +57,17 @@ class MetadataReviewItem {
 
 class MetadataRefreshJobs {
   final Future<Database> _database;
+  final Future<SharedMetadataStore?>? _sharedStore;
   final DateTime Function() _now;
   final Timer Function(Duration, void Function()) _schedule;
   Future<MetadataRefreshReport>? _active;
   CancelToken? _cancel;
   MetadataRefreshJobs(this._database,
       {DateTime Function()? now,
+      Future<SharedMetadataStore?>? sharedStore,
       Timer Function(Duration, void Function())? schedule})
-      : _now = now ?? DateTime.now,
+      : _sharedStore = sharedStore,
+        _now = now ?? DateTime.now,
         _schedule = schedule ?? Timer.new;
 
   static Future<void> install(DatabaseExecutor db) async {
@@ -121,7 +125,14 @@ class MetadataRefreshJobs {
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_artwork_coalescing
       ON metadata_artwork_items(job_id, media_key, status, edition_id)''');
     await MetadataArtworkCache.install(db);
+    await installArtworkLinks(db);
   }
+
+  /// Additive v34 relationship: restore image work without re-scraping games.
+  static Future<void> installArtworkLinks(DatabaseExecutor db) => db.execute('''
+    CREATE TABLE IF NOT EXISTS metadata_artwork_jobs (
+      metadata_job_id INTEGER PRIMARY KEY, artwork_job_id INTEGER NOT NULL UNIQUE
+    )''');
 
   /// Exact edition lookup for current score-generation checks, not a scan of
   /// historical jobs for every card. Installed additively by the v27 upgrade.
@@ -214,26 +225,128 @@ class MetadataRefreshJobs {
   /// Explicit fresh artwork snapshot from current owned metadata. This never
   /// scrapes titles, imports legacy covers or enumerates installation residency.
   Future<MetadataRefreshReport> createArtwork(
+          {required String providerId,
+          required String collectionGeneration,
+          required Iterable<String> editionIds,
+          Set<String>? mediaKeys}) =>
+      _createArtwork(
+          providerId: providerId,
+          collectionGeneration: collectionGeneration,
+          editions: (_) => Stream.fromIterable(editionIds),
+          mediaKeys: mediaKeys);
+
+  Future<MetadataRefreshReport?> artworkForMetadata(int id) async {
+    final db = await _database;
+    final links = await db.query('metadata_artwork_jobs',
+        where: 'metadata_job_id = ?', whereArgs: [id], limit: 1);
+    return links.isEmpty ? null : report(links.single['artwork_job_id'] as int);
+  }
+
+  /// Capture only successfully published members of this exact refresh. Both
+  /// the child job and its link commit together; repeat/resume reuses that job.
+  Future<MetadataRefreshReport> ensureArtworkForMetadata(int id) async {
+    final db = await _database;
+    final parent = await _job(db, id);
+    if (parent['is_artwork'] == 1 || parent['state'] != 'completed') {
+      throw StateError('Artwork follows a completed metadata snapshot');
+    }
+    return _createArtwork(
+        providerId: parent['provider_id'] as String,
+        collectionGeneration: parent['collection_generation'] as String,
+        metadataJobId: id,
+        metadataGeneration: parent['generation'] as int,
+        editions: (txn) async* {
+          var cursor = '';
+          while (true) {
+            final rows = await txn.query('metadata_refresh_items',
+                columns: ['edition_id'],
+                where: 'job_id = ? AND status = ? AND edition_id > ?',
+                whereArgs: [id, 'matched', cursor],
+                orderBy: 'edition_id',
+                limit: 128);
+            if (rows.isEmpty) break;
+            for (final row in rows) {
+              yield row['edition_id'] as String;
+            }
+            cursor = rows.last['edition_id'] as String;
+          }
+        });
+  }
+
+  /// Explicit image retry snapshots only failed selectors; successful image
+  /// publications and the completed metadata request remain untouched.
+  Future<MetadataRefreshReport> retryArtworkForMetadata(int id) async {
+    final parent = await report(id);
+    final images = await artworkForMetadata(id);
+    if (parent.kind != 'metadata' ||
+        parent.state != 'completed' ||
+        images == null) {
+      throw StateError('Artwork retry requires completed linked metadata');
+    }
+    return _createArtwork(
+        providerId: parent.providerId,
+        collectionGeneration: parent.collectionGeneration,
+        metadataJobId: id,
+        metadataGeneration: parent.generation,
+        retryArtworkJobId: images.id,
+        editions: (txn) async* {
+          var cursor = '';
+          while (true) {
+            final rows = await txn.rawQuery('''SELECT DISTINCT edition_id
+              FROM metadata_artwork_items WHERE job_id = ? AND edition_id > ?
+              AND status IN (${List.filled(_retryable.length, '?').join(',')})
+              ORDER BY edition_id LIMIT 128''',
+                [images.id, cursor, ..._retryable]);
+            if (rows.isEmpty) break;
+            for (final row in rows) {
+              yield row['edition_id'] as String;
+            }
+            cursor = rows.last['edition_id'] as String;
+          }
+        });
+  }
+
+  Future<MetadataRefreshReport> _createArtwork(
       {required String providerId,
       required String collectionGeneration,
-      required Iterable<String> editionIds,
-      Set<String>? mediaKeys}) async {
+      required Stream<String> Function(DatabaseExecutor) editions,
+      Set<String>? mediaKeys,
+      int? metadataJobId,
+      int? metadataGeneration,
+      int? retryArtworkJobId}) async {
     if (providerId.trim().isEmpty || collectionGeneration.trim().isEmpty) {
       throw ArgumentError('Artwork scope is required');
     }
     final db = await _database;
+    final sharedMaximum = await (await _sharedStore)?.maximumGeneration() ?? 0;
     final id = await db.transaction((txn) async {
+      if (metadataJobId != null) {
+        final links = await txn.query('metadata_artwork_jobs',
+            where: 'metadata_job_id = ?', whereArgs: [metadataJobId], limit: 1);
+        if (retryArtworkJobId == null && links.isNotEmpty) {
+          return links.single['artwork_job_id'] as int;
+        }
+        if (retryArtworkJobId != null &&
+            (links.isEmpty ||
+                links.single['artwork_job_id'] != retryArtworkJobId ||
+                (await _job(txn, retryArtworkJobId))['state'] == 'running')) {
+          throw StateError('Finish the current artwork job before retrying');
+        }
+      }
       final maximum = await txn.rawQuery('''SELECT MAX(value) AS maximum FROM (
         SELECT MAX(generation) AS value FROM metadata_refresh_jobs
         UNION ALL SELECT MAX(generation_id) FROM library_metadata)''');
+      final privateMaximum = (maximum.single['maximum'] as int?) ?? 0;
       final id = await txn.insert('metadata_refresh_jobs', {
-        'generation': ((maximum.single['maximum'] as int?) ?? 0) + 1,
+        'generation':
+            (privateMaximum > sharedMaximum ? privateMaximum : sharedMaximum) +
+                1,
         'provider_id': providerId,
         'collection_generation': collectionGeneration,
         'state': 'paused',
         'is_artwork': 1,
       });
-      for (final editionId in editionIds) {
+      await for (final editionId in editions(txn)) {
         final identity = await _identity(txn, editionId);
         final rows = await txn.query('library_metadata',
             where: 'edition_id = ? AND provider_id = ?',
@@ -244,13 +357,31 @@ class MetadataRefreshJobs {
             rows.single['identity_key'] !=
                 LibraryStore.metadataIdentity(identity,
                     providerId: providerId)) {
+          if (metadataJobId != null) continue;
           throw StateError('Artwork requires current matched metadata');
         }
         final record = MetadataRecord.fromJson(
             jsonDecode(rows.single['record_json'] as String));
-        for (final media in record.media) {
+        if (metadataGeneration != null &&
+            record.refreshGeneration != metadataGeneration) {
+          continue;
+        }
+        for (final media in metadataJobId == null
+            ? record.media
+            : MetadataArtworkCache.displayMedia(record)) {
           final mediaKey = MetadataArtworkCache.key(media);
           if (mediaKeys != null && !mediaKeys.contains(mediaKey)) continue;
+          if (retryArtworkJobId != null) {
+            final failed = await txn.query('metadata_artwork_items',
+                columns: ['status'],
+                where: 'job_id = ? AND edition_id = ? AND media_key = ?',
+                whereArgs: [retryArtworkJobId, editionId, mediaKey],
+                limit: 1);
+            if (failed.isEmpty ||
+                !_retryable.contains(failed.single['status'])) {
+              continue;
+            }
+          }
           await txn.insert(
               'metadata_artwork_items',
               {
@@ -263,6 +394,15 @@ class MetadataRefreshJobs {
                 'status': 'pending',
               },
               conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+      }
+      if (metadataJobId != null) {
+        if (retryArtworkJobId == null) {
+          await txn.insert('metadata_artwork_jobs',
+              {'metadata_job_id': metadataJobId, 'artwork_job_id': id});
+        } else {
+          await txn.update('metadata_artwork_jobs', {'artwork_job_id': id},
+              where: 'metadata_job_id = ?', whereArgs: [metadataJobId]);
         }
       }
       return id;
@@ -346,11 +486,16 @@ class MetadataRefreshJobs {
       throw ArgumentError('Provider and collection generation are required');
     }
     final db = await _database;
+    final shared = await _sharedStore;
+    await shared?.restore(db);
+    final sharedMaximum = await shared?.maximumGeneration() ?? 0;
     final id = await db.transaction((txn) async {
       final maximum = await txn.rawQuery('''SELECT MAX(value) AS maximum FROM (
         SELECT MAX(generation) AS value FROM metadata_refresh_jobs
         UNION ALL SELECT MAX(generation_id) FROM library_metadata)''');
-      final generation = ((maximum.single['maximum'] as int?) ?? 0) + 1;
+      final privateMaximum = (maximum.single['maximum'] as int?) ?? 0;
+      final generation =
+          (privateMaximum > sharedMaximum ? privateMaximum : sharedMaximum) + 1;
       final id = await txn.insert('metadata_refresh_jobs', {
         'generation': generation,
         'provider_id': providerId,
@@ -891,7 +1036,7 @@ class MetadataRefreshJobs {
       }
       if ((await _job(db, id))['is_artwork'] == 1) {
         return await _runArtwork(db, id, provider as MetadataArtworkProvider,
-            artworkCache!, cancel, waitForBudget);
+            artworkCache!, cancel, waitForBudget, initial, onProgress);
       }
       while (!cancel.isCancelled) {
         final next = await db.query('metadata_refresh_items',
@@ -919,6 +1064,30 @@ class MetadataRefreshJobs {
           continue;
         }
         if (cancel.isCancelled) break;
+        final shared = await _sharedStore;
+        final recovered = matchReview
+            ? null
+            : await shared?.committedResponse(
+                request.editionId,
+                provider.providerId,
+                item['identity_key'] as String,
+                request.refreshGeneration);
+        if (cancel.isCancelled) break;
+        if (recovered != null) {
+          await _commitResult(
+              db,
+              id,
+              item,
+              request,
+              MetadataLookupResult(
+                  status: MetadataLookupStatus.matched,
+                  record: recovered,
+                  message: 'Durably committed response recovered.'),
+              provider.providerId,
+              cancel,
+              publish);
+          continue;
+        }
         if (!await _requestSlot(
             db, id, provider.providerId, cancel, waitForBudget)) {
           if (cancel.isCancelled) break;
@@ -997,7 +1166,29 @@ class MetadataRefreshJobs {
       MetadataArtworkProvider provider,
       MetadataArtworkCache cache,
       CancelToken cancel,
-      Future<void> Function(int) waitForBudget) async {
+      Future<void> Function(int) waitForBudget,
+      MetadataRefreshReport initial,
+      void Function(MetadataRefreshReport)? onProgress) async {
+    final counts = Map<String, int>.from(initial.counts);
+    var requested = initial.requested;
+    void publish(Map<String, int> changes) {
+      for (final entry in changes.entries) {
+        counts['pending'] = (counts['pending'] ?? 0) - entry.value;
+        counts[entry.key] = (counts[entry.key] ?? 0) + entry.value;
+      }
+      if (counts['pending'] == 0) counts.remove('pending');
+      onProgress?.call(MetadataRefreshReport(
+          id: id,
+          generation: initial.generation,
+          collectionGeneration: initial.collectionGeneration,
+          state: 'running',
+          requested: requested,
+          rated: 0,
+          counts: Map.unmodifiable(counts),
+          kind: 'artwork',
+          providerId: provider.providerId));
+    }
+
     while (!cancel.isCancelled) {
       final next = await db.query('metadata_artwork_items',
           where: 'job_id = ? AND status = ?',
@@ -1010,11 +1201,13 @@ class MetadataRefreshJobs {
       }
       final item = next.single;
       Future<bool> current() => _currentArtwork(db, item, provider.providerId);
-      Future<void> invalidated() => db
-          .update('metadata_artwork_items', {'status': 'identityChanged'},
-              where: 'job_id = ? AND edition_id = ? AND media_key = ?',
-              whereArgs: [id, item['edition_id'], item['media_key']])
-          .then((_) {});
+      Future<void> invalidated() async {
+        await db.update('metadata_artwork_items', {'status': 'identityChanged'},
+            where: 'job_id = ? AND edition_id = ? AND media_key = ?',
+            whereArgs: [id, item['edition_id'], item['media_key']]);
+        publish({'identityChanged': 1});
+      }
+
       if (!await current()) {
         await invalidated();
         continue;
@@ -1023,14 +1216,36 @@ class MetadataRefreshJobs {
           MetadataMedia.fromJson(jsonDecode(item['media_json'] as String));
       MetadataArtworkBlob? blob;
       DateTime? retrievedAt;
+      var reviewedReuse = false;
+      final durable = await cache.sharedStore?.committedArtwork(
+          provider.providerId, initial.generation, item['media_key'] as String);
+      if (durable != null) {
+        blob = durable.blob;
+        retrievedAt = durable.retrievedAt;
+      }
+      if (blob == null) {
+        final reviewed = await cache.sharedStore?.reviewedArtwork(
+            item['edition_id'] as String,
+            provider.providerId,
+            item['identity_key'] as String,
+            item['media_key'] as String);
+        if (reviewed != null) {
+          blob = reviewed.blob;
+          retrievedAt = reviewed.retrievedAt;
+          reviewedReuse = true;
+        }
+      }
       final completed = await db.query('metadata_artwork_items',
           columns: ['edition_id'],
           where: 'job_id = ? AND media_key = ? AND status = ?',
           whereArgs: [id, item['media_key'], 'matched'],
           limit: 1);
-      // Only this job's verified completed request can coalesce unfinished work.
-      // A fresh artwork job never silently skips a required fresh body request.
-      if (completed.isNotEmpty &&
+      // Only a verified provider response can coalesce different editions.
+      // Explicitly reviewed ES-DE reuse above is edition-scoped, not a fresh
+      // body receipt. Shared stores use their generation-specific receipts.
+      if (blob == null &&
+          cache.sharedStore == null &&
+          completed.isNotEmpty &&
           await cache.fileFor(
                   item['edition_id'] as String, provider.providerId, media) !=
               null) {
@@ -1061,6 +1276,8 @@ class MetadataRefreshJobs {
         await db.rawUpdate(
             'UPDATE metadata_refresh_jobs SET requested = requested + 1 WHERE id = ?',
             [id]);
+        requested++;
+        publish(const {});
         final downloaded = await cache.download(media, provider, id, cancel);
         result = downloaded.result;
         blob = downloaded.blob;
@@ -1076,28 +1293,45 @@ class MetadataRefreshJobs {
         }
       }
       while (!cancel.isCancelled) {
-        final count = await db.transaction((txn) async {
+        final changes = await db.transaction((txn) async {
           final targets = await txn.query('metadata_artwork_items',
-              where: 'job_id = ? AND media_key = ? AND status = ?',
-              whereArgs: [id, item['media_key'], 'pending'],
+              where: 'job_id = ? AND media_key = ? AND status = ?'
+                  '${reviewedReuse ? ' AND edition_id = ?' : ''}',
+              whereArgs: [
+                id,
+                item['media_key'],
+                'pending',
+                if (reviewedReuse) item['edition_id']
+              ],
               orderBy: 'edition_id',
               limit: 128);
           var published = false;
+          final changes = <String, int>{};
           for (final target in targets) {
             if (cancel.isCancelled) throw const _RefreshCommitCancelled();
             final valid =
                 await _currentArtwork(txn, target, provider.providerId);
             if (valid && blob != null && !published) {
-              await MetadataArtworkCache.publish(txn, blob, retrievedAt!);
+              final completedBlob = blob;
+              await cache.sharedStore?.preserveBlob(completedBlob, retrievedAt!,
+                  providerId: reviewedReuse ? null : provider.providerId,
+                  generation: reviewedReuse ? null : initial.generation);
+              if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+              await MetadataArtworkCache.publish(
+                  txn, completedBlob, retrievedAt!);
               published = true;
             }
             await txn.update('metadata_artwork_items',
                 {'status': valid ? result.status.name : 'identityChanged'},
                 where: 'job_id = ? AND edition_id = ? AND media_key = ?',
                 whereArgs: [id, target['edition_id'], target['media_key']]);
+            final status = valid ? result.status.name : 'identityChanged';
+            changes[status] = (changes[status] ?? 0) + 1;
           }
-          return targets.length;
+          return changes;
         });
+        publish(changes);
+        final count = changes.values.fold(0, (a, b) => a + b);
         if (count < 128) break;
       }
     }
@@ -1382,6 +1616,9 @@ class MetadataRefreshJobs {
                       request.refreshGeneration) {
                 outcome = 'superseded';
               } else {
+                final shared = await _sharedStore;
+                await shared?.preserve(copy, identity, txn);
+                if (cancel.isCancelled) throw const _RefreshCommitCancelled();
                 await store.putMetadata(copy, transaction: txn);
                 rated = copy.ratings.isEmpty ? 0 : 1;
               }

@@ -248,6 +248,10 @@ void main() {
         const MetadataText(text: 'English', language: 'en').toJson(),
         const MetadataText(text: 'Español', language: 'es').toJson()
       ],
+      'releaseDates': [
+        const MetadataText(text: '1997-01-31', region: 'jp').toJson(),
+        const MetadataText(text: '1998-02-03', region: 'us').toJson()
+      ],
       'fieldProvenance': {
         'description': MetadataFieldProvenance(
                 providerId: 'igdb',
@@ -260,6 +264,8 @@ void main() {
     final selected =
         await query.cachedMetadata('Game 1.7z', 'psx', language: 'es');
     expect(selected?.summary, 'Español');
+    expect(selected?.releaseDate, '1998-02-03',
+        reason: 'Release region is independent of the selected UI language');
     expect(selected?.provenance['description']?.providerId, 'igdb');
     expect(selected?.providerMatches, {'igdb': 'verifiedProviderIdGlobalGame'});
     await MetadataRefreshJobs(Future.value(db))
@@ -398,6 +404,7 @@ void main() {
     await db.update('games', {'filename': 'Same.7z'}, where: 'id IN (1, 2)');
     final container = ProviderContainer(overrides: [
       libraryDbProvider.overrideWithValue(_CacheDatabase(db)),
+      sharedMetadataStoreProvider.overrideWithValue(Future.value(null)),
     ]);
     final all = container.listen(cachedCoverRatingsProvider(''), (_, __) {});
     final system =

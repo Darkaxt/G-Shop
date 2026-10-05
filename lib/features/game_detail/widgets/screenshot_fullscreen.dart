@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/image_helper.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -63,15 +64,22 @@ class _ScreenshotFullscreenState extends ConsumerState<ScreenshotFullscreen> {
       onClose: widget.onClose,
       child: Shortcuts(
         shortcuts: <ShortcutActivator, Intent>{
-          const SingleActivator(LogicalKeyboardKey.arrowLeft): const NavigateIntent(GridDirection.left),
-          const SingleActivator(LogicalKeyboardKey.arrowRight): const NavigateIntent(GridDirection.right),
+          const SingleActivator(LogicalKeyboardKey.arrowLeft):
+              const NavigateIntent(GridDirection.left),
+          const SingleActivator(LogicalKeyboardKey.arrowRight):
+              const NavigateIntent(GridDirection.right),
           // L1/R1 shoulder buttons
-          const SingleActivator(LogicalKeyboardKey.gameButtonLeft1): const NavigateIntent(GridDirection.left),
-          const SingleActivator(LogicalKeyboardKey.gameButtonRight1): const NavigateIntent(GridDirection.right),
-          const SingleActivator(LogicalKeyboardKey.pageUp): const NavigateIntent(GridDirection.left),
-          const SingleActivator(LogicalKeyboardKey.pageDown): const NavigateIntent(GridDirection.right),
+          const SingleActivator(LogicalKeyboardKey.gameButtonLeft1):
+              const NavigateIntent(GridDirection.left),
+          const SingleActivator(LogicalKeyboardKey.gameButtonRight1):
+              const NavigateIntent(GridDirection.right),
+          const SingleActivator(LogicalKeyboardKey.pageUp):
+              const NavigateIntent(GridDirection.left),
+          const SingleActivator(LogicalKeyboardKey.pageDown):
+              const NavigateIntent(GridDirection.right),
           const SingleActivator(LogicalKeyboardKey.escape): const BackIntent(),
-          const SingleActivator(LogicalKeyboardKey.gameButtonB): const BackIntent(),
+          const SingleActivator(LogicalKeyboardKey.gameButtonB):
+              const BackIntent(),
         },
         child: Actions(
           actions: {
@@ -113,8 +121,9 @@ class _ScreenshotFullscreenState extends ConsumerState<ScreenshotFullscreen> {
                             onTap: () {}, // Absorb tap on image
                             child: Padding(
                               padding: EdgeInsets.all(rs.spacing.lg),
-                              child: Image.network(
-                                widget.screenshots[index],
+                              child: Image(
+                                image: ImageHelper.imageProvider(
+                                    widget.screenshots[index]),
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, __, ___) => Icon(
                                   Icons.broken_image_outlined,
@@ -129,7 +138,8 @@ class _ScreenshotFullscreenState extends ConsumerState<ScreenshotFullscreen> {
                     ),
                     // Counter indicator
                     Positioned(
-                      bottom: rs.spacing.xl + MediaQuery.of(context).padding.bottom,
+                      bottom:
+                          rs.spacing.xl + MediaQuery.of(context).padding.bottom,
                       left: 0,
                       right: 0,
                       child: Center(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../utils/image_helper.dart';
 
 import '../../../core/responsive/responsive.dart';
 import '../../../l10n/app_localizations.dart';
@@ -56,7 +57,8 @@ class _ScreenshotsCarouselState extends State<ScreenshotsCarousel> {
     if (widget.screenshots.isEmpty) return const SizedBox.shrink();
 
     final rs = context.rs;
-    final clampedIdx = widget.focusedIndex.clamp(0, widget.screenshots.length - 1);
+    final clampedIdx =
+        widget.focusedIndex.clamp(0, widget.screenshots.length - 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,8 +97,9 @@ class _ScreenshotsCarouselState extends State<ScreenshotsCarousel> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(rs.radius.sm - 1),
-                    child: Image.network(
-                      widget.screenshots[index],
+                    child: Image(
+                      image:
+                          ImageHelper.imageProvider(widget.screenshots[index]),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         color: Colors.white.withValues(alpha: 0.05),

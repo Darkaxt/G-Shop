@@ -48,6 +48,8 @@ class GameMetadataInfo {
   final Set<String> contentTags;
   final Map<String, MetadataFieldProvenance> provenance;
   final Map<String, String> providerMatches;
+  final String? cachedCover;
+  final List<String> cachedScreenshots;
 
   const GameMetadataInfo({
     required this.filename,
@@ -74,6 +76,8 @@ class GameMetadataInfo {
     this.contentTags = const {},
     this.provenance = const {},
     this.providerMatches = const {},
+    this.cachedCover,
+    this.cachedScreenshots = const [],
   });
 
   bool get hasContent =>
@@ -115,7 +119,37 @@ class GameMetadataInfo {
   List<String> get playerPerspectiveList => _splitCsv(playerPerspectives);
 
   /// Screenshot URLs from RomM (comma-separated in DB).
-  List<String> get screenshotUrlList => _splitCsv(screenshots);
+  List<String> get screenshotUrlList =>
+      cachedScreenshots.isNotEmpty ? cachedScreenshots : _splitCsv(screenshots);
+
+  GameMetadataInfo withArtwork(String? cover, List<String> images) =>
+      GameMetadataInfo(
+          filename: filename,
+          systemSlug: systemSlug,
+          summary: summary,
+          genres: genres,
+          developer: developer,
+          publisher: publisher,
+          releaseYear: releaseYear,
+          releaseDate: releaseDate,
+          gameModes: gameModes,
+          rating: rating,
+          franchises: franchises,
+          themes: themes,
+          playerPerspectives: playerPerspectives,
+          ageRating: ageRating,
+          screenshots: screenshots,
+          fileSizeBytes: fileSizeBytes,
+          siblings: siblings,
+          lastUpdated: lastUpdated,
+          cacheRowId: cacheRowId,
+          editionId: editionId,
+          overallRating: overallRating,
+          contentTags: contentTags,
+          provenance: provenance,
+          providerMatches: providerMatches,
+          cachedCover: cover,
+          cachedScreenshots: images);
 
   /// Parsed sibling info from RomM (JSON array in DB).
   List<SiblingInfo> get siblingList {

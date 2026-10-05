@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 5.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 6.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S9
@@ -296,8 +296,99 @@ separate actual emulator acceptance evidence.
 
 ## S4 — Fresh metadata pipeline and score semantics
 
-Requirements: META-01, META-03, META-04, META-05, META-06, META-07.
+Status: COMPLETE (2026-10-05). Every assigned criterion is reconciled against
+current evidence in `S4_ACCEPTANCE_RECONCILIATION.md`. The implementation
+checkpoints below describe the incremental route, not remaining current gaps.
+B7's owner-directed reconstruction is verified; historical private-data loss is
+not claimed recovered. S6 now owns the integrated recheck, not unfinished S4 work.
+
+Requirements: META-01, META-03, META-04, META-05, META-06, META-07, META-08.
 Depends on: S1 provider/identity contracts; S2 remote catalogue for integration.
+
+Revision-6 required work (2026-10-05), now verified rather than deferred to an unnamed
+follow-up: migrate credential-free scraped facts/artwork into user-selected
+durable shared storage, with a rebuildable internal projection; reuse validated
+ES-DE media and publish owned compatible fields from the remote catalogue for
+remote-only editions. Preserve ES-DE user/unknown fields and manual edits,
+coordinate its writers, retain last-good generations and verify permission loss,
+publication interruption/conflicts and reimport without redundant API requests.
+Do not modify Drive, fabricate local ROMs or reinterpret old gamelist scores as
+fresh evidence. S4 owns implementation and focused/native acceptance; S6 rechecks
+the integrated lifecycle and S7 uses this path during the real full scrape.
+This addition does not waive B7 or activate another stage.
+
+Current bounded implementation: normal settings migrates to a selected shared
+SQLite/artwork namespace; the worker preserves validated responses before private
+acknowledgement, and current identities can rebuild metadata/image projections
+offline. Same-generation response replay avoids repeated completed lookups;
+explicit fresh generations remain fresh. Fresh-database recovery is now verified
+for reviewed single-member Drive editions, including re-created source IDs and
+independent provider assignments. Same-generation artwork response replay also
+passes its private-acknowledgement interruption fixture. Host acceptance evidence
+is in the S4 reconciliation. Current v3 host evidence also covers a two-disc
+Drive edition with an unscraped reviewed base, including independent source
+reselection, persisted/reopened base bindings, current manual corrections and
+changed/missing members. Rebuild and v2 migration cross the 128-row page boundary.
+Next connect the tested ES-DE field merge to identity-validated media reuse and
+writer-coordinated publication. The inspected upstream ES-DE guide requires
+external gamelist editing while ES-DE is shut down; a R-Shop advisory lock alone
+is not coordination with its writer. Establish that maintenance boundary and
+retain pending updates when unavailable; do not change ES-DE's settings or force
+stop it as a substitute. Native
+proof remains required when the released Thor is available. No later stage opens
+while S4 is ACTIVE, and no helper/component is treated as META-08 completion.
+
+The first normal ES-DE text-publication slice is now connected: per-edition
+metadata settings selects the console's existing ROM/gamelist directories,
+resolves the expected single-artifact path from the normal configured queue
+destination, and persists the binding in shared schema v4. Normal refresh queues
+fresh supported text fields. The existing settings screen publishes pending
+updates only in an explicitly closed-ES-DE maintenance window. Indexed pending
+responses, last-written field ownership and a journal survive process interruption;
+the private catalogue is pinned during current-binding validation/publication.
+An OS lock coordinates R-Shop publishers only, not ES-DE itself.
+
+The normal single-artifact slice now includes explicitly selected console media
+roots, cover/screenshot publication and edition-reviewed PNG/JPG/WebP reuse.
+Shared schema v5 retains image ownership/publication journals and separate local
+reuse receipts. Reuse cannot become a provider response or cover another edition;
+fresh facts still require the provider. Existing launcher/manual images remain
+launcher-owned. Host interruption/path/manual-edit tests pass; actual Android
+storage/regrant/reinstall and post-integration resource proof remain required.
+
+The host field/layout slice now exports the same accepted current effective
+score as cards/Top (not raw/highest scores), selects release dates by edition
+region, and uses ES-DE's supported date/rating formats. A plain ES-DE rating
+cannot express original-game ownership, so those modification scores stay in
+R-Shop's labelled records rather than being exported as edition quality. Missing
+or unaccepted facts do not become zero or fabricated dates; omitted fields leave
+last-good/manual launcher data intact. Manual rating edits remain conflicts.
+
+Shared schema v6 also records expected entry/dependency paths from the existing
+normal queue's durable installation plan. Metadata mapping/publication never
+reserves a transfer or reads manifests/ROM bodies. Unplanned playlists, archives,
+ambiguous plans and changed dependencies cannot be guessed into a gamelist.
+Only expected paths and exact remote artifacts are shared, not transfer IDs,
+staging/progress or installation ownership. The durable metadata layout remains
+usable after private transfer records are lost, subject to current catalogue and
+configuration validation; it does not recreate operational records or make ROMs
+launchable. Host ordinary-file, explicit replacement-path, playlist/head-only and
+reviewed multi-member fixtures, plus v4/v5 upgrades, pass. Android proof remains
+required; see the latest S4 field/layout checkpoint in the status ledger.
+
+Continue S4 with the integrated shared-storage loss/regrant/rebuild and
+bounded-resource contracts,
+and ask for the released Thor when native checks actually require it. Do not
+treat the single-artifact text slice or a checked closed-writer control as full
+META-08 acceptance or proof against an uncoordinated running ES-DE writer.
+
+The host loss/remount path now keeps cached facts/discovery readable without
+requiring a successful shared-store open; strict refresh/publication futures
+remain failed and no alternate writable cache is selected. Settings preserves
+independent credentials/catalogue/progress and explicitly offers reconnect.
+Normal same-directory regrant restores existing covers without repeated body or
+fact requests. This closes the host read/regrant contract only, not native
+permission/reinstall proof or the outstanding large shared-rebuild measurement.
 
 Classification reconciliation normalizes only finite known tag spellings/case
 (including `T-En`, `Dubbed`, `Undubbed`, `Uncensored`) through the existing edition
@@ -370,6 +461,42 @@ URLs. Resolve ScreenScraper images at its fixed documented endpoint. Normalize
 only the exact live-observed IEND-plus-ASCII-1 endpoint framing; the cache still
 rejects arbitrary appended bytes. Native integration and the full large-fixture
 artwork/resource assessment remain acceptance work, not inferred from host proof.
+
+### S4 normal artwork integration (current acceptance gap, 2026-10-04)
+
+Current-source inspection found the artwork engine/cache reachable only from
+fixtures: normal `MetadataControlsController._run` supplies no artwork cache,
+never creates an artwork job, and shared card callers read only legacy cover
+fields. Injected resolved-file UI checks do not prove this missing link. This is
+ordinary unfinished META-06 integration in the sole ACTIVE S4 stage, not a new
+feature, a blocker requiring user action or a later-stage deferral.
+
+Close the narrow workflow first: normal refresh of one real matched
+ScreenScraper edition -> current image selectors -> budgeted durable artwork job
+-> app-private immutable cache -> normal cached cover consumption -> offline
+restart. Then verify the same normal full/system/game/retry and correction
+boundaries without broadening provider capabilities.
+
+- Reuse the existing worker/cache and normal controller. Persist the metadata/
+  artwork job relationship needed for restart and joined pause/resume; do not
+  repeat completed game lookups or silently treat unfinished artwork as complete.
+  Keep the publication identity/generation checks and provider-wide budget.
+- Give producer and cache-only consumers one explicit app-private cache root.
+  Supply currently owned cover/screenshot files through bounded existing query/
+  view paths, never authenticated URLs or per-card scraping. Keep unrelated
+  legacy provider behavior, scores, tags and ROM actions intact.
+- Keep game coverage separate from artwork progress/error/recovery. Pausing,
+  credentials removal and controller closure must join the currently running
+  phase and preserve the committed phase across the transition.
+- Add a focused regression using normal controller -> real persistent worker ->
+  cache -> normal shared callers, with no manually injected cover URL. Prove
+  restart/offline consumption, preserved old image on refresh failure, exact
+  identity correction and no added browsing-time network/ROM requests. Verify
+  the narrow real provider/native workflow when the implementation is connected.
+
+The 30,000-game current-source resource result remains applicable only while the
+tested worker/cache/schema are unchanged. Recheck affected contracts after the
+integration change; do not repeatedly run unrelated full suites.
 
 ### S4 canonical grouping boundary
 
@@ -578,6 +705,13 @@ order. No burnt-in artwork or metadata-only ROM fetches.
 
 ## S6 — Final reconciliation and remediation
 
+Status: ACTIVE (2026-10-05), the sole ACTIVE implementation stage after S4 closure.
+Begin with complete specification/source reconciliation and affected existing-
+provider/transfer/configuration checks. Then demonstrate the combined normal
+on-demand and durable-metadata workflow; preserve the owner app and use only an
+independently inspected expendable package for fixture entrypoints. S6 is not
+complete from S4's component/native evidence alone.
+
 Requirements: QA-01, QA-02, QA-04; integrated recheck of S1-S6 requirements,
 with final QA-04 reconciliation repeated after S7, S8 and S9.
 Depends on: S1-S5, including all required live acceptance evidence.
@@ -743,6 +877,7 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | META-05 | S4 | Provenance/scale/null/count tests, reception benchmark, low-vote outlier and source-remediation gate |
 | META-06 | S4 | Quota/offline/resume/30,000-game bounded job tests |
 | META-07 | S4 | Shared paged query; dynamic overall-score Top; any/all tags intersect ranks without backfill; grouping and scope tests |
+| META-08 | S4 | Durable shared record/artwork migration and rebuild; exact ES-DE reuse and conflict-safe publication for remote-only games; storage/interruption fixtures and Thor proof; integrated S6 and full-pass S7 rechecks |
 | UI-01 | S5 | All shared-card callers, widget/golden and device proof |
 | UI-02 | S5 | Setup/refresh/details/controller acceptance |
 | UI-03 | S5 | Integrated Top/category/genre filters, scope, persistence and controller proof |

@@ -805,8 +805,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             children: [
               Positioned.fill(
                 child: _CoverBackground(
-                  coverUrl:
-                      selectedVariant.cachedCoverUrl ?? coverUrls.firstOrNull,
+                  coverUrl: richMetadata?.cachedCover ??
+                      selectedVariant.cachedCoverUrl ??
+                      coverUrls.firstOrNull,
                   accentColor: widget.system.accentColor,
                 ),
               ),
@@ -992,7 +993,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                             game: widget.game,
                             system: widget.system,
                             coverUrls: coverUrls,
-                            cachedUrl: selectedVariant.cachedCoverUrl,
+                            cachedUrl: richMetadata?.cachedCover ??
+                                selectedVariant.cachedCoverUrl,
                             metadata: fileMetadata,
                             isFavorite: isFavorite,
                             isInstalled: state.isVariantInstalled,
@@ -1075,7 +1077,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
               game: widget.game,
               system: widget.system,
               coverUrls: coverUrls,
-              cachedUrl: selectedVariant.cachedCoverUrl,
+              cachedUrl:
+                  richMetadata?.cachedCover ?? selectedVariant.cachedCoverUrl,
               metadata: fileMetadata,
               isFavorite: isFavorite,
               isInstalled: state.isVariantInstalled,
@@ -1524,8 +1527,8 @@ class _CoverBackground extends StatelessWidget {
           ClipRect(
             child: ImageFiltered(
               imageFilter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Image.network(
-                coverUrl!,
+              child: Image(
+                image: ImageHelper.imageProvider(coverUrl!),
                 fit: BoxFit.cover,
                 alignment: Alignment.topCenter,
                 errorBuilder: (_, __, ___) => _accentFallback(),

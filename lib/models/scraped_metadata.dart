@@ -147,6 +147,51 @@ class MetadataText {
       region: json['region'] as String?);
 }
 
+/// A release belongs to an edition's region, not its UI language. Conflicting
+/// regional facts are unresolved; a provider's unqualified global date is only
+/// a fallback when there is no exact regional response. Preserve partial
+/// precision for display rather than inventing the first day of a year/month.
+String? selectEditionReleaseDate(List<MetadataText> dates,
+    {required List<String> regions}) {
+  String region(String value) {
+    final normalized = value.trim().toLowerCase();
+    return const {
+          'usa': 'us',
+          'europe': 'eu',
+          'japan': 'jp',
+          'world': 'wor'
+        }[normalized] ??
+        normalized;
+  }
+
+  bool valid(String text) {
+    final match =
+        RegExp(r'^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T.+)?)?)?$').firstMatch(text);
+    if (match == null || int.parse(match[1]!) < 1) return false;
+    final month = match[2] == null ? 1 : int.parse(match[2]!);
+    final day = match[3] == null ? 1 : int.parse(match[3]!);
+    final date = DateTime.utc(int.parse(match[1]!), month, day);
+    if (date.year != int.parse(match[1]!) ||
+        date.month != month ||
+        date.day != day) {
+      return false;
+    }
+    return !text.contains('T') || DateTime.tryParse(text) != null;
+  }
+
+  final wanted = regions.map(region).toSet();
+  final exact = dates
+      .where((value) =>
+          value.region != null && wanted.contains(region(value.region!)))
+      .toList();
+  final candidates = exact.isNotEmpty
+      ? exact
+      : dates.where(
+          (value) => value.region == null || value.region!.trim().isEmpty);
+  final values = candidates.map((value) => value.text.trim()).toSet();
+  return values.length == 1 && valid(values.single) ? values.single : null;
+}
+
 class MetadataGenre {
   final String providerGenreId;
   final List<MetadataText> names;

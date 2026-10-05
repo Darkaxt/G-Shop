@@ -143,9 +143,11 @@ final gameMetadataProvider = FutureProvider.autoDispose
   (ref, params) async {
     ref.watch(gameDbChangedProvider);
     final language = ref.watch(localeProvider)?.languageCode ?? 'en';
+    await ref.watch(cachedMetadataReadinessProvider.future);
     return ref.watch(libraryDbProvider).getGameMetadata(
         params.filename, params.systemSlug,
-        language: language);
+        language: language,
+        artworkCache: await ref.watch(cachedMetadataArtworkProvider));
   },
 );
 

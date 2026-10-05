@@ -225,7 +225,13 @@ void defineLibraryDiscoveryChecks({
                   matching: find.byKey(const ValueKey('cover-rating'))),
               card.overallRating == null ? findsNothing : findsOneWidget);
         }
-        expect(find.byType(MediaCoverFallback), findsNWidgets(cards().length),
+        final fallbackCount = tester
+            .widgetList<BaseGameCard>(find.byType(BaseGameCard))
+            .where((card) =>
+                card.cachedUrl == null ||
+                Uri.tryParse(card.cachedUrl!)?.scheme != 'file')
+            .length;
+        expect(find.byType(MediaCoverFallback), findsNWidgets(fallbackCount),
             reason:
                 'Offline Library and shelf cards retain physical-media art');
       }

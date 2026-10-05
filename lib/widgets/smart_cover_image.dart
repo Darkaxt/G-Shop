@@ -78,7 +78,7 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
     _usedCache = widget.cachedUrl != null &&
         widget.cachedUrl!.isNotEmpty &&
         !FailedUrlsCache.instance.hasFailed(widget.cachedUrl!);
-    if (_usedCache) _preValidateCachedUrl();
+    if (_usedCache && !_isLocalCover) _preValidateCachedUrl();
     _skipFailedUrls();
     _resolveThumbnail();
     _setupSuppressionListener();
@@ -86,7 +86,9 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
 
   void _resolveThumbnail() {
     _resolvedThumbnail = null;
-    if (!widget.hasThumbnail || widget.cachedUrl == null) return;
+    if (_isLocalCover || !widget.hasThumbnail || widget.cachedUrl == null) {
+      return;
+    }
     final thumbPath = ThumbnailService.thumbnailPath(widget.cachedUrl!);
     if (thumbPath == null) return;
     final thumbFile = File(thumbPath);
@@ -105,7 +107,10 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
         final nowSuppressed = widget.scrollSuppression!.value;
         if (nowSuppressed != _suppressed) {
           _suppressed = nowSuppressed;
-          if (!nowSuppressed && !_loadedSuccessfully && _resolvedThumbnail == null && mounted) {
+          if (!nowSuppressed &&
+              !_loadedSuccessfully &&
+              _resolvedThumbnail == null &&
+              mounted) {
             setState(() {}); // Unsuppress → trigger load
           }
         }
@@ -256,12 +261,16 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
     });
   }
 
-  Future<void> _attemptDartDecode(String url, {required VoidCallback onFail}) async {
+  Future<void> _attemptDartDecode(String url,
+      {required VoidCallback onFail}) async {
     if (_dartDecodeInProgress) return;
     _dartDecodeInProgress = true;
     try {
       final info = await GameCoverCacheManager.instance.getFileFromCache(url);
-      if (info == null || !mounted) { onFail(); return; }
+      if (info == null || !mounted) {
+        onFail();
+        return;
+      }
 
       final sourceBytes = await info.file.readAsBytes();
       final jpegBytes = await compute(_reencodeAsJpeg, sourceBytes);
@@ -276,7 +285,8 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
 
       // Replace cache file with valid JPEG
       await GameCoverCacheManager.instance.removeFile(url);
-      await GameCoverCacheManager.instance.putFile(url, jpegBytes, fileExtension: 'jpg');
+      await GameCoverCacheManager.instance
+          .putFile(url, jpegBytes, fileExtension: 'jpg');
 
       if (mounted) {
         setState(() => _dartDecodedBytes = jpegBytes);
@@ -328,6 +338,18 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
 
   @override
   Widget build(BuildContext context) {
+    // Owned metadata media never enters the HTTP/thumbnail retry pipeline.
+    if (_isLocalCover) {
+      return Image.file(File.fromUri(Uri.parse(widget.cachedUrl!)),
+          fit: widget.fit,
+          width: widget.width,
+          height: widget.height,
+          cacheWidth: widget.memCacheWidth,
+          gaplessPlayback: true,
+          frameBuilder: _coverFrame,
+          errorBuilder: (_, __, ___) =>
+              widget.errorWidget ?? _buildDefaultError());
+    }
     // Tier 1: Local JPEG thumbnail (cached in state — no sync I/O)
     if (_resolvedThumbnail != null) {
       return Image(
@@ -348,6 +370,9 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
   }
 
   // Tier 2: Network fetch via CachedNetworkImage (current pipeline)
+  bool get _isLocalCover =>
+      Uri.tryParse(widget.cachedUrl ?? '')?.scheme == 'file';
+
   Widget _buildNetworkFallback() {
     if (_dartDecodedBytes != null) {
       return Image.memory(

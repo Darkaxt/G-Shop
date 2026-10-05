@@ -9,6 +9,74 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_esDe => 'ES-DE metadata publication';
+
+  @override
+  String get metadata_esDeReviewArtwork => 'Review and reuse existing artwork';
+
+  @override
+  String get metadata_esDeReviewArtworkHelp =>
+      'Confirm this cover or screenshot belongs to this exact console and edition, including its region/revision/patch. Only its explicitly mapped ES-DE path is accepted. Existing artwork remains launcher-owned; old metadata is not imported as fresh evidence.';
+
+  @override
+  String get metadata_esDeHelp =>
+      'Map this edition to the configured ROM destination, then select its ES-DE system gamelist folder. Updates are queued by normal refreshes. Close ES-DE and keep it closed during publication. Missing ROMs are not created or made launchable.';
+
+  @override
+  String get metadata_esDeMap => 'Map this edition to ES-DE';
+
+  @override
+  String get metadata_esDeRomRoot =>
+      'Select the ES-DE ROM folder for this console';
+
+  @override
+  String get metadata_esDeMediaRoot =>
+      'Select the ES-DE media folder for this console (not covers/screenshots)';
+
+  @override
+  String get metadata_esDeGamelist =>
+      'Select the ES-DE gamelist folder for this console';
+
+  @override
+  String get metadata_esDeClosed =>
+      'ES-DE is closed and will remain closed during publication';
+
+  @override
+  String get metadata_esDePublish => 'Publish pending metadata';
+
+  @override
+  String get metadata_esDePublished => 'Pending metadata published';
+
+  @override
+  String get metadata_esDeConflict =>
+      'Publication paused: review changed paths, identities or manual fields. Pending updates and existing launcher data are preserved.';
+
+  @override
+  String get metadata_esDeNoMapping =>
+      'Open a freshly matched edition\'s metadata settings to map it. Shared metadata storage is required.';
+
+  @override
+  String get metadata_sharedStorage => 'Persistent shared metadata';
+
+  @override
+  String get metadata_sharedUnavailable =>
+      'Shared metadata storage is unavailable or could not be read. Reconnect storage and choose the same folder again. Cached facts remain usable; refresh and publication require restored access.';
+
+  @override
+  String get metadata_sharedStorageHelp =>
+      'Choose a shared folder for scraped facts and artwork. Existing cache is copied, not deleted. This data survives uninstall; reconnect your source and reselect the folder to recover matching records. Credentials and installations are not backed up. ES-DE publication is configured separately.';
+
+  @override
+  String get metadata_privateStorage =>
+      'Not selected — current cache is app-private';
+
+  @override
+  String get metadata_chooseSharedStorage => 'Choose / reconnect shared folder';
+
+  @override
+  String get metadata_artwork => 'Artwork';
+
+  @override
   String get metadata_rediscover => 'Find another match';
 
   @override

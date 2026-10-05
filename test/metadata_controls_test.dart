@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
@@ -51,10 +54,61 @@ class ControlsProvider implements MetadataProvider {
   void close() => closed = true;
 }
 
-Future<Database> controlsDatabase({DatabaseFactory? factory}) async {
+class ControlsArtworkProvider extends ControlsProvider
+    implements MetadataArtworkProvider {
+  int artworkCalls = 0;
+  final bool includeScreenshot;
+  Future<void> Function(CancelToken?)? onArtwork;
+  MetadataLookupStatus artworkStatus = MetadataLookupStatus.matched;
+  final media = MetadataMedia(
+      type: 'box-2D',
+      providerReference: ScreenScraperMediaReference(
+          providerGameId: '42', providerPlatformId: 57, mediaType: 'box-2D'));
+  final screenshot = MetadataMedia(
+      type: 'ss',
+      providerReference: ScreenScraperMediaReference(
+          providerGameId: '42', providerPlatformId: 57, mediaType: 'ss'));
+  ControlsArtworkProvider({this.includeScreenshot = false}) {
+    reply = (request, _) async => MetadataLookupResult(
+        status: MetadataLookupStatus.matched,
+        message: 'Matched fixture',
+        record: MetadataRecord(
+            gameId: request.gameId,
+            editionId: request.editionId,
+            platformId: request.platformId,
+            providerId: providerId,
+            providerGameId: '42',
+            retrievedAt: DateTime.now().toUtc(),
+            refreshGeneration: request.refreshGeneration,
+            matchMethod: 'platformAndTitle',
+            titles: [MetadataText(text: request.title)],
+            media: [media, if (includeScreenshot) screenshot]));
+  }
+  @override
+  Future<MetadataLookupResult> fetchArtwork(MetadataMedia media,
+      {required Future<void> Function(List<int>) write,
+      CancelToken? cancelToken}) async {
+    artworkCalls++;
+    await onArtwork?.call(cancelToken);
+    if (cancelToken?.isCancelled == true) {
+      return MetadataLookupResult(
+          status: MetadataLookupStatus.cancelled, message: 'Cancelled');
+    }
+    if (artworkStatus != MetadataLookupStatus.matched) {
+      return MetadataLookupResult(
+          status: artworkStatus, message: 'Fixture failure');
+    }
+    await write(base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=='));
+    return MetadataLookupResult(
+        status: MetadataLookupStatus.matched, message: 'Fixture image');
+  }
+}
+
+Future<Database> controlsDatabase(
+    {DatabaseFactory? factory, String path = inMemoryDatabasePath}) async {
   if (factory == null) sqfliteFfiInit();
-  final db = await (factory ?? databaseFactoryFfiNoIsolate)
-      .openDatabase(inMemoryDatabasePath);
+  final db = await (factory ?? databaseFactoryFfiNoIsolate).openDatabase(path);
   await LibrarySchema.install(db);
   await MetadataRefreshJobs.install(db);
   await db
@@ -73,8 +127,184 @@ Future<Database> controlsDatabase({DatabaseFactory? factory}) async {
   return db;
 }
 
+class _ThrowOnceCache extends MetadataArtworkCache {
+  bool fail = true;
+  _ThrowOnceCache(super.database, super.root);
+  @override
+  Future<({MetadataLookupResult result, MetadataArtworkBlob? blob})> download(
+      MetadataMedia media,
+      MetadataArtworkProvider provider,
+      int workId,
+      CancelToken cancel) {
+    if (fail) {
+      fail = false;
+      throw StateError('private-secret');
+    }
+    return super.download(media, provider, workId, cancel);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('normal artwork pause joins transport and resumes the same linked job',
+      () async {
+    final db = await controlsDatabase();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-controls-artwork-');
+    final provider = ControlsArtworkProvider(includeScreenshot: true);
+    final cache = MetadataArtworkCache(Future.value(db), root);
+    MetadataControlsController controller(ControlsArtworkProvider p) =>
+        MetadataControlsController(
+            database: Future.value(db),
+            providers: {'screenscraper': p},
+            screenScraperCredentials:
+                ScreenScraperCredentialStore(storage: MemorySecrets()),
+            igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+            artworkCache: Future.value(cache),
+            catalogueChanged: () {});
+    var controls = controller(provider);
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    final started = Completer<void>();
+    provider.onArtwork = (cancel) async {
+      started.complete();
+      await cancel!.whenCancel;
+    };
+    final run = controls.refresh(systemSlug: 'psx');
+    await started.future;
+    await controls.pause();
+    await run;
+    expect(controls.state.report!.state, 'completed');
+    expect(controls.state.artworkReport!.state, 'paused');
+    expect(controls.state.artworkReport!.counts, {'pending': 2});
+    final child = controls.state.artworkReport!.id;
+    await controls.close();
+    controls.dispose();
+    final reopenedProvider = ControlsArtworkProvider(includeScreenshot: true);
+    controls = controller(reopenedProvider);
+    await controls.load();
+    expect(controls.state.artworkReport!.id, child);
+    await controls.resume();
+    expect(controls.state.artworkReport!.id, child);
+    expect(controls.state.artworkReport!.counts, {'matched': 2});
+    expect(reopenedProvider.calls, isEmpty);
+    expect(reopenedProvider.artworkCalls, 2);
+  });
+  test('artwork exception restores the child paused report, not running',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsArtworkProvider();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-controls-artwork-');
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(_ThrowOnceCache(Future.value(db), root)),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    await controls.refresh(systemSlug: 'psx');
+    expect(controls.state.error, isTrue);
+    expect(controls.state.report!.state, 'completed');
+    expect(controls.state.artworkReport!.state, 'paused');
+    expect(controls.state.artworkReport!.counts, {'pending': 1});
+    await controls.resume();
+    expect(controls.state.artworkReport!.counts, {'matched': 1});
+    expect(provider.calls, hasLength(1));
+  });
+  test('explicit artwork retry preserves metadata lookup and completed images',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsArtworkProvider(includeScreenshot: true);
+    final root =
+        await Directory.systemTemp.createTemp('rshop-controls-artwork-');
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache:
+            Future.value(MetadataArtworkCache(Future.value(db), root)),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    provider.onArtwork = (_) async {
+      provider.artworkStatus = provider.artworkCalls == 2
+          ? MetadataLookupStatus.invalidResponse
+          : MetadataLookupStatus.matched;
+    };
+    await controls.refresh(systemSlug: 'psx');
+    final parent = controls.state.report!.id;
+    final child = controls.state.artworkReport!.id;
+    expect(controls.state.artworkReport!.counts,
+        {'matched': 1, 'invalidResponse': 1});
+    provider.onArtwork = null;
+    provider.artworkStatus = MetadataLookupStatus.matched;
+    await controls.retryUnresolved();
+    expect(controls.state.report!.id, parent);
+    expect(controls.state.artworkReport!.id, isNot(child));
+    expect(controls.state.artworkReport!.counts, {'matched': 1});
+    expect(provider.calls, hasLength(1));
+    expect(provider.artworkCalls, 3,
+        reason: 'The successful cover is not retried');
+  });
+  test('normal refresh publishes owned artwork without another game lookup',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsArtworkProvider();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-controls-artwork-');
+    final cache = MetadataArtworkCache(Future.value(db), root);
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(cache),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    await controls.refresh(systemSlug: 'psx');
+    expect(controls.state.report!.counts, {'matched': 1});
+    expect(provider.calls, hasLength(1));
+    expect(provider.artworkCalls, 1,
+        reason:
+            'Normal refresh must publish the matched cover, not only JSON.');
+    expect(controls.state.artworkReport!.counts, {'matched': 1});
+    final edition = provider.calls.single.editionId;
+    expect(await cache.fileFor(edition, provider.providerId, provider.media),
+        isNotNull);
+    final child = controls.state.artworkReport!.id;
+    await controls.resume();
+    expect(controls.state.artworkReport!.id, child);
+    expect(provider.calls, hasLength(1));
+    expect(provider.artworkCalls, 1);
+  });
   test(
       'normal review explicitly corrects an identity then verifies publication',
       () async {

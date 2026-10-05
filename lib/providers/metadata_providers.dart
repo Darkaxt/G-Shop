@@ -1,13 +1,20 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 
 import '../services/metadata/igdb_provider.dart';
 import '../services/metadata/metadata_credentials.dart';
+import '../services/metadata/metadata_artwork_cache.dart';
 import '../services/metadata/metadata_provider.dart';
 import '../services/metadata/metadata_refresh_jobs.dart';
 import '../services/metadata/screenscraper_provider.dart';
+import '../services/metadata/shared_metadata_store.dart';
+import '../services/metadata/es_de_metadata_publication.dart';
+import 'app_providers.dart' show configStorageServiceProvider;
 import 'library_providers.dart';
 
 class MetadataControlsState {
@@ -15,6 +22,11 @@ class MetadataControlsState {
   final bool loading, busy, error, accountConfigured, applicationConfigured;
   final List<String> systems;
   final MetadataRefreshReport? report;
+  final MetadataRefreshReport? artworkReport;
+  final String? sharedDirectory;
+  final bool sharedStorageUnavailable;
+  final EsDePublicationResult? esDeReport;
+  final List<String> esDeTargets;
   const MetadataControlsState(
       {this.providerId = 'screenscraper',
       this.loading = true,
@@ -23,7 +35,12 @@ class MetadataControlsState {
       this.accountConfigured = false,
       this.applicationConfigured = false,
       this.systems = const [],
-      this.report});
+      this.report,
+      this.artworkReport,
+      this.sharedDirectory,
+      this.sharedStorageUnavailable = false,
+      this.esDeReport,
+      this.esDeTargets = const []});
 
   MetadataControlsState copyWith(
           {String? providerId,
@@ -34,6 +51,12 @@ class MetadataControlsState {
           bool? applicationConfigured,
           List<String>? systems,
           MetadataRefreshReport? report,
+          MetadataRefreshReport? artworkReport,
+          String? sharedDirectory,
+          bool? sharedStorageUnavailable,
+          EsDePublicationResult? esDeReport,
+          List<String>? esDeTargets,
+          bool clearArtworkReport = false,
           bool clearReport = false}) =>
       MetadataControlsState(
           providerId: providerId ?? this.providerId,
@@ -44,7 +67,15 @@ class MetadataControlsState {
           applicationConfigured:
               applicationConfigured ?? this.applicationConfigured,
           systems: systems ?? this.systems,
-          report: clearReport ? null : report ?? this.report);
+          sharedDirectory: sharedDirectory ?? this.sharedDirectory,
+          sharedStorageUnavailable:
+              sharedStorageUnavailable ?? this.sharedStorageUnavailable,
+          esDeReport: esDeReport ?? this.esDeReport,
+          esDeTargets: esDeTargets ?? this.esDeTargets,
+          report: clearReport ? null : report ?? this.report,
+          artworkReport: clearReport || clearArtworkReport
+              ? null
+              : artworkReport ?? this.artworkReport);
 }
 
 /// One app-scoped worker for normal settings and exact game-details controls.
@@ -56,6 +87,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
   final ScreenScraperCredentialStore _screenScraper;
   final IgdbCredentialStore _igdb;
   final void Function() _catalogueChanged;
+  final Future<MetadataArtworkCache>? _artworkCache;
+  final Future<SharedMetadataStore?>? _sharedStore;
+  final Future<String?> Function(String systemId)? _configuredTarget;
   Future<void>? _operation, _loading, _closing;
   bool _closed = false;
   bool _pauseRequested = false;
@@ -65,14 +99,27 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       required Map<String, MetadataProvider> providers,
       required ScreenScraperCredentialStore screenScraperCredentials,
       required IgdbCredentialStore igdbCredentials,
+      Future<MetadataArtworkCache>? artworkCache,
+      Future<SharedMetadataStore?>? sharedStore,
+      Future<String?> Function(String systemId)? configuredTarget,
       required void Function() catalogueChanged})
       : _database = database,
-        _jobs = MetadataRefreshJobs(database),
+        _jobs = MetadataRefreshJobs(database, sharedStore: sharedStore),
         _providers = providers,
         _screenScraper = screenScraperCredentials,
         _igdb = igdbCredentials,
         _catalogueChanged = catalogueChanged,
-        super(const MetadataControlsState());
+        _artworkCache = artworkCache,
+        _sharedStore = sharedStore,
+        _configuredTarget = configuredTarget,
+        super(const MetadataControlsState()) {
+    // These owned futures can fail before load reaches them (or before an artwork
+    // action is selected). Observe early completion without replacing the future:
+    // load/run still await and report the original failure. Otherwise an ordinary
+    // unavailable store escapes as an unhandled asynchronous application error.
+    _sharedStore?.ignore();
+    _artworkCache?.ignore();
+  }
 
   void _set(MetadataControlsState next) {
     if (!_closed && mounted) state = next;
@@ -84,6 +131,23 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     try {
       final id = state.providerId;
       final db = await _database;
+      var sharedUnavailable = false;
+      if (_sharedStore != null) {
+        final prefs = await SharedPreferences.getInstance();
+        _set(state.copyWith(
+            sharedDirectory: prefs.getString(sharedMetadataDirectoryKey)));
+        try {
+          final store = await _sharedStore;
+          await store?.restore(db);
+          _set(state.copyWith(
+              esDeTargets: await store?.esDeTargets() ?? const []));
+        } catch (_) {
+          // Shared storage is not the source of credentials, catalogue membership
+          // or committed private job progress. Preserve those independent reads
+          // and expose the storage failure; do not redirect any worker writes.
+          sharedUnavailable = true;
+        }
+      }
       final systems = await db.rawQuery(
           'SELECT DISTINCT systemSlug FROM games WHERE is_folder = 0 ORDER BY systemSlug');
       final account =
@@ -92,14 +156,19 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           ? await _screenScraper.readDeveloper() != null
           : await _igdb.read() != null;
       final report = await _jobs.latest(providerId: id);
+      final artwork =
+          report == null ? null : await _jobs.artworkForMetadata(report.id);
       _set(state.copyWith(
           loading: false,
-          error: false,
+          error: sharedUnavailable,
+          sharedStorageUnavailable: sharedUnavailable,
           accountConfigured: account,
           applicationConfigured: application,
           systems:
               List.unmodifiable(systems.map((r) => r['systemSlug'] as String)),
           report: report,
+          artworkReport: artwork,
+          clearArtworkReport: artwork == null,
           clearReport: report == null));
     } catch (_) {
       _set(state.copyWith(loading: false, error: true));
@@ -126,7 +195,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         final id = state.report?.id;
         if (id != null) {
           try {
-            _set(state.copyWith(report: await _jobs.report(id)));
+            _set(state.copyWith(
+                report: await _jobs.report(id),
+                artworkReport: await _jobs.artworkForMetadata(id)));
           } catch (_) {/* Retain last committed progress on storage failure. */}
         }
         _set(state.copyWith(error: true));
@@ -162,16 +233,122 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         await load();
       });
 
+  /// The picker and migration occupy the same app-scoped worker as refresh.
+  /// Commit the selected path only after existing facts/blobs are preserved and
+  /// recoverable; cancellation or storage failure leaves the old choice intact.
+  /// Caller invalidates cache/controller providers only after this Future joins.
+  Future<void> selectSharedStorage(Future<Directory?> Function() choose,
+          {DatabaseFactory? factory}) =>
+      _perform(() async {
+        final selected = await choose();
+        if (selected == null || _closed || _pauseRequested) return;
+        final selectedPath = p.normalize(selected.absolute.path);
+        if (Platform.isAndroid &&
+            (!selectedPath.startsWith('/storage/') ||
+                RegExp(r'/Android/(data|obb)(/|$)').hasMatch(selectedPath))) {
+          throw StateError(
+              'Select shared storage outside app-scoped directories');
+        }
+        final target = await SharedMetadataStore.open(
+            Directory(p.join(selectedPath, 'RShopMetadata')),
+            factory: factory);
+        try {
+          final db = await _database;
+          final prefs = await SharedPreferences.getInstance();
+          final previous = prefs.getString(sharedMetadataDirectoryKey);
+          // Re-grant/reconnect does not await a permanently failed old Future.
+          // Its recorded directory is explicit; absent bodies remain preserved
+          // as unavailable rather than borrowed from another guessed location.
+          final cache = previous == null
+              ? await (_artworkCache ?? MetadataArtworkCache.open(_database))
+              : MetadataArtworkCache(
+                  _database, Directory(p.join(previous, 'artwork')));
+          await target.migrate(db, cache);
+          await target.restore(db);
+          if (_closed || _pauseRequested) return;
+          if (!await prefs.setString(
+              sharedMetadataDirectoryKey, target.root.path)) {
+            throw StateError('Shared directory selection could not be saved');
+          }
+          _set(state.copyWith(
+              sharedDirectory: target.root.path,
+              sharedStorageUnavailable: false));
+          _catalogueChanged();
+        } finally {
+          await target.close();
+        }
+      });
+
   Future<void> refresh({String? systemSlug, int? cacheRowId}) =>
       _perform(() async {
         final job = await _jobs.createFromCatalogue(
             providerId: state.providerId,
             systemSlug: systemSlug,
             cacheRowId: cacheRowId);
-        _set(state.copyWith(report: job));
+        _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;
         _catalogueChanged(); // Mark retained scores stale once, not per item/frame.
         await _run(job.id);
+      });
+
+  Future<void> mapEsDeEdition(
+          {required int cacheRowId,
+          required String editionId,
+          required Directory romRoot,
+          Directory? mediaRoot,
+          required File gamelist}) =>
+      _perform(() async {
+        final store = await _sharedStore;
+        final db = await _database;
+        final rows = await db.query('games',
+            columns: ['systemSlug'], where: 'id = ?', whereArgs: [cacheRowId]);
+        if (rows.length != 1) throw StateError('Missing catalogue item');
+        final destination =
+            await _configuredTarget?.call(rows.single['systemSlug'] as String);
+        if (destination == null || store == null) {
+          throw StateError(
+              'Shared storage and configured installation are required');
+        }
+        await store.mapEsDeEdition(db,
+            cacheRowId: cacheRowId,
+            editionId: editionId,
+            providerId: state.providerId,
+            installRoot: Directory(destination),
+            romRoot: romRoot,
+            mediaRoot: mediaRoot,
+            gamelist: gamelist);
+        _set(state.copyWith(esDeTargets: await store.esDeTargets()));
+      });
+
+  Future<void> publishEsDe(File gamelist, {required bool esDeClosed}) =>
+      _perform(() async {
+        final store = await _sharedStore;
+        if (store == null || _configuredTarget == null) {
+          throw StateError('ES-DE mapping is unavailable');
+        }
+        _set(state.copyWith(
+            esDeReport: await store.publishEsDe(await _database, gamelist,
+                esDeClosed: esDeClosed,
+                rebasePrepared: {'fileChanged', 'pendingChanged'}
+                    .contains(state.esDeReport?.status),
+                configuredTarget: _configuredTarget!)));
+      });
+
+  Future<void> reviewEsDeArtwork(
+          {required String editionId, required File source}) =>
+      _perform(() async {
+        final store = await _sharedStore;
+        final cache = await _artworkCache;
+        if (store == null || cache == null || _configuredTarget == null) {
+          throw StateError(
+              'Shared artwork and exact ES-DE mapping are required');
+        }
+        await store.reviewEsDeArtwork(await _database, cache,
+            editionId: editionId,
+            providerId: state.providerId,
+            image: source,
+            configuredTarget: _configuredTarget!);
+        _catalogueChanged();
       });
 
   Future<void> rediscoverMatch(
@@ -181,7 +358,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
             providerId: state.providerId,
             cacheRowId: cacheRowId,
             editionId: editionId);
-        _set(state.copyWith(report: job));
+        _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;
         _catalogueChanged();
         await _run(job.id);
@@ -195,8 +372,25 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
   Future<void> retryUnresolved() => _perform(() async {
         final id = state.report?.id;
         if (id == null) return;
+        const outcomes = {
+          'unmatched',
+          'invalidRequest',
+          'invalidResponse',
+          'unsupportedPlatform',
+          'identityChanged'
+        };
+        final metadataPending =
+            outcomes.any((s) => (state.report!.counts[s] ?? 0) > 0);
+        if (!metadataPending &&
+            state.artworkReport != null &&
+            outcomes.any((s) => (state.artworkReport!.counts[s] ?? 0) > 0)) {
+          final images = await _jobs.retryArtworkForMetadata(id);
+          _set(state.copyWith(artworkReport: images));
+          await _run(id);
+          return;
+        }
         final job = await _jobs.retryUnresolved(id);
-        _set(state.copyWith(report: job));
+        _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;
         _catalogueChanged();
         await _run(job.id);
@@ -227,7 +421,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
             editionId: item.editionId,
             providerGameId: providerGameId,
             contentTags: contentTags);
-        _set(state.copyWith(report: job));
+        _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;
         _catalogueChanged();
         await _run(job.id);
@@ -243,6 +437,25 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           recheckAccess: provider is MetadataAccessProvider,
           onProgress: (report) => _set(state.copyWith(report: report)));
       _set(state.copyWith(report: result));
+      if (result.state == 'completed' &&
+          provider is MetadataArtworkProvider &&
+          !_closed &&
+          !_pauseRequested) {
+        final cache =
+            await (_artworkCache ?? MetadataArtworkCache.open(_database));
+        if (_closed || _pauseRequested) return;
+        final artwork = await _jobs.ensureArtworkForMetadata(id);
+        _set(state.copyWith(artworkReport: artwork));
+        if (_closed || _pauseRequested) return;
+        final images = await _jobs.run(artwork.id, provider,
+            artworkCache: cache,
+            recheckAccess: artwork.state != 'completed' &&
+                provider is MetadataAccessProvider &&
+                artwork.blockedStatus != null,
+            onProgress: (report) =>
+                _set(state.copyWith(artworkReport: report)));
+        _set(state.copyWith(artworkReport: images));
+      }
     } finally {
       if (!_closed) _catalogueChanged();
     }
@@ -291,6 +504,14 @@ final metadataControlsProvider =
       },
       screenScraperCredentials: ss,
       igdbCredentials: igdb,
+      artworkCache: ref.watch(metadataArtworkCacheProvider),
+      sharedStore: ref.watch(sharedMetadataStoreProvider),
+      configuredTarget: (systemId) async {
+        final config =
+            await ref.read(configStorageServiceProvider).loadConfig();
+        final systems = config?.systems.where((s) => s.id == systemId).toList();
+        return systems?.length == 1 ? systems!.single.targetFolder : null;
+      },
       catalogueChanged: () => ref.read(gameDbChangedProvider.notifier).state++);
   unawaited(controller.load());
   return controller;
