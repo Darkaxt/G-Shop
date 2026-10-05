@@ -296,6 +296,47 @@ void main() {
     expect(stale.rankingEligible, isFalse);
   });
 
+  test('S7 assessed N64 and PSP retain the community support boundary', () {
+    for (final platform in ['n64', 'psp']) {
+      final scopedGame =
+          GameIdentity.fromJson({...game.toJson(), 'platformId': platform});
+      for (final votes in [null, 10, 19, 20]) {
+        final scopedRecord = MetadataRecord.fromJson({
+          ...record('igdb', 81,
+                  votes: votes, kind: RatingKind.communityAggregate)
+              .toJson(),
+          'platformId': platform,
+        });
+        final selected = selectEffectiveOverallRating(
+            game: scopedGame,
+            edition: official,
+            records: [scopedRecord],
+            assessedBases: productionOverallScoreBases);
+        expect(selected?.rankingEligible == true, votes == 20);
+        if (selected != null) {
+          expect(
+              selected.rating.toJson(), scopedRecord.ratings.single.toJson());
+        }
+      }
+    }
+    // Sparse Game Gear samples do not establish a newly assessed scope.
+    final unassessedGame =
+        GameIdentity.fromJson({...game.toJson(), 'platformId': 'gamegear'});
+    final unassessedRecord = MetadataRecord.fromJson({
+      ...record('igdb', 81, votes: 100, kind: RatingKind.communityAggregate)
+          .toJson(),
+      'platformId': 'gamegear',
+    });
+    expect(
+        selectEffectiveOverallRating(
+                game: unassessedGame,
+                edition: official,
+                records: [unassessedRecord],
+                assessedBases: productionOverallScoreBases)
+            ?.rankingEligible,
+        isNot(true));
+  });
+
   test(
       'ordinary English is not a translation; real combined tags label original',
       () {

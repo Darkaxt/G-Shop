@@ -7,6 +7,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current authoritative checkpoint — 2026-10-05
 
+- The sixth (N64) source now has a verified published catalogue and normal
+  mapping. Normal folder selection and exiting console settings persisted the
+  actual SD targets for N64 and GameCube; object comparison found only those two
+  target fields changed. The normal Library now contains 3,268 artifact rows:
+  2,497 remote and 771 additional local rows across six consoles. These are not
+  canonical-game counts or managed-installation ownership. Read-only audits
+  reconciled 320 N64 archives and 80 GameCube RVZs against cached Drive sizes and
+  digests; all remain preserved. N64 ScreenScraper job 31 is running, not complete;
+  no additional metadata worker was started. Normal Library/details navigation
+  refreshed the dirty PS2 projection and verified the second reviewed PS2 score
+  (90.2/100, 28 IGDB user ratings); both reviewed PS2 projections are eligible.
+  Whole-collection coverage, canonical ranking and migration remain unfinished.
+  No ROM removal/adoption, cloud write or FolderSync action occurred.
+
+- S7's recorded reception assessment now extends the existing IGDB community
+  basis to N64/PSP, retaining exact current identities and the twenty-vote floor.
+  Live public capture and offline production-query verification passed; the
+  unsupported/sparse Game Gear sample remains unapproved. The focused boundary
+  fixture failed before the change and passed after it, and scoped query checks,
+  analysis and diff checks passed. This is host-verified, not yet installed on
+  the Thor: the current native APK is unchanged while N64 job 31 runs. Native
+  integration remains ordinary unfinished S7 work, not a stage-completion claim.
+  Both physical displays were confirmed OFF while that same job advanced.
+
 - While extending S7 coverage, native source-name entry exposed application
   search/favorite shortcuts intercepting typed letters. The two Drive setup
   fields now use the existing folder-mapper text-input protection. The regression
@@ -17,8 +41,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   configuration, secure credentials, all 29 terminal jobs and metadata records.
   A sixth source was saved through the normal N64 folder picker using the same
   read-only account/client; all five prior sources and console objects remain
-  unchanged. Its refresh is still unverified as published and has no mapping
-  yet, so it does not expand the verified five-console Library scope below.
+  unchanged. Publication and mapping were subsequently verified as recorded
+  above; the five-console scope below is earlier evidence, not the current count.
 
 - S7's fifth normal Drive source/mapping and SD restore target now cover PS2.
   Its first catalogue generation published 1,482 observations/463 folders,

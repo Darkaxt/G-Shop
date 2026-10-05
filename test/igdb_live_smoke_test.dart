@@ -112,6 +112,23 @@ void main() {
       ('switch', 'Super Mario Odyssey', {'official'}),
       ('switch', '1-2-Switch', {'official'}),
       ('switch', 'Balan Wonderworld', {'official'}),
+      // S7's newly mapped collection scopes: capture actual reception without
+      // implicitly approving a platform or borrowing a different port's score.
+      ('n64', 'Super Mario 64', {'official'}),
+      ('n64', 'The Legend of Zelda: Ocarina of Time', {'official'}),
+      ('n64', 'Banjo-Kazooie', {'official'}),
+      ('n64', 'Quest 64', {'official'}),
+      ('n64', 'Superman: The New Superman Adventures', {'official'}),
+      ('psp', 'God of War: Chains of Olympus', {'official'}),
+      ('psp', 'Lumines', {'official'}),
+      ('psp', 'Metal Gear Solid: Peace Walker', {'official'}),
+      ('psp', 'The 3rd Birthday', {'official'}),
+      ('psp', 'Dragonball Evolution: The Game', {'official'}),
+      ('gamegear', 'Sonic the Hedgehog', {'official'}),
+      ('gamegear', 'Shinobi', {'official'}),
+      ('gamegear', 'Streets of Rage', {'official'}),
+      ('gamegear', 'Sonic the Hedgehog: Triple Trouble', {'official'}),
+      ('gamegear', 'Super Columns', {'official'}),
       ('snes', 'Chrono Trigger: Crimson Echoes', {'Hack'}),
       ('gba', 'Pokémon Unbound', {'Hack'}),
     ];

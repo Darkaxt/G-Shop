@@ -1,8 +1,8 @@
 # Live overall-score assessment — 2026-10-03
 
-Authority: SPECIFICATION.md, META-05. Owner: S4; current stage state and remaining
-host-evidence blocker are in IMPLEMENTATION_STATUS.md and
-S4_ACCEPTANCE_RECONCILIATION.md. Source assessment is not whole-stage closure.
+Authority: SPECIFICATION.md, META-05. Initial assessment owner: S4 (closed).
+The collection-scope extension below belongs to ACTIVE S7. Current stage state
+is in IMPLEMENTATION_STATUS.md. Source assessment is not whole-stage closure.
 
 ## Decision
 
@@ -218,3 +218,80 @@ members are unrated, unresolved, low-support or outside the assessed scope. This
 is a score-basis decision, not a curated Top list or permission for SD removal.
 Production/query verification and the earlier unexplained host wait still belong
 to S4 before stage closure; S5 owns the actual source/scope/coverage presentation.
+
+## S7 mapped-scope extension — 2026-10-05
+
+The existing opt-in persistent-worker capture was extended to fifteen public
+official releases on N64, PSP and Game Gear. Each accepted fixture used one
+literal offered title and the provider's platform-checked ID. It did not touch
+the owner's device database or parallelize requests. A same-title pair of Game
+Gear Sonic candidates remained unresolved. The PSP Dragonball fixture initially
+had no literal candidate; a separate one-item capture used the actually offered
+`Dragonball Evolution: The Game` title. No production alias rule was added.
+
+Captured 2026-10-05 21:10:33–21:10:40 UTC; Dragonball recheck 21:11:39 UTC.
+Below, scores are rounded to two decimals for documentation only. The normal
+adapter/cache retained the returned raw value, 0–100 scale, kind and vote count.
+
+| Platform / public release | IGDB ID | Community score / votes | Result |
+| --- | ---: | ---: | --- |
+| N64 / Super Mario 64 | 1074 | 88.66 / 2,082 | Exact original, not a hack or PC port |
+| N64 / Ocarina of Time | 1029 | 91.53 / 2,176 | Exact original, not expansion/project candidates |
+| N64 / Banjo-Kazooie | 2148 | 85.44 / 371 | Exact original, not hack candidates |
+| N64 / Quest 64 | 3580 | 37.93 / 27 | Exact original |
+| N64 / Superman: The New Superman Adventures | 3005 | 19.06 / 34 | Exact N64 game |
+| PSP / God of War: Chains of Olympus | 552 | 77.35 / 326 | Exact reviewed game-level record |
+| PSP / Lumines | 4689 | 80.91 / 29 | Exact original, not Lumines II |
+| PSP / Metal Gear Solid: Peace Walker | 382 | 80.08 / 230 | Exact original, not Collector's Edition |
+| PSP / The 3rd Birthday | 7359 | 69.74 / 24 | Exact original |
+| PSP / Dragonball Evolution: The Game | 2571 | 27.77 / 10 | Too few votes; not ranking eligible |
+| Game Gear / Shinobi | 10219 | 63.74 / 5 | Too few votes |
+| Game Gear / Streets of Rage | 203317 | 79.77 / 5 | Game Gear port, too few votes |
+| Game Gear / Sonic: Triple Trouble | 19556 | 79.38 / 19 | Too few votes |
+| Game Gear / Super Columns | 19690 | Missing | Do not synthesize zero |
+| Game Gear / Sonic the Hedgehog | Unresolved | Not captured | Two literal candidates, no automatic acceptance |
+
+Independent reception checked the same releases, not similarly named remakes:
+
+- [N64 Super Mario 64](https://www.metacritic.com/game/super-mario-64/) users
+  9.0/10 (2,062 ratings), [Ocarina of Time (1998)](https://www.metacritic.com/game/the-legend-of-zelda-ocarina-of-time-1998/)
+  users 9.1 (13,936), and [N64 Banjo-Kazooie](https://www.metacritic.com/game/banjo-kazooie/)
+  users 9.0 (853) agree on high reception. The unsuffixed Ocarina page now
+  describes an unrated Switch 2 release and was explicitly rejected.
+- [GameSpot's original Quest 64 review](https://www.gamespot.com/reviews/quest-64-review/1900-2545042/)
+  is 5.4/10, versus IGDB users 37.93/100: both are below the acclaimed examples,
+  but an individual critic is not a community aggregate or exact numeric target.
+  [GameSpot's Superman review](https://www.gamespot.com/reviews/superman-review/1900-2545277/)
+  is 1.3/10 and explicitly discusses N64 gameplay, consistent with poor reception.
+  Its incorrectly associated arcade game-hub footer was not used for identity.
+- PSP [Chains of Olympus](https://www.metacritic.com/game/god-of-war-chains-of-olympus/)
+  users 8.3/10 (1,583), [Lumines](https://www.metacritic.com/game/lumines/) 7.6 (60),
+  [Peace Walker](https://www.metacritic.com/game/metal-gear-solid-peace-walker/?platform=psp)
+  8.5 (811), and [The 3rd Birthday](https://www.metacritic.com/game/the-3rd-birthday/)
+  6.3 (173) broadly agree on reception bands, not exact ordering. IGDB users
+  put Lumines slightly above Peace Walker; no title boost or critic substitution
+  is justified by a different community's ordering.
+- [PSP Dragon Ball: Evolution](https://www.metacritic.com/game/dragon-ball-evolution/)
+  users 1.7/10 (79) and critics 28/100 (16) support poor reception. The film's
+  similarly named page was rejected. IGDB's ten votes remain advisory, despite
+  agreement; independent counts cannot be attached to its record.
+
+Decision: extend the already assessed IGDB game-level community basis to `n64`
+and `psp`, without changing its scale, precedence, identity/ownership/freshness
+rules, or known-at-least-20-votes requirement. Game Gear and other unassessed
+scopes remain unapproved; this sample offers no supported Game Gear aggregate.
+The same conservative floor excludes Dragonball's ten-vote score. This decision
+does not approve every title, assert platform-specific averages, establish a
+whole-collection Top, or authorize removal. Native integration of the extended
+basis remains ordinary S7 work until verified on the current APK.
+
+Verification: the focused support-boundary fixture failed before the scope
+extension at the required twenty-vote case and passed afterwards. Effective-score
+and indexed Library-query checks passed, including stale/unknown-count/project
+ownership behavior. A fresh normal-worker public capture at 21:15:28–21:15:34 UTC
+returned the same scores/counts; after its network adapter was closed, production
+query selected exactly nine supported canonical games from fifteen fixtures,
+with Top 25 also returning nine and coverage explicitly provisional. It did not
+rank the sparse Game Gear records, unrated record, ambiguous Sonic or ten-vote
+Dragonball. Scoped analysis and diff checks passed. No full suite, Gradle build
+or native APK replacement was performed for this extension.

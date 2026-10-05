@@ -22,6 +22,15 @@ process interruption and remain available until recovery and closure are verifie
 No blocker or tracked deferral is identified at stage entry; the remaining items
 above are ordinary unfinished work, not grounds to open S8.
 
+### Latest scope checkpoint — 2026-10-05
+
+The membership row above retains the earlier five-console traversal history.
+Current published/mapped scope is six consoles, with 2,497 remote artifacts and
+771 additional local rows (3,268 total). N64's fresh pass is still running. The
+earlier two-console GameCube pass does not cover its newly included local rows.
+All other acceptance rows remain unresolved as stated; cached digest matches do
+not authorize migration or replace live restore/version verification.
+
 ## Live execution — 2026-10-05
 
 - The reported logo hang was not reproduced. The current normal APK cold-started
@@ -498,3 +507,80 @@ above are ordinary unfinished work, not grounds to open S8.
   host snapshots during active database writes were rejected as unstable, not
   treated as corruption or repaired. N64 publication/mapping/fresh metadata and
   migration remain ordinary unfinished S7 work; S8-S10 remain NOT STARTED.
+
+### N64 publication, actual SD targets and score projection proof — 2026-10-05
+
+- The sixth source's generation 1 published successfully: 5,632 observations,
+  670 folders, no pending generation or remaining catalogue work. Normal mapping
+  saved the single unambiguous N64 console root. Existing mappings were preserved.
+- Normal Android folder pickers selected `/storage/75D7-DC5F/Roms/n64` and
+  `/storage/75D7-DC5F/Roms/gc`. Console-settings edits are persisted when exiting
+  the console list, not merely its detail page. After normal exit, configuration
+  comparison verified exactly those two target-field changes; all six source
+  objects and every other console field remained unchanged.
+- Normal Home sync and a stable SQLite/quick_check observation established:
+
+  | Console | Library artifact rows | Remote artifacts |
+  | --- | ---: | ---: |
+  | Game Gear | 548 | 182 |
+  | GameCube | 206 | 134 |
+  | N64 | 1,543 | 1,391 |
+  | PS2 | 225 | 202 |
+  | PSP | 341 | 269 |
+  | PS1 | 405 | 319 |
+  | Total | 3,268 | 2,497 |
+
+  These are artifacts/cache rows, not canonical games or installation ownership.
+  Native Library displayed All 3,268 / Installed 695; that Installed label alone
+  does not establish R-Shop ownership of existing SD files.
+- Two read-only streaming audits completed and their terminal summaries were
+  independently reconciled against every journal entry: N64 has 320 game
+  archives matching cached Drive size/digests (3,267,752,208 bytes) and two
+  preserved non-ROM files (1,124 bytes); GameCube has 80 matching RVZs
+  (69,814,480,572 bytes). Every disposition remains preserve and removal authority
+  false. Private exact-file journals stay outside Git. Cached checksums are not
+  live cloud-version/readability or format-specific restoration proof.
+- Normal N64-only Fresh was invoked once. ScreenScraper job 31 is still running
+  on its 1,543-row snapshot, with no blocked status. The latest read-only native
+  observation reported 445 requested, 1,099 pending, 299 needing review, 80
+  ambiguous and 65 unmatched; none matched/rated. Progress persisted while the
+  displays were off. No duplicate worker or N64 IGDB pass was launched.
+- The second reviewed PS2 identity (IGDB 1229, exact original Disc 1) had a dirty
+  query projection after sync, not a lost identity binding. Normal Library search
+  and details showed 90.2/100 from 28 IGDB user ratings with scale/retrieval
+  provenance. A subsequent read-only query found score 90.24511423825714,
+  ranking_eligible=1 and dirty=0. The earlier IGDB 2207 record remains eligible at
+  89.12546853689747. No production patch was made for the stale diagnostic read;
+  Disc 2/canonical bundle review remains unfinished.
+- No Gradle command, APK replacement, ROM transfer/adoption/removal, cloud write,
+  FolderSync inspection/change or S10 implementation occurred in these checks.
+  S7 remains ACTIVE; remaining fresh scopes, canonical identities, defensible
+  ranking and actual migration are ordinary unfinished work.
+
+### S7 score-basis extension — 2026-10-05
+
+- Extended the existing public persistent-worker reception fixture to N64, PSP
+  and Game Gear. The assessment records actual scales/counts, exact offered
+  identities, independent reception, edition mismatches and ordering differences.
+  N64/PSP use the same assessed IGDB community policy; no critic/total fallback,
+  title boost, unknown-count exception or lower vote floor was introduced.
+  Game Gear remains unassessed because its captured records are sparse/unrated
+  or ambiguous. See SCORE_RECEPTION_ASSESSMENT.md for the public evidence.
+- The focused boundary reproduction failed before production scope extension at
+  its required twenty-vote case. Effective-score and indexed-query checks passed
+  afterwards, including ownership, freshness and low/unknown support. A fresh
+  real-provider capture followed by offline production query verified nine
+  supported games from fifteen public fixtures, identical Top-25 membership and
+  provisional incomplete coverage. Scoped analysis and diff checks passed; no
+  full suite was run.
+- The installed APK remains build 167. Native integration of the extended basis
+  has not yet been performed, preserving the currently running N64 scrape. The
+  last read-only observation of that same job 31 reported 675 requested, 869
+  pending, 456 needing review, 120 ambiguous, 98 unmatched and zero matched/rated,
+  with state running and no blocker status. No duplicate worker was launched.
+  Both physical displays were confirmed committed OFF after native verification.
+- No Gradle command was run, so this checkpoint claims no new mutex acquisition
+  or effective build-profile measurement. The task-only read-only observation
+  helper is retained outside Git until this active job's terminal outcome can be
+  inspected; its exact registered cleanup transaction and private migration
+  journals are preserved. No external release, save backup or SD removal occurred.
