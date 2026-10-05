@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
@@ -335,28 +336,46 @@ class _DriveSourceSetupScreenState
                   style: const TextStyle(color: Colors.white60),
                 ),
                 const SizedBox(height: 18),
-                TextField(
-                  key: const Key('drive_source_name'),
-                  controller: _name,
-                  enabled: !_busy,
-                  style: const TextStyle(color: Colors.white),
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'Source name',
-                    labelStyle: TextStyle(color: Colors.white70),
+                Shortcuts(
+                  // Keep application search/favorite keys out of text entry,
+                  // just as the folder mapper does for its search field.
+                  shortcuts: const {
+                    SingleActivator(LogicalKeyboardKey.keyI):
+                        DoNothingAndStopPropagationIntent(),
+                    SingleActivator(LogicalKeyboardKey.keyF):
+                        DoNothingAndStopPropagationIntent(),
+                  },
+                  child: TextField(
+                    key: const Key('drive_source_name'),
+                    controller: _name,
+                    enabled: !_busy,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Source name',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  key: const Key('drive_server_client_id'),
-                  controller: _serverClientId,
-                  enabled: !_busy && _connection == null,
-                  autocorrect: false,
-                  style: const TextStyle(color: Colors.white),
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'Public Web OAuth client ID',
-                    labelStyle: TextStyle(color: Colors.white70),
+                Shortcuts(
+                  shortcuts: const {
+                    SingleActivator(LogicalKeyboardKey.keyI):
+                        DoNothingAndStopPropagationIntent(),
+                    SingleActivator(LogicalKeyboardKey.keyF):
+                        DoNothingAndStopPropagationIntent(),
+                  },
+                  child: TextField(
+                    key: const Key('drive_server_client_id'),
+                    controller: _serverClientId,
+                    enabled: !_busy && _connection == null,
+                    autocorrect: false,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Public Web OAuth client ID',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

@@ -7,6 +7,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current authoritative checkpoint — 2026-10-05
 
+- While extending S7 coverage, native source-name entry exposed application
+  search/favorite shortcuts intercepting typed letters. The two Drive setup
+  fields now use the existing folder-mapper text-input protection. The regression
+  failed before the fix; focused setup/mapping checks and analysis passed. Gated
+  build 167 acquired the shared mutex, used the observed two-worker/no-parallel/
+  3 GiB in-process profile and passed without a memory failure. Native entry now
+  retains the full console name. The in-place update preserved source/console
+  configuration, secure credentials, all 29 terminal jobs and metadata records.
+  A sixth source was saved through the normal N64 folder picker using the same
+  read-only account/client; all five prior sources and console objects remain
+  unchanged. Its refresh is still unverified as published and has no mapping
+  yet, so it does not expand the verified five-console Library scope below.
+
 - S7's fifth normal Drive source/mapping and SD restore target now cover PS2.
   Its first catalogue generation published 1,482 observations/463 folders,
   preserving the prior four source/console objects. Stable cached scope is

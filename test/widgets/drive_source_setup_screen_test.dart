@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/features/sources/drive_source_setup_screen.dart';
@@ -76,6 +77,33 @@ class _RepeatingConnector implements DriveSourceSetupConnector {
 }
 
 void main() {
+  testWidgets(
+      'source text fields leave typing to the platform, not app shortcuts',
+      (tester) async {
+    var shortcutsInvoked = 0;
+    await tester.pumpWidget(ProviderScope(
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyI): () =>
+              shortcutsInvoked++,
+          const SingleActivator(LogicalKeyboardKey.keyF): () =>
+              shortcutsInvoked++,
+        },
+        child: MaterialApp(
+            home: DriveSourceSetupScreen(
+          connector: _FakeConnector(),
+          onSave: (_) async {},
+        )),
+      ),
+    ));
+    for (final field in ['drive_source_name', 'drive_server_client_id']) {
+      await tester.tap(find.byKey(Key(field)));
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyI);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      expect(shortcutsInvoked, 0, reason: 'Typing in $field must not navigate');
+    }
+  });
+
   testWidgets('configured source requests connection, not OAuth setup',
       (tester) async {
     await tester.pumpWidget(ProviderScope(

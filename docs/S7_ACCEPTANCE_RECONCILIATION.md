@@ -464,3 +464,37 @@ above are ordinary unfinished work, not grounds to open S8.
 - This verifies the specific refresh regression, not whole-library identity,
   canonical ranking or migration completion. No ROM download, adoption, removal,
   cloud mutation, FolderSync change or S10 implementation occurred.
+
+### Source setup text-input regression and next console scope — 2026-10-05
+
+- Native keyboard entry dropped the letter used by the application's search
+  shortcut from a new source label. Investigation identified inherited I/F
+  search/favorite shortcuts rather than a cloud authorization failure. The
+  focused widget reproduction invoked both app shortcuts while each real source
+  field was focused, failing the no-navigation contract before the fix.
+- The two setup fields now use the same local stop-propagation technique as the
+  existing folder mapper, leaving those letters to platform text input. No global
+  key map, controller behavior, provider transport or authorization was changed.
+  Focused setup/mapping tests, scoped analysis and diff checks passed.
+- Gated build 167's inspected receipt confirms gate_acquired=true and exit zero.
+  Effective workers 2, parallel false, Gradle maximum heap 3 GiB; assessed Kotlin
+  in-process shares that heap. One-fork/512 MiB test configuration was observed,
+  not executed by this build. App native pools remain one; plugin native tasks
+  were mostly up-to-date and full native concurrency is not independently
+  measured. No memory-related failure or budget increase occurred.
+- APK package/activity/signature matched the installed debug owner; independently
+  inspected SHA-256:
+  `bd78b692d6da0e4465281167861d7f78940d6ea04334bae2ddbb1d3a98e90e60`.
+  The in-place update preserved configuration, secure credential fingerprints,
+  all 29 terminal jobs, metadata records and the 1,653 cached Library rows.
+- Native source entry retained the full console name, and the exact existing
+  public client ID was verified before Connect. The default existing account
+  connected normally; observed My Drive/Roms/N64 navigation selected that exact
+  root. Save created only the sixth read-only source; object checks verified
+  all five old sources and every old console object unchanged. No write grant,
+  second account, ROM transfer or FolderSync operation occurred.
+- Its normal refresh has not yet been verified as published. The mapper remains
+  disabled without successful publication, and no mapping was saved. Read-only
+  host snapshots during active database writes were rejected as unstable, not
+  treated as corruption or repaired. N64 publication/mapping/fresh metadata and
+  migration remain ordinary unfinished S7 work; S8-S10 remain NOT STARTED.
