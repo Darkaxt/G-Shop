@@ -290,6 +290,17 @@ class _DriveSourceSetupScreenState
   @override
   Widget build(BuildContext context) {
     final current = _currentFolder;
+    final configured = widget.initialSource?.drive?.isConfigured ?? false;
+    final connectionHeading = _connection != null
+        ? 'Connected to Google Drive'
+        : configured
+            ? 'Connect to Google Drive'
+            : 'Setup required';
+    final connectionHelp = _connection != null
+        ? 'Select the library folder to use for this source.'
+        : configured
+            ? 'Connect your account to review or change the library folder. Your saved OAuth client is already configured.'
+            : 'Create a public Web OAuth client ID for this fork, then connect your account.';
     final canSave = !_busy &&
         _connection != null &&
         _selectedRoot != null &&
@@ -310,18 +321,18 @@ class _DriveSourceSetupScreenState
               key: ValueKey(current?.id),
               padding: const EdgeInsets.all(24),
               children: [
-                const Text(
-                  'Setup required',
-                  style: TextStyle(
+                Text(
+                  connectionHeading,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Create a public Web OAuth client ID for this fork, then connect your account. Google grants read-only access to the entire selected account; the chosen library folder is an app-enforced boundary, not a folder-scoped OAuth permission.',
-                  style: TextStyle(color: Colors.white60),
+                Text(
+                  '$connectionHelp Google grants read-only access to the entire selected account; the chosen library folder is an app-enforced boundary, not a folder-scoped OAuth permission.',
+                  style: const TextStyle(color: Colors.white60),
                 ),
                 const SizedBox(height: 18),
                 TextField(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/features/sources/drive_source_setup_screen.dart';
 import 'package:retro_eshop/models/config/source.dart';
+import 'package:retro_eshop/models/config/drive_source_config.dart';
 import 'package:retro_eshop/services/drive/drive_api.dart';
 
 class _FakeApi implements DriveCatalogueApi {
@@ -75,6 +76,35 @@ class _RepeatingConnector implements DriveSourceSetupConnector {
 }
 
 void main() {
+  testWidgets('configured source requests connection, not OAuth setup',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+          home: DriveSourceSetupScreen(
+        initialSource: const Source(
+          id: 'existing-source',
+          name: 'Cloud ROMs',
+          type: SourceType.drive,
+          drive: DriveSourceConfig(
+              accountId: 'account-id',
+              rootFolderId: 'console-folder-id',
+              serverClientId: 'public-client.apps.googleusercontent.com'),
+        ),
+        connector: _FakeConnector(),
+        onSave: (_) async {},
+      )),
+    ));
+    expect(find.text('Connect to Google Drive'), findsOneWidget);
+    expect(find.text('Setup required'), findsNothing);
+    expect(
+        find.textContaining('Create a public Web OAuth client'), findsNothing);
+    await tester.tap(find.text('Connect'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Connected to Google Drive'), findsOneWidget);
+    expect(find.text('Connect to Google Drive'), findsNothing);
+  });
+
   testWidgets('opening a folder resets the parent scroll position',
       (tester) async {
     await tester.pumpWidget(ProviderScope(
@@ -138,6 +168,8 @@ void main() {
       'public-client.apps.googleusercontent.com',
     );
     expect(find.text('My Drive'), findsWidgets);
+    expect(find.text('Connected to Google Drive'), findsOneWidget);
+    expect(find.text('Setup required'), findsNothing);
     final folderList = find.byWidgetPredicate((widget) =>
         widget is Scrollable && widget.axisDirection == AxisDirection.down);
     await tester.scrollUntilVisible(

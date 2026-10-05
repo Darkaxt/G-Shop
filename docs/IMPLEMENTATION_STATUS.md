@@ -12,10 +12,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   [S6_ACCEPTANCE_RECONCILIATION.md](S6_ACCEPTANCE_RECONCILIATION.md). A reproduced
   async RA-cover error now stays inside its existing failure handler; the details
   fixture correctly forwards artwork and joins real IO without fake-clock waits.
-  S6 remains ACTIVE for the combined real-device workflow and final reconciliation.
-  The current normal S6 APK is now installed in place; cold launch reaches the
-  183-record Library in 2336 ms. Configuration/database/credential hashes were
-  unchanged before launch. This is startup proof, not combined S6 acceptance.
+  S6 is now COMPLETE: the normal Thor workflow independently gathered fresh
+  metadata/artwork, installed one authorized game on an isolated SD destination,
+  booted Dolphin online/offline, removed only the owned ROM and re-downloaded it
+  while preserving metadata and saves. The source editor's misleading setup
+  heading was corrected and verified with real connection state.
 
 - S0, S1, S2, S3, S4 and S5 are COMPLETE against their assigned criteria.
   S4's current requirement-by-requirement closure is in
@@ -23,10 +24,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   refresh/artwork/offline rendering, durable shared rebuild, actual permission
   denial/regrant and expendable-package reinstall, exact ES-DE publication/reuse,
   supported score semantics and bounded query/resource evidence are verified.
-- S6 is the sole ACTIVE stage. Remaining acceptance: complete integrated
-  S1-S5 reconciliation, existing-provider/config/queue/migration regressions,
-  combined real on-demand workflow and privacy/resource verification. No current
-  S6 blocker or tracked deferral has been identified. S7, S8 and S9 are NOT STARTED.
+- S6 is COMPLETE with no remaining assigned acceptance, blocker or tracked
+  deferral. S7, S8 and S9 are NOT STARTED. There is currently no ACTIVE stage;
+  S7 is next, not silently opened alongside S6 verification.
 - B7's alternative owner-directed reconstruction is verified and its operational
   blocker resolved. The seven historically lost private files are not recovered,
   and the failed preservation attempt is not retroactively passed. Normal APK
@@ -40,14 +40,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   quota/grouping/score/store checks `5b4c68` / `64e0ba` exited zero. Scoped analysis
   `e2a8df` / `726ad5` has no errors/warnings, with two existing deprecation infos.
 - No new Gradle command was needed for S4 closure. Subsequent normal S6 ticket
-  143 held the shared mutex through exit zero: observed workers 2, parallel false,
+  145 held the shared mutex through exit zero: observed workers 2, parallel false,
   Gradle 3 GiB, assessed Kotlin in-process sharing that heap; configured tests one
   fork/512 MiB (not executed), app native pools one. Full plugin native concurrency
   is not claimed measured. No memory failure or budget increase occurred.
-- Owner normal S6 APK remains installed; both physical Thor screens were verified
-  OFF after its current cold-launch check. No bulk
-  scrape, SD migration or external release has occurred. The overall plan remains
-  incomplete: S6-S9 must still satisfy their own criteria.
+- Owner normal S6 APK `d9563f4` remains installed; cold offline launch reached
+  the Library in 2350 ms. All 37 inspected private files retained hashes before
+  launch; the separately read app_flutter configuration exactly matched its
+  pre-update source/mapping/target object. No uninstall or secret re-entry occurred.
+  Both physical Thor screens were verified OFF. Expendable task screenshots,
+  synthetic save fixture, UI XML and superseded APK were cleaned. The authorized
+  normal test installation and current APK remain. No bulk scrape, SD migration
+  or external release has occurred. The overall plan remains incomplete: S7-S9
+  must still satisfy their own criteria. The reported logo hang was not reproduced;
+  no historical root cause or speculative startup fix is claimed.
 
 ### Historical checkpoints
 

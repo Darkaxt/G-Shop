@@ -705,7 +705,11 @@ order. No burnt-in artwork or metadata-only ROM fetches.
 
 ## S6 — Final reconciliation and remediation
 
-Status: ACTIVE (2026-10-05), the sole ACTIVE implementation stage after S4 closure.
+Status: COMPLETE (2026-10-05). Requirement-level closure and the combined normal
+Thor workflow are recorded in `S6_ACCEPTANCE_RECONCILIATION.md`. S7-S9 remain
+required and NOT STARTED; this is not overall completion.
+
+The following execution description is retained as the S6 acceptance contract.
 Begin with complete specification/source reconciliation and affected existing-
 provider/transfer/configuration checks. Then demonstrate the combined normal
 on-demand and durable-metadata workflow; preserve the owner app and use only an

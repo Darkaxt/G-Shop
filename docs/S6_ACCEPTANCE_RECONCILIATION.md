@@ -1,10 +1,14 @@
 # S6 integrated reconciliation
 
-Authority: `SPECIFICATION.md`, revision 6. Status: **ACTIVE**, the sole ACTIVE
-stage. Base: `145b5a3`, following S4 closure. S7-S9 are NOT STARTED; this document
+Authority: `SPECIFICATION.md`, revision 6. Status: **COMPLETE**.
+Base: `145b5a3`, following S4 closure; current remediation starts from `a3b9c87`.
+S7-S9 are NOT STARTED; this document
 does not declare the fork complete.
 
-## Current verified scope — 2026-10-05
+## Earlier S6 checkpoint — 2026-10-05
+
+The remaining-work column below records the earlier checkpoint. The subsequent
+closure evidence resolves it; it is not the current stage status.
 
 | Acceptance boundary | Evidence | Remaining S6 acceptance |
 | --- | --- | --- |
@@ -44,7 +48,8 @@ configured one fork / 512 MiB, not executed. App native pools are configured
 at one; full plugin native concurrency is not claimed measured. No memory
 failure or heap-budget increase occurred.
 
-Retained normal verification artifact:
+Earlier normal verification artifact (superseded by the inspected current APK
+below and subsequently cleaned as task-generated output):
 `D:\Temp\rshop-s6-normal-20261005\app-debug.apk`, SHA256
 `bbb07c08455c92fcc5a9a62adb8d5268597d84fb5a3c9ea726ecaa6a4de78729`.
 Independent inspection confirmed the normal owner package/activity, version
@@ -59,5 +64,108 @@ accessibility hierarchy showed `182 / 1 / ALL GAMES / Library`, not the logo.
 The exact task-owned UI XML was removed after inspection. Both physical display
 devices subsequently reported OFF / committedState OFF (`19aed0`).
 
-No external S6 blocker or tracked deferral is identified. Remaining real-device
-verification is ordinary unfinished current-stage work, not a reason to open S7.
+At that checkpoint, remaining real-device verification was ordinary unfinished
+current-stage work, not a reason to open S7.
+
+## Integrated normal-device closure — 2026-10-05
+
+The normal owner package, not a fixture entrypoint, exercised the combined
+workflow on Thor `bfa98654`. Existing source IDs and the Game Gear configuration
+were preserved. The existing GameCube source was mapped through the normal
+source UI; Android's directory picker selected a previously absent isolated SD
+destination. No existing ROM folder was cleaned or adopted.
+
+- Fresh normal ScreenScraper lookup, cached candidate review, explicit official-
+  release classification and verified recheck completed before any ROM transfer.
+  Facts generation 5/provider game 4772 was retrieved at
+  `2026-10-05T10:53:20.072776Z`; its artwork job completed with two cached images.
+  The same facts and artwork were independently found in the selected durable
+  shared namespace. Normal details displayed the actual cover, screenshot,
+  description, developer and advisory 75/100 rating. Unknown vote count remains
+  explicit; this advisory score is not promoted into a reliable Top-25 basis.
+- Normal Download completed the authorized 20,131,764-byte RVZ on the SD card.
+  Native publication was confirmed; the completed journal contained provider
+  MD5/SHA-1 and independently checked SHA-256, and its staging file was retired.
+  The ordinary Open in Dolphin action reached the actual game title screen.
+- Normal removal preview named exactly that installed ROM and its size.
+  Confirmed removal left the remote item and its fresh metadata/artwork intact.
+  The adjacent 78-byte synthetic save fixture retained its exact digest.
+  Re-download completed and reproduced the original RVZ digest.
+- With Wi-Fi actually disabled, a fresh process cold launch reached the normal
+  Library in 2362 ms. The installed tab retained the game and advisory score;
+  details decoded the cached cover/screenshot and description. Normal Open in
+  Dolphin again reached the game title screen offline. The original Wi-Fi setting
+  was restored. No host ROM downloader or RomM server participated.
+- The 15 pre-existing Dolphin configuration/save paths remained present. The
+  existing F-Zero save and all controller/configuration files retained hashes.
+  Only Dolphin's TimePlayed and SRAM files changed after actual emulation;
+  these are legitimate emulator writes, not a claimed byte-identical launch.
+  No emulator save/settings restoration or deletion was performed.
+
+The final database integrity check returned `ok`; metadata/artwork jobs 5/6
+were completed, the transfer was completed with one exact target owner, and
+both configured source refreshes had no pending catalogue work. Private file
+inventories, source object IDs and credentials are intentionally not committed.
+
+## Source-status remediation and current installed artifact
+
+The live source editor exposed an unconditional **Setup required** heading even
+for an already-configured source and after successful connection. This was a UI
+state defect, not evidence of broken OAuth. The heading/help now distinguishes
+new setup, existing-client connection and connected folder selection, retaining
+the read-only whole-account/folder-boundary explanation.
+
+Regression `39a02d` failed on both missing state transitions before the fix.
+The first implementation run failed compilation because the local variables
+were inserted into folder navigation rather than build; that failed run is not
+green evidence. Corrected focused run `065b9f` / `dcd479` passed the source-screen
+workflow and analysis with no issues. No authentication or transfer behavior was
+changed. The actual normal Thor editor then showed **Connect to Google Drive**
+with its saved client, and **Connected to Google Drive** after normal default-
+account selection and real API folder listing (`92fdef`, `e648fe`). Leaving this
+editor did not change the saved source or root.
+
+Current normal artifact: `build/app/outputs/apk/debug/app-debug.apk`, SHA-256
+`d9563f47301ded82f85a6b23a1675930138adc6d5b75bc6c8eb60db5d024fdd6`.
+Independent package inspection confirms `com.darkaxt.rshop.debug`, normal
+`com.retro.rshop.MainActivity`, version 1.7.0+12 and unchanged signer. In-place
+installation succeeded (`dbf250`). Before first launch, all 37 inspected files
+under files/databases/shared_prefs retained paths and hashes (`54f71d` companion
+comparison). The separately read app_flutter configuration exactly matched its
+pre-update object, including existing sources/mappings/targets (`813bd0`
+companion comparison). No uninstall, clear or secret re-entry occurred.
+The revised APK cold-started offline in 2350 ms into the real Library (`54f71d`).
+
+Build ticket 144 acquired the shared gate but failed because PowerShell split an
+unquoted `-Ptarget` argument into a `.dart` task; this was not a memory failure.
+Correctly quoted ticket 145 acquired and retained the same host-wide mutex
+through successful exit (`853ccd` / `ae125e`), log
+`82eb23c063774e6890cc064a1a9c0780.log`. Observed workers 2, parallel false,
+Gradle maximum heap 3221225472 bytes; assessed Kotlin 2.2.20/AGP 8.11.1 in-process
+shares that heap. Test tasks were configured one fork/512 MiB, not executed.
+App native pools remain one; unchanged plugin-native tasks were up-to-date, so
+full plugin native concurrency is not claimed freshly measured. No memory
+failure, budget increase or competing build interruption occurred.
+
+The user's logo-hang report was not reproduced by the fresh normal online and
+offline launches. These startup observations do not establish the historical
+hang's cause, and no speculative timeout/retry/startup change was added.
+
+## Requirement reconciliation and closure
+
+| Required boundary | Inspected applicable evidence | Remaining S6 acceptance |
+| --- | --- | --- |
+| CORE-01/02/03, DRIVE-01, META-02 | S1 reconciliation retains exact identity, additive migration and actual legitimate provider/auth evidence. Current configured sources and secure storage survive the normal update; fresh metadata precedes ROM transfer. | None. |
+| DRIVE-02/03 | S2 rooted pagination/source/queue checkpoints, current focused provider/config/queue regression above, and normal live mapped catalogue/download flow. Existing Game Gear source remains configured; both refreshes completed. | None. |
+| DRIVE-04/05/06 | S3 range/version/checksum/resource/lifecycle/ownership/bundle checkpoints and current streaming regression, plus the current real SD verification, emulator boot, preview/removal/re-download and offline handoff above. | None. |
+| META-01/03/04/05/06/07/08 | S4's requirement-level closure and current focused metadata/query/store checks remain applicable to unchanged implementations. Current real fresh review/recheck and shared facts/artwork persist across removal, cold offline launch and in-place update. Advisory scores remain advisory. Full-library fresh coverage is explicitly S7. | None for S6 integrated scope. |
+| UI-01/02/03 | S5 requirement-level native/shared-caller/filter/controller proof and current affected detail/Library checks; actual fresh cover/score/details and ordinary controller/menu flow, plus the verified source-status correction above. | None. |
+| QA-01/02/03 | Serial focused regressions, observed gated build profile, inspected normal APK identity/preservation, actual combined workflow and unchanged read-only/privacy implementation. S1's processed release-name evidence remains applicable; no release occurred. | None. |
+| QA-04 | Complete specification reviewed against its requirement-to-stage map, the stage reconciliations and current integrated evidence. No required S1-S6 blocker or tracked deferral remains. | None for S6; overall reconciliation must be repeated after S7-S9. |
+| MIGRATE-01 / COMPANION-01 / ART-01 | Assigned by the authoritative specification to S7 / S8 / S9 respectively. No bulk scrape, reviewed SD migration, companion integration or full artwork audit is claimed here. | Required later stages are NOT STARTED, not waived or S6 deferrals. |
+
+S6 is COMPLETE against its assigned criteria. The full plan remains incomplete.
+No S7 implementation has begun in this closure. Task-owned screenshots, UI XML,
+synthetic save fixture and superseded APK were reviewed and cleaned; the current
+APK and normal test installation remain. Both physical displays reported OFF /
+committedState OFF (`958170`). No user ROM/save/BIOS/settings cleanup occurred.
