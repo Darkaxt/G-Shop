@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:retro_eshop/l10n/app_localizations.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
@@ -38,6 +41,22 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final db = await controlsDatabase();
+      final artifact = RemoteArtifact(
+          id: RemoteArtifactId(
+              providerId: 'drive',
+              sourceId: 'fixture',
+              providerFileId: 'disc2'),
+          displayName: 'Game 1 (Japan) (Disc 2) [T-En].chd',
+          displayPath: 'Translations/Game 1 (Japan) (Disc 2) [T-En].chd');
+      await db.update(
+          'games',
+          {
+            'artifact_key': artifact.id.key,
+            'remote_artifact': jsonEncode(artifact.toJson()),
+            'filename': artifact.displayName,
+          },
+          where: 'id = ?',
+          whereArgs: [1]);
       final provider = ControlsProvider();
       provider.reply = (request, _) async => MetadataLookupResult(
               status: MetadataLookupStatus.needsReview,
@@ -94,6 +113,11 @@ void main() {
       await tester.tap(open);
       await tester.pumpAndSettle();
       expect(find.text('Review cached matches'), findsOneWidget);
+      expect(find.text(artifact.displayPath), findsOneWidget,
+          reason: 'Review must expose the actual folder, disc and patch label, '
+              'not just the cleaned title.');
+      expect(
+          find.text('Game 2.chd'), exactScope ? findsNothing : findsOneWidget);
       expect(provider.calls, hasLength(2));
       expect(find.text('Game 2'), exactScope ? findsNothing : findsOneWidget);
       expect(routes.pushed, hasLength(2),

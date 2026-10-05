@@ -46,13 +46,15 @@ class MetadataReviewItem {
   final List<MetadataLookupCandidate> candidates;
   final MetadataLookupRequest? request;
   final bool identityCurrent;
+  final List<String> artifactLabels;
   const MetadataReviewItem(
       {required this.jobId,
       required this.editionId,
       required this.status,
       required this.candidates,
       this.request,
-      this.identityCurrent = true});
+      this.identityCurrent = true,
+      this.artifactLabels = const []});
 }
 
 class MetadataRefreshJobs {
@@ -692,6 +694,9 @@ class MetadataRefreshJobs {
       for (final row in rows) {
         final current = await _identity(txn, row['edition_id'] as String);
         items.add(_reviewItem(row,
+            artifactLabels: current == null
+                ? const []
+                : await _reviewArtifactLabels(txn, current),
             identityCurrent: current != null &&
                 row['identity_key'] ==
                     LibraryStore.metadataIdentity(current,
@@ -702,12 +707,14 @@ class MetadataRefreshJobs {
   }
 
   static MetadataReviewItem _reviewItem(Map<String, Object?> row,
-          {bool identityCurrent = true}) =>
+          {bool identityCurrent = true,
+          List<String> artifactLabels = const []}) =>
       MetadataReviewItem(
         jobId: row['job_id'] as int,
         editionId: row['edition_id'] as String,
         status: row['status'] as String,
         identityCurrent: identityCurrent,
+        artifactLabels: artifactLabels,
         candidates:
             List.unmodifiable(_candidates(row['candidates_json'] as String?)),
         request: row['request_json'] == null
@@ -716,6 +723,45 @@ class MetadataRefreshJobs {
                 jsonDecode(row['request_json'] as String)
                     as Map<String, dynamic>),
       );
+
+  /// Current cached names are review context, never match/classification proof.
+  /// Read only this edition's members; no provider requests or library-wide scan.
+  static Future<List<String>> _reviewArtifactLabels(
+      DatabaseExecutor db, Map<String, Object?> identity) async {
+    final edition = EditionIdentity.fromJson(
+        jsonDecode(identity['edition_json'] as String));
+    final labels = <String>{};
+    for (final member in edition.members) {
+      final rows = await db.query('library_artifacts',
+          columns: ['record_json'],
+          where: 'artifact_id = ?',
+          whereArgs: [member.artifactId.key],
+          limit: 1);
+      if (rows.isEmpty) continue;
+      final artifact = RemoteArtifact.fromJson(
+          jsonDecode(rows.single['record_json'] as String));
+      labels.add(artifact.displayPath.isEmpty
+          ? artifact.displayName
+          : artifact.displayPath);
+    }
+    final game =
+        GameIdentity.fromJson(jsonDecode(identity['game_json'] as String));
+    for (final evidence in game.evidence.where((e) =>
+        e.source == 'catalogue' &&
+        e.kind == 'artifactIdentity' &&
+        e.value.startsWith('legacy-cache-row:'))) {
+      final id =
+          int.tryParse(evidence.value.substring('legacy-cache-row:'.length));
+      if (id == null) continue;
+      final rows = await db.query('games',
+          columns: ['filename'],
+          where: 'id = ? AND artifact_key IS NULL AND is_folder = 0',
+          whereArgs: [id],
+          limit: 1);
+      if (rows.isNotEmpty) labels.add(rows.single['filename'] as String);
+    }
+    return List.unmodifiable(labels);
+  }
 
   static List<MetadataLookupCandidate> _candidates(String? json) =>
       (json == null ? <dynamic>[] : jsonDecode(json) as List).map((value) {

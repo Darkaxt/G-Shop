@@ -10,7 +10,7 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 | Boundary | Current evidence | Remaining work |
 | --- | --- | --- |
-| Real collection membership and fresh metadata | Four rooted cloud mappings expose 904 remote artifacts (GameCube, Game Gear, PSP and PS1), not the complete SD collection. Normal local scanning adds 524 local rows, giving 1,428 Library rows; these are not reviewed canonical games or managed installations. Both providers completed the earlier 316-entry two-console scope and the separate 269-artifact PSP scope, with unresolved outcomes retained. PS1 generation 1 published 5,162 observations/1,336 folders and its normal PS1-only mapping is saved. ScreenScraper job 20 completed 405 PS1 rows (319 remote plus 86 local): 214 need review, 136 ambiguous, 55 unmatched, zero accepted/rated. Artwork job 21 completed with zero items. Initial read-only SD census confirms additional occupied consoles and multi-file MSU content. | Reconcile explicit cloud/console mappings and eligible game membership; extend fresh coverage to the remaining stable-generation console scopes, including explicit unmatched/ambiguous/failed/rated coverage. |
+| Real collection membership and fresh metadata | Four rooted cloud mappings expose 904 remote artifacts (GameCube, Game Gear, PSP and PS1), not the complete SD collection. Normal local scanning adds 524 local rows, giving 1,428 Library rows; these are not reviewed canonical games or managed installations. Both providers completed the earlier 316-entry two-console scope and the separate 269-artifact PSP scope, with unresolved outcomes retained. PS1 generation 1 published 5,162 observations/1,336 folders and its normal PS1-only mapping is saved. ScreenScraper job 20 completed 405 PS1 rows (319 remote plus 86 local): 214 need review, 136 ambiguous, 55 unmatched, zero accepted/rated. Artwork job 21 completed with zero items. IGDB job 22 completed the same 405-row scope: 233 need review, 135 ambiguous, 37 unmatched. Two exact native reviews/rechecks subsequently accepted fresh independently supported community ratings; this is not complete canonical membership. Initial read-only SD census confirms additional occupied consoles and multi-file MSU content. | Reconcile explicit cloud/console mappings and eligible game membership; extend fresh coverage to the remaining stable-generation console scopes, including explicit unmatched/ambiguous/failed/rated coverage. |
 | Defensible Top-25 retention per console | S4 validated the score contract; S6's one real ScreenScraper score remains advisory. No full-library ranking proof exists. | Gather accepted current scores, audit canonical game/disc/bundle groups, preserve unresolved consoles/games until ranking is defensible. |
 | Identical cloud recovery and exact paths | S6 proves one normal SD on-demand restore/remove/re-download and offline Dolphin path. Existing SD files are not thereby owned by R-Shop. | Inventory private exact paths, file identities, cloud IDs/version/digests; prove applicable restore routes; build/review the strict one-time manifest and interruption-safe journal. |
 | Preserve saves/BIOS/settings/unknown content and prevent refill | No existing SD paths have been removed or adopted. Current LoLSuite device manifests exist and must be reconciled, not treated as removal authority. | Establish save/config baselines and on-demand sync coordination without changing H: archival profiles; revalidate each eligible removal. |
@@ -328,3 +328,53 @@ above are ordinary unfinished work, not grounds to open S8.
   backup uploads and restore support are not claimed. S10 remains NOT STARTED;
   S7 is the sole ACTIVE stage, and S8/S9 remain NOT STARTED. FolderSync's pairs,
   schedules and transfers were not changed or invoked; it remains as-is.
+
+### PS1 independent pass and safer cached review — 2026-10-05
+
+- Normal native IGDB Fresh job 22 completed the same PS1 scope: 405 requested,
+  233 needsReview, 135 ambiguous and 37 unmatched, with zero matched/rated,
+  failed/unsupported or pending. One owner/worker was observed through completion;
+  no duplicate refresh was started when a busy UI could not provide an idle dump.
+  Stable device-before/device-after/host database digests and quick_check passed.
+- Two normal native selections explicitly chose the correct PS1 identities and
+  Official releases classification, then used Save match and recheck. Jobs 23
+  and 24 each completed one matched/rated item. The production community basis
+  has 122 votes for the first and 44 for the second; unrelated critic/overall
+  values were not substituted. These are exact reviewed editions, not complete
+  multi-disc groups, a whole-library Top-25 ranking or removal authority.
+- Native review exposed a current-stage safety defect: the cleaned title omitted
+  the source filename/folder, disc and patch labels. META-03 now documents that
+  existing review context requirement. The bounded cache-only projection reads
+  just the current edition's artifact members/local cache row and renders their
+  labels beside the search title. It does not approve identities, infer tags,
+  request provider metadata or retrieve ROM bodies.
+- The regression first failed for missing labels, then passed at landscape,
+  portrait and narrow portrait sizes. Existing checks also prove wrong-platform
+  rejection, independent overlapping tag selection, exact-scope isolation and
+  no extra provider requests. Focused metadata-job tests and scoped analysis
+  passed. The existing bounded 30,000-edition fixture observed about 310 MB peak
+  RSS, not an unbounded memory failure. No full repository suite was launched.
+- Gated build 164 acquired the shared mutex but failed before compilation because
+  PowerShell split an unquoted `-Ptarget=lib/main.dart` into two arguments. A
+  separate argv reproduction established the cause; quoting each Gradle argument
+  fixed the invocation. Build 165 then held the same mutex through exit zero.
+  Observed workers 2, parallel false and Gradle heap 3 GiB; assessed Kotlin 2.2.20
+  uses in-process compilation sharing that heap. Test tasks were configured one
+  fork/512 MiB but not executed. App native pools remain one; the plugin native
+  tasks ran, but their effective full concurrency is not independently measured.
+  Neither attempt produced memory-failure evidence or required a budget increase.
+- Independently inspected APK package/activity/signature matched the existing
+  debug installation; SHA-256 is
+  `30042a8a96ab482d6aaf80db1d50e0960df61d98c4118887a851afa51b6d4606`.
+  Installed in place only after all metadata jobs were terminal, with no uninstall
+  or clearing. Native PS1 review now displays the original CHD/disc label and an
+  unmodified official title's filename. Stale ScreenScraper candidates remain
+  blocked after identity correction. Opening cached review created no new jobs.
+- Configuration and secure-credential fingerprints match the pre-update baseline;
+  all three completed IGDB jobs, both exact reviewed ratings and the 1,428-row
+  Library are preserved. A blanket private-file hash assertion also included
+  regenerated Flutter binaries, a resource marker and normal startup preferences/
+  database writes, so that assertion is not claimed as byte-for-byte app-data
+  preservation. No ROM, save, BIOS, FolderSync configuration or cloud archive was
+  changed by this fix. Required S7 membership/ranking/recovery/migration work
+  remains unfinished; S7 is ACTIVE and S8-S10 are NOT STARTED.

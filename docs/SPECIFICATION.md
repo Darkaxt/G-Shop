@@ -323,6 +323,9 @@ checksums (CHD/ZIP/etc.) must not be treated as raw-ROM hashes. Do not download 
 decompress every remote ROM to compute identifiers. Ambiguous matches require
 review and must not silently publish a score. Persist manual corrections without
 losing them on refresh. A conversion or rename must not duplicate the game.
+Cached review must show the original artifact filename/folder and disc/patch
+labels alongside the cleaned search title, so edition classification can be
+checked without guessing or requesting ROM bytes.
 
 Acceptance: ordinary releases, punctuation/localization variants, wrong-platform
 matches, container hashes, conversion/rename and conflicting candidates; false

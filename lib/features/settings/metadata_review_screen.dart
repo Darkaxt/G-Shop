@@ -251,6 +251,8 @@ class _ReviewCardState extends State<_ReviewCard> {
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text(request?.title ?? item.editionId,
                 style: Theme.of(context).textTheme.titleLarge),
+            for (final label in item.artifactLabels)
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
             Text([
               request?.platformId,
               request?.region,

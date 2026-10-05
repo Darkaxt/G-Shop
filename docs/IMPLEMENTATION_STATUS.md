@@ -70,6 +70,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   Stable device-before/device-after/host database digests agreed and quick_check
   passed. This scope includes 319 remote artifacts and 86 local rows; completion
   of traversal is not canonical membership, a defensible ranking or S7 closure.
+  The independent normal IGDB job 22 also completed those 405 rows: 233 need
+  review, 135 are ambiguous and 37 unmatched. Two normal exact reviews/rechecks
+  then accepted supported community ratings, without borrowing a different
+  platform or critic/overall score. The reproduced cached-review context gap is
+  now fixed and verified on the Thor: original filename/folder/disc/patch labels
+  accompany the cleaned title, while stale candidates remain blocked. The normal
+  in-place update preserved configuration, secure credential fingerprints,
+  completed jobs, reviewed ratings and Library membership. Gated build 165 exited
+  zero with observed workers 2, no parallel projects and Gradle 3 GiB; Kotlin is
+  assessed in-process sharing that heap. No memory failure or heap increase.
+  Its earlier attempt failed from reproduced PowerShell argument splitting, not
+  memory pressure. Focused regression/backend checks and scoped analysis passed;
+  no full suite was run. These outcomes do not complete S7's retention/migration.
   A reproduced mapping-screen overflow/ANR was traced to repeated all-folder
   dropdowns and corrected with one searchable, lazy picker. The same native
   source now scrolls, clears the unrelated PSP suggestion and saves normally.
