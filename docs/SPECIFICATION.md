@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions and save backups
 
-Authoritative specification, revision 7, 2026-10-05.
+Authoritative specification, revision 8, 2026-10-06.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -561,6 +561,32 @@ The user approved white labels on darker-red primary filled buttons on
 2026-10-04: use `#C62828` with white, retaining existing disabled/tonal styling
 and the brighter accent used elsewhere. Verify normal and interaction-state
 label contrast without changing authentication or refresh behavior.
+
+User-requested scraping feedback (2026-10-06), delivered in the currently ACTIVE
+S7 recheck: beneath the metadata progress report, show the most recently processed
+game's title, platform and truthful lookup outcome with its parsed cover preview
+when available. Refresh this display on a fixed three-second UI cadence, keeping
+only the latest pending preview; the cadence must never control job completion,
+cancellation, retry or provider requests. Label an unverified candidate as such;
+do not promote preview facts into accepted identity, metadata or ranking. Use
+provider-returned media and the existing bounded image/authentication path or an
+exact current cached cover, with the physical-media fallback when unavailable.
+Do not perform additional game lookups just to update the preview. Stop display
+updates when the screen is disposed, without stopping the background job.
+
+Alongside the preview, expose ScreenScraper's reported daily request allowance,
+used/remaining attempts and observation time, plus its separate failed-request
+limit when supplied. Retain provenance for any locally reserved/decremented
+budget instead of presenting it as a new provider observation. Missing quota
+fields mean unknown, not unlimited; only an explicit documented unlimited
+response may be labelled unlimited. Preserve provider rate/exhaustion enforcement
+and never infer a daily reset from the device's local midnight.
+
+Additional acceptance: focused worker/controller/widget checks demonstrate the
+latest-result preview, fixed display cadence, disposal and provider/job isolation,
+image failure/fallback and unverified-candidate labels; quota checks cover known,
+missing, exhausted and stale observations. Verify the normal Thor feedback using
+the real provider without altering ROMs, saved jobs, mappings or credentials.
 
 Acceptance: coherent controller/touch navigation, no dead-end authentication UI,
 clear pending/error states and a details view that explains the overlay's score.

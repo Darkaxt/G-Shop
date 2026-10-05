@@ -1,12 +1,27 @@
 # S7 live metadata and Thor migration
 
-Authority: `SPECIFICATION.md` revision 7, MIGRATE-01. Status: **ACTIVE**, the
+Authority: `SPECIFICATION.md` revision 8, MIGRATE-01 and the UI-02 scraping-feedback
+extension. Status: **ACTIVE**, the
 sole ACTIVE stage. S6 is COMPLETE at `ea63586`; S8/S9/S10 are NOT STARTED.
 S10 owns the newly authorized R-Shop save-backup feature. FolderSync remains
 installed with its existing folder pairs and schedules unchanged; neither
 integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
+
+The 2026-10-06 latest-product/cover preview and ScreenScraper daily quota display
+are authorized additional S7 work and are not yet implemented or verified. They
+remain ordinary unfinished work; S8-S10 stay NOT STARTED. Normal N64 ScreenScraper
+job 31 finished and its zero-item artwork job 32 is completed. A single fresh N64
+IGDB job 33 was then started through normal settings. A root-context, fixed,
+read-only native query confirmed it running at 443/1543 requested, 1100 pending,
+281 needing review, 85 ambiguous and 77 unmatched, with no accepted ratings.
+The collection scan also advanced to 60318 observations/6496 folders, with 5044
+folders pending and no published generation. These are live progress observations,
+not complete coverage or a defensible retention set. An app-UID probe was killed;
+the same read-only query succeeded in root context without restarting either job.
+The reason for that probe exit is not established and no application fix is
+claimed. Both physical displays were confirmed OFF after observation.
 
 | Boundary | Current evidence | Remaining work |
 | --- | --- | --- |
