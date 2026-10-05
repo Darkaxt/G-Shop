@@ -9,6 +9,34 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_latestGame => 'Latest processed game';
+
+  @override
+  String get metadata_unverifiedCandidate => 'Unverified candidate';
+
+  @override
+  String get metadata_dailyQuota => 'Daily API quota';
+
+  @override
+  String get metadata_requestsRemaining => 'Remaining attempts';
+
+  @override
+  String get metadata_requestsUsed => 'Reported attempts used';
+
+  @override
+  String get metadata_failedRequestsRemaining =>
+      'Failed-request attempts remaining';
+
+  @override
+  String get metadata_quotaObserved => 'Last provider report';
+
+  @override
+  String get metadata_localBudget => 'Locally reserved remaining budget';
+
+  @override
+  String get metadata_quotaUnknown => 'Unknown';
+
+  @override
   String get metadata_esDe => 'ES-DE metadata publication';
 
   @override

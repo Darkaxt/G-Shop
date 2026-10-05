@@ -356,6 +356,34 @@ void main() {
     expect(query.containsKey('romnom'), isFalse);
   });
 
+  test(
+      'unverified candidate offers a sanitized cover selector without publishing facts',
+      () async {
+    final game = _game();
+    game['medias'] = [
+      {'type': 'box-2D', 'region': 'us', 'url': _authenticatedMedia()}
+    ];
+    final wire = _Wire({
+      'response': {
+        'jeux': [game]
+      }
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    final result =
+        await provider.lookup(_request(verifiedProviderGameId: null));
+    expect(result.status, MetadataLookupStatus.needsReview);
+    expect(result.record, isNull);
+    final media = result.candidates.single.previewMedia!;
+    expect(media.url, isNull);
+    expect(media.providerReference!.providerGameId, '42');
+    expect(media.providerReference!.providerPlatformId, 4);
+    expect(media.providerReference!.mediaSelector, 'box-2D(us)');
+    expect(jsonEncode(media.toJson()), isNot(contains('fixture-user')));
+    expect(wire.requests, hasLength(1),
+        reason: 'parsing adds no game/image requests');
+  });
+
   test('known container extension cannot be mislabeled as a raw ROM', () async {
     final wire = _Wire({
       'response': {

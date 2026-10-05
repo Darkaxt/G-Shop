@@ -9,6 +9,34 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_latestGame => 'Último jogo processado';
+
+  @override
+  String get metadata_unverifiedCandidate => 'Candidato não verificado';
+
+  @override
+  String get metadata_dailyQuota => 'Quota diária da API';
+
+  @override
+  String get metadata_requestsRemaining => 'Tentativas restantes';
+
+  @override
+  String get metadata_requestsUsed => 'Tentativas usadas informadas';
+
+  @override
+  String get metadata_failedRequestsRemaining =>
+      'Tentativas falhadas restantes';
+
+  @override
+  String get metadata_quotaObserved => 'Último relatório do fornecedor';
+
+  @override
+  String get metadata_localBudget => 'Orçamento restante reservado localmente';
+
+  @override
+  String get metadata_quotaUnknown => 'Desconhecido';
+
+  @override
   String get metadata_esDe => 'Publicação de metadados no ES-DE';
 
   @override

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -13,6 +14,45 @@ import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
 import 'shared_metadata_store.dart';
 
+/// Display-only provider observation, distinct from reserved local API budget.
+class MetadataQuotaObservation {
+  final MetadataQuota quota;
+  final DateTime observedAt;
+  final int? reservedRemaining;
+  const MetadataQuotaObservation(this.quota, this.observedAt,
+      {this.reservedRemaining});
+  int? get remaining =>
+      quota.maxRequestsPerDay == null || quota.requestsToday == null
+          ? null
+          : (quota.maxRequestsPerDay! - quota.requestsToday!)
+              .clamp(0, quota.maxRequestsPerDay!);
+  int? get unmatchedRemaining =>
+      quota.maxUnmatchedPerDay == null || quota.unmatchedToday == null
+          ? null
+          : (quota.maxUnmatchedPerDay! - quota.unmatchedToday!)
+              .clamp(0, quota.maxUnmatchedPerDay!);
+}
+
+/// One most-recent result only. Candidates remain unverified display context.
+class MetadataProcessedGame {
+  final int jobId;
+  final String providerId, editionId, title, platformId;
+  final MetadataLookupStatus status;
+  final String? candidateTitle;
+  final MetadataMedia? previewMedia;
+  final Uint8List? coverBytes;
+  const MetadataProcessedGame(
+      {required this.jobId,
+      required this.providerId,
+      required this.editionId,
+      required this.title,
+      required this.platformId,
+      required this.status,
+      this.candidateTitle,
+      this.previewMedia,
+      this.coverBytes});
+}
+
 class MetadataRefreshReport {
   final int id;
   final int generation;
@@ -25,6 +65,8 @@ class MetadataRefreshReport {
   final DateTime? notBefore;
   final String kind;
   final String providerId;
+  final MetadataQuotaObservation? quotaObservation;
+  final MetadataProcessedGame? lastProcessed;
   const MetadataRefreshReport(
       {required this.id,
       required this.generation,
@@ -36,7 +78,9 @@ class MetadataRefreshReport {
       this.blockedStatus,
       this.notBefore,
       this.kind = 'metadata',
-      this.providerId = ''});
+      this.providerId = '',
+      this.quotaObservation,
+      this.lastProcessed});
 }
 
 class MetadataReviewItem {
@@ -64,6 +108,7 @@ class MetadataRefreshJobs {
   final Timer Function(Duration, void Function()) _schedule;
   Future<MetadataRefreshReport>? _active;
   CancelToken? _cancel;
+  MetadataProcessedGame? _lastProcessed;
   MetadataRefreshJobs(this._database,
       {DateTime Function()? now,
       Future<SharedMetadataStore?>? sharedStore,
@@ -110,6 +155,7 @@ class MetadataRefreshJobs {
           'ALTER TABLE metadata_refresh_jobs ADD COLUMN is_artwork INTEGER NOT NULL DEFAULT 0');
     }
     await installMatchReviewMode(db);
+    await installProgressFeedback(db);
     final limitColumns =
         await db.rawQuery('PRAGMA table_info(metadata_provider_limits)');
     if (!limitColumns.any((r) => r['name'] == 'remaining_requests')) {
@@ -128,6 +174,65 @@ class MetadataRefreshJobs {
       ON metadata_artwork_items(job_id, media_key, status, edition_id)''');
     await MetadataArtworkCache.install(db);
     await installArtworkLinks(db);
+  }
+
+  /// Additive v35 display evidence; existing budget and saved jobs are untouched.
+  static Future<void> installProgressFeedback(DatabaseExecutor db) async {
+    final columns =
+        await db.rawQuery('PRAGMA table_info(metadata_provider_limits)');
+    for (final column in const {
+      'quota_json': 'TEXT',
+      'quota_observed_at': 'INTEGER'
+    }.entries) {
+      if (!columns.any((r) => r['name'] == column.key)) {
+        await db.execute(
+            'ALTER TABLE metadata_provider_limits ADD COLUMN ${column.key} ${column.value}');
+      }
+    }
+  }
+
+  static Future<MetadataQuotaObservation?> _quotaObservation(
+      DatabaseExecutor db, String providerId) async {
+    final rows = await db.query('metadata_provider_limits',
+        where: 'provider_id = ?', whereArgs: [providerId], limit: 1);
+    if (rows.isEmpty ||
+        rows.single['quota_json'] == null ||
+        rows.single['quota_observed_at'] == null) {
+      return null;
+    }
+    try {
+      final value = jsonDecode(rows.single['quota_json'] as String)
+          as Map<String, dynamic>;
+      int? counter(String key) {
+        final v = value[key];
+        if (v != null && (v is! int || v < 0)) {
+          throw const FormatException('Invalid display quota');
+        }
+        return v as int?;
+      }
+
+      return MetadataQuotaObservation(
+          MetadataQuota(
+              requestsToday: counter('requestsToday'),
+              maxRequestsPerDay: counter('maxRequestsPerDay'),
+              unmatchedToday: counter('unmatchedToday'),
+              maxUnmatchedPerDay: counter('maxUnmatchedPerDay')),
+          DateTime.fromMillisecondsSinceEpoch(
+              rows.single['quota_observed_at'] as int,
+              isUtc: true),
+          reservedRemaining: rows.single['remaining_requests'] as int?);
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
+  }
+
+  Future<void> clearQuotaObservation(String providerId) async {
+    final db = await _database;
+    await db.update('metadata_provider_limits',
+        {'quota_json': null, 'quota_observed_at': null},
+        where: 'provider_id = ?', whereArgs: [providerId]);
   }
 
   /// Additive v34 relationship: restore image work without re-scraping games.
@@ -904,6 +1009,9 @@ class MetadataRefreshJobs {
           rated: totals.fold(0, (sum, r) => sum + (r['rated'] as int)),
           kind: artwork ? 'artwork' : 'metadata',
           providerId: row['provider_id'] as String,
+          quotaObservation:
+              await _quotaObservation(txn, row['provider_id'] as String),
+          lastProcessed: _lastProcessed?.jobId == id ? _lastProcessed : null,
           counts: Map.unmodifiable({
             for (final r in totals) r['status'] as String: r['count'] as int
           }),
@@ -1039,6 +1147,7 @@ class MetadataRefreshJobs {
       final counts = Map<String, int>.from(initial.counts);
       var requested = initial.requested;
       var rated = initial.rated;
+      var quotaObservation = initial.quotaObservation;
       void publish([Map<String, int> changes = const {}, int ratedChange = 0]) {
         for (final entry in changes.entries) {
           counts['pending'] = (counts['pending'] ?? 0) - entry.value;
@@ -1055,6 +1164,8 @@ class MetadataRefreshJobs {
             rated: rated,
             counts: Map.unmodifiable(counts),
             providerId: provider.providerId,
+            quotaObservation: quotaObservation,
+            lastProcessed: _lastProcessed?.jobId == id ? _lastProcessed : null,
             kind: initial.kind));
       }
 
@@ -1073,6 +1184,8 @@ class MetadataRefreshJobs {
             await _observeQuota(db, provider.providerId, checked.quota, started,
                 accessConfirmed:
                     checked.status == MetadataLookupStatus.matched);
+            quotaObservation = await _quotaObservation(db, provider.providerId);
+            publish();
             if (checked.status != MetadataLookupStatus.matched) {
               await _block(db, id, checked.status, checked.retryAfter);
               return await report(id);
@@ -1166,6 +1279,7 @@ class MetadataRefreshJobs {
         }
         await _observeQuota(
             db, provider.providerId, result.quota, requestStarted);
+        quotaObservation = await _quotaObservation(db, provider.providerId);
         if (_blocking.contains(result.status)) {
           await _block(db, id, result.status, result.retryAfter);
           return await report(id);
@@ -1173,7 +1287,82 @@ class MetadataRefreshJobs {
         await _commitResult(
             db, id, item, request, result, provider.providerId, cancel, publish,
             matchReview: matchReview);
+        final candidate =
+            result.candidates.length == 1 ? result.candidates.single : null;
+        final committedItem = (await db.query('metadata_refresh_items',
+                columns: ['status'],
+                where: 'job_id = ? AND edition_id = ?',
+                whereArgs: [id, request.editionId],
+                limit: 1))
+            .single;
+        final outcome = MetadataLookupStatus.values
+                .where((s) => s.name == committedItem['status'])
+                .firstOrNull ??
+            MetadataLookupStatus.invalidRequest;
+        final previewMedia = outcome == MetadataLookupStatus.needsReview
+            ? candidate?.previewMedia
+            : result.record == null
+                ? null
+                : MetadataArtworkCache.displayMedia(result.record!)
+                    .where(
+                        (m) => {'box-2D', 'box-3D', 'cover'}.contains(m.type))
+                    .firstOrNull;
+        final cachedCover = outcome == MetadataLookupStatus.matched
+            ? await artworkCache?.previewForEdition(request.editionId)
+            : null;
+        _lastProcessed = MetadataProcessedGame(
+            jobId: id,
+            providerId: provider.providerId,
+            editionId: request.editionId,
+            title: request.title,
+            platformId: request.platformId,
+            status: outcome,
+            candidateTitle: candidate?.titles.firstOrNull?.text,
+            previewMedia: previewMedia,
+            coverBytes: cachedCover);
+        publish();
         if (cancel.isCancelled) break;
+        // Candidate previews are serial budgeted image requests, independent of
+        // the display cadence. Accepted covers use the existing artwork job.
+        if (outcome == MetadataLookupStatus.needsReview &&
+            previewMedia != null &&
+            provider is MetadataArtworkProvider) {
+          if (!await _requestSlot(
+              db, id, provider.providerId, cancel, waitForBudget)) {
+            if (cancel.isCancelled) break;
+            return await report(id);
+          }
+          if (cancel.isCancelled) break;
+          final imageStarted = _now().millisecondsSinceEpoch;
+          final preview = await MetadataArtworkCache.fetchPreview(
+              previewMedia, provider, cancel);
+          if (cancel.isCancelled) break;
+          await _observeQuota(
+              db, provider.providerId, preview.result.quota, imageStarted);
+          quotaObservation = await _quotaObservation(db, provider.providerId);
+          _lastProcessed = MetadataProcessedGame(
+              jobId: id,
+              providerId: provider.providerId,
+              editionId: request.editionId,
+              title: request.title,
+              platformId: request.platformId,
+              status: outcome,
+              candidateTitle: candidate?.titles.firstOrNull?.text,
+              previewMedia: previewMedia,
+              coverBytes: preview.bytes);
+          publish();
+          if ({
+            MetadataLookupStatus.quotaExceeded,
+            MetadataLookupStatus.throttled,
+            MetadataLookupStatus.authenticationRequired,
+            MetadataLookupStatus.setupRequired,
+            MetadataLookupStatus.developerAccessRequired
+          }.contains(preview.result.status)) {
+            await _block(
+                db, id, preview.result.status, preview.result.retryAfter);
+            return await report(id);
+          }
+        }
         final quota = result.quota;
         if ((quota?.requestsToday != null &&
                 quota?.maxRequestsPerDay != null &&
@@ -1380,6 +1569,26 @@ class MetadataRefreshJobs {
         final count = changes.values.fold(0, (a, b) => a + b);
         if (count < 128) break;
       }
+      final latest = _lastProcessed;
+      if (latest != null &&
+          latest.editionId == item['edition_id'] &&
+          latest.providerId == provider.providerId &&
+          result.status == MetadataLookupStatus.matched &&
+          {'box-2D', 'box-3D', 'cover'}.contains(media.type)) {
+        final bytes = await cache.previewForEdition(latest.editionId);
+        if (!cancel.isCancelled) {
+          _lastProcessed = MetadataProcessedGame(
+              jobId: latest.jobId,
+              providerId: latest.providerId,
+              editionId: latest.editionId,
+              title: latest.title,
+              platformId: latest.platformId,
+              status: latest.status,
+              candidateTitle: latest.candidateTitle,
+              previewMedia: latest.previewMedia,
+              coverBytes: bytes);
+        }
+      }
     }
     await _setState(db, id, 'paused');
     return report(id);
@@ -1490,6 +1699,27 @@ class MetadataRefreshJobs {
                     : prior.isEmpty
                         ? 0
                         : prior.single['quota_exhausted'],
+            'quota_json': quota.requestsToday != null ||
+                    quota.maxRequestsPerDay != null ||
+                    quota.unmatchedToday != null ||
+                    quota.maxUnmatchedPerDay != null
+                ? jsonEncode({
+                    'requestsToday': quota.requestsToday,
+                    'maxRequestsPerDay': quota.maxRequestsPerDay,
+                    'unmatchedToday': quota.unmatchedToday,
+                    'maxUnmatchedPerDay': quota.maxUnmatchedPerDay
+                  })
+                : prior.isEmpty
+                    ? null
+                    : prior.single['quota_json'],
+            'quota_observed_at': quota.requestsToday != null ||
+                    quota.maxRequestsPerDay != null ||
+                    quota.unmatchedToday != null ||
+                    quota.maxUnmatchedPerDay != null
+                ? _now().millisecondsSinceEpoch
+                : prior.isEmpty
+                    ? null
+                    : prior.single['quota_observed_at'],
           },
           conflictAlgorithm: ConflictAlgorithm.replace);
     });

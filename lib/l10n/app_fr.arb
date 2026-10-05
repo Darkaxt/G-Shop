@@ -1,4 +1,13 @@
 {
+  "metadata_latestGame": "Dernier jeu traité",
+  "metadata_unverifiedCandidate": "Candidat non vérifié",
+  "metadata_dailyQuota": "Quota API quotidien",
+  "metadata_requestsRemaining": "Tentatives restantes",
+  "metadata_requestsUsed": "Tentatives utilisées signalées",
+  "metadata_failedRequestsRemaining": "Tentatives en échec restantes",
+  "metadata_quotaObserved": "Dernier rapport du fournisseur",
+  "metadata_localBudget": "Budget restant réservé localement",
+  "metadata_quotaUnknown": "Inconnu",
   "metadata_esDe": "Publication des métadonnées ES-DE",
   "metadata_esDeReviewArtwork": "Vérifier et réutiliser les images existantes",
   "metadata_esDeReviewArtworkHelp": "Confirmez que la jaquette ou capture correspond exactement à cette console et édition, région, révision et patch compris. Seul le chemin ES-DE explicitement associé est accepté. L’image reste sous le contrôle du lanceur ; les anciennes métadonnées ne sont pas une nouvelle réponse du fournisseur.",

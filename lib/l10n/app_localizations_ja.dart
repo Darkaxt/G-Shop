@@ -9,6 +9,33 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_latestGame => '最後に処理したゲーム';
+
+  @override
+  String get metadata_unverifiedCandidate => '未確認の候補';
+
+  @override
+  String get metadata_dailyQuota => 'APIの1日あたりの上限';
+
+  @override
+  String get metadata_requestsRemaining => '残りの試行回数';
+
+  @override
+  String get metadata_requestsUsed => '報告された使用回数';
+
+  @override
+  String get metadata_failedRequestsRemaining => '失敗リクエストの残り回数';
+
+  @override
+  String get metadata_quotaObserved => 'プロバイダーの最終報告';
+
+  @override
+  String get metadata_localBudget => 'ローカルで予約した残り回数';
+
+  @override
+  String get metadata_quotaUnknown => '不明';
+
+  @override
   String get metadata_esDe => 'ES-DEメタデータの書き出し';
 
   @override

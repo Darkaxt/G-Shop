@@ -397,6 +397,14 @@ class ScreenScraperProvider
             platformId: request.platformId,
             titles: titles,
             titleMatched: titleMatched,
+            previewMedia: _mediaEntries(game['medias'])
+                .map((entry) => _mediaEntry(entry,
+                    providerGameId: id, providerPlatformId: platform))
+                .whereType<MetadataMedia>()
+                .where((media) =>
+                    media.providerReference != null &&
+                    {'box-2D', 'box-3D', 'cover'}.contains(media.type))
+                .firstOrNull,
             evidence: byId
                 ? 'verifiedProviderId'
                 : raw != null

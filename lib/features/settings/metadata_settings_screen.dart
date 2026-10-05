@@ -17,6 +17,7 @@ import '../../providers/library_providers.dart';
 import '../../services/metadata/metadata_credentials.dart';
 import '../../services/metadata/metadata_refresh_jobs.dart';
 import 'metadata_review_screen.dart';
+import 'metadata_progress_feedback.dart';
 
 /// Normal settings entry, also scoped to the exact selected cached game.
 class MetadataSettingsScreen extends ConsumerStatefulWidget {
@@ -522,6 +523,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                           },
                           style: Theme.of(context).textTheme.titleMedium),
                       _coverage(l, report),
+                      MetadataProgressFeedback(report: report),
                       if (report.blockedStatus != null)
                         Text(switch (report.blockedStatus) {
                           'setupRequired' ||

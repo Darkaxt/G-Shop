@@ -9,6 +9,34 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_latestGame => 'Último juego procesado';
+
+  @override
+  String get metadata_unverifiedCandidate => 'Candidato sin verificar';
+
+  @override
+  String get metadata_dailyQuota => 'Cuota diaria de la API';
+
+  @override
+  String get metadata_requestsRemaining => 'Intentos restantes';
+
+  @override
+  String get metadata_requestsUsed => 'Intentos usados según el proveedor';
+
+  @override
+  String get metadata_failedRequestsRemaining => 'Intentos fallidos restantes';
+
+  @override
+  String get metadata_quotaObserved => 'Último informe del proveedor';
+
+  @override
+  String get metadata_localBudget =>
+      'Presupuesto restante reservado localmente';
+
+  @override
+  String get metadata_quotaUnknown => 'Desconocido';
+
+  @override
   String get metadata_esDe => 'Publicación de metadatos en ES-DE';
 
   @override

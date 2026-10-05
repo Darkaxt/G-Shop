@@ -246,6 +246,60 @@ class MetadataArtworkCache {
           status: status,
           message: 'Artwork was not published; cached images were preserved.');
 
+  /// Bounded transient preview using the existing authenticated image transport
+  /// and PNG validation. No disk entry, accepted fact or preview history.
+  static Future<({MetadataLookupResult result, Uint8List? bytes})> fetchPreview(
+      MetadataMedia media,
+      MetadataArtworkProvider provider,
+      CancelToken cancel) async {
+    final buffer = BytesBuilder(copy: false);
+    try {
+      final result = await provider.fetchArtwork(media, cancelToken: cancel,
+          write: (chunk) async {
+        if (buffer.length + chunk.length > maxBytes) {
+          throw const FormatException('Image body exceeds preview limit');
+        }
+        if (!cancel.isCancelled) buffer.add(chunk);
+      });
+      if (cancel.isCancelled || result.status != MetadataLookupStatus.matched) {
+        return (
+          result: cancel.isCancelled
+              ? _failure(MetadataLookupStatus.cancelled)
+              : result,
+          bytes: null
+        );
+      }
+      final bytes = buffer.takeBytes();
+      if (!_validPng(bytes)) {
+        return (
+          result: _failure(MetadataLookupStatus.invalidResponse),
+          bytes: null
+        );
+      }
+      final codec = await ui.instantiateImageCodec(bytes);
+      try {
+        if (codec.frameCount != 1) {
+          return (
+            result: _failure(MetadataLookupStatus.invalidResponse),
+            bytes: null
+          );
+        }
+        final frame = await codec.getNextFrame();
+        frame.image.dispose();
+      } finally {
+        codec.dispose();
+      }
+      return (result: result, bytes: cancel.isCancelled ? null : bytes);
+    } catch (_) {
+      return (
+        result: _failure(cancel.isCancelled
+            ? MetadataLookupStatus.cancelled
+            : MetadataLookupStatus.invalidResponse),
+        bytes: null
+      );
+    }
+  }
+
   /// Validate bounded PNG structure/CRCs/dimensions without inflating image or
   /// metadata streams. Decode/resource limits are not inferred from MIME alone.
   static bool _validPng(Uint8List bytes) {
@@ -376,5 +430,23 @@ class MetadataArtworkCache {
       }
     }
     return (cover: cover, screenshots: List<String>.unmodifiable(screenshots));
+  }
+
+  /// Exact currently owned cover only, with the same bounded PNG policy.
+  /// A changed or unreadable file produces the normal fallback, not a lookup.
+  Future<Uint8List?> previewForEdition(String editionId) async {
+    try {
+      final cover = (await artworkForEdition(editionId)).cover;
+      if (cover == null) return null;
+      final reader = await File.fromUri(Uri.parse(cover)).open();
+      try {
+        final bytes = await reader.read(maxBytes + 1);
+        return _validPng(bytes) ? bytes : null;
+      } finally {
+        await reader.close();
+      }
+    } on FileSystemException {
+      return null;
+    }
   }
 }

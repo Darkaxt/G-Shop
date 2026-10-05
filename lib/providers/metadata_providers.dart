@@ -215,11 +215,13 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           await _screenScraper.saveDeveloper(application);
         }
         if (user != null) await _screenScraper.saveUser(user);
+        await _jobs.clearQuotaObservation('screenscraper');
         await load();
       });
 
   Future<void> saveIgdb(IgdbCredentials credentials) => _perform(() async {
         await _igdb.save(credentials);
+        await _jobs.clearQuotaObservation('igdb');
         await load();
       });
 
@@ -230,6 +232,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         } else {
           await _igdb.remove();
         }
+        await _jobs.clearQuotaObservation(state.providerId);
         await load();
       });
 
@@ -433,7 +436,10 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     if (_closed || _pauseRequested) return;
     final provider = _providers[state.providerId]!;
     try {
+      final cache = _artworkCache == null ? null : await _artworkCache;
+      if (_closed || _pauseRequested) return;
       final result = await _jobs.run(id, provider,
+          artworkCache: cache,
           recheckAccess: provider is MetadataAccessProvider,
           onProgress: (report) => _set(state.copyWith(report: report)));
       _set(state.copyWith(report: result));
@@ -455,6 +461,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
             onProgress: (report) =>
                 _set(state.copyWith(artworkReport: report)));
         _set(state.copyWith(artworkReport: images));
+        _set(state.copyWith(report: await _jobs.report(id)));
       }
     } finally {
       if (!_closed) _catalogueChanged();

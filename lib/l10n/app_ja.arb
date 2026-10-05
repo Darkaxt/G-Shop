@@ -1,4 +1,13 @@
 {
+  "metadata_latestGame": "最後に処理したゲーム",
+  "metadata_unverifiedCandidate": "未確認の候補",
+  "metadata_dailyQuota": "APIの1日あたりの上限",
+  "metadata_requestsRemaining": "残りの試行回数",
+  "metadata_requestsUsed": "報告された使用回数",
+  "metadata_failedRequestsRemaining": "失敗リクエストの残り回数",
+  "metadata_quotaObserved": "プロバイダーの最終報告",
+  "metadata_localBudget": "ローカルで予約した残り回数",
+  "metadata_quotaUnknown": "不明",
   "metadata_esDe": "ES-DEメタデータの書き出し",
   "metadata_esDeReviewArtwork": "既存の画像を確認して再利用",
   "metadata_esDeReviewArtworkHelp": "この画像が機種と版（地域・リビジョン・パッチを含む）に正確に対応することを確認してください。明示的に関連付けたES-DEのパスのみ受け付けます。画像の所有権はランチャー側に残り、古いメタデータを新しい取得結果として扱いません。",

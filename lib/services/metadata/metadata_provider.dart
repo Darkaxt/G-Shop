@@ -258,12 +258,16 @@ class MetadataLookupCandidate {
   final List<MetadataText> titles;
   final bool titleMatched;
   final String evidence;
+
+  /// Transient validated cover selector, not an accepted metadata record.
+  final MetadataMedia? previewMedia;
   MetadataLookupCandidate(
       {required this.providerGameId,
       required this.platformId,
       required List<MetadataText> titles,
       required this.titleMatched,
-      required this.evidence})
+      required this.evidence,
+      this.previewMedia})
       : titles = List.unmodifiable(titles);
 }
 

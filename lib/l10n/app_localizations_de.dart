@@ -9,6 +9,33 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_latestGame => 'Zuletzt verarbeitetes Spiel';
+
+  @override
+  String get metadata_unverifiedCandidate => 'Ungeprüfter Kandidat';
+
+  @override
+  String get metadata_dailyQuota => 'Tägliches API-Kontingent';
+
+  @override
+  String get metadata_requestsRemaining => 'Verbleibende Versuche';
+
+  @override
+  String get metadata_requestsUsed => 'Gemeldete verbrauchte Versuche';
+
+  @override
+  String get metadata_failedRequestsRemaining => 'Verbleibende Fehlversuche';
+
+  @override
+  String get metadata_quotaObserved => 'Letzte Anbietermeldung';
+
+  @override
+  String get metadata_localBudget => 'Lokal reserviertes Restkontingent';
+
+  @override
+  String get metadata_quotaUnknown => 'Unbekannt';
+
+  @override
   String get metadata_esDe => 'ES-DE-Metadaten veröffentlichen';
 
   @override

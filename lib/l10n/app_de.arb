@@ -1,4 +1,13 @@
 {
+  "metadata_latestGame": "Zuletzt verarbeitetes Spiel",
+  "metadata_unverifiedCandidate": "Ungeprüfter Kandidat",
+  "metadata_dailyQuota": "Tägliches API-Kontingent",
+  "metadata_requestsRemaining": "Verbleibende Versuche",
+  "metadata_requestsUsed": "Gemeldete verbrauchte Versuche",
+  "metadata_failedRequestsRemaining": "Verbleibende Fehlversuche",
+  "metadata_quotaObserved": "Letzte Anbietermeldung",
+  "metadata_localBudget": "Lokal reserviertes Restkontingent",
+  "metadata_quotaUnknown": "Unbekannt",
   "metadata_esDe": "ES-DE-Metadaten veröffentlichen",
   "metadata_esDeReviewArtwork": "Vorhandene Bilder prüfen und wiederverwenden",
   "metadata_esDeReviewArtworkHelp": "Bestätigen Sie, dass das Cover oder Bildschirmfoto zu dieser genauen Konsole und Edition einschließlich Region, Revision und Patch gehört. Nur der ausdrücklich zugeordnete ES-DE-Pfad wird akzeptiert. Das Bild bleibt Eigentum des Launchers; alte Metadaten gelten nicht als neue Anbieterantwort.",

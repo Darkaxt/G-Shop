@@ -21,7 +21,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 34;
+  static const int _dbVersion = 35;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -366,6 +366,9 @@ class DatabaseService {
     }
     if (oldVersion < 34) {
       await MetadataRefreshJobs.installArtworkLinks(db);
+    }
+    if (oldVersion < 35) {
+      await MetadataRefreshJobs.installProgressFeedback(db);
     }
   }
 

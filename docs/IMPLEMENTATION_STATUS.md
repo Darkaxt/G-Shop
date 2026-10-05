@@ -5,6 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current authoritative checkpoint — 2026-10-06
+
+- S7 remains the sole ACTIVE stage. UI-02's latest processed-game feedback is
+  integrated in normal metadata settings: a three-second display-only cadence,
+  coalesced latest preview, explicit unverified-candidate label and the existing
+  physical-media fallback. ScreenScraper candidate covers use one serial,
+  quota-reserved authenticated image request and the existing bounded PNG policy;
+  they are transient, not accepted facts or permanent cache entries. Current
+  accepted covers reuse the owned cache/artwork path. No extra game search or
+  preview-history store is introduced.
+- Provider daily counters and their observation time are persisted additively in
+  database v35. Missing fields are Unknown, never unlimited; locally reserved
+  remaining budget is separately labelled. Missing later responses, reopen and
+  local midnight do not invent a fresh quota observation or reset enforcement.
+  Credential changes clear the displayed observation, not operational budgets.
+- Focused normal-screen, worker, provider parsing, image bounds/cancellation,
+  quota exhaustion, provider/job isolation, migration and existing artwork/job
+  checks passed. The intentional progress-layout golden was visually reviewed,
+  regenerated alone and passed a normal comparison run. Scoped analysis reports
+  no issues. These are host checks; the new feedback is NOT yet verified on the
+  Thor and S7 migration/ranking requirements remain unresolved.
+- Required normal debug build 174 passed after FIFO gate acquisition, with
+  observed workers=2, parallel=false, Gradle maximum heap=3 GiB, required JVM
+  flags preserved, and the previously assessed Kotlin 2.2.20 in-process strategy.
+  Test tasks report one fork/512 MiB at configuration time (not executed here).
+  Native environment budget is two; project native source configures single-slot
+  compile/link pools, but this incremental build does not establish effective
+  concurrency for every plugin. No memory failure or heap increase occurred.
+  APK identity/signature are independently verified; SHA-256 is
+  `a318cf7b1a08d56ee8dae4a982003f165da35a993a2b69db9e7581979dc75515`.
+  It is not installed over the ongoing collection traversal; no release occurred.
+- Normal N64 IGDB job 33 completed its 1,543-item snapshot: 953 need review,
+  304 are ambiguous, 286 unmatched, no pending items or accepted ratings. This
+  is fresh traversal coverage, not a trustworthy Top-25 retention set. The
+  collection-rooted source was observed still advancing at 62,562 entries and
+  7,574 folders, with 5,043 pending folders and generation 1 unpublished. No
+  restart, settings mutation, ROM removal or FolderSync action was performed.
+- Reviewed golden failure captures were transactionally removed after the
+  passing comparison; the tracked baseline and private migration/export evidence
+  remain. The live feedback check and the rest of MIGRATE-01 are ordinary
+  unfinished S7 work; S8/S9/S10 remain NOT STARTED.
+
 ### Current authoritative checkpoint — 2026-10-05
 
 - A seventh normal read-only Drive source rooted at the ROM collection is saved,

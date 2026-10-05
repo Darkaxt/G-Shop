@@ -9,6 +9,34 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_latestGame => 'Dernier jeu traité';
+
+  @override
+  String get metadata_unverifiedCandidate => 'Candidat non vérifié';
+
+  @override
+  String get metadata_dailyQuota => 'Quota API quotidien';
+
+  @override
+  String get metadata_requestsRemaining => 'Tentatives restantes';
+
+  @override
+  String get metadata_requestsUsed => 'Tentatives utilisées signalées';
+
+  @override
+  String get metadata_failedRequestsRemaining =>
+      'Tentatives en échec restantes';
+
+  @override
+  String get metadata_quotaObserved => 'Dernier rapport du fournisseur';
+
+  @override
+  String get metadata_localBudget => 'Budget restant réservé localement';
+
+  @override
+  String get metadata_quotaUnknown => 'Inconnu';
+
+  @override
   String get metadata_esDe => 'Publication des métadonnées ES-DE';
 
   @override

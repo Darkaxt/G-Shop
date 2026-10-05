@@ -10,8 +10,9 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 ## Required acceptance
 
 The 2026-10-06 latest-product/cover preview and ScreenScraper daily quota display
-are authorized additional S7 work and are not yet implemented or verified. They
-remain ordinary unfinished work; S8-S10 stay NOT STARTED. Normal N64 ScreenScraper
+are integrated and host-verified, but their normal Thor verification is still
+required. They remain ordinary unfinished acceptance work; S8-S10 stay NOT
+STARTED. Normal N64 ScreenScraper
 job 31 finished and its zero-item artwork job 32 is completed. A single fresh N64
 IGDB job 33 was then started through normal settings. A root-context, fixed,
 read-only native query confirmed it running at 443/1543 requested, 1100 pending,
@@ -22,6 +23,54 @@ not complete coverage or a defensible retention set. An app-UID probe was killed
 the same read-only query succeeded in root context without restarting either job.
 The reason for that probe exit is not established and no application fix is
 claimed. Both physical displays were confirmed OFF after observation.
+
+Later fixed read-only observation confirmed IGDB job 33 COMPLETE on its existing
+1,543-item snapshot: 953 needing review, 304 ambiguous, 286 unmatched, zero
+pending or accepted ratings. Collection generation 1 remained unpublished and
+advanced to 62,562 observations / 7,574 folders, with 5,043 pending folders.
+No job was restarted. These final metadata counts supersede the earlier running
+checkpoint, not the unresolved canonical membership/ranking criteria.
+
+### UI-02 scraping-feedback recheck — 2026-10-06
+
+- Normal settings now display the latest title/platform/outcome and bounded cover
+  context. A fixed three-second UI clock coalesces intermediate previews; leaving
+  the screen cancels only that clock, not the existing app-scoped worker.
+  Candidate images remain explicitly unverified and transient. They cannot
+  publish a metadata record, score, identity or permanent artwork-cache entry.
+  One serial candidate image request respects the same reserved provider budget
+  and declared cadence; the display clock never triggers provider requests.
+  Accepted images use the existing current-owned cache and artwork path.
+- The v34→v35 production upgrade adds only display quota evidence. A real SQLite
+  migration fixture preserves saved jobs, identities, provider next-allowed time
+  and exhausted budget. Missing counters are Unknown, old observations retain
+  their full date/time, and local reserved budget remains distinguishable.
+  Credential replacement clears display evidence without weakening enforcement.
+- Fresh focused checks cover the normal controller/settings wiring, candidate
+  selector sanitization, no extra game lookup, bounded/malformed images,
+  cancellation joins, exhaustion/pending preservation, latest-only display,
+  provider/job isolation, disposal and known/missing/old quota. Existing metadata,
+  artwork and earlier migration checks passed. The intentionally changed progress
+  golden was inspected and the normal comparison rerun passed; scoped analysis
+  reports no issues. The unchanged bounded 30,000-edition worker fixture observed
+  a 274,898,944-byte process RSS peak; this is measured host evidence, not a
+  whole-host cap or native-device memory guarantee.
+- Normal debug build 174 succeeded, gate actually acquired for ticket
+  `ddcce4e77daf4e828b559928deddc869`, observed workers=2 / parallel=false /
+  Gradle heap=3 GiB. Kotlin's assessed in-process configuration shares that heap.
+  Required metaspace/code-cache flags remain. Test fork/heap markers are
+  configuration evidence only; all-plugin native concurrency remains unverified.
+  No memory failure or budget increase. Gate log:
+  `093b10643d3f453a95f8c78f24b6ed4a.log`.
+- APK SHA-256:
+  `a318cf7b1a08d56ee8dae4a982003f165da35a993a2b69db9e7581979dc75515`;
+  normal `com.darkaxt.rshop.debug` / `com.retro.rshop.MainActivity`, version
+  1.7.0/code 12, existing signer
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+  Not installed over the still-running collection traversal. **Remaining:**
+  verify this exact new feedback through the real provider and normal Thor UI
+  at a safe job boundary; then continue whole-collection/ranking/recovery and
+  migration work. No stage closure, SD deletion or external release is claimed.
 
 | Boundary | Current evidence | Remaining work |
 | --- | --- | --- |

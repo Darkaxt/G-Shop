@@ -1,4 +1,13 @@
 {
+  "metadata_latestGame": "Último juego procesado",
+  "metadata_unverifiedCandidate": "Candidato sin verificar",
+  "metadata_dailyQuota": "Cuota diaria de la API",
+  "metadata_requestsRemaining": "Intentos restantes",
+  "metadata_requestsUsed": "Intentos usados según el proveedor",
+  "metadata_failedRequestsRemaining": "Intentos fallidos restantes",
+  "metadata_quotaObserved": "Último informe del proveedor",
+  "metadata_localBudget": "Presupuesto restante reservado localmente",
+  "metadata_quotaUnknown": "Desconocido",
   "metadata_esDe": "Publicación de metadatos en ES-DE",
   "metadata_esDeReviewArtwork": "Revisar y reutilizar imágenes existentes",
   "metadata_esDeReviewArtworkHelp": "Confirma que esta portada o captura pertenece a esta consola y edición exactas, incluida su región, revisión y parche. Solo se acepta la ruta ES-DE vinculada explícitamente. La imagen sigue perteneciendo al lanzador; los metadatos antiguos no se importan como datos recientes.",

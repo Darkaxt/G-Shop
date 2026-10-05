@@ -1,4 +1,13 @@
 {
+  "metadata_latestGame": "Latest processed game",
+  "metadata_unverifiedCandidate": "Unverified candidate",
+  "metadata_dailyQuota": "Daily API quota",
+  "metadata_requestsRemaining": "Remaining attempts",
+  "metadata_requestsUsed": "Reported attempts used",
+  "metadata_failedRequestsRemaining": "Failed-request attempts remaining",
+  "metadata_quotaObserved": "Last provider report",
+  "metadata_localBudget": "Locally reserved remaining budget",
+  "metadata_quotaUnknown": "Unknown",
   "metadata_esDe": "ES-DE metadata publication",
   "metadata_esDeReviewArtwork": "Review and reuse existing artwork",
   "metadata_esDeReviewArtworkHelp": "Confirm this cover or screenshot belongs to this exact console and edition, including its region/revision/patch. Only its explicitly mapped ES-DE path is accepted. Existing artwork remains launcher-owned; old metadata is not imported as fresh evidence.",

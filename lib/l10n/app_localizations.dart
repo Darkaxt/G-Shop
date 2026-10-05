@@ -105,6 +105,60 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_latestGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest processed game'**
+  String get metadata_latestGame;
+
+  /// No description provided for @metadata_unverifiedCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified candidate'**
+  String get metadata_unverifiedCandidate;
+
+  /// No description provided for @metadata_dailyQuota.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily API quota'**
+  String get metadata_dailyQuota;
+
+  /// No description provided for @metadata_requestsRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining attempts'**
+  String get metadata_requestsRemaining;
+
+  /// No description provided for @metadata_requestsUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported attempts used'**
+  String get metadata_requestsUsed;
+
+  /// No description provided for @metadata_failedRequestsRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed-request attempts remaining'**
+  String get metadata_failedRequestsRemaining;
+
+  /// No description provided for @metadata_quotaObserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Last provider report'**
+  String get metadata_quotaObserved;
+
+  /// No description provided for @metadata_localBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Locally reserved remaining budget'**
+  String get metadata_localBudget;
+
+  /// No description provided for @metadata_quotaUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get metadata_quotaUnknown;
+
   /// No description provided for @metadata_esDe.
   ///
   /// In en, this message translates to:

@@ -66,7 +66,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 34);
+      expect(await db.getVersion(), 35);
       final after = await db.query('metadata_refresh_jobs');
       expect(after, hasLength(before.length));
       for (var i = 0; i < after.length; i++) {
