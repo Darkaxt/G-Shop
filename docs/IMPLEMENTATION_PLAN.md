@@ -1,15 +1,17 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 6.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 7.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S9
+Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S10
 without new routine approval gates. Provider account setup is new; fixtures do
 not replace the required live evidence. The user selected Top 25 per console as
 the final offline sample; S7 applies the reviewed, cloud-verified migration.
 S8 was added by the user on 2026-10-02; it must not open a second active stage.
 S9 was added on 2026-10-04 as the final cartridge/legacy-media visual audit;
 its status is NOT STARTED. It does not open another implementation front in S5.
+S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
+STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
 ## S0 — Fork and specification preparation
 
@@ -717,7 +719,7 @@ independently inspected expendable package for fixture entrypoints. S6 is not
 complete from S4's component/native evidence alone.
 
 Requirements: QA-01, QA-02, QA-04; integrated recheck of S1-S6 requirements,
-with final QA-04 reconciliation repeated after S7, S8 and S9.
+with final QA-04 reconciliation repeated after S7, S8, S9 and S10.
 Depends on: S1-S5, including all required live acceptance evidence.
 
 - Re-read the full specification, not just this plan. Resolve every required
@@ -731,7 +733,7 @@ Depends on: S1-S5, including all required live acceptance evidence.
 
 Evidence: requirement-by-requirement pass/fail for feature stages S1-S6 with
 commands, fixture identifiers, source commit and device/build identity. S7,
-S8 and S9 are still required before overall completion. Public evidence must not contain
+S8-S10 are still required before overall completion. Public evidence must not contain
 private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
@@ -759,7 +761,7 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
 Evidence: bounded migration fault/restart/identity-change tests, private live
 manifest, fresh metadata coverage, Top-25 retention audit, before/after space,
-actual recovery proof and no unresolved S1-S7 blockers/deferrals. S8 and S9 remain
+actual recovery proof and no unresolved S1-S7 blockers/deferrals. S8-S10 remain
 required before overall completion.
 
 ## S8 — Per-ROM dual-display companion launching
@@ -788,13 +790,14 @@ Evidence: persistence/identity and native launch contract tests, Cocoon source a
 license review, actual Thor display-placement/controller proof, failure-path and
 ordinary-launch regression evidence, save/settings preservation and final
 S1-S8 reconciliation with zero unresolved required blockers/deferrals for those
-stages. Overall completion still requires S9.
+stages. Overall completion still requires S9 and S10.
 
 ## S9 — Final cartridge and legacy-media visual coverage
 
 Status: NOT STARTED.
 Requirements: ART-01; recheck UI-01 and QA-04.
-Depends on: S1-S8 acceptance. This is the last stage, not a second ACTIVE stage.
+Depends on: S1-S8 acceptance. This is the final visual stage, not a second ACTIVE
+stage; the subsequently authorized S10 follows it.
 
 - Inventory the then-supported cartridge consoles and their actual physical
   shapes, plus older game cards, floppy sizes/types and cassette formats.
@@ -806,12 +809,50 @@ Depends on: S1-S8 acceptance. This is the last stage, not a second ACTIVE stage.
 - Verify bundling/decoding/mappings and the normal compact/large cover states,
   cover replacement and badges/focus on the Thor; preserve settings/ROMs and
   switch both displays off after testing.
-- Resolve every ART-01 gap, reconcile all S1-S9 requirements, perform applicable
-  final verification and commit. No publication is implied.
+- Resolve every ART-01 gap, reconcile S1-S9 requirements, perform applicable
+  verification and commit. S10 remains required; no publication is implied.
 
 Evidence: complete format/asset matrix, zero unfilled supported cartridge or
 legacy-format gaps, asset provenance, inspected renders and native behavior,
-full-spec reconciliation with zero unresolved required blockers/deferrals.
+S1-S9 reconciliation with zero unresolved required blockers/deferrals.
+
+## S10 — Emulator-aware save-backup sync
+
+Status: NOT STARTED.
+Requirements: SAVE-01; recheck CORE-01/02/03, DRIVE-01/06 and QA-01/02/03/04.
+Depends on: S1-S9 acceptance. No concurrent implementation with S7-S9.
+
+- Audit actual installed-emulator save/state paths, formats and legitimate
+  Android access. Show coverage and unsupported routes; preserve FolderSync's
+  installed app, folder pairs, schedules and credentials.
+  Reconcile the full package inventory, including forks and embedded cores; the
+  target is most installed emulators. Implement and verify every accessible
+  route. Report saves/states separately and substantiate each inaccessible route;
+  do not classify uninvestigated routes as unsupported. Refresh at stage closure.
+- Prove the narrow real workflow first: explicit backup setup/consent -> stable
+  RetroArch save -> dedicated Drive backup -> verified restore -> emulator load.
+  Repeat for a standalone emulator before expanding coverage to the remaining
+  accessible installed-emulator routes and explicitly mapped custom paths.
+- Add game/edition/emulator-bound save-group identities and persistent bounded
+  backup work through existing settings/emulator return and legitimate Android
+  background work. Separate battery saves from version-sensitive save states.
+- Keep ROM Drive access read-only. Request/verify backup-only write authorization
+  separately; enforce exact backup-area/file ownership. No ROM/SD mirroring,
+  archive mutations, cloud deletion or FolderSync job changes.
+- Verify stable capture, streamed digests, recoverable last-good generations,
+  cancellation/relaunch/offline/quota/revocation and storage loss/regrant.
+  Restore atomically with a defined rollback; preserve divergent saves and offer
+  explicit conflict resolution, never deletion propagation or timestamp-only wins.
+- Verify normal controller/touch setup, coverage/status and restore, actual save
+  loading, and discovery after reconnect/expendable reinstall. Preserve real
+  saves/settings and switch both displays off.
+- Reconcile every S1-S10 requirement, resolve required blockers/deferrals, run
+  appropriate final verification and commit. No release is authorized.
+
+Evidence: inspected installed-emulator coverage matrix, native consent/scope and
+write-boundary proof, real RetroArch/standalone backup-and-load restore, durable
+generation/digest/identity/conflict and fault/restart contracts, UI/device proof,
+unchanged ROM archive/FolderSync configuration and final specification closure.
 
 ## Source extension map (baseline, not implemented classes)
 
@@ -896,3 +937,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |
 | COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
+| SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and emulator-load restore; compatibility, conflicts, last-good recovery and no ROM mirroring/FolderSync changes |

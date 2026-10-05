@@ -1,6 +1,6 @@
-# Google Drive, metadata expansion and per-ROM companions
+# Google Drive, metadata expansion, companions and save backups
 
-Authoritative specification, revision 6, 2026-10-05.
+Authoritative specification, revision 7, 2026-10-05.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -34,6 +34,14 @@ not a prerequisite for earlier functional stages. Generate additional accurate
 physical-media shapes as needed, using the established raster style, rather than
 preemptively generating a complete console-art catalogue during S5.
 
+Scope extension authorized on 2026-10-05: implement emulator save-backup sync
+inside R-Shop, rather than relying on FolderSync's limited emulator coverage.
+Add S10 after the existing stages; S7 remains the sole ACTIVE stage. Leave
+FolderSync installed and its existing folder pairs/schedules unchanged. This
+authorizes the separate SAVE-01 backup feature, not SD-card mirroring or writing
+to the ROM archive. Actual backup setup and additional Google consent remain
+explicit in the normal app workflow; no cloud backup is initiated by this spec.
+
 User decisions incorporated:
 
 - Shared metadata persistence and ES-DE integration (2026-10-05): keep expensive
@@ -44,6 +52,9 @@ User decisions incorporated:
   importing old scores as fresh evidence, or changing ES-DE user settings.
 - Google Drive and metadata expansion are the two features.
 - Per-ROM dual-display companion launching is the additional S8 feature.
+- Emulator-aware save/save-state backup is the additional S10 feature. ROM
+  catalogue/download access remains read-only; narrowly scoped backup writes are
+  a separate opt-in capability, never a general Drive write permission.
 - Physical-media fallback selection (2026-10-04): use Systematic's colored
   `-content.png` raster icons from libretro/retroarch-assets, pinned to
   `b177f250e42948708e753d30809bd4dd9c0a2cdc`. Only game-media icons are selected,
@@ -171,7 +182,9 @@ isolation tests; native live authorization evidence before feature completion.
 On 2026-10-04 the user explicitly waived the live second-account isolation check:
 do not require adding another account to a device or the Google project, and do
 not let that check block delivery. Offline isolation contracts remain required.
-This waiver is not live isolation evidence. No Drive mutation methods are invoked.
+This waiver is not live isolation evidence. ROM catalogue/download operations
+invoke no Drive mutation methods. SAVE-01 separately defines the only authorized
+backup-write boundary; it does not expand the ROM source's permissions.
 
 ### DRIVE-02 — Folder selection and paginated catalogue
 
@@ -456,7 +469,7 @@ Use the published remote catalogue, not local ROM presence, as the membership
 input for scraping and shared metadata updates. A successful catalogue/provider
 refresh updates exact affected identities and their current metadata; an outage
 or incomplete refresh cannot publish an empty collection or erase usable data.
-Drive remains read-only: catalogue changes come from Drive metadata, rich facts
+The ROM catalogue remains read-only: changes come from Drive metadata, rich facts
 from the legitimate metadata providers. No ROM body requests are needed.
 
 Reuse existing ES-DE covers/screenshots only after validating their console,
@@ -640,7 +653,7 @@ controller/touch proof; actual Thor ROM on top plus linked APK on bottom;
 independent associations for two ROMs; repeated launch, missing app, launch
 rejection and unavailable-display coverage; ordinary launch without a companion;
 save/settings preservation and both displays switched off after live testing.
-Reconcile all S1-S9 requirements before overall completion. S8 being planned is
+Reconcile all S1-S10 requirements before overall completion. S8 being planned is
 not implementation or acceptance evidence.
 
 ## 6c. Final original-media visual audit (S9)
@@ -665,9 +678,78 @@ Acceptance: a complete platform-to-original-format-to-asset matrix for the then
 supported systems, no unresolved cartridge or legacy-format gaps, provenance for
 added assets, decoded/bundled/mapping checks and visual review of compact/large
 cards on the Thor. Recheck cover replacement and badge/focus preservation, switch
-both displays off, and reconcile the full specification before final completion.
+both displays off, and reconcile the delivered requirements. Overall completion
+also requires the subsequently authorized S10 save-backup stage.
 S9 is required at final closure, but does not retroactively block earlier stages
 or permit their existing acceptance criteria to be weakened.
+
+## 6d. Emulator-aware save-backup sync (S10)
+
+### SAVE-01 — Save and save-state backup without ROM mirroring
+
+Add backup sync to R-Shop's normal settings and game/emulator workflow. At stage
+entry, audit the emulators installed on the Thor and their supported save-memory
+and save-state locations, formats and permission routes. Provide a visible
+per-emulator coverage matrix and explicit user-selected path mappings; do not
+claim RetroArch-only coverage is sufficient. Start with a real RetroArch plus
+standalone-emulator vertical slice, then implement the remaining accessible
+installed-emulator routes. Protected or unidentifiable storage is visibly
+unsupported until a legitimate export/import or user-granted route is available;
+do not bypass Android storage protections or require root/ADB for normal use.
+The user's coverage target is most installed emulators, not just the initial
+pair. Reconcile the full installed package inventory, including differently named
+forks and multi-core/embedded emulators. Every accessible installed-emulator route
+must be implemented and verified; record save and state coverage separately, with
+the exact permission/export limitation for any unsupported route. An uninvestigated
+route is unfinished work, not a justified unsupported classification. Refresh the
+inventory at S10 entry and closure rather than freeze today's installed apps.
+
+Bind backups to the account, device, emulator/core, console and reviewed
+game/edition identity. Separate portable battery/in-game saves from save states;
+record emulator/core and state-format compatibility rather than restore an
+incompatible state into another emulator. Unknown associations remain unresolved.
+Include required related save files as a group, not ROMs, BIOS, shaders, arbitrary
+app data, credentials or emulator settings. Custom paths require explicit mapping
+and the same file/identity safeguards; never scan and upload the entire SD card.
+
+Use a dedicated Google Drive backup area with separately consented, least-privilege
+write access to app-created/explicitly authorized backup files (initial candidate
+`drive.file`, subject to actual native verification). A folder selection alone
+does not authorize all existing descendants. Keep the ROM provider read-only and
+enforce the backup boundary in code even if an account grant includes both scopes.
+No public sharing, full-Drive write scope, ROM upload or cloud-original deletion.
+Keep FolderSync's existing configuration untouched; do not import its secrets or
+silently alter its save-backup jobs as part of this feature.
+
+After explicit enablement, back up changed saves through persistent bounded work,
+including emulator-return and Android-supported background synchronization.
+Expose per-emulator/game progress, last verified backup and permission/offline/
+quota errors. Capture stable file identities and complete coherent groups without
+killing an emulator or using an arbitrary delay as proof that writing finished.
+Stream digests, validate uploaded bytes and publish only a complete recoverable
+generation. Cancellation, interrupted upload, changed source or revoked access
+must preserve the last-good backup and resume without duplicate workers.
+
+Provide an explicit restore path, also discoverable when installing a game on
+demand. Verify cloud identity/digests, compatible formats and destination grants
+before atomic local publication. Preserve the current local generation for a
+defined rollback procedure. Use recorded ancestry/digests, not timestamps alone,
+to reconcile divergent local/cloud saves; surface conflicts for explicit choice.
+Never silently overwrite a newer save, propagate local/cloud deletions, or remove
+backups when a ROM/source is removed or the app is uninstalled. Retained versions
+must be independently discoverable after reconnect/reinstall. Version pruning is
+not authorized by this scope; do not add unlimited polling or a general sync engine.
+
+Acceptance: native Thor backup/download/digest verification and successful
+emulator-load restoration of actual save data for RetroArch and a standalone
+emulator, followed by the installed-emulator coverage audit. Demonstrate save
+versus state compatibility, multiple ROM/edition isolation, changed files/groups,
+conflicts, offline/relaunch/cancellation/revocation and lost/regranted storage.
+Prove last-good recovery after interrupted publication and reconnect/reinstall
+with expendable fixtures, without uninstalling the owner's app or damaging real
+saves. Verify no ROM/BIOS/settings transfers, archive writes or FolderSync
+configuration changes. Controller/touch setup, status and restore must work;
+switch both displays off and reconcile all S1-S10 requirements before completion.
 
 ## 7. Quality and delivery requirements
 
@@ -729,7 +811,9 @@ blockers/deferrals. Preparation completion is not feature completion.
 ## 8. Non-goals for this scope
 
 - Streaming ROM content directly into emulators; games are downloaded first.
-- Google Drive uploads, remote deletion, public share-link download workarounds.
+- ROM/BIOS uploads, archive mutation, remote deletion and public share-link
+  download workarounds. SAVE-01's separately authorized save-backup uploads are
+  the sole write exception; there is no SD-card or arbitrary-folder mirroring.
 - Android CHD/media conversion, a general downloader rewrite, or new ROM sites.
 - Automatic ongoing SD-card eviction, rewriting LoLSuite, or changing archival
   Top lists. The explicit one-time Top-25 device migration is in scope.

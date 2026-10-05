@@ -8,6 +8,8 @@ the Thor's top display, linked installed Android app on the bottom. Review Cocoo
 source/licensing when that stage starts, not during earlier-stage implementation.
 Final S9 audits supported cartridge and legacy-media artwork coverage. It must
 not open a second ACTIVE stage or trigger speculative console-art generation.
+Authorized S10 adds emulator-aware save/save-state backup sync inside R-Shop.
+Leave FolderSync installed/configured as-is. Do not start S10 while S7-S9 is ACTIVE.
 
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.
@@ -17,7 +19,9 @@ not open a second ACTIVE stage or trigger speculative console-art generation.
   provider access must be verified, not inferred from credential presence.
 - Preserve upstream behavior, licenses, and existing user data. Work on
   `codex/` branches. No forced pushes or unrelated refactoring.
-- Google Drive is read-only. Do not publish ROMs, private library inventories,
+- ROM Google Drive access is read-only. SAVE-01 separately authorizes opt-in
+  backup-only writes in S10, never ROM/SD mirroring or archive mutation.
+  Do not publish ROMs, private library inventories,
   OAuth tokens, account credentials, signing material, or diagnostic exports.
 - Old scraped metadata is not the baseline. Fresh scraping is required.
 - Keep game identity, file identity, metadata provenance, transfer state, and

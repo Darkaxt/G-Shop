@@ -7,6 +7,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current authoritative checkpoint — 2026-10-05
 
+- Revision 7 records the user-authorized S10 emulator save/save-state backup
+  feature. S10 is NOT STARTED; S7 remains the sole ACTIVE stage and S8/S9 remain
+  NOT STARTED. FolderSync must stay installed with its existing configuration.
+  Backup writes will require a separate explicit native setup/consent and exact
+  backup-file boundary; ROM access remains read-only. No backup implementation,
+  additional OAuth grant, save upload or FolderSync sync is claimed. Overall
+  completion now requires S1-S10 reconciliation, not just the earlier stages.
+  The follow-on user instruction makes most installed emulators the coverage
+  target. Full package discovery was read-only; it neither proves save access nor
+  authorizes uploads. S10 must reconcile forks/embedded cores and verify every
+  accessible route, with evidenced limitations rather than skipped investigations.
+
 - S4 closure is committed locally as `145b5a3`. S6's current source/provider/
   queue/migration and details/artwork checks are recorded in
   [S6_ACCEPTANCE_RECONCILIATION.md](S6_ACCEPTANCE_RECONCILIATION.md). A reproduced
@@ -52,7 +64,12 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   score distinctions. The private PSP audit finished with 169 cached size/digest
   matches; none authorizes removal. PS1's first catalogue generation published
   5,162 observations, including 1,336 folders. Its normal PS1-only mapping and
-  SD restore destination are now saved; no fresh PS1 scrape is yet claimed.
+  SD restore destination are now saved. Normal ScreenScraper job 20 has now
+  completed all 405 PS1 rows: 214 need review, 136 are ambiguous and 55 unmatched,
+  with zero accepted/rated results. Its artwork job 21 completed with zero items.
+  Stable device-before/device-after/host database digests agreed and quick_check
+  passed. This scope includes 319 remote artifacts and 86 local rows; completion
+  of traversal is not canonical membership, a defensible ranking or S7 closure.
   A reproduced mapping-screen overflow/ANR was traced to repeated all-folder
   dropdowns and corrected with one searchable, lazy picker. The same native
   source now scrolls, clears the unrelated PSP suggestion and saves normally.
@@ -85,7 +102,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   synthetic save fixture, UI XML and superseded APK were cleaned. The authorized
   normal test installation and current APK remain. S7's provider traversals cover
   the earlier two-console generation; no whole-collection scrape, SD migration
-  or external release has occurred. The overall plan remains incomplete: S7-S9
+  or external release has occurred. The overall plan remains incomplete: S7-S10
   must still satisfy their own criteria. The reported logo hang was not reproduced;
   no historical root cause or speculative startup fix is claimed.
 - The current normal mapper-fix APK is installed in place with the same package
@@ -2408,9 +2425,10 @@ ledger. Failed attempts remain failed; later verification is identified explicit
 | S4 | COMPLETE | S4_ACCEPTANCE_RECONCILIATION.md: current normal artwork, matching/tags/assessed score/query, durable bounded shared rebuild, exact ES-DE fields/media and actual Thor permission/restart/expendable-reinstall workflows verified; owner-directed setup reconstruction verified | None for assigned S4 criteria. B7's old private bytes remain irreversibly lost, not claimed recovered; its operational reconstruction resolution is verified. Other score scopes remain explicitly advisory, not silently accepted |
 | S5 | COMPLETE | Normal native shared-card layout/overlays/media and pinned IGDB service icon, decoded cached cover replacement in console/Library/shelf, independent tags/unrated paths, filters/focus/restore, setup/refresh/review/correction, details/provenance/error/retry and localized Sources menus verified; consolidated evidence in S5_ACCEPTANCE_RECONCILIATION.md | None for UI-01/UI-02/UI-03; S9 owns the expressly named final complete cartridge/legacy-platform asset coverage |
 | S6 | COMPLETE | ea63586; S6_ACCEPTANCE_RECONCILIATION.md: combined normal real Drive/metadata/artwork/SD/emulator/remove/re-download/offline workflow and focused integration/privacy/resource checks | None for assigned S6 criteria; no bulk scrape or SD migration claimed |
-| S7 | ACTIVE | S7_ACCEPTANCE_RECONCILIATION.md; fresh provider traversals completed on the stable 316-entry generation; third PSP mapping and 585-entry cold-launch/navigation verified; exact partial read-only SD/host audit | MIGRATE-01: whole-collection coverage, reviewed identities and defensible ranking, live cloud recovery, exact reviewed removals, retained-set and space audit |
+| S7 | ACTIVE | S7_ACCEPTANCE_RECONCILIATION.md; fresh provider traversals completed on the earlier 316-entry scope and separate PSP scope; PS1 ScreenScraper job 20 completed 405 rows with explicit unresolved outcomes; four mappings expose 904 remote plus 524 local rows; exact partial read-only SD/host audit | MIGRATE-01: whole-collection coverage, reviewed identities and defensible ranking, live cloud recovery, exact reviewed removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
 | S9 | NOT STARTED | User complete physical-media coverage choice recorded in revision 5 | ART-01: complete cartridge/legacy-media asset matrix and native cover-state audit; final integrated reconciliation |
+| S10 | NOT STARTED | User save-backup and most-installed-emulator coverage instructions recorded in revision 7; initial read-only package discovery, not save-access proof | SAVE-01: every accessible installed-emulator route, evidence for inaccessible routes, separate backup consent, real backup/restore/emulator-load workflows, conflicts and last-good recovery; leave FolderSync unchanged |
 
 B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This

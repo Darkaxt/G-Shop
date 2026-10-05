@@ -1,13 +1,16 @@
 # S7 live metadata and Thor migration
 
-Authority: `SPECIFICATION.md` revision 6, MIGRATE-01. Status: **ACTIVE**, the
-sole ACTIVE stage. S6 is COMPLETE at `ea63586`; S8/S9 are NOT STARTED.
+Authority: `SPECIFICATION.md` revision 7, MIGRATE-01. Status: **ACTIVE**, the
+sole ACTIVE stage. S6 is COMPLETE at `ea63586`; S8/S9/S10 are NOT STARTED.
+S10 owns the newly authorized R-Shop save-backup feature. FolderSync remains
+installed with its existing folder pairs and schedules unchanged; neither
+integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
 | Boundary | Current evidence | Remaining work |
 | --- | --- | --- |
-| Real collection membership and fresh metadata | Four rooted cloud mappings expose 904 remote artifacts (GameCube, Game Gear, PSP and PS1), not the complete SD collection. Normal local scanning adds 524 local rows, giving 1,428 Library rows; these are not reviewed canonical games or managed installations. Both providers completed the earlier 316-entry two-console scope and the separate 269-artifact PSP scope, with unresolved outcomes retained. PS1 generation 1 published 5,162 observations/1,336 folders and its normal PS1-only mapping is saved; no PS1 scrape is yet claimed. Initial read-only SD census confirms additional occupied consoles and multi-file MSU content. | Reconcile explicit cloud/console mappings and eligible game membership; extend fresh coverage to the remaining stable-generation console scopes, including explicit unmatched/ambiguous/failed/rated coverage. |
+| Real collection membership and fresh metadata | Four rooted cloud mappings expose 904 remote artifacts (GameCube, Game Gear, PSP and PS1), not the complete SD collection. Normal local scanning adds 524 local rows, giving 1,428 Library rows; these are not reviewed canonical games or managed installations. Both providers completed the earlier 316-entry two-console scope and the separate 269-artifact PSP scope, with unresolved outcomes retained. PS1 generation 1 published 5,162 observations/1,336 folders and its normal PS1-only mapping is saved. ScreenScraper job 20 completed 405 PS1 rows (319 remote plus 86 local): 214 need review, 136 ambiguous, 55 unmatched, zero accepted/rated. Artwork job 21 completed with zero items. Initial read-only SD census confirms additional occupied consoles and multi-file MSU content. | Reconcile explicit cloud/console mappings and eligible game membership; extend fresh coverage to the remaining stable-generation console scopes, including explicit unmatched/ambiguous/failed/rated coverage. |
 | Defensible Top-25 retention per console | S4 validated the score contract; S6's one real ScreenScraper score remains advisory. No full-library ranking proof exists. | Gather accepted current scores, audit canonical game/disc/bundle groups, preserve unresolved consoles/games until ranking is defensible. |
 | Identical cloud recovery and exact paths | S6 proves one normal SD on-demand restore/remove/re-download and offline Dolphin path. Existing SD files are not thereby owned by R-Shop. | Inventory private exact paths, file identities, cloud IDs/version/digests; prove applicable restore routes; build/review the strict one-time manifest and interruption-safe journal. |
 | Preserve saves/BIOS/settings/unknown content and prevent refill | No existing SD paths have been removed or adopted. Current LoLSuite device manifests exist and must be reconciled, not treated as removal authority. | Establish save/config baselines and on-demand sync coordination without changing H: archival profiles; revalidate each eligible removal. |
@@ -310,3 +313,18 @@ above are ordinary unfinished work, not grounds to open S8.
   canonical membership, defensible Top-25 retention and live cloud/recovery/
   migration criteria are still unfinished. No existing ROM was adopted, moved
   or removed; S8/S9 remain NOT STARTED.
+
+### Subsequent PS1 completion and scope extension — 2026-10-05
+
+- Normal PS1 ScreenScraper job 20 completed all 405 requested rows: 214
+  needsReview, 136 ambiguous and 55 unmatched, with zero accepted/rated results.
+  Follow-on artwork job 21 completed with zero items. A fresh bounded read-only
+  database inspection verified device-before/device-after/host digest agreement,
+  quick_check, both terminal jobs and exact outcomes. The scope is 319 remote
+  artifacts plus 86 local rows, not 405 reviewed canonical games. No duplicate
+  refresh or fabricated ranking was used to resolve uncertain matches.
+- Revision 7 adds SAVE-01/S10, with the user's subsequent instruction to cover
+  most installed emulators. Full package discovery was read-only; save access,
+  backup uploads and restore support are not claimed. S10 remains NOT STARTED;
+  S7 is the sole ACTIVE stage, and S8/S9 remain NOT STARTED. FolderSync's pairs,
+  schedules and transfers were not changed or invoked; it remains as-is.
