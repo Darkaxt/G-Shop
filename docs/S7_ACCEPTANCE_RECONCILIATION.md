@@ -9,6 +9,31 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Breadth/inventory checkpoint (2026-10-06): normal PSP IGDB job 45 completed its
+341 editions: 12 matched, 222 review, 57 ambiguous and 50 unmatched; 11 carry a
+rating. Ten matches use the new automatic corroboration path, all with current
+identity bindings and source fingerprints; six meet the existing vote floor.
+These are not whole-collection ranking or deletion authority. The same collection
+generation 1 resumed after native default-account reauthorization and advanced
+to 78,195 observations / 7,538 pending folders without discarding its checkpoint.
+Normal PS2 ScreenScraper job 46 is running; observation at 51 requests verifies
+28 matches/current bindings/raw match methods and 40 header bindings, with 175
+items pending. No per-game corrections were made in this checkpoint.
+
+Read-only SD inventory was decoupled from the published cloud comparison: the
+live catalogue is 156,856,320 bytes, larger than the comparison's 64 MiB cap.
+`--inventory-only` reads neither database/config nor ROM bodies and makes no
+cloud-recovery claim. Focused host regression verifies preserved files, unstable
+files and non-ROMs with all removal gates retained. Real PSP inventory completed
+170 files: 169 ROMs / 129,899,079,437 bytes and one non-ROM; PS1 completed 87 files:
+86 ROMs / 30,900,237,652 bytes and one non-ROM; PS2 completed 24 files: 23 ROMs /
+45,166,984,325 bytes and one non-ROM. All 281 file observations are stable, have
+no calculated digest or cloud candidates, and remain preserved. Exact private
+journals remain outside Git for subsequent revalidation. No ROM,
+save, cloud original or FolderSync setting was changed. Full publication, fresh
+coverage, defensible retention, cloud recovery and migration remain unfinished;
+S7 is still the only ACTIVE stage.
+
 Cross-provider checkpoint (2026-10-06): current hash-bound ScreenScraper official
 release facts can uniquely corroborate an IGDB main game using exact normalized
 title, platform, full regional date and developer/publisher roles. The source

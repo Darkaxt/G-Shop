@@ -1,9 +1,12 @@
 """Focused contracts for the S7 read-only audit; no device/network requests."""
 import io
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from thor_migration_audit import Device, compare_observation, checked_relative_path
+from thor_migration_audit import Device, GATES, compare_observation, checked_relative_path, main
 
 
 class MigrationAuditTests(unittest.TestCase):
@@ -83,6 +86,56 @@ class MigrationAuditTests(unittest.TestCase):
                      '/storage/card/Roms/gg/../a.zip', '/storage/card/Roms/gg'):
             with self.assertRaises(ValueError):
                 checked_relative_path(path, '/storage/card/Roms/gg')
+
+    def test_inventory_only_does_not_read_catalogue_or_hash_roms(self):
+        root = '/storage/card/Roms/gg'
+        device = Mock()
+        device.shell.side_effect = [root.encode(), (root + '/Game.zip\0').encode()]
+        local = dict(self.local, name='Game.zip', md5=None,
+                     path=root + '/Game.zip', relativePath='Game.zip')
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'private.jsonl'
+            argv = ['audit', '--adb', 'adb', '--serial', 'fixture',
+                    '--platform', 'gamegear', '--root', root, '--extension', '.zip',
+                    '--inventory-only', '--output', str(output)]
+            with patch('sys.argv', argv), patch('thor_migration_audit.Device', return_value=device), \
+                 patch('thor_migration_audit.cloud_snapshot') as cloud, \
+                 patch('thor_migration_audit.local_observation', return_value=local) as observe, \
+                 patch('sys.stdout', new_callable=io.StringIO):
+                main()
+            records = [json.loads(line) for line in output.read_text().splitlines()]
+        cloud.assert_not_called()
+        observe.assert_called_once_with(device, root + '/Game.zip', root, False)
+        self.assertEqual(records[0]['cloudEvidence'], 'inventory_only_no_cloud_evidence')
+        self.assertEqual(records[1]['comparison'], 'cloud_not_observed')
+        self.assertFalse(records[1]['removalAuthorized'])
+        self.assertEqual(records[1]['remainingGates'], GATES)
+        self.assertIn('defensible_retention', records[1]['remainingGates'])
+        self.assertEqual(records[-1]['kind'], 'completed')
+        self.assertFalse(records[-1]['removalAuthorized'])
+
+    def test_inventory_only_preserves_unstable_files_and_non_roms(self):
+        root = '/storage/card/Roms/gg'
+        device = Mock()
+        device.shell.side_effect = [root.encode(),
+            (root + '/Game.zip\0' + root + '/settings.txt\0').encode()]
+        locals = [dict(self.local, stable=False), dict(self.local, name='settings.txt')]
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'private.jsonl'
+            argv = ['audit', '--adb', 'adb', '--serial', 'fixture',
+                    '--platform', 'gamegear', '--root', root, '--extension', '.zip',
+                    '--inventory-only', '--output', str(output)]
+            with patch('sys.argv', argv), patch('thor_migration_audit.Device', return_value=device), \
+                 patch('thor_migration_audit.cloud_snapshot') as cloud, \
+                 patch('thor_migration_audit.local_observation', side_effect=locals) as observe, \
+                 patch('sys.stdout', new_callable=io.StringIO):
+                main()
+            records = [json.loads(line) for line in output.read_text().splitlines()]
+        cloud.assert_not_called()
+        self.assertTrue(all(call.args[-1] is False for call in observe.call_args_list))
+        self.assertEqual(records[1]['comparison'], 'local_changed')
+        self.assertEqual(records[2]['comparison'], 'non_rom_preserved')
+        self.assertTrue(all(record['removalAuthorized'] is False for record in records))
 
 
 if __name__ == '__main__':

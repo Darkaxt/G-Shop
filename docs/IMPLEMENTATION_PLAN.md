@@ -16,7 +16,11 @@ STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 S7 current checkpoint (2026-10-06): normal mapped Drive raw/CHD evidence supplies
 automatic ScreenScraper identification; current exact official release facts can
 then uniquely corroborate IGDB through the normal persistent worker. Native PSP
-job 45 verifies automatic publication without per-title curation. Continue broad
+job 45 finished and verifies ten automatic corroborated publications, six with
+the existing vote support. PS2 ScreenScraper job 46 independently verifies the
+same normal header path on multiple entries; it remains running. The read-only
+inventory now has an explicit no-cloud/no-hash mode, independent of the growing
+catalogue. Continue broad
 collection publication and metadata coverage before defensible retention and
 reviewed migration; the checkpoint does not close S7 or open S8/S9/S10.
 

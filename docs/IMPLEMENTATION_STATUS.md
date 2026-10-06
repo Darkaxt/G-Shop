@@ -5,6 +5,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 automatic breadth and independent SD inventory — 2026-10-06
+
+- The completed normal PSP IGDB job 45 requested all 341 editions: 12 matched,
+  222 review, 57 ambiguous, 50 unmatched; 11 rated. Ten accepted records use
+  automatic official-release corroboration, with ten current identity bindings
+  and source fingerprints. Six meet the existing vote floor. No manual per-title
+  corrections or scores were introduced; this is not a defensible full Top set.
+- Root collection generation 1 resumed through native default-account connect
+  and ordinary Refresh catalogue, without replacing its checkpoint or changing
+  the six console mappings. It reached 78,195 observations / 7,538 pending
+  folders. Normal fresh PS2 ScreenScraper job 46 is running: at 51 requests,
+  28 current matched/raw-identifier records and 40 header bindings are persisted;
+  175 items remain pending. This verifies a standardized multi-entry workflow,
+  not completed collection coverage.
+- The SD audit's local inventory no longer requires copying the full growing
+  database. Observed `rshop.db` is 156,856,320 bytes; the existing comparison
+  reader's 64 MiB bound is deliberately not raised. `--inventory-only` reads exact
+  file paths/stats with no catalogue/config read and no ROM hashing/payload read.
+  It explicitly records absent cloud evidence and retains every removal gate.
+  Focused host contracts pass, including unstable and non-ROM preservation.
+- Real private inventories completed for PSP (169 ROMs, 129,899,079,437 bytes,
+  one non-ROM), PS1 (86 ROMs, 30,900,237,652 bytes, one non-ROM) and PS2 (23 ROMs,
+  45,166,984,325 bytes, one non-ROM). All 281 observations are stable and preserved;
+  the terminal summaries, absent digests and empty cloud candidates were inspected.
+  Journals are
+  `D:\Temp\rshop-s7-psp-inventory-20261006.jsonl` and
+  `D:\Temp\rshop-s7-psx-inventory-20261006.jsonl` and
+  `D:\Temp\rshop-s7-ps2-inventory-20261006.jsonl`, retained for exact later
+  revalidation, never published. Every disposition is preserve; no checksum,
+  canonical ownership, live cloud recovery or deletion proof is inferred.
+- No Gradle build, APK installation, account creation, cloud mutation, ROM/save
+  removal, FolderSync change or release occurred. S7 remains the sole ACTIVE
+  stage; collection publication, fresh breadth, defensible retention and reviewed
+  migration are still required. S8-S10 remain NOT STARTED.
+
 ### S7 standardized cross-provider corroboration — 2026-10-06
 
 - Removed the need for per-title manual IGDB assignments only where current,

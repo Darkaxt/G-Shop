@@ -3,6 +3,8 @@
 Writes a PRIVATE exclusive-create JSONL observation journal, outside the repo.
 Cached Drive checksums are comparison evidence, never current recovery authority.
 An interrupted journal lacks its terminal summary and must not be called complete.
+Use --inventory-only to record local paths/stats without reading the catalogue or
+ROM bodies. It supplies no cloud/recovery evidence and still preserves every file.
 """
 import argparse
 import collections
@@ -161,6 +163,8 @@ def main():
     parser.add_argument('--platform', required=True)
     parser.add_argument('--root', required=True)
     parser.add_argument('--extension', action='append', required=True)
+    parser.add_argument('--inventory-only', action='store_true',
+                        help='Local path/stat inventory only; no catalogue read or ROM hashing')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     repo = Path(__file__).resolve().parent.parent
@@ -172,7 +176,7 @@ def main():
     device = Device(args.adb, args.serial, args.package)
     if device.shell('realpath ' + shlex.quote(args.root)).decode().strip() != args.root:
         raise ValueError('Root is redirected or not normalized')
-    artifacts, scopes = cloud_snapshot(device, args.platform)
+    artifacts, scopes = ([], []) if args.inventory_only else cloud_snapshot(device, args.platform)
     by_name = collections.defaultdict(list)
     for artifact in artifacts:
         by_name[artifact['displayName']].append(artifact)
@@ -189,7 +193,8 @@ def main():
         record({'kind': 'header', 'schema': 'rshop.s7.readonly-audit.v1',
                 'observedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 'serial': args.serial, 'platform': args.platform, 'root': args.root,
-                'cloudEvidence': 'published_app_cache_not_live_revalidation',
+                'cloudEvidence': ('inventory_only_no_cloud_evidence' if args.inventory_only else
+                                  'published_app_cache_not_live_revalidation'),
                 'scopes': scopes, 'removalAuthorized': False})
         paths = device.shell('find ' + shlex.quote(args.root) +
                              ' \\( -type f -o -type l \\) -print0').split(b'\0')
@@ -203,9 +208,15 @@ def main():
             is_game_artifact = PurePosixPath(name).suffix.lower() in extensions
             local = local_observation(device, path, args.root,
                                       is_game_artifact and len(candidates) == 1)
-            comparison = compare_observation(local, candidates) if is_game_artifact else {
-                'comparison': 'non_rom_preserved', 'disposition': 'preserve',
-                'removalAuthorized': False, 'remainingGates': []}
+            if not is_game_artifact:
+                comparison = {'comparison': 'non_rom_preserved', 'disposition': 'preserve',
+                              'removalAuthorized': False, 'remainingGates': []}
+            elif args.inventory_only:
+                comparison = {'comparison': 'cloud_not_observed' if local['stable'] else 'local_changed',
+                              'disposition': 'preserve', 'removalAuthorized': False,
+                              'remainingGates': list(GATES)}
+            else:
+                comparison = compare_observation(local, candidates)
             record({'kind': 'file', 'local': local, 'cloudCandidates': candidates,
                     **comparison})
             counts[comparison['comparison']] += 1

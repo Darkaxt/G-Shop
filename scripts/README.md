@@ -25,6 +25,16 @@ Config reads are capped at 1 MiB, database observations at 64 MiB, and device
 shell output at 8 MiB. Inconsistent catalogue observations fail without repair
 or automatic retry. One client runs at a time; there are no arbitrary deadlines.
 
+For a local inventory before cloud/retention verification, append
+`--inventory-only`. This mode does not read the app database/config or hash ROMs:
+it records exact paths, sizes and before/after file stats. ROM records explicitly
+say `cloud_not_observed` (or `local_changed`); non-ROM files remain preserved.
+The private journal has no cloud identity/digest proof and cannot authorize a
+removal. It works independently of an unpublished scan or a catalogue larger
+than the comparison mode's 64 MiB observation cap. Do not increase that cap or
+copy a live database to pretend this inventory proves recovery. The separate
+cloud comparison still requires a consistent, bounded cache observation.
+
 Focused host contracts (synthetic, no device/network):
 
 ```powershell
