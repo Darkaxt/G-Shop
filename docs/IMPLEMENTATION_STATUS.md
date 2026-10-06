@@ -5,6 +5,28 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 PSP save-location boundary — 2026-10-06
+
+- Read-only checks found neither internal nor SD-root `PSP` path available.
+  The checked internal/SD `Android/data/org.ppsspp.ppsspp/files` directories
+  exist, but bounded enumeration returned no files. This does not certify
+  absence of private/custom saves. Installed PPSSPP v1.20.4's ordinary activity
+  displays the initial Memory Stick location chooser. No option, folder grant,
+  move, save, ROM or emulator setting was selected/changed. Returned to the same
+  R-Shop task without killing PPSSPP or NetherSX2; this is not S10 setup.
+  [Official storage documentation](https://www.ppsspp.org/docs/getting-started/save-data-and-storage/)
+  distinguishes user-selected PSP storage from app storage; neither is inferred
+  from an absent default folder. PSP save coverage remains unverified/protected.
+- Both displays were confirmed OFF. Same metadata job 70 remains running at
+  pending 207 / matched-and-rated 123; root generation 1 advances to 159,904
+  observations / 5,874 pending folders, nextGeneration=2. No terminal coverage
+  is claimed. The earlier reviewed-manifest classification decision remains
+  unanswered and was presented again as a precise provenance choice, separately
+  from cryptographic cloud recovery and deletion authority.
+- S7 remains sole ACTIVE; the complete fresh pass, defensible rankings and
+  reviewed save-safe migration remain required. S8-S10 remain NOT STARTED.
+  No code, APK, Gradle command or cloud original was changed.
+
 ### S7 captive-portal recovery / same-job resume — 2026-10-06
 
 - Normal Resume kept N64 metadata job 70 intact but its access check returned
