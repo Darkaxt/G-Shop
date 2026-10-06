@@ -103,6 +103,23 @@ void main() {
     await expectLater(missing.open(chd, psx, '/owned'), throwsStateError);
     expect(calls, hasLength(1));
   });
+  test('standalone PS2 CHD requires ownership and uses the NetherSX2 leaf route', () async {
+    final ps2 = SystemModel.supportedSystems.singleWhere((s) => s.id == 'ps2');
+    final chd = exactGame('ps2-chd', name: 'Game.chd');
+    final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+      'artifact': chd.remoteArtifact!.toJson(), 'relativePath': chd.filename});
+    final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+    expect(OwnedEmulatorLauncher.supports(chd, ps2), isTrue);
+    await launcher.open(chd, ps2, '/owned');
+    expect(calls.single.method, 'launchOwnedNetherSX2');
+    expect(calls.single.arguments, {'installationId': installed.id, 'filename': chd.filename});
+    for (final extension in ['zip', '7z', 'iso', 'cue', 'm3u']) {
+      expect(OwnedEmulatorLauncher.supports(exactGame('other', name: 'Game.$extension'), ps2), isFalse);
+    }
+    final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+    await expectLater(missing.open(chd, ps2, '/owned'), throwsStateError);
+    expect(calls, hasLength(1));
+  });
   test('standalone PSP CHD requires ownership and uses PPSSPP without path grants', () async {
     final psp = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psp');
     final chd = exactGame('psp-chd', name: 'Game.chd');

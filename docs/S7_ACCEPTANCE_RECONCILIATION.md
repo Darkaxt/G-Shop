@@ -1,5 +1,43 @@
 # S7 live metadata and Thor migration
 
+## PS2 standalone CHD recovery checkpoint — 2026-10-06
+
+The existing owned-file route now hands standalone PS2 CHDs to installed
+NetherSX2 using its explicit EmulationActivity and bootPath content URI. The
+exact document-shaped leaf grant is read-only; ownership and standalone/no-bundle
+constraints are checked before handoff and external open. No directory, archive,
+ISO, bundle or BIOS acquisition support is inferred.
+
+Normal DOWNLOAD, actual online game rendering, cold offline rendering, owned
+DELETE and identical re-download passed on the Thor. The 62,976,347-byte CHD
+matched the unchanged H: original SHA-256. Durable publication recorded completed
+copy, retired staging and one installation/owner. Final normal DELETE left zero
+proof-root transfers/installations/owners and two completed issue-free removal
+journals. The empty proof directory is absent. The normal picker restored PS2
+storage and the full source configuration returned to its exact baseline hash.
+NetherSX2 was installed as a missing prerequisite; its normal BIOS picker imported
+an existing owner-supplied BIOS, independently checksum-verified. The original
+BIOS was unchanged and the temporary import copy was removed.
+
+Focused Dart regression/analysis and native exact-leaf grant checks passed. Build
+222 acquired the shared Gradle gate and passed with two workers, no parallel
+execution and an inspected 3-GiB Gradle heap. Kotlin was requested in-process;
+runtime test-fork heap and current generated native pool were not independently
+measured. No memory failure occurred. Full evidence is in the status ledger.
+
+The SAME N64 metadata job 70 and root generation 1 resumed. Original ROMs, saves,
+settings, cloud files and FolderSync were preserved; Wi-Fi is enabled and both
+physical screens are OFF. Search/menu navigation also exhibited a transient
+failure to open the quick menu. Normal app exit/reopen cleared it, but root cause
+and a regression fix are not yet established. This remains unfinished S7 work,
+not a completed or deferred acceptance criterion.
+
+This closes only the bounded PS2 CHD recovery workflow. S7 remains the sole ACTIVE
+stage: full fresh metadata/reception coverage, defensible rankings, catalogue
+publication, remaining format recovery and reviewed save/space-safe migration
+remain required. S8-S10 are NOT STARTED. The bulk provenance-classification
+decision remains pending.
+
 ## PSP standalone CHD recovery checkpoint — 2026-10-06
 
 The normal owned-file route supports standalone PSP CHDs through installed

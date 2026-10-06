@@ -904,6 +904,10 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   Verify ownership, missing-emulator reporting and existing handoff isolation,
   then normal download/online and fresh offline boot/removal/identical re-download.
   No PSP archive or bundle approval is implied by this standalone CHD slice.
+  Prove standalone PS2 CHDs through installed NetherSX2's explicit bootPath URI
+  route, normal emulator-owned BIOS setup and the same exact committed-leaf grant.
+  Verify normal download/actual online and cold offline boot/removal/identical
+  re-download. Do not infer archive/ISO/bundle support or modify original BIOS.
   N64's predominantly 7z collection requires bounded single-ROM 7z validation
   (including encoded headers), immutable explicit mapping and the existing owned
   RetroArch handoff. Verify malformed/oversized/unsafe layouts and unchanged

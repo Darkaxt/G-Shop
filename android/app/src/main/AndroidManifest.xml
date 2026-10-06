@@ -67,6 +67,7 @@
             <package android:name="org.dolphinemu.dolphinemu"/>
             <package android:name="com.retroarch.aarch64"/>
             <package android:name="org.ppsspp.ppsspp"/>
+            <package android:name="xyz.aethersx2.android"/>
             <intent>
                 <action android:name="android.intent.action.PROCESS_TEXT"/>
                 <data android:mimeType="text/plain"/>

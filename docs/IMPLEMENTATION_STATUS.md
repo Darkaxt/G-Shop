@@ -5,6 +5,72 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 PS2 standalone CHD owned recovery — 2026-10-06
+
+- Added standalone PS2 CHDs to the existing committed-leaf handoff. Installed
+  NetherSX2 receives explicit EmulationActivity/bootPath with only the exact
+  document-shaped read URI. Ownership and standalone/no-bundle constraints are
+  rechecked before handoff and external open. The normal menu identifies
+  NetherSX2. Archive/ISO/bundle support and directory/write grants are not inferred.
+- Normal DOWNLOAD published a 62,976,347-byte test CHD in the initially absent
+  isolated `RShopProof-PS2-20261006` destination. SHA-256
+  `95dd3a7233f66b3f51b5b299e25b047dc54441e9c1055e51481e3276d08fa73d`
+  matched the unchanged H: original. The normal menu reached actual publisher
+  intro and rendered game scenes. After normal Exit Game, emulator force-stop and
+  verified PID absence, a fresh process rendered the game with Wi-Fi disabled.
+  Intent acceptance alone was not counted as boot proof.
+- Normal DELETE, normal re-download and final normal DELETE passed. The recovered
+  bytes matched the same digest; read-only journals confirmed completed copy
+  publication, retired staging and one installation/owner. Final proof-root state
+  had zero transfers/installations/owners and two completed issue-free removal
+  journals. The empty proof directory was removed non-recursively and is absent.
+- Installed maintainer NetherSX2 v2.1-4248 as a missing prerequisite, without
+  replacing an existing same-package app. APK SHA-256
+  `a39fe9f88de54d35a39152ce4c003ec15c9dd82064cad57b0455ac1a5cd61050`,
+  signer SHA-256
+  `9bf3772a94603282fb13c64ea8771d66817382f6aca9923e8a178e7219340296`.
+  Its normal BIOS picker imported the existing owner-supplied BIOS; original and
+  emulator-owned import independently matched SHA-256
+  `f4c948e61a291d4b3f92a141e550cf8357204287a31ff784caccbedaef910c9d`.
+  The temporary import copy is absent; original BIOS and emulator import remain.
+- The focused owned-launch regression failed before implementation and passed
+  afterward. Scoped Dart analysis and native exact-leaf grant JUnit checks passed;
+  no full suite was run. Build ticket 222 acquired
+  `Local\Darka.AndroidGradleBuildGate` (`gate_acquired=true`) and exited 0.
+  Inspected effective profile: two workers, parallel=false, 3-GiB Gradle heap;
+  required 1-GiB Metaspace/256-MiB code cache preserved. Kotlin 2.2.20 was assessed
+  and requested in-process, sharing that heap; task-level strategy was not
+  independently measured. Tests were configured for one 512-MiB fork, and the
+  app native pool for one job; runtime fork heap and current generated Ninja pool
+  were not independently verified. Complete plugin-native coverage is not claimed.
+  No memory failure or budget increase occurred. Retained shared-gate log:
+  `d2fe65f641524835ad91d30572d420ba.log`.
+- Same-signer in-place R-Shop installation succeeded; APK SHA-256
+  `dab45cee288355d07e40c7e8b5ce06af294b61d7b873db0e86e5f340a6597e46`.
+  The normal picker restored `/storage/75D7-DC5F/Roms/ps2`; the full source
+  configuration returned to baseline SHA-256
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Normal default-account reconnect and same-transfer Resume resolved the
+  post-install authorization pause without replacing the queued transfer.
+  SAME N64 job 70 resumed: running, pending 794, matched/rated 73. SAME root
+  generation 1 resumed: observations 153,922, pending folders 7,697,
+  nextGeneration=2, active=null. These are progress, not terminal coverage or
+  publication. PSP-only Best-25 remains Provisional: 35/341 ranked, 25 results.
+- Both physical screens are freshly committed OFF; Wi-Fi is enabled. Original
+  ROMs, saves, settings, cloud files and FolderSync are preserved. Exact task
+  device captures are absent. Reviewed cleanup
+  `22c48dcae9863935312c835537ae10eb` removed 21 expendable host targets,
+  reclaiming 177,289,189 bytes. Installed apps/BIOS, current R-Shop artifact,
+  build log and bounded read-only S7 observer remain intentional outputs.
+- A transient quick-menu failure was observed during search/download-overlay
+  navigation. Normal Exit Application/reopen cleared it; the verified PS2 workflow
+  used Installed Only. Root cause and reproducible regression are not established.
+  Reliable search-to-menu navigation remains unfinished S7 work, not a fix claim.
+- S7 remains the sole ACTIVE stage. Full fresh metadata, defensible per-console
+  Top-25, root publication, remaining formats and reviewed save/space-safe migration
+  remain required. Bulk provenance classification remains pending; unknown editions
+  are not silently classified/ranked. S8-S10 are NOT STARTED. No release occurred.
+
 ### S7 PSP standalone CHD owned recovery — 2026-10-06
 
 - Added the PSP CHD route to the existing verified committed-leaf handoff.

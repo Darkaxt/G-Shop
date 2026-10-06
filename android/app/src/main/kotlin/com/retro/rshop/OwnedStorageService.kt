@@ -47,28 +47,30 @@ internal class OwnedStorageService(private val context: Context) {
                     if (closed) throw Failure("closed")
                     if (call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear" ||
                         call.method == "launchOwnedRetroArchN64" || call.method == "launchOwnedRetroArchPSX" ||
-                        call.method == "launchOwnedPPSSPP") {
+                        call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2") {
                         val gameGear = call.method == "launchOwnedRetroArchGameGear"
                         val n64 = call.method == "launchOwnedRetroArchN64"
                         val psx = call.method == "launchOwnedRetroArchPSX"
                         val psp = call.method == "launchOwnedPPSSPP"
+                        val ps2 = call.method == "launchOwnedNetherSX2"
                         val retroArch = gameGear || n64 || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
                         if ((gameGear && !filename.endsWith(".zip")) ||
                             (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
-                            ((psx || psp) && !filename.endsWith(".chd"))) throw Failure("unsupported_archive")
-                        val uri = if (retroArch || psp) OwnedRomContentProvider.gameGearUri(context,
+                            ((psx || psp || ps2) && !filename.endsWith(".chd"))) throw Failure("unsupported_archive")
+                        val uri = if (retroArch || psp || ps2) OwnedRomContentProvider.gameGearUri(context,
                             string(call, "installationId"), string(call, "filename"))
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
                             requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else null,
-                            requiredStandaloneChd = psx || psp).use { }
+                            requiredStandaloneChd = psx || psp || ps2).use { }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)
                             } else try {
                                 val app = if (retroArch) "com.retroarch.aarch64" else if (psp) "org.ppsspp.ppsspp"
+                                    else if (ps2) "xyz.aethersx2.android"
                                     else "org.dolphinemu.dolphinemu"
                                 val intent = context.packageManager.getLaunchIntentForPackage(app)
                                     ?: throw Failure("emulator_missing")
@@ -83,6 +85,10 @@ internal class OwnedStorageService(private val context: Context) {
                                     intent.setClassName(app, "org.ppsspp.ppsspp.PpssppActivity")
                                     intent.action = Intent.ACTION_VIEW
                                     intent.setDataAndType(uri, "application/octet-stream")
+                                }
+                                if (ps2) {
+                                    intent.setClassName(app, "xyz.aethersx2.android.EmulationActivity")
+                                    intent.putExtra("bootPath", uri.toString())
                                 }
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)

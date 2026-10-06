@@ -806,6 +806,16 @@ and identical re-download in an isolated destination. Do not infer PSP archive,
 ISO/CSO/PBP or bundle recovery from this CHD proof; unresolved formats remain
 preserved during migration. Preserve original ROMs and existing saves/settings.
 
+S7 PS2 recovery detail: standalone PS2 CHDs use the existing owned committed-leaf
+document read grant and installed NetherSX2's explicit EmulationActivity route.
+Its bootPath receives only the exact owned content URI, not a guessed local path
+or directory grant. Revalidate ownership and standalone/no-bundle constraints
+before handoff and external open. The emulator's normal setup/import owns BIOS
+configuration; R-Shop does not copy, obtain or mutate BIOS/settings. Verify normal
+download, actual online and fresh offline boot, owned removal and identical
+re-download in an isolated target. Missing emulator/BIOS remains a prerequisite,
+not a boot claim. Unproved archive/ISO/bundle formats remain preserved.
+
 Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
 identities, all bundle members, before/after space, saved-data preservation and
 cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion
