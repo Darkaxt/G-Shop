@@ -240,6 +240,17 @@ changing the production scope. Game Gear remains unapproved in the current
 `productionOverallScoreBases`, and its uncertain ROMs remain protected from SD
 removal. This is current S7 evidence, not a later-stage deferral or stage closure.
 
+The subsequent normal Thor pass 75 reached a terminal result on 2026-10-07:
+46 accepted matches, eight rated, 402 needs-review, 73 ambiguous and 25 unmatched
+across 546 captured requests. A bounded read-only query joins only accepted job
+75 items to current same-generation/same-identity IGDB records. All 46 agree;
+eight contain valid 0-100 community scores, six with fewer than 20 votes and two
+with at least 20 (two distinct provider records). This is substantially narrower
+than the public 19-record upper bound. It does not supply defensible coverage of
+the user's collection, resolve independent reception disagreements or approve
+Game Gear Top membership. Preserve uncertain ROMs; do not turn eight displayed
+scores into an invented ranked retention set. Full S7 acceptance remains open.
+
 The existing opt-in persistent-worker capture was extended to fifteen public
 official releases on N64, PSP and Game Gear. Each accepted fixture used one
 literal offered title and the provider's platform-checked ID. It did not touch

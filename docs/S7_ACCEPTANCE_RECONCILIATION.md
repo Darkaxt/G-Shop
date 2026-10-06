@@ -7,15 +7,20 @@ Normal ScreenScraper job 73 reached `completed`: 177 matched (174 rated),
 for all 546 captured requests. Current request evidence includes 178 original
 ROM identifiers. Its actual linked artwork child 74 subsequently completed all
 332 artwork requests. Only then did normal controls request one current-bound
-IGDB pass. Native job 75 is running with 546 requests, retaining 177 official
-classifications, 178 raw identifiers and 55 current release corroborations.
+IGDB pass. Native job 75 subsequently completed its 546 requests: 46 matched
+(eight rated), 402 needs-review, 73 ambiguous and 25 unmatched. Its capture retains
+177 official classifications, 178 raw identifiers and 55 release corroborations.
+The bounded same-generation/same-identity read-only score check finds only two
+distinct accepted provider records with at least 20 votes; six other community
+scores have smaller samples. This does not approve a Game Gear ranking basis.
 Neither terminal lookup outcomes nor advisory ScreenScraper scores prove
 whole-collection Top membership.
 
 Root generation 1 remains unpublished and advancing. The public IGDB support
 check records only 19 potentially supported Game Gear provider records, not
 collection membership or scope approval. Game Gear remains outside the approved
-production ranking basis while its current bound evidence is assessed.
+production ranking basis; current bound support cannot establish its defensible
+whole-collection retention set.
 META-01/META-05 and MIGRATE-01 remain open; S7 is sole ACTIVE, S8-S10 NOT STARTED.
 No migration/removal, cloud mutation, provider-secret change or release occurred.
 

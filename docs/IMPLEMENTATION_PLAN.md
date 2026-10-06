@@ -856,9 +856,11 @@ Best 25 shows 25 results and explicit provisional coverage (55/1543 ranked).
 The single fresh Game Gear ScreenScraper job 73 reached a terminal outcome on
 2026-10-07; its actual linked artwork child 74 also completed. Normal controls
 then requested one fresh bound IGDB pass. Verify its capture/outcomes and assess
-Game Gear reception without assuming scope approval. Job 75 is running; its
-capture retains 177 official classifications, 178 raw identifiers and 55 release
-corroborations. Root generation 1 remains unpublished and progressing; no reset,
+Game Gear reception without assuming scope approval. Job 75 is now terminal:
+46 matched (eight rated), with only two accepted provider records having at least
+20 votes. Its capture retains 177 official classifications, 178 raw identifiers
+and 55 release corroborations. Game Gear remains unapproved for ranking.
+Root generation 1 remains unpublished and progressing; no reset,
 SD removal or later-stage work is authorized by these narrower results. Complete
 fresh coverage and defensible retention before reviewed migration execution.
 
