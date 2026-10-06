@@ -1,5 +1,28 @@
 # S7 live metadata and Thor migration
 
+## PS2 breadth on the standardized policy — 2026-10-06
+
+The unchanged final build 193 / implementation `f270427` completed a fresh normal
+PS2-only IGDB job: 225 requests, 74 matched, 91 needsReview, 28 ambiguous,
+32 unmatched, zero failed/unsupported and zero pending; 72 responses have ratings.
+The previous PS2 pass matched twenty. No individual corrections, inferred official
+classifications, saved-job rewrites or extra builds were used. The normal UI's
+completed traversal and a freshly successful accessibility dump agree.
+
+The native Library Best 25 query then showed PS2 only, IGDB community average
+(20+ ratings; assessed systems only), **59/220 ranked / 25 matching games /
+Provisional**. The request total counts editions; the query counts canonical
+groups. An accepted match or rating is not automatically score-qualified.
+Incomplete coverage cannot prove that unranked games are outside the best 25.
+Restored the original PSP scope and verified its unchanged 35/341 / 25 result.
+Config SHA-256 remains
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+No ROM payload, installation, ownership, save, FolderSync, mapping or cloud-original
+mutation occurred. This closes the bounded PS2 breadth check, not S7: defensible
+collection-wide retention, format restoration and reviewed migration still remain.
+Both displays are confirmed committed OFF. The inspected host screenshot was
+transactionally removed (1,150,550 bytes); both exact device captures are absent.
+
 ## Authorized standardized matching — 2026-10-06
 
 Revision 9 records the user's explicit matching-policy change. The previous

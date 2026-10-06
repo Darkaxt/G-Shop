@@ -5,6 +5,31 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 standardized matching — PS2 breadth verification, 2026-10-06
+
+- On unchanged build 193 / implementation `f270427`, the normal settings flow
+  started one fresh IGDB pass scoped to PS2. All 225 captured requests completed:
+  74 matched, 91 needsReview, 28 ambiguous, 32 unmatched, zero failed/unsupported
+  or pending; 72 responses carry ratings. The previous PS2 pass matched twenty.
+  No per-game approvals, classification changes or saved-request rewrites occurred.
+- The ordinary native Library Best 25 filter, scoped only to PS2, shows
+  **59/220 ranked, 25 matching games, Provisional**, using the existing assessed
+  IGDB community average / 20+ vote rule. The 225 requests are editions/artifacts;
+  the query denominator is 220 canonical groups. This demonstrates real bulk
+  publication and grouping, not complete coverage or safe eviction. The original
+  PSP Best 25 filter was restored and again showed 35/341 ranked / 25 results.
+- Config SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  No ROM bodies, local installations, ownership, saves, FolderSync, mappings or
+  cloud originals changed. No Gradle build or deployment was needed: this pass
+  exercised the already-installed, verified final implementation.
+  Both displays are confirmed committed OFF. The inspected temporary host
+  screenshot was transactionally removed (1,150,550 bytes), and the two exact
+  task-only device capture files were removed and verified absent.
+- S7 remains the sole ACTIVE stage. Full defensible rankings, format recovery,
+  execution-time byte checks and actual reviewed SD migration remain unfinished;
+  S8-S10 remain NOT STARTED. Sparse Top coverage is not deletion authority.
+
 ### S7 authorized standardized matching — 2026-10-06
 
 - Specification revision 9 records the explicit authorized evidence-tier policy.
