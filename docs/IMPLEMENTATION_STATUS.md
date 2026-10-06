@@ -5,6 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 standardized descriptive preview — 2026-10-06
+
+- Collection-wide aggregate diagnosis, not individual curation, confirmed that
+  finished lookups still leave insufficient reliable Top coverage. PS1/GameCube
+  have no eligible ranking groups; PS2 has 12 and PSP six. The current root scan
+  continues progressing. A bounded live six-container ScreenScraper cohort did
+  not return exact stored MD5/size matches; no container/raw shortcut was added.
+- The shared scraping preview now carries already-returned synopses from both
+  metadata adapters and accepted records. A sole unverified candidate remains
+  labelled unverified and cannot publish a score or Top rank. Ambiguity clears
+  descriptive context. Payload/language handling is bounded, and entities are
+  decoded once at display time without interpreting HTML or requesting media.
+  There are no title-specific rules or individual match approvals.
+- Focused adapter and normal controller-to-widget checks passed, including
+  multiple entries and accepted/unverified/ambiguous transitions. Scoped
+  analysis passed. Native build 187 verified both accepted and unverified
+  previews through normal scoped scraping; build 188 verified another unverified
+  entry with cover/synopsis and zero published rating. No individual match or
+  classification was approved. Visual inspection found provider-escaped quotes;
+  the final decoder is verified for one-pass entities/literal markup on the host.
+  Native screenshots stay private, not in Git.
+  Both builds completed through the acquired shared Gradle gate with observed
+  two workers, parallel false and 3 GiB Gradle maximum heap. Kotlin 2.2.20 used
+  the already-assessed in-process strategy; required JVM flags remained. Test
+  forks are configured one/512 MiB (none ran during assemble); native compile/
+  link pools are configured one slot per task, not a measured total-host cap.
+  No memory failure or budget increase occurred. Final APK is 223,610,227 bytes,
+  SHA-256 `4c402688a0544e8a9783c4a898fcbbb504dee541dc8e9ad9384950d6dbe6e7a3`,
+  package `com.darkaxt.rshop.debug` v1.7.0/code 12, same debug signer. Verified
+  install -r preserved app data; config SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both screens are committed OFF. Same pending root generation 1/next 2 reached
+  140,365 observations / 11,756 pending folders; no source remap or restart was
+  requested. ROMs/saves/cloud originals/FolderSync are unchanged; no release.
+  Superseded diagnostic jars/compiler intermediate were transactionally removed
+  (12,902 host bytes) and corresponding task-only device captures/probe removed.
+  A second reviewed transaction removed the superseded 1,554,629-byte host
+  screenshot; the final native preview, build logs and reproduction helpers
+  remain available. No user files were cleanup targets.
+  S7 is the sole ACTIVE stage; full ranking, reviewed execution/adoption and
+  actual migration remain unfinished. S8-S10 are NOT STARTED.
+
 ### S7 restart-safe byte observations — 2026-10-06
 
 - Successful exact local/cloud checks now append bounded validated evidence to

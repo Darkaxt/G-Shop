@@ -399,6 +399,9 @@ class ScreenScraperProvider
             platformId: request.platformId,
             titles: titles,
             titleMatched: titleMatched,
+            previewDescriptions: _localized(
+                game['synopses'] ?? game['synopsis'],
+                dimension: 'langue'),
             previewMedia: _mediaEntries(game['medias'])
                 .map((entry) => _mediaEntry(entry,
                     providerGameId: id, providerPlatformId: platform))

@@ -376,12 +376,16 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     await MetadataRefreshJobs.install(db);
     await db
         .execute('''CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT,
-      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL,
+      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL, filename TEXT,
       is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
     await LibraryQuery.install(db);
     const titles = ['Supported fixture', 'Low vote project', 'Unrated fixture'];
     for (final title in titles) {
-      await db.insert('games', {'systemSlug': 'psx', 'displayName': title});
+      await db.insert('games', {
+        'systemSlug': 'psx',
+        'displayName': title,
+        'filename': '$title.chd'
+      });
     }
     final wire = _Transport([
       {
@@ -481,7 +485,8 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     final transport = _Transport([
       {
         ...fixture,
-        'platforms': [19, 5]
+        'platforms': [19, 5],
+        'summary': 'Description of the provider candidate.'
       }
     ]);
     final api = provider(transport);
@@ -491,6 +496,8 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     expect(result.record, isNull);
     expect(result.candidates.single.providerGameId, '123');
     expect(result.candidates.single.titleMatched, isTrue);
+    expect(result.candidates.single.previewDescriptions.single.text,
+        'Description of the provider candidate.');
     expect(transport.requests.last.data, contains('where platforms = (19);'),
         reason:
             'Scalar equality excludes originals released on other platforms.');
@@ -589,12 +596,13 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
       await MetadataRefreshJobs.install(db);
       await db
           .execute('''CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT,
-      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL,
+      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL, filename TEXT,
       is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
       await LibraryQuery.install(db);
       await db.insert('games', {
         'systemSlug': 'snes',
-        'displayName': 'Super Mario World translation'
+        'displayName': 'Super Mario World translation',
+        'filename': 'Super Mario World translation.sfc'
       });
       final jobs = MetadataRefreshJobs(Future.value(db));
       final wire = _Transport([fixture]);
@@ -804,10 +812,13 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     await MetadataRefreshJobs.install(db);
     await db
         .execute('''CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT,
-      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL,
+      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL, filename TEXT,
       is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
-    await db.insert(
-        'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World'});
+    await db.insert('games', {
+      'systemSlug': 'snes',
+      'displayName': 'Super Mario World',
+      'filename': 'Super Mario World.sfc'
+    });
     final jobs = MetadataRefreshJobs(Future.value(db));
     final original =
         await jobs.createFromCatalogue(providerId: 'screenscraper');

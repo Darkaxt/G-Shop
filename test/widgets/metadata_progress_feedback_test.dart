@@ -23,6 +23,7 @@ void main() {
           {int id = 1,
           String provider = 'screenscraper',
           String state = 'running',
+          List<MetadataText> descriptions = const [],
           MetadataQuotaObservation? quota,
           bool image = false}) =>
       MetadataRefreshReport(
@@ -42,6 +43,7 @@ void main() {
               title: title,
               platformId: 'n64',
               status: MetadataLookupStatus.needsReview,
+              previewDescriptions: descriptions,
               coverBytes: image
                   ? base64Decode(
                       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==')
@@ -129,7 +131,12 @@ void main() {
                   platformId: request.platformId,
                   titles: const [MetadataText(text: 'Candidate title')],
                   titleMatched: true,
-                  evidence: 'platformAndTitle')
+                  evidence: 'platformAndTitle',
+                  previewDescriptions: const [
+                    MetadataText(text: 'Description francaise', language: 'fr'),
+                    MetadataText(
+                        text: 'Already fetched synopsis', language: 'en'),
+                  ])
             ]);
     final secrets = MemorySecrets();
     final controls = (await tester.runAsync(() async {
@@ -169,15 +176,93 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Game 1'), findsOneWidget);
     expect(find.text('Candidate title'), findsOneWidget);
+    expect(find.text('Already fetched synopsis'), findsOneWidget);
+    expect(find.text('Description francaise'), findsNothing);
     expect(find.text('Unverified candidate'), findsOneWidget);
     expect(find.textContaining('9925 / 10000'), findsOneWidget);
     expect(find.textContaining('996 / 1000'), findsOneWidget);
     expect(controls.state.report!.rated, 0);
     expect(provider.calls, hasLength(1),
         reason: 'display makes no game lookups');
+    expect(await db.query('library_metadata'), isEmpty,
+        reason: 'candidate descriptions are preview-only, not publication');
+    await tester.runAsync(() => controls.refresh(cacheRowId: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('Game 2'), findsOneWidget);
+    expect(find.text('Game 1'), findsNothing);
+    expect(find.text('Already fetched synopsis'), findsOneWidget);
+    expect(provider.calls, hasLength(2));
+    expect(controls.state.report!.rated, 0);
+    provider.reply = (request, _) async => MetadataLookupResult(
+            status: MetadataLookupStatus.ambiguous,
+            message: 'Do not select among candidates',
+            candidates: [
+              for (final id in ['42', '43'])
+                MetadataLookupCandidate(
+                    providerGameId: id,
+                    platformId: request.platformId,
+                    titles: const [MetadataText(text: 'Candidate title')],
+                    titleMatched: true,
+                    evidence: 'platformAndTitle',
+                    previewDescriptions: const [
+                      MetadataText(text: 'Ambiguous synopsis')
+                    ])
+            ]);
+    await tester.runAsync(() => controls.refresh(cacheRowId: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Already fetched synopsis'), findsNothing);
+    expect(find.text('Ambiguous synopsis'), findsNothing);
+    expect(provider.calls, hasLength(3));
+    provider.reply = (request, _) async => MetadataLookupResult(
+        status: MetadataLookupStatus.matched,
+        message: 'Matched fixture',
+        record: MetadataRecord(
+            gameId: request.gameId,
+            editionId: request.editionId,
+            platformId: request.platformId,
+            providerId: provider.providerId,
+            providerGameId: '42',
+            retrievedAt: DateTime.utc(2026, 10, 6),
+            refreshGeneration: request.refreshGeneration,
+            matchMethod: 'verifiedProviderId',
+            titles: [MetadataText(text: request.title)],
+            descriptions: const [MetadataText(text: 'Accepted synopsis')]));
+    await tester.runAsync(() => controls.refresh(cacheRowId: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('Accepted synopsis'), findsOneWidget);
+    expect(find.text('Unverified candidate'), findsNothing);
+    expect(provider.calls, hasLength(4));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
     expect(tester.takeException(), isNull);
+  });
+
+  test('candidate description payload is bounded and immutable', () {
+    final candidate = MetadataLookupCandidate(
+        providerGameId: '1',
+        platformId: 'psx',
+        titles: const [],
+        titleMatched: false,
+        evidence: 'providerTitleCandidate',
+        previewDescriptions: [
+          for (var i = 0; i < 20; i++)
+            MetadataText(text: 'x' * 10000, language: 'en')
+        ]);
+    expect(candidate.previewDescriptions, hasLength(8));
+    expect(candidate.previewDescriptions.every((v) => v.text.length == 4096),
+        isTrue);
+    expect(() => candidate.previewDescriptions.clear(), throwsUnsupportedError);
+  });
+
+  testWidgets('preview decodes provider entities once as plain text',
+      (tester) async {
+    await tester.pumpWidget(
+        panel(report('Encoded', state: 'completed', descriptions: const [
+      MetadataText(
+          text: 'Pilot &quot;UPEO&quot; &amp; <literal> &#233; &amp;quot;',
+          language: 'en')
+    ])));
+    expect(find.text('Pilot "UPEO" & <literal> é &quot;'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:html/parser.dart' as html;
 
 import '../../l10n/app_localizations.dart';
 import '../../services/metadata/metadata_provider.dart';
@@ -74,6 +75,22 @@ class _MetadataProgressFeedbackState extends State<MetadataProgressFeedback> {
     final localizations = MaterialLocalizations.of(context);
     final observed = observation?.observedAt.toLocal();
     final bytes = game?.coverBytes;
+    final descriptions = game?.previewDescriptions ?? const [];
+    final language = Localizations.localeOf(context).languageCode;
+    final description =
+        descriptions.where((v) => v.language == language).firstOrNull ??
+            descriptions.where((v) => v.language == 'en').firstOrNull ??
+            descriptions.where((v) => v.language == null).firstOrNull ??
+            descriptions.firstOrNull;
+    // Decode once at display time; stored/provider facts remain unchanged.
+    // Literal markup stays plain text and cannot load media or execute HTML.
+    final synopsis = description == null
+        ? null
+        : html
+            .parseFragment(description.text
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;'))
+            .text;
     final outcome = game == null
         ? null
         : switch (game.status) {
@@ -114,6 +131,11 @@ class _MetadataProgressFeedbackState extends State<MetadataProgressFeedback> {
                   if (game.candidateTitle != null) Text(game.candidateTitle!),
                   if (game.status == MetadataLookupStatus.needsReview)
                     Text(l.metadata_unverifiedCandidate),
+                  if (description != null) ...[
+                    const SizedBox(height: 8),
+                    Text(synopsis ?? '',
+                        maxLines: 4, overflow: TextOverflow.ellipsis),
+                  ],
                 ])),
           ]),
         ],

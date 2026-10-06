@@ -433,6 +433,9 @@ void main() {
     expect(result.status, MetadataLookupStatus.needsReview);
     expect(result.record, isNull);
     final media = result.candidates.single.previewMedia!;
+    expect(result.candidates.single.previewDescriptions.single.text,
+        'Synthetic adventure description.');
+    expect(result.candidates.single.previewDescriptions.single.language, 'en');
     expect(media.url, isNull);
     expect(media.providerReference!.providerGameId, '42');
     expect(media.providerReference!.providerPlatformId, 4);

@@ -634,6 +634,13 @@ exact current cached cover, with the physical-media fallback when unavailable.
 Do not perform additional game lookups just to update the preview. Stop display
 updates when the screen is disposed, without stopping the background job.
 
+Descriptive preview detail (2026-10-06): show an already-returned synopsis with
+the latest parsed cover, preferring the UI language, then English, then an
+unqualified or available provider language. Keep it bounded and transient.
+A sole unverified candidate's description remains explicitly unverified; it
+must not publish a metadata record, classify an edition, or establish a score
+or Top rank. Ambiguous or changed-identity outcomes cannot select a description.
+
 Alongside the preview, expose ScreenScraper's reported daily request allowance,
 used/remaining attempts and observation time, plus its separate failed-request
 limit when supplied. Retain provenance for any locally reserved/decremented

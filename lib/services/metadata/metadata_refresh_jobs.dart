@@ -41,6 +41,7 @@ class MetadataProcessedGame {
   final String? candidateTitle;
   final MetadataMedia? previewMedia;
   final Uint8List? coverBytes;
+  final List<MetadataText> previewDescriptions;
   const MetadataProcessedGame(
       {required this.jobId,
       required this.providerId,
@@ -50,7 +51,8 @@ class MetadataProcessedGame {
       required this.status,
       this.candidateTitle,
       this.previewMedia,
-      this.coverBytes});
+      this.coverBytes,
+      this.previewDescriptions = const []});
 }
 
 class MetadataRefreshReport {
@@ -1720,6 +1722,12 @@ class MetadataRefreshJobs {
         final cachedCover = outcome == MetadataLookupStatus.matched
             ? await artworkCache?.previewForEdition(request.editionId)
             : null;
+        final descriptions = boundedMetadataPreviewDescriptions(
+            outcome == MetadataLookupStatus.matched
+                ? result.record?.descriptions ?? const []
+                : outcome == MetadataLookupStatus.needsReview
+                    ? candidate?.previewDescriptions ?? const []
+                    : const []);
         _lastProcessed = MetadataProcessedGame(
             jobId: id,
             providerId: provider.providerId,
@@ -1729,6 +1737,7 @@ class MetadataRefreshJobs {
             status: outcome,
             candidateTitle: candidate?.titles.firstOrNull?.text,
             previewMedia: previewMedia,
+            previewDescriptions: descriptions,
             coverBytes: cachedCover);
         publish();
         if (cancel.isCancelled) break;
@@ -1759,6 +1768,7 @@ class MetadataRefreshJobs {
               status: outcome,
               candidateTitle: candidate?.titles.firstOrNull?.text,
               previewMedia: previewMedia,
+              previewDescriptions: descriptions,
               coverBytes: preview.bytes);
           publish();
           if ({
@@ -1996,6 +2006,7 @@ class MetadataRefreshJobs {
               status: latest.status,
               candidateTitle: latest.candidateTitle,
               previewMedia: latest.previewMedia,
+              previewDescriptions: latest.previewDescriptions,
               coverBytes: bytes);
         }
       }

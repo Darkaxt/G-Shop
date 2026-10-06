@@ -1,5 +1,59 @@
 # S7 live metadata and Thor migration
 
+## Collection-level diagnosis and descriptive preview — 2026-10-06
+
+The fresh bounded, read-only aggregate audit confirms that completed API jobs
+are not completed metadata coverage. ScreenScraper jobs for PS1 and GameCube
+had 2/405 and 1/206 matched entries respectively; current ranking projections
+had zero eligible groups for both, 12 for PS2 and six for PSP. Current IGDB
+corroboration has 18 matched records and ten adequately supported records.
+The same root traversal continued advancing; this is not a stalled scan or an
+individual-game correction problem. Do not treat request completion as a safe
+Top-25 retention set or deletion authority.
+
+A deterministic six-container cohort across N64/GameCube/PS2 was checked against
+the live ScreenScraper API in two bounded sequential passes (the second used
+the production response-unwrapping shape). No exact stored MD5/size pair was
+returned. A name candidate is not an exact archive identification. No archive
+was downloaded/decompressed, no hash was relabelled raw, and no match was
+approved. This does not assert that all possible containers are unsupported.
+
+The scraping preview previously discarded already-returned synopses, retaining
+only candidate title/cover. Both production adapters now carry bounded,
+transient descriptions through the existing worker preview. Accepted records
+and sole unverified candidates show descriptive context; ambiguous or changed
+outcomes do not choose a synopsis. The UI selects its language, English, then
+an available provider language and decodes entities once as plain text. No
+extra game lookup, accepted record, classification, score or rank is created
+by a candidate preview. Existing cover-update copies retain this context.
+
+Focused normal controller-to-widget verification covers multiple entries,
+accepted/unverified outcomes, ambiguous-result clearing, language selection,
+bounded immutable payload, entity decoding and unchanged publication/rating
+gates. Adapter checks verify descriptive fields from both providers. Old IGDB
+synthetic catalogue schemas lacked the production filename column/value; those
+fixtures were brought into alignment without a production fallback.
+
+Normal Thor scoped lookups in build 187 showed an accepted synopsis and a sole
+unverified candidate synopsis/cover with zero published rating. Build 188 showed
+a different unverified entry through the same normal workflow; visually inspected
+layout is readable and bounded. No individual match/classification was approved.
+The entity decoder is separately verified with host widget input reproducing the
+live escaped-quote defect, including one-pass decoding and literal markup safety.
+Both native builds acquired the shared gate: observed two workers, parallel false,
+3 GiB Gradle heap and assessed Kotlin in-process. Test one-fork/512 MiB settings
+were configuration evidence only; native one-slot task pools are configured, not
+a measured host cap. No memory failure or budget increase occurred.
+Final APK hash `4c402688a0544e8a9783c4a898fcbbb504dee541dc8e9ad9384950d6dbe6e7a3`
+and existing signer were checked before install -r; no uninstall/release occurred.
+Config hash remains unchanged and both displays are committed OFF. The same root
+traversal reached 140,365 observations / 11,756 pending folders, pending generation
+1 / next 2. ROMs/saves/cloud originals/FolderSync and mappings remain unchanged.
+
+S7 remains ACTIVE. Full reliable ranking coverage, strict reviewed adoption/
+execution journal and actual migration are still unfinished; this preview
+change is not completion of those acceptance criteria. S8-S10 NOT STARTED.
+
 ## Durable exact-byte observations — 2026-10-06
 
 Build 186 adds a bounded, append-only observation table to the existing private

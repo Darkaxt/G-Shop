@@ -157,6 +157,9 @@ class IgdbMetadataProvider implements MetadataProvider {
             providerGameId: '${game['id']}',
             platformId: request.platformId,
             titles: titles,
+            previewDescriptions: game['summary'] is String
+                ? [MetadataText(text: game['summary'] as String)]
+                : const [],
             titleMatched: titles
                 .any((t) => _normalize(t.text) == _normalize(request.title)),
             evidence: id == null ? 'platformAndTitle' : 'verifiedProviderId'));

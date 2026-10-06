@@ -455,15 +455,30 @@ class MetadataLookupCandidate {
 
   /// Transient validated cover selector, not an accepted metadata record.
   final MetadataMedia? previewMedia;
+
+  /// Descriptive context only; never accepted identity, score or ranking facts.
+  final List<MetadataText> previewDescriptions;
   MetadataLookupCandidate(
       {required this.providerGameId,
       required this.platformId,
       required List<MetadataText> titles,
       required this.titleMatched,
       required this.evidence,
-      this.previewMedia})
-      : titles = List.unmodifiable(titles);
+      this.previewMedia,
+      List<MetadataText> previewDescriptions = const []})
+      : titles = List.unmodifiable(titles),
+        previewDescriptions =
+            boundedMetadataPreviewDescriptions(previewDescriptions);
 }
+
+/// The scraping UI retains one bounded observation, not full provider payloads.
+List<MetadataText> boundedMetadataPreviewDescriptions(
+        Iterable<MetadataText> values) =>
+    List.unmodifiable(values.where((v) => v.text.trim().isNotEmpty).take(8).map(
+        (v) => MetadataText(
+            text: v.text.length > 4096 ? v.text.substring(0, 4096) : v.text,
+            language: v.language,
+            region: v.region)));
 
 class MetadataLookupResult {
   final MetadataLookupStatus status;
