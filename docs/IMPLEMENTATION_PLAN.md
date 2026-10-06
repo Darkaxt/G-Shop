@@ -13,6 +13,15 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+S7 region-capture checkpoint (2026-10-06): normal debug build 183 is installed
+on the Thor with app data preserved. New GameCube ScreenScraper job 51 captured
+206 editions, including 172 unambiguous filename region hints (162 us / ten jp)
+without assigning those hints as edition facts. Follow this bulk job and root
+generation 1; after it completes, select saved PS1 job 50 and resume its remaining
+147 items. Do not recreate either snapshot or curate individual titles. The
+root resumed after normal default-account authorization without changing its
+scope or generation. All ranking, recovery and migration criteria still apply.
+
 S7 current automatic pass (2026-10-06): PS1 ScreenScraper job 50 is running on
 its existing 405-entry snapshot. Follow that same job and the live root scan;
 do not replace either after a transient observation failure. The published-folder

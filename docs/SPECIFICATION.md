@@ -327,6 +327,15 @@ Cached review must show the original artifact filename/folder and disc/patch
 labels alongside the cleaned search title, so edition classification can be
 checked without guessing or requesting ROM bytes.
 
+Catalogue lookup detail (S7, 2026-10-06): when release facts are absent, a single
+standalone artifact's explicit, unambiguous filename region tag may narrow the
+provider request. Legacy entries use their original cached filename, not their
+cleaned title. Never parse a folder path as a filename or choose one of several
+regions; bundles remain unresolved by this hint. Existing release facts and
+explicitly cleared manual regions take precedence. The hint is not an assigned
+region, content classification, verified match, score or removal authority. Saved
+jobs keep their captured requests; new capture does not rewrite running work.
+
 Acceptance: ordinary releases, punctuation/localization variants, wrong-platform
 matches, container hashes, conversion/rename and conflicting candidates; false
 matches are rejected and correction survives re-scraping.

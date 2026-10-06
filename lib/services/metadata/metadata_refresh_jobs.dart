@@ -677,8 +677,7 @@ class MetadataRefreshJobs {
                     : null,
                 baseProviderGameId: matchReview ? null : baseProviderId,
                 contentTags: edition.tags,
-                region:
-                    edition.regions.length == 1 ? edition.regions.single : null,
+                region: await _lookupRegion(txn, game, edition),
                 language: edition.languages.length == 1
                     ? edition.languages.single
                     : null,
@@ -713,6 +712,113 @@ class MetadataRefreshJobs {
     }
     if (value is List) return value.map(_canonical).toList();
     return value;
+  }
+
+  /// A filename tag narrows discovery only; it does not assign release facts,
+  /// classify content, establish an identity or make a score eligible. Explicit
+  /// facts (including a manually cleared region) always take precedence.
+  static Future<String?> _lookupRegion(
+      DatabaseExecutor db, GameIdentity game, EditionIdentity edition) async {
+    if (edition.regions.isNotEmpty) {
+      return edition.regions.length == 1 ? edition.regions.single : null;
+    }
+    if (edition.evidence
+        .any((e) => e.source == 'manual' && e.kind == 'releaseRegion')) {
+      return null;
+    }
+    String? filename;
+    if (edition.members.length == 1) {
+      final rows = await db.query('library_artifacts',
+          columns: ['record_json'],
+          where: 'artifact_id = ?',
+          whereArgs: [edition.members.single.artifactId.key],
+          limit: 1);
+      if (rows.isNotEmpty) {
+        filename = RemoteArtifact.fromJson(
+                jsonDecode(rows.single['record_json'] as String))
+            .displayName;
+      }
+    } else if (edition.members.isEmpty) {
+      final legacy = game.evidence
+          .where((e) =>
+              e.source == 'catalogue' &&
+              e.kind == 'artifactIdentity' &&
+              e.value.startsWith('legacy-cache-row:'))
+          .toList();
+      if (legacy.length == 1) {
+        final id = int.tryParse(
+            legacy.single.value.substring('legacy-cache-row:'.length));
+        if (id != null) {
+          final rows = await db.query('games',
+              columns: ['filename'],
+              where: 'id = ? AND artifact_key IS NULL AND is_folder = 0',
+              whereArgs: [id],
+              limit: 1);
+          if (rows.isNotEmpty) filename = rows.single['filename'] as String;
+        }
+      }
+    }
+    if (filename == null || filename.contains(RegExp(r'[/\\]'))) return null;
+    const codes = {
+      'usa': 'us',
+      'us': 'us',
+      'u': 'us',
+      'japan': 'jp',
+      'jp': 'jp',
+      'j': 'jp',
+      'europe': 'eu',
+      'eur': 'eu',
+      'eu': 'eu',
+      'e': 'eu',
+      'world': 'wor',
+      'australia': 'au',
+      'au': 'au',
+      'canada': 'ca',
+      'ca': 'ca',
+      'germany': 'de',
+      'de': 'de',
+      'france': 'fr',
+      'fr': 'fr',
+      'spain': 'es',
+      'es': 'es',
+      'italy': 'it',
+      'it': 'it',
+      'uk': 'uk',
+      'united kingdom': 'uk',
+      'brazil': 'br',
+      'br': 'br',
+      'korea': 'kr',
+      'kr': 'kr',
+      'china': 'cn',
+      'cn': 'cn',
+      'taiwan': 'tw',
+      'tw': 'tw',
+      'hong kong': 'hk',
+      'hk': 'hk',
+      'norway': 'no',
+      'nor': 'no',
+      'sweden': 'se',
+      'swe': 'se',
+      'denmark': 'dk',
+      'dk': 'dk',
+      'finland': 'fi',
+      'fi': 'fi',
+      'netherlands': 'nl',
+      'nl': 'nl',
+    };
+    final regions = <String>{};
+    for (final tag
+        in RegExp(r'\(([^()]*)\)|\[([^\[\]]*)\]').allMatches(filename)) {
+      final parts = (tag.group(1) ?? tag.group(2)!)
+          .toLowerCase()
+          .split(',')
+          .map((p) => p.trim())
+          .toList();
+      if (!parts.any(codes.containsKey)) continue;
+      if (!parts.every(codes.containsKey)) return null;
+      regions.addAll(parts.map((p) => codes[p]!));
+    }
+    return regions.length == 1 ? regions.single : null;
   }
 
   static String _lookupKey(

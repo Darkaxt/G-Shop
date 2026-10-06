@@ -5,6 +5,39 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 standardized filename region capture — 2026-10-06
+
+- The normal catalogue snapshot dropped explicit filename region tags: a
+  focused reproduction for `(Europe)` observed region=null. New captures now
+  use a single unambiguous filename tag as a provider lookup hint. Explicit
+  release facts and manually cleared regions win; multiple/conflicting regions,
+  folder labels, absent evidence and bundles do not become guessed facts.
+  Capture leaves identities, classification and score eligibility unchanged;
+  existing jobs retain their saved requests. No title-specific exception exists.
+- Focused catalogue, persistent-job and ScreenScraper adapter checks passed;
+  scoped Dart analysis reports no issues. The existing bounded large-snapshot
+  contract completed with a measured 228,442,112-byte peak RSS, not an unbounded
+  test process. One host test workload ran at a time; no full suite was run.
+- Build 183 succeeded through the shared supervising gate, workers=2,
+  parallel=false, observed Gradle heap=3 GiB, preserved metaspace/code-cache
+  flags and assessed Kotlin 2.2.20 in-process configuration. Test fork=1/512 MiB
+  markers are configuration evidence only; native one-slot pools are configured,
+  not a verified total-host cap. No memory failure or budget increase occurred.
+- The APK signature/digest were checked before update; normal `adb install -r`
+  preserved package/data. PS1 job 50 was explicitly paused at 259 requests / 147
+  pending; its 405 captured requests still have no region hints. Root generation
+  1/next generation 2 and the exact config digest survived the update. Normal
+  default-account connection restored Drive access without saving a different
+  folder or modifying config; Refresh resumed the same pending root.
+- Actual normal GameCube job 51 captured 206 entries: 172 region hints (162 us /
+  ten jp), all with empty assigned edition regions. Its first seven completed
+  lookups returned six needs-review / one ambiguous / zero ratings. This proves
+  the shared hint reaches real saved work, not reliable ranking or automatic
+  approval. It remains running; resume saved PS1 job 50 after it completes.
+- Root advanced to 135,175 observations / 13,228 pending folders after update.
+  Both displays are OFF. ROMs/saves/Drive originals/FolderSync were not modified.
+  S7 remains the sole ACTIVE stage; S8-S10 remain NOT STARTED.
+
 ### S7 automatic PS1 breadth and indexed classification — 2026-10-06
 
 - The normal ScreenScraper settings selected psx and began saved job 50 on the

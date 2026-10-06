@@ -1,5 +1,61 @@
 # S7 live metadata and Thor migration
 
+## Standardized lookup-region capture and normal Thor proof — 2026-10-06
+
+- META-03's filename context now participates in new lookup snapshots without
+  becoming identity/classification/reception proof. A reproducible normal
+  catalogue fixture failed on `(Europe)` -> null before the fix. Focused
+  catalogue/job/adapter checks and scoped analysis passed after it, including
+  explicit unknown/multi-region/manual correction preservation, legacy filenames,
+  conflicting tags and absence of any filename-derived official match or rating.
+- Native read-only aggregate observation of unchanged PS1 job 50 confirms all
+  405 older requests remain unchanged (zero captured regions). New normal
+  ScreenScraper GameCube job 51 contains 206 requests, 172 with region hints:
+  162 us / ten jp, and 172 without assigned edition regions. First seven completed
+  real lookups are six needs-review / one ambiguous / zero rated. No individual
+  title was selected, corrected or used to establish a game-specific exception.
+- Successful gated debug build 183, log
+  `D:\Temp\rshop-s7-gradle-build183-20261006.log`, used observed workers=2,
+  parallel=false and Gradle maximum heap 3,221,225,472 bytes. The supervising
+  launcher owns `Local\Darka.AndroidGradleBuildGate` through inspection and
+  command completion. Kotlin 2.2.20 uses the assessed in-process route, sharing
+  that heap. Required MaxMetaspaceSize=1G and ReservedCodeCacheSize=256m remain.
+  Test markers configure one fork / 512 MiB, but no forked tests ran in assembly;
+  app/plugin one-slot native pools remain configured. No memory failure/budget
+  increase. Existing toolchain/deprecation warnings were not bypassed.
+- APK `build/app/outputs/apk/debug/app-debug.apk`, 179,379,550 bytes,
+  SHA-256 `46f1e5fbace813c03a048dc3355414e400b7e0c05e802d0603edfe1ea2fe7f13`,
+  package com.darkaxt.rshop.debug / version 1.7.0 code 12, signing SHA-256
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`, was
+  independently inspected and installed with `adb install -r`, not uninstall.
+  Normal app PID 4280 started. Config SHA-256 remained
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  PS1 job 50 was explicitly paused at 259 requested / 147 pending. Root
+  generation 1 / next generation 2 survived and resumed after normal
+  default-account authorization, reaching 135,175 observations / 13,228 pending
+  folders. No new source, mapping, library folder, account or generation was
+  substituted. A transient initial credentials-loading display was re-observed:
+  both provider credential pairs remain saved, not re-entered.
+- Fixed READONLY aggregate helper `/data/local/tmp/rshop-s7-region-probe.jar`
+  SHA-256 `5d6ada9d90f70dde947b2e4a48e40af1b4c1e00c0281bfd2b5238b39ec9c25fe`
+  matches its host file. It caps request rows/record bytes and emits aggregates;
+  no metadata correction or arbitrary SQL interface was added. The host compiler
+  intermediate is expendable; helper/source/build evidence remain needed in S7.
+- The Drive connector returned normalized descriptive metadata without the
+  requested version/digest/capability fields. Those absent fields are not
+  mismatches or recovery authority. Use R-Shop's existing authenticated Drive
+  boundary for recovery proof. No Drive write or ROM body fetch occurred.
+- Both displays are OFF. No SD ROM was adopted/removed, save altered, FolderSync
+  changed or release published. S7 stays ACTIVE: full collection publication,
+  fresh coverage, defensible ranking, current recovery and reviewed migration are
+  unsatisfied. Follow job 51, then resume existing PS1 job 50 via Saved jobs.
+- Final observation in this turn: the same PID/job 51 remains running at 27
+  requested / 179 pending, 19 needs-review / six ambiguous / two unmatched /
+  zero rated. The same root reached 135,290 observations / 13,187 pending folders.
+  Exact transactional cleanup `df386571836eaa2dd6e83872600b9d49` removed only
+  the 13,720-byte host class intermediate and its empty directory; the task-only
+  device UI dump was also removed. Jar/source/APK and required evidence remain.
+
 Authority: `SPECIFICATION.md` revision 8, MIGRATE-01 and the UI-02 scraping-feedback
 extension. Status: **ACTIVE**, the
 sole ACTIVE stage. S6 is COMPLETE at `ea63586`; S8/S9/S10 are NOT STARTED.

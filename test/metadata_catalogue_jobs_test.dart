@@ -106,6 +106,95 @@ void main() {
       db.query('metadata_refresh_items',
           where: 'job_id = ?', whereArgs: [job], orderBy: 'edition_id');
 
+  test('catalogue filenames supply only unambiguous lookup region hints',
+      () async {
+    final cases = <String, String?>{
+      'Fixture (USA) (En,Ja).chd': 'us',
+      'Fixture [JP].zip': 'jp',
+      'Fixture (Europe).rvz': 'eu',
+      'Fixture (World).7z': 'wor',
+      'Fixture (USA, Europe).chd': null,
+      'Fixture (USA) [Japan].chd': null,
+      'Fixture (USA, Unknown).chd': null,
+      'Fixture (En,Ja).chd': null,
+      'USA Adventure.chd': null,
+    };
+    var index = 0;
+    for (final entry in cases.entries) {
+      final artifact = RemoteArtifact.fromJson({
+        ...remote('region-${index++}').toJson(),
+        'displayName': entry.key,
+        'displayPath': 'Folder (Japan)/${entry.key}',
+      });
+      await cache('psx', entry.key, artifact: artifact);
+    }
+    // Legacy catalogue entries use their original filename too, not cleanTitle.
+    await cache('snes', 'Legacy (USA).zip');
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final before = <String, String>{};
+    for (final row in await items(job.id)) {
+      final editionId = row['edition_id'] as String;
+      final edition = (await store.edition(editionId))!;
+      before[editionId] = jsonEncode(edition.toJson());
+      final request = jsonDecode(row['request_json'] as String);
+      final raw = edition.members.isEmpty
+          ? <Map<String, Object?>>[]
+          : await db.query('library_artifacts',
+              where: 'artifact_id = ?',
+              whereArgs: [edition.members.single.artifactId.key],
+              limit: 1);
+      final name = raw.isEmpty
+          ? 'Legacy (USA).zip'
+          : jsonDecode(raw.single['record_json'] as String)['displayName']
+              as String;
+      expect(request['region'], name.startsWith('Legacy') ? 'us' : cases[name],
+          reason: name);
+      expect(edition.regions, isEmpty);
+      expect(edition.tags, isNot(contains('official')));
+      expect(request['verifiedProviderGameId'], isNull);
+      expect(request['romIdentifier'], isNull);
+    }
+    final provider = _ReviewProvider();
+    final result = await jobs.run(job.id, provider);
+    expect(result.rated, 0);
+    expect(
+        (await items(job.id)).where((r) => r['status'] == 'matched'), isEmpty);
+    for (final entry in before.entries) {
+      expect(
+          jsonEncode((await store.edition(entry.key))!.toJson()), entry.value);
+    }
+  });
+
+  test(
+      'explicit unknown or multi-region facts are not replaced by filename hints',
+      () async {
+    await cache('psx', 'Fixture (USA).chd', artifact: remote('manual-region'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final id = (await items(first.id)).single['edition_id'] as String;
+    final edition = (await store.edition(id))!;
+    for (final regions in [
+      <String>[],
+      ['jp', 'eu'],
+      ['jp']
+    ]) {
+      await store.putEdition(EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'regions': regions,
+        'evidence': [
+          ...edition.evidence.map((e) => e.toJson()),
+          IdentityEvidence(
+                  source: 'manual', kind: 'releaseRegion', value: 'unknown')
+              .toJson(),
+        ],
+      }));
+      final next = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final request =
+          jsonDecode((await items(next.id)).single['request_json'] as String);
+      expect(request['region'], regions.length == 1 ? 'jp' : null);
+      expect((await store.edition(id))!.regions, regions);
+    }
+  });
+
   Future<RemoteArtifact> inFolder(String path, {List<String>? folders}) async {
     await DriveCatalogueSchema.install(db);
     const scope = '["source","account","root-folder"]';
