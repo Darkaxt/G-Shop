@@ -5,6 +5,36 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 automatic PS1 breadth and indexed classification — 2026-10-06
+
+- The normal ScreenScraper settings selected psx and began saved job 50 on the
+  stable 405-entry scope. The same live app PID 13676 reached 57 processed /
+  348 pending: 29 need review, 22 ambiguous, six unmatched, zero matched/rated.
+  This is running automatic coverage, not finished matching or defensible
+  reception. No individual title was reviewed or corrected. The collection
+  generation also continued without replacement: 133,041 observations / 13,921
+  pending folders, still unpublished generation 1 / next generation 2.
+- A reproducible scalability defect in snapshot classification scanned pending
+  catalogue entries per artifact. The actual SQL's observed work grew from 59
+  to 60,039 SQLite VM steps after adding 20,000 unpublished entries. Iterating
+  published state first now probes the existing scope/generation/file primary
+  key; no extra index, schema migration or identity exception was introduced.
+  The same fixture observed 61/41 steps before/after expansion. Scope, published
+  generation and ambiguity semantics remain covered by focused host checks.
+- The focused catalogue-job, LibraryStore and Drive-catalogue checks passed;
+  Dart analysis reports no issues. Normal debug build 182 succeeded under the
+  actual shared gate, with workers=2, parallel=false, Gradle heap=3 GiB and
+  assessed Kotlin 2.2.20 in-process configuration. Test fork/512 MiB markers are
+  configuration evidence, not executed tests; native one-slot pools remain
+  configured, not an observed total-host cap. No memory failure/budget increase.
+  The first build attempt ended on an incorrectly unquoted PowerShell property
+  argument (`.dart` interpreted as a task); quoting it resolved the invocation.
+- The APK identity/signature and digest were inspected; it is retained for the
+  next safe device verification boundary, not installed over running work.
+  Build evidence and digest are in the S7 reconciliation. Both displays are OFF;
+  no ROM removal, cloud mutation, FolderSync change or release occurred. S7
+  remains the only ACTIVE stage; S8-S10 are NOT STARTED.
+
 ### S7 standardized retention membership — 2026-10-06
 
 - Collection-wide retention planning now shares the normal Library's canonical

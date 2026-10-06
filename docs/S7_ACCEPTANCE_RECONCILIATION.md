@@ -9,6 +9,65 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Automatic PS1 breadth and snapshot scalability (2026-10-06): normal settings
+selected ScreenScraper/psx and created job 50 on all 405 stable current entries.
+All previous saved passes were completed; no duplicate live job was launched.
+Latest read-only observation on the same live PID 13676: running with 348 pending,
+29 needsReview, 22 ambiguous, six unmatched, zero matched/rated (57 processed;
+58 requests counted with one in flight). The raw-header cohort was zero. This
+records breadth without manual title curation, not an accepted ranking. The root
+scan independently advanced to 133,041 observations / 13,921 pending folders /
+25,534 work rows; generation 1 is still unpublished and next generation is 2.
+
+Preparing this normal pass exposed a per-artifact query whose entry-first join
+can scan the growing unpublished catalogue. A bounded fixture executes the exact
+production SQL against the actual schema and observes SQLite VM work without
+canceling the query or using a wall-clock deadline. With 20,000 unpublished rows,
+the old lookup grew from 59 to 60,039 steps. A state-first CROSS JOIN now probes
+the existing (scope,generation,file_id) primary key (EXPLAIN confirms indexed
+SEARCH e): the fixture observes 61 steps initially / 41 after expansion. Exact
+source/account JSON-prefix boundary, active generation, binary-file selection
+and LIMIT 2 ambiguity rejection are unchanged. No new index or schema is needed.
+This is verified query scalability, not proof of the entire native snapshot's
+elapsed-time improvement: the installed app still uses the older query.
+
+`python -B -m unittest test_catalogue_classification_query` failed on the original
+work-growth regression and passed after the query change. Focused Flutter checks
+for metadata_catalogue_jobs_test, library_store_test and drive_catalogue_test
+passed as one concurrency-1 workload; Dart analysis of LibraryStore is clean.
+Normal debug `:app:assembleDebug` then exited zero, including the prior retention
+API. Gate ticket 182 / 7cca3923cfde4f08a8a21299331020c8 reports gate_acquired=true,
+gradle_profile_verified=true, workers=2, parallel=false and observed maximum heap
+3,221,225,472 bytes. Required 1 GiB metaspace/256 MiB code-cache flags remain;
+assessed Kotlin 2.2.20 uses in-process configuration, sharing the Gradle budget
+(compile tasks were unchanged). Test markers report one fork/512 MiB at
+configuration only; no test JVM ran in assembly. App/plugin native tasks use the
+existing one-slot compile/link pool; no effective all-host concurrency guarantee
+is inferred. No memory failure or raised budget occurred. The first gated attempt
+(181) terminated with Task '.dart' not found after PowerShell split an unquoted
+property argument; it was corrected before the next build, not run concurrently.
+Existing toolchain deprecation/embedded-Kotlin warnings remain; no unrequested
+toolchain upgrade or validation bypass was added.
+
+Build log: D:\Temp\rshop-s7-gradle-build182-20261006.log. APK:
+build/app/outputs/apk/debug/app-debug.apk, 179,377,946 bytes, SHA-256
+901f9b635ab0b39bfed034589fa57c4bcfeff47729d75a4d5f15033316951daa.
+Verified package com.darkaxt.rshop.debug, MainActivity com.retro.rshop.MainActivity,
+version 1.7.0/code 12, retained signer SHA-256
+06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934.
+This APK/log are intentional pending-verification outputs, not disposable while
+required native verification remains. No APK update/restart, ROM deletion, Drive
+mutation, FolderSync action or release occurred. Both displays are OFF. S7 stays
+ACTIVE; current collection coverage/identity/ranking/recovery/migration gaps are
+not waived by host verification or local packaging. Next device action must
+respect the same running job/checkpoint, not start another PS1 pass.
+
+Final pre-commit observation of that same job 50: running, 70/405 processed,
+335 pending, 36 needsReview, 27 ambiguous, seven unmatched, zero matched/rated;
+one request remained in flight. Root observations increased to 133,155 and
+pending folders decreased to 13,884. Both screens remained OFF. These continuing
+jobs are a verified wait, not a blocker, completion or reason to restart them.
+
 Standardized retention checkpoint (2026-10-06): the browsing Top predicate is
 not a complete physical keep list because it requires each displayed edition's
 own eligible rating. `LibraryQuery.retentionPage` instead includes all current

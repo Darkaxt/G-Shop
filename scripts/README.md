@@ -88,6 +88,13 @@ cd scripts
 python -B -m unittest test_thor_migration_audit
 ```
 
+The classification lookup's focused, network-free scalability contract runs via
+`python -B -m unittest test_catalogue_classification_query`. It extracts the actual
+LibraryStore SQL/schema and observes completed SQLite VM steps, not elapsed time
+or a cancellation deadline. Unpublished catalogue growth must not make a single
+published-artifact lookup scan the whole collection; exact scope/generation and
+ambiguous-root semantics must remain unchanged.
+
 ## Bounded canonical retention observation
 
 `RShopRetentionSnapshot.java` observes the exact production retention SQL on the

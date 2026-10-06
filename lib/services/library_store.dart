@@ -656,10 +656,15 @@ class LibraryStore {
         jsonEncode([artifact.id.sourceId, artifact.id.accountId]);
     final scopePrefix =
         '${encodedScope.substring(0, encodedScope.length - 1)},';
-    final files = await db.rawQuery('''SELECT e.* FROM drive_catalogue_entries e
-      JOIN drive_catalogue_state s ON s.scope=e.scope AND s.active=e.generation
-      WHERE e.file_id=? AND e.is_folder=0
-      AND substr(e.scope, 1, length(?))=?
+    // Iterate the small state set first, then probe the existing composite key.
+    // An entry-first join scans every unpublished collection entry for each
+    // edition while a whole-library traversal is running. CROSS JOIN keeps the
+    // indexed lookup deterministic without an extra index or schema migration.
+    final files = await db.rawQuery('''SELECT e.* FROM drive_catalogue_state s
+      CROSS JOIN drive_catalogue_entries e
+      ON e.scope=s.scope AND e.generation=s.active
+      WHERE e.file_id=? AND e.is_folder=0 AND s.active IS NOT NULL
+      AND substr(s.scope, 1, length(?))=?
       LIMIT 2''', [
       artifact.id.providerFileId,
       scopePrefix,

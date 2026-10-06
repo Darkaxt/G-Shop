@@ -13,6 +13,14 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+S7 current automatic pass (2026-10-06): PS1 ScreenScraper job 50 is running on
+its existing 405-entry snapshot. Follow that same job and the live root scan;
+do not replace either after a transient observation failure. The published-folder
+lookup now avoids per-artifact scans of unpublished entries, verified with the
+actual SQL/schema and focused identity contracts. Normal debug build 182 is
+prepared but not installed; normal Thor integration remains required at a safe
+checkpoint. This does not close S7 or justify individual-game curation.
+
 S7 retention checkpoint (2026-10-06): use the shared, bounded per-console
 canonical retention query, not the display-filtered Top list, when preparing
 the physical sample. Unscored members of selected groups remain included;
