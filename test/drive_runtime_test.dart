@@ -170,6 +170,18 @@ class _Transport implements HttpClientAdapter {
 }
 
 class _NativeStorage {
+  Map<String, Object?> archiveObservation = {
+    'container': {'sizeBytes': 5, 'md5': _md5},
+    'raw': {
+      'kind': 'rawRom',
+      'filename': 'Game.z64',
+      'sizeBytes': 8192,
+      'crc32': '12345678',
+      'md5': 'b' * 32,
+      'sha1': 'c' * 40
+    },
+  };
+  Future<void> Function()? onArchiveRead;
   final channel = const MethodChannel('runtime-fixture-storage');
   final bytes = <int>[];
   final writeStarted = Completer<void>();
@@ -212,6 +224,12 @@ class _NativeStorage {
     calls.add(call.method);
     final args = Map<String, dynamic>.from(call.arguments as Map);
     switch (call.method) {
+      case 'ownedReadArchiveIdentifier':
+        expect(args['destinationRoot'], '/roms');
+        expect(args['relativePath'], 'fixture.7z');
+        expect(args['platformId'], 'n64');
+        await onArchiveRead?.call();
+        return archiveObservation;
       case 'ownedPrepare':
         return {
           'destinationRoot': '/roms',
@@ -863,6 +881,96 @@ void main() {
     expect(fixture.native.sessionOpen, isFalse);
     expect(fixture.media.closed, isTrue);
     expect(await fixture.db.query('migration_byte_observations'), isEmpty);
+  });
+  test(
+      'metadata archive reads bind separate local raw hashes without ROM media requests',
+      () async {
+    final fixture =
+        await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+    final raw = await fixture.runtime().readMetadataArchive(
+        config: _transferConfig,
+        artifact: _artifact(name: 'fixture.7z'),
+        platformId: 'n64',
+        destinationRoot: '/roms',
+        cancellation: CancelToken());
+    expect(raw!.sha1, 'c' * 40);
+    expect(raw.md5, 'b' * 32);
+    expect(raw.sizeBytes, 8192);
+    expect(fixture.media.requests, isEmpty);
+    expect(fixture.native.calls, ['ownedReadArchiveIdentifier']);
+    expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
+        hasLength(2));
+    expect(await fixture.db.query('transfer_records'), isEmpty);
+    expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    expect(await fixture.db.query('transfer_target_owners'), isEmpty);
+    expect(fixture.native.stagePresent, isFalse);
+  });
+  test('metadata archive container mismatch cannot supply raw evidence',
+      () async {
+    final fixture =
+        await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+    fixture.native.archiveObservation['container'] = {
+      'sizeBytes': 5,
+      'md5': 'a' * 32
+    };
+    expect(
+        await fixture.runtime().readMetadataArchive(
+            config: _transferConfig,
+            artifact: _artifact(name: 'fixture.7z'),
+            platformId: 'n64',
+            destinationRoot: '/roms',
+            cancellation: CancelToken()),
+        isNull);
+    expect(fixture.media.requests, isEmpty);
+  });
+  test('metadata archive changed cloud binding rejects after local observation',
+      () async {
+    final fixture =
+        await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+    fixture.native.onArchiveRead = () async {
+      fixture.metadata.version = '2';
+    };
+    await expectLater(
+        fixture.runtime().readMetadataArchive(
+            config: _transferConfig,
+            artifact: _artifact(name: 'fixture.7z'),
+            platformId: 'n64',
+            destinationRoot: '/roms',
+            cancellation: CancelToken()),
+        throwsA(isA<DriveTransferException>().having(
+            (e) => e.issue, 'issue', DriveTransferIssue.sourceChanged)));
+    expect(fixture.media.requests, isEmpty);
+  });
+  test('disconnect cancels and joins native metadata archive observation',
+      () async {
+    final fixture =
+        await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+    final entered = Completer<void>(), drain = Completer<void>();
+    fixture.native.onArchiveRead = () async {
+      entered.complete();
+      await drain.future;
+    };
+    final runtime = fixture.runtime();
+    final read = runtime.readMetadataArchive(
+        config: _transferConfig,
+        artifact: _artifact(name: 'fixture.7z'),
+        platformId: 'n64',
+        destinationRoot: '/roms',
+        cancellation: CancelToken());
+    final failed = expectLater(
+        read,
+        throwsA(isA<DriveTransferException>()
+            .having((e) => e.issue, 'issue', DriveTransferIssue.cancelled)));
+    await entered.future;
+    final disconnect = runtime.disconnect();
+    await fixture.driver.signedOut.future;
+    fixture.driver.finishSignOut.complete();
+    expect(fixture.metadata.closed, isFalse);
+    drain.complete();
+    await failed;
+    await disconnect;
+    expect(fixture.metadata.closed, isTrue);
+    expect(fixture.media.requests, isEmpty);
   });
   test('metadata header reads exactly 140 bytes without staging a large ROM',
       () async {

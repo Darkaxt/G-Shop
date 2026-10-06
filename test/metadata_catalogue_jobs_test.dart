@@ -667,6 +667,143 @@ void main() {
     expect(request.contentTags, isEmpty);
   });
 
+  test(
+      'normal archive jobs bind raw members atomically and reuse current evidence',
+      () async {
+    final artifact = RemoteArtifact.fromJson({
+      ...remote('archive').toJson(),
+      'displayName': 'Game (USA).7z',
+      'displayPath': 'Game (USA).7z',
+      'canDownload': true
+    });
+    final cacheId =
+        await cache('n64', artifact.displayName, artifact: artifact);
+    var reads = 0;
+    const raw = MetadataRomIdentifier(
+        kind: RomIdentifierKind.rawRom,
+        filename: 'Game (USA).z64',
+        sizeBytes: 8192,
+        md5: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        sha1: 'cccccccccccccccccccccccccccccccccccccccc');
+    jobs = MetadataRefreshJobs(Future.value(db),
+        readArchiveIdentifier: (source, platform, cancel) async {
+      reads++;
+      expect(source.toJson(), artifact.toJson());
+      expect(platform, 'n64');
+      return raw;
+    });
+    final provider = _ReviewProvider();
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, provider);
+    expect(provider.requests.single.romIdentifier?.toJson(), raw.toJson());
+    expect(reads, 1);
+    final editionId = (await items(job.id)).single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    expect(edition.tags, isEmpty,
+        reason: 'The byte read itself does not classify a game.');
+    expect(
+        edition.evidence
+            .singleWhere((e) => e.kind == 'rawRomIdentifier')
+            .source,
+        'driveLocalArchive');
+    expect(
+        jsonDecode(edition.evidence
+            .singleWhere((e) => e.kind == 'rawRomArchiveSource')
+            .value)['artifact'],
+        artifact.toJson());
+    final restarted = MetadataRefreshJobs(Future.value(db),
+        readArchiveIdentifier: (_, __, ___) async {
+      fail('Unchanged archive evidence must survive restart');
+    });
+    final next =
+        await restarted.createFromCatalogue(providerId: 'screenscraper');
+    await restarted.run(next.id, provider);
+    expect(provider.requests.last.romIdentifier?.toJson(), raw.toJson());
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode(RemoteArtifact.fromJson({
+            ...artifact.toJson(),
+            'version': '2',
+            'providerChecksums': {'md5': 'd' * 32}
+          }).toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [cacheId]);
+    final changed = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect(
+        jsonDecode((await items(changed.id)).single['request_json'] as String)[
+            'romIdentifier'],
+        isNull);
+  });
+
+  test('archive changed during identification cannot publish raw evidence',
+      () async {
+    final artifact = RemoteArtifact.fromJson({
+      ...remote('archive').toJson(),
+      'displayName': 'Game.7z',
+      'displayPath': 'Game.7z',
+      'canDownload': true
+    });
+    await cache('n64', artifact.displayName, artifact: artifact);
+    jobs = MetadataRefreshJobs(Future.value(db),
+        readArchiveIdentifier: (_, __, ___) async {
+      await db.update('library_artifacts', {
+        'record_json': jsonEncode(
+            RemoteArtifact.fromJson({...artifact.toJson(), 'version': '2'})
+                .toJson())
+      });
+      return const MetadataRomIdentifier(
+          kind: RomIdentifierKind.rawRom,
+          filename: 'Game.z64',
+          sizeBytes: 8192,
+          sha1: 'cccccccccccccccccccccccccccccccccccccccc');
+    });
+    final provider = _ReviewProvider();
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await jobs.run(job.id, provider)).counts, {'identityChanged': 1});
+    expect(provider.calls, 0);
+    final edition = (await store
+        .edition((await items(job.id)).single['edition_id'] as String))!;
+    expect(
+        edition.evidence.where((e) => e.kind == 'rawRomIdentifier'), isEmpty);
+  });
+
+  for (final tag in ['Hack', 'unknown']) {
+    test('local archive identification preserves explicit $tag classification', () async {
+      final artifact = RemoteArtifact.fromJson({...remote('archive').toJson(),
+        'displayName': 'Game.7z', 'displayPath': 'Game.7z', 'canDownload': true});
+      await cache('n64', artifact.displayName, artifact: artifact);
+      final initial = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final edition = (await store.edition((await items(initial.id)).single['edition_id'] as String))!;
+      await store.putEdition(EditionIdentity.fromJson({...edition.toJson(), 'tags': [tag],
+        'evidence': [...edition.evidence.map((e) => e.toJson()),
+          IdentityEvidence(source: 'manual', kind: 'contentClassification', value: 'reviewed').toJson()]}));
+      jobs = MetadataRefreshJobs(Future.value(db), readArchiveIdentifier: (_, __, ___) async {
+        fail('Explicit manual/modified classification must not be replaced by archive inference');
+      });
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      await jobs.run(job.id, _ReviewProvider());
+      expect((await store.edition(edition.id))!.tags, {tag});
+    });
+  }
+
+  test('cancelled local archive identification leaves the same job resumable', () async {
+    final artifact = RemoteArtifact.fromJson({...remote('archive').toJson(),
+      'displayName': 'Game.7z', 'displayPath': 'Game.7z', 'canDownload': true});
+    await cache('n64', artifact.displayName, artifact: artifact);
+    jobs = MetadataRefreshJobs(Future.value(db), readArchiveIdentifier: (_, __, cancel) async {
+      cancel.cancel();
+      return const MetadataRomIdentifier(kind: RomIdentifierKind.rawRom,
+        filename: 'Game.z64', sizeBytes: 8192, sha1: 'cccccccccccccccccccccccccccccccccccccccc');
+    });
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final provider = _ReviewProvider();
+    final report = await jobs.run(job.id, provider);
+    expect(report.state, 'paused'); expect(report.counts, {'pending': 1}); expect(provider.calls, 0);
+    expect(jsonDecode((await items(job.id)).single['request_json'] as String)['romIdentifier'], isNull);
+  });
+
   test('replacement bytes cannot reuse an older explicit raw identifier',
       () async {
     final id = await cache('snes', 'Game.zip', artifact: remote('raw'));

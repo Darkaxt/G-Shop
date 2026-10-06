@@ -108,6 +108,8 @@ class MetadataRefreshJobs {
   final Future<SharedMetadataStore?>? _sharedStore;
   final Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
       _readRomHeader;
+  final Future<MetadataRomIdentifier?> Function(
+      RemoteArtifact, String, CancelToken)? _readArchiveIdentifier;
   final DateTime Function() _now;
   final Timer Function(Duration, void Function()) _schedule;
   Future<MetadataRefreshReport>? _active;
@@ -118,9 +120,13 @@ class MetadataRefreshJobs {
       Future<SharedMetadataStore?>? sharedStore,
       Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
           readRomHeader,
+      Future<MetadataRomIdentifier?> Function(
+              RemoteArtifact, String, CancelToken)?
+          readArchiveIdentifier,
       Timer Function(Duration, void Function())? schedule})
       : _sharedStore = sharedStore,
         _readRomHeader = readRomHeader,
+        _readArchiveIdentifier = readArchiveIdentifier,
         _now = now ?? DateTime.now,
         _schedule = schedule ?? Timer.new;
 
@@ -949,17 +955,18 @@ class MetadataRefreshJobs {
 
   /// Extract once per current artifact, not once per title or per refresh. A
   /// declared original hash is lookup evidence only, never ROM integrity proof.
-  Future<Map<String, Object?>?> _bindChdHeader(
+  Future<Map<String, Object?>?> _bindRomIdentifier(
       Database db,
       int jobId,
       Map<String, Object?> item,
       MetadataLookupRequest request,
       Map<String, Object?> identity,
       CancelToken cancel) async {
-    if (_readRomHeader == null ||
+    final archive = {'n64', 'gamegear'}.contains(request.platformId);
+    if ((archive ? _readArchiveIdentifier == null : _readRomHeader == null) ||
         request.romIdentifier != null ||
         request.verifiedProviderGameId != null ||
-        !{'psp', 'ps2'}.contains(request.platformId)) {
+        !{'psp', 'ps2', 'n64', 'gamegear'}.contains(request.platformId)) {
       return null;
     }
     final game =
@@ -973,7 +980,8 @@ class MetadataRefreshJobs {
         edition.translatedLanguages.isNotEmpty ||
         edition.tags.any((tag) => !{'unknown', 'official'}.contains(tag)) ||
         edition.evidence.any((e) =>
-            (e.kind == 'rawRomIdentifier' && e.source != 'driveHeader') ||
+            (e.kind == 'rawRomIdentifier' &&
+                !{'driveHeader', 'driveLocalArchive'}.contains(e.source)) ||
             (e.source == 'manual' &&
                 e.kind == 'contentClassification' &&
                 edition.tags.contains('unknown')))) {
@@ -990,16 +998,27 @@ class MetadataRefreshJobs {
     if (artifact.id.providerId != 'drive' ||
         artifact.version?.isNotEmpty != true ||
         artifact.canDownload != true ||
-        (artifact.sizeBytes ?? 0) < 140 ||
-        !artifact.displayName.toLowerCase().endsWith('.chd')) {
+        (artifact.sizeBytes ?? 0) < (archive ? 1 : 140) ||
+        !(archive
+            ? artifact.displayName.toLowerCase().endsWith('.zip') ||
+                request.platformId == 'n64' &&
+                    artifact.displayName.toLowerCase().endsWith('.7z')
+            : artifact.displayName.toLowerCase().endsWith('.chd'))) {
       return null;
     }
-    final bytes = await _readRomHeader!(artifact, request.platformId, cancel);
+    final source = archive ? 'driveLocalArchive' : 'driveHeader';
+    final MetadataRomIdentifier? raw;
+    if (archive) {
+      raw = await _readArchiveIdentifier!(artifact, request.platformId, cancel);
+    } else {
+      final bytes = await _readRomHeader!(artifact, request.platformId, cancel);
+      raw = bytes == null
+          ? null
+          : MetadataRomIdentifier.fromChdDvdHeader(bytes, artifact.displayName);
+    }
     if (cancel.isCancelled) throw const _RefreshCommitCancelled();
-    final raw = bytes == null
-        ? null
-        : MetadataRomIdentifier.fromChdDvdHeader(bytes, artifact.displayName);
     if (raw == null) return null;
+    final rawJson = raw.toJson();
     return db.transaction((txn) async {
       if (cancel.isCancelled) throw const _RefreshCommitCancelled();
       final current = await _identity(txn, edition.id);
@@ -1025,8 +1044,12 @@ class MetadataRefreshJobs {
           ...edition.toJson(),
           'evidence': [
             for (final e in edition.evidence)
-              if (e.source == 'driveHeader' &&
-                  {'rawRomIdentifier', 'rawRomHeaderSource'}.contains(e.kind))
+              if ({'driveHeader', 'driveLocalArchive'}.contains(e.source) &&
+                  {
+                    'rawRomIdentifier',
+                    'rawRomHeaderSource',
+                    'rawRomArchiveSource'
+                  }.contains(e.kind))
                 IdentityEvidence(
                         source: e.source,
                         kind:
@@ -1036,23 +1059,25 @@ class MetadataRefreshJobs {
               else
                 e.toJson(),
             IdentityEvidence(
-                    source: 'driveHeader',
+                    source: source,
                     kind: 'rawRomIdentifier',
-                    value: jsonEncode(raw.toJson()))
+                    value: jsonEncode(rawJson))
                 .toJson(),
             IdentityEvidence(
-                source: 'driveHeader',
-                kind: 'rawRomHeaderSource',
+                source: source,
+                kind: archive ? 'rawRomArchiveSource' : 'rawRomHeaderSource',
                 value: jsonEncode({
                   'artifact': artifact.toJson(),
                   'version': artifact.version,
-                  'bytesRead': 140,
-                  'integrityVerified': false
+                  if (!archive) 'bytesRead': 140,
+                  'integrityVerified': false,
+                  if (archive) 'localContainerMatchesDriveChecksums': true,
+                  if (archive) 'rawContentValidated': true,
                 })).toJson()
           ]
         });
         final updatedRequest = MetadataLookupRequest.fromJson(
-            {...request.toJson(), 'romIdentifier': raw.toJson()});
+            {...request.toJson(), 'romIdentifier': rawJson});
         await txn.update(
             'library_editions', {'record_json': jsonEncode(updated.toJson())},
             where: 'edition_id = ?', whereArgs: [edition.id]);
@@ -1669,7 +1694,7 @@ class MetadataRefreshJobs {
         }
         if (!matchReview && provider.providerId == 'screenscraper') {
           final bound =
-              await _bindChdHeader(db, id, item, request, current, cancel);
+              await _bindRomIdentifier(db, id, item, request, current, cancel);
           if (bound != null) {
             item = bound;
             if (item['status'] != 'pending') {

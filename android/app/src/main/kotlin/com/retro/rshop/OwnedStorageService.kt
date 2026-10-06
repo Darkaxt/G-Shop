@@ -115,6 +115,7 @@ internal class OwnedStorageService(private val context: Context) {
         "ownedPrepare" -> prepare(string(call, "destinationRoot"))
         "ownedOpen" -> open(call)
         "ownedInspect" -> inspect(call)
+        "ownedReadArchiveIdentifier" -> readArchiveIdentifier(call)
         "ownedRetireStage" -> { retireStage(call); null }
         "ownedQuarantine" -> quarantine(call, false)
         "ownedRetireQuarantine" -> { quarantine(call, true); null }
@@ -335,6 +336,45 @@ internal class OwnedStorageService(private val context: Context) {
             if (errno(error) == 2) return null
             throw error
         } finally { closeFd(dirFd); closeFd(rootFd) }
+    }
+
+    /** Metadata reads neither create a stage nor claim ownership of the ROM. */
+    private fun readArchiveIdentifier(call: MethodCall): Map<String, Any> {
+        val target = target(call)
+        if (target.parent.isNotEmpty()) throw Failure("invalid_arguments")
+        val platform = string(call, "platformId")
+        val name = target.name.lowercase(java.util.Locale.ROOT)
+        if (!(platform == "gamegear" && name.endsWith(".zip") ||
+                platform == "n64" && (name.endsWith(".zip") || name.endsWith(".7z"))))
+            throw Failure("unsupported_archive")
+        var root = -1; var file = -1
+        try {
+            root = OwnedStorageNative.openRoot(target.root)
+            val rootIdentity = OwnedStorageNative.identity(root)
+            file = OwnedStorageNative.openFile(root, target.name, false, false)
+            val before = OwnedStorageNative.identity(file)
+            val path = "/proc/self/fd/$file"
+            val container = OwnedArchiveIdentity.container(path)
+            val raw = when {
+                platform == "gamegear" -> OwnedGameGearZip.validate(path)
+                name.endsWith(".zip") -> OwnedGameGearZip.validateN64(path)
+                else -> OwnedN64SevenZip.validate(path)
+            }
+            if (container != OwnedArchiveIdentity.container(path) ||
+                !before.contentEquals(OwnedStorageNative.identity(file)) ||
+                !before.contentEquals(OwnedStorageNative.entryIdentity(root, target.name)))
+                throw Failure("changed")
+            val currentRoot = OwnedStorageNative.openRoot(target.root)
+            try {
+                if (!sameObject(rootIdentity, OwnedStorageNative.identity(currentRoot)))
+                    throw Failure("changed")
+            } finally { closeFd(currentRoot) }
+            return mapOf("raw" to raw, "container" to container)
+        } catch (error: IOException) {
+            if (error.message == "unsupported_archive") throw Failure("unsupported_archive")
+            if (error.message == "changed") throw Failure("changed")
+            throw error
+        } finally { closeFd(file); closeFd(root) }
     }
 
     /** Post-commit cleanup only. The public file is opened read-only and never

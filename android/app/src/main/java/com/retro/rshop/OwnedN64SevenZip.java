@@ -22,7 +22,7 @@ final class OwnedN64SevenZip {
     private static final int DICTIONARY_LIMIT = 32 * 1024 * 1024;
     private static final byte[] SIGNATURE = {0x37, 0x7a, (byte) 0xbc, (byte) 0xaf, 0x27, 0x1c};
 
-    static void validate(String descriptorPath) throws IOException {
+    static java.util.Map<String, Object> validate(String descriptorPath) throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
             require(length >= 32 && length <= ROM_LIMIT + 3L * HEADER_LIMIT);
@@ -55,7 +55,7 @@ final class OwnedN64SevenZip {
                     romVault = true;
                 }
                 byte[] decoded = new byte[(int) stream.unpacked];
-                decode(file, stream, decoded, false);
+                decode(file, stream, decoded, false, null);
                 header = decoded;
                 romEnd = 32 + stream.position;
             }
@@ -67,7 +67,9 @@ final class OwnedN64SevenZip {
             String name = files(plain);
             require(name != null && safeName(name));
             plain.expect(0); plain.end();
-            decode(file, rom, null, true);
+            OwnedArchiveIdentity identity = new OwnedArchiveIdentity();
+            decode(file, rom, null, true, identity);
+            return identity.member(name);
         }
     }
 
@@ -184,7 +186,8 @@ final class OwnedN64SevenZip {
         return magic == 0x40123780L || magic == 0x12408037L || magic == 0x80371240L;
     }
 
-    private static void decode(RandomAccessFile file, Stream s, byte[] header, boolean rom) throws IOException {
+    private static void decode(RandomAccessFile file, Stream s, byte[] header, boolean rom,
+                               OwnedArchiveIdentity identity) throws IOException {
         require(s.position <= file.length() - 32 && s.packed <= file.length() - 32 - s.position);
         file.seek(32 + s.position);
         PackedInput bounded = new PackedInput(file, s.packed);
@@ -204,6 +207,7 @@ final class OwnedN64SevenZip {
                 require(n > 0 && n <= s.unpacked - count);
                 for (int i = 0; i < n && count + i < 4; i++) magic[(int) count + i] = buffer[i];
                 if (header != null) System.arraycopy(buffer, 0, header, (int) count, n);
+                if (identity != null) identity.add(buffer, n);
                 crc.update(buffer, 0, n); count += n;
             }
             require(count == s.unpacked && crc.getValue() == s.crc && input.available() == 0 &&

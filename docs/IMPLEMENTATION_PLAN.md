@@ -23,6 +23,14 @@ closes the normal Game Gear ZIP round-trip proof, not all format or migration
 criteria. Keep S7 ACTIVE and finish defensible rankings and reviewed execution;
 do not open S8-S10 or infer bulk-removal authority from this test.
 
+S7 current archive-identification work (2026-10-06): extend the existing bounded
+validators/metadata worker to identify raw members from exact already-local N64
+7z/ZIP and Game Gear ZIP files, only after their container size/digests and rooted
+Drive binding agree. Verify native streamed hashes, immutable job publication,
+restart/shared recovery, cancellation, modification/manual-evidence protection
+and a normal Thor provider workflow. This serves META-03/MIGRATE-01 classification;
+it neither creates installations nor authorizes migration or another ACTIVE stage.
+
 S7 normal N64 recovery checkpoint (2026-10-06): the corrected normal debug APK
 now completes the same saved 7z queue item, reaches the installed N64 core's title
 screen online and in a fresh emulator process offline, then passes normal owned

@@ -439,6 +439,18 @@ retain provenance through shared-store recovery. Saved requests remain immutable
 Reception, vote-count, ownership, freshness, canonical grouping and exact
 recoverable cloud-byte requirements for SD deletion are unchanged.
 
+S7 local archive identification detail (2026-10-06): the existing bounded N64
+7z/ZIP and Game Gear ZIP validators may supply streamed raw member identifiers
+from an already present exact leaf under the configured console target. Verify
+the complete container size and all supplied cryptographic Drive checksums,
+revalidate the current rooted Drive artifact before/after reading, and reject
+local namespace/content changes. No extraction, remote ROM-body request, target
+creation, installation/adoption or removal is authorized by a metadata read.
+Persist raw-member evidence bound to that exact versioned artifact atomically
+with the job request; changed bytes retire it, while manual/modified/ambiguous
+editions remain protected. This identifies bytes, not reception or migration
+authority, and does not turn container digests into raw-ROM digests.
+
 ### META-04 — Hacks, translations and score ownership
 
 Support distinct content tags for `Hack`, `T-Eng`, `Dub`, `Undub`, `Uncensor`,

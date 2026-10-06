@@ -89,6 +89,20 @@ class OwnedStorage {
         stageFreeBytes: map['stageFreeBytes'] as int);
   }
 
+  /// Read-only observation of an existing exact leaf, not an installation or
+  /// adoption. Native validators return separate container and raw-member data.
+  Future<Map<String, Object?>> readArchiveIdentifier(
+      {required String destinationRoot,
+      required String relativePath,
+      required String platformId}) async {
+    final result = await _invoke('ownedReadArchiveIdentifier', {
+      'destinationRoot': destinationRoot,
+      'relativePath': relativePath,
+      'platformId': platformId,
+    });
+    return (result as Map).cast<String, Object?>();
+  }
+
   /// The caller persists the intent before creating its stage. A resume requires
   /// the recorded inode, not merely a matching filename; uncommitted tail bytes
   /// are truncated only after that ownership check. Published recovery is read-only.

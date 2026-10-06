@@ -1,5 +1,30 @@
 # S7 live metadata and Thor migration
 
+## Current standardized archive-identity checkpoint — 2026-10-06
+
+The existing bounded N64/Game Gear validators now identify actual raw members of
+exact already-local archives without extraction, remote ROM-body requests or
+ownership mutation. Container cryptographic checksums/size, local descriptor and
+namespace stability, rooted Drive version before/after reading and atomic saved
+request binding are verified. Focused native/Dart contracts cover replacement,
+cancellation/drain, manual/modification protection, restart and shared recovery.
+The authorized revision-9 matching/classification/reception policy is unchanged.
+
+Normal Thor Fresh re-scrape created job 70 for 1,391 current N64 editions. Native
+Drive reconnection after APK replacement preserved mappings and resumed that same
+snapshot. Latest inspected state is running: 57 outcomes, 1,334 pending, five
+accepted/rated raw-member matches and five corresponding official classifications
+with exact local archive/version evidence. This is integrated real-provider proof,
+not terminal traversal success or reliable collection-wide ranking. The earlier
+uninstrumented eight-outcome pause has no captured cause; the later diagnostic
+resume's authorization exception was resolved through normal reconnection.
+
+No archive read grants installation/adoption/removal authority. Complete fresh
+metadata scopes, independent defensible reception, whole-collection publication,
+remaining format recovery and actual reviewed save/space-safe migration remain
+required. S7 remains the sole ACTIVE stage; S8-S10 remain NOT STARTED. See the
+latest implementation-status entry for build/resource/APK and preservation evidence.
+
 ## Current N64 normal recovery checkpoint — 2026-10-06
 
 The new explicit standalone N64 ZIP/7z path is verified through the normal Thor

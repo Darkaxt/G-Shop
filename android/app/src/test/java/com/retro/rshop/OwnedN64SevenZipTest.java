@@ -16,6 +16,30 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void validatedArchiveReturnsMemberHashesNotContainerHashes() throws Exception {
+        byte[] raw = rom();
+        byte[] encoded = archive("Game.z64", raw, 1, true, raw.length, 4096, 1);
+        File file = File.createTempFile("rshop-n64-identity-", ".7z");
+        try {
+            Files.write(file.toPath(), encoded);
+            Object result = OwnedN64SevenZip.class.getDeclaredMethod("validate", String.class)
+                    .invoke(null, file.getPath());
+            assertNotNull("Validated raw member identity is required", result);
+            java.util.Map<?, ?> identity = (java.util.Map<?, ?>) result;
+            assertEquals("Game.z64", identity.get("filename"));
+            assertEquals((long) raw.length, identity.get("sizeBytes"));
+            assertEquals(hash(raw, "SHA-1"), identity.get("sha1"));
+            assertEquals(hash(raw, "MD5"), identity.get("md5"));
+            assertNotEquals(hash(encoded, "SHA-1"), identity.get("sha1"));
+            assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+        } finally { assertTrue(file.delete()); }
+    }
+    private static String hash(byte[] bytes, String algorithm) throws Exception {
+        StringBuilder hex = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance(algorithm).digest(bytes))
+            hex.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
+        return hex.toString();
+    }
     private static byte[] rom() {
         byte[] bytes = new byte[8192];
         for (int i = 0; i < bytes.length; i++) bytes[i] = (byte) (i % 251);

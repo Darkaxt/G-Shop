@@ -21,15 +21,15 @@ final class OwnedGameGearZip {
     static final long MAX_MEMBER_BYTES = 16L * 1024 * 1024;
     private static final int BUFFER = 65536;
 
-    static void validate(String descriptorPath) throws IOException {
-        validate(descriptorPath, false);
+    static java.util.Map<String, Object> validate(String descriptorPath) throws IOException {
+        return validate(descriptorPath, false);
     }
 
-    static void validateN64(String descriptorPath) throws IOException {
-        validate(descriptorPath, true);
+    static java.util.Map<String, Object> validateN64(String descriptorPath) throws IOException {
+        return validate(descriptorPath, true);
     }
 
-    private static void validate(String descriptorPath, boolean n64) throws IOException {
+    private static java.util.Map<String, Object> validate(String descriptorPath, boolean n64) throws IOException {
         long limit = n64 ? OwnedN64SevenZip.ROM_LIMIT : MAX_MEMBER_BYTES;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
@@ -97,6 +97,7 @@ final class OwnedGameGearZip {
             // The exact single member covers all bytes before the central record.
             // No hidden local entries, SFX prefix, ZIP64 records or trailing data.
             CRC32 actual = new CRC32();
+            OwnedArchiveIdentity identity = new OwnedArchiveIdentity();
             byte[] input = new byte[BUFFER], output = new byte[BUFFER], magic = new byte[4];
             file.seek(dataStart);
             long remaining = compressed, produced = 0;
@@ -108,6 +109,7 @@ final class OwnedGameGearZip {
                     if (inflater == null) {
                         if (n64) prefix(input, count, produced, magic);
                         produced += count; actual.update(input, 0, count);
+                        identity.add(input, count);
                     } else {
                         require(!inflater.finished());
                         inflater.setInput(input, 0, count);
@@ -118,6 +120,7 @@ final class OwnedGameGearZip {
                             produced += inflated;
                             require(produced <= raw);
                             actual.update(output, 0, inflated);
+                            identity.add(output, inflated);
                         }
                     }
                     require(produced <= raw);
@@ -127,6 +130,7 @@ final class OwnedGameGearZip {
                 require(!n64 || OwnedN64SevenZip.n64Magic(magic));
             } catch (DataFormatException error) { throw invalid(); }
             finally { if (inflater != null) inflater.end(); }
+            return identity.member(decoded);
         }
     }
 

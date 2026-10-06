@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -127,11 +128,16 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       Future<SharedMetadataStore?>? sharedStore,
       Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
           readRomHeader,
+      Future<MetadataRomIdentifier?> Function(
+              RemoteArtifact, String, CancelToken)?
+          readArchiveIdentifier,
       Future<String?> Function(String systemId)? configuredTarget,
       required void Function() catalogueChanged})
       : _database = database,
         _jobs = MetadataRefreshJobs(database,
-            sharedStore: sharedStore, readRomHeader: readRomHeader),
+            sharedStore: sharedStore,
+            readRomHeader: readRomHeader,
+            readArchiveIdentifier: readArchiveIdentifier),
         _providers = providers,
         _screenScraper = screenScraperCredentials,
         _igdb = igdbCredentials,
@@ -244,7 +250,12 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     return _operation = () async {
       try {
         await action();
-      } catch (_) {
+      } catch (error) {
+        assert(() {
+          // Never log exception messages, transport bodies, credentials or IDs.
+          debugPrint('Metadata operation failure type: ${error.runtimeType}');
+          return true;
+        }());
         // Neither transport exceptions nor secure values belong in UI state.
         final id = state.report?.id;
         if (id != null) {
@@ -577,6 +588,22 @@ final metadataControlsProvider =
         if (source == null) return null;
         return DriveRuntime.instance.readMetadataHeader(
             config: source, artifact: artifact, cancellation: cancel);
+      },
+      readArchiveIdentifier: (artifact, platformId, cancel) async {
+        final config =
+            await ref.read(configStorageServiceProvider).loadConfig();
+        final source = metadataHeaderSource(config, artifact, platformId);
+        final systems =
+            config?.systems.where((s) => s.id == platformId).toList();
+        final target =
+            systems?.length == 1 ? systems!.single.targetFolder : null;
+        if (source == null || target?.isNotEmpty != true) return null;
+        return DriveRuntime.instance.readMetadataArchive(
+            config: source,
+            artifact: artifact,
+            platformId: platformId,
+            destinationRoot: target!,
+            cancellation: cancel);
       },
       configuredTarget: (systemId) async {
         final config =

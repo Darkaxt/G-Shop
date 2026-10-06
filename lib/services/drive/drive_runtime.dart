@@ -23,6 +23,7 @@ import '../owned_installation_removal.dart';
 import '../transfer_journal.dart';
 import '../stage_retirement.dart';
 import '../owned_replacement.dart';
+import '../metadata/metadata_provider.dart';
 import 'drive_api.dart';
 import 'drive_authorization.dart';
 import 'drive_catalogue.dart';
@@ -88,6 +89,7 @@ class DriveRuntime {
   final _refreshCancellation = <String, CancelToken>{};
   final _bundlePlans = <CancelToken, Future<TransferRecord>>{};
   final _metadataHeaders = <CancelToken, Future<Uint8List>>{};
+  final _metadataArchives = <CancelToken, Future<MetadataRomIdentifier?>>{};
   final _recoveryReviews = <CancelToken, Future<DriveLocalCloudObservation>>{};
   bool _disconnecting = false;
   int _laneGeneration = 0;
@@ -696,6 +698,97 @@ class DriveRuntime {
     }
   }
 
+  /// Metadata only: no media request, staging, extraction or ownership change.
+  Future<MetadataRomIdentifier?> readMetadataArchive(
+      {required ProviderConfig config,
+      required RemoteArtifact artifact,
+      required String platformId,
+      required String destinationRoot,
+      required CancelToken cancellation}) async {
+    _requireConnectedLane();
+    _requireArtifactSource(config, artifact);
+    final name = artifact.displayName;
+    final extension = p.extension(name).toLowerCase();
+    if (!(platformId == 'n64' && {'.7z', '.zip'}.contains(extension) ||
+            platformId == 'gamegear' && extension == '.zip') ||
+        name.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
+        name.startsWith('.') ||
+        (artifact.sizeBytes ?? 0) <= 0 ||
+        artifact.sizeBytes! > 128 * 1024 * 1024 + 3 * 65536 ||
+        _metadataArchives.containsKey(cancellation)) {
+      return null;
+    }
+    final verification = DriveVerification(artifact);
+    void checkCancellation() {
+      if (cancellation.isCancelled) {
+        throw const DriveTransferException(DriveTransferIssue.cancelled);
+      }
+    }
+
+    final operation = () async {
+      checkCancellation();
+      final boundary = DriveDownloadBoundary(
+          config: config,
+          artifact: artifact,
+          catalogue: catalogue,
+          api: apiFor(config.drive!));
+      await boundary.revalidate(cancellation: cancellation);
+      Map<String, Object?> observation;
+      // Absent/unsupported local files are ordinary title-discovery outcomes;
+      // do not request cloud ROM bodies to compensate for missing local bytes.
+      try {
+        observation = await _storage.readArchiveIdentifier(
+            destinationRoot: destinationRoot,
+            relativePath: name,
+            platformId: platformId);
+      } on OwnedStorageException catch (error) {
+        if ({
+          'not_found',
+          'access_denied',
+          'unsupported_archive',
+          'unsupported',
+          'changed',
+          'invalid_arguments'
+        }.contains(error.code)) {
+          return null;
+        }
+        rethrow;
+      }
+      checkCancellation();
+      final container =
+          (observation['container'] as Map).cast<String, Object?>();
+      if (container['sizeBytes'] != artifact.sizeBytes ||
+          verification.checksums.entries
+              .any((e) => container[e.key] != e.value)) {
+        return null;
+      }
+      final raw = MetadataRomIdentifier.fromJson(
+          (observation['raw'] as Map).cast<String, dynamic>());
+      final allowed = platformId == 'n64' ? {'.z64', '.n64', '.v64'} : {'.gg'};
+      if (raw.kind != RomIdentifierKind.rawRom ||
+          raw.sizeBytes <= 0 ||
+          raw.sizeBytes > (platformId == 'n64' ? 128 : 16) * 1024 * 1024 ||
+          raw.filename.startsWith('.') ||
+          raw.filename.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
+          !allowed.contains(p.extension(raw.filename).toLowerCase()) ||
+          !RegExp(r'^[0-9a-f]{32}$').hasMatch(raw.md5 ?? '') ||
+          !RegExp(r'^[0-9a-f]{40}$').hasMatch(raw.sha1 ?? '') ||
+          RegExp(r'^0+$').hasMatch(raw.md5!) ||
+          RegExp(r'^0+$').hasMatch(raw.sha1!)) {
+        throw const DriveTransferException(DriveTransferIssue.invalidResponse);
+      }
+      await boundary.revalidate(cancellation: cancellation);
+      checkCancellation();
+      return raw;
+    }();
+    _metadataArchives[cancellation] = operation;
+    try {
+      return await operation;
+    } finally {
+      _metadataArchives.remove(cancellation);
+    }
+  }
+
   /// Offline revalidation of an already committed exact installation. A saved
   /// completed bit is not proof that another app has left its bytes in place.
   Future<void> requireInstalledTransfer(TransferRecord record,
@@ -1055,11 +1148,15 @@ class DriveRuntime {
       }
       final plans = _bundlePlans.values.toList();
       final headers = _metadataHeaders.values.toList();
+      final archives = _metadataArchives.values.toList();
       final reviews = _recoveryReviews.values.toList();
       for (final cancellation in _recoveryReviews.keys.toList()) {
         cancellation.cancel();
       }
       for (final cancellation in _metadataHeaders.keys.toList()) {
+        cancellation.cancel();
+      }
+      for (final cancellation in _metadataArchives.keys.toList()) {
         cancellation.cancel();
       }
       for (final cancellation in _bundlePlans.keys.toList()) {
@@ -1080,6 +1177,8 @@ class DriveRuntime {
           plan.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
         for (final header in headers)
           header.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+        for (final archive in archives)
+          archive.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
         for (final review in reviews)
           review.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
       ]);

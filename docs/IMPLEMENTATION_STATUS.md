@@ -5,6 +5,64 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 standardized already-local archive identification — 2026-10-06
+
+- Existing bounded N64 7z/ZIP and Game Gear ZIP validators now return streamed
+  raw-member MD5/SHA-1/CRC/size, separately from the container digests. Metadata
+  reads pin the exact existing leaf, compare container bytes before/after parsing,
+  reject namespace/content changes and revalidate the current rooted Drive
+  artifact before/after the read. They neither extract nor request remote ROM
+  bodies, create stages, adopt installations or remove files.
+- The normal persistent metadata worker atomically binds that observation to its
+  immutable request and exact artifact version. Replacement bytes retire old
+  evidence; unchanged observations survive restart/shared-store recovery. Manual
+  unknown classifications, modification tags, patches and base-game links remain
+  protected. `integrityVerified=false` explicitly prevents this lookup evidence
+  from being interpreted as current-cloud recovery or SD-removal authority.
+- Focused native validator/path regression checks and Dart runtime/catalogue/
+  shared grouping/CHD/control checks passed. Native raw-hash assertions failed
+  before implementation and passed afterwards. A focused fixture lacked the real
+  catalogue's filename column; aligning that fixture with the actual schema fixed
+  its failure without a production workaround. Scoped analysis and whitespace
+  checks passed; no full suite was run.
+- Gated native-test/debug build 214 succeeded with mutex acquisition, observed
+  two workers/no parallel projects/3-GB Gradle heap, preserving 1-GB Metaspace and
+  256-MB code cache. Kotlin 2.2.20 was requested in-process, sharing that heap;
+  tests were configured for one 512-MB fork, not independently heap-measured.
+  The subsequent debug diagnostic build 215 also succeeded through the gate.
+  No memory failure or heap increase occurred. Native concurrency is configured
+  with one compile/link slot per ABI; no fresh effective Ninja-pool measurement
+  is claimed for these builds. Logs: `0c47dc23b3e04ffdbd501c42552d9ac6.log` and
+  `64c1011938d04abd8b40239a6dd5ff22.log` in the shared build-gate log directory.
+- The normal debug APK was installed in place with the unchanged signer. Latest
+  APK SHA-256 `65b8caf5f6851a760c90e0939dfd4e33088b658485604376d24263ea3bf82f63`,
+  package `com.darkaxt.rshop.debug`, version 1.7.0/12. Its assertion-only diagnostic
+  logs the exception type, never messages, bodies, credentials or identifiers.
+  The final restricted import is namespace-only; focused controls/analysis passed.
+- One normal N64 Fresh re-scrape captured 1,391 current editions as job 70.
+  Initial native access required normal default-account reconnection; Back without
+  Save preserved configuration. An uninstrumented attempt paused after eight
+  outcomes; its exact exception was not captured and is not assigned a guessed
+  cause. After diagnostic APK replacement, a resume reported the sanitized
+  `DriveAuthorizationException` type. Normal reconnection and resume advanced
+  the SAME saved job past that pending archive: latest inspected state running,
+  57 outcomes, 1,334 pending, five matched/rated and five persisted exact local
+  raw bindings independently confirmed as official. Ambiguous/unidentified
+  entries remain unapproved. This proves the real standardized path, not terminal
+  job success, full metadata coverage, defensible Top-25 or MIGRATE-01 closure.
+- An auxiliary read-only query joining an unbounded catalogue was killed; it was
+  replaced by primary-key reads from a three-row pending page. No host-memory
+  cause is inferred. The remaining-gates observer is retained for S7; expendable
+  captures/probe output are reviewed for exact cleanup. Original N64 ROM bytes and
+  complete source configuration remain hash-identical to the pre-test baseline.
+  No save, BIOS, FolderSync setting or cloud file was changed. S7 remains the sole
+  ACTIVE stage; S8-S10 remain NOT STARTED.
+- Both physical displays are freshly confirmed committed OFF; the single saved
+  metadata worker is left running. Reviewed cleanup transaction
+  `7c7e480f300434f4bb8904784adfb71d` removed only task captures and the expendable
+  read-only host probe (1,336,987 bytes); both exact device XML/PNG captures are
+  verified absent. The installed APK and bounded S7 observer remain required.
+
 ### S7 N64 archive queue / offline launch / removal / recovery — 2026-10-06
 
 - Explicit standalone N64 ZIP/7z mappings now participate in the normal queue,

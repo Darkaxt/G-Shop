@@ -101,10 +101,11 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
   Future<List<String>> catalogue(
       {String platform = 'snes',
       bool rawDrive = false,
-      bool chd = false}) async {
+      bool chd = false,
+      String? archiveExtension}) async {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
-      systemSlug TEXT, displayName TEXT, artifact_key TEXT, remote_artifact TEXT,
+      systemSlug TEXT, filename TEXT, displayName TEXT, artifact_key TEXT, remote_artifact TEXT,
       is_folder INTEGER DEFAULT 0)''');
     await LibraryQuery.install(db);
     for (final n in [1, 2]) {
@@ -116,14 +117,17 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
               providerFileId: 'file-$n'),
           parentId: 'fixture-folder',
           canDownload: true,
-          displayPath: 'Fixture $n.${chd ? 'chd' : 'sfc'}',
-          displayName: 'Fixture $n.${chd ? 'chd' : 'sfc'}',
+          displayPath:
+              'Fixture $n.${archiveExtension ?? (chd ? 'chd' : 'sfc')}',
+          displayName:
+              'Fixture $n.${archiveExtension ?? (chd ? 'chd' : 'sfc')}',
           version: '1',
           sizeBytes: 1024,
           providerChecksums: {'sha1': 'a' * 40});
       await db.insert('games', {
         'id': n,
         'systemSlug': platform,
+        'filename': artifact.displayName,
         'displayName': 'Fixture $n',
         if (rawDrive) 'artifact_key': artifact.id.key,
         if (rawDrive) 'remote_artifact': jsonEncode(artifact.toJson())
@@ -147,12 +151,13 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
     return bytes;
   }
 
-  (_Wire, ScreenScraperProvider) chdProvider() {
+  (_Wire, ScreenScraperProvider) chdProvider(
+      {String system = '61', String rawSize = '1121026048'}) {
     final wire = _Wire({
       'response': {
         'jeu': {
           'id': '42',
-          'systeme': {'id': '61'},
+          'systeme': {'id': system},
           'notgame': false,
           'noms': [
             {'region': 'us', 'text': 'Fixture'}
@@ -161,7 +166,7 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
             {'langue': 'en', 'text': 'Fresh DVD description'}
           ],
           'rom': {
-            'romsize': '1121026048',
+            'romsize': rawSize,
             'romsha1': 'a' * 40,
             'romregions': 'us',
             'romlangues': 'en',
@@ -186,6 +191,62 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
     addTearDown(api.close);
     return (wire, api);
   }
+
+  test(
+      'local archive identity flows through provider classification and shared recovery',
+      () async {
+    final ids = await catalogue(
+        platform: 'n64', rawDrive: true, archiveExtension: '7z');
+    final initial = await db.query('library_editions');
+    final root =
+        await Directory.systemTemp.createTemp('rshop-archive-binding-');
+    final shared = await SharedMetadataStore.open(root,
+        factory: factory, verifyAccess: () async {});
+    addTearDown(() async {
+      await shared.close();
+      await root.delete(recursive: true);
+    });
+    var reads = 0;
+    final jobs =
+        MetadataRefreshJobs(Future.value(db), sharedStore: Future.value(shared),
+            readArchiveIdentifier: (_, platform, __) async {
+      reads++;
+      expect(platform, 'n64');
+      return MetadataRomIdentifier(
+          kind: RomIdentifierKind.rawRom,
+          filename: 'Fixture.z64',
+          sizeBytes: 8192,
+          sha1: 'a' * 40);
+    });
+    final (wire, api) = chdProvider(system: '14', rawSize: '8192');
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await jobs.run(job.id, api)).counts, {'matched': 2});
+    expect(reads, 2);
+    expect(wire.requests.every((r) => r.queryParameters['sha1'] == 'a' * 40),
+        isTrue);
+    for (final id in ids) {
+      final edition = (await store.edition(id))!;
+      expect(edition.tags, {'official'});
+      expect(
+          edition.evidence
+              .singleWhere((e) => e.kind == 'rawRomIdentifier')
+              .source,
+          'driveLocalArchive');
+      expect((await store.metadata(id, 'screenscraper'))!.matchMethod,
+          'rawRomHashAndSize');
+    }
+    await db.delete('library_metadata');
+    for (final row in initial) {
+      await store.putEdition(
+          EditionIdentity.fromJson(jsonDecode(row['record_json'] as String)));
+    }
+    expect(await shared.restore(db), 2);
+    for (final id in ids) {
+      expect((await store.edition(id))!.tags, {'official'});
+      expect((await store.metadata(id, 'screenscraper'))!.matchMethod,
+          'rawRomHashAndSize');
+    }
+  });
 
   test(
       'normal jobs automatically bind current CHD header evidence and reuse it',

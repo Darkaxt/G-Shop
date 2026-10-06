@@ -11,6 +11,26 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedGameGearZipTest {
+    @Test public void validatedZipReturnsActualRawMemberIdentity() throws Exception {
+        byte[] bytes = archive(false, "Game.gg");
+        File file = File.createTempFile("rshop-gg-identity-", ".zip");
+        try {
+            Files.write(file.toPath(), bytes);
+            Object result = OwnedGameGearZip.class.getDeclaredMethod("validate", String.class)
+                    .invoke(null, file.getPath());
+            assertNotNull("Validated raw member identity is required", result);
+            java.util.Map<?, ?> identity = (java.util.Map<?, ?>) result;
+            assertEquals("Game.gg", identity.get("filename"));
+            assertEquals(512L * 1024, identity.get("sizeBytes"));
+            byte[] raw = new byte[512 * 1024];
+            for (int i = 0; i < raw.length; i++) raw[i] = (byte) (i % 251);
+            StringBuilder hex = new StringBuilder();
+            for (byte value : java.security.MessageDigest.getInstance("SHA-1").digest(raw))
+                hex.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
+            assertEquals(hex.toString(), identity.get("sha1"));
+            assertArrayEquals(bytes, Files.readAllBytes(file.toPath()));
+        } finally { assertTrue(file.delete()); }
+    }
     private byte[] archive(boolean stored, String... names) throws Exception {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
