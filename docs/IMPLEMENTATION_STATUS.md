@@ -5,6 +5,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Game Gear normal download / offline / removal / re-download — 2026-10-06
+
+- On unchanged normal debug APK 206, a newly created, initially absent test
+  directory isolated the real Game Gear ZIP queue proof from existing SD ROMs.
+  Only Game Gear's target folder changed through normal Console Settings and
+  Android's folder picker; an in-memory comparison confirmed exactly one changed
+  configuration field and unchanged sources. No original ROM was moved/deleted.
+- Normal DOWNLOAD completed and published the 58,610-byte ZIP. Its SHA-256
+  matches `2fc171b6ba8de52d9ce3572531fd37f8bf10326ae04470a82e56438908c34e11`.
+  Normal Open in RetroArch reached the actual game's title screen, then a cold
+  second launch with Wi-Fi disabled reached that screen again. Activity dispatch
+  alone was not used as launch evidence; both emulator renders were inspected.
+- Normal DELETE displayed the exact task-root leaf and reclaimed-size plan.
+  Confirmation removed only the owned test copy: its folder was empty, the
+  detail returned to DOWNLOAD, and the original SD archive remained hash-identical.
+  One new normal DOWNLOAD completed into the same test root with the same digest.
+  That expendable second copy was removed by another inspected, ownership-checked
+  normal DELETE. Clear Done cleared its terminal queue row through the ordinary UI.
+  This is real queue/remove/re-download proof, distinct from earlier adoption.
+- A bounded READONLY auxiliary journal observer was killed twice without a
+  result; no durable-journal/stage-retirement observation is claimed for that
+  diagnostic. Normal UI and exact filesystem/digest evidence above succeeded.
+  No memory-exhaustion cause is inferred from an auxiliary process being killed.
+- Wi-Fi is restored to enabled. The normal folder picker restored the original
+  Game Gear target; configuration SHA-256 exactly equals the pre-test baseline
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Structural configuration/source equality was independently checked without
+  printing private values. PSP-only Best 25 is restored (35/341 ranked, 25 results,
+  Provisional), favorites zero. No save, FolderSync or cloud-original operation
+  occurred. The now-empty test directory was removed non-recursively and absence
+  verified. Both physical displays are confirmed committed OFF.
+- Reviewed cleanup transaction `3c1449e401e4e0ddf0a8edde2807ab86` removed the
+  final task-only host capture (129,018 bytes); both exact device capture files
+  are verified absent. The existing private diagnostic helper remains retained
+  for the unresolved live S7 investigation, not as a requested public deliverable.
+- No Gradle command, build, production edit or APK replacement was needed;
+  unchanged APK 206 verification remains applicable. S7 is still the sole ACTIVE
+  stage: defensible collection rankings/classifications, other format recovery,
+  execution-time migration checks and actual reviewed SD migration remain
+  unfinished. S8-S10 remain NOT STARTED; no required criterion was waived.
+
 ### S7 GameCube IGDB breadth / saved catalogue resume — 2026-10-06
 
 - Normal metadata settings started the omitted full GameCube IGDB pass, job 69,

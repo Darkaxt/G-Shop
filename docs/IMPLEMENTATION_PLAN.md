@@ -13,6 +13,16 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+S7 normal Game Gear ZIP recovery checkpoint (2026-10-06): unchanged APK 206
+completed a real download into an isolated task-created folder, booted through
+normal RetroArch handoff and cold offline launch, removed only that owned copy,
+and downloaded it again with identical SHA-256. The expendable second copy and
+empty folder were removed; original SD bytes and exact source/configuration hash
+are preserved, PSP Best 25 and Wi-Fi restored, both screens committed OFF. This
+closes the normal Game Gear ZIP round-trip proof, not all format or migration
+criteria. Keep S7 ACTIVE and finish defensible rankings and reviewed execution;
+do not open S8-S10 or infer bulk-removal authority from this test.
+
 S7 durable byte-observation checkpoint (2026-10-06): normal debug build 186
 persists successful exact local/cloud checks in the existing private journal,
 after native read closure. Normal Thor verification followed by app restart
