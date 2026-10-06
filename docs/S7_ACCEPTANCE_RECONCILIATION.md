@@ -9,6 +9,26 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Cross-provider checkpoint (2026-10-06): current hash-bound ScreenScraper official
+release facts can uniquely corroborate an IGDB main game using exact normalized
+title, platform, full regional date and developer/publisher roles. The source
+fingerprint is checked again in the normal publication transaction. Missing,
+conflicting, modified, manual-correction and potentially truncated-search cases
+remain unresolved. Focused host regressions and scoped analysis pass; shared
+cache reopen/projection recovery preserves evidence and the eligible Top query.
+The first eight current PSP records reached the real IGDB API through the normal
+worker: one matched, two review, five unmatched. The matched record has insufficient
+vote support, so no ranked game was manufactured. Normal build 179 was then
+installed in place with matching signer and independent installed APK hash;
+configuration bytes are unchanged. Normal settings created PSP IGDB job 45.
+Read-only evidence at 74 requests verifies three automatic corroborated records,
+each with a current identity binding and source fingerprint; two meet the vote
+floor. The job remains running with 268 pending; full breadth, final ranking and
+migration are not yet verified. Both displays were switched OFF. The build gate
+was acquired with observed two-worker/no-parallel/3 GiB settings, assessed Kotlin
+in-process strategy and generated depth-one native compile/link pools in app and
+plugins. No memory failure or budget increase occurred.
+
 Normal automatic-CHD checkpoint (2026-10-06): the worker now reads a finite
 140-byte DVD-CHD header through the existing exact Drive source/account/platform
 mapping. Source boundaries are checked before and after the read, and artifact

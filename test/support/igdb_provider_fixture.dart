@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -11,6 +12,7 @@ import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
 import 'package:sqflite/sqflite.dart';
 
 class _Transport implements HttpClientAdapter {
@@ -63,6 +65,7 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
   MetadataLookupRequest request(
           {String? id,
           String platform = 'snes',
+          MetadataCorroboration? corroboration,
           Set<String> tags = const {'official'}}) =>
       MetadataLookupRequest(
           gameId: 'game',
@@ -70,6 +73,7 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
           platformId: platform,
           title: 'Super Mario World',
           verifiedProviderGameId: id,
+          corroboration: corroboration,
           contentTags: tags,
           refreshGeneration: 1);
   IgdbMetadataProvider provider(_Transport transport,
@@ -79,6 +83,289 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
           clock: clock,
           readCredentials: () async =>
               const IgdbCredentials('fixture-id', 'fixture-secret'));
+
+  final corroboration = MetadataCorroboration(
+      providerGameId: '456',
+      recordHash: 'a' * 64,
+      titles: ['Super Mario World'],
+      releaseDate: '1990-11-21',
+      region: 'jp',
+      developer: 'Nintendo',
+      publisher: 'Nintendo');
+  final corroboratedWire = {
+    ...fixture,
+    'release_dates': [
+      {
+        'platform': 19,
+        'date': DateTime.utc(1990, 11, 21).millisecondsSinceEpoch ~/ 1000,
+        'date_format': {'format': 'YYYYMMDD'},
+        'release_region': {'region': 'japan'}
+      }
+    ],
+    'involved_companies': [
+      {
+        'company': {'name': 'Nintendo'},
+        'developer': true,
+        'publisher': true
+      }
+    ]
+  };
+  test('current hash-bound release facts corroborate one exact IGDB game',
+      () async {
+    final api = provider(_Transport([
+      corroboratedWire,
+      {...corroboratedWire, 'id': 124, 'name': 'Super Mario World 2'}
+    ]));
+    addTearDown(api.close);
+    final result = await api.lookup(request(corroboration: corroboration));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(result.record!.providerGameId, '123');
+    expect(result.record!.matchMethod, 'corroboratedOfficialRelease');
+    expect(result.record!.matchEvidence, corroboration.toJson());
+    expect(
+        result.record!.ratings
+            .singleWhere((r) => r.kind == RatingKind.communityAggregate)
+            .voteCount,
+        200);
+    expect(
+        MetadataLookupRequest.fromJson(
+                request(corroboration: corroboration).toJson())
+            .corroboration!
+            .toJson(),
+        corroboration.toJson());
+  });
+  test('corroboration rejects partial conflicting modified and duplicate facts',
+      () async {
+    for (final wire in [
+      {...corroboratedWire, 'involved_companies': []},
+      {...corroboratedWire, 'release_dates': []},
+      {...corroboratedWire, 'name': 'Different release'},
+      {
+        ...corroboratedWire,
+        'game_type': {'type': 'Mod'}
+      },
+      {...corroboratedWire, 'version_parent': 789},
+      {
+        ...corroboratedWire,
+        'release_dates': [
+          {
+            'platform': 19,
+            'date': DateTime.utc(1990, 11, 21).millisecondsSinceEpoch ~/ 1000,
+            'date_format': {'format': 'YYYY'},
+            'release_region': {'region': 'japan'}
+          }
+        ]
+      },
+      {
+        ...corroboratedWire,
+        'involved_companies': [
+          {
+            'company': {'name': 'Wrong company'},
+            'developer': true,
+            'publisher': true
+          }
+        ]
+      },
+      {
+        ...corroboratedWire,
+        'release_dates': [
+          {
+            'platform': 19,
+            'date': DateTime.utc(1990, 11, 22).millisecondsSinceEpoch ~/ 1000,
+            'date_format': {'format': 'YYYYMMDD'},
+            'release_region': {'region': 'japan'}
+          }
+        ]
+      },
+      {
+        ...corroboratedWire,
+        'release_dates': [
+          {
+            'platform': 7,
+            'date': DateTime.utc(1990, 11, 21).millisecondsSinceEpoch ~/ 1000,
+            'date_format': {'format': 'YYYYMMDD'},
+            'release_region': {'region': 'japan'}
+          }
+        ]
+      },
+      {
+        ...corroboratedWire,
+        'release_dates': [
+          {
+            'platform': 19,
+            'date': DateTime.utc(1990, 11, 21).millisecondsSinceEpoch ~/ 1000,
+            'date_format': {'format': 'YYYYMMDD'},
+            'release_region': {'region': 'north_america'}
+          }
+        ]
+      }
+    ]) {
+      final api = provider(_Transport([wire]));
+      final result = await api.lookup(request(corroboration: corroboration));
+      api.close();
+      expect(result.status, isNot(MetadataLookupStatus.matched));
+      expect(result.record, isNull);
+    }
+    final api = provider(_Transport([
+      corroboratedWire,
+      {...corroboratedWire, 'id': 124}
+    ]));
+    addTearDown(api.close);
+    expect((await api.lookup(request(corroboration: corroboration))).status,
+        MetadataLookupStatus.ambiguous);
+    for (final tags in [
+      <String>{},
+      {'unknown'},
+      {'Hack'},
+      {'T-Eng'}
+    ]) {
+      expect(
+          (await api.lookup(request(corroboration: corroboration, tags: tags)))
+              .status,
+          isNot(MetadataLookupStatus.matched));
+    }
+    final truncated = provider(_Transport([
+      corroboratedWire,
+      for (var n = 0; n < 29; n++)
+        {...corroboratedWire, 'id': 124 + n, 'name': 'Other game $n'}
+    ]));
+    addTearDown(truncated.close);
+    expect(
+        (await truncated.lookup(request(corroboration: corroboration))).status,
+        MetadataLookupStatus.ambiguous);
+  });
+
+  for (final changed in [false, true]) {
+    test(
+        'normal IGDB job ${changed ? 'rejects changed' : 'uses current'} ScreenScraper release evidence',
+        () async {
+      final db = await factory.openDatabase(inMemoryDatabasePath);
+      addTearDown(db.close);
+      await LibrarySchema.install(db);
+      await MetadataRefreshJobs.install(db);
+      await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
+        systemSlug TEXT, displayName TEXT, filename TEXT,
+        is_folder INTEGER DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
+      await LibraryQuery.install(db);
+      await db.insert('games', {
+        'id': 1,
+        'systemSlug': 'psp',
+        'displayName': 'Fixture container name',
+        'filename': 'Fixture.chd'
+      });
+      final root =
+          await Directory.systemTemp.createTemp('rshop-corroboration-');
+      var shared = await SharedMetadataStore.open(root,
+          factory: factory, verifyAccess: () async {});
+      addTearDown(() async {
+        await shared.close();
+        await root.delete(recursive: true);
+      });
+      final jobs = MetadataRefreshJobs(Future.value(db),
+          sharedStore: Future.value(shared));
+      final seed = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final editionId = (await jobs.reviewItems(seed.id)).isEmpty
+          ? (await db.query('metadata_refresh_items',
+                  where: 'job_id = ?', whereArgs: [seed.id]))
+              .single['edition_id'] as String
+          : throw StateError('Unexpected seed review');
+      final store = LibraryStore(Future.value(db));
+      final edition = (await store.edition(editionId))!;
+      await store.putEdition(EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'tags': ['official'],
+        'regions': ['jp']
+      }));
+      final metadata = MetadataRecord(
+          gameId: edition.gameId,
+          editionId: editionId,
+          platformId: 'psp',
+          providerId: 'screenscraper',
+          providerGameId: '456',
+          retrievedAt: DateTime.utc(2026, 10, 6),
+          refreshGeneration: 1,
+          matchMethod: 'rawRomHashAndSize',
+          titles: [const MetadataText(text: 'Super Mario World')],
+          releaseDates: [const MetadataText(text: '1990-11-21', region: 'jp')],
+          developer: 'Nintendo',
+          publisher: 'Nintendo',
+          fieldProvenance: {
+            for (final field in [
+              'title',
+              'releaseDate',
+              'developer',
+              'publisher'
+            ])
+              field: MetadataFieldProvenance(
+                  providerId: 'screenscraper',
+                  providerGameId: '456',
+                  field: field,
+                  retrievedAt: DateTime.utc(2026, 10, 6))
+          });
+      await store.putMetadata(metadata);
+      final snapshot = await jobs.createFromCatalogue(providerId: 'igdb');
+      final wire = _Transport([
+        {
+          ...corroboratedWire,
+          'platforms': [38],
+          'release_dates': [
+            {
+              'platform': 38,
+              'date': DateTime.utc(1990, 11, 21).millisecondsSinceEpoch ~/ 1000,
+              'date_format': {'format': 'YYYYMMDD'},
+              'release_region': {'region': 'japan'}
+            }
+          ]
+        }
+      ]);
+      if (changed) {
+        wire.beforeGames = () => store.putMetadata(MetadataRecord.fromJson({
+              ...metadata.toJson(),
+              'publisher': 'Different publisher',
+              'refreshGeneration': 2
+            }));
+      }
+      final api = provider(wire);
+      addTearDown(api.close);
+      final report = await jobs.run(snapshot.id, api);
+      expect(report.counts, {changed ? 'identityChanged' : 'matched': 1});
+      final saved = await store.metadata(editionId, 'igdb');
+      if (changed) {
+        expect(saved, isNull);
+      } else {
+        expect(saved!.matchMethod, 'corroboratedOfficialRelease');
+        expect(saved.matchEvidence['providerGameId'], '456');
+        expect(
+            (await store.effectiveRatings([editionId]))[editionId]!
+                .rankingEligible,
+            isTrue);
+        final page = await LibraryQuery(Future.value(db))
+            .page(filter: LibraryQueryFilter(top: 25));
+        expect(page.items.single.editionId, editionId);
+        expect(page.items.single.score!.rating.voteCount, 200);
+        expect(page.provisional, isFalse);
+        expect((await store.metadata(editionId, 'screenscraper'))!.toJson(),
+            metadata.toJson(),
+            reason: 'Corroboration does not rewrite its source.');
+        await shared.close();
+        shared = await SharedMetadataStore.open(root,
+            factory: factory, existingOnly: true, verifyAccess: () async {});
+        await db.delete('library_metadata',
+            where: 'provider_id = ?', whereArgs: ['igdb']);
+        expect(await shared.restore(db), 1);
+        expect((await store.metadata(editionId, 'igdb'))!.toJson(),
+            saved.toJson());
+        final recovered = await LibraryQuery(Future.value(db))
+            .page(filter: LibraryQueryFilter(top: 25));
+        expect(recovered.items.single.editionId, editionId);
+        expect(recovered.items.single.score!.rating.voteCount, 200);
+      }
+      expect(
+          (wire.requests.last.data as String), contains('Super Mario World'));
+      expect((wire.requests.last.data as String),
+          isNot(contains('Fixture container')));
+    });
+  }
 
   test(
       'reviewed worker publication uses production community Top policy offline',

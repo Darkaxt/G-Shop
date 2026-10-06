@@ -25,6 +25,10 @@ class IgdbMetadataProvider implements MetadataProvider {
       'version_parent,parent_game,summary,first_release_date,'
       'rating,rating_count,aggregated_rating,aggregated_rating_count,'
       'total_rating,total_rating_count';
+  static const _corroborationFields =
+      'release_dates.platform,release_dates.date,release_dates.date_format.format,'
+      'release_dates.release_region.region,involved_companies.company.name,'
+      'involved_companies.developer,involved_companies.publisher';
   static const _quota = MetadataQuota(maxThreads: 1, maxRequestsPerMinute: 240);
 
   IgdbMetadataProvider({
@@ -108,7 +112,8 @@ class IgdbMetadataProvider implements MetadataProvider {
             _clock().add(Duration(seconds: value['expires_in'] as int));
         _tokenOwner = credentials;
       }
-      final query = 'fields $_fields; '
+      final query =
+          'fields $_fields${request.corroboration == null ? '' : ',$_corroborationFields'}; '
           '${id == null ? 'search ${jsonEncode(request.title)}; where platforms = ($platform);' : 'where id = $id;'} limit 30;';
       final response = await _post(
           'https://api.igdb.com/v4/games',
@@ -158,6 +163,37 @@ class IgdbMetadataProvider implements MetadataProvider {
         games.add(game);
       }
       if (games.isEmpty) return _result(MetadataLookupStatus.unmatched);
+      var corroborated = false;
+      if (id == null &&
+          request.corroboration != null &&
+          data.length < 30 &&
+          request.contentTags.length == 1 &&
+          request.contentTags.contains('official') &&
+          request.baseProviderGameId == null &&
+          request.revision?.isNotEmpty != true) {
+        final agreeing = <int>[];
+        for (var index = 0; index < games.length; index++) {
+          if (_corroborates(games[index], request.corroboration!, platform)) {
+            agreeing.add(index);
+          }
+        }
+        if (agreeing.length > 1) {
+          return _result(MetadataLookupStatus.ambiguous,
+              candidates: candidates);
+        }
+        if (agreeing.length == 1) {
+          final selected = agreeing.single;
+          final game = games[selected];
+          final candidate = candidates[selected];
+          games
+            ..clear()
+            ..add(game);
+          candidates
+            ..clear()
+            ..add(candidate);
+          corroborated = true;
+        }
+      }
       if (games.length > 1) {
         return _result(MetadataLookupStatus.ambiguous, candidates: candidates);
       }
@@ -177,7 +213,7 @@ class IgdbMetadataProvider implements MetadataProvider {
           (kind == 'mod' || kind == 'fork') &&
           candidates.single.titleMatched &&
           request.baseProviderGameId != id;
-      if (id == null ||
+      if ((id == null && !corroborated) ||
           (!official && !project && !originalModification) ||
           ((official || originalModification) &&
               (kind == null || kind == 'mod' || kind == 'fork')) ||
@@ -189,6 +225,7 @@ class IgdbMetadataProvider implements MetadataProvider {
             candidates: candidates);
       }
       final at = _clock().toUtc();
+      final matchedId = '${game['id']}';
       final ratings = <SourcedRating>[];
       for (final field in const [
         ('total_rating', 'IGDB overall', RatingKind.overallAggregate),
@@ -199,7 +236,7 @@ class IgdbMetadataProvider implements MetadataProvider {
         final rating = SourcedRating.parse(
             sourceId: providerId,
             sourceLabel: field.$2,
-            providerGameId: id,
+            providerGameId: matchedId,
             rawValue: game[field.$1],
             scaleMinimum: 0,
             scaleMaximum: 100,
@@ -222,12 +259,16 @@ class IgdbMetadataProvider implements MetadataProvider {
               editionId: request.editionId,
               platformId: request.platformId,
               providerId: providerId,
-              providerGameId: id,
+              providerGameId: matchedId,
               retrievedAt: at,
               refreshGeneration: request.refreshGeneration,
-              matchMethod: project
-                  ? 'verifiedProjectId'
-                  : 'verifiedProviderIdGlobalGame',
+              matchEvidence:
+                  corroborated ? request.corroboration!.toJson() : const {},
+              matchMethod: corroborated
+                  ? 'corroboratedOfficialRelease'
+                  : project
+                      ? 'verifiedProjectId'
+                      : 'verifiedProviderIdGlobalGame',
               titles: candidates.single.titles,
               descriptions:
                   summary is String ? [MetadataText(text: summary)] : [],
@@ -249,7 +290,7 @@ class IgdbMetadataProvider implements MetadataProvider {
                 ])
                   field: MetadataFieldProvenance(
                       providerId: providerId,
-                      providerGameId: id,
+                      providerGameId: matchedId,
                       field: field,
                       retrievedAt: at)
               }));
@@ -263,6 +304,72 @@ class IgdbMetadataProvider implements MetadataProvider {
                   ? MetadataLookupStatus.unavailable
                   : MetadataLookupStatus.invalidResponse);
     }
+  }
+
+  static bool _corroborates(
+      Map<String, dynamic> game, MetadataCorroboration facts, int platform) {
+    final type = game['game_type'];
+    if (type is! Map ||
+        type['type'] is! String ||
+        _normalize(type['type'] as String) != 'maingame' ||
+        game['version_parent'] != null ||
+        game['parent_game'] != null ||
+        (game['alternative_names'] is List &&
+            (game['alternative_names'] as List).length > 128)) {
+      return false;
+    }
+    final titles = [
+      game['name'],
+      if (game['alternative_names'] is List)
+        for (final alternative in game['alternative_names'] as List)
+          if (alternative is Map) alternative['name']
+    ];
+    if (!titles.whereType<String>().any((title) =>
+        _normalize(title).isNotEmpty &&
+        facts.titles.any((known) => _normalize(known) == _normalize(title)))) {
+      return false;
+    }
+    final releases = game['release_dates'];
+    const regions = {
+      'us': 'north_america',
+      'eu': 'europe',
+      'jp': 'japan',
+      'wor': 'worldwide'
+    };
+    if (releases is! List ||
+        releases.length > 256 ||
+        !releases.any((release) {
+          if (release is! Map ||
+              release['platform'] != platform ||
+              release['date'] is! int ||
+              release['date_format'] is! Map ||
+              (release['date_format'] as Map)['format'] != 'YYYYMMDD' ||
+              release['release_region'] is! Map ||
+              (release['release_region'] as Map)['region'] !=
+                  regions[facts.region]) {
+            return false;
+          }
+          return DateTime.fromMillisecondsSinceEpoch(
+                      (release['date'] as int) * 1000,
+                      isUtc: true)
+                  .toIso8601String()
+                  .substring(0, 10) ==
+              facts.releaseDate;
+        })) {
+      return false;
+    }
+    final companies = game['involved_companies'];
+    if (companies is! List || companies.length > 256) return false;
+    bool role(String role, String expected) => companies.any((company) =>
+        company is Map &&
+        company[role] == true &&
+        company['company'] is Map &&
+        (company['company'] as Map)['name'] is String &&
+        _normalize(expected).isNotEmpty &&
+        _normalize((company['company'] as Map)['name'] as String) ==
+            _normalize(expected));
+    return role('developer', facts.developer) &&
+        role('publisher', facts.publisher);
   }
 
   Future<({Object? data, MetadataLookupResult? failure})> _post(

@@ -359,6 +359,20 @@ recovery. Rename-only changes preserve those facts; replacement bytes retire
 automatic classification and assigned release facts, without deleting manual
 evidence. This supplies metadata identity, not reliable reception or Top rank.
 
+S7 cross-provider identification detail (2026-10-06): an otherwise unassigned
+IGDB identity may be corroborated from current, exact-hash ScreenScraper metadata
+for an unmodified official release. Require one uniquely agreeing IGDB candidate:
+nonempty exact normalized title, mapped platform, full regional release date,
+developer and publisher with their correct roles. No fuzzy title, company alias,
+year-only date or highest-score choice establishes this identity. Preserve the
+source record fingerprint and revalidate its current binding before publication.
+Conflicting/missing facts, multiple agreeing candidates, modified/base-linked
+editions, existing identity corrections and changed source records remain review
+or identity-change outcomes. Persist the corroborated provider identity and
+metadata atomically; retain provenance through shared-store recovery. This is
+an implementation of evidence-based matching, not a relaxation of reception,
+vote-count, ownership, freshness, canonical grouping or migration gates.
+
 ### META-04 — Hacks, translations and score ownership
 
 Support distinct content tags for `Hack`, `T-Eng`, `Dub`, `Undub`, `Uncensor`,

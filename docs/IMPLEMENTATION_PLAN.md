@@ -13,6 +13,13 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+S7 current checkpoint (2026-10-06): normal mapped Drive raw/CHD evidence supplies
+automatic ScreenScraper identification; current exact official release facts can
+then uniquely corroborate IGDB through the normal persistent worker. Native PSP
+job 45 verifies automatic publication without per-title curation. Continue broad
+collection publication and metadata coverage before defensible retention and
+reviewed migration; the checkpoint does not close S7 or open S8/S9/S10.
+
 ## S0 — Fork and specification preparation
 
 Objective: preserve upstream and provide a complete, traceable development entry.

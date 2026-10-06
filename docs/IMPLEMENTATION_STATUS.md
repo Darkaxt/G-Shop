@@ -5,6 +5,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 standardized cross-provider corroboration — 2026-10-06
+
+- Removed the need for per-title manual IGDB assignments only where current,
+  exact-hash ScreenScraper facts uniquely corroborate an unmodified official
+  release. Title, platform, full regional date, developer and publisher roles
+  must agree. Missing/conflicting facts, uncertain search completeness, modified
+  editions and manual identity corrections do not auto-match.
+- The normal persistent job carries a source-record fingerprint and revalidates
+  it inside the publication transaction. Matching does not rewrite the source
+  metadata or assign a manual game ID. Existing provenance, score support,
+  canonical grouping, refresh generation and Top policy remain unchanged.
+- Focused provider/worker/ownership/grouping/query regressions passed. A shared
+  cache close/reopen and private projection rebuild preserves the corroborated
+  record, evidence and existing eligible Top query. Changing source facts during
+  lookup rejects publication. Scoped analysis reports no issues; no full suite
+  or concurrent host test workload was used.
+- A bounded live IGDB check used the first eight current matched records from
+  the normal PSP job, not handpicked titles. Outcomes: one corroborated match,
+  two needing review and five unmatched. The matched record lacks the required
+  vote support, so zero ranked games and provisional coverage are correct.
+  This verifies real API -> normal worker -> persistence, not full collection
+  coverage or migration readiness. No individual-title workaround was added.
+- Native read-only follow-up observed 110 automatic ScreenScraper matches and
+  125 header bindings in PSP job 44. That job is BLOCKED on provider unavailable
+  with 57 pending; its existing progress remains saved. The unpublished root
+  collection generation advanced to 76,519 observations. Both displays were OFF.
+- Normal same-signer debug build 179 passed and was installed in place. The
+  independent installed APK SHA-256 is
+  `5b8d65735af53d72c6fb74f8869db9f33b6adf5b11a99530bc6bcf9be7faf10d`;
+  source/mapping configuration SHA-256 remains unchanged. The ordinary Sources
+  settings -> IGDB -> PSP -> Fresh re-scrape created normal job 45 with 341
+  editions. Read-only native observation at 74 requests found three automatic
+  corroborated records, three current identity bindings and three source
+  fingerprints; two records meet the existing vote-support floor. The job was
+  still running with 268 pending. This proves native publication, not completed
+  coverage or final collection ranking. Both displays were switched OFF.
+- Build 179 actually acquired `Local\Darka.AndroidGradleBuildGate`, used observed
+  two workers/no parallel/3 GiB Gradle heap, and retained the assessed in-process
+  Kotlin strategy (compilation tasks were up-to-date). Tests are configured for
+  one fork/512 MiB but were not executed by assembly. Project-local CMake options
+  now give native plugin compile/link rules the same depth-one shared Ninja pool
+  as the app, independently verified in generated rules for flutter_soloud and
+  jni. Thus native compile/link jobs are bounded per task, not merely requested
+  by an environment hint. No memory-related failure or heap increase occurred.
+  Successful supervisor log: `33b3bafbe14a45aeaea70298d91d2b6f.log`.
+- S7 remains the sole ACTIVE stage. Full collection publication/mapping, fresh
+  metadata breadth, defensible Top-25 retention, restore and reviewed migration
+  are still required. S8/S9/S10 remain NOT STARTED.
+
 ### S7 automatic CHD matching in the normal Thor job — 2026-10-06
 
 - The shared DVD-CHD path is now wired into normal ScreenScraper refresh jobs.

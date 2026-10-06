@@ -4,6 +4,8 @@ library;
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -83,6 +85,97 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   });
+
+  test('current ScreenScraper cohort reaches IGDB through the normal worker',
+      () async {
+    final cohort = jsonDecode(
+        await File(Platform.environment['RSHOP_CORROBORATION_FIXTURE']!)
+            .readAsString()) as List;
+    expect(cohort.length, inInclusiveRange(2, 16));
+    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
+      systemSlug TEXT, displayName TEXT, filename TEXT,
+      is_folder INTEGER DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
+    for (var n = 0; n < cohort.length; n++) {
+      final metadata = MetadataRecord.fromJson(cohort[n]['metadata']);
+      await db.insert('games', {
+        'id': n + 1,
+        'systemSlug': metadata.platformId,
+        'displayName': 'Synthetic cohort item $n',
+        'filename': 'Cohort$n.chd'
+      });
+    }
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final store = LibraryStore(Future.value(db));
+    for (var n = 0; n < cohort.length; n++) {
+      final editionId =
+          (await LibraryStore.cachedCatalogueEditionId(db, n + 1))!;
+      final edition = (await store.edition(editionId))!;
+      await store.putEdition(EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'tags': cohort[n]['tags'],
+        'regions': cohort[n]['regions']
+      }));
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...cohort[n]['metadata'] as Map<String, dynamic>,
+        'gameId': edition.gameId,
+        'editionId': editionId
+      }));
+    }
+    final api = IgdbMetadataProvider(readCredentials: () async => credentials);
+    addTearDown(api.close);
+    final job = await jobs.createFromCatalogue(providerId: 'igdb');
+    final report = await jobs.run(job.id, api);
+    expect(report.state, 'completed');
+    expect(report.counts['matched'] ?? 0, greaterThan(0));
+    expect(report.counts['identityChanged'] ?? 0, 0);
+    final page = await LibraryQuery(Future.value(db))
+        .page(filter: LibraryQueryFilter(top: 25));
+    final records = (await db.query('library_metadata',
+            where: 'provider_id = ?', whereArgs: ['igdb']))
+        .map((row) =>
+            MetadataRecord.fromJson(jsonDecode(row['record_json'] as String)))
+        .toList();
+    expect(records.length, report.counts['matched']);
+    final adequatelySupported = records
+        .where((r) => r.ratings.any((rating) =>
+            rating.kind == RatingKind.communityAggregate &&
+            (rating.voteCount ?? 0) >= 20))
+        .length;
+    expect(page.rankedGames, lessThanOrEqualTo(adequatelySupported));
+    if (adequatelySupported == 0) expect(page.rankedGames, 0);
+    for (final record in records) {
+      expect(record.matchMethod, 'corroboratedOfficialRelease');
+      expect(record.matchEvidence['recordHash'], hasLength(64));
+    }
+    for (final item in page.items) {
+      expect(item.score!.rating.sourceId, 'igdb');
+      expect(item.score!.rating.kind, RatingKind.communityAggregate);
+      expect(item.score!.rating.voteCount!, greaterThanOrEqualTo(20));
+      final record = (await store.metadata(item.editionId, 'igdb'))!;
+      expect(record.matchMethod, 'corroboratedOfficialRelease');
+      expect(record.matchEvidence['recordHash'], hasLength(64));
+    }
+    stdout.writeln('IGDB_CORROBORATION_COHORT ${jsonEncode({
+          'items': cohort.length,
+          'state': report.state,
+          'outcomes': report.counts,
+          'canonicalGames': page.collectionGames,
+          'rankedGames': page.rankedGames,
+          'adequatelySupportedRecords': adequatelySupported,
+          'provisional': page.provisional
+        })}');
+  },
+      skip: credentials.isConfigured &&
+              Platform.environment.containsKey('RSHOP_CORROBORATION_FIXTURE')
+          ? false
+          : 'A bounded current cohort and legitimate credentials must be explicitly provided.',
+      timeout: Timeout.none);
 
   test('public IGDB reception assessment through persistent worker', () async {
     // Public benchmark releases, never the owner's private collection. Candidate

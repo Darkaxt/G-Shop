@@ -655,13 +655,17 @@ class MetadataRefreshJobs {
             }
           }
         }
+        final corroboration = !matchReview && providerId == 'igdb'
+            ? await _currentCorroboration(txn, row)
+            : null;
         final request = game.platformId == null
             ? null
             : MetadataLookupRequest(
                 gameId: game.id,
                 editionId: edition.id,
                 platformId: game.platformId!,
-                title: game.title,
+                title: corroboration?.titles.first ?? game.title,
+                corroboration: corroboration,
                 verifiedProviderGameId: !matchReview &&
                         {
                           IdentityMatchStatus.matched,
@@ -720,6 +724,96 @@ class MetadataRefreshJobs {
     return sha256
         .convert(utf8.encode(jsonEncode(_canonical([keyData, evidence]))))
         .toString();
+  }
+
+  static Future<MetadataCorroboration?> _currentCorroboration(
+      DatabaseExecutor db, Map<String, Object?> identity) async {
+    final game =
+        GameIdentity.fromJson(jsonDecode(identity['game_json'] as String));
+    final edition = EditionIdentity.fromJson(
+        jsonDecode(identity['edition_json'] as String));
+    if (game.platformId == null ||
+        game.baseGameId != null ||
+        game.matchStatus == IdentityMatchStatus.ambiguous ||
+        game.providerIds.containsKey('igdb') ||
+        edition.providerIds.containsKey('igdb') ||
+        edition.tags.length != 1 ||
+        !edition.tags.contains('official') ||
+        edition.isTranslation == true ||
+        edition.translatedLanguages.isNotEmpty ||
+        edition.patchId != null ||
+        edition.revision?.isNotEmpty == true ||
+        edition.regions.length != 1) {
+      return null;
+    }
+    final rows = await db.query('library_metadata',
+        where: 'edition_id = ? AND provider_id = ?',
+        whereArgs: [edition.id, 'screenscraper'],
+        limit: 1);
+    if (rows.isEmpty ||
+        rows.single['identity_key'] !=
+            LibraryStore.metadataIdentity(identity,
+                providerId: 'screenscraper')) {
+      return null;
+    }
+    final record = MetadataRecord.fromJson(
+        jsonDecode(rows.single['record_json'] as String));
+    if (record.refreshGeneration <= 0 ||
+        record.gameId != game.id ||
+        record.platformId != game.platformId ||
+        record.editionId != edition.id ||
+        !LibraryStore.hasConsistentProvenance(record) ||
+        !{'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
+            .contains(record.matchMethod)) {
+      return null;
+    }
+    final newer = await db.rawQuery('''SELECT 1 FROM metadata_refresh_items i
+      JOIN metadata_refresh_jobs j ON j.id=i.job_id WHERE i.edition_id=?
+      AND j.provider_id='screenscraper' AND j.is_artwork=0 AND j.generation>?
+      LIMIT 1''', [edition.id, record.refreshGeneration]);
+    if (newer.isNotEmpty) return null;
+    const regions = {
+      'usa': 'us',
+      'us': 'us',
+      'europe': 'eu',
+      'eu': 'eu',
+      'japan': 'jp',
+      'jp': 'jp',
+      'world': 'wor',
+      'wor': 'wor'
+    };
+    final region = regions[edition.regions.single.trim().toLowerCase()];
+    if (region == null) return null;
+    final dates = record.releaseDates
+        .where((d) =>
+            d.region != null &&
+            regions[d.region!.trim().toLowerCase()] == region)
+        .toList();
+    final date = selectEditionReleaseDate(dates, regions: [region]);
+    final titles = record.titles.toList()
+      ..sort((a, b) {
+        int priority(MetadataText t) => switch (t.region?.toLowerCase()) {
+              'us' => 0,
+              'eu' => 1,
+              'wor' || null => 2,
+              _ => 3
+            };
+        return priority(a).compareTo(priority(b));
+      });
+    try {
+      return MetadataCorroboration(
+          providerGameId: record.providerGameId,
+          recordHash: sha256
+              .convert(utf8.encode(jsonEncode(_canonical(record.toJson()))))
+              .toString(),
+          titles: titles.map((t) => t.text).toSet().toList(),
+          releaseDate: date ?? '',
+          region: region,
+          developer: record.developer ?? '',
+          publisher: record.publisher ?? '');
+    } on FormatException {
+      return null;
+    }
   }
 
   /// Extract once per current artifact, not once per title or per refresh. A
@@ -1995,6 +2089,12 @@ class MetadataRefreshJobs {
             record.providerId == providerId &&
             record.refreshGeneration == request.refreshGeneration &&
             LibraryStore.hasConsistentProvenance(record) &&
+            (record.matchMethod != 'corroboratedOfficialRelease' ||
+                (providerId == 'igdb' &&
+                    request.corroboration != null &&
+                    jsonEncode(_canonical(record.matchEvidence)) ==
+                        jsonEncode(
+                            _canonical(request.corroboration!.toJson())))) &&
             (request.verifiedProviderGameId == null ||
                 record.providerGameId == request.verifiedProviderGameId) &&
             (request.baseProviderGameId == null ||
@@ -2050,6 +2150,14 @@ class MetadataRefreshJobs {
           } else if (outcome == 'matched') {
             final copy = MetadataRecord.fromJson(
                 {...record!.toJson(), 'editionId': editionId});
+            if (copy.matchMethod == 'corroboratedOfficialRelease') {
+              final facts = await _currentCorroboration(txn, identity);
+              if (facts == null ||
+                  jsonEncode(_canonical(facts.toJson())) !=
+                      jsonEncode(_canonical(request.corroboration!.toJson()))) {
+                outcome = 'identityChanged';
+              }
+            }
             if (originalBaseScore) {
               // Revalidate the linked original inside the publication
               // transaction. A shared provider ID alone cannot exempt a hack,

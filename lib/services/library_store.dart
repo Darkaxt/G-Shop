@@ -232,9 +232,11 @@ class LibraryStore {
             if (!hasConsistentProvenance(record)) continue;
             final ownership = metadataOverallOwnership(
                 game, edition, record, bases[game.baseGameId]);
-            if (provider == 'screenscraper' &&
-                {'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
-                    .contains(record.matchMethod) &&
+            if (((provider == 'screenscraper' &&
+                        {'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
+                            .contains(record.matchMethod)) ||
+                    (provider == 'igdb' &&
+                        record.matchMethod == 'corroboratedOfficialRelease')) &&
                 ownership == OverallRatingOwnership.game) {
               claims.add(jsonEncode([
                 'provider-game',
@@ -992,6 +994,7 @@ class LibraryStore {
       const groupingMethods = {
         'rawRomHashAndSize',
         'rawRomSha1AndCappedSize',
+        'corroboratedOfficialRelease',
         'verifiedProjectId'
       };
       final previousMethod = previous.isEmpty

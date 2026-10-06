@@ -169,6 +169,84 @@ class MetadataRomIdentifier {
   }
 }
 
+/// Compact facts from a current hash-bound ScreenScraper official release.
+/// The worker, not an imported catalogue claim, establishes this provenance.
+class MetadataCorroboration {
+  final String providerGameId,
+      recordHash,
+      releaseDate,
+      region,
+      developer,
+      publisher;
+  final List<String> titles;
+  MetadataCorroboration({
+    required this.providerGameId,
+    required this.recordHash,
+    required List<String> titles,
+    required this.releaseDate,
+    required this.region,
+    required this.developer,
+    required this.publisher,
+  }) : titles = List.unmodifiable(titles) {
+    final date = DateTime.tryParse(releaseDate);
+    if (!RegExp(r'^[1-9][0-9]*$').hasMatch(providerGameId) ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(recordHash) ||
+        titles.isEmpty ||
+        titles.length > 32 ||
+        titles.any((t) => t.trim().isEmpty || t.length > 512) ||
+        !{'us', 'eu', 'jp', 'wor'}.contains(region) ||
+        !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(releaseDate) ||
+        date == null ||
+        date.year < 1 ||
+        date.toIso8601String().substring(0, 10) != releaseDate ||
+        developer.trim().isEmpty ||
+        developer.length > 256 ||
+        publisher.trim().isEmpty ||
+        publisher.length > 256) {
+      throw const FormatException('Invalid metadata corroboration');
+    }
+  }
+  Map<String, dynamic> toJson() => {
+        'providerId': 'screenscraper',
+        'providerGameId': providerGameId,
+        'recordHash': recordHash,
+        'titles': titles,
+        'releaseDate': releaseDate,
+        'region': region,
+        'developer': developer,
+        'publisher': publisher
+      };
+  factory MetadataCorroboration.fromJson(Map<String, dynamic> json) {
+    _rejectUnexpectedKeys(
+        json,
+        {
+          'providerId',
+          'providerGameId',
+          'recordHash',
+          'titles',
+          'releaseDate',
+          'region',
+          'developer',
+          'publisher'
+        },
+        'metadata corroboration');
+    if (json['providerId'] != 'screenscraper' ||
+        json['titles'] is! List ||
+        (json['titles'] as List).any((t) => t is! String)) {
+      throw const FormatException('Invalid metadata corroboration source');
+    }
+    return MetadataCorroboration(
+        providerGameId:
+            _requiredString(json, 'providerGameId', 'corroboration'),
+        recordHash: _requiredString(json, 'recordHash', 'corroboration'),
+        titles: (json['titles'] as List).cast<String>(),
+        releaseDate: _requiredString(json, 'releaseDate', 'corroboration'),
+        region: _requiredString(json, 'region', 'corroboration'),
+        developer: _requiredString(json, 'developer', 'corroboration'),
+        publisher: _requiredString(json, 'publisher', 'corroboration'));
+  }
+}
+
 class MetadataLookupRequest {
   final String gameId;
   final String editionId;
@@ -184,6 +262,7 @@ class MetadataLookupRequest {
   final String? language;
   final String? revision;
   final MetadataRomIdentifier? romIdentifier;
+  final MetadataCorroboration? corroboration;
   final int refreshGeneration;
 
   MetadataLookupRequest({
@@ -198,6 +277,7 @@ class MetadataLookupRequest {
     this.language,
     this.revision,
     this.romIdentifier,
+    this.corroboration,
     required this.refreshGeneration,
   }) : contentTags = Set.unmodifiable(
             EditionIdentity.normalizeContentTags(contentTags).toList()..sort());
@@ -214,6 +294,7 @@ class MetadataLookupRequest {
         'language': language,
         'revision': revision,
         'romIdentifier': romIdentifier?.toJson(),
+        if (corroboration != null) 'corroboration': corroboration!.toJson(),
         'refreshGeneration': refreshGeneration,
       };
 
@@ -230,6 +311,7 @@ class MetadataLookupRequest {
       'language',
       'revision',
       'romIdentifier',
+      'corroboration',
       'refreshGeneration',
     };
     _rejectUnexpectedKeys(json, allowedKeys, 'metadata lookup request');
@@ -271,6 +353,10 @@ class MetadataLookupRequest {
       romIdentifier: identifierValue == null
           ? null
           : MetadataRomIdentifier.fromJson(identifierValue),
+      corroboration: json['corroboration'] == null
+          ? null
+          : MetadataCorroboration.fromJson(
+              json['corroboration'] as Map<String, dynamic>),
       refreshGeneration: generation,
     );
   }

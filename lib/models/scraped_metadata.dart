@@ -332,6 +332,7 @@ class MetadataRecord {
   final DateTime retrievedAt;
   final int refreshGeneration;
   final String matchMethod;
+  final Map<String, dynamic> matchEvidence;
   final List<MetadataText> titles;
   final List<MetadataText> descriptions;
   final List<MetadataText> releaseDates;
@@ -351,6 +352,7 @@ class MetadataRecord {
     required this.retrievedAt,
     required this.refreshGeneration,
     required this.matchMethod,
+    Map<String, dynamic> matchEvidence = const {},
     required List<MetadataText> titles,
     List<MetadataText> descriptions = const [],
     List<MetadataText> releaseDates = const [],
@@ -360,7 +362,8 @@ class MetadataRecord {
     List<MetadataMedia> media = const [],
     List<SourcedRating> ratings = const [],
     Map<String, MetadataFieldProvenance> fieldProvenance = const {},
-  })  : titles = List.unmodifiable(titles),
+  })  : matchEvidence = Map.unmodifiable(matchEvidence),
+        titles = List.unmodifiable(titles),
         descriptions = List.unmodifiable(descriptions),
         releaseDates = List.unmodifiable(releaseDates),
         genres = List.unmodifiable(genres),
@@ -377,6 +380,7 @@ class MetadataRecord {
         'retrievedAt': retrievedAt.toUtc().toIso8601String(),
         'refreshGeneration': refreshGeneration,
         'matchMethod': matchMethod,
+        if (matchEvidence.isNotEmpty) 'matchEvidence': matchEvidence,
         'titles': titles.map((value) => value.toJson()).toList(),
         'descriptions': descriptions.map((value) => value.toJson()).toList(),
         'releaseDates': releaseDates.map((value) => value.toJson()).toList(),
@@ -399,6 +403,8 @@ class MetadataRecord {
         retrievedAt: DateTime.parse(json['retrievedAt'] as String),
         refreshGeneration: json['refreshGeneration'] as int,
         matchMethod: json['matchMethod'] as String,
+        matchEvidence:
+            json['matchEvidence'] as Map<String, dynamic>? ?? const {},
         titles: _records(json['titles'], MetadataText.fromJson),
         descriptions: _records(json['descriptions'], MetadataText.fromJson),
         releaseDates: _records(json['releaseDates'], MetadataText.fromJson),

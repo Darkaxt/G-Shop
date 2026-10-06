@@ -1,5 +1,6 @@
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
+import 'metadata_provider.dart' show MetadataCorroboration;
 
 enum OverallRatingOwnership { game, originalGame, project }
 
@@ -246,6 +247,18 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
       edition.tags.contains('official') &&
       edition.isTranslation != true;
   if (official && game.baseGameId == null) {
+    if (record.providerId == 'igdb' &&
+        record.matchMethod == 'corroboratedOfficialRelease' &&
+        edition.revision?.isNotEmpty != true &&
+        edition.patchId == null &&
+        edition.translatedLanguages.isEmpty) {
+      try {
+        MetadataCorroboration.fromJson(record.matchEvidence);
+        return OverallRatingOwnership.game;
+      } on FormatException {
+        return null;
+      }
+    }
     if ((byId &&
             (record.matchMethod == 'verifiedProviderId' ||
                 record.matchMethod == 'verifiedProviderIdGlobalGame')) ||
