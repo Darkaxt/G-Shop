@@ -1,5 +1,19 @@
 # S7 live metadata and Thor migration
 
+## Protected shared-file evidence — 2026-10-06
+
+The bounded read-only baseline recorded 137 files across 16 explicit shared
+scopes, without copying bodies, stopping emulators or touching ROMs. A changing
+RetroArch remap and unavailable PPSSPP shared path remain uncertainty; its
+self-comparison correctly fails. Private/custom storage is not certified. The
+private journal is retained for actual before/after migration comparison, not
+published in Git. Focused parsing/comparison/capture and existing migration
+checks passed. See the status ledger for evidence and current worker state.
+MIGRATE-01 remains open: this records a baseline, not successful preservation,
+defensible rankings or authorization to remove uncertain files. The existing
+N64 job's newly paused state also needs normal-workflow diagnosis/resumption;
+no quota reason or terminal collection result is inferred.
+
 ## External-sync collision review — 2026-10-06
 
 Subsequent bounded remediation added a device-folder on-demand exclusion to the

@@ -5,6 +5,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 shared protected-file baseline — 2026-10-06
+
+- Added bounded read-only `scripts/thor_protected_baseline.py`, reusing the
+  existing ADB inventory reader. Only explicit shared saves/states/BIOS/config
+  scopes are hashed on-device; file bodies do not cross ADB. Private exclusive
+  JSONL evidence supports exact before/after checks. Changes, redirected scopes,
+  incomplete journals and unavailable observations cannot pass. This is not a
+  backup or S10 implementation.
+- Live capture completed: 137 files, 304,486,395 observed bytes, 16 scopes.
+  One RetroArch remap's mtime changed during hashing; PPSSPP's shared PSP path
+  was absent or unreadable. The journal correctly fails self-comparison: terminal
+  recording does not certify stable coverage. Private/custom paths and unknown
+  SD sidecars remain unverified and protected. No emulator was stopped.
+  Retained evidence: `D:\Temp\rshop-s7-protected-baseline-20261006\private\protected.jsonl`.
+- Focused baseline and existing migration-audit checks passed serially. A scope
+  redirect regression failed before its fix. Fresh ScreenScraper/IGDB adapter
+  and persistent-worker checks revalidated approved regional confidence,
+  company/date disagreement, conflict rejection, legacy-capture immutability,
+  modified-score isolation and offline publication. Full coverage is not claimed.
+- Same N64 job 70 reports paused, 292 pending, 115 matched/rated; blocked_status
+  and not_before are null. The reason is not established; do not infer quota
+  exhaustion or restart/create a new job. Diagnose/resume the existing saved job
+  normally. Root generation 1 remains unpublished: 159,305 observations and
+  6,056 pending folders, nextGeneration=2. R-Shop PID 26853 and NetherSX2 PID
+  15069 remain alive. Current configuration retains baseline SHA-256
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+- Both screens remain OFF. No original ROM/save/BIOS/settings/cloud mutation,
+  FolderSync change, SD removal or release occurred. No Gradle ran: no new gate
+  acquisition/profile is claimed. Diagnostic Java compilation used 128-MiB
+  heaps with no memory failure. Cleanup `85ad5b981011be54792a9d1755d4bdde` removed
+  only the empty expendable work directory; private evidence and observer remain.
+- S7 remains sole ACTIVE; full metadata/root publication, defensible retention,
+  migration-time preservation and exact reviewed execution remain required.
+  S8-S10 remain NOT STARTED.
+
 ### S7 device-sync no-refill guard — 2026-10-06
 
 - Remediated the inspected LoLSuite refill risk with an optional exact
