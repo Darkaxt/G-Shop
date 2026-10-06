@@ -1,5 +1,34 @@
 # S7 live metadata and Thor migration
 
+## Current matching / recovery-journal / root-resume check — 2026-10-06
+
+The authorized revision-9 matching implementation (`f270427`) remains installed
+on unchanged APK 206. Fresh focused provider checks selected by `regional` passed,
+including exact regional title selection, ambiguity/unknown-edition rejection,
+company/day disagreement tolerance, conflicting regional-year rejection and the
+normal persistent two-provider binding/ranking workflow. This is verification of
+the shared policy, not evidence of defensible collection-wide Top-25 coverage.
+
+The earlier auxiliary observer's native crash is now explained: Android SQLite
+on this Thor does not provide `json_extract`. Replacing that diagnostic query
+with a bounded, read-only Java JSON scan succeeded. The exact Game Gear test root
+has no transfers, installations or target owners; both removal journals are
+`completed` with no issue. The real normal download/offline/removal/re-download
+cycle recorded in the implementation status therefore also has durable removal
+evidence. No production change or new build was required for this diagnosis.
+
+One normal Refresh resumed the existing root checkpoint: generation 1 remains
+pending, nextGeneration remains 2, and observed progress increased from 144,619
+entries / 10,667 pending folders to 145,160 / 10,499. It is not yet published.
+The bounded current format audit found 1,378 N64 7z files versus 12 ZIP files;
+a ZIP-only addition would not establish N64 recovery coverage. No N64 download,
+adoption, emulator launch or archive approval is claimed by that audit.
+
+S7 remains the sole ACTIVE stage. Defensible classification/ranking, remaining
+format recovery, exact reviewed migration and save/space evidence remain open.
+S8-S10 remain NOT STARTED. Source configuration is unchanged; no original ROM,
+save, BIOS, FolderSync configuration or cloud file was changed.
+
 ## GameCube completed IGDB capture / existing root checkpoint — 2026-10-06
 
 Normal native settings started exactly one missing GameCube IGDB job, ID 69,
@@ -76,10 +105,12 @@ with two matched/rated, 442 needsReview, 79 ambiguous and 25 unmatched. Its curr
 ranking has zero qualified groups. Root generation 1 remains unpublished at
 144,225 observations / 10,765 pending folders; those counters do not prove liveness.
 One PSP projection is dirty after the UI checks. Remaining S7 criteria include
-missing full provider coverage, defensible classification/Top sets, an actual
-normal ZIP queue download and removal/re-download cycle, exact reviewed migration
-and before/after save/space proof. No host test or adoption substitutes for that
-live recovery acceptance. S8-S10 remain NOT STARTED; no required work disappeared.
+defensible classification/Top sets, remaining format recovery, exact reviewed
+migration and before/after save/space proof. The later normal Game Gear queue
+download/offline/removal/re-download cycle is recorded in the implementation
+status and its durable removal journals are verified above; earlier adoption
+alone did not satisfy that acceptance. S8-S10 remain NOT STARTED; no required
+work disappeared.
 
 ## Game Gear traversal / next provider pass — 2026-10-06
 

@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 matching recheck / durable recovery evidence / root resume — 2026-10-06
+
+- Fresh focused `regional` ScreenScraper/IGDB checks passed for revision-9 matching,
+  including the persistent two-provider workflow. Company wording and day/month
+  differences do not veto an otherwise qualified match; region/year conflicts,
+  ambiguity and unknown or modified editions remain protected. This does not
+  certify collection-wide ranking or waive any migration gate.
+- The prior read-only observer failed because Thor SQLite lacks `json_extract`,
+  as confirmed by its native exception. A bounded read-only Java JSON scan now
+  confirms both Game Gear test removal journals completed without issues and
+  no test-root transfer, installation or owner remains. No memory cause or
+  production defect is inferred from that diagnostic failure.
+- Normal Refresh resumed root generation 1 without replacing the checkpoint:
+  144,619 -> 145,160 observations, 10,667 -> 10,499 pending folders, unchanged
+  nextGeneration 2. Publication is still unfinished. N64 format counts demonstrate
+  that ZIP-only recovery would not cover the predominantly 7z collection;
+  no N64 format approval or recovery implementation is claimed.
+- No Gradle command, build, APK replacement or original-ROM/cloud/save operation
+  was performed. Configuration hash remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Fresh display-state evidence confirms both physical displays committed OFF.
+  S7 remains ACTIVE; S8-S10 remain NOT STARTED.
+
 ### S7 Game Gear normal download / offline / removal / re-download — 2026-10-06
 
 - On unchanged normal debug APK 206, a newly created, initially absent test
