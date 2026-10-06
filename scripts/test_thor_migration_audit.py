@@ -14,6 +14,57 @@ from thor_migration_audit import Device, GATES, compare_observation, checked_rel
 
 
 class MigrationAuditTests(unittest.TestCase):
+    @staticmethod
+    def retention_sql():
+        root = Path(__file__).resolve().parent.parent
+        dart = (root / 'lib/services/library_query.dart').read_text(encoding='utf-8')
+        ranks = re.search(r"static String _rankedScope\(String scope\) => '''(.*?)''';",
+                          dart, re.S).group(1).replace('$scope', 'AND platform_id = ?')
+        method = dart[dart.index('Future<LibraryRetentionPage> retentionPage'):]
+        page = re.search(r"final response = await txn.rawQuery\('''(.*?)'''", method, re.S).group(1)
+        native = (root / 'scripts/RShopRetentionSnapshot.java').read_text(encoding='utf-8')
+        shipped = re.search(r'String SQL = """\s*(.*?)\s*""";', native, re.S).group(1)
+        expected = page.replace('$cte', ranks).strip()
+        if shipped != expected:
+            raise AssertionError('Native retention observation must use the actual Dart query')
+        return shipped
+
+    def test_retention_native_sql_matches_dart_and_keeps_all_canonical_members(self):
+        db = sqlite3.connect(':memory:')
+        db.row_factory = sqlite3.Row
+        try:
+            db.executescript('''CREATE TABLE library_query_editions(
+                edition_id TEXT,game_id TEXT,group_key TEXT,platform_id TEXT,
+                cache_row_id INTEGER,member INTEGER,score REAL,source_order INTEGER,
+                rating_eligible INTEGER);
+                CREATE TABLE games(id INTEGER,systemSlug TEXT,is_folder INTEGER);''')
+            rows = [
+                ('e1','g1','first','psx',1,1,80,0,1),
+                ('e2','g1','first','psx',2,1,None,None,0),
+                # Prefer the accepted first source, not a higher second source.
+                ('e3','g1','first','psx',3,1,99,1,1),
+                ('e4','g2','second','psx',4,1,90,0,1),
+                ('e5','g3','unresolved','psx',5,1,None,None,0),
+                ('e6','g4','other-console','snes',6,1,100,0,1),
+            ]
+            db.executemany('INSERT INTO library_query_editions VALUES (?,?,?,?,?,?,?,?,?)', rows)
+            db.executemany('INSERT INTO games VALUES (?,?,0)',
+                           [(i, 'psx' if i != 6 else 'snes') for i in range(1,8)])
+            result = [dict(row) for row in db.execute(self.retention_sql(), ('psx','psx',128,0))]
+            self.assertEqual(len(result), 5)
+            self.assertEqual(result[0]['collection_games'], 3)
+            self.assertEqual(result[0]['ranked_games'], 2)
+            self.assertEqual(result[0]['total_members'], 5)
+            self.assertEqual(result[0]['unbound_artifacts'], 1)
+            self.assertEqual({row['canonical_rank'] for row in result if row['group_key']=='first'}, {2})
+            self.assertEqual(next(row['canonical_rank'] for row in result if row['edition_id']=='e2'), 2)
+            self.assertIsNone(next(row['canonical_rank'] for row in result if row['edition_id']=='e5'))
+            empty = dict(db.execute(self.retention_sql(), ('psx','psx',128,5)).fetchone())
+            self.assertIsNone(empty['edition_id'])
+            self.assertEqual(empty['total_members'], 5)
+        finally:
+            db.close()
+
     def test_cloud_projection_does_not_copy_a_live_database(self):
         device = Mock()
         config = json.dumps({'sources': [{'id': 'source', 'drive': {

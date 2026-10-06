@@ -9,6 +9,53 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Standardized retention checkpoint (2026-10-06): the browsing Top predicate is
+not a complete physical keep list because it requires each displayed edition's
+own eligible rating. `LibraryQuery.retentionPage` instead includes all current
+members of each canonical group using the same assessed-score rank CTE, within
+one explicit console and a 128-row maximum page. Unscored peers have canonical
+membership, not borrowed ratings. Coverage counts survive empty page offsets;
+missing bindings, conflicting scores or incomplete coverage cannot label
+unresolved games as a bottom-ranked removal set. Even `outsideSample` grants no
+ownership/removal authority: the remaining MIGRATE-01 gates still apply.
+
+Focused query, migration and invalidation fixtures passed, including removed
+membership, pending score updates, stable ties, unscored peers, conflicting
+bindings and incomplete reception. Dart analysis reported no issues. The fixed
+READONLY native observer's SQL is tested for exact equality with production SQL;
+its host fixture checks precedence, coverage and empty pages. After the normal
+Library refreshed all pending projections, Thor's six console observations had
+zero dirty rows and zero unbound artifacts. Ranked/collection counts were PS1
+0/405, PSP 6/341, PS2 12/220 (225 physical members), N64 0/1,543, GameCube 0/206
+and Game Gear 0/548. These are current cached projections, not complete-library
+rankings or current cloud/restore proof. No member was removed.
+
+The native helper jar's host/device SHA-256 agrees:
+dd03aa299d79e12661a986ddcc05f81b146e500cd5deb077627b917f09b3475a.
+It opens only the fixed app database READONLY, returns at most 128 members and
+1 MiB, and reports dirty projections explicitly. It never refreshes metadata.
+The actual Dart API refreshes and queries transactionally; no updated APK was
+installed in this checkpoint, so that device execution is not claimed. javac/d8
+used requested 256 MiB budgets; no Gradle invocation or memory failure occurred.
+The earlier native read failed with SQLiteDatabaseLockedException during the
+normal app refresh; it succeeded after that same operation completed naturally.
+No kill, restart, timeout or automatic retry was added.
+
+Verification commands were the focused Flutter invocation with concurrency 1
+for `library_query_test.dart`, `library_query_migration_test.dart` and
+`library_query_invalidation_migration_test.dart`, Dart analysis of the changed
+query/test, and `python -B -m unittest test_thor_migration_audit`. All exited zero;
+the repository-wide suite was not required or run. Transactional cleanup removed
+only the reviewed host helper class/jar and their empty folder (11,502 bytes).
+Those compiler outputs are reproducible from source; the verified device jar
+and required private inventories remain retained.
+
+Root generation 1 remains unpublished: 124,117 observations / 14,130 pending
+folders / 25,528 work rows, next generation 2. The same app PID 13676 remains
+live. Both physical displays are OFF. This checkpoint is collection-wide,
+without manual title curation; S7 remains ACTIVE on its original required
+coverage, identity, defensible ranking, recovery and reviewed migration gates.
+
 Native cached-comparison verification (2026-10-06): the audit no longer copies
 the growing live database. A fixed READONLY on-device query projects platform
 artifacts and catalogue generations in one SQLite statement; configuration is

@@ -73,6 +73,55 @@ class LibraryQueryPage {
       : items = List.unmodifiable(items);
 }
 
+/// A canonical rank is not this particular edition's rating. In particular an
+/// unscored disc can belong to a ranked game and must not disappear from a keep
+/// set just because the browsing Top predicate excludes unscored editions.
+class LibraryRetentionMember {
+  final String editionId, gameId, groupKey;
+  final int cacheRowId;
+  final int? canonicalRank;
+  const LibraryRetentionMember(
+      {required this.editionId,
+      required this.gameId,
+      required this.groupKey,
+      required this.cacheRowId,
+      required this.canonicalRank});
+}
+
+enum LibraryRetentionDisposition { keep, preserve, outsideSample }
+
+/// Read-only planning input, never ownership or permission to remove a file.
+/// Cloud identity/readability, local identity, bundles, restoration and save/sync
+/// safety remain separate MIGRATE-01 gates, even for [outsideSample] members.
+class LibraryRetentionPage {
+  final String platformId;
+  final List<LibraryRetentionMember> members;
+  final int collectionGames, rankedGames, totalMembers, unboundArtifacts;
+  bool get provisional => unboundArtifacts > 0 || rankedGames < collectionGames;
+  LibraryRetentionPage(
+      {required this.platformId,
+      required List<LibraryRetentionMember> members,
+      required this.collectionGames,
+      required this.rankedGames,
+      required this.totalMembers,
+      required this.unboundArtifacts})
+      : members = List.unmodifiable(members);
+
+  LibraryRetentionDisposition disposition(LibraryRetentionMember member) {
+    if (!members.contains(member)) {
+      throw ArgumentError('Member does not belong to this retention page');
+    }
+    final rank = member.canonicalRank;
+    if (rank != null && rank <= 25) {
+      return LibraryRetentionDisposition.keep;
+    }
+    if (provisional || rank == null) {
+      return LibraryRetentionDisposition.preserve;
+    }
+    return LibraryRetentionDisposition.outsideSample;
+  }
+}
+
 /// Lightweight UI identities only; metadata/artwork stay in the paged cache.
 class LibraryDiscoveryResult {
   final Map<String, List<String>> groups;
@@ -789,6 +838,62 @@ class LibraryQuery {
     return db.transaction((txn) => _page(txn, filter, bases));
   }
 
+  /// One console's unfiltered offline-sample planning input. Refresh and query
+  /// share a transaction. Retain all current members of a selected canonical
+  /// group, including editions without their own eligible score. Do not apply
+  /// tag bonuses, search, installed/shelf filters or borrowing of edition scores.
+  Future<LibraryRetentionPage> retentionPage(
+      {required String platformId,
+      int limit = 128,
+      int offset = 0,
+      List<AssessedOverallScoreBasis>? assessedBases}) async {
+    if (!RegExp(r'^[a-z0-9][a-z0-9_-]{0,63}$').hasMatch(platformId) ||
+        limit < 1 ||
+        limit > 128 ||
+        offset < 0) {
+      throw ArgumentError('Invalid retention scope/page');
+    }
+    final bases = List<AssessedOverallScoreBasis>.unmodifiable(
+        assessedBases ?? productionOverallScoreBases);
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _refresh(txn, bases);
+      final cte = _rankedScope('AND platform_id = ?');
+      final response = await txn.rawQuery('''$cte, summary AS (SELECT
+          (SELECT COUNT(DISTINCT group_key) FROM scoped) AS collection_games,
+          (SELECT COUNT(*) FROM ranks) AS ranked_games,
+          (SELECT COUNT(*) FROM scoped) AS total_members,
+          (SELECT COUNT(*) FROM games g WHERE g.systemSlug = ? AND g.is_folder = 0
+            AND NOT EXISTS (SELECT 1 FROM scoped s WHERE s.cache_row_id = g.id))
+            AS unbound_artifacts),
+          page_rows AS (SELECT s.edition_id, s.game_id, s.group_key,
+            s.cache_row_id, r.rank AS canonical_rank FROM scoped s
+            LEFT JOIN ranks r ON r.group_key = s.group_key
+            ORDER BY r.rank IS NULL, r.rank, s.group_key, s.edition_id
+            LIMIT ? OFFSET ?)
+          SELECT page_rows.*, summary.* FROM summary
+          LEFT JOIN page_rows ON 1 = 1
+          ORDER BY canonical_rank IS NULL, canonical_rank, group_key, edition_id''',
+          [platformId, platformId, limit, offset]);
+      final summary = response.first;
+      return LibraryRetentionPage(
+          platformId: platformId,
+          collectionGames: summary['collection_games'] as int,
+          rankedGames: summary['ranked_games'] as int,
+          totalMembers: summary['total_members'] as int,
+          unboundArtifacts: summary['unbound_artifacts'] as int,
+          members: response
+              .where((r) => r['edition_id'] != null)
+              .map((r) => LibraryRetentionMember(
+                  editionId: r['edition_id'] as String,
+                  gameId: r['game_id'] as String,
+                  groupKey: r['group_key'] as String,
+                  cacheRowId: r['cache_row_id'] as int,
+                  canonicalRank: r['canonical_rank'] as int?))
+              .toList());
+    });
+  }
+
   static void _validate(LibraryQueryFilter filter) {
     if (filter.limit < 1 ||
         filter.limit > 128 ||
@@ -810,6 +915,20 @@ class LibraryQuery {
     }
   }
 
+  // Browsing and migration planning must use the same source precedence,
+  // conflict rejection, canonical deduplication and stable tie breaking.
+  static String _rankedScope(String scope) => '''WITH scoped AS (
+        SELECT * FROM library_query_editions WHERE member = 1 $scope),
+        priorities AS (SELECT group_key, MIN(source_order) AS source_order
+          FROM scoped WHERE rating_eligible = 1 GROUP BY group_key),
+        scores AS (SELECT s.group_key, p.source_order, MIN(s.score) AS score
+          FROM scoped s JOIN priorities p ON p.group_key = s.group_key
+          AND p.source_order = s.source_order
+          WHERE s.rating_eligible = 1 GROUP BY s.group_key, p.source_order
+          HAVING MIN(s.score) = MAX(s.score)),
+        ranks AS (SELECT group_key, source_order, score,
+          ROW_NUMBER() OVER (ORDER BY score DESC, group_key) AS rank FROM scores)''';
+
   static Future<LibraryQueryPage> _page(DatabaseExecutor txn,
       LibraryQueryFilter filter, List<AssessedOverallScoreBasis> bases) async {
     await _refresh(txn, bases);
@@ -821,17 +940,7 @@ class LibraryQuery {
     // Canonical ranks precede every presentation filter. A group selects its
     // first accepted source, not its highest-scoring edition. Conflicting
     // values under that source are unresolved, not a tie-break opportunity.
-    final cte = '''WITH scoped AS (
-        SELECT * FROM library_query_editions WHERE member = 1 $scope),
-        priorities AS (SELECT group_key, MIN(source_order) AS source_order
-          FROM scoped WHERE rating_eligible = 1 GROUP BY group_key),
-        scores AS (SELECT s.group_key, p.source_order, MIN(s.score) AS score
-          FROM scoped s JOIN priorities p ON p.group_key = s.group_key
-          AND p.source_order = s.source_order
-          WHERE s.rating_eligible = 1 GROUP BY s.group_key, p.source_order
-          HAVING MIN(s.score) = MAX(s.score)),
-        ranks AS (SELECT group_key, source_order, score,
-          ROW_NUMBER() OVER (ORDER BY score DESC, group_key) AS rank FROM scores)''';
+    final cte = _rankedScope(scope);
     final predicates = <String>[];
     if (filter.top != null) {
       predicates.add(

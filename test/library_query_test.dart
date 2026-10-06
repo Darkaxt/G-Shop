@@ -135,6 +135,145 @@ void main() {
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
 
+  test('retention keeps an unscored member of a ranked canonical game',
+      () async {
+    for (var n = 1; n <= 26; n++) {
+      await seed(n, score: n.toDouble());
+    }
+    final extraDisc = await seed(90, group: '26');
+    final page =
+        await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.collectionGames, 26);
+    expect(page.rankedGames, 26);
+    expect(page.provisional, isFalse);
+    expect(page.totalMembers, 27);
+    final member = page.members.singleWhere((m) => m.editionId == extraDisc);
+    expect(member.canonicalRank, 1);
+    expect(page.disposition(member).name, 'keep');
+    final last = page.members.singleWhere((m) => m.cacheRowId == 1);
+    expect(last.canonicalRank, 26);
+    expect(page.disposition(last).name, 'outsideSample');
+  });
+
+  test(
+      'retention preserves unresolved games rather than treating them as bottom ranked',
+      () async {
+    for (var n = 1; n <= 26; n++) {
+      await seed(n, score: n.toDouble());
+    }
+    await seed(27);
+    final page =
+        await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.provisional, isTrue);
+    expect(page.collectionGames, 27);
+    expect(page.rankedGames, 26);
+    expect(
+        page
+            .disposition(page.members.singleWhere((m) => m.cacheRowId == 1))
+            .name,
+        'preserve');
+    final unresolved = page.members.singleWhere((m) => m.cacheRowId == 27);
+    expect(unresolved.canonicalRank, isNull);
+    expect(page.disposition(unresolved).name, 'preserve');
+  });
+
+  test(
+      'retention ranks one console with bounded pages and stable canonical ties',
+      () async {
+    await seed(1, score: 80);
+    await seed(2, score: 80);
+    await seed(3, score: 99, platform: 'snes');
+    final first = await query
+        .retentionPage(platformId: 'psx', limit: 1, assessedBases: [basis]);
+    final second = await query.retentionPage(
+        platformId: 'psx', limit: 1, offset: 1, assessedBases: [basis]);
+    expect(first.collectionGames, 2);
+    expect(first.totalMembers, 2);
+    expect(first.members.length, 1);
+    expect(second.members.length, 1);
+    expect(first.members.single.canonicalRank, 1);
+    expect(second.members.single.canonicalRank, 2);
+    expect(
+        first.members.single.groupKey.compareTo(second.members.single.groupKey),
+        lessThan(0));
+    final empty = await query
+        .retentionPage(platformId: 'psx', offset: 2, assessedBases: [basis]);
+    expect(empty.members, isEmpty);
+    expect(empty.totalMembers, 2);
+    expect(empty.collectionGames, 2);
+  });
+
+  test('retention treats conflicting scores and low vote counts as unresolved',
+      () async {
+    await seed(1, group: 'same', score: 70);
+    await seed(2, group: 'same', score: 90);
+    await seed(3, score: 100, votes: 1);
+    final page =
+        await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.collectionGames, 2);
+    expect(page.rankedGames, 0);
+    expect(page.provisional, isTrue);
+    expect(page.members.every((m) => m.canonicalRank == null), isTrue);
+    expect(page.members.every((m) => page.disposition(m).name == 'preserve'),
+        isTrue);
+  });
+
+  test('retention rejects invalid scope and unbounded page requests', () async {
+    for (final values in [
+      {'platformId': '', 'limit': 128, 'offset': 0},
+      {'platformId': 'psx', 'limit': 129, 'offset': 0},
+      {'platformId': 'psx', 'limit': 0, 'offset': 0},
+      {'platformId': 'psx', 'limit': 128, 'offset': -1},
+    ]) {
+      await expectLater(
+          query.retentionPage(
+              platformId: values['platformId'] as String,
+              limit: values['limit'] as int,
+              offset: values['offset'] as int),
+          throwsArgumentError);
+    }
+  });
+
+  test(
+      'retention cannot claim complete coverage when an artifact binding conflicts',
+      () async {
+    final editionId = await seed(1, score: 90);
+    final edition = (await store.edition(editionId))!;
+    final game = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'platformId': 'snes',
+    }));
+    final page =
+        await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.members, isEmpty);
+    expect(page.collectionGames, 0);
+    expect(page.unboundArtifacts, 1);
+    expect(page.provisional, isTrue);
+  });
+
+  test('retention recomputes after pending refresh and removed membership',
+      () async {
+    await seed(1, score: 90);
+    var page =
+        await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.provisional, isFalse);
+    expect(page.disposition(page.members.single),
+        LibraryRetentionDisposition.keep);
+    await MetadataRefreshJobs(Future.value(db))
+        .createFromCatalogue(providerId: 'igdb');
+    page = await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.rankedGames, 0);
+    expect(page.provisional, isTrue);
+    expect(page.disposition(page.members.single),
+        LibraryRetentionDisposition.preserve);
+    await db.delete('games', where: 'id = 1');
+    page = await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.members, isEmpty);
+    expect(page.totalMembers, 0);
+    expect(page.unboundArtifacts, 0);
+  });
+
   test('cache UPSERT coalesces invalidations without rolling back refresh',
       () async {
     final id = await seed(1, score: 82);

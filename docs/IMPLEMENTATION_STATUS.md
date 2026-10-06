@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 standardized retention membership — 2026-10-06
+
+- Collection-wide retention planning now shares the normal Library's canonical
+  ranking SQL, source precedence, conflict rejection and stable ties. A bounded
+  per-console page includes unscored members of ranked games; their membership
+  does not fabricate an edition rating. No search/tag/installed filters or
+  uncapped extras alter the Top-25 selection. Missing bindings or incomplete
+  score coverage preserve every member outside the provisional sample.
+- Focused Library query/migration/invalidation checks passed, and Dart analysis
+  reported no issues. The audit's fixed READONLY native query is checked against
+  the exact production SQL and its focused host contracts passed. The installed
+  APK was not replaced: native evidence verifies Android SQLite compatibility
+  and current data, not execution of the new Dart API in an updated APK.
+- Opening the normal Library refreshed its stale projection without restarting
+  the app or any provider job. Native observations then showed zero dirty rows:
+  PS1 0/405 ranked canonical games, PSP 6/341, PS2 12/220 (225 members), N64
+  0/1,543, GameCube 0/206 and Game Gear 0/548. All six had zero unbound artifacts;
+  all remained incomplete and removalAuthorized=false. Root generation 1 is
+  still unpublished, advancing to 124,117 observations / 14,130 pending folders.
+- No per-game curation, ROM removal, Drive mutation, FolderSync change, Gradle
+  build or release occurred. Both displays are OFF. S7 remains the sole ACTIVE
+  stage; full publication/metadata coverage, defensible ranking, current cloud
+  recovery and reviewed migration remain required. S8-S10 are NOT STARTED.
+
 ### S7 native cached comparison and completed PSP recovery — 2026-10-06
 
 - Replaced the audit's raw live-database copy with a fixed READONLY native query.

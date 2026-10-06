@@ -13,6 +13,15 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+S7 retention checkpoint (2026-10-06): use the shared, bounded per-console
+canonical retention query, not the display-filtered Top list, when preparing
+the physical sample. Unscored members of selected groups remain included;
+incomplete scores or artifact bindings preserve unresolved members. Focused
+host contracts and the exact query on Thor's current native projections passed;
+no updated-APK execution or removal authority is claimed. Current reception
+coverage is insufficient for migration. Continue collection-wide publication,
+automatic metadata coverage and recovery proof rather than per-game curation.
+
 S7 current checkpoint (2026-10-06): normal mapped Drive raw/CHD evidence supplies
 automatic ScreenScraper identification; current exact official release facts can
 then uniquely corroborate IGDB through the normal persistent worker. Native PSP

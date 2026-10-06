@@ -87,3 +87,25 @@ Focused host contracts (synthetic, no device/network):
 cd scripts
 python -B -m unittest test_thor_migration_audit
 ```
+
+## Bounded canonical retention observation
+
+`RShopRetentionSnapshot.java` observes the exact production retention SQL on the
+native app cache. Compile/push it like the cache helper above, substituting this
+class and `rshop-s7-retention-snapshot.jar`. It accepts only a platform slug and
+numeric page offset (fixed page size 128), uses the fixed READONLY app database,
+and rejects identities over 4 KiB or output over 1 MiB. Keep its private output
+outside Git; only aggregate counts belong in the public verification ledger.
+
+```powershell
+adb -s bfa98654 exec-out sh -c "run-as com.darkaxt.rshop.debug sh -c 'CLASSPATH=/data/local/tmp/rshop-s7-retention-snapshot.jar app_process /system/bin RShopRetentionSnapshot psx 0'"
+```
+
+Validate the complete JSON and schema `rshop.s7.retention.v1`; Android's shell
+exit status alone is not reliable evidence of helper success. An error object,
+dirty projection counts or incomplete binding/rating coverage is not a valid
+retention decision. The helper does not refresh the projection; only the normal
+app query does that. No automatic retry, repair or provider request is performed.
+Canonical ranks identify group membership, not borrowed edition ratings. This
+observation cannot authorize removals even when the cache is current: exact
+local/cloud identity, tested recovery and all other MIGRATE-01 gates still apply.
