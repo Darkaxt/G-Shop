@@ -1,5 +1,30 @@
 # S7 live metadata and Thor migration
 
+## GameCube completed IGDB capture / existing root checkpoint — 2026-10-06
+
+Normal native settings started exactly one missing GameCube IGDB job, ID 69,
+on 205 current editions. Persisted terminal evidence: completed, 132 needsReview,
+67 ambiguous, six unmatched, zero matched/rated, pending or failures. Its capture
+has 194 unknown, one official and ten other-tagged editions. This satisfies the
+omitted provider traversal, not META-05 reception or MIGRATE-01 retention.
+No title-specific approval, classification import or guessed provider ID occurred.
+
+The existing root source's native authorization required interaction after the
+in-place APK replacement. Its normal Connect flow with the existing authorized
+default account succeeded. Back without Save preserved all source/folder/mapping
+configuration. One ordinary Refresh resumed pending generation 1 rather than
+creating another: nextGeneration stays 2; observations increased 144,225 ->
+144,255 and pending folders decreased 10,765 -> 10,755. This proves renewed
+progress, not complete coverage/publication. No ROM, save, FolderSync or cloud
+write took place and no build was required. The ordinary PSP-only Best 25 drawer
+was restored and freshly showed 35/341 ranked / 25 results / Provisional, with
+zero favorites and unchanged configuration hash. Both displays are committed OFF.
+The inspected host capture was removed by reviewed transaction
+`75f368fd319dd9f9ca5904405b4fca79` (1,872,736 bytes); the exact two device
+captures are absent. The required bounded diagnostic helper remains retained.
+S7 remains ACTIVE; its ranking,
+classification, format recovery and exact reviewed migration criteria remain open.
+
 ## Game Gear safe ZIP / real handoff checkpoint — 2026-10-06
 
 S7 remains ACTIVE. This closes a bounded archive/handoff defect, not MIGRATE-01.

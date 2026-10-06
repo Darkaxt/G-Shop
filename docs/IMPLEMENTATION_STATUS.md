@@ -5,6 +5,31 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 GameCube IGDB breadth / saved catalogue resume — 2026-10-06
+
+- Normal metadata settings started the omitted full GameCube IGDB pass, job 69,
+  once. Its current 205-edition capture completed: 132 needsReview, 67 ambiguous,
+  six unmatched, zero matched/rated, pending or failures. Captures contain 194
+  unknown, one official and ten other-tagged editions. No classifications,
+  corrections or scores were invented; completed traversal is not retention proof.
+- The existing Collection source reported `interactionRequired` after the debug
+  APK replacement. Normal Connect/configure and the already-authorized default
+  account restored native read-only authorization. Returning without saving kept
+  the source, folder and mappings unchanged. One ordinary Refresh resumed the
+  existing checkpoint: pending generation 1 / nextGeneration 2 are unchanged;
+  observations increased from 144,225 to 144,255 and pending folders decreased
+  from 10,765 to 10,755. These are observed progress, not final publication.
+- No extra build, APK replacement, ROM download/removal, classification import,
+  cloud-original mutation, save or FolderSync operation was performed. Source
+  configuration SHA-256 remains unchanged. The normal PSP-only Best 25 drawer
+  again shows 35/341 ranked / 25 results / Provisional; favorites remain zero.
+  Both displays are confirmed committed OFF. Reviewed cleanup
+  `75f368fd319dd9f9ca5904405b4fca79` removed the inspected host capture
+  (1,872,736 bytes); both task-only device captures are verified absent.
+  The diagnostic helper stays retained for the running root checkpoint.
+  S7 is still the sole ACTIVE stage;
+  ranking/classification, full recovery and reviewed migration remain unfinished.
+
 ### S7 Game Gear ZIP validation and real emulator handoff — 2026-10-06
 
 - Game Gear IGDB job 68 completed its unchanged 548-edition capture: two
