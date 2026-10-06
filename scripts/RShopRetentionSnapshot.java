@@ -45,16 +45,18 @@ WITH scoped AS (
         throw new IllegalArgumentException("Exact platform and bounded offset required");
       }
       int offset = Integer.parseInt(args[1]);
-      String query = "SELECT q.*,(SELECT COUNT(*) FROM library_query_dirty) AS dirty_editions,"
+      String query = "SELECT q.*,g.artifact_key,"
+          + "(SELECT COUNT(*) FROM library_query_dirty) AS dirty_editions,"
           + "(SELECT COUNT(*) FROM library_query_cache_dirty) AS dirty_artifacts FROM ("
-          + SQL + ") q ORDER BY canonical_rank IS NULL,canonical_rank,group_key,edition_id";
+          + SQL + ") q LEFT JOIN games g ON g.id=q.cache_row_id "
+          + "ORDER BY canonical_rank IS NULL,canonical_rank,group_key,edition_id";
       try (SQLiteDatabase db = SQLiteDatabase.openDatabase("databases/rshop.db", null,
           SQLiteDatabase.OPEN_READONLY | SQLiteDatabase.NO_LOCALIZED_COLLATORS);
            Cursor rows = db.rawQuery(query, new String[]{args[0],args[0],"128",args[1]})) {
         if (!db.isReadOnly() || !rows.moveToFirst()) {
           throw new IllegalStateException("Read-only summary required");
         }
-        JSONObject result = new JSONObject().put("schema","rshop.s7.retention.v1")
+        JSONObject result = new JSONObject().put("schema","rshop.s7.retention.v2")
             .put("platform",args[0]).put("offset",offset).put("readOnly",true);
         for (String field : new String[]{"collection_games","ranked_games","total_members",
             "unbound_artifacts","dirty_editions","dirty_artifacts"}) {
@@ -73,6 +75,12 @@ WITH scoped AS (
             member.put(field,value);
           }
           member.put("cache_row_id",rows.getLong(rows.getColumnIndexOrThrow("cache_row_id")));
+          int artifactKey=rows.getColumnIndexOrThrow("artifact_key");
+          String key=rows.isNull(artifactKey)?null:rows.getString(artifactKey);
+          if (key!=null && key.getBytes(StandardCharsets.UTF_8).length>4096) {
+            throw new IllegalStateException("Artifact identity bound");
+          }
+          member.put("artifact_key",key==null?JSONObject.NULL:key);
           int rank=rows.getColumnIndexOrThrow("canonical_rank");
           member.put("canonical_rank",rows.isNull(rank)?JSONObject.NULL:rows.getLong(rank));
           members.put(member);

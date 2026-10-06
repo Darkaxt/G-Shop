@@ -5,6 +5,8 @@ Cached Drive checksums are comparison evidence, never current recovery authority
 An interrupted journal lacks its terminal summary and must not be called complete.
 Use --inventory-only to record local paths/stats without reading the catalogue or
 ROM bodies. It supplies no cloud/recovery evidence and still preserves every file.
+An optional --retention-helper joins exact artifact identities to the normal
+canonical Top-25 query. This is a private review, not removal authorization.
 """
 import argparse
 import collections
@@ -62,14 +64,62 @@ def compare_observation(local, candidates):
     return result
 
 
+def review_retention(local, candidates, snapshot):
+    """Join only identical cached bytes to exact ranked artifact bindings.
+
+    Rankings are observations, not a grant to adopt/delete files. All existing
+    current-cloud, restore, save/sync and execution-time checks remain required.
+    """
+    candidates = [c for c in candidates if c['displayName'] == local['name']]
+    result = compare_observation(local, candidates)
+    provisional = (snapshot['ranked_games'] < snapshot['collection_games'] or
+                   snapshot['unbound_artifacts'] > 0 or
+                   snapshot['dirty_editions'] > 0 or snapshot['dirty_artifacts'] > 0)
+    retention = {'disposition': 'preserve', 'provisional': provisional,
+                 'reason': 'cloud_binding_unverified'}
+    result['retention'] = retention
+    if result['comparison'] != 'cached_digest_match':
+        return result
+    identity = candidates[0]['id']
+    key = json.dumps([identity['providerId'], identity['sourceId'],
+                      identity['accountId'], identity['providerFileId']],
+                     separators=(',', ':'), ensure_ascii=False)
+    members = [m for m in snapshot['members'] if m.get('artifact_key') == key]
+    if not members:
+        retention['reason'] = 'canonical_binding_missing'
+        return result
+    groups = {m['group_key'] for m in members}
+    games = {m['game_id'] for m in members}
+    ranks = {m['canonical_rank'] for m in members}
+    if len(groups) != 1 or len(games) != 1 or len(ranks) != 1:
+        retention['reason'] = 'canonical_binding_conflict'
+        return result
+    rank = next(iter(ranks))
+    retention.update(groupKey=next(iter(groups)), gameId=next(iter(games)),
+                     editionIds=sorted({m['edition_id'] for m in members}),
+                     canonicalRank=rank)
+    if any(snapshot[f] > 0 for f in ('dirty_editions', 'dirty_artifacts', 'unbound_artifacts')):
+        retention['reason'] = 'projection_incomplete'
+    elif rank is not None and rank <= 25:
+        retention.update(disposition='keep', reason='observed_top25_member')
+        result['disposition'] = 'keep'
+    elif provisional or rank is None:
+        retention['reason'] = 'ranking_incomplete'
+    else:
+        retention.update(disposition='outside_sample', reason='observed_outside_top25')
+    return result
+
+
 class Device:
-    def __init__(self, adb, serial, package, cache_helper=None):
+    def __init__(self, adb, serial, package, cache_helper=None, retention_helper=None):
         self.prefix = [adb, '-s', serial]
         self.package = package
-        if cache_helper is not None and not re.fullmatch(
-                r'/data/local/tmp/[A-Za-z0-9_.-]+\.jar', cache_helper):
-            raise ValueError('An exact prepared native helper path is required')
+        for helper in (cache_helper, retention_helper):
+            if helper is not None and not re.fullmatch(
+                    r'/data/local/tmp/[A-Za-z0-9_.-]+\.jar', helper):
+                raise ValueError('An exact prepared native helper path is required')
         self.cache_helper = cache_helper
+        self.retention_helper = retention_helper
 
     def shell(self, command):
         return self._read(self.prefix + ['exec-out', 'sh', '-c', command], 8 * 1048576)
@@ -82,6 +132,16 @@ class Device:
             raise ValueError('Prepared native cache helper and platform required')
         command = ('CLASSPATH=' + self.cache_helper +
                    ' app_process /system/bin RShopMigrationCacheSnapshot ' + platform)
+        return self._read(self.prefix + ['exec-out', 'run-as', self.package,
+                                        'sh', '-c', command], 1048576)
+
+    def retention_page(self, platform, offset):
+        if (not self.retention_helper or
+                not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', platform) or
+                type(offset) is not int or not 0 <= offset <= 2000):
+            raise ValueError('Prepared native retention helper and bounded page required')
+        command = ('CLASSPATH=' + self.retention_helper +
+                   ' app_process /system/bin RShopRetentionSnapshot ' + platform + ' ' + str(offset))
         return self._read(self.prefix + ['exec-out', 'run-as', self.package,
                                         'sh', '-c', command], 1048576)
 
@@ -106,6 +166,55 @@ class Device:
             raise
         finally:
             process.stdout.close()
+
+
+def retention_snapshot(device, platform):
+    """Bounded observational pages; execution must revalidate actual membership.
+
+    Summary changes abort this review. Unchanged counts alone do NOT prove an
+    atomic snapshot across pages; the journal records this limit explicitly.
+    """
+    fields = ('collection_games', 'ranked_games', 'total_members',
+              'unbound_artifacts', 'dirty_editions', 'dirty_artifacts')
+    result = None
+    offset = 0
+    editions = set()
+    while True:
+        page = json.loads(device.retention_page(platform, offset))
+        if (not isinstance(page, dict) or page.get('schema') != 'rshop.s7.retention.v2' or
+                page.get('platform') != platform or page.get('offset') != offset or
+                page.get('readOnly') is not True or page.get('removalAuthorized') is not False or
+                any(type(page.get(f)) is not int or page[f] < 0 for f in fields) or
+                page['total_members'] > 2000 or page['ranked_games'] > page['collection_games'] or
+                not isinstance(page.get('members'), list) or len(page['members']) > 128):
+            raise ValueError('Invalid bounded retention observation')
+        if result is None:
+            result = {f: page[f] for f in fields}
+            result.update(platform=platform, members=[])
+        elif any(page[f] != result[f] for f in fields):
+            raise ValueError('Retention summary changed during review')
+        for member in page['members']:
+            if (not isinstance(member, dict) or
+                    any(not isinstance(member.get(f), str) or not member[f] or
+                        len(member[f].encode('utf-8')) > 4096
+                        for f in ('edition_id', 'game_id', 'group_key')) or
+                    member['edition_id'] in editions or
+                    'artifact_key' not in member or
+                    (member['artifact_key'] is not None and
+                     (not isinstance(member['artifact_key'], str) or
+                      len(member['artifact_key'].encode('utf-8')) > 4096)) or
+                    'canonical_rank' not in member or
+                    (member['canonical_rank'] is not None and
+                     (type(member['canonical_rank']) is not int or
+                      not 1 <= member['canonical_rank'] <= page['ranked_games']))):
+                raise ValueError('Invalid or repeated retention binding')
+            editions.add(member['edition_id'])
+            result['members'].append(member)
+        offset += len(page['members'])
+        if offset == result['total_members']:
+            return result
+        if not page['members'] or offset > result['total_members']:
+            raise ValueError('Incomplete retention observation')
 
 
 def cloud_snapshot(device, platform):
@@ -263,6 +372,7 @@ def main():
     parser.add_argument('--serial', required=True)
     parser.add_argument('--package', default='com.darkaxt.rshop.debug')
     parser.add_argument('--cache-helper', help='Exact prepared native cache-snapshot .jar path')
+    parser.add_argument('--retention-helper', help='Exact prepared native retention .jar path')
     parser.add_argument('--platform', required=True)
     parser.add_argument('--root', required=True)
     parser.add_argument('--extension', action='append', required=True)
@@ -279,16 +389,22 @@ def main():
         raise ValueError('An explicit SD console directory is required')
     if not args.inventory_only and not args.cache_helper:
         parser.error('--cache-helper is required for consistent cached comparison')
-    device = Device(args.adb, args.serial, args.package, args.cache_helper)
+    if args.inventory_only and args.retention_helper:
+        parser.error('--retention-helper requires cached cloud comparison')
+    device = Device(args.adb, args.serial, args.package, args.cache_helper, args.retention_helper)
     if device.shell('realpath ' + shlex.quote(args.root)).decode().strip() != args.root:
         raise ValueError('Root is redirected or not normalized')
     artifacts, scopes = ([], []) if args.inventory_only else cloud_snapshot(device, args.platform)
+    retention = retention_snapshot(device, args.platform) if args.retention_helper else None
     by_name = collections.defaultdict(list)
     for artifact in artifacts:
         by_name[artifact['displayName']].append(artifact)
     output.parent.mkdir(parents=True, exist_ok=True)
     counts = collections.Counter()
     byte_counts = collections.Counter()
+    dispositions = collections.Counter()
+    disposition_bytes = collections.Counter()
+    disposition_games = collections.defaultdict(set)
     extensions = {e.lower() for e in args.extension}
     # Exclusive create. Never overwrite an earlier completed/interrupted journal.
     with output.open('x', encoding='utf-8', newline='\n') as journal:
@@ -301,7 +417,11 @@ def main():
                 'serial': args.serial, 'platform': args.platform, 'root': args.root,
                 'cloudEvidence': ('inventory_only_no_cloud_evidence' if args.inventory_only else
                                   'published_app_cache_not_live_revalidation'),
-                'scopes': scopes, 'removalAuthorized': False})
+                'scopes': scopes, 'removalAuthorized': False,
+                'retention': None if retention is None else {
+                    k: v for k, v in retention.items() if k != 'members'},
+                'retentionCoherence': None if retention is None else
+                    'per_page_observation_not_execution_authority'})
         if args.inventory_only:
             observations = inventory_observations(device, args.root)
         else:
@@ -323,13 +443,24 @@ def main():
                               'disposition': 'preserve', 'removalAuthorized': False,
                               'remainingGates': list(GATES)}
             else:
-                comparison = compare_observation(local, candidates)
+                comparison = (compare_observation(local, candidates) if retention is None else
+                              review_retention(local, candidates, retention))
             record({'kind': 'file', 'local': local, 'cloudCandidates': candidates,
                     **comparison})
             counts[comparison['comparison']] += 1
             byte_counts[comparison['comparison']] += local['sizeBytes']
+            disposition = comparison['disposition']
+            dispositions[disposition] += 1
+            disposition_bytes[disposition] += local['sizeBytes']
+            group = comparison.get('retention', {}).get('groupKey')
+            if group is not None:
+                disposition_games[disposition].add(group)
         summary = {'kind': 'completed', 'files': sum(counts.values()),
                    'comparisons': dict(counts), 'bytesByComparison': dict(byte_counts),
+                   'filesByDisposition': dict(dispositions),
+                   'bytesByDisposition': dict(disposition_bytes),
+                   'boundCanonicalGamesByDisposition': {
+                       k: len(v) for k, v in disposition_games.items()},
                    'removalAuthorized': False}
         record(summary)
     # Sanitized aggregate only; paths/accounts/cloud identifiers stay private.

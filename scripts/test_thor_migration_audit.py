@@ -1,6 +1,7 @@
 """Focused contracts for the S7 read-only audit; no device/network requests."""
 import io
 import json
+from contextlib import closing
 from pathlib import Path
 import shlex
 import re
@@ -137,7 +138,7 @@ class MigrationAuditTests(unittest.TestCase):
     def test_native_sql_exports_exact_platform_and_generations_with_bounds(self):
         source = (Path(__file__).parent / 'RShopMigrationCacheSnapshot.java').read_text()
         query = re.search(r'String SQL = """\n(.*?)\n\s*""";', source, re.S).group(1)
-        with sqlite3.connect(':memory:') as db:
+        with closing(sqlite3.connect(':memory:')) as db:
             db.execute('CREATE TABLE games(systemSlug TEXT, remote_artifact TEXT)')
             db.execute('CREATE TABLE drive_catalogue_state(scope TEXT,active INTEGER,pending INTEGER)')
             db.execute('INSERT INTO games VALUES (?,?)', ('psp', json.dumps(self.cloud)))
@@ -272,6 +273,164 @@ class MigrationAuditTests(unittest.TestCase):
         self.assertIn("live_cloud_revalidation", result["remainingGates"])
         self.assertIn("defensible_retention", result["remainingGates"])
         self.assertIn("tested_restore", result["remainingGates"])
+
+    def test_retention_review_counts_a_canonical_game_not_each_member(self):
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        snapshot = self.retention_fixture([
+            {'artifact_key': key, 'edition_id': 'disc1', 'game_id': 'game',
+             'group_key': 'canonical', 'canonical_rank': 1},
+            {'artifact_key': key, 'edition_id': 'disc2', 'game_id': 'game',
+             'group_key': 'canonical', 'canonical_rank': 1},
+        ])
+        result = audit.review_retention(self.local, [self.cloud], snapshot)
+        self.assertEqual(result['disposition'], 'keep')
+        self.assertEqual(result['retention']['groupKey'], 'canonical')
+        self.assertEqual(result['retention']['editionIds'], ['disc1', 'disc2'])
+        self.assertFalse(result['removalAuthorized'])
+        self.assertEqual(result['remainingGates'], GATES)
+
+    @staticmethod
+    def retention_fixture(members, **changes):
+        return dict({'platform': 'n64', 'collection_games': 30, 'ranked_games': 30,
+                     'total_members': len(members), 'unbound_artifacts': 0,
+                     'dirty_editions': 0, 'dirty_artifacts': 0, 'members': members}, **changes)
+
+    def test_retention_review_never_turns_bottom_rank_into_removal_authority(self):
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        member = {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
+                  'group_key': 'canonical', 'canonical_rank': 26}
+        result = audit.review_retention(self.local, [self.cloud],
+                                        self.retention_fixture([member]))
+        self.assertEqual(result['disposition'], 'preserve')
+        self.assertEqual(result['retention']['disposition'], 'outside_sample')
+        self.assertFalse(result['removalAuthorized'])
+        self.assertIn('live_cloud_revalidation', result['remainingGates'])
+        self.assertIn('tested_restore', result['remainingGates'])
+
+    def test_retention_review_preserves_missing_conflicting_dirty_or_changed_bindings(self):
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        member = {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
+                  'group_key': 'canonical', 'canonical_rank': 1}
+        for snapshot in (self.retention_fixture([]),
+                         self.retention_fixture([member], dirty_editions=1),
+                         self.retention_fixture([member], dirty_artifacts=1),
+                         self.retention_fixture([member], unbound_artifacts=1),
+                         self.retention_fixture([member, dict(member, group_key='another')]),
+                         self.retention_fixture([dict(member, artifact_key='other')])):
+            with self.subTest(snapshot=snapshot):
+                result = audit.review_retention(self.local, [self.cloud], snapshot)
+                self.assertEqual(result['disposition'], 'preserve')
+                self.assertFalse(result['removalAuthorized'])
+        changed = dict(self.local, md5='0' * 32)
+        result = audit.review_retention(changed, [self.cloud], self.retention_fixture([member]))
+        self.assertEqual(result['disposition'], 'preserve')
+        self.assertEqual(result['comparison'], 'digest_mismatch')
+
+    def test_incomplete_ranking_does_not_classify_unranked_or_lower_ranks_as_removals(self):
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        for rank in (None, 26):
+            result = audit.review_retention(self.local, [self.cloud], self.retention_fixture([
+                {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
+                 'group_key': 'canonical', 'canonical_rank': rank}], ranked_games=26))
+            self.assertEqual(result['retention']['disposition'], 'preserve')
+            self.assertTrue(result['retention']['provisional'])
+            self.assertEqual(result['disposition'], 'preserve')
+
+    def test_retention_pages_are_bounded_and_reject_mixed_or_partial_observations(self):
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        member = {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
+                  'group_key': 'canonical', 'canonical_rank': 1}
+        page = dict(self.retention_fixture([member], collection_games=1, ranked_games=1),
+                    schema='rshop.s7.retention.v2', readOnly=True, removalAuthorized=False, offset=0)
+        device = Mock()
+        device.retention_page.return_value = json.dumps(page).encode()
+        self.assertEqual(audit.retention_snapshot(device, 'n64')['members'], [member])
+        device.retention_page.assert_called_once_with('n64', 0)
+        for change in ({'schema': 'rshop.s7.retention.v1'}, {'platform': 'psx'},
+                       {'offset': 1}, {'readOnly': False}, {'removalAuthorized': True},
+                       {'total_members': 2001}, {'members': []},
+                       {'members': [dict(member, canonical_rank=True)]},
+                       {'members': [dict(member, edition_id='x' * 4097)]},
+                       {'members': [dict(member, artifact_key=4)]}):
+            with self.subTest(change=change):
+                device.retention_page.return_value = json.dumps(dict(page, **change)).encode()
+                with self.assertRaises(ValueError):
+                    audit.retention_snapshot(device, 'n64')
+        first = dict(page, total_members=2)
+        for second in (dict(first, offset=1),
+                       dict(first, offset=1, members=[]),
+                       dict(first, offset=1, dirty_artifacts=1,
+                            members=[dict(member, edition_id='another')])):
+            device.retention_page.side_effect = [json.dumps(first).encode(), json.dumps(second).encode()]
+            with self.assertRaises(ValueError):
+                audit.retention_snapshot(device, 'n64')
+
+    def test_native_retention_projection_joins_primary_key_not_filename(self):
+        source = (Path(__file__).parent / 'RShopRetentionSnapshot.java').read_text()
+        wrapper = source[source.index('String query ='):source.index('try (SQLiteDatabase')]
+        prefix, suffix = wrapper.split('+ SQL +')
+        decode = lambda value: ''.join(json.loads(q) for q in re.findall(r'"(?:\\.|[^"\\])*"', value))
+        query = decode(prefix) + self.retention_sql() + decode(suffix)
+        with closing(sqlite3.connect(':memory:')) as db:
+            db.row_factory = sqlite3.Row
+            db.executescript('''CREATE TABLE library_query_editions(
+                edition_id TEXT,game_id TEXT,group_key TEXT,platform_id TEXT,
+                cache_row_id INTEGER,member INTEGER,score REAL,source_order INTEGER,
+                rating_eligible INTEGER);
+                CREATE TABLE games(id INTEGER,systemSlug TEXT,is_folder INTEGER,artifact_key TEXT);
+                CREATE TABLE library_query_dirty(edition_id TEXT);
+                CREATE TABLE library_query_cache_dirty(cache_row_id INTEGER);''')
+            db.execute('INSERT INTO library_query_editions VALUES (?,?,?,?,?,?,?,?,?)',
+                       ('edition','game','group','n64',7,1,90,0,1))
+            db.executemany('INSERT INTO games VALUES (?, ?,0,?)',
+                           [(7,'n64','exact-object'), (8,'n64','another-object')])
+            rows = [dict(r) for r in db.execute(query, ('n64','n64',128,0))]
+            self.assertEqual(rows[0]['artifact_key'], 'exact-object')
+            self.assertEqual(rows[0]['unbound_artifacts'], 1)
+            self.assertEqual(rows[0]['dirty_editions'], 0)
+        self.assertIn('rshop.s7.retention.v2', source)
+
+    def test_review_manifest_is_exclusive_private_and_preserves_all_removal_gates(self):
+        root = '/storage/card/Roms/n64'
+        path = root + '/' + self.local['name']
+        local = dict(self.local, path=path, relativePath=self.local['name'])
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        snapshot = self.retention_fixture([
+            {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
+             'group_key': 'canonical', 'canonical_rank': 1}])
+        device = Mock()
+        device.shell.side_effect = [root.encode(), (path + '\0').encode()]
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'private-review.jsonl'
+            argv = ['audit', '--adb', 'adb', '--serial', 'fixture',
+                    '--platform', 'n64', '--root', root, '--extension', '.zip',
+                    '--cache-helper', '/data/local/tmp/cache.jar',
+                    '--retention-helper', '/data/local/tmp/ranks.jar', '--output', str(output)]
+            with patch('sys.argv', argv), patch('thor_migration_audit.Device', return_value=device), \
+                 patch('thor_migration_audit.cloud_snapshot', return_value=([self.cloud], [])), \
+                 patch('thor_migration_audit.retention_snapshot', return_value=snapshot), \
+                 patch('thor_migration_audit.local_observation', return_value=local), \
+                 patch('sys.stdout', new_callable=io.StringIO):
+                main()
+            rows = [json.loads(line) for line in output.read_text().splitlines()]
+            self.assertEqual(rows[0]['retentionCoherence'], 'per_page_observation_not_execution_authority')
+            self.assertEqual(rows[1]['remainingGates'], GATES)
+            self.assertEqual(rows[-1]['filesByDisposition'], {'keep': 1})
+            self.assertEqual(rows[-1]['boundCanonicalGamesByDisposition'], {'keep': 1})
+            self.assertEqual(rows[-1]['bytesByDisposition'], {'keep': 3})
+            self.assertTrue(all(row['removalAuthorized'] is False for row in rows))
+            device.shell.side_effect = [root.encode(), (path + '\0').encode()]
+            with patch('sys.argv', argv), patch('thor_migration_audit.Device', return_value=device), \
+                 patch('thor_migration_audit.cloud_snapshot', return_value=([self.cloud], [])), \
+                 patch('thor_migration_audit.retention_snapshot', return_value=snapshot):
+                with self.assertRaises(FileExistsError):
+                    main()
 
     def test_same_name_different_bytes_is_protected(self):
         self.cloud["providerChecksums"]["md5"] = "0" * 32

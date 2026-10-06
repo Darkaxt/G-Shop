@@ -1,5 +1,63 @@
 # S7 live metadata and Thor migration
 
+## Private exact-path retention review and bulk continuation — 2026-10-06
+
+The existing read-only audit's optional `--retention-helper` observes the normal
+canonical query, joined to `games.artifact_key` by its cache-row primary key.
+It never associates ranked identities by cleaned title or filename alone. Only
+the existing unique cached size/digest comparison permits a retention binding;
+dirty/unbound/conflicting projections preserve the file. All required MIGRATE-01
+gates remain even when a canonical rank is outside 25. An observed Top member
+is a keep preview, not proof of a complete collection ranking. Per-page summary
+consistency is not an atomic execution snapshot and the journal labels it so.
+No adoption/removal method exists in this command.
+
+Fresh focused host verification passed with the actual shared rank SQL and
+native primary-key binding wrapper, bounded/partial/foreign pages, conflicting
+identities, incomplete rankings, multi-member counting and exclusive private
+review creation. Native helper `/data/local/tmp/rshop-s7-retention-review-v2.jar`
+matches the host jar SHA-256:
+`6a72a452b5d1e5de3dbccde071d3dec3780437917d63fd1f2517e7863125fa6c`.
+It remains READONLY, 128 members / 1 MiB per page with 4 KiB identity guards.
+javac/d8 used requested 256 MiB budgets; no Gradle or APK update was needed.
+The observed running audit Python peak working set was 33,107,968 bytes.
+
+Real invocation used the independently established N64 root and `.7z` extension,
+the existing cache helper plus the new retention helper, and exclusive output
+`D:\Temp\rshop-s7-n64-retention-review-20261006.jsonl`. It completed 322 exact
+paths / 3,267,753,332 bytes: 320 matching cached digests and canonical bindings,
+two preserved non-ROM files. Independent line-by-line reconciliation matched
+the terminal counts/bytes/game set and confirmed no removal authority. All 320
+bound paths report projection_incomplete: the observation has 1,543 canonical
+games, zero eligible ranked games and 3,268 dirty edition/artifact projections.
+This does not clear a retention, current-cloud or restore gate. `.7z` is rejected
+by the actual normal Drive installation queue; this audit is not format support
+or evidence that such an archive can be restored as an emulator-ready ROM.
+
+Normal GameCube metadata job 51 completed its existing 206-entry scope, followed
+by completed artwork 52. The normal Saved jobs UI selected PS1 50 and Resume;
+native state confirmed the same ID/generation running (274 requested / 133
+pending / 272 processed), not a replacement pass. Normal root Refresh continued
+the original pending generation 1 / next generation 2, reaching 135,665
+observations / 13,062 pending folders. No mappings or source scope were changed.
+The root had not advanced during the read-only audit; its resumed checkpoint
+does not establish the reason the earlier refresh stopped.
+
+Transactional cleanup `7c398eaac2f54b29b03fb14c4db1cebf` / ticket
+`c0c6e5eea3a147a9cb36fa0ce4e4717f5cbd1782f2642b62db73dfa73aa6a786`
+completed exact deletion of the 8,223-byte javac class and empty classes folder.
+The source, jar and required private review remain. S7 is still the sole ACTIVE
+stage: full fresh coverage, defensible retention, live cloud recovery, strict
+adoption/execution journal and actual reviewed migration remain unfinished.
+S8-S10 remain NOT STARTED. No ROM/save/cloud-original/FolderSync mutation or
+publication occurred.
+
+Final native observation: both displays OFF; configuration SHA-256 remains
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+Root generation 1 advanced to 135,824 observations / 13,002 pending folders;
+PS1 50 remains running at 293 requests / 114 pending / 291 processed. The exact
+task UI dump was removed. These are live continuing jobs, not completed scraping.
+
 ## Standardized lookup-region capture and normal Thor proof — 2026-10-06
 
 - META-03's filename context now participates in new lookup snapshots without

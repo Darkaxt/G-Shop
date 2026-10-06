@@ -5,6 +5,45 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 exact artifact-to-retention review — 2026-10-06
+
+- The existing private read-only migration audit now joins exact normal-cache
+  artifact keys to the unchanged shared canonical ranking SQL. It reports
+  keep/preserve observations, outside-sample candidates, edition/member IDs,
+  file/byte counts and distinct bound game counts. No title-specific exception,
+  adoption or removal capability was added. Cached byte identity and a lower
+  rank never grant deletion authority; every existing recovery/save/sync and
+  execution-time revalidation gate remains. Per-page observations are explicitly
+  not an atomic execution snapshot; changing summaries, incomplete pages and
+  conflicting bindings are rejected or preserved rather than guessed.
+- Focused audit contracts passed, including actual native SQL/key joins, dirty
+  and incomplete rankings, conflicts, canonical member counting, exclusive
+  journal creation and footer semantics. The updated READONLY helper compiled
+  and executed on the Thor; host/device SHA-256 agrees. No Gradle build, APK
+  installation or full-suite run occurred. javac/d8 used requested 256 MiB
+  budgets; the running audit's observed Python peak working set was 33,107,968
+  bytes. No memory-related failure or budget increase occurred.
+- Real N64 review completed and independently reconciled its terminal footer:
+  322 exact paths / 3,267,753,332 bytes, 320 matching cached digests and canonical
+  bindings, two preserved non-ROM files. Every path remains preserve and every
+  row has removalAuthorized=false. Current projection dirty counts and zero
+  ranked games prevent a defensible sample. This is not live cloud recovery,
+  an executable removal manifest, adoption or finished migration.
+- Normal saved-job UI confirmed GameCube 51 completed all 206 lookups and its
+  linked artwork 52 completed. Selecting PS1 50 and Resume continued its original
+  405-entry snapshot, reaching 274 requested / 133 pending / 272 processed. Root
+  Refresh continued generation 1/next 2 at 135,665 observations / 13,062 pending
+  folders without recreating the source or scope. No individual game was curated.
+- Transactional cleanup removed only the reproducible 8,223-byte helper class
+  and its empty compiler directory. The private review and helper jar remain
+  needed by S7. ROMs/saves/cloud originals/FolderSync remain unchanged; S7 is
+  the sole ACTIVE stage and S8-S10 are NOT STARTED.
+- Final observation confirms both displays OFF, unchanged config SHA-256
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`,
+  the same root at 135,824 observations / 13,002 pending folders, and PS1 50
+  running at 293 requests / 114 pending / 291 processed. The task UI dump was
+  removed. No required migration criterion is declared complete by this review.
+
 ### S7 standardized filename region capture — 2026-10-06
 
 - The normal catalogue snapshot dropped explicit filename region tags: a

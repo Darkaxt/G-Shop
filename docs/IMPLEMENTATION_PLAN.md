@@ -13,6 +13,17 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+S7 private migration-review checkpoint (2026-10-06): the existing read-only
+audit now joins exact cached artifact keys to the shared canonical retention
+query, retaining edition/member IDs and reporting files, bytes and distinct
+bound games. The real N64 review completed: 322 paths / 3,267,753,332 bytes,
+320 canonical bindings, all preserved. Dirty projections, incomplete rankings,
+cached checksums and per-page observations do not authorize removal. The strict
+current-cloud/recovery/save/sync/execution journal remains unfinished. Normal
+GameCube job 51 and its linked artwork 52 completed; saved PS1 job 50 resumed
+without recreation. Follow that job and the resumed root generation 1, not
+individual titles. S7 remains ACTIVE; S8-S10 remain NOT STARTED.
+
 S7 region-capture checkpoint (2026-10-06): normal debug build 183 is installed
 on the Thor with app data preserved. New GameCube ScreenScraper job 51 captured
 206 editions, including 172 unambiguous filename region hints (162 us / ten jp)
