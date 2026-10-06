@@ -1,5 +1,33 @@
 # S7 live metadata and Thor migration
 
+## Existing collection checkpoint resumed — 2026-10-06
+
+The previous goal turn was a verified wait on native metadata job 66. This
+continuation rechecked the same persisted job, not a replacement: 298/548
+processed, one matched/rated, 212 needsReview, 29 ambiguous, 56 unmatched,
+250 pending and no failures. It remains running; no fresh generation was created.
+
+A bounded READONLY collection observation found generation 1 still unpublished
+at 140,365 observations / 11,756 pending folders. These persisted counters alone
+do not prove a live worker. Normal Sources showed `interactionRequired` for the
+existing Drive account. Connect/configure and the existing default-account chooser
+restored native read-only authorization. Returning without saving preserved the
+source, folder and mappings. One normal Refresh resumed the existing checkpoint:
+pending remains 1, nextGeneration remains 2, observations increased to 140,390
+and pending folders decreased to 11,748. This is observed scan progress, not
+publication or metadata coverage for the remaining collection.
+
+Configuration SHA-256 is still
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+The existing task-only bounded diagnostic now reports sanitized collection
+counters without titles, account/source IDs or credentials. Standalone javac/d8
+used a 256 MiB compiler JVM; no Gradle build, APK update, payload download,
+classification import, adoption/removal, save or cloud-original mutation occurred.
+The helper remains registered under the existing cleanup transaction until these
+live observations are no longer required. S7 remains ACTIVE; S8-S10 remain NOT
+STARTED. The reviewed-manifest classification-source question is still unanswered;
+no classification or rankings were imported from LoLSuite.
+
 ## Remaining-gate audit and omitted Game Gear pass — 2026-10-06
 
 A fixed bounded READONLY diagnostic inspected the current six projections and
