@@ -213,6 +213,28 @@ class LEs extends L {
   String get metadata_resume => 'Reanudar trabajo guardado';
 
   @override
+  String get metadata_savedJobs => 'Trabajos guardados';
+
+  @override
+  String get metadata_savedJobsHelp =>
+      'Selecciona el progreso existente. Reanudar utiliza este trabajo, no la consola elegida para un nuevo análisis. La selección no hace solicitudes al proveedor.';
+
+  @override
+  String get metadata_noSavedJobs =>
+      'No hay trabajos guardados en esta página.';
+
+  @override
+  String get metadata_olderJobs => 'Trabajos anteriores';
+
+  @override
+  String get metadata_newestJobs => 'Trabajos más recientes';
+
+  @override
+  String metadata_savedJobLabel(int id, String state, int requested) {
+    return 'Trabajo $id · $state · $requested consultas';
+  }
+
+  @override
   String get metadata_retryOutcomes => 'Reintentar fallos / sin coincidencia';
 
   @override

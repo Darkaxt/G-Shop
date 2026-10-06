@@ -465,6 +465,42 @@ abstract class L {
   /// **'Resume saved job'**
   String get metadata_resume;
 
+  /// No description provided for @metadata_savedJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved jobs'**
+  String get metadata_savedJobs;
+
+  /// No description provided for @metadata_savedJobsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Select existing progress. Resume uses this saved job, not the console chosen for a fresh re-scrape. Selection makes no provider requests.'**
+  String get metadata_savedJobsHelp;
+
+  /// No description provided for @metadata_noSavedJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved jobs on this page.'**
+  String get metadata_noSavedJobs;
+
+  /// No description provided for @metadata_olderJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'Older jobs'**
+  String get metadata_olderJobs;
+
+  /// No description provided for @metadata_newestJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest jobs'**
+  String get metadata_newestJobs;
+
+  /// No description provided for @metadata_savedJobLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Job {id} · {state} · {requested} lookups'**
+  String metadata_savedJobLabel(int id, String state, int requested);
+
   /// No description provided for @metadata_retryOutcomes.
   ///
   /// In en, this message translates to:

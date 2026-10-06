@@ -120,6 +120,45 @@ void main() {
     expect(await jobs.latest(providerId: 'igdb'), isNull);
   });
 
+  test(
+      'saved jobs page older provider jobs without loading artwork or new work',
+      () async {
+    await seed('saved');
+    final ids = <int>[];
+    for (var i = 0; i < 12; i++) {
+      ids.add((await jobs.create(
+              providerId: 'screenscraper',
+              collectionGeneration: 'saved-$i',
+              editionIds: ['saved']))
+          .id);
+    }
+    await jobs.run(ids.last, provider);
+    await jobs.ensureArtworkForMetadata(ids.last);
+    await jobs.create(
+        providerId: 'igdb',
+        collectionGeneration: 'other',
+        editionIds: ['saved']);
+    final countBefore = (await db.query('metadata_refresh_jobs')).length;
+    final callsBefore = provider.calls.length;
+    final List<MetadataRefreshReport> first =
+        await jobs.savedJobs(providerId: 'screenscraper', limit: 4);
+    final List<MetadataRefreshReport> second = await jobs.savedJobs(
+        providerId: 'screenscraper', beforeId: first.last.id, limit: 4);
+    expect(first.map((j) => j.id), ids.reversed.take(4));
+    expect(second.map((j) => j.id), ids.reversed.skip(4).take(4));
+    expect([...first, ...second].every((j) => j.kind == 'metadata'), isTrue);
+    expect(provider.calls.length, callsBefore);
+    expect((await db.query('metadata_refresh_jobs')).length, countBefore);
+    final plan = await db.rawQuery('''EXPLAIN QUERY PLAN
+      SELECT id FROM metadata_refresh_jobs
+      WHERE provider_id=? AND is_artwork=0 AND id<? ORDER BY id DESC LIMIT 4''',
+        ['screenscraper', first.last.id]);
+    expect(plan.map((r) => r['detail']).join(' '),
+        contains('idx_metadata_saved_jobs'));
+    expect(() => jobs.savedJobs(providerId: 'screenscraper', limit: 21),
+        throwsArgumentError);
+  });
+
   test('progress observer failure releases the durable worker claim', () async {
     await seed('observer');
     final job = await jobs.create(

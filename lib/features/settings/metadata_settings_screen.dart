@@ -317,6 +317,76 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
     if (mounted && !ref.read(metadataControlsProvider).error) _openReview();
   }
 
+  Future<void> _selectSavedJob() async {
+    final l = L.of(context);
+    final controls = ref.read(metadataControlsProvider.notifier);
+    var page = controls.savedJobs();
+    final selected = await showDialog<int>(
+        context: context,
+        builder: (dialogContext) => Actions(
+            actions: screenActions,
+            child: StatefulBuilder(builder: (context, update) {
+              return AlertDialog(
+                  title: Text(l.metadata_savedJobs),
+                  content: SizedBox(
+                      width: 640,
+                      height: MediaQuery.sizeOf(context).height * .5,
+                      child: Column(children: [
+                        Text(l.metadata_savedJobsHelp),
+                        const SizedBox(height: 12),
+                        Expanded(
+                            child: FutureBuilder<List<MetadataRefreshReport>>(
+                                future: page,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState !=
+                                      ConnectionState.done) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                  if (snapshot.hasError) {
+                                    return Text(l.metadata_controlsError);
+                                  }
+                                  final jobs = snapshot.data ?? const [];
+                                  if (jobs.isEmpty) {
+                                    return Text(l.metadata_noSavedJobs);
+                                  }
+                                  return ListView(children: [
+                                    for (final job in jobs)
+                                      Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 8),
+                                          child: _button(
+                                              l.metadata_savedJobLabel(job.id,
+                                                  job.state, job.requested),
+                                              'metadata-saved-job-${job.id}',
+                                              () => Navigator.pop(
+                                                  dialogContext, job.id))),
+                                    if (jobs.length == 10)
+                                      _button(
+                                          l.metadata_olderJobs,
+                                          'metadata-older-jobs',
+                                          () => update(() {
+                                                page = controls.savedJobs(
+                                                    beforeId: jobs.last.id);
+                                              })),
+                                  ]);
+                                })),
+                      ])),
+                  actions: [
+                    _button(
+                        l.metadata_newestJobs,
+                        'metadata-newest-jobs',
+                        () => update(() {
+                              page = controls.savedJobs();
+                            })),
+                    _button(l.common_cancel, 'metadata-saved-jobs-cancel',
+                        () => Navigator.pop(dialogContext)),
+                  ]);
+            })));
+    if (!mounted || selected == null) return;
+    await controls.selectSavedJob(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
@@ -448,6 +518,9 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                               : null),
                     const SizedBox(height: 12),
                     Wrap(spacing: 12, runSpacing: 8, children: [
+                      if (widget.cacheRowId == null)
+                        _button(l.metadata_savedJobs, 'metadata-saved-jobs',
+                            enabled ? _selectSavedJob : null),
                       _button(
                           l.metadata_refresh,
                           'metadata-refresh',

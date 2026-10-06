@@ -210,6 +210,27 @@ class LEn extends L {
   String get metadata_resume => 'Resume saved job';
 
   @override
+  String get metadata_savedJobs => 'Saved jobs';
+
+  @override
+  String get metadata_savedJobsHelp =>
+      'Select existing progress. Resume uses this saved job, not the console chosen for a fresh re-scrape. Selection makes no provider requests.';
+
+  @override
+  String get metadata_noSavedJobs => 'No saved jobs on this page.';
+
+  @override
+  String get metadata_olderJobs => 'Older jobs';
+
+  @override
+  String get metadata_newestJobs => 'Newest jobs';
+
+  @override
+  String metadata_savedJobLabel(int id, String state, int requested) {
+    return 'Job $id · $state · $requested lookups';
+  }
+
+  @override
   String get metadata_retryOutcomes => 'Retry failed / unmatched';
 
   @override

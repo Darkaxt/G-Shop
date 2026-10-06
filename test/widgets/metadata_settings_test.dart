@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:retro_eshop/core/theme/app_theme.dart';
+import 'package:retro_eshop/core/widgets/console_focusable.dart';
 import 'package:retro_eshop/features/settings/widgets/general_tab.dart';
 import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
 import 'package:retro_eshop/l10n/app_localizations.dart';
@@ -14,12 +16,143 @@ import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import '../metadata_controls_test.dart'
     show controlsDatabase, MemorySecrets, ControlsProvider;
 import '../helpers/pump_helpers.dart';
 
+class _SavedPageControls extends MetadataControlsController {
+  Future<List<MetadataRefreshReport>>? lastPage;
+  _SavedPageControls(
+      {required super.database,
+      required super.providers,
+      required super.screenScraperCredentials,
+      required super.igdbCredentials,
+      required super.catalogueChanged});
+  @override
+  Future<List<MetadataRefreshReport>> savedJobs({int? beforeId}) =>
+      lastPage = super.savedJobs(beforeId: beforeId);
+}
+
 void main() {
+  testWidgets('saved jobs page selects older work by touch and controller',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = (await tester.runAsync(controlsDatabase))!;
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final provider = ControlsProvider();
+    final ids = <int>[];
+    final controls = (await tester.runAsync(() async {
+      final controls = _SavedPageControls(
+          database: Future.value(db),
+          providers: {'screenscraper': provider},
+          screenScraperCredentials:
+              ScreenScraperCredentialStore(storage: MemorySecrets()),
+          igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+          catalogueChanged: () {});
+      final jobs = MetadataRefreshJobs(Future.value(db));
+      for (var i = 0; i < 12; i++) {
+        ids.add((await jobs.createFromCatalogue(
+                providerId: 'screenscraper', systemSlug: 'psp'))
+            .id);
+      }
+      await controls.load();
+      return controls;
+    }))!;
+    final container = ProviderContainer(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      metadataControlsProvider.overrideWith((_) => controls),
+    ]);
+    addTearDown(() async {
+      await tester.runAsync(() async {
+        await controls.close();
+        await db.close();
+      });
+      container.dispose();
+    });
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: createTestApp(const MetadataSettingsScreen())));
+    await tester.pumpAndSettle();
+    final open = find.byKey(const ValueKey('metadata-saved-jobs'));
+    await tester.ensureVisible(open);
+    await tester.runAsync(() async {
+      await tester.tap(open);
+      await tester.pump();
+      await controls.lastPage;
+    });
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(ValueKey('metadata-saved-job-${ids.first}')), findsNothing);
+    final older = find.byKey(const ValueKey('metadata-older-jobs'));
+    await tester.scrollUntilVisible(older, 250,
+        scrollable: find
+            .descendant(
+                of: find.byType(AlertDialog), matching: find.byType(Scrollable))
+            .first);
+    await tester.runAsync(() async {
+      await tester.tap(older);
+      await tester.pump();
+      await controls.lastPage;
+    });
+    await tester.pumpAndSettle();
+    final first = find.byKey(ValueKey('metadata-saved-job-${ids.first}'));
+    Future<void> select(Future<void> Function() activate) async {
+      final joined = Completer<void>();
+      var started = false;
+      final remove = controls.addListener((state) {
+        started |= state.busy;
+        if (started && !state.busy && !joined.isCompleted) joined.complete();
+      }, fireImmediately: false);
+      try {
+        await activate();
+        await joined.future;
+      } finally {
+        remove();
+      }
+    }
+
+    await tester.runAsync(() async {
+      await select(() => tester.tap(first));
+    });
+    await tester.pumpAndSettle();
+    expect(controls.state.report!.id, ids.first);
+    expect(provider.calls, isEmpty);
+    expect(
+        (await tester.runAsync(() => db.query('metadata_refresh_jobs')))!
+            .length,
+        12);
+    await tester.ensureVisible(open);
+    await tester.runAsync(() async {
+      await tester.tap(open);
+      await tester.pump();
+      await controls.lastPage;
+    });
+    await tester.pumpAndSettle();
+    final newest = find.byKey(ValueKey('metadata-saved-job-${ids.last}'));
+    final wrapper = find
+        .ancestor(of: newest, matching: find.byType(ConsoleFocusable))
+        .first;
+    final focus =
+        find.descendant(of: wrapper, matching: find.byType(Focus)).first;
+    tester.widget<Focus>(focus).focusNode!.requestFocus();
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await select(() => tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA));
+    });
+    await tester.pumpAndSettle();
+    expect(controls.state.report!.id, ids.last);
+    expect(provider.calls, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('unavailable shared storage has an actionable reconnect message',
       (tester) async {
     tester.view.physicalSize = const Size(1280, 720);

@@ -5,6 +5,38 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 saved metadata history and native recovery — 2026-10-06
+
+- Saved jobs now exposes bounded local history for the selected provider;
+  a newer console refresh no longer hides older unfinished progress. Selection
+  does not call providers or create a generation. Explicit Resume uses the
+  selected stored job and existing linked artwork. Focused host verification
+  covers keyset paging, provider/artwork isolation, pending-only resume and
+  touch/controller selection; scoped analysis reports no issues.
+- Normal Thor settings selected PSP job 44 behind completed PS2 job 46 with no
+  new job/generation. The same generation 44 progressed from 57 pending / 284
+  processed to 50 pending / 291 processed. The first attempt paused after one
+  item while Drive reported interactionRequired. Default-account Connect and
+  Resume restored progress; without a retained exception the first pause is
+  not independently attributed beyond that observed authorization state.
+  Completed results remain intact, and no individual-title corrections were made.
+- Normal same-signer build 180 was installed in place; the installed APK hash
+  matches 957fbddd0204c9fb453091b3fbc07c27aa3a1ee890a3d248620e559cff590698.
+  Source/mapping configuration and secure-storage file hashes are unchanged.
+  The shared-gate supervisor exited zero with observed workers=2, parallel=false,
+  Gradle heap=3 GiB and assessed Kotlin in-process strategy. Test configuration
+  is one fork / 512 MiB (not executed in assembly); app native pools are depth
+  one. No memory failure/increase occurred. The acquisition field was truncated
+  from the tool response and is not claimed as an independently retained receipt.
+- Ordinary Refresh catalogue resumed root generation 1 after native Connect;
+  next generation remains 2. Latest inspected snapshot: 89,436 observations /
+  14,832 pending folders, still unpublished. Existing PS2 artwork 47 completed.
+  Both Thor displays are confirmed OFF. No ROM removal, Drive-original mutation,
+  FolderSync change, account registration or release occurred.
+- S7 remains the sole ACTIVE stage. Full collection publication and fresh
+  coverage, defensible Top-25 retention, identical recoverable cloud-copy proof
+  and reviewed SD migration are unfinished. S8-S10 remain NOT STARTED.
+
 ### S7 whole-SD inventory and automatic PS2 outcomes — 2026-10-06
 
 - The read-only native whole-SD inventory exited zero. Independent streaming

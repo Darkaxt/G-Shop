@@ -9,6 +9,39 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Saved-job recovery verified (2026-10-06): the normal settings now expose a
+bounded, indexed, keyset-paged local history for the selected metadata provider.
+A newer console pass no longer hides an older paused pass. Selection reads its
+existing report and linked artwork only; explicit Resume owns provider requests.
+Focused host checks verify provider/artwork isolation, unchanged generation and
+job count, pending-only resume, paging and touch/controller selection. Scoped
+Dart analysis and native debug assembly pass. On Thor, Saved jobs selected PSP
+job 44 behind completed PS2 job 46 with no new job or generation. Resume advanced
+the same generation 44 from 57 pending / 284 processed to 50 pending / 291
+processed. The first attempt paused after one item; the source UI reported Drive
+interactionRequired. Normal default-account Connect restored access, and Resume
+continued saved progress without replaying completed items. No raw exception was
+persisted, so the first pause is not independently attributed beyond that
+observed authorization state. Full PSP completion remains outstanding.
+
+Normal build 180 was installed in place with the existing signer and an
+independently matching installed APK SHA-256
+957fbddd0204c9fb453091b3fbc07c27aa3a1ee890a3d248620e559cff590698.
+The source/mapping configuration and secure-storage file hashes remain unchanged.
+The shared Gradle-gate supervisor exited zero with an inspected effective
+two-worker / no-parallel / 3 GiB Gradle profile and assessed Kotlin in-process
+strategy. Forked-test configuration was one JVM / 512 MiB (not run by assembly);
+app native compile/link pools are depth one. No memory failure or budget increase
+occurred. The acquisition receipt field was truncated from the tool response;
+it was not independently retained, and no redundant build was launched for it.
+After default-account reauthorization, ordinary Refresh catalogue resumed root
+generation 1 (next generation 2) without a replacement source or checkpoint.
+It reached 89,436 observations / 14,832 pending folders and remains unpublished.
+Linked PS2 artwork job 47 is now completed. Both physical display states are
+confirmed OFF. ROMs/saves, Drive originals and FolderSync remain unchanged.
+This closes the older-job recovery defect, not S7's full collection/ranking,
+recovery or migration acceptance, and is not a per-title workaround.
+
 Whole-SD inventory verification (2026-10-06): the corrected native run joined
 with exit zero. Its private journal header, every observation and completed
 footer reconcile exactly: 15,964 unique stable files / 722,865,729,304 bytes;

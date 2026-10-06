@@ -210,6 +210,33 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     await load();
   }
 
+  Future<List<MetadataRefreshReport>> savedJobs({int? beforeId}) async {
+    if (_closed || state.busy || state.loading) {
+      throw StateError('Metadata controls are unavailable');
+    }
+    final providerId = state.providerId;
+    final page =
+        await _jobs.savedJobs(providerId: providerId, beforeId: beforeId);
+    if (_closed || state.providerId != providerId) {
+      throw StateError('Metadata provider changed');
+    }
+    return page;
+  }
+
+  /// Select only; explicit Resume owns all provider/network work.
+  Future<void> selectSavedJob(int id) => _perform(() async {
+        final report = await _jobs.report(id);
+        if (report.providerId != state.providerId ||
+            report.kind != 'metadata') {
+          throw StateError('Saved job does not belong to this provider');
+        }
+        final artwork = await _jobs.artworkForMetadata(id);
+        _set(state.copyWith(
+            report: report,
+            artworkReport: artwork,
+            clearArtworkReport: artwork == null));
+      });
+
   Future<void> _perform(Future<void> Function() action) {
     if (_closed || state.busy || state.loading) return Future.value();
     _pauseRequested = false;

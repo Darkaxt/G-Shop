@@ -146,6 +146,72 @@ class _ThrowOnceCache extends MetadataArtworkCache {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('saved job selection resumes older pending work without repeating items',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsProvider();
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {
+          'screenscraper': provider,
+          'igdb': ControlsProvider('igdb')
+        },
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+    });
+    await controls.load();
+    provider.reply = (_, __) async => MetadataLookupResult(
+        status: provider.calls.length == 2
+            ? MetadataLookupStatus.unavailable
+            : MetadataLookupStatus.unmatched,
+        message: 'Fixture');
+    await controls.refresh();
+    final older = controls.state.report!;
+    final completedPlatform = provider.calls.first.platformId;
+    final pendingPlatform = provider.calls.last.platformId;
+    expect(older.counts['pending'], 1);
+    expect(older.requested, 2);
+    await controls.refresh(systemSlug: completedPlatform);
+    final newer = controls.state.report!;
+    expect(newer.id, isNot(older.id));
+    final calls = provider.calls.length;
+    final jobsBefore = (await db.query('metadata_refresh_jobs')).length;
+    final List<MetadataRefreshReport> saved = await controls.savedJobs();
+    expect(saved.map((j) => j.id), [newer.id, older.id]);
+    await controls.selectSavedJob(older.id);
+    expect(controls.state.report!.id, older.id);
+    expect(controls.state.report!.generation, older.generation);
+    expect(controls.state.report!.counts['pending'], 1);
+    expect(provider.calls.length, calls);
+    expect((await db.query('metadata_refresh_jobs')).length, jobsBefore);
+    await controls.resume();
+    expect(provider.calls.length, calls + 1);
+    expect(provider.calls.last.platformId, pendingPlatform);
+    expect(controls.state.report!.id, older.id);
+    expect(controls.state.report!.state, 'completed');
+    expect((await db.query('metadata_refresh_jobs')).length, jobsBefore);
+
+    await controls.selectProvider('igdb');
+    await controls.refresh(systemSlug: 'psp');
+    final foreign = controls.state.report!.id;
+    await controls.selectProvider('screenscraper');
+    final selected = controls.state.report!.id;
+    await controls.selectSavedJob(foreign);
+    expect(controls.state.error, isTrue);
+    expect(controls.state.report!.id, selected);
+    expect(provider.calls.length, calls + 1);
+    final artwork = await MetadataRefreshJobs(Future.value(db))
+        .ensureArtworkForMetadata(selected);
+    await controls.selectSavedJob(artwork.id);
+    expect(controls.state.error, isTrue);
+    expect(controls.state.report!.id, selected);
+  });
   test('normal artwork pause joins transport and resumes the same linked job',
       () async {
     final db = await controlsDatabase();

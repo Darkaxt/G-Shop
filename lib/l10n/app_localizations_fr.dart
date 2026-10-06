@@ -212,6 +212,27 @@ class LFr extends L {
   String get metadata_resume => 'Reprendre le travail enregistré';
 
   @override
+  String get metadata_savedJobs => 'Travaux enregistrés';
+
+  @override
+  String get metadata_savedJobsHelp =>
+      'Sélectionnez une progression existante. Reprendre utilise ce travail, pas la console choisie pour une nouvelle analyse. La sélection ne contacte pas le fournisseur.';
+
+  @override
+  String get metadata_noSavedJobs => 'Aucun travail enregistré sur cette page.';
+
+  @override
+  String get metadata_olderJobs => 'Travaux antérieurs';
+
+  @override
+  String get metadata_newestJobs => 'Travaux les plus récents';
+
+  @override
+  String metadata_savedJobLabel(int id, String state, int requested) {
+    return 'Travail $id · $state · $requested requêtes';
+  }
+
+  @override
   String get metadata_retryOutcomes =>
       'Réessayer les échecs / sans correspondance';
 

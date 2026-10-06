@@ -159,6 +159,8 @@ class MetadataRefreshJobs {
       await db.execute(
           'ALTER TABLE metadata_refresh_jobs ADD COLUMN is_artwork INTEGER NOT NULL DEFAULT 0');
     }
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_metadata_saved_jobs
+      ON metadata_refresh_jobs(provider_id, is_artwork, id DESC)''');
     await installMatchReviewMode(db);
     await installProgressFeedback(db);
     final limitColumns =
@@ -1304,6 +1306,24 @@ class MetadataRefreshJobs {
         orderBy: 'id DESC',
         limit: 1);
     return rows.isEmpty ? null : report(rows.single['id'] as int);
+  }
+
+  /// Keyset-paged saved metadata jobs; never snapshot editions or fetch media.
+  Future<List<MetadataRefreshReport>> savedJobs(
+      {required String providerId, int? beforeId, int limit = 10}) async {
+    if (limit < 1 || limit > 20 || (beforeId != null && beforeId < 1)) {
+      throw ArgumentError('Invalid saved-job page');
+    }
+    final db = await _database;
+    final rows = await db.query('metadata_refresh_jobs',
+        columns: ['id'],
+        where: 'provider_id = ? AND is_artwork = 0'
+            '${beforeId == null ? '' : ' AND id < ?'}',
+        whereArgs: [providerId, if (beforeId != null) beforeId],
+        orderBy: 'id DESC',
+        limit: limit);
+    return List.unmodifiable(
+        [for (final row in rows) await report(row['id'] as int)]);
   }
 
   static Future<Map<String, Object?>> _job(DatabaseExecutor db, int id) async {

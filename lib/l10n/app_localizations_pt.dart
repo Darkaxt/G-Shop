@@ -213,6 +213,27 @@ class LPt extends L {
   String get metadata_resume => 'Retomar trabalho guardado';
 
   @override
+  String get metadata_savedJobs => 'Trabalhos guardados';
+
+  @override
+  String get metadata_savedJobsHelp =>
+      'Selecione o progresso existente. Retomar utiliza este trabalho, não a consola escolhida para uma nova análise. A seleção não faz pedidos ao fornecedor.';
+
+  @override
+  String get metadata_noSavedJobs => 'Não há trabalhos guardados nesta página.';
+
+  @override
+  String get metadata_olderJobs => 'Trabalhos anteriores';
+
+  @override
+  String get metadata_newestJobs => 'Trabalhos mais recentes';
+
+  @override
+  String metadata_savedJobLabel(int id, String state, int requested) {
+    return 'Trabalho $id · $state · $requested consultas';
+  }
+
+  @override
   String get metadata_retryOutcomes => 'Repetir falhas / sem correspondência';
 
   @override

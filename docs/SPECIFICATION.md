@@ -437,6 +437,15 @@ Show quota/auth/offline failures with actionable resume states, not busy loops.
 Keep metadata and artwork caches separate from ROM residency. An unsuccessful
 refresh cannot wipe usable cached data; old/stale scores must be labelled.
 
+Saved-job recovery detail (2026-10-06): normal collection settings must allow
+selection of an older saved metadata job for the selected provider, with bounded
+keyset-paged local reads. A newer console pass must not make an older paused pass
+unreachable. Selection loads the existing report and linked artwork only; it
+does not create a generation, perform lookup requests or infer a new scope from
+the Fresh re-scrape console selector. Resume uses the selected persisted ID and
+does not repeat completed items. Reject jobs belonging to another provider and
+standalone artwork IDs; keep existing selected-game refresh scope unchanged.
+
 Acceptance: quota exhaustion, offline mode, duplicate demand, pause/restart and
 provider outage fixtures. No per-card network requests occur while scrolling;
 metadata storage, work queue and buffers stay bounded for a 30,000-game fixture.

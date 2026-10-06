@@ -210,6 +210,28 @@ class LDe extends L {
   String get metadata_resume => 'Gespeicherten Auftrag fortsetzen';
 
   @override
+  String get metadata_savedJobs => 'Gespeicherte Aufträge';
+
+  @override
+  String get metadata_savedJobsHelp =>
+      'Gespeicherten Fortschritt auswählen. Fortsetzen nutzt diesen Auftrag, nicht die Konsole für einen neuen Durchlauf. Die Auswahl sendet keine Anbieteranfragen.';
+
+  @override
+  String get metadata_noSavedJobs =>
+      'Keine gespeicherten Aufträge auf dieser Seite.';
+
+  @override
+  String get metadata_olderJobs => 'Ältere Aufträge';
+
+  @override
+  String get metadata_newestJobs => 'Neueste Aufträge';
+
+  @override
+  String metadata_savedJobLabel(int id, String state, int requested) {
+    return 'Auftrag $id · $state · $requested Anfragen';
+  }
+
+  @override
   String get metadata_retryOutcomes => 'Fehler / ohne Treffer erneut versuchen';
 
   @override

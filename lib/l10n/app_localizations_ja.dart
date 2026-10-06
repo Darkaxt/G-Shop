@@ -204,6 +204,27 @@ class LJa extends L {
   String get metadata_resume => '保存済みジョブを再開';
 
   @override
+  String get metadata_savedJobs => '保存済みジョブ';
+
+  @override
+  String get metadata_savedJobsHelp =>
+      '既存の進捗を選択します。再開にはこのジョブが使われ、新規取得用に選択した機種は使われません。選択時にプロバイダーへのリクエストは行いません。';
+
+  @override
+  String get metadata_noSavedJobs => 'このページに保存済みジョブはありません。';
+
+  @override
+  String get metadata_olderJobs => '以前のジョブ';
+
+  @override
+  String get metadata_newestJobs => '最新のジョブ';
+
+  @override
+  String metadata_savedJobLabel(int id, String state, int requested) {
+    return 'ジョブ $id · $state · $requested 件の検索';
+  }
+
+  @override
   String get metadata_retryOutcomes => '失敗・未一致を再試行';
 
   @override

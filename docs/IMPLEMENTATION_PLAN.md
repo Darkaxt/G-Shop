@@ -19,7 +19,11 @@ then uniquely corroborate IGDB through the normal persistent worker. Native PSP
 job 45 finished and verifies ten automatic corroborated publications, six with
 the existing vote support. PS2 ScreenScraper job 46 and IGDB job 48 have completed;
 the latter verifies eighteen automatic corroborations, ten with vote support.
-Existing artwork job 47 was resumed rather than replaced. The full-SD read-only
+Existing artwork job 47 completed after resuming rather than replacing it.
+META-06 saved-job history is now host/native verified: selecting older PSP job
+44 behind newer PS2 job 46 creates no job/generation; explicit Resume advanced
+pending-only work after default-account Drive reauthorization. Root generation 1
+resumed its existing checkpoint and remains unpublished. The full-SD read-only
 inventory finished and its 15,964 preserved observations reconcile with its
 terminal summary. It has no cloud/hash/removal authority and is independent of
 the growing catalogue. Continue broad
