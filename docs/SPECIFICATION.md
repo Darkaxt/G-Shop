@@ -780,6 +780,13 @@ refill removed games, without changing archival download profiles or broadening
 this into a LoLSuite rewrite. Verify actual retained sets, free space and a restore
 of a removed test game through R-Shop, then return that test to its planned state.
 
+S7 PS1 recovery detail: use the existing owned installation/content-grant path
+for standalone CHDs and the installed RetroArch PCSX ReARMed route. Only the
+exact ready leaf receives a read grant; no directory, archive, CUE or bundle
+support is inferred. Verify normal download, actual online/offline emulator
+boot, owned removal and identical re-download in an isolated target. Preserve
+original ROMs, emulator settings and existing save files.
+
 Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
 identities, all bundle members, before/after space, saved-data preservation and
 cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion

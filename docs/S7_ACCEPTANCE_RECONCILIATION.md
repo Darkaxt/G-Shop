@@ -1,5 +1,31 @@
 # S7 live metadata and Thor migration
 
+## PS1 standalone CHD recovery checkpoint — 2026-10-06
+
+The normal owned-file route now supports standalone PS1 CHDs with the installed
+RetroArch PCSX ReARMed core. The existing exact document-shaped read grant retains
+the extension; it does not grant a directory, archive member, bundle or write
+access. Durable ownership and pinned-object checks still run on external open.
+The PS1 menu now identifies RetroArch rather than Dolphin.
+
+Normal DOWNLOAD placed a 30,778,396-byte test CHD in an initially absent isolated
+destination. Its SHA-256 matched the H: original. Normal emulator handoff reached
+the actual title screen; after normal Quit and verified process exit, a fresh
+process reached it again with Wi-Fi disabled. Normal DELETE removed the reviewed
+test leaf; normal re-download recovered identical bytes with completed publication,
+retired staging, one installation and one owner. Final normal DELETE left zero
+test-root transfers/installations/owners and two completed issue-free removal
+journals. The empty test folder was removed non-recursively. Original ROM folders
+were not altered. The normal picker restored the PS1 target and the entire source
+configuration returned to its exact pre-test SHA-256.
+
+This closes the bounded PS1 format workflow, not collection-wide migration. Full
+metadata/reception coverage, defensible per-console Top-25, root catalogue
+publication, remaining formats and the reviewed save/space-safe migration remain
+required. S7 is the sole ACTIVE stage; S8-S10 are NOT STARTED. The same N64 metadata
+job and root catalogue generation were resumed, not recreated. See the current
+status checkpoint for inspected build, device and progress evidence.
+
 ## Current standardized archive-identity checkpoint — 2026-10-06
 
 The existing bounded N64/Game Gear validators now identify actual raw members of

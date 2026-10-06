@@ -18,6 +18,7 @@ class OwnedEmulatorLauncher {
       game.remoteArtifact != null && !game.isFolder &&
       ((const {'gc', 'wii'}.contains(system.id) &&
       system.romExtensions.any((ext) => game.filename.toLowerCase().endsWith(ext))) ||
+      (system.id == 'psx' && game.filename.toLowerCase().endsWith('.chd')) ||
       TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
   Future<void> open(GameItem game, SystemModel system, String root) {
@@ -38,7 +39,8 @@ class OwnedEmulatorLauncher {
   Future<void> _open(GameItem game, SystemModel system, String root) async {
     final installed = await romManager.requireInstalledArtifact(game, root);
     await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' :
-        system.id == 'n64' ? 'launchOwnedRetroArchN64' : 'launchOwnedDolphin', {
+        system.id == 'n64' ? 'launchOwnedRetroArchN64' :
+        system.id == 'psx' ? 'launchOwnedRetroArchPSX' : 'launchOwnedDolphin', {
       'installationId': installed.id, 'filename': installed.relativePath,
     });
   }

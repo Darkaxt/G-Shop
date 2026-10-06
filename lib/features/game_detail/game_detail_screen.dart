@@ -565,7 +565,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(
-            label: const {'gamegear', 'n64'}.contains(widget.system.id) ? 'Open in RetroArch' : 'Open in Dolphin',
+            label: const {'gamegear', 'n64', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' : 'Open in Dolphin',
             icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
       QuickMenuItem(

@@ -6,6 +6,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class OwnedRomGrantPathTest {
+    @Test public void standaloneChdDocumentCannotGrantAnArchiveOrBundle() {
+        assertTrue(OwnedRomGrantPath.standaloneChd("Game.CHD", "", false, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneChd("Game.zip", "", false, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneChd("Game.chd", "n64", false, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneChd("Game.chd", "", true, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneChd("Game.chd", "", false, 1, 1));
+        assertFalse(OwnedRomGrantPath.standaloneChd("Game.chd", "", false, 0, 1));
+        assertFalse(OwnedRomGrantPath.standaloneChd("../Game.chd", "", false, 0, 0));
+    }
     @Test public void documentLeafRetainsArchiveNameAndExactInstallation() throws Exception {
         OwnedRomGrantPath path = OwnedRomGrantPath.parse(Arrays.asList("tree", "owned-id", "document",
                 "owned-id/Aerial Assault (World) (Rev 1).zip"));

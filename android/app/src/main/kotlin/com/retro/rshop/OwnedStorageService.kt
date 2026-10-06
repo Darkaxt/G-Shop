@@ -46,19 +46,22 @@ internal class OwnedStorageService(private val context: Context) {
                 try {
                     if (closed) throw Failure("closed")
                     if (call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear" ||
-                        call.method == "launchOwnedRetroArchN64") {
+                        call.method == "launchOwnedRetroArchN64" || call.method == "launchOwnedRetroArchPSX") {
                         val gameGear = call.method == "launchOwnedRetroArchGameGear"
                         val n64 = call.method == "launchOwnedRetroArchN64"
-                        val retroArch = gameGear || n64
+                        val psx = call.method == "launchOwnedRetroArchPSX"
+                        val retroArch = gameGear || n64 || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
                         if ((gameGear && !filename.endsWith(".zip")) ||
-                            (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z"))) throw Failure("unsupported_archive")
+                            (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
+                            (psx && !filename.endsWith(".chd"))) throw Failure("unsupported_archive")
                         val uri = if (retroArch) OwnedRomContentProvider.gameGearUri(context,
                             string(call, "installationId"), string(call, "filename"))
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
-                            requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else null).use { }
+                            requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else null,
+                            requiredStandaloneChd = psx).use { }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)
@@ -70,7 +73,7 @@ internal class OwnedStorageService(private val context: Context) {
                                     intent.setClassName(app, "com.retroarch.browser.retroactivity.RetroActivityFuture")
                                     val data = context.packageManager.getApplicationInfo(app, 0).dataDir
                                     intent.putExtra("ROM", uri.toString())
-                                    val core = if (gameGear) "genesis_plus_gx" else "mupen64plus_next_gles3"
+                                    val core = if (gameGear) "genesis_plus_gx" else if (n64) "mupen64plus_next_gles3" else "pcsx_rearmed"
                                     intent.putExtra("LIBRETRO", "$data/cores/${core}_libretro_android.so")
                                 }
                                 intent.data = uri

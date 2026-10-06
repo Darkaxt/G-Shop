@@ -5,6 +5,66 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 PS1 standalone CHD owned recovery — 2026-10-06
+
+- Added the missing standalone PS1 CHD route to the existing committed-leaf
+  RetroArch handoff. Native guards reject archive mappings, bundle members,
+  dependencies and non-leaf paths. External opens still verify durable ownership,
+  publication and pinned identity. No directory/write grant or speculative
+  PS1 archive/bundle support was added. The normal menu identifies RetroArch.
+- Normal DOWNLOAD published the 30,778,396-byte USA test CHD in the initially
+  absent `RShopProof-PSX-20261006` destination. SHA-256
+  `d1ea36aafbecb1c650d35b07c3fc50aff239108ccbe3844aa4f35678547917d0`
+  matched the H: original. The installed RetroArch lacked a PS1 core; normal
+  official Core Downloader installed PCSX ReARMed. Normal R-Shop handoff reached
+  the actual Tactics Ogre title screen. After normal Quit and absent PID, a new
+  process reached the title screen with Wi-Fi disabled. Intent acceptance alone
+  was not counted as boot proof.
+- Normal DELETE reviewed and removed only the isolated owned leaf. Normal
+  re-download recovered the same full hash. The read-only journal confirmed
+  completed copy publication, `stageRetired=true`, one installation and one owner.
+  Final normal DELETE left zero isolated-root transfers/installations/owners and
+  two completed issue-free removal journals. The now-empty test folder was removed
+  non-recursively and absence verified; original ROM folders were not modified.
+- The normal folder picker restored `/storage/75D7-DC5F/Roms/psx`. Complete
+  configuration SHA-256 returned to the exact baseline
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both RetroArch configuration files and all seven inspected PS1 BIOS hashes
+  matched their pre-launch values. RetroArch created its normal test memory-card
+  files; they are preserved, not deleted through ROM cleanup. No save, BIOS,
+  FolderSync setting or cloud file was edited by this implementation.
+- Focused Dart owned-launch tests and scoped analysis passed. The PS1 route
+  regression failed before implementation and passed afterwards; native grant
+  JUnit XML reported no failures/errors. No full suite was run. Build 216 ran the
+  focused native grant test plus normal debug packaging. Build 219 packaged the
+  corrected menu label. Both acquired `Local\Darka.AndroidGradleBuildGate` and
+  exited successfully. Observed profile: two workers, no parallel projects,
+  3-GiB Gradle heap, preserved 1-GiB Metaspace/256-MiB code cache. Kotlin 2.2.20
+  was requested in-process, sharing that heap; configured tests use one 512-MiB
+  fork, not independent runtime heap measurement. The app's actual Ninja files
+  used by the build specify a shared compile/link pool of depth one per ABI;
+  complete plugin-native/task override coverage is not claimed. No memory failure
+  or heap increase occurred. Build 219 waited for existing ambiguous activity;
+  it did not interrupt that build. Logs `a4fe4d9836b74502a6c23d3f0e4b574a.log`
+  and `78922612ea524093aff095305fd042cf.log` remain required verification evidence.
+- Latest normal APK SHA-256
+  `3143d86445c886276a35e05b85742502ed4fa51b8e7f22bae360062d1aa9ceaa`,
+  package `com.darkaxt.rshop.debug`, version 1.7.0/12, unchanged debug signer.
+  In-place installation preserved the full configuration hash; the corrected
+  PS1 menu was inspected natively. Normal default-account reconnection and Back
+  without Save preserved sources/mappings. The SAME saved N64 job 70 resumed:
+  inspected running, 229 outcomes, 1,162 pending, 27 accepted/rated with 27 exact
+  local raw bindings classified official. Root generation 1 also resumed:
+  149,434 observations / 9,162 pending folders, active=null, nextGeneration=2.
+  Those are in-progress observations, not terminal scrape/catalogue success.
+- Both physical displays are freshly confirmed committed OFF. Reviewed cleanup
+  `0b0806b691852ac17595f12866162508` removed only expendable host captures
+  (130,765 bytes); exact device XML/PNG captures are verified absent. The installed
+  APK, build logs and bounded read-only S7 observer remain required. S7 is the sole
+  ACTIVE stage: complete fresh metadata, defensible per-console Top-25, root
+  publication, remaining format proofs and the reviewed save/space-safe migration
+  remain unfinished. S8-S10 are NOT STARTED. No external release occurred.
+
 ### S7 standardized already-local archive identification — 2026-10-06
 
 - Existing bounded N64 7z/ZIP and Game Gear ZIP validators now return streamed

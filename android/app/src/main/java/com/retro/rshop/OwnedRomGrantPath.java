@@ -2,6 +2,7 @@ package com.retro.rshop;
 
 import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Locale;
 
 /** Decodes only one committed installation leaf, never a public directory tree. */
 final class OwnedRomGrantPath {
@@ -34,6 +35,12 @@ final class OwnedRomGrantPath {
                 value.indexOf('/') >= 0 || value.indexOf('\\') >= 0) return false;
         for (int i = 0; i < value.length(); i++) if (Character.isISOControl(value.charAt(i))) return false;
         return true;
+    }
+
+    static boolean standaloneChd(String filename, String archivePlatform,
+            boolean bundleMember, int dependencies, int members) {
+        return leaf(filename) && filename.toLowerCase(Locale.ROOT).endsWith(".chd") &&
+            archivePlatform.isEmpty() && !bundleMember && dependencies == 0 && members == 0;
     }
 
     private static FileNotFoundException invalid() { return new FileNotFoundException("Invalid ROM grant"); }

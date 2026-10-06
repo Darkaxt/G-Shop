@@ -891,6 +891,10 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   with full collection, ranking, recovery or migration acceptance.
 - Prove Drive restoration on the Thor, inventory exact SD files and cloud
   IDs/version/digests, and build a private keep/remove/preserve manifest.
+  The PS1 standalone CHD recovery slice uses the existing committed exact-leaf
+  grant and installed RetroArch PCSX ReARMed route. Verify normal download,
+  actual boot online/offline, exact owned removal and identical re-download in
+  an isolated destination; do not grant whole folders or infer bundle support.
   N64's predominantly 7z collection requires bounded single-ROM 7z validation
   (including encoded headers), immutable explicit mapping and the existing owned
   RetroArch handoff. Verify malformed/oversized/unsafe layouts and unchanged

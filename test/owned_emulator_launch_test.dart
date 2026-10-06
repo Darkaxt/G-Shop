@@ -86,4 +86,21 @@ void main() {
       expect(OwnedEmulatorLauncher.supports(archive, system), isFalse);
     }
   });
+  test('standalone PS1 CHD uses an exact owned RetroArch handoff', () async {
+    final psx = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psx');
+    final chd = exactGame('psx-chd', name: 'Game.chd');
+    final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+      'artifact': chd.remoteArtifact!.toJson(), 'relativePath': chd.filename});
+    final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+    expect(OwnedEmulatorLauncher.supports(chd, psx), isTrue);
+    await launcher.open(chd, psx, '/owned');
+    expect(calls.single.method, 'launchOwnedRetroArchPSX');
+    expect(calls.single.arguments, {'installationId': installed.id, 'filename': chd.filename});
+    for (final extension in ['zip', '7z', 'cue', 'iso', 'pbp']) {
+      expect(OwnedEmulatorLauncher.supports(exactGame('other', name: 'Game.$extension'), psx), isFalse);
+    }
+    final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+    await expectLater(missing.open(chd, psx, '/owned'), throwsStateError);
+    expect(calls, hasLength(1));
+  });
 }
