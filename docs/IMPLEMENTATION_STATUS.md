@@ -5,6 +5,25 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 screen-off worker observation — 2026-10-06
+
+- Revalidated the same live R-Shop PID 26853, N64 job 70 and root generation 1.
+  An auxiliary READONLY observer exited 137; its actual native stack identifies
+  SQLiteDatabaseLockedException while preparing its first query, followed by the
+  observer's uncaught-exception kill. This is not app death, memory exhaustion,
+  database corruption or proof that the saved workers stopped. No restart,
+  database repair, timeout, retry loop or production patch was introduced.
+- Foreground observation succeeded, then successive observations with both
+  physical displays committed OFF confirmed continued progress: N64 pending
+  641 -> 611, accepted/rated/raw-bound 91 -> 94; root observations 155,926 ->
+  156,243 and pending folders 7,109 -> 7,000. The same PID and generation remain
+  live; nextGeneration is still 2. Terminal scrape/publication is not claimed.
+  Full configuration retains its recorded baseline SHA-256. Original files,
+  credentials, mappings and FolderSync are unchanged. No build was run.
+- Continue the same workers to their terminal outcomes. S7 remains the sole
+  ACTIVE stage; rankings and reviewed migration still require their own gates.
+  No required work was moved to S8-S10 or marked complete by this observation.
+
 ### S7 deterministic search/navigation ownership — 2026-10-06
 
 - Reproduced a pending-frame race with the real searchable-screen mixin and
