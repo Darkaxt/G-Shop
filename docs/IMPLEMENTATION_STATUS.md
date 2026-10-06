@@ -5,6 +5,51 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 automatic CHD matching in the normal Thor job — 2026-10-06
+
+- The shared DVD-CHD path is now wired into normal ScreenScraper refresh jobs.
+  It reads exactly bytes 0-139 through the existing enabled, mapped Drive source
+  and account lane, revalidating the exact artifact before and after the read.
+  An ignored or incorrect range is rejected without buffering the ROM. No
+  staging file, installation journal, decoded ISO or whole-ROM request is used.
+- The worker atomically persists the original-ISO identifier, exact source/version
+  evidence and updated job identity/lookup keys. Unchanged refreshes and shared-
+  cache recovery reuse that evidence; changed bytes retire it. Manual unknown,
+  explicit raw assertions, modified releases and unsupported layouts remain
+  protected. A declared CHD hash is metadata lookup evidence, not integrity proof.
+- Focused media/runtime/worker/controller/grouping/mapping checks passed, including
+  cancellation/disconnect drain, post-read source changes, shared-store reopen,
+  replacement-byte invalidation and unsupported-layout handling. Scoped analysis
+  reports no issues. The bounded worker fixture joined normally with observed
+  peak RSS 256,368,640 bytes; no full repository suite or overlapping test run.
+- Normal same-signer debug build 178 was installed in place. Installed APK SHA-256
+  independently matches
+  `bd32cc038ca2918d97c29cfc8b88e1f8c211c828ca14d06784b973e7153a9daf`.
+  Source/mapping configuration bytes are unchanged. The normal default-account
+  connection resumed the existing collection generation and saved PSP job 44,
+  not a per-game fixture. Read-only native evidence observed 35 header bindings,
+  31 matched/current metadata bindings and 31 raw-identifier match methods in
+  that 341-entry job. It was still running with 254 pending; these are automatic
+  workflow observations, not full coverage or trusted Top ranking.
+- Build 178 acquired `Local\Darka.AndroidGradleBuildGate`; effective workers=2,
+  parallel=false and Gradle heap=3 GiB. Kotlin is configured in-process, sharing
+  that budget; its compilation tasks were up-to-date. Forked-test settings were
+  limited to one/512 MiB, but assemble did not execute those tests. Native command
+  files contain no explicit Ninja `-j`; an environment budget was requested, not
+  independently proven as effective native concurrency. No memory failure or
+  budget increase occurred. Build 177 exited on a PowerShell-split `.dart` task
+  argument before the corrected build started. Successful gate log:
+  `597b76fa54004710a64c6b24c8da0320.log`.
+- The same unpublished collection generation advanced to 74,498 observations;
+  no traversal restart or duplicate worker was requested. Both physical displays
+  were confirmed OFF. The exact task-created temporary UI XML was removed after
+  inspection; the read-only probe is retained for S7 verification. No ROM removal,
+  cloud write, FolderSync change or release.
+- **Remaining:** full collection publication/mappings/fresh metadata, normal
+  PS2 breadth, defensible canonical Top-25 retention, restore and exact reviewed
+  migration. S7 remains the sole ACTIVE stage; S8/S9/S10 remain NOT STARTED.
+  Earlier checkpoints below are historical, not outstanding CHD-wiring claims.
+
 ### S7 automatic raw-Drive matching — 2026-10-06
 
 - Stopped individual-entry curation. The normal catalogue job now uses current

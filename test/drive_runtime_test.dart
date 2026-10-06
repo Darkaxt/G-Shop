@@ -84,7 +84,7 @@ const _transferConfig = ProviderConfig(
         rootFolderId: 'folder',
         serverClientId: 'public-client'));
 
-RemoteArtifact _artifact() => RemoteArtifact(
+RemoteArtifact _artifact({int size = 5}) => RemoteArtifact(
     id: RemoteArtifactId(
         providerId: 'drive',
         sourceId: 'source',
@@ -93,12 +93,16 @@ RemoteArtifact _artifact() => RemoteArtifact(
     parentId: 'folder',
     displayName: 'fixture.chd',
     displayPath: 'fixture.chd',
-    sizeBytes: 5,
+    sizeBytes: size,
     version: '1',
     providerChecksums: const {'md5': _md5},
     canDownload: true);
 
 class _Transport implements HttpClientAdapter {
+  final int size;
+  String version = '1';
+  Future<ResponseBody> Function(RequestOptions, Future<void>?)? mediaResponse;
+  _Transport({this.size = 5});
   final requests = <RequestOptions>[];
   bool closed = false;
   @override
@@ -107,6 +111,7 @@ class _Transport implements HttpClientAdapter {
     requests.add(options);
     if (closed) throw StateError('Transport already closed');
     if (options.queryParameters['alt'] == 'media') {
+      if (mediaResponse != null) return mediaResponse!(options, cancelFuture);
       return ResponseBody(
           Stream.value(Uint8List.fromList([1, 2, 3, 4, 5])), 200,
           headers: {
@@ -118,8 +123,8 @@ class _Transport implements HttpClientAdapter {
       'name': 'fixture.chd',
       'mimeType': 'application/octet-stream',
       'parents': ['folder'],
-      'size': '5',
-      'version': '1',
+      'size': '$size',
+      'version': version,
       'md5Checksum': _md5,
       'capabilities': {'canDownload': true}
     };
@@ -364,21 +369,24 @@ class _RecoveryJournal extends TransferJournal {
 class _TransferFixture {
   final Database db;
   final _Driver driver = _Driver();
-  final _Transport metadata = _Transport();
-  final _Transport media = _Transport();
+  final _Transport metadata;
+  final _Transport media;
   final _NativeStorage native = _NativeStorage();
   late final DriveAuthorization authorization = DriveAuthorization(driver);
   late final TransferJournal journal;
   late final DriveCatalogue catalogue;
-  _TransferFixture._(this.db);
+  _TransferFixture._(this.db, int size)
+      : metadata = _Transport(size: size),
+        media = _Transport(size: size);
   static Future<_TransferFixture> create(
-      {bool loading = false,
+      {int size = 5,
+      bool loading = false,
       bool drainRefresh = false,
       bool retirementAckFailure = false,
       TransferJournal Function(Future<Database>)? createJournal,
       bool reserve = true}) async {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
-    final fixture = _TransferFixture._(db);
+    final fixture = _TransferFixture._(db, size);
     await TransferJournalSchema.install(db);
     await DriveCatalogueSchema.install(db);
     fixture.journal = createJournal?.call(Future.value(db)) ??
@@ -393,7 +401,7 @@ class _TransferFixture {
     final seed = DriveApi(
         authorization: fixture.authorization,
         accountId: 'account',
-        httpClientAdapter: _Transport());
+        httpClientAdapter: _Transport(size: size));
     try {
       await DriveCatalogue(Future.value(db)).refresh(
           sourceId: 'source',
@@ -506,6 +514,81 @@ Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('metadata header reads exactly 140 bytes without staging a large ROM',
+      () async {
+    const size = 4294967296;
+    final fixture = await _TransferFixture.create(size: size, reserve: false);
+    fixture.media.mediaResponse = (options, _) async {
+      expect(options.headers['Range'], 'bytes=0-139');
+      return ResponseBody(Stream.value(Uint8List(140)), 206, headers: {
+        'content-length': ['140'],
+        'content-range': ['bytes 0-139/$size']
+      });
+    };
+    final runtime = fixture.runtime();
+    final bytes = await runtime.readMetadataHeader(
+        config: _transferConfig,
+        artifact: _artifact(size: size),
+        cancellation: CancelToken());
+    expect(bytes, hasLength(140));
+    expect(fixture.media.requests, hasLength(1));
+    expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
+        hasLength(2));
+    expect(fixture.native.calls, isEmpty);
+    expect(await fixture.db.query('transfer_records'), isEmpty);
+  });
+
+  test('disconnect joins a cancelled metadata header before closing transport',
+      () async {
+    final fixture = await _TransferFixture.create(size: 1024, reserve: false);
+    final entered = Completer<void>();
+    final cancelled = Completer<void>();
+    final drained = Completer<void>();
+    fixture.media.mediaResponse = (options, cancel) async {
+      entered.complete();
+      await cancel;
+      cancelled.complete();
+      await drained.future;
+      throw DioException(
+          requestOptions: options, type: DioExceptionType.cancel);
+    };
+    final runtime = fixture.runtime();
+    final read = runtime.readMetadataHeader(
+        config: _transferConfig,
+        artifact: _artifact(size: 1024),
+        cancellation: CancelToken());
+    final failed = expectLater(read, throwsA(isA<DriveTransferException>()));
+    await entered.future;
+    final disconnect = runtime.disconnect();
+    await cancelled.future;
+    await fixture.driver.signedOut.future;
+    expect(fixture.media.closed, isFalse);
+    fixture.driver.finishSignOut.complete();
+    drained.complete();
+    await failed;
+    await disconnect;
+    expect(fixture.media.closed, isTrue);
+  });
+  test('metadata header rejects a source version changed by the media read',
+      () async {
+    final fixture = await _TransferFixture.create(size: 1024, reserve: false);
+    fixture.media.mediaResponse = (_, __) async {
+      fixture.metadata.version = '2';
+      return ResponseBody(Stream.value(Uint8List(140)), 206, headers: {
+        'content-length': ['140'],
+        'content-range': ['bytes 0-139/1024']
+      });
+    };
+    await expectLater(
+        fixture.runtime().readMetadataHeader(
+            config: _transferConfig,
+            artifact: _artifact(size: 1024),
+            cancellation: CancelToken()),
+        throwsA(isA<DriveTransferException>().having(
+            (e) => e.issue, 'issue', DriveTransferIssue.sourceChanged)));
+    expect(fixture.native.calls, isEmpty);
+    expect(await fixture.db.query('transfer_records'), isEmpty);
+  });
   const config = ProviderConfig(
       type: ProviderType.drive,
       priority: 1,
@@ -637,19 +720,31 @@ void main() {
     expect(fixture.media.requests, isEmpty);
   });
 
-  test('replacement reservation is exact, distinct-path and restart stable', () async {
+  test('replacement reservation is exact, distinct-path and restart stable',
+      () async {
     final fixture = await _TransferFixture.create();
     final runtime = fixture.runtime();
-    expect((await (await runtime.startTransfer(config: _transferConfig,
-        transferId: 'transfer')).result).lifecycle, TransferLifecycle.completed);
-    final changed = RemoteArtifact.fromJson({..._artifact().toJson(), 'version': '2'});
-    final next = await runtime.reserveTransfer(config: _transferConfig,
-        artifact: changed, destinationRoot: '/roms', relativePath: changed.displayName);
+    expect(
+        (await (await runtime.startTransfer(
+                    config: _transferConfig, transferId: 'transfer'))
+                .result)
+            .lifecycle,
+        TransferLifecycle.completed);
+    final changed =
+        RemoteArtifact.fromJson({..._artifact().toJson(), 'version': '2'});
+    final next = await runtime.reserveTransfer(
+        config: _transferConfig,
+        artifact: changed,
+        destinationRoot: '/roms',
+        relativePath: changed.displayName);
     expect(next.relativePath, isNot('fixture.chd'));
     expect(next.relativePath.endsWith('.chd'), isTrue);
     expect(next.replacesInstallation!.transferId, 'transfer');
-    final again = await fixture.runtime().reserveTransfer(config: _transferConfig,
-        artifact: changed, destinationRoot: '/roms', relativePath: changed.displayName);
+    final again = await fixture.runtime().reserveTransfer(
+        config: _transferConfig,
+        artifact: changed,
+        destinationRoot: '/roms',
+        relativePath: changed.displayName);
     expect(jsonEncode(again.toJson()), jsonEncode(next.toJson()));
     expect(await fixture.journal.transfer('transfer'), isNotNull);
     expect(fixture.native.published, isTrue);

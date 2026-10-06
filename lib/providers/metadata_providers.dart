@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,8 +16,30 @@ import '../services/metadata/metadata_refresh_jobs.dart';
 import '../services/metadata/screenscraper_provider.dart';
 import '../services/metadata/shared_metadata_store.dart';
 import '../services/metadata/es_de_metadata_publication.dart';
+import '../models/config/app_config.dart';
+import '../models/config/provider_config.dart';
+import '../models/library_identity.dart';
+import '../services/source_resolver.dart';
+import '../services/drive/drive_runtime.dart';
 import 'app_providers.dart' show configStorageServiceProvider;
 import 'library_providers.dart';
+
+/// Use only the existing enabled, exact account/source/platform mapping. Never
+/// borrow a different source's grant or broaden the configured folder boundary.
+ProviderConfig? metadataHeaderSource(
+    AppConfig? config, RemoteArtifact artifact, String platformId) {
+  final systems = config?.systems.where((s) => s.id == platformId).toList();
+  if (systems?.length != 1) return null;
+  final sources = SourceResolver.providersFor(systems!.single, config!.sources)
+      .where((p) =>
+          p.type == ProviderType.drive &&
+          p.sourceId == artifact.id.sourceId &&
+          p.drive?.accountId == artifact.id.accountId &&
+          p.drive?.isConfigured == true &&
+          p.path?.isNotEmpty == true)
+      .toList();
+  return sources.length == 1 ? sources.single : null;
+}
 
 class MetadataControlsState {
   final String providerId;
@@ -101,10 +125,13 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       required IgdbCredentialStore igdbCredentials,
       Future<MetadataArtworkCache>? artworkCache,
       Future<SharedMetadataStore?>? sharedStore,
+      Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
+          readRomHeader,
       Future<String?> Function(String systemId)? configuredTarget,
       required void Function() catalogueChanged})
       : _database = database,
-        _jobs = MetadataRefreshJobs(database, sharedStore: sharedStore),
+        _jobs = MetadataRefreshJobs(database,
+            sharedStore: sharedStore, readRomHeader: readRomHeader),
         _providers = providers,
         _screenScraper = screenScraperCredentials,
         _igdb = igdbCredentials,
@@ -516,6 +543,14 @@ final metadataControlsProvider =
       igdbCredentials: igdb,
       artworkCache: ref.watch(metadataArtworkCacheProvider),
       sharedStore: ref.watch(sharedMetadataStoreProvider),
+      readRomHeader: (artifact, platformId, cancel) async {
+        final config =
+            await ref.read(configStorageServiceProvider).loadConfig();
+        final source = metadataHeaderSource(config, artifact, platformId);
+        if (source == null) return null;
+        return DriveRuntime.instance.readMetadataHeader(
+            config: source, artifact: artifact, cancellation: cancel);
+      },
       configuredTarget: (systemId) async {
         final config =
             await ref.read(configStorageServiceProvider).loadConfig();

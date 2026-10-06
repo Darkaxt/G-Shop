@@ -104,6 +104,8 @@ class MetadataReviewItem {
 class MetadataRefreshJobs {
   final Future<Database> _database;
   final Future<SharedMetadataStore?>? _sharedStore;
+  final Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
+      _readRomHeader;
   final DateTime Function() _now;
   final Timer Function(Duration, void Function()) _schedule;
   Future<MetadataRefreshReport>? _active;
@@ -112,8 +114,11 @@ class MetadataRefreshJobs {
   MetadataRefreshJobs(this._database,
       {DateTime Function()? now,
       Future<SharedMetadataStore?>? sharedStore,
+      Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
+          readRomHeader,
       Timer Function(Duration, void Function())? schedule})
       : _sharedStore = sharedStore,
+        _readRomHeader = readRomHeader,
         _now = now ?? DateTime.now,
         _schedule = schedule ?? Timer.new;
 
@@ -676,23 +681,12 @@ class MetadataRefreshJobs {
                     ? null
                     : await _rawIdentifier(txn, edition, game.platformId!),
                 refreshGeneration: generation);
-        final keyData = request?.toJson()
-          ?..remove('editionId')
-          ..remove('refreshGeneration');
-        // Release/patch evidence must also match even if the provider has no
-        // dedicated request field for it. Disc containers are not ROM hashes.
-        final editionEvidence = edition.toJson()
-          ..remove('id')
-          ..remove('members');
         await txn.insert(
             'metadata_refresh_items',
             {
               'job_id': id,
               'edition_id': editionId,
-              'lookup_key': sha256
-                  .convert(utf8.encode(
-                      jsonEncode(_canonical([keyData, editionEvidence]))))
-                  .toString(),
+              'lookup_key': _lookupKey(request, edition),
               'identity_key':
                   LibraryStore.metadataIdentity(row, providerId: providerId),
               'request_json':
@@ -713,6 +707,150 @@ class MetadataRefreshJobs {
     }
     if (value is List) return value.map(_canonical).toList();
     return value;
+  }
+
+  static String _lookupKey(
+      MetadataLookupRequest? request, EditionIdentity edition) {
+    final keyData = request?.toJson()
+      ?..remove('editionId')
+      ..remove('refreshGeneration');
+    final evidence = edition.toJson()
+      ..remove('id')
+      ..remove('members');
+    return sha256
+        .convert(utf8.encode(jsonEncode(_canonical([keyData, evidence]))))
+        .toString();
+  }
+
+  /// Extract once per current artifact, not once per title or per refresh. A
+  /// declared original hash is lookup evidence only, never ROM integrity proof.
+  Future<Map<String, Object?>?> _bindChdHeader(
+      Database db,
+      int jobId,
+      Map<String, Object?> item,
+      MetadataLookupRequest request,
+      Map<String, Object?> identity,
+      CancelToken cancel) async {
+    if (_readRomHeader == null ||
+        request.romIdentifier != null ||
+        request.verifiedProviderGameId != null ||
+        !{'psp', 'ps2'}.contains(request.platformId)) {
+      return null;
+    }
+    final game =
+        GameIdentity.fromJson(jsonDecode(identity['game_json'] as String));
+    final edition = EditionIdentity.fromJson(
+        jsonDecode(identity['edition_json'] as String));
+    if (game.baseGameId != null ||
+        edition.members.length != 1 ||
+        edition.patchId != null ||
+        edition.isTranslation == true ||
+        edition.translatedLanguages.isNotEmpty ||
+        edition.tags.any((tag) => !{'unknown', 'official'}.contains(tag)) ||
+        edition.evidence.any((e) =>
+            (e.kind == 'rawRomIdentifier' && e.source != 'driveHeader') ||
+            (e.source == 'manual' &&
+                e.kind == 'contentClassification' &&
+                edition.tags.contains('unknown')))) {
+      return null;
+    }
+    final rows = await db.query('library_artifacts',
+        columns: ['record_json'],
+        where: 'artifact_id = ?',
+        whereArgs: [edition.members.single.artifactId.key],
+        limit: 1);
+    if (rows.isEmpty) return null;
+    final artifact = RemoteArtifact.fromJson(
+        jsonDecode(rows.single['record_json'] as String));
+    if (artifact.id.providerId != 'drive' ||
+        artifact.version?.isNotEmpty != true ||
+        artifact.canDownload != true ||
+        (artifact.sizeBytes ?? 0) < 140 ||
+        !artifact.displayName.toLowerCase().endsWith('.chd')) {
+      return null;
+    }
+    final bytes = await _readRomHeader!(artifact, request.platformId, cancel);
+    if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+    final raw = bytes == null
+        ? null
+        : MetadataRomIdentifier.fromChdDvdHeader(bytes, artifact.displayName);
+    if (raw == null) return null;
+    return db.transaction((txn) async {
+      if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+      final current = await _identity(txn, edition.id);
+      final currentArtifacts = await txn.query('library_artifacts',
+          columns: ['record_json'],
+          where: 'artifact_id = ?',
+          whereArgs: [artifact.id.key],
+          limit: 1);
+      if (current == null ||
+          LibraryStore.metadataIdentity(current, providerId: 'screenscraper') !=
+              item['identity_key'] ||
+          currentArtifacts.isEmpty ||
+          jsonEncode(RemoteArtifact.fromJson(jsonDecode(
+                      currentArtifacts.single['record_json'] as String))
+                  .toJson()) !=
+              jsonEncode(artifact.toJson())) {
+        await txn.update(
+            'metadata_refresh_items', {'status': 'identityChanged'},
+            where: 'job_id = ? AND edition_id = ?',
+            whereArgs: [jobId, edition.id]);
+      } else {
+        final updated = EditionIdentity.fromJson({
+          ...edition.toJson(),
+          'evidence': [
+            for (final e in edition.evidence)
+              if (e.source == 'driveHeader' &&
+                  {'rawRomIdentifier', 'rawRomHeaderSource'}.contains(e.kind))
+                IdentityEvidence(
+                        source: e.source,
+                        kind:
+                            'previous${e.kind[0].toUpperCase()}${e.kind.substring(1)}',
+                        value: e.value)
+                    .toJson()
+              else
+                e.toJson(),
+            IdentityEvidence(
+                    source: 'driveHeader',
+                    kind: 'rawRomIdentifier',
+                    value: jsonEncode(raw.toJson()))
+                .toJson(),
+            IdentityEvidence(
+                source: 'driveHeader',
+                kind: 'rawRomHeaderSource',
+                value: jsonEncode({
+                  'artifact': artifact.toJson(),
+                  'version': artifact.version,
+                  'bytesRead': 140,
+                  'integrityVerified': false
+                })).toJson()
+          ]
+        });
+        final updatedRequest = MetadataLookupRequest.fromJson(
+            {...request.toJson(), 'romIdentifier': raw.toJson()});
+        await txn.update(
+            'library_editions', {'record_json': jsonEncode(updated.toJson())},
+            where: 'edition_id = ?', whereArgs: [edition.id]);
+        final binding = (await _identity(txn, edition.id))!;
+        await txn.update(
+            'metadata_refresh_items',
+            {
+              'request_json': jsonEncode(updatedRequest.toJson()),
+              'identity_key': LibraryStore.metadataIdentity(binding,
+                  providerId: 'screenscraper'),
+              'lookup_key': _lookupKey(updatedRequest, updated)
+            },
+            where: 'job_id = ? AND edition_id = ?',
+            whereArgs: [jobId, edition.id]);
+        await LibraryStore.indexCanonicalGroups(txn, editionId: edition.id);
+      }
+      if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+      return (await txn.query('metadata_refresh_items',
+              where: 'job_id = ? AND edition_id = ?',
+              whereArgs: [jobId, edition.id],
+              limit: 1))
+          .single;
+    });
   }
 
   /// Explicit compatible ROM evidence, not a provider-file/container checksum.
@@ -1246,8 +1384,8 @@ class MetadataRefreshJobs {
           await _setState(db, id, 'completed');
           return await report(id);
         }
-        final item = next.single;
-        final request = MetadataLookupRequest.fromJson(
+        var item = next.single;
+        var request = MetadataLookupRequest.fromJson(
             jsonDecode(item['request_json'] as String));
         final current = await _identity(db, request.editionId);
         if (current == null ||
@@ -1285,6 +1423,19 @@ class MetadataRefreshJobs {
               cancel,
               publish);
           continue;
+        }
+        if (!matchReview && provider.providerId == 'screenscraper') {
+          final bound =
+              await _bindChdHeader(db, id, item, request, current, cancel);
+          if (bound != null) {
+            item = bound;
+            if (item['status'] != 'pending') {
+              publish({'identityChanged': 1});
+              continue;
+            }
+            request = MetadataLookupRequest.fromJson(
+                jsonDecode(item['request_json'] as String));
+          }
         }
         if (!await _requestSlot(
             db, id, provider.providerId, cancel, waitForBudget)) {

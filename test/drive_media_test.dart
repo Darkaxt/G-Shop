@@ -70,6 +70,86 @@ Matcher issue(DriveTransferIssue value) =>
     isA<DriveTransferException>().having((e) => e.issue, 'issue', value);
 
 void main() {
+  test('explicit finite range reads only the requested prefix', () async {
+    final transport = _Transport((_) => ResponseBody.fromBytes([1, 2], 206,
+        headers: {
+          'content-range': ['bytes 0-1/5'],
+          'content-length': ['2']
+        }));
+    final api = DriveMediaApi(
+        authorization: DriveAuthorization(_Auth()),
+        accountId: 'account',
+        httpClientAdapter: transport);
+    addTearDown(api.close);
+    final response = await api.open(artifact(),
+        offset: 0, endInclusive: 1, cancelToken: CancelToken());
+    expect(await response.bytes.expand((c) => c).toList(), [1, 2]);
+    expect(response.total, 5);
+    expect(response.length, 2);
+    expect(transport.requests.single.headers['Range'], 'bytes=0-1');
+  });
+
+  test('ignored finite range is cancelled before buffering a whole ROM',
+      () async {
+    var received = false;
+    var discarded = false;
+    final stream = StreamController<Uint8List>(onListen: () {
+      received = true;
+    }, onCancel: () {
+      discarded = true;
+    });
+    final api = DriveMediaApi(
+        authorization: DriveAuthorization(_Auth()),
+        accountId: 'account',
+        httpClientAdapter:
+            _Transport((_) => ResponseBody(stream.stream, 200, headers: {
+                  'content-length': ['5']
+                })));
+    addTearDown(() async {
+      api.close();
+      await stream.close();
+    });
+    await expectLater(
+        api.open(artifact(),
+            offset: 0, endInclusive: 1, cancelToken: CancelToken()),
+        throwsA(issue(DriveTransferIssue.invalidRange)));
+    expect(received, true,
+        reason: 'subscription exists only to cancel the response');
+    expect(discarded, true);
+  });
+  for (final range in ['bytes 0-4/5', 'bytes 1-2/5', 'bytes 0-1/6']) {
+    test('finite prefix rejects mismatched range $range', () async {
+      final api = DriveMediaApi(
+          authorization: DriveAuthorization(_Auth()),
+          accountId: 'account',
+          httpClientAdapter:
+              _Transport((_) => ResponseBody.fromBytes([1, 2], 206,
+                  headers: {
+                    'content-range': [range]
+                  })));
+      addTearDown(api.close);
+      await expectLater(
+          api.open(artifact(),
+              offset: 0, endInclusive: 1, cancelToken: CancelToken()),
+          throwsA(issue(DriveTransferIssue.invalidRange)));
+    });
+  }
+  test('finite prefix rejects a truncated body without content length',
+      () async {
+    final api = DriveMediaApi(
+        authorization: DriveAuthorization(_Auth()),
+        accountId: 'account',
+        httpClientAdapter: _Transport((_) => ResponseBody.fromBytes([1], 206,
+            headers: {
+              'content-range': ['bytes 0-1/5']
+            })));
+    addTearDown(api.close);
+    final response = await api.open(artifact(),
+        offset: 0, endInclusive: 1, cancelToken: CancelToken());
+    await expectLater(
+        response.bytes.toList(), throwsA(issue(DriveTransferIssue.truncated)));
+  });
+
   test('payload stays lazy and consumer cancellation reaches the source stream',
       () async {
     var listened = false;

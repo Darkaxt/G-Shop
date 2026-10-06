@@ -9,6 +9,26 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Normal automatic-CHD checkpoint (2026-10-06): the worker now reads a finite
+140-byte DVD-CHD header through the existing exact Drive source/account/platform
+mapping. Source boundaries are checked before and after the read, and artifact
+and identity bindings are revalidated before the atomic SQLite commit. Normal
+refresh/restart/shared-cache recovery reuse current evidence; replacement bytes
+invalidate it. Manual and modified-release facts remain protected. Header hashes
+are not ROM/cloud integrity proof. Focused regressions and scoped analysis pass.
+Normal build 178 was installed in place with matching installed APK hash and
+unchanged configuration bytes. Read-only native evidence from saved PSP job 44
+observed 35 automatic header bindings, 31 current matched metadata bindings and
+31 raw-identifier match methods, with 254 of its 341 items still pending. This
+proves the real normal-app path on multiple entries, not whole-collection match
+coverage, normal PS2 breadth or trusted rankings. The same unpublished collection
+generation advanced to 74,498 observations; both displays are OFF. Build 178's
+gate/profile and verification evidence are recorded in IMPLEMENTATION_STATUS.md.
+No ROM removal, cloud mutation, FolderSync change or release occurred. S7 remains
+ACTIVE; full publication, fresh metadata, canonical ranking, recovery and reviewed
+migration criteria remain unsatisfied. Earlier checkpoints are historical and
+their outstanding automatic-CHD wiring claim is superseded by this observation.
+
 Automatic uncompressed-Drive checkpoint (2026-10-06): normal catalogue snapshots
 now derive compatible, version-bound MD5/SHA-1/size only from mapped standalone
 formats. The real ScreenScraper adapter can establish unknown official releases

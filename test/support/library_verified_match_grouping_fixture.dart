@@ -99,7 +99,9 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
           .single['group_key'] as String;
 
   Future<List<String>> catalogue(
-      {String platform = 'snes', bool rawDrive = false}) async {
+      {String platform = 'snes',
+      bool rawDrive = false,
+      bool chd = false}) async {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
       systemSlug TEXT, displayName TEXT, artifact_key TEXT, remote_artifact TEXT,
@@ -112,8 +114,10 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
               sourceId: 'fixture-source',
               accountId: 'fixture-account',
               providerFileId: 'file-$n'),
-          displayPath: 'Fixture $n.sfc',
-          displayName: 'Fixture $n.sfc',
+          parentId: 'fixture-folder',
+          canDownload: true,
+          displayPath: 'Fixture $n.${chd ? 'chd' : 'sfc'}',
+          displayName: 'Fixture $n.${chd ? 'chd' : 'sfc'}',
           version: '1',
           sizeBytes: 1024,
           providerChecksums: {'sha1': 'a' * 40});
@@ -128,6 +132,292 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
     return db
         .transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
   }
+
+  Uint8List dvdHeader() {
+    final bytes = Uint8List(140)..setRange(0, 8, 'MComprHD'.codeUnits);
+    final data = ByteData.sublistView(bytes);
+    data.setUint32(8, 124);
+    data.setUint32(12, 5);
+    data.setUint64(32, 1121026048);
+    data.setUint64(48, 124);
+    data.setUint32(56, 4096);
+    data.setUint32(60, 2048);
+    bytes.setRange(64, 84, List.filled(20, 0xaa));
+    bytes.setRange(124, 128, 'DVD '.codeUnits);
+    return bytes;
+  }
+
+  (_Wire, ScreenScraperProvider) chdProvider() {
+    final wire = _Wire({
+      'response': {
+        'jeu': {
+          'id': '42',
+          'systeme': {'id': '61'},
+          'notgame': false,
+          'noms': [
+            {'region': 'us', 'text': 'Fixture'}
+          ],
+          'synopsis': [
+            {'langue': 'en', 'text': 'Fresh DVD description'}
+          ],
+          'rom': {
+            'romsize': '1121026048',
+            'romsha1': 'a' * 40,
+            'romregions': 'us',
+            'romlangues': 'en',
+            'hack': '0',
+            'trad': '0',
+            'demo': '0',
+            'unl': '0',
+            'beta': '0'
+          }
+        }
+      }
+    });
+    final api = ScreenScraperProvider(
+        httpClientAdapter: wire,
+        readDeveloperCredentials: () async =>
+            const ScreenScraperDeveloperCredentials(
+                developerId: 'fixture-dev',
+                developerPassword: 'fixture-secret',
+                softwareName: 'fixture'),
+        readUserCredentials: () async => const ScreenScraperUserCredentials(
+            username: 'fixture-user', password: 'fixture-secret'));
+    addTearDown(api.close);
+    return (wire, api);
+  }
+
+  test(
+      'normal jobs automatically bind current CHD header evidence and reuse it',
+      () async {
+    final ids = await catalogue(platform: 'psp', rawDrive: true, chd: true);
+    final initial = await db.query('library_editions');
+    final root = await Directory.systemTemp.createTemp('rshop-auto-header-');
+    var shared = await SharedMetadataStore.open(root,
+        factory: factory, verifyAccess: () async {});
+    addTearDown(() async {
+      await shared.close();
+      await root.delete(recursive: true);
+    });
+    var reads = 0;
+    final jobs =
+        MetadataRefreshJobs(Future.value(db), sharedStore: Future.value(shared),
+            readRomHeader: (artifact, platform, cancel) async {
+      reads++;
+      expect(platform, 'psp');
+      expect(artifact.version, '1');
+      return dvdHeader();
+    });
+    final (wire, api) = chdProvider();
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await jobs.run(job.id, api)).counts, {'matched': 2});
+    expect(reads, 2);
+    for (final id in ids) {
+      final edition = (await store.edition(id))!;
+      expect(edition.tags, {'official'});
+      expect(
+          edition.evidence.where(
+              (e) => e.source == 'driveHeader' && e.kind == 'rawRomIdentifier'),
+          hasLength(1));
+      final source =
+          edition.evidence.singleWhere((e) => e.kind == 'rawRomHeaderSource');
+      expect(jsonDecode(source.value)['version'], '1');
+      expect(jsonDecode(source.value)['bytesRead'], 140);
+      expect(
+          (await store.metadata(id, 'screenscraper'))!.descriptions.single.text,
+          'Fresh DVD description');
+    }
+    expect(wire.requests.every((r) => r.queryParameters['sha1'] == 'a' * 40),
+        isTrue);
+    await db.transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+    final restarted = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (_, __, ___) async {
+      fail('current persisted header must not be read again');
+    });
+    final next =
+        await restarted.createFromCatalogue(providerId: 'screenscraper');
+    expect((await restarted.run(next.id, api)).counts, {'matched': 2});
+    expect(reads, 2);
+    expect(await key(ids.first), await key(ids.last));
+    await shared.close();
+    shared = await SharedMetadataStore.open(root,
+        factory: factory, existingOnly: true, verifyAccess: () async {});
+    await db.delete('library_metadata');
+    for (final row in initial) {
+      await store.putEdition(
+          EditionIdentity.fromJson(jsonDecode(row['record_json'] as String)));
+    }
+    expect(await shared.restore(db), 2,
+        reason:
+            'shared recovery restores generated header binding without another read');
+    expect(
+        (await store.edition(ids.first))!
+            .evidence
+            .where((e) => e.kind == 'rawRomIdentifier'),
+        hasLength(1));
+    expect(await store.metadata(ids.first, 'screenscraper'), isNotNull);
+  });
+
+  test('CHD header changed during read cannot publish evidence or metadata',
+      () async {
+    final ids = await catalogue(platform: 'psp', rawDrive: true, chd: true);
+    final jobs = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (artifact, _, __) async {
+      final rows = await db.query('games',
+          where: 'artifact_key = ?', whereArgs: [artifact.id.key]);
+      final changed = RemoteArtifact.fromJson({
+        ...artifact.toJson(),
+        'version': '2',
+        'providerChecksums': {'sha1': 'b' * 40}
+      });
+      await db.update(
+          'games', {'remote_artifact': jsonEncode(changed.toJson())},
+          where: 'id = ?', whereArgs: [rows.single['id']]);
+      await db
+          .transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+      return dvdHeader();
+    });
+    final (wire, api) = chdProvider();
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect((await jobs.run(job.id, api)).counts, {'identityChanged': 2});
+    expect(wire.requests, isEmpty);
+    for (final id in ids) {
+      expect(
+          (await store.edition(id))!
+              .evidence
+              .where((e) => e.source == 'driveHeader'),
+          isEmpty);
+      expect(await store.metadata(id, 'screenscraper'), isNull);
+    }
+  });
+
+  test('replacement CHD bytes retire generated evidence and get a fresh header',
+      () async {
+    final ids = await catalogue(platform: 'psp', rawDrive: true, chd: true);
+    var reads = 0;
+    final jobs = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (artifact, _, __) async {
+      reads++;
+      return dvdHeader()
+        ..fillRange(64, 84, artifact.version == '1' ? 0xaa : 0xbb);
+    });
+    final (wire, api) = chdProvider();
+    var job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, api);
+    final row = (await db.query('games', where: 'id = 1')).single;
+    final artifact =
+        RemoteArtifact.fromJson(jsonDecode(row['remote_artifact'] as String));
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode({
+            ...artifact.toJson(),
+            'version': '2',
+            'providerChecksums': {'sha1': 'c' * 40}
+          })
+        },
+        where: 'id = 1');
+    await db.transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+    expect(await store.metadata(ids.first, 'screenscraper'), isNull);
+    job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, api);
+    expect(reads, 3,
+        reason: 'only the replaced artifact needs another bounded read');
+    final edition = (await store.edition(ids.first))!;
+    expect(
+        jsonDecode(edition.evidence
+            .singleWhere((e) => e.kind == 'rawRomIdentifier')
+            .value)['sha1'],
+        'b' * 40);
+    expect(edition.evidence.where((e) => e.kind == 'previousRawRomIdentifier'),
+        hasLength(1));
+    expect(wire.requests.any((r) => r.queryParameters['sha1'] == 'b' * 40),
+        isTrue);
+    expect(await store.metadata(ids.first, 'screenscraper'), isNull,
+        reason: 'old provider hash cannot identify the replacement');
+  });
+
+  for (final manual in ['unknown', 'raw']) {
+    test('automatic CHD reads preserve manual $manual evidence', () async {
+      final ids = await catalogue(platform: 'psp', rawDrive: true, chd: true);
+      for (final id in ids) {
+        final edition = (await store.edition(id))!;
+        await store.putEdition(EditionIdentity.fromJson({
+          ...edition.toJson(),
+          'tags': ['unknown'],
+          'evidence': [
+            ...edition.evidence.map((e) => e.toJson()),
+            IdentityEvidence(
+                    source: 'manual',
+                    kind: manual == 'raw'
+                        ? 'rawRomIdentifier'
+                        : 'contentClassification',
+                    value: manual == 'raw' ? '{}' : 'unknown')
+                .toJson()
+          ]
+        }));
+      }
+      final jobs = MetadataRefreshJobs(Future.value(db),
+          readRomHeader: (_, __, ___) async {
+        fail('must not override explicit manual evidence');
+      });
+      final (wire, api) = chdProvider();
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      await jobs.run(job.id, api);
+      expect(wire.requests.every((r) => r.queryParameters['sha1'] == null),
+          isTrue);
+      for (final id in ids) {
+        expect(
+            (await store.edition(id))!
+                .evidence
+                .where((e) => e.source == 'driveHeader'),
+            isEmpty);
+        expect(await store.metadata(id, 'screenscraper'), isNull);
+      }
+    });
+  }
+
+  test(
+      'cancelled CHD header leaves pending job resumable without provider lookup',
+      () async {
+    await catalogue(platform: 'psp', rawDrive: true, chd: true);
+    final jobs = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (_, __, cancel) async {
+      cancel.cancel();
+      return dvdHeader();
+    });
+    final (wire, api) = chdProvider();
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final report = await jobs.run(job.id, api);
+    expect(report.state, 'paused');
+    expect(report.counts, {'pending': 2});
+    expect(wire.requests, isEmpty);
+    final resumed = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (_, __, ___) async => dvdHeader());
+    expect((await resumed.run(job.id, api)).counts, {'matched': 2});
+  });
+
+  test(
+      'unsupported CHD layout stays review-only with no invented raw identifier',
+      () async {
+    final ids = await catalogue(platform: 'psp', rawDrive: true, chd: true);
+    final jobs = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (_, __, ___) async =>
+            dvdHeader()..setRange(124, 128, 'CHT2'.codeUnits));
+    final (wire, api) = chdProvider();
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    await jobs.run(job.id, api);
+    expect(
+        wire.requests.every((r) => r.queryParameters['sha1'] == null), isTrue);
+    for (final id in ids) {
+      expect(
+          (await store.edition(id))!
+              .evidence
+              .where((e) => e.source == 'driveHeader'),
+          isEmpty);
+      expect(await store.metadata(id, 'screenscraper'), isNull);
+    }
+  });
 
   test(
       'automatic Drive raw match persists classification and current metadata atomically',

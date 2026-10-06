@@ -82,6 +82,7 @@ class DriveRuntime {
   final _refreshes = <String, Future<void>>{};
   final _refreshCancellation = <String, CancelToken>{};
   final _bundlePlans = <CancelToken, Future<TransferRecord>>{};
+  final _metadataHeaders = <CancelToken, Future<Uint8List>>{};
   bool _disconnecting = false;
   int _laneGeneration = 0;
 
@@ -425,6 +426,48 @@ class DriveRuntime {
         artifact.id.sourceId != config.sourceId ||
         artifact.id.accountId != config.drive!.accountId) {
       throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+  }
+
+  /// Read only the supported CHD header, within the existing account/source lane.
+  /// This is metadata evidence, not verification or installation of ROM bytes.
+  Future<Uint8List> readMetadataHeader(
+      {required ProviderConfig config,
+      required RemoteArtifact artifact,
+      required CancelToken cancellation}) async {
+    _requireConnectedLane();
+    _requireArtifactSource(config, artifact);
+    if (!artifact.displayName.toLowerCase().endsWith('.chd') ||
+        (artifact.sizeBytes ?? 0) < 140 ||
+        _metadataHeaders.containsKey(cancellation)) {
+      throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+    final operation = () async {
+      final api = apiFor(config.drive!);
+      final boundary = DriveDownloadBoundary(
+          config: config, artifact: artifact, catalogue: catalogue, api: api);
+      await boundary.revalidate(cancellation: cancellation);
+      final media = _mediaApis.putIfAbsent(
+          config.drive!.accountId,
+          () => _createMediaApi(authorizationFor(config.drive!.serverClientId),
+              config.drive!.accountId));
+      final response = await media.open(artifact,
+          offset: 0, endInclusive: 139, cancelToken: cancellation);
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in response.bytes) {
+        if (cancellation.isCancelled) {
+          throw const DriveTransferException(DriveTransferIssue.cancelled);
+        }
+        bytes.add(chunk);
+      }
+      await boundary.revalidate(cancellation: cancellation);
+      return bytes.takeBytes();
+    }();
+    _metadataHeaders[cancellation] = operation;
+    try {
+      return await operation;
+    } finally {
+      _metadataHeaders.remove(cancellation);
     }
   }
 
@@ -773,6 +816,10 @@ class DriveRuntime {
         cancellation.cancel();
       }
       final plans = _bundlePlans.values.toList();
+      final headers = _metadataHeaders.values.toList();
+      for (final cancellation in _metadataHeaders.keys.toList()) {
+        cancellation.cancel();
+      }
       for (final cancellation in _bundlePlans.keys.toList()) {
         cancellation.cancel();
       }
@@ -789,6 +836,8 @@ class DriveRuntime {
         ...transfers,
         for (final plan in plans)
           plan.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+        for (final header in headers)
+          header.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
       ]);
     } finally {
       for (final api in _apis.values) {

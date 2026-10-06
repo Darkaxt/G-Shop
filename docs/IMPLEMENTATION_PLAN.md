@@ -755,15 +755,19 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   supported DVD CHD original-identifier parser and observed ScreenScraper ISO
   size cap are bounded S7 work, not a new stage. Verify header -> live adapter
   and adapter -> persistent job -> grouping/advisory query independently.
-  Automatic collection binding remains unfinished until the actual normal
-  workflow persists exact version-bound evidence without full-ROM downloads,
-  guessed official tags or weakened migration checks. No header declaration
+  The actual normal workflow must persist exact version-bound evidence without
+  full-ROM downloads, guessed official tags or weakened migration checks. This
+  is now implemented and host-verified for supported DVD CHDs, with normal Thor
+  PSP job 44 demonstrating automatic bindings and current metadata on multiple
+  entries. Normal PS2 breadth and full collection coverage remain unfinished.
+  No header declaration
   substitutes for download/cloud integrity or reliable Top acceptance.
   The uncompressed Drive checksum path is implemented and host-verified through
   normal job creation, the real adapter, atomic classification/publication,
-  canonical query and durable shared-cache recovery. Native integration and
-  automatic supported-CHD header extraction remain unfinished in S7; do not
-  confuse the bounded live header lookup with collection-wide device proof.
+  canonical query and durable shared-cache recovery. Native CHD integration now
+  participates in the normal authenticated Drive -> header -> provider ->
+  persisted metadata workflow. Do not confuse that narrow automatic PSP proof
+  with full collection, ranking, recovery or migration acceptance.
 - Prove Drive restoration on the Thor, inventory exact SD files and cloud
   IDs/version/digests, and build a private keep/remove/preserve manifest.
 - Preserve saves/BIOS/settings, uncertain paths and files without identical

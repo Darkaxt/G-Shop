@@ -57,7 +57,9 @@ class DriveMediaApi {
   }) : _transport = httpClientAdapter ?? IOHttpClientAdapter();
 
   Future<DriveMediaResponse> open(RemoteArtifact artifact,
-      {required int offset, required CancelToken cancelToken}) async {
+      {required int offset,
+      int? endInclusive,
+      required CancelToken cancelToken}) async {
     final total = artifact.sizeBytes;
     if (artifact.id.providerId != 'drive' ||
         artifact.id.accountId != accountId ||
@@ -67,7 +69,10 @@ class DriveMediaApi {
         artifact.version?.isNotEmpty != true) {
       throw const DriveTransferException(DriveTransferIssue.invalidSource);
     }
-    if (offset < 0 || offset > total) {
+    if (offset < 0 ||
+        offset > total ||
+        (endInclusive != null &&
+            (endInclusive < offset || endInclusive >= total))) {
       throw const DriveTransferException(DriveTransferIssue.invalidRange);
     }
     try {
@@ -95,7 +100,8 @@ class DriveMediaApi {
               // Range and checksum refer to exact stored bytes, not a content
               // encoding chosen by an intermediary.
               'Accept-Encoding': 'identity',
-              if (offset > 0) 'Range': 'bytes=$offset-',
+              if (endInclusive != null || offset > 0)
+                'Range': 'bytes=$offset-${endInclusive ?? ''}',
             });
         final body =
             await _transport.fetch(request, null, cancelToken.whenCancel);
@@ -118,6 +124,7 @@ class DriveMediaApi {
                 DriveTransferIssue.invalidResponse);
           }
           if (status == 416 &&
+              endInclusive == null &&
               offset == total &&
               headers.value('content-range') == 'bytes */$total') {
             // This establishes no installation claim. The caller must still
@@ -129,19 +136,23 @@ class DriveMediaApi {
                 length: 0,
                 total: total);
           }
+          if (status == 200 && endInclusive != null) {
+            throw const DriveTransferException(DriveTransferIssue.invalidRange);
+          }
           if (status == 200 && offset > 0) {
             // The engine may explicitly discard this transfer's partial and
             // restart. It must never append a full response to old bytes.
             throw const DriveTransferException(
                 DriveTransferIssue.restartRequired);
           }
-          final expectedLength = total - offset;
+          final end = endInclusive ?? total - 1;
+          final expectedLength = end + 1 - offset;
           if (status == 206) {
             final range = RegExp(r'^bytes (\d+)-(\d+)/(\d+)$')
                 .firstMatch(headers.value('content-range') ?? '');
             if (range == null ||
                 int.tryParse(range[1]!) != offset ||
-                int.tryParse(range[2]!) != total - 1 ||
+                int.tryParse(range[2]!) != end ||
                 int.tryParse(range[3]!) != total ||
                 expectedLength <= 0) {
               throw const DriveTransferException(
