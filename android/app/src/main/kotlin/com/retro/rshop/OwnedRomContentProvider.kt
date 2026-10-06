@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import android.provider.DocumentsContract
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.FileNotFoundException
@@ -35,6 +36,9 @@ class OwnedRomContentProvider : ContentProvider() {
             addRow(columns.map { when (it) {
                 OpenableColumns.DISPLAY_NAME -> saved.getString("relativePath").substringAfterLast('/')
                 OpenableColumns.SIZE -> saved.getLong("sizeBytes")
+                DocumentsContract.Document.COLUMN_MIME_TYPE -> "application/octet-stream"
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID -> "${saved.getString("id")}/${saved.getString("relativePath").substringAfterLast('/')}"
+                DocumentsContract.Document.COLUMN_FLAGS -> 0
                 else -> null
             } })
         }
@@ -50,10 +54,20 @@ class OwnedRomContentProvider : ContentProvider() {
             .scheme("content").authority("${context.packageName}.owned-roms")
             .appendPath("installation").appendPath(id).appendPath(filename.substringAfterLast('/')).build()
 
+        // RetroArch's SAF VFS converts a generic content URI to an unnamed root.
+        // A document-shaped leaf retains its ZIP extension and member metadata.
+        // Grant this exact URI only: no prefix/persistable or directory access.
+        fun gameGearUri(context: Context, id: String, filename: String): Uri {
+            val tree = DocumentsContract.buildTreeDocumentUri("${context.packageName}.owned-roms", id)
+            val result = DocumentsContract.buildDocumentUriUsingTree(tree, "$id/${filename.substringAfterLast('/')}")
+            OwnedRomGrantPath.parse(result.pathSegments)
+            return result
+        }
+
         private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null): JSONObject {
             if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
-                uri.query != null || uri.fragment != null || uri.pathSegments.size != 3 ||
-                uri.pathSegments[0] != "installation") throw FileNotFoundException("Invalid ROM grant")
+                uri.query != null || uri.fragment != null) throw FileNotFoundException("Invalid ROM grant")
+            val grant = OwnedRomGrantPath.parse(uri.pathSegments)
             val db = SQLiteDatabase.openDatabase(context.getDatabasePath("rshop.db").path,
                 null, SQLiteDatabase.OPEN_READONLY)
             try {
@@ -67,7 +81,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     WHERE i.installation_id=? AND t.lifecycle='completed'
                       AND NOT EXISTS(SELECT 1 FROM owned_removals r
                         WHERE r.transfer_id=i.transfer_id AND r.phase NOT IN ('completed', 'retained'))""",
-                    arrayOf(uri.pathSegments[1])).use { cursor ->
+                    arrayOf(grant.installationId)).use { cursor ->
                     if (!cursor.moveToFirst()) throw FileNotFoundException("Installation not ready")
                     val result = JSONObject(cursor.getString(0))
                     val transfer = JSONObject(cursor.getString(1))
@@ -77,14 +91,14 @@ class OwnedRomContentProvider : ContentProvider() {
                     if (owner != bundleOwner) throw FileNotFoundException("Bundle member has no independent grant")
                     if (owner != null && publication.optString("method") == "copy" &&
                         !transfer.optBoolean("stageRetired")) throw FileNotFoundException("Bundle member stage pending")
-                    if (result.getString("id") != uri.pathSegments[1] ||
+                    if (result.getString("id") != grant.installationId ||
                         result.getString("transferId") != cursor.getString(2) ||
                         transfer.getString("id") != cursor.getString(2) ||
                         result.getString("destinationRoot") != cursor.getString(3) ||
                         transfer.getString("destinationRoot") != cursor.getString(3) ||
                         result.getString("relativePath") != cursor.getString(4) ||
                         transfer.getString("relativePath") != cursor.getString(4) ||
-                        cursor.getString(4).substringAfterLast('/') != uri.pathSegments[2] ||
+                        cursor.getString(4).substringAfterLast('/') != grant.filename ||
                         transfer.getString("lifecycle") != "completed" ||
                         !publication.getBoolean("confirmed") || checksums.length() == 0 ||
                         !sameJson(result.getJSONObject("artifact"), transfer.getJSONObject("artifact")) ||
@@ -95,6 +109,15 @@ class OwnedRomContentProvider : ContentProvider() {
                     }
                     val dependencies = result.optJSONArray("dependencies") ?: JSONArray()
                     val members = transfer.optJSONArray("bundleMembers") ?: JSONArray()
+                    if (grant.document && (!grant.filename.lowercase(Locale.ROOT).endsWith(".zip") ||
+                        transfer.optString("archivePlatformId") != "gamegear")) {
+                        throw FileNotFoundException("Unsupported document grant")
+                    }
+                    if (result.getString("relativePath").lowercase(Locale.ROOT).endsWith(".zip") &&
+                        (transfer.optString("archivePlatformId") != "gamegear" || owner != null ||
+                            dependencies.length() != 0 || members.length() != 0)) {
+                        throw FileNotFoundException("Unsupported archive intent")
+                    }
                     if (dependencies.length() > 256 || dependencies.length() != members.length() ||
                         (bundleOwner != null && dependencies.length() != 0)) {
                         throw FileNotFoundException("Bundle graph changed")
@@ -158,6 +181,12 @@ class OwnedRomContentProvider : ContentProvider() {
                     seconds, expected.getLong("modifiedNanoseconds"))
                 if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
                     throw FileNotFoundException("Installation object changed")
+                }
+                if (relative.lowercase(Locale.ROOT).endsWith(".zip")) {
+                    OwnedGameGearZip.validate("/proc/self/fd/$file")
+                    if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
+                        throw FileNotFoundException("Archive changed during validation")
+                    }
                 }
                 checkedRoot = OwnedStorageNative.openRoot(rootPath)
                 checkedParent = if (directory.isEmpty()) OwnedStorageNative.openRoot(rootPath)

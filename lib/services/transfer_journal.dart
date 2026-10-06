@@ -118,6 +118,7 @@ class TransferJournal {
     required String id,
     required String stagePath,
     required void Function() checkCancellation,
+    String? archivePlatformId,
   }) async {
     final identity = observation.localIdentity;
     final installation = InstalledArtifact(
@@ -129,6 +130,7 @@ class TransferJournal {
         id: id, artifact: observation.artifact,
         destinationRoot: observation.destinationRoot,
         relativePath: observation.relativePath, stagePath: stagePath,
+        archivePlatformId: archivePlatformId,
         durableOffset: observation.sizeBytes,
         lifecycle: TransferLifecycle.completed, stageRetired: true,
         verifiedChecksums: observation.checksums,
@@ -1166,6 +1168,7 @@ class TransferJournal {
         previous.destinationRoot != proposed.destinationRoot ||
         previous.relativePath != proposed.relativePath ||
         previous.stagePath != proposed.stagePath ||
+        previous.archivePlatformId != proposed.archivePlatformId ||
         previous.stageRetired != proposed.stageRetired ||
         previous.stageRetirementIssue != proposed.stageRetirementIssue ||
         previous.bundleOwner != proposed.bundleOwner ||

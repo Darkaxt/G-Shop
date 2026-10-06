@@ -106,6 +106,9 @@ class InstallationIndex {
       TransferRecord record, InstalledArtifact? manifest,
       {String? bundleOwner}) async {
     const equality = DeepCollectionEquality();
+    if (record.relativePath.toLowerCase().endsWith('.zip') && record.archivePlatformId != 'gamegear') {
+      throw const OwnedStorageException('unsupported_archive');
+    }
     if (record.lifecycle != TransferLifecycle.completed ||
         (record.bundleOwner != null && record.bundleOwner != bundleOwner) ||
         manifest == null ||

@@ -5,6 +5,56 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Game Gear ZIP validation and real emulator handoff — 2026-10-06
+
+- Game Gear IGDB job 68 completed its unchanged 548-edition capture: two
+  matched/rated, 442 needsReview, 79 ambiguous, 25 unmatched, zero pending.
+  ScreenScraper job 66 remains completed with the recorded outcomes below.
+  The Game Gear query still has zero score-qualified groups; traversal is not
+  defensible Top-25 coverage. The latest root snapshot is still unpublished at
+  144,225 observations / 10,765 pending folders, not evidence of an active scan.
+- The explicit mapped Game Gear ZIP path now preserves the exact archive name
+  and bytes. Immutable transfer intent, pinned native single-member structure/
+  CRC validation, normal queue publication, adoption and recovered publication
+  are integrated. Encrypted, multi-member, unsafe, malformed and untyped legacy
+  archives remain rejected. Focused runtime/engine/journal/launcher checks passed;
+  native ZIP and exact document-leaf tests passed without skipped cases.
+- A real normal queue attempt correctly preserved an existing unmanaged target
+  collision. Its terminal test row was cleared through the ordinary UI. A fresh
+  full local/cloud comparison then deliberately adopted one identical ZIP;
+  adoption is not reported as a download. No original ROM was removed.
+- The installed RetroArch initially lacked its private Genesis Plus GX core.
+  Normal Install/Restore Core installed the already-existing shared core. After
+  that prerequisite, the generic content-URI route caused a reproducible native
+  core crash, while the same local ZIP booted directly. The fix retains the ZIP
+  filename through RetroArch SAF using one document-shaped owned-leaf read grant;
+  it exposes no directory, sibling, write, prefix or persistable access.
+- Final normal APK 206 booted the adopted ZIP through Open in RetroArch, then
+  booted it again cold with Wi-Fi off. The archive SHA-256 stayed
+  `2fc171b6ba8de52d9ce3572531fd37f8bf10326ae04470a82e56438908c34e11`.
+  This verifies adoption/handoff/offline use, not removal/re-download or migration.
+  Saves, FolderSync, cloud originals and R-Shop source mappings were not changed.
+- Build-gate ticket 206 (`2830c31e2bb84b94a1befdb2c892f8e5`) acquired the shared
+  mutex and exited successfully. Observed profile: two workers, parallel false,
+  Gradle maximum heap 3 GiB; evaluated Kotlin in-process compilation shares that
+  heap. Test tasks use one fork / 512 MiB; native per-ABI pools remain one, not a
+  verified universal host concurrency cap. No memory failure or budget increase.
+  Current APK SHA-256 is
+  `b71bd5884d3b433ddfce650eb7beabf34929c4dff0209ff349910d4ead42052c`;
+  its existing debug signer was preserved and installation was in-place.
+- Wi-Fi was restored, the PSP-only Best 25 view and zero favorites restored,
+  configuration SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`,
+  and both displays are freshly confirmed committed OFF. One PSP projection was
+  dirty in the latest read-only observation; do not label all projections clean.
+  Reviewed cleanup transaction `0eb8b48e3b4755c3b6ab0680abe5ebf4` removed only
+  the obsolete host capture/debug config (128,667 bytes); the corresponding two
+  device captures and task-created debug config are verified absent. The bounded
+  diagnostic helper remains necessary and retained; unrelated files are preserved.
+  S7 is still the sole ACTIVE stage. Classification/coverage, defensible retention,
+  full format recovery and reviewed execution remain unfinished; S8-S10 stay
+  NOT STARTED. No required criterion was deferred or marked complete.
+
 ### S7 Game Gear completed traversal / IGDB breadth — 2026-10-06
 
 - Normal ScreenScraper job 66 completed its unchanged 548-edition capture:

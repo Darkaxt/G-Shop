@@ -279,6 +279,22 @@ and target owner with explicit adoption provenance; do not pretend a download,
 stage creation or rename occurred. Conflicting owners, changed bytes, cancellation
 before commit and failed commits preserve the unmanaged file without an ownership
 claim. Bundles and archive extraction remain outside this single-file route.
+S7 archive recovery detail (2026-10-06): a Game Gear ZIP may be treated as one
+emulator-ready file only through the explicit Game Gear mapping and a validated
+single safe `.gg` member. Preserve the exact cloud archive bytes and filename;
+do not extract or rename it to a guessed ROM extension. Validate its bounded
+ZIP structure, matching local/central headers, member size and CRC before
+publication/adoption, on recovered publication and before emulator handoff.
+Reject encrypted, multi-member, unsafe-path, ZIP64 and malformed layouts.
+Persist the explicit archive platform in the immutable transfer intent; old
+untyped archive intents cannot silently acquire format approval. Prove the
+normal queue -> verified installation -> existing RetroArch core -> offline
+use -> exact removal/re-download workflow before this format permits migration.
+The RetroArch route uses a document-shaped read-only grant for the single owned
+ZIP leaf, retaining its filename through RetroArch's SAF VFS. It grants neither
+directory/prefix/persistable access nor writes; root, sibling and nested document
+requests are rejected. The existing installation and pinned-object checks remain
+mandatory at every open. Other emulator URI routes remain unchanged.
 Adoption does not delete anything or waive MIGRATE-01's ranking, format-restore,
 save/sync and execution-time revalidation gates. Reuse the existing verified owned
 installation/removal path rather than introducing an alternate deletion engine.

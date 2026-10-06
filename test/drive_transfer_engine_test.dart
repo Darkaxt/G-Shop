@@ -84,6 +84,7 @@ class _Native {
   final methods = <String>[];
   final MethodChannel channel = const MethodChannel('engine-fixture-storage');
   bool copyOnly = false;
+  bool invalidArchive = false;
   bool crossMount = false;
   int next = 0;
   Future<void> Function(MethodCall)? before;
@@ -192,6 +193,9 @@ class _Native {
     }
     final s = sessions[a['session']] ?? fail('closed');
     switch (call.method) {
+      case 'ownedValidateGameGearZip':
+        if (invalidArchive) fail('unsupported_archive');
+        return null;
       case 'ownedWrite':
         if (s.published || s.source.bytes.length != a['offset']) {
           fail('changed');
@@ -250,15 +254,15 @@ class _Native {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final payload = Uint8List.fromList(List.generate(131085, (i) => i % 251));
-  RemoteArtifact artifact({Map<String, String>? hashes}) => RemoteArtifact(
+  RemoteArtifact artifact({Map<String, String>? hashes, String name = 'fixture.chd'}) => RemoteArtifact(
       id: RemoteArtifactId(
           providerId: 'drive',
           sourceId: 'source',
           accountId: 'account',
           providerFileId: 'file'),
       parentId: 'folder',
-      displayPath: 'fixture.chd',
-      displayName: 'fixture.chd',
+      displayPath: name,
+      displayName: name,
       version: '1',
       sizeBytes: payload.length,
       canDownload: true,
@@ -309,15 +313,67 @@ void main() {
       },
       openMedia: (source, offset, token) => media(source, offset, token));
   Future<void> queue(
-          {RemoteArtifact? source, String name = 'fixture.chd'}) async =>
+          {RemoteArtifact? source, String name = 'fixture.chd', String? archivePlatformId}) async =>
       journal.create(TransferRecord(
           id: 'transfer',
           artifact: source ?? artifact(),
           destinationRoot: '/roms',
           relativePath: name,
+          archivePlatformId: archivePlatformId,
           stagePath: '/owned/transfer.partial'));
   Future<InstalledArtifact?> installed() => journal.installationForTarget(
       destinationRoot: '/roms', relativePath: 'fixture.chd');
+
+  test('typed Game Gear ZIP is validated before publication and stays a ZIP', () async {
+    await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip', archivePlatformId: 'gamegear');
+    final result = await engine().start('transfer').result;
+    expect(result.lifecycle, TransferLifecycle.completed);
+    expect(native.methods.indexOf('ownedValidateGameGearZip'), lessThan(native.methods.indexOf('ownedPublish')));
+    expect(native.files['/roms/fixture.zip']!.bytes, payload);
+    expect(result.archivePlatformId, 'gamegear');
+  });
+  test('malformed archive cannot publish or obtain ownership', () async {
+    await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip', archivePlatformId: 'gamegear');
+    native.invalidArchive = true;
+    final result = await engine().start('transfer').result;
+    expect(result.lifecycle, TransferLifecycle.failed);
+    expect(result.errorCode, 'storage_unsupported_archive');
+    expect(native.methods, isNot(contains('ownedPublish')));
+    expect(await journal.installationForTarget(destinationRoot: '/roms', relativePath: 'fixture.zip'), isNull);
+  });
+  test('legacy untyped ZIP remains rejected before network IO', () async {
+    await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip');
+    final result = await engine().start('transfer').result;
+    expect(result.lifecycle, TransferLifecycle.failed);
+    expect(requests, isEmpty);
+    expect(native.methods, isEmpty);
+  });
+  test('cancellation during archive validation joins closure and prevents publication', () async {
+    await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip', archivePlatformId: 'gamegear');
+    final entered = Completer<void>(), release = Completer<void>();
+    native.before = (call) async {
+      if (call.method == 'ownedValidateGameGearZip') { entered.complete(); await release.future; }
+    };
+    final operation = engine().start('transfer');
+    await entered.future;
+    operation.pause();
+    release.complete();
+    expect((await operation.result).lifecycle, TransferLifecycle.paused);
+    expect(native.methods, isNot(contains('ownedPublish')));
+  });
+  test('renamed archive recovery validates its pinned published object again', () async {
+    await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip', archivePlatformId: 'gamegear');
+    native.after = (call) async { if (call.method == 'ownedPublish') throw StateError('lost receipt'); };
+    expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
+    native.after = null;
+    native.invalidArchive = true;
+    expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
+    expect(await journal.installationForTarget(destinationRoot: '/roms', relativePath: 'fixture.zip'), isNull);
+    native.invalidArchive = false;
+    expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.completed);
+    expect(requests, [0]);
+    expect(native.methods.where((m) => m == 'ownedValidateGameGearZip'), hasLength(3));
+  });
 
   OwnedInstallationRemoval remover() => OwnedInstallationRemoval(journal,
       storage: OwnedStorage(channel: native.channel));

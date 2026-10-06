@@ -59,4 +59,16 @@ void main() {
     await expectLater(launcher.open(game, SystemModel.supportedSystems.first, '/owned'), throwsUnsupportedError);
     expect(calls, isEmpty);
   });
+  test('mapped Game Gear ZIP keeps its filename and uses the owned RetroArch grant', () async {
+    final zip = exactGame('gg-zip', name: 'Game.zip');
+    final gg = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gamegear');
+    final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+      'artifact': zip.remoteArtifact!.toJson(), 'relativePath': 'Game.zip'});
+    final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+    expect(RomManager.getTargetFilename(zip, gg), 'Game.zip');
+    await launcher.open(zip, gg, '/owned');
+    expect(calls.single.method, 'launchOwnedRetroArchGameGear');
+    expect(calls.single.arguments, {'installationId': installed.id, 'filename': 'Game.zip'});
+    expect(OwnedEmulatorLauncher.supports(zip, system), isFalse);
+  });
 }

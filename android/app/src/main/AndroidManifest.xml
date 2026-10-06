@@ -65,6 +65,7 @@
             <package android:name="com.android.vending"/>
             <package android:name="com.google.android.gms"/>
             <package android:name="org.dolphinemu.dolphinemu"/>
+            <package android:name="com.retroarch.aarch64"/>
             <intent>
                 <action android:name="android.intent.action.PROCESS_TEXT"/>
                 <data android:mimeType="text/plain"/>

@@ -83,6 +83,7 @@ class RomManager {
   /// Returns the filename a game would have after download (archive → ROM extension).
   static String getTargetFilename(GameItem game, SystemModel system) {
     var filename = p.basename(game.filename);
+    if (game.remoteArtifact?.id.providerId == 'drive') return filename;
 
     for (final ext in _extractableExtensions) {
       if (filename.toLowerCase().endsWith(ext)) {

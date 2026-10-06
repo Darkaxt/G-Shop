@@ -100,15 +100,15 @@ const _transferConfig = ProviderConfig(
         rootFolderId: 'folder',
         serverClientId: 'public-client'));
 
-RemoteArtifact _artifact({int size = 5}) => RemoteArtifact(
+RemoteArtifact _artifact({int size = 5, String name = 'fixture.chd'}) => RemoteArtifact(
     id: RemoteArtifactId(
         providerId: 'drive',
         sourceId: 'source',
         accountId: 'account',
         providerFileId: 'file'),
     parentId: 'folder',
-    displayName: 'fixture.chd',
-    displayPath: 'fixture.chd',
+    displayName: name,
+    displayPath: name,
     sizeBytes: size,
     version: '1',
     providerChecksums: const {'md5': _md5},
@@ -116,9 +116,10 @@ RemoteArtifact _artifact({int size = 5}) => RemoteArtifact(
 
 class _Transport implements HttpClientAdapter {
   final int size;
+  final String name;
   String version = '1';
   Future<ResponseBody> Function(RequestOptions, Future<void>?)? mediaResponse;
-  _Transport({this.size = 5});
+  _Transport({this.size = 5, this.name = 'fixture.chd'});
   final requests = <RequestOptions>[];
   bool closed = false;
   @override
@@ -136,7 +137,7 @@ class _Transport implements HttpClientAdapter {
     }
     final file = {
       'id': 'file',
-      'name': 'fixture.chd',
+      'name': name,
       'mimeType': 'application/octet-stream',
       'parents': ['folder'],
       'size': '$size',
@@ -174,6 +175,7 @@ class _NativeStorage {
   final writeStarted = Completer<void>();
   Future<void>? finishWrite;
   bool published = false;
+  bool invalidArchive = false;
   bool sessionOpen = false;
   bool targetChanged = false;
   bool copyOnly = false;
@@ -245,6 +247,10 @@ class _NativeStorage {
             (args['offset'] as int) + (args['length'] as int)));
       case 'ownedCheckpoint':
         return identity;
+      case 'ownedValidateGameGearZip':
+        expect(sessionOpen, isTrue);
+        if (invalidArchive) throw PlatformException(code: 'unsupported_archive');
+        return null;
       case 'ownedPublish':
         if (copyOnly) throw PlatformException(code: 'unsupported');
         published = true;
@@ -394,18 +400,19 @@ class _TransferFixture {
   late final DriveAuthorization authorization = DriveAuthorization(driver);
   late final TransferJournal journal;
   late final DriveCatalogue catalogue;
-  _TransferFixture._(this.db, int size)
-      : metadata = _Transport(size: size),
-        media = _Transport(size: size);
+  _TransferFixture._(this.db, int size, String name)
+      : metadata = _Transport(size: size, name: name),
+        media = _Transport(size: size, name: name);
   static Future<_TransferFixture> create(
       {int size = 5,
+      String name = 'fixture.chd',
       bool loading = false,
       bool drainRefresh = false,
       bool retirementAckFailure = false,
       TransferJournal Function(Future<Database>)? createJournal,
       bool reserve = true}) async {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
-    final fixture = _TransferFixture._(db, size);
+    final fixture = _TransferFixture._(db, size, name);
     await TransferJournalSchema.install(db);
     await DriveCatalogueSchema.install(db);
     fixture.journal = createJournal?.call(Future.value(db)) ??
@@ -420,7 +427,7 @@ class _TransferFixture {
     final seed = DriveApi(
         authorization: fixture.authorization,
         accountId: 'account',
-        httpClientAdapter: _Transport(size: size));
+        httpClientAdapter: _Transport(size: size, name: name));
     try {
       await DriveCatalogue(Future.value(db)).refresh(
           sourceId: 'source',
@@ -433,9 +440,9 @@ class _TransferFixture {
     if (reserve) {
       await fixture.journal.create(TransferRecord(
           id: 'transfer',
-          artifact: _artifact(),
+          artifact: _artifact(name: name),
           destinationRoot: '/roms',
-          relativePath: 'fixture.chd',
+          relativePath: name,
           stagePath: '/owned/transfer.partial'));
     }
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -602,6 +609,64 @@ void main() {
       expect(fixture.native.bytes, [1,2,3,4,5]);
     });
   }
+  test('explicit Game Gear mapping admits a ZIP without admitting other archive layouts', () {
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gg'}), isTrue);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.z64', '.n64', '.v64'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gg'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.gg'}), isFalse);
+  });
+
+  for (final invalid in [false, true]) {
+    test('Game Gear ZIP adoption ${invalid ? 'rejects invalid layout' : 'preserves exact bytes and validates handoff'}', () async {
+      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.zip');
+      fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
+      fixture.native.published = true;
+      fixture.native.invalidArchive = invalid;
+      final runtime = fixture.runtime();
+      final adoption = runtime.adoptLocalCloudBytes(
+          config: _transferConfig, artifact: _artifact(name: 'fixture.zip'),
+          destinationRoot: '/roms', relativePath: 'fixture.zip',
+          supportedExtensions: {'.gg'}, cancellation: CancelToken());
+      if (invalid) {
+        await expectLater(adoption, throwsA(isA<OwnedStorageException>()));
+        expect(await fixture.db.query('installed_artifacts'), isEmpty);
+        expect(await fixture.db.query('transfer_records'), isEmpty);
+      } else {
+        final installed = await adoption;
+        final record = (await fixture.journal.transfer(installed.transferId))!;
+        expect(record.archivePlatformId, 'gamegear');
+        expect(installed.relativePath, 'fixture.zip');
+        await runtime.requireInstalledTransfer(record);
+        expect(fixture.native.calls.where((c) => c == 'ownedValidateGameGearZip'), hasLength(2));
+      }
+      expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
+      expect(fixture.native.published, isTrue);
+      expect(fixture.native.sessionOpen, isFalse);
+    });
+  }
+
+  test('normal Game Gear ZIP queue persists explicit intent before verified publication', () async {
+    final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.zip');
+    final runtime = fixture.runtime();
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
+    const system = SystemModel(id: 'gamegear', name: 'Game Gear', manufacturer: 'Sega', releaseYear: 1990, romExtensions: ['.gg']);
+    final terminal = _queueTerminal(queue);
+    queue.addToQueue(GameItem(filename: 'fixture.zip', displayName: 'Fixture',
+        url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
+        remoteArtifact: _artifact(name: 'fixture.zip')), system, '/roms');
+    final item = await terminal;
+    expect(item.status, DownloadStatus.completed, reason: item.error);
+    final record = (await fixture.journal.transfer(item.transferId!))!;
+    expect(record.archivePlatformId, 'gamegear');
+    expect(record.relativePath, 'fixture.zip');
+    expect(fixture.native.calls.indexOf('ownedValidateGameGearZip'), lessThan(fixture.native.calls.indexOf('ownedPublish')));
+    expect(await fixture.db.query('installed_artifacts'), hasLength(1));
+    await queue.close();
+    queue.dispose();
+    fixture.driver.finishSignOut.complete();
+    await runtime.disconnect();
+  });
+
   test('standalone adoption rejects unsupported archives and dependency manifests before IO', () async {
     for (final name in ['fixture.7z', 'fixture.cue', 'fixture.m3u', 'fixture.gdi', 'fixture.unknown']) {
       final fixture = await _TransferFixture.create(reserve: false);

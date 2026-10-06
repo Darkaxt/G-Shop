@@ -1,5 +1,61 @@
 # S7 live metadata and Thor migration
 
+## Game Gear safe ZIP / real handoff checkpoint — 2026-10-06
+
+S7 remains ACTIVE. This closes a bounded archive/handoff defect, not MIGRATE-01.
+The already-authorized standardized matching policy remains revision 9 / `f270427`;
+no score, classification or SD-removal rule was relaxed in this change.
+
+DRIVE-03/04/05/06 integration now admits only an explicitly mapped Game Gear ZIP
+with one bounded safe `.gg` member. Native pinned-object validation checks exact
+ZIP layout, local/central agreement, decompressed size and CRC without extraction.
+The immutable transfer mapping survives restart and recovery; untyped legacy ZIPs
+cannot acquire approval. Validation runs before publication/adoption, after
+recovered publication and at owned emulator open. Normal queue, malformed layout,
+cancellation, collision and recovered-publication host checks passed. Existing
+Dolphin and ordinary file routes remain unchanged.
+
+Live normal queue correctly rejected an unmanaged target collision without
+overwriting it. Ordinary exact-byte review adopted one current cloud-identical
+ZIP with truthful adoption provenance. RetroArch's missing private core was
+installed through its own UI from the existing shared copy. A subsequent native
+crash was isolated to the generic content-URI route by successful direct-local
+boot of the same archive. The replacement single document-leaf read grant retains
+the archive filename through SAF and rejects roots, siblings and nested requests;
+no directory/prefix/persistable/write grant was added. Final APK 206's ordinary
+Open in RetroArch action booted, and a cold second launch booted with Wi-Fi off.
+SHA-256 before/after was
+`2fc171b6ba8de52d9ce3572531fd37f8bf10326ae04470a82e56438908c34e11`.
+
+Evidence: focused Dart runtime/engine/launcher/journal workload exited zero;
+native `OwnedGameGearZipTest` and `OwnedRomGrantPathTest` XML report zero failures,
+errors and skips. Gated native verification plus normal debug assembly succeeded
+with ticket 206 / `2830c31e2bb84b94a1befdb2c892f8e5`, gate acquired, two workers,
+parallel false, observed 3 GiB Gradle heap, assessed in-process Kotlin, one 512 MiB
+test fork. Existing native per-ABI pools are one; global native concurrency was
+not established by the worker limit. No memory failure or raised budget.
+The final APK hash is
+`b71bd5884d3b433ddfce650eb7beabf34929c4dff0209ff349910d4ead42052c`;
+same-signer in-place installation preserved R-Shop configuration hash
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+Wi-Fi and the original PSP-only Best 25 view were restored; favorites are zero.
+Both physical displays are confirmed committed OFF. No original ROM removal,
+save/FolderSync change or cloud write occurred. Normal core installation is an
+explicit prerequisite change, not a claim that all RetroArch files are unchanged.
+Reviewed exact cleanup `0eb8b48e3b4755c3b6ab0680abe5ebf4` removed the obsolete
+host capture/debug config (128,667 bytes); two device captures and the task-created
+diagnostic config are verified absent. The required read-only helper is retained.
+
+Fresh read-only metadata evidence: IGDB Game Gear job 68 completed 548 editions
+with two matched/rated, 442 needsReview, 79 ambiguous and 25 unmatched. Its current
+ranking has zero qualified groups. Root generation 1 remains unpublished at
+144,225 observations / 10,765 pending folders; those counters do not prove liveness.
+One PSP projection is dirty after the UI checks. Remaining S7 criteria include
+missing full provider coverage, defensible classification/Top sets, an actual
+normal ZIP queue download and removal/re-download cycle, exact reviewed migration
+and before/after save/space proof. No host test or adoption substitutes for that
+live recovery acceptance. S8-S10 remain NOT STARTED; no required work disappeared.
+
 ## Game Gear traversal / next provider pass — 2026-10-06
 
 ScreenScraper job 66 completed its unchanged 548-item capture: one matched/rated,

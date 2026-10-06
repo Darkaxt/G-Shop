@@ -449,6 +449,18 @@ void main() {
     );
   });
 
+  test('archive mapping persists immutably without upgrading legacy intents', () async {
+    final legacy = TransferRecord.fromJson({..._queued().toJson(), 'relativePath': 'Game.zip'});
+    expect(legacy.archivePlatformId, isNull);
+    expect(legacy.toJson().containsKey('archivePlatformId'), isFalse);
+    final typed = TransferRecord.fromJson({...legacy.toJson(), 'archivePlatformId': 'gamegear'});
+    await journal.create(typed);
+    expect((await journal.transfer(typed.id))!.archivePlatformId, 'gamegear');
+    expect(typed.copyWith(lifecycle: TransferLifecycle.paused).archivePlatformId, 'gamegear');
+    await expectLater(journal.save(TransferRecord.fromJson({...typed.toJson()}..remove('archivePlatformId'))), throwsStateError);
+    expect(() => TransferRecord.fromJson({...legacy.toJson(), 'archivePlatformId': 'n64'}), throwsArgumentError);
+  });
+
   test('new reservations reject preexisting stage or publication evidence',
       () async {
     await expectLater(journal.create(_stage(_queued(), 0)), throwsStateError);

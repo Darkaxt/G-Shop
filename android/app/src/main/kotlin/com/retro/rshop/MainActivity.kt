@@ -220,7 +220,7 @@ class MainActivity : FlutterActivity() {
         }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method.startsWith("owned") || call.method == "launchOwnedDolphin") {
+            if (call.method.startsWith("owned") || call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear") {
                 val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }
                 service.handle(call, result)
                 return@setMethodCallHandler

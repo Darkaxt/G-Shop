@@ -119,6 +119,7 @@ class DriveRuntime {
     required RemoteArtifact artifact,
     required String destinationRoot,
     required String relativePath,
+    String? archivePlatformId,
   }) async {
     _requireConnectedLane();
     _requireArtifactSource(config, artifact);
@@ -142,6 +143,7 @@ class DriveRuntime {
     if (existing != null) {
       final record = await existing;
       _requireReservationSnapshot(record, artifact);
+      if (record.archivePlatformId != archivePlatformId) throw const OwnedStorageException('changed');
       return record;
     }
     final generation = _laneGeneration;
@@ -158,6 +160,7 @@ class DriveRuntime {
       final existing = await journal.transfer(id);
       if (existing != null) {
         _requireReservationSnapshot(existing, artifact);
+        if (existing.archivePlatformId != archivePlatformId) throw const OwnedStorageException('changed');
         final expectedPath = existing.replacesInstallation == null
             ? relativePath
             : _replacementPath(relativePath, id);
@@ -181,6 +184,7 @@ class DriveRuntime {
         }
         await index.requireInstallation(row.transfer, installed);
         if (InstallationSnapshot.sameContent(installed.artifact, artifact)) {
+          if (row.transfer.archivePlatformId != archivePlatformId) throw const OwnedStorageException('changed');
           return row.transfer;
         }
         if (previous != null) {
@@ -195,6 +199,7 @@ class DriveRuntime {
           artifact: artifact,
           destinationRoot: destinationRoot,
           relativePath: target,
+          archivePlatformId: archivePlatformId,
           replacesInstallation: previous,
           stagePath: plan.stagePath(id)));
     }();
@@ -452,6 +457,7 @@ class DriveRuntime {
   /// archive or title-based namesake. Ownership does not authorize migration.
   static bool supportsStandaloneAdoption(String filename, Set<String> extensions) {
     final extension = p.posix.extension(filename).toLowerCase();
+    if (extension == '.zip') return extensions.length == 1 && extensions.single.toLowerCase() == '.gg';
     return extensions.map((e) => e.toLowerCase()).contains(extension) &&
         !BundleReferences.isManifest(filename) &&
         !{'.zip', '.7z', '.rar', '.gz', '.gdi'}.contains(extension);
@@ -478,6 +484,7 @@ class DriveRuntime {
       await _compareLocalCloudBytes(config: config, artifact: artifact,
           destinationRoot: destinationRoot, relativePath: relativePath,
           cancellation: cancellation,
+          validateArchive: artifact.displayName.toLowerCase().endsWith('.zip'),
           onVerified: (observation, stagePath, check) async {
             await DriveDownloadBoundary(config: config, artifact: artifact,
                 catalogue: catalogue, api: apiFor(config.drive!))
@@ -494,7 +501,8 @@ class DriveRuntime {
             final id = 'adoption-${List.generate(16, (_) => random.nextInt(256)
                 .toRadixString(16).padLeft(2, '0')).join()}';
             installation = await journal.adoptVerifiedFile(observation, id: id,
-                stagePath: stagePath, checkCancellation: check);
+                stagePath: stagePath, checkCancellation: check,
+                archivePlatformId: artifact.displayName.toLowerCase().endsWith('.zip') ? 'gamegear' : null);
           });
     });
     return installation;
@@ -507,6 +515,7 @@ class DriveRuntime {
     required String relativePath,
     required CancelToken cancellation,
     Future<void> Function(DriveLocalCloudObservation, String, void Function())? onVerified,
+    bool validateArchive = false,
   }) async {
     _requireConnectedLane();
     _requireArtifactSource(config, artifact);
@@ -574,6 +583,10 @@ class DriveRuntime {
         final finalLocal = await verification.verifyBytes(
             session.bytes(identity.sizeBytes),
             cancellation: cancellation);
+        if (validateArchive) {
+          await session.validateGameGearZip();
+          checkCancellation();
+        }
         final current = await _storage.inspect(
             destinationRoot: destinationRoot,
             relativePath: relativePath,
@@ -675,6 +688,14 @@ class DriveRuntime {
         relativePath: record.relativePath);
     await InstallationIndex(journal, storage: _storage)
         .requireInstallation(record, installation, bundleOwner: bundleOwner);
+    if (record.relativePath.toLowerCase().endsWith('.zip')) {
+      if (record.archivePlatformId != 'gamegear') throw const OwnedStorageException('unsupported_archive');
+      final session = await _storage.open(destinationRoot: record.destinationRoot,
+          relativePath: record.relativePath, stagePath: record.stagePath,
+          durableOffset: record.durableOffset, expectedIdentity: installation!.fileIdentity,
+          published: true);
+      try { await session.validateGameGearZip(); } finally { await session.close(); }
+    }
   }
 
   Future<TransferRecord> finishRetainedStage(TransferRecord record) =>

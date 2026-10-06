@@ -86,6 +86,9 @@ class TransferRecord {
   final String destinationRoot;
   final String relativePath;
   final String stagePath;
+  /// Immutable explicit mapping for the supported archive route, not inferred
+  /// from an archive suffix or retroactively applied to legacy records.
+  final String? archivePlatformId;
 
   /// Immutable previous owner. Replacement publishes to a distinct path before
   /// this exact installation can be retired; it never overwrites the old target.
@@ -120,6 +123,7 @@ class TransferRecord {
     required String destinationRoot,
     required String relativePath,
     required String stagePath,
+    this.archivePlatformId,
     this.replacesInstallation,
     this.bundleOwner,
     List<TransferBundleMember> bundleMembers = const [],
@@ -140,6 +144,12 @@ class TransferRecord {
         stageRetirementIssue = _errorCode(stageRetirementIssue),
         verifiedChecksums = _checksums(verifiedChecksums),
         bundleMembers = List.unmodifiable(bundleMembers) {
+    if (archivePlatformId != null &&
+        (archivePlatformId != 'gamegear' ||
+            !relativePath.toLowerCase().endsWith('.zip') ||
+            bundleOwner != null || bundleMembers.isNotEmpty)) {
+      throw ArgumentError('Unsupported archive mapping');
+    }
     if (bundleMembers.isNotEmpty && bundleOwner != null) {
       throw ArgumentError('A member cannot own a nested bundle');
     }
@@ -171,6 +181,7 @@ class TransferRecord {
         destinationRoot: json['destinationRoot'] as String,
         relativePath: json['relativePath'] as String,
         stagePath: json['stagePath'] as String,
+        archivePlatformId: json['archivePlatformId'] as String?,
         bundleOwner: json['bundleOwner'] as String?,
         bundleMembers: [
           for (final member in json['bundleMembers'] as List? ?? const [])
@@ -221,6 +232,7 @@ class TransferRecord {
         destinationRoot: destinationRoot,
         relativePath: relativePath,
         stagePath: stagePath,
+        archivePlatformId: archivePlatformId,
         replacesInstallation: replacesInstallation,
         bundleOwner: bundleOwner,
         bundleMembers: bundleMembers,
@@ -243,6 +255,7 @@ class TransferRecord {
         'destinationRoot': destinationRoot,
         'relativePath': relativePath,
         'stagePath': stagePath,
+        if (archivePlatformId != null) 'archivePlatformId': archivePlatformId,
         if (bundleOwner != null) 'bundleOwner': bundleOwner,
         if (bundleMembers.isNotEmpty)
           'bundleMembers': [

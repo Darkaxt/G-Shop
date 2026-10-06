@@ -136,12 +136,19 @@ class DriveTransferOperation {
       _record = await _engine.journal.transfer(transferId);
       if (_record == null) throw StateError('Unknown transfer');
       _notifyCheckpoint();
+      if (record.relativePath.toLowerCase().endsWith('.zip') && record.archivePlatformId != 'gamegear') {
+        throw const OwnedStorageException('unsupported_archive');
+      }
       if (record.lifecycle == TransferLifecycle.completed) {
         final installation = await _engine.journal.installationForTarget(
             destinationRoot: record.destinationRoot,
             relativePath: record.relativePath);
         await InstallationIndex(_engine.journal, storage: _engine.storage)
             .requireInstallation(record, installation);
+        if (record.archivePlatformId != null) {
+          _session = await _open(published: true, identity: installation!.fileIdentity);
+          await _validateArchive();
+        }
         return record;
       }
       final verification = DriveVerification(record.artifact);
@@ -191,6 +198,7 @@ class DriveTransferOperation {
         final hashes = await verification.verifyBytes(
             _session!.bytes(record.artifact.sizeBytes!),
             cancellation: _cancellation);
+        await _validateArchive();
         _checkCancellation();
         await _engine.revalidate(record.artifact, _cancellation);
         _checkCancellation();
@@ -376,6 +384,7 @@ class DriveTransferOperation {
       _session = await _open(published: true, identity: intent.sourceIdentity);
       await _verifyRecorded(
           verification, _session!.bytes(record.durableOffset));
+      await _validateArchive();
       final identity = await _session!.checkpoint();
       if (!identity.matches(intent.sourceIdentity)) {
         throw const OwnedStorageException('changed');
@@ -390,12 +399,21 @@ class DriveTransferOperation {
     }
     _session = await _open();
     await _verifyRecorded(verification, _session!.bytes(record.durableOffset));
+    await _validateArchive();
     final identity = await _session!.checkpoint();
     if (!identity.matches(intent.sourceIdentity)) {
       throw const OwnedStorageException('changed');
     }
     _checkCancellation();
     await _publish(verification);
+  }
+
+  Future<void> _validateArchive() async {
+    if (record.archivePlatformId == 'gamegear') {
+      _checkCancellation();
+      await _session!.validateGameGearZip();
+      _checkCancellation();
+    }
   }
 
   Future<void> _publish(DriveVerification verification) async {

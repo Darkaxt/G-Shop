@@ -59,6 +59,7 @@ class OwnedStorage {
         'collision',
         'not_found',
         'unsupported',
+        'unsupported_archive',
         'cross_volume',
         'out_of_space',
         'access_denied',
@@ -280,6 +281,12 @@ class OwnedStorageSession {
     _requireOpen();
     return OwnedStorage.decodeIdentity(
         await _storage._invoke('ownedCheckpoint', {'session': id}));
+  }
+
+  /// Native bounded validation of this pinned object; never an arbitrary path.
+  Future<void> validateGameGearZip() async {
+    _requireOpen();
+    await _storage._invoke('ownedValidateGameGearZip', {'session': id});
   }
 
   /// Caller must journal publishing intent and verified evidence beforehand.

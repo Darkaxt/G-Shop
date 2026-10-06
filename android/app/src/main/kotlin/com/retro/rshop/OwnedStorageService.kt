@@ -45,16 +45,27 @@ internal class OwnedStorageService(private val context: Context) {
             worker.execute {
                 try {
                     if (closed) throw Failure("closed")
-                    if (call.method == "launchOwnedDolphin") {
-                        val uri = OwnedRomContentProvider.uri(context,
+                    if (call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear") {
+                        val gameGear = call.method == "launchOwnedRetroArchGameGear"
+                        if (gameGear && !string(call, "filename").lowercase(java.util.Locale.ROOT).endsWith(".zip")) throw Failure("unsupported_archive")
+                        val uri = if (gameGear) OwnedRomContentProvider.gameGearUri(context,
+                            string(call, "installationId"), string(call, "filename"))
+                        else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri).use { }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)
                             } else try {
-                                val intent = context.packageManager.getLaunchIntentForPackage("org.dolphinemu.dolphinemu")
+                                val app = if (gameGear) "com.retroarch.aarch64" else "org.dolphinemu.dolphinemu"
+                                val intent = context.packageManager.getLaunchIntentForPackage(app)
                                     ?: throw Failure("emulator_missing")
+                                if (gameGear) {
+                                    intent.setClassName(app, "com.retroarch.browser.retroactivity.RetroActivityFuture")
+                                    val data = context.packageManager.getApplicationInfo(app, 0).dataDir
+                                    intent.putExtra("ROM", uri.toString())
+                                    intent.putExtra("LIBRETRO", "$data/cores/genesis_plus_gx_libretro_android.so")
+                                }
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)
                                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -62,7 +73,7 @@ internal class OwnedStorageService(private val context: Context) {
                                 // Activity acceptance is not a claim that the ROM booted.
                                 result.success(null)
                             } catch (_: Failure) {
-                                result.error("emulator_missing", "Dolphin is not installed", null)
+                                result.error("emulator_missing", "Required emulator is not installed", null)
                             } catch (_: Exception) {
                                 result.error("launch_denied", "Emulator launch was rejected", null)
                             }
@@ -164,6 +175,16 @@ internal class OwnedStorageService(private val context: Context) {
             validateLocation(session)
             syncCheckpoint(session)
             identityMap(OwnedStorageNative.identity(session.fileFd))
+        }
+        "ownedValidateGameGearZip" -> {
+            val session = session(call)
+            validateLocation(session)
+            val before = OwnedStorageNative.identity(session.fileFd)
+            try { OwnedGameGearZip.validate("/proc/self/fd/${session.fileFd}") }
+            catch (_: IOException) { throw Failure("unsupported_archive") }
+            validateLocation(session)
+            if (!before.contentEquals(OwnedStorageNative.identity(session.fileFd))) throw Failure("changed")
+            null
         }
         "ownedPublish" -> publish(call)
         "ownedClose" -> {
