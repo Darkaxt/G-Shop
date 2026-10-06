@@ -38,6 +38,75 @@ class FakeDriveAuthorizationDriver implements DriveAuthorizationDriver {
 }
 
 void main() {
+  test(
+      'account-bound requests reuse an in-memory grant without native reauthorization',
+      () async {
+    final driver = FakeDriveAuthorizationDriver();
+    final auth = DriveAuthorization(driver);
+    final first = await auth.acquire(expectedAccountId: 'account-a');
+    final second = await auth.acquire(expectedAccountId: 'account-a');
+    expect(second.accessToken, first.accessToken);
+    expect(
+        driver.calls.where((c) => c.startsWith('authenticate:')), hasLength(2));
+    expect(driver.calls.where((c) => c.startsWith('authorize:')), hasLength(1));
+  });
+
+  test(
+      'a rejected cached token renews once and a stale rejection retains the new grant',
+      () async {
+    final driver = FakeDriveAuthorizationDriver()..token = 'token-one';
+    final auth = DriveAuthorization(driver);
+    await auth.acquire(expectedAccountId: 'account-a');
+    driver.token = 'token-two';
+    final results = await Future.wait([
+      auth.acquire(expectedAccountId: 'account-a', rejectedToken: 'token-one'),
+      auth.acquire(expectedAccountId: 'account-a', rejectedToken: 'token-one'),
+    ]);
+    expect(results.map((g) => g.accessToken), ['token-two', 'token-two']);
+    expect(driver.calls.where((c) => c.startsWith('clear:')), hasLength(1));
+    expect(driver.calls.where((c) => c.startsWith('authorize:')), hasLength(2));
+  });
+
+  test('interactive reconnect retires the cached grant', () async {
+    final driver = FakeDriveAuthorizationDriver()..token = 'token-one';
+    final auth = DriveAuthorization(driver);
+    await auth.acquire(expectedAccountId: 'account-a');
+    driver.token = 'token-two';
+    expect(
+        (await auth.acquire(expectedAccountId: 'account-a', interactive: true))
+            .accessToken,
+        'token-two');
+    expect((await auth.acquire(expectedAccountId: 'account-a')).accessToken,
+        'token-two');
+    expect(driver.calls.where((c) => c.startsWith('authorize:')), hasLength(2));
+  });
+
+  test('a cached grant cannot cross a connected-account change', () async {
+    final driver = FakeDriveAuthorizationDriver();
+    final auth = DriveAuthorization(driver);
+    await auth.acquire(expectedAccountId: 'account-a');
+    driver.account = 'account-b';
+    await expectLater(
+        auth.acquire(expectedAccountId: 'account-a'),
+        throwsA(isA<DriveAuthorizationException>().having(
+            (e) => e.issue, 'issue', DriveAuthorizationIssue.accountMismatch)));
+    expect(driver.calls.where((c) => c.startsWith('authorize:')), hasLength(1));
+  });
+
+  test(
+      'signout retires a previously cached grant even when the same account reconnects',
+      () async {
+    final driver = FakeDriveAuthorizationDriver()..token = 'token-one';
+    final auth = DriveAuthorization(driver);
+    await auth.acquire(expectedAccountId: 'account-a');
+    await auth.signOut();
+    driver.account = 'account-a';
+    driver.token = 'token-two';
+    expect((await auth.acquire(expectedAccountId: 'account-a')).accessToken,
+        'token-two');
+    expect(driver.calls.where((c) => c.startsWith('authorize:')), hasLength(2));
+  });
+
   test('requests only read-only Drive authorization and redacts the grant',
       () async {
     final driver = FakeDriveAuthorizationDriver();

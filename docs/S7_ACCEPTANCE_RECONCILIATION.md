@@ -1,5 +1,29 @@
 # S7 live metadata and Thor migration
 
+## Drive authorization lifecycle checkpoint — 2026-10-06
+
+The existing serialized authorization boundary now reuses its successful
+account-bound grant in memory instead of invoking native scope authorization for
+every request. Reconnect, sign-out and connected-account mismatch retire it;
+actual rejected-token renewal remains at the API/media boundary. Concurrent stale
+rejections preserve a newer grant. Focused authorization/API/media checks and
+analysis passed; no persisted token, timer expiry or extra retry was introduced.
+
+The same-signer normal APK installed without changing the source configuration.
+Native default-account reconnect succeeded. Normal Saved jobs resumed N64 job 70
+without a fresh snapshot: pending 1,128 -> 1,118, running, 34 raw-identified/rated.
+Normal root Refresh resumed generation 1: observations 150,515 -> 150,630 and
+pending folders 8,803 -> 8,765, nextGeneration=2. These prove resumed progress,
+not full coverage or terminal success. Real expiry/rejection was not forced;
+rejection concurrency is host-tested. See the status ledger for build/profile
+and APK evidence, including the truncated supervisor acquisition flag limitation.
+
+S7 remains the sole ACTIVE stage. Its complete fresh scrape, defensible rankings,
+root publication, remaining formats and reviewed save/space-safe migration do not
+pass yet. The requested bulk provenance-classification decision is pending;
+unknown classifications and scores are not fabricated. Both screens are OFF,
+original data and configuration are preserved, and S8-S10 are NOT STARTED.
+
 ## PS1 standalone CHD recovery checkpoint — 2026-10-06
 
 The normal owned-file route now supports standalone PS1 CHDs with the installed

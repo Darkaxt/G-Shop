@@ -42,6 +42,7 @@ class DriveAuthorization {
   final DriveAuthorizationDriver _driver;
   Future<void> _tail = Future<void>.value();
   int _sessionGeneration = 0;
+  DriveAuthorizationGrant? _grant;
 
   DriveAuthorization(this._driver);
 
@@ -73,16 +74,29 @@ class DriveAuthorization {
     return _serialized(() async {
       try {
         _requireGeneration(generation);
+        if (interactive) _grant = null;
         final accountId = await _driver.authenticate(interactive: interactive);
         _requireGeneration(generation);
         if (accountId == null || accountId.isEmpty) {
+          _grant = null;
           throw const DriveAuthorizationException(
               DriveAuthorizationIssue.interactionRequired);
         }
         if (expectedAccountId != null && expectedAccountId != accountId) {
+          _grant = null;
           throw const DriveAuthorizationException(
               DriveAuthorizationIssue.accountMismatch);
         }
+        final current = _grant;
+        // A native scope check may issue a token remotely, even when consent
+        // already exists. Keep the actual account-bound grant until the API
+        // rejects it, never a timer lease. An older concurrent 401 cannot
+        // invalidate a newer successful grant in this serialized lane.
+        if (current?.accountId == accountId &&
+            current!.accessToken != rejectedToken) {
+          return current;
+        }
+        _grant = null;
         if (rejectedToken != null) {
           await _driver.clearRejectedToken(accountId, rejectedToken);
           _requireGeneration(generation);
@@ -94,7 +108,7 @@ class DriveAuthorization {
           throw const DriveAuthorizationException(
               DriveAuthorizationIssue.interactionRequired);
         }
-        return DriveAuthorizationGrant(accountId, token);
+        return _grant = DriveAuthorizationGrant(accountId, token);
       } on DriveAuthorizationException {
         rethrow;
       } catch (_) {
@@ -108,6 +122,7 @@ class DriveAuthorization {
     // Invalidate outstanding operations synchronously, then await actual native
     // shutdown. A late consent completion can never publish a usable grant.
     _sessionGeneration++;
+    _grant = null;
     return _serialized(() async {
       try {
         await _driver.signOut(revoke: revoke);

@@ -855,6 +855,10 @@ Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
 QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
 - Run the fresh full metadata pass and record real coverage/match/rating results.
+  Recheck the observed repeated native Drive authorization during root traversal
+  and archive identification. Reuse only an in-memory account-bound grant; prove
+  rejection renewal, stale concurrent rejection, reconnect/sign-out invalidation
+  and the normal saved-job/root-generation resume without resetting either.
   Implement and verify the 2026-10-06 UI-02 scraping preview and daily quota
   feedback in this same ACTIVE stage; it is not a second implementation stage
   and does not waive identity, ranking or migration acceptance criteria.

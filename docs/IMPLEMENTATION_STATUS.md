@@ -5,6 +5,52 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 account-bound Drive token reuse and checkpoint resume — 2026-10-06
+
+- Traced redundant native authorization to `DriveAuthorization.acquire`: every
+  request called the native scope authorization service despite a usable grant.
+  The prior live pause coincided with microG `IssueToken` crashes; causation of
+  those service crashes by request frequency is not established. The corrected
+  serialized lane retains a grant in memory for its connected account, retires
+  it on reconnect/sign-out/account mismatch, and renews on actual rejection.
+  Concurrent stale rejections cannot retire a newer grant. No timer lease,
+  persisted token, additional retry or consent bypass was added.
+- Focused authorization/API/media regression checks passed, including concurrent
+  rejection, reconnect, account isolation and sign-out. Scoped analysis and
+  whitespace checks passed. The reuse/rejection regressions failed before the
+  implementation. No full suite was run.
+- Gated debug packaging ticket 220 succeeded. The installed supervisor executes
+  its wrapper inside `Local\Darka.AndroidGradleBuildGate`; the inspected current
+  log `047159a2309241d588f295434ca5b12b.log` records successful wrapper completion
+  and effective two workers, parallel=false and 3-GiB Gradle heap. The final
+  supervisor JSON was truncated in tool output, so its separate acquisition flag
+  is not retained as direct evidence. Kotlin 2.2.20 was requested in-process;
+  configured tests use one 512-MiB fork (none ran in this packaging invocation).
+  Required Metaspace/code-cache arguments were preserved. Existing app Ninja
+  pools remain depth one per ABI; complete plugin-native concurrency is not
+  claimed. No memory failure or budget increase was observed.
+- Normal same-signer in-place installation succeeded. APK SHA-256:
+  `9dd923876d707e0d2c1ac574c5a44d7ea590996bf3414c91b94e897a8b0d9f9e`.
+  Normal default-account reconnection succeeded; Back without Save preserved the
+  complete source configuration SHA-256
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+- Normal Saved jobs selection resumed SAME N64 job 70. Read-only observations
+  show running and pending 1,128 -> 1,118, with 34 accepted/rated raw-identified
+  editions. Normal Refresh resumed SAME root generation 1: observations
+  150,515 -> 150,630, pending folders 8,803 -> 8,765, nextGeneration=2. This is
+  live resumed progress, not completed traversal, classification or ranking.
+  Provider rejection renewal is host-verified; a new real token expiry/rejection
+  was not forced in this native check.
+- Both physical displays are freshly committed OFF. No original ROM, save,
+  BIOS, FolderSync setting or cloud file was edited. The exact task-owned device
+  UI dump was removed and absence verified; no host capture was created. Build
+  logs/APK and the bounded read-only S7 observer remain required evidence.
+- S7 remains the sole ACTIVE stage. Full fresh metadata, defensible per-console
+  Top-25, root publication, remaining formats and reviewed save/space-safe
+  migration remain required. The bulk LoLSuite-provenance classification policy
+  question is pending; unknown editions are not silently classified or ranked.
+  S8-S10 remain NOT STARTED. No external release occurred.
+
 ### S7 PS1 standalone CHD owned recovery — 2026-10-06
 
 - Added the missing standalone PS1 CHD route to the existing committed-leaf

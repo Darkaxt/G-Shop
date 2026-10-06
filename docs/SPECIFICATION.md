@@ -167,6 +167,14 @@ not satisfy a fresh scrape or acquire invented provenance.
 
 ### DRIVE-01 — Native, read-only account authorization
 
+S7 token-lifecycle detail: retain a successful account-bound read-only grant only
+in process memory. Background Drive operations must not repeat native scope
+authorization while that grant remains usable. Check the connected account before
+reuse; retire the grant on explicit interactive connection or sign-out, and renew
+on a real API token rejection. Concurrent rejection of an older token must not
+retire a newer successful grant. Do not persist credentials, add timer-based token
+leases, bypass consent or silently select another account.
+
 Use native Android Google authorization behind a Flutter adapter and Drive API
 v3. Support account selection, sign-out/revocation, token renewal and an explicit
 reauthorization state. Do not persist bearer tokens in catalogues, exported config
