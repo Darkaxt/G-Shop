@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
@@ -16,6 +17,7 @@ import '../../models/owned_removal_record.dart';
 import '../../models/transfer_record.dart';
 import '../database_service.dart';
 import '../installation_index.dart';
+import '../installation_paths.dart';
 import '../owned_storage.dart';
 import '../owned_installation_removal.dart';
 import '../transfer_journal.dart';
@@ -442,6 +444,69 @@ class DriveRuntime {
     required String destinationRoot,
     required String relativePath,
     required CancelToken cancellation,
+  }) => _compareLocalCloudBytes(config: config, artifact: artifact,
+      destinationRoot: destinationRoot, relativePath: relativePath,
+      cancellation: cancellation);
+
+  /// Explicitly adopts one standalone file, never a saved observation, bundle,
+  /// archive or title-based namesake. Ownership does not authorize migration.
+  static bool supportsStandaloneAdoption(String filename, Set<String> extensions) {
+    final extension = p.posix.extension(filename).toLowerCase();
+    return extensions.map((e) => e.toLowerCase()).contains(extension) &&
+        !BundleReferences.isManifest(filename) &&
+        !{'.zip', '.7z', '.rar', '.gz', '.gdi'}.contains(extension);
+  }
+
+  Future<InstalledArtifact> adoptLocalCloudBytes({
+    required ProviderConfig config,
+    required RemoteArtifact artifact,
+    required String destinationRoot,
+    required String relativePath,
+    required Set<String> supportedExtensions,
+    required CancelToken cancellation,
+  }) async {
+    if (!supportsStandaloneAdoption(artifact.displayName, supportedExtensions)) {
+      throw const BundleLayoutException('unsupported_member_format');
+    }
+    late InstalledArtifact installation;
+    await InstallationMutations.run(p.join(destinationRoot, relativePath), () async {
+      final claims = await InstallationIndex(journal, storage: _storage)
+          .scan(destinationRoot, verifyInstalled: false);
+      if (claims.protects(p.join(destinationRoot, relativePath))) {
+        throw StateError('Adoption target already has an owner');
+      }
+      await _compareLocalCloudBytes(config: config, artifact: artifact,
+          destinationRoot: destinationRoot, relativePath: relativePath,
+          cancellation: cancellation,
+          onVerified: (observation, stagePath, check) async {
+            await DriveDownloadBoundary(config: config, artifact: artifact,
+                catalogue: catalogue, api: apiFor(config.drive!))
+                .revalidate(cancellation: cancellation);
+            // Close acknowledgement can itself be asynchronous. Recheck after it
+            // rather than treating the earlier descriptor observation as current.
+            final current = await _storage.inspect(destinationRoot: destinationRoot,
+                relativePath: relativePath, stagePath: stagePath, published: true);
+            if (current == null || !observation.localIdentity.matches(current)) {
+              throw const OwnedStorageException('changed');
+            }
+            check();
+            final random = Random.secure();
+            final id = 'adoption-${List.generate(16, (_) => random.nextInt(256)
+                .toRadixString(16).padLeft(2, '0')).join()}';
+            installation = await journal.adoptVerifiedFile(observation, id: id,
+                stagePath: stagePath, checkCancellation: check);
+          });
+    });
+    return installation;
+  }
+
+  Future<DriveLocalCloudObservation> _compareLocalCloudBytes({
+    required ProviderConfig config,
+    required RemoteArtifact artifact,
+    required String destinationRoot,
+    required String relativePath,
+    required CancelToken cancellation,
+    Future<void> Function(DriveLocalCloudObservation, String, void Function())? onVerified,
   }) async {
     _requireConnectedLane();
     _requireArtifactSource(config, artifact);
@@ -536,6 +601,8 @@ class DriveRuntime {
       checkCancellation();
       await journal.saveByteObservation(observation);
       checkCancellation();
+      await onVerified?.call(observation, stagePath, checkCancellation);
+      // An adoption commit that won the cancellation race remains truthful.
       return observation;
     }();
     _recoveryReviews[cancellation] = operation;

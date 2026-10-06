@@ -1,5 +1,41 @@
 # S7 live metadata and Thor migration
 
+## Deliberate standalone adoption — 2026-10-06
+
+The normal review now separates read-only byte checking from explicit adoption.
+Adoption repeats current full local/cloud checks, awaits closed native reads,
+revalidates Drive and public namespace, then commits installation, transfer
+provenance and exact target owner in one existing journal transaction. It uses
+the existing installation index and exact owned-removal engine, not a parallel
+migration framework. No copy/stage/rename/deletion occurs during adoption.
+Existing claims, cancelled or changed inputs and database failure leave the
+unmanaged file intact and create no partial owner. Supported standalone formats
+are supplied by normal console settings; archives/dependency manifests are
+excluded. No title-specific rules or individual metadata approvals were added.
+
+Focused runtime/journal/dialog checks passed for the current implementation;
+scoped analyzer found no issues. Synthetic exact removal after adoption passed.
+Normal signature-preserving build 189 install -r and UI proved the actual RVZ
+comparison/adoption. An initially required authorization reconnect preserved the
+file and left no claim; normal default-account reconnect changed no configuration.
+The normal detail controller then recognized the managed installation. A bounded
+READONLY journal check before and after process restart showed completed `adopt`,
+one owner, confirmed publication, absent stage identity and truthful no-stage
+retirement. Independent before/after file hashes and configuration hash agree.
+Native removal was not performed. Both physical displays are committed OFF.
+
+Build evidence: shared gate acquired, exit zero; observed workers=2,
+parallel=false, Gradle maximum heap 3 GiB; assessed Kotlin in-process shares that
+budget. Existing JVM flags remained. One test fork/512 MiB is configuration
+evidence only, and native one-slot task pools are not a measured host-wide cap.
+No memory failure/increase. APK/hash and private build-log location are recorded
+in IMPLEMENTATION_STATUS.md. No release or cloud/save/FolderSync mutation occurred.
+
+This closes the narrow standalone ownership integration detail, not S7.
+Collection-wide reliable Top-25 coverage, reviewed execution/recovery/save/sync
+gates, retained-set validation and actual SD migration remain unfinished. S7 is
+ACTIVE; S8-S10 are NOT STARTED. A managed installation is not migration authority.
+
 ## Collection-level diagnosis and descriptive preview — 2026-10-06
 
 The fresh bounded, read-only aggregate audit confirms that completed API jobs

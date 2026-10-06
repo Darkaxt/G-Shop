@@ -11,7 +11,8 @@ enum TransferLifecycle {
   failed,
 }
 
-enum PublicationMethod { rename, copy }
+/// Adoption records an existing exact public file; no stage or rename occurred.
+enum PublicationMethod { rename, copy, adopt }
 
 /// Immutable flattened dependency graph. Paths include the exclusive bundle
 /// namespace; every member keeps its original emulator-relative filename.
@@ -108,7 +109,8 @@ class TransferRecord {
   /// A bounded machine code, never raw exception text, URLs, or credentials.
   final String? errorCode;
 
-  /// Digests computed from the complete staged bytes. Provider digests remain
+  /// Digests computed from complete staged bytes, or the existing public file
+  /// during explicit adoption. Provider digests remain
   /// identified by their provider keys; `sha256` is the local streaming digest.
   final Map<String, String> verifiedChecksums;
 

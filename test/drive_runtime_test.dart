@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:path/path.dart' as p;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,8 @@ import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:retro_eshop/services/download_queue_manager.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/services/native_smb_service.dart';
+import 'package:retro_eshop/services/installation_index.dart';
+import 'package:retro_eshop/services/owned_installation_removal.dart';
 
 class _Driver implements DriveAuthorizationDriver {
   final signedOut = Completer<void>();
@@ -530,6 +533,88 @@ Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('explicit adoption compares current bytes and commits a reusable owner', () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    fixture.native.bytes.addAll([1,2,3,4,5]);
+    fixture.native.published = true;
+    final runtime = fixture.runtime();
+    final installed = await runtime.adoptLocalCloudBytes(
+        config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
+        relativePath: 'fixture.chd', supportedExtensions: {'.chd'},
+        cancellation: CancelToken());
+    final record = (await fixture.journal.transfer(installed.transferId))!;
+    expect(record.lifecycle, TransferLifecycle.completed);
+    expect(record.publication!.method.name, 'adopt');
+    expect(record.stageIdentity, isNull);
+    expect(record.stageRetired, isTrue);
+    expect(fixture.native.bytes, [1,2,3,4,5]);
+    expect(fixture.native.sessionOpen, isFalse);
+    expect(fixture.native.stagePresent, isFalse);
+    expect(fixture.media.requests, hasLength(1));
+    expect(await fixture.db.query('owned_removals'), isEmpty);
+    expect(await InstallationIndex(fixture.journal,
+        storage: OwnedStorage(channel: fixture.native.channel))
+        .resolveArtifact(_artifact(), '/roms'), p.normalize(p.absolute('/roms/fixture.chd')));
+    // Existing durable owned removal, not an alternate migration delete engine.
+    await OwnedInstallationRemoval(fixture.journal,
+        storage: OwnedStorage(channel: fixture.native.channel)).remove(installed);
+    expect(fixture.native.published, isFalse);
+    expect(fixture.native.quarantinePresent, isFalse);
+    expect(await fixture.db.query('installed_artifacts'), isEmpty);
+  });
+  test('an existing transfer owner prevents adoption without file changes', () async {
+    final fixture = await _TransferFixture.create();
+    fixture.native.bytes.addAll([1,2,3,4,5]);
+    fixture.native.published = true;
+    await expectLater(fixture.runtime().adoptLocalCloudBytes(
+        config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
+        relativePath: 'fixture.chd', supportedExtensions: {'.chd'},
+        cancellation: CancelToken()), throwsStateError);
+    expect(await fixture.db.query('transfer_records'), hasLength(1));
+    expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    expect(fixture.native.bytes, [1,2,3,4,5]);
+    expect(fixture.native.published, isTrue);
+    expect(fixture.media.requests, isEmpty);
+  });
+  for (final change in ['cancel', 'namespace', 'cloud']) {
+    test('adoption rejects $change after closed comparison without claiming ownership', () async {
+      late _HeldObservationJournal held;
+      final fixture = await _TransferFixture.create(reserve: false,
+          createJournal: (db) => held = _HeldObservationJournal(db));
+      fixture.native.bytes.addAll([1,2,3,4,5]);
+      fixture.native.published = true;
+      final token = CancelToken();
+      final adoption = fixture.runtime().adoptLocalCloudBytes(
+          config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
+          relativePath: 'fixture.chd', supportedExtensions: {'.chd'}, cancellation: token);
+      final failed = expectLater(adoption, throwsA(anything));
+      await held.entered.future;
+      expect(fixture.native.sessionOpen, isFalse);
+      if (change == 'cancel') token.cancel();
+      if (change == 'namespace') fixture.native.targetChanged = true;
+      if (change == 'cloud') fixture.metadata.version = '2';
+      held.release.complete();
+      await failed;
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(await fixture.db.query('transfer_records'), isEmpty);
+      expect(fixture.native.stagePresent, isFalse);
+      expect(fixture.native.published, isTrue);
+      expect(fixture.native.bytes, [1,2,3,4,5]);
+    });
+  }
+  test('standalone adoption rejects unsupported archives and dependency manifests before IO', () async {
+    for (final name in ['fixture.7z', 'fixture.cue', 'fixture.m3u', 'fixture.gdi', 'fixture.unknown']) {
+      final fixture = await _TransferFixture.create(reserve: false);
+      final artifact = RemoteArtifact.fromJson({..._artifact().toJson(), 'displayName': name});
+      await expectLater(fixture.runtime().adoptLocalCloudBytes(
+          config: _transferConfig, artifact: artifact, destinationRoot: '/roms',
+          relativePath: name, supportedExtensions: {'.chd', '.7z', '.cue', '.m3u', '.gdi'},
+          cancellation: CancelToken()), throwsA(anything));
+      expect(fixture.native.calls, isEmpty);
+      expect(fixture.media.requests, isEmpty);
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    }
+  });
   test('recovery review proves current local/cloud bytes without ownership',
       () async {
     final fixture = await _TransferFixture.create(reserve: false);

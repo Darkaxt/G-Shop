@@ -858,6 +858,11 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   IDs/version/digests, and build a private keep/remove/preserve manifest.
 - Preserve saves/BIOS/settings, uncertain paths and files without identical
   recoverable cloud copies. Revalidate at execution; journal per-file results.
+  Implement the explicit standalone adoption detail through the normal byte
+  review, current read-only boundaries and atomic existing installation journal.
+  Verify commit/cancellation/restart/owner conflicts and downstream exact removal
+  with fixtures; prove native adoption without deleting an owner's ROM. This
+  supports migration execution but does not close its ranking or restore gates.
 - Apply the exact reviewed removals only after recovery gates pass, ensuring
   external sync will not refill them and archival profiles remain unchanged.
 - Verify retained sets, bytes/free space, save safety, and restore a removed

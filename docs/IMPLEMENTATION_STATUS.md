@@ -5,6 +5,50 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 explicit standardized adoption — 2026-10-06
+
+- Normal local/cloud byte review now offers a separate deliberate adoption
+  action for supported standalone emulator-ready files. It performs a new full
+  comparison, closes reads, rechecks current Drive/public-file identity, and
+  atomically records the existing installation/target owner with `adopt`
+  provenance. It creates no staged ROM, rename or deletion. Archives and
+  dependency manifests are not admitted to this single-file route. No saved
+  observation, title match, candidate metadata or score grants ownership.
+- Focused runtime, journal and dialog checks passed, including owner conflicts,
+  cancellation/namespace/version changes, transactional rollback, installation
+  resolution and the existing exact owned-removal workflow on synthetic bytes.
+  Scoped analysis is clean; the changed journal test passed again after its
+  analyzer-only brace correction. No full suite was run.
+- Signature-checked build 189 was installed with -r, preserving app data.
+  Normal Thor UI first rejected expired authorization without claiming a file,
+  then, after normal default-account reconnect without saving/remapping sources,
+  completed adoption of the existing 20,131,764-byte RVZ against Drive version 2.
+  Normal details changed from download to managed installation. A bounded
+  READONLY journal probe before/after app-process restart found the same completed
+  adoption, one target owner, no stage identity, confirmed publication and the
+  independently unchanged SHA-256
+  `0d7aeb487d665ce3fceffc25ea8041afeffe44faf223640e84f5f8dcb4f2578f`.
+  Native deletion was deliberately not performed. Config hash remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both displays are confirmed committed OFF. Saves/cloud originals/FolderSync
+  and ROM bytes were unchanged; only the deliberate private ownership claim
+  was added. This is reusable workflow proof, not individual-game curation.
+- Build 189 exited zero through the acquired shared Gradle gate. Observed
+  workers=2, parallel=false, Gradle heap=3 GiB with preserved metaspace/code-cache
+  flags. Assessed Kotlin 2.2.20 used in-process compilation within that heap.
+  Test forks were configured one/512 MiB but none ran during assemble; native
+  pools remain one per task, not a measured host-wide cap. No memory failure or
+  budget increase occurred. APK: 223,625,546 bytes, SHA-256
+  `292282f4d9ac552a312f5ee2f2a0bce211b4af8ce64c83add927411fe09b176f`,
+  package `com.darkaxt.rshop.debug` v1.7.0/code 12, unchanged debug signer.
+  Build log remains at `D:\Temp\rshop-s7-adoption-build189-20261006.log`.
+  Exact task-only host diagnostics/compiler/probe outputs were transactionally
+  removed (8,252 bytes); their two task-only device copies were also removed
+  after inspection. Current APK/log and required private migration evidence stay.
+- S7 remains the sole ACTIVE stage. Full defensible ranking, recovery/save/sync
+  gates, reviewed execution manifest and actual SD migration remain unfinished.
+  Adoption does not waive these criteria. S8-S10 remain NOT STARTED; no release.
+
 ### S7 standardized descriptive preview — 2026-10-06
 
 - Collection-wide aggregate diagnosis, not individual curation, confirmed that

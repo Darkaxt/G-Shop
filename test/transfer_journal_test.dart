@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/models/owned_removal_record.dart';
+import 'package:retro_eshop/models/local_cloud_byte_observation.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -166,6 +167,50 @@ void main() {
     journal = TransferJournal(Future.value(db));
   });
   tearDown(() => db.close());
+
+  test('adoption atomically owns exact public bytes with truthful provenance', () async {
+    final observation = DriveLocalCloudObservation(artifact: _artifact(),
+        destinationRoot: '/storage/roms', relativePath: 'Fixture.chd',
+        localIdentity: _fileIdentity(), sizeBytes: 5,
+        checksums: {'md5': '7cfdd07889b3295d6a550914ab35e068', 'sha256': _fixtureSha256},
+        observedAt: DateTime.utc(2026,10,6));
+    final installed = await journal.adoptVerifiedFile(observation,
+        id: 'adopt-one', stagePath: '/private/review.partial', checkCancellation: () {});
+    final reopened = TransferJournal(Future.value(db));
+    final record = (await reopened.transfer(installed.transferId))!;
+    expect(record.publication!.method, PublicationMethod.adopt);
+    expect(record.stageIdentity, isNull);
+    expect(record.stageRetired, isTrue);
+    expect(record.lifecycle, TransferLifecycle.completed);
+    expect((await reopened.installationForTarget(destinationRoot: observation.destinationRoot,
+        relativePath: observation.relativePath))!.toJson(), installed.toJson());
+    await expectLater(journal.adoptVerifiedFile(observation, id: 'adopt-two',
+        stagePath: '/private/other.partial', checkCancellation: () {}), throwsStateError);
+    expect(await db.query('transfer_records'), hasLength(1));
+    expect(await db.query('transfer_target_owners'), hasLength(1));
+    expect(await db.query('owned_removals'), isEmpty);
+  });
+  for (final failure in ['cancel', 'database']) {
+    test('adoption $failure rolls back all ownership writes', () async {
+      final observation = DriveLocalCloudObservation(artifact: _artifact(),
+          destinationRoot: '/storage/roms', relativePath: 'Fixture.chd',
+          localIdentity: _fileIdentity(), sizeBytes: 5,
+          checksums: {'md5': '7cfdd07889b3295d6a550914ab35e068', 'sha256': _fixtureSha256},
+          observedAt: DateTime.utc(2026,10,6));
+      if (failure == 'database') {
+        await db.execute('''CREATE TRIGGER fail_adoption
+          BEFORE INSERT ON transfer_target_owners BEGIN SELECT RAISE(ABORT, 'fixture'); END''');
+      }
+      var checks = 0;
+      await expectLater(journal.adoptVerifiedFile(observation, id: 'adopt-one',
+          stagePath: '/private/review.partial', checkCancellation: () {
+            if (++checks == 2 && failure == 'cancel') throw StateError('cancelled');
+          }), throwsA(anything));
+      expect(await db.query('transfer_records'), isEmpty);
+      expect(await db.query('installed_artifacts'), isEmpty);
+      expect(await db.query('transfer_target_owners'), isEmpty);
+    });
+  }
 
   test('replacement holds its old owner until verified new commit and retirement', () async {
     final oldPublishing = await _advanceToPublishing(journal, await journal.create(_queued()));

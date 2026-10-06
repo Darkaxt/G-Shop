@@ -271,6 +271,18 @@ Show the planned files and space reclaimed. Do not apply LoLSuite device-sync
 retirement rules to R-Shop installations; document how to avoid an external sync
 refilling an intentionally removed on-demand game.
 
+S7 adoption detail (2026-10-06): the existing exact-byte review may explicitly
+adopt one supported, standalone emulator-ready file after a new current
+local/cloud comparison. A saved observation alone cannot adopt it. Close native
+reads, recheck the public identity, then atomically record the exact installation
+and target owner with explicit adoption provenance; do not pretend a download,
+stage creation or rename occurred. Conflicting owners, changed bytes, cancellation
+before commit and failed commits preserve the unmanaged file without an ownership
+claim. Bundles and archive extraction remain outside this single-file route.
+Adoption does not delete anything or waive MIGRATE-01's ranking, format-restore,
+save/sync and execution-time revalidation gates. Reuse the existing verified owned
+installation/removal path rather than introducing an alternate deletion engine.
+
 Acceptance: download -> verify -> open in existing emulator -> offline use ->
 explicit local removal -> re-download; multi-disc, replaced-owned-file,
 redirected-path and save-preservation fixtures,

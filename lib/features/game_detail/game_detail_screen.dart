@@ -551,13 +551,16 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           variant.providerConfig?.type == ProviderType.drive)
         QuickMenuItem(label: 'Check local/cloud bytes',
             icon: Icons.fact_check_outlined,
-            onSelect: () {
+            onSelect: () async {
               closeQuickMenu();
-              showDialog<void>(context: context, barrierDismissible: false,
+              await showDialog<void>(context: context, barrierDismissible: false,
                   builder: (_) => DriveRecoveryReviewDialog(
                       config: variant.providerConfig!,
                       artifact: variant.remoteArtifact!,
+                      supportedExtensions: widget.system.romExtensions.where((extension) =>
+                          !(widget.system.multiFileExtensions ?? const []).contains(extension)).toSet(),
                       destinationRoot: widget.targetFolder));
+              if (mounted) await controller.checkInstallationStatus();
             }),
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))

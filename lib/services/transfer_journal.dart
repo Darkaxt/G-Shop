@@ -110,6 +110,60 @@ class TransferJournal {
   final Future<Database> _database;
   TransferJournal(this._database);
 
+  /// Caller supplies a new closed-read comparison and checks the public identity
+  /// immediately before this transaction. Historical observations cannot stand
+  /// in for those current checks. No filesystem operation occurs here.
+  Future<InstalledArtifact> adoptVerifiedFile(
+    DriveLocalCloudObservation observation, {
+    required String id,
+    required String stagePath,
+    required void Function() checkCancellation,
+  }) async {
+    final identity = observation.localIdentity;
+    final installation = InstalledArtifact(
+        id: 'installation-$id', transferId: id, artifact: observation.artifact,
+        destinationRoot: observation.destinationRoot,
+        relativePath: observation.relativePath, sizeBytes: observation.sizeBytes,
+        verifiedChecksums: observation.checksums, fileIdentity: identity);
+    final record = TransferRecord(
+        id: id, artifact: observation.artifact,
+        destinationRoot: observation.destinationRoot,
+        relativePath: observation.relativePath, stagePath: stagePath,
+        durableOffset: observation.sizeBytes,
+        lifecycle: TransferLifecycle.completed, stageRetired: true,
+        verifiedChecksums: observation.checksums,
+        publication: TransferPublication(method: PublicationMethod.adopt,
+            sourceIdentity: identity, destinationIdentity: identity,
+            confirmed: true));
+    _requireMatchingInstallation(record, installation);
+    final db = await _database;
+    return db.transaction((txn) async {
+      checkCancellation();
+      if (await _transfer(txn, id) != null ||
+          await _targetOwner(txn, record.destinationRoot, record.relativePath) != null ||
+          (await txn.query('installed_artifacts', columns: ['installation_id'],
+              where: 'destination_root = ? AND relative_path = ?',
+              whereArgs: [record.destinationRoot, record.relativePath], limit: 1)).isNotEmpty) {
+        throw StateError('Adoption target already has an owner');
+      }
+      await txn.insert('transfer_records', _transferValues(record));
+      await txn.insert('installed_artifacts', {
+        'installation_id': installation.id, 'transfer_id': id,
+        'destination_root': record.destinationRoot,
+        'relative_path': record.relativePath,
+        'record_json': jsonEncode(installation.toJson()),
+      });
+      await txn.insert('transfer_target_owners', {
+        'destination_root': record.destinationRoot,
+        'relative_path': record.relativePath,
+        'transfer_id': id, 'installation_id': installation.id,
+      });
+      // Same commit linearization contract as ordinary installation completion.
+      checkCancellation();
+      return installation;
+    });
+  }
+
   /// Append only after verified read closure. This has no ownership side effects.
   Future<void> saveByteObservation(
       DriveLocalCloudObservation observation) async {
@@ -1265,6 +1319,9 @@ class TransferJournal {
       throw StateError('Publishing requires a durable intent');
     }
     if (after == null) return;
+    if (after.method == PublicationMethod.adopt) {
+      throw StateError('Adoption cannot be recorded as transfer publication');
+    }
     if (record.lifecycle != TransferLifecycle.publishing &&
         !_sameJson(before?.toJson(), after.toJson())) {
       throw StateError(
