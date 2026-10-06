@@ -5,6 +5,39 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Game Gear completed traversal / IGDB breadth — 2026-10-06
+
+- Normal ScreenScraper job 66 completed its unchanged 548-edition capture:
+  one matched/rated, 377 needsReview, 63 ambiguous, 106 unmatched, one
+  invalidResponse and zero pending. Normal settings and the fixed READONLY
+  diagnostic agree. This is traversal, not trustworthy ranking coverage.
+- A bounded authenticated diagnostic reproduced the failed short-title lookup:
+  HTTP 200 with a 49-byte plaintext missing-information error, not a JSON game
+  response. The same authentication/platform with a control search returned valid
+  JSON and nine candidates. This identifies the provider-response boundary, not
+  a documented minimum search length. No guessed ID, per-title alias, automatic
+  retry or parser relaxation was introduced; the outcome remains unresolved.
+- After ScreenScraper and linked artwork finished, normal settings started the
+  missing full Game Gear IGDB pass, job 68, on 548 editions. Latest persisted
+  observation: running, two matched/rated, 143 needsReview, 22 ambiguous, six
+  unmatched, 375 pending, no failures. Continue that ID without recreating it.
+- Root catalogue generation 1 keeps advancing: 143,655 observations / 10,938
+  pending folders, still unpublished / nextGeneration 2. No second refresh or
+  reconnect was needed. This is progress, not final collection coverage.
+- Read-only restore investigation found the Drive queue/adoption reject archives
+  and Game Gear's cloud selection is ZIP-based. Installed RetroArch/Genesis Plus
+  GX and archive documentation are not tested R-Shop recovery. Safe archive
+  recovery remains ordinary S7 work, not a later-stage deferral or external
+  blocker. No rejection was removed or emulator configuration changed.
+- No production change, Gradle command, APK install, ROM payload, classification
+  import, ownership/removal, save/FolderSync or cloud-original mutation occurred.
+  Config SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both displays are confirmed committed OFF. The existing private helper/capture
+  remain registered under transaction `df179c1d8993cfe821d879429c8cc50a` for the
+  ongoing live outcome. S7 stays the sole ACTIVE stage; S8-S10 stay NOT STARTED.
+  Required rankings, restoration and reviewed SD migration remain unfinished.
+
 ### S7 remaining-gate audit and Game Gear breadth — 2026-10-06
 
 - A fixed bounded READONLY native diagnostic inspected actual persisted jobs

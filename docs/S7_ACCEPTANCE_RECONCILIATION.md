@@ -1,5 +1,37 @@
 # S7 live metadata and Thor migration
 
+## Game Gear traversal / next provider pass — 2026-10-06
+
+ScreenScraper job 66 completed its unchanged 548-item capture: one matched/rated,
+377 needsReview, 63 ambiguous, 106 unmatched, one invalidResponse, zero pending.
+Normal native settings and the bounded READONLY diagnostic agree. The failure
+was reproduced at the provider boundary: the short-title search returned HTTP
+200 / 49-byte plaintext missing-information error, while the same authentication
+and platform with a control search returned valid JSON / nine candidates.
+This does not establish an undocumented minimum search length. No per-title
+alias, guessed ID, blind retry or parser relaxation was implemented.
+
+After linked artwork finished, normal settings started the missing full Game
+Gear IGDB pass, job 68, on 548 editions. Latest persisted observation: running,
+two matched/rated, 143 needsReview, 22 ambiguous, six unmatched, 375 pending,
+no failures. Continue that saved ID. Root catalogue generation 1 is advancing:
+143,655 observations / 10,938 pending folders, still unpublished / nextGeneration
+2. Neither traversal nor scored candidates prove defensible final Top-25 sets.
+
+Read-only format investigation found the current Drive queue/adoption reject
+archives and Game Gear's cloud files are ZIPs. Installed RetroArch/Genesis Plus
+GX and archive documentation are enabling evidence only, not a tested R-Shop
+restore route. Safe archive recovery remains required S7 work. No production
+behavior, emulator configuration or ROM bytes changed.
+
+Config SHA-256 remains
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+Both displays are confirmed committed OFF. No Gradle build, APK install,
+classification import, ownership/removal, save/FolderSync or cloud write occurred.
+The existing task-only bounded diagnostic/capture remain for the ongoing live
+outcome under cleanup transaction `df179c1d8993cfe821d879429c8cc50a`.
+S7 stays ACTIVE; S8-S10 stay NOT STARTED. No required work was dropped or deferred.
+
 ## Existing collection checkpoint resumed — 2026-10-06
 
 The previous goal turn was a verified wait on native metadata job 66. This
