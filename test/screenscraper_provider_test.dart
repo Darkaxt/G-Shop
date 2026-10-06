@@ -504,6 +504,89 @@ void main() {
     expect(rejected.status, MetadataLookupStatus.unmatched);
   });
 
+  test('exact ROM and explicit unmodified flags resolve unclassified release',
+      () async {
+    final game = _game();
+    game['notgame'] = false;
+    (game['rom'] as Map).addAll(<String, String>{
+      'demo': '0',
+      'unl': '0',
+      'beta': '0',
+      'romsha1': 'a' * 40
+    });
+    final api = _provider(_Wire({
+      'response': {'jeu': game}
+    }));
+    addTearDown(api.close);
+    final result = await api.lookup(_request(
+        tags: {},
+        verifiedProviderGameId: null,
+        identifier: MetadataRomIdentifier(
+            kind: RomIdentifierKind.rawRom,
+            filename: 'Fixture.sfc',
+            sizeBytes: 1024,
+            sha1: 'a' * 40)));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(result.record!.matchMethod, 'rawRomHashAndSize');
+    expect(result.officialRomEvidence!.kind, 'exactRomOfficialRelease');
+  });
+
+  test('classification requires every positive flag and exact ROM evidence',
+      () async {
+    for (final boundary in [
+      'missingFlag',
+      'modifiedFlag',
+      'notGame',
+      'missingNotGame',
+      'titleOnly',
+      'translation',
+      'hack',
+      'base',
+      'crcOnly',
+      'zeroHash'
+    ]) {
+      final game = _game();
+      if (boundary != 'missingNotGame') game['notgame'] = boundary == 'notGame';
+      (game['rom'] as Map).addAll(<String, String>{
+        'demo': '0',
+        'unl': '0',
+        'beta': '0',
+        'romsha1': 'a' * 40
+      });
+      if (boundary == 'missingFlag') (game['rom'] as Map).remove('beta');
+      if (boundary == 'modifiedFlag') (game['rom'] as Map)['trad'] = '1';
+      if (boundary == 'zeroHash') (game['rom'] as Map)['romsha1'] = '0' * 40;
+      final api = _provider(_Wire({
+        'response': boundary == 'titleOnly'
+            ? {
+                'jeux': [game]
+              }
+            : {'jeu': game}
+      }));
+      addTearDown(api.close);
+      final result = await api.lookup(_request(
+          tags: boundary == 'translation'
+              ? {'T-Eng'}
+              : boundary == 'hack'
+                  ? {'Hack'}
+                  : {},
+          verifiedProviderGameId: null,
+          baseProviderGameId: boundary == 'base' ? '42' : null,
+          identifier: boundary == 'titleOnly'
+              ? null
+              : MetadataRomIdentifier(
+                  kind: RomIdentifierKind.rawRom,
+                  filename: 'Fixture.sfc',
+                  sizeBytes: 1024,
+                  crc32: boundary == 'crcOnly' ? 'ABCDEF12' : null,
+                  sha1: boundary == 'crcOnly'
+                      ? null
+                      : (boundary == 'zeroHash' ? '0' : 'a') * 40)));
+      expect(result.status, MetadataLookupStatus.needsReview, reason: boundary);
+      expect(result.record, isNull, reason: boundary);
+    }
+  });
+
   test('large ISO SHA-1 match records the provider capped-size limitation',
       () async {
     final game = _game(system: '58');

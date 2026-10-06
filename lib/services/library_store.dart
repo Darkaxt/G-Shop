@@ -507,14 +507,6 @@ class LibraryStore {
                 jsonDecode(existingEdition.single['record_json'] as String));
         var classificationChanged = false;
         if (artifact != null) {
-          if (hasDriveCatalogue &&
-              game.matchStatus != IdentityMatchStatus.manuallyMatched) {
-            final classified =
-                await _classifyCatalogueFolders(db, artifact, edition);
-            classificationChanged =
-                jsonEncode(classified.toJson()) != jsonEncode(edition.toJson());
-            edition = classified;
-          }
           final marker = _artifactContentMarker(artifact);
           final previousMarkers = edition.evidence.where(
               (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
@@ -525,6 +517,19 @@ class LibraryStore {
             // must not silently inherit the old blob's verified provider match.
             game = GameIdentity.fromJson(
                 {...game.toJson(), 'matchStatus': 'unmatched'});
+            final retired =
+                _retireExactRomClassification(edition, changedBytes: true);
+            classificationChanged =
+                jsonEncode(retired.toJson()) != jsonEncode(edition.toJson());
+            edition = retired;
+          }
+          if (hasDriveCatalogue &&
+              game.matchStatus != IdentityMatchStatus.manuallyMatched) {
+            final classified =
+                await _classifyCatalogueFolders(db, artifact, edition);
+            classificationChanged = classificationChanged ||
+                jsonEncode(classified.toJson()) != jsonEncode(edition.toJson());
+            edition = classified;
           }
           if (contentChanged) {
             edition = EditionIdentity.fromJson({
@@ -622,7 +627,12 @@ class LibraryStore {
     bool owned(IdentityEvidence e) =>
         e.source == 'catalogue' && e.kind == 'sourceFolderClassification';
     final previous = edition.evidence.where(owned).toList();
+    final generatedOfficial = edition.tags.length == 1 &&
+        edition.tags.contains('official') &&
+        edition.evidence.any((e) =>
+            e.source == 'screenscraper' && e.kind == 'exactRomOfficialRelease');
     if (previous.isEmpty &&
+        !generatedOfficial &&
         (edition.tags.isNotEmpty ||
             edition.isTranslation != null ||
             edition.translatedLanguages.isNotEmpty)) {
@@ -716,6 +726,7 @@ class LibraryStore {
       }
     }
     if (declarations.isEmpty && previous.isEmpty) return edition;
+    if (generatedOfficial) edition = _retireExactRomClassification(edition);
     final evidence = edition.evidence
         .where((e) => !owned(e))
         .map((e) => e.toJson())
@@ -745,6 +756,55 @@ class LibraryStore {
     record.remove('isTranslation');
     if (translation != null) record['isTranslation'] = translation;
     return EditionIdentity.fromJson(record);
+  }
+
+  /// Retain provider facts as history, not claims about a replacement blob or
+  /// a release now explicitly filed as modified. Independent manual facts win.
+  static EditionIdentity _retireExactRomClassification(EditionIdentity edition,
+      {bool changedBytes = false}) {
+    bool owned(IdentityEvidence e) =>
+        e.source == 'screenscraper' && e.kind == 'exactRomOfficialRelease';
+    final facts = edition.evidence.where(owned).toList();
+    if (facts.isEmpty) return edition;
+    final json = edition.toJson();
+    final manualClassification = edition.evidence
+        .any((e) => e.source == 'manual' && e.kind == 'contentClassification');
+    if (!manualClassification &&
+        edition.tags.length == 1 &&
+        edition.tags.contains('official')) {
+      json['tags'] = <String>[];
+      if (edition.isTranslation == false) json.remove('isTranslation');
+    }
+    if (changedBytes) {
+      for (final fact in facts) {
+        final value = jsonDecode(fact.value) as Map<String, dynamic>;
+        for (final entry in {
+          'regions': 'assignedRegions',
+          'languages': 'assignedLanguages'
+        }.entries) {
+          if (value[entry.value] == true &&
+              jsonEncode(json[entry.key]) == jsonEncode(value[entry.key]) &&
+              !edition.evidence.any((e) =>
+                  e.source == 'manual' &&
+                  e.kind ==
+                      (entry.key == 'regions'
+                          ? 'releaseRegion'
+                          : 'releaseLanguage'))) {
+            json[entry.key] = <String>[];
+          }
+        }
+      }
+    }
+    json['evidence'] = edition.evidence
+        .map((e) => owned(e)
+            ? IdentityEvidence(
+                    source: e.source,
+                    kind: 'previousExactRomOfficialRelease',
+                    value: e.value)
+                .toJson()
+            : e.toJson())
+        .toList();
+    return EditionIdentity.fromJson(json);
   }
 
   static String _catalogueSuffix(

@@ -223,6 +223,49 @@ void main() {
     expect(edition.translatedLanguages, isEmpty);
   });
 
+  test('declared modified folder supersedes automatic official classification',
+      () async {
+    final id = await cache('psp', 'Game.chd',
+        artifact: await inFolder('Sony - PlayStation Portable/Game.chd'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(first.id)).single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    await store.putEdition(EditionIdentity.fromJson({
+      ...edition.toJson(),
+      'tags': ['official'],
+      'isTranslation': false,
+      'evidence': [
+        ...edition.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+                source: 'screenscraper',
+                kind: 'exactRomOfficialRelease',
+                value: '{"regions":[],"languages":[]}')
+            .toJson()
+      ]
+    }));
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode((await inFolder(
+                  'Sony - PlayStation Portable/T-En/Undub/Game.chd'))
+              .toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
+    final moved = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final request =
+        jsonDecode((await items(moved.id)).single['request_json'] as String);
+    expect(request['contentTags'], unorderedEquals(['T-Eng', 'Undub']));
+    final after = (await store.edition(editionId))!;
+    expect(after.isTranslation, true);
+    expect(after.evidence.where((e) => e.kind == 'exactRomOfficialRelease'),
+        isEmpty);
+    expect(
+        after.evidence
+            .where((e) => e.kind == 'previousExactRomOfficialRelease'),
+        hasLength(1));
+  });
+
   test('catalogue folder classification updates owned evidence after a move',
       () async {
     final id = await cache('psp', 'Game.chd',
@@ -512,6 +555,76 @@ void main() {
     await cache('gba', 'Added later.gba');
     expect((await items(full.id)).length, 2,
         reason: 'Published job membership is immutable.');
+  });
+
+  test('normal catalogue snapshot uses exact uncompressed Drive identifiers',
+      () async {
+    final artifact = RemoteArtifact.fromJson({
+      ...remote('raw').toJson(),
+      'displayName': 'Game (USA).sfc',
+      'displayPath': 'Game (USA).sfc',
+      'providerChecksums': {'md5': 'a' * 32, 'sha1': 'b' * 40},
+    });
+    await cache('snes', 'Game (USA).sfc', artifact: artifact);
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final request = MetadataLookupRequest.fromJson(
+        jsonDecode((await items(job.id)).single['request_json'] as String));
+    expect(request.romIdentifier, isNotNull);
+    expect(request.romIdentifier!.kind, RomIdentifierKind.rawRom);
+    expect(request.romIdentifier!.filename, artifact.displayName);
+    expect(request.romIdentifier!.sizeBytes, 100);
+    expect(request.romIdentifier!.md5, 'a' * 32);
+    expect(request.romIdentifier!.sha1, 'b' * 40);
+    expect(request.contentTags, isEmpty);
+  });
+
+  test('replacement bytes cannot reuse an older explicit raw identifier',
+      () async {
+    final id = await cache('snes', 'Game.zip', artifact: remote('raw'));
+    final first = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final editionId = (await items(first.id)).single['edition_id'] as String;
+    final edition = (await store.edition(editionId))!;
+    final raw = MetadataRomIdentifier(
+        kind: RomIdentifierKind.rawRom,
+        filename: 'Game.sfc',
+        sizeBytes: 1024,
+        sha1: 'b' * 40);
+    await store.putEdition(EditionIdentity.fromJson({
+      ...edition.toJson(),
+      'evidence': [
+        ...edition.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+                source: 'manual',
+                kind: 'rawRomIdentifier',
+                value: jsonEncode(raw.toJson()))
+            .toJson()
+      ]
+    }));
+    final unchanged =
+        await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect(
+        jsonDecode((await items(unchanged.id)).single['request_json']
+            as String)['romIdentifier'],
+        raw.toJson());
+    await db.update(
+        'games',
+        {
+          'remote_artifact':
+              jsonEncode(remote('raw', version: '2', checksum: 'c').toJson())
+        },
+        where: 'id = ?',
+        whereArgs: [id]);
+    final changed = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    expect(
+        jsonDecode((await items(changed.id)).single['request_json'] as String)[
+            'romIdentifier'],
+        isNull);
+    expect(
+        (await store.edition(editionId))!
+            .evidence
+            .where((e) => e.kind == 'rawRomIdentifier'),
+        hasLength(1),
+        reason: 'manual evidence remains available for review');
   });
 
   test('exact artifact rename and cache reinsertion preserve reviewed identity',

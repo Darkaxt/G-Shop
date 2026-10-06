@@ -5,6 +5,40 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 automatic raw-Drive matching — 2026-10-06
+
+- Stopped individual-entry curation. The normal catalogue job now uses current
+  Drive MD5/SHA-1 and size only for a versioned, mapped uncompressed standalone
+  format. Containers, wrong platforms, missing versions/hashes and stale manual
+  raw assertions are excluded. No ROM-body request is added by this path.
+- A reproduced publication defect left an exact provider match's edition
+  unclassified. The worker now commits explicit provider-ROM official facts,
+  assigned release fields, current metadata and the item's new identity binding
+  together. All five unmodified flags plus notgame=false and a nonzero MD5/SHA-1
+  are required. Existing manual unknown, patch/base and modified facts win.
+- The real adapter -> normal catalogue job -> SQLite -> query fixture verifies
+  automatic grouping/advisory score, unchanged rename/sync, shared-store close/
+  reopen and identity restoration without another lookup, and changed-byte
+  invalidation. A second regression failed before generated classification was
+  retired on blob replacement. Modified folder declarations also retire it;
+  manual raw evidence remains stored but cannot identify replacement bytes.
+- Focused provider/catalogue/worker/grouping/ownership checks and scoped analysis
+  passed. A fresh real ScreenScraper lookup on two existing supported host DVD
+  CHDs returned description/media and explicit official facts from otherwise
+  unknown classification, reading only 140 bytes per file. No per-game IDs, full
+  ROM downloads or artwork fetches were introduced. The live-tag configuration
+  warning predates this change. This is real provider evidence, not native
+  automatic collection scraping or a trusted Top score.
+- Native installation is unchanged. A current read-only catalogue observation
+  found 71,041 entries / 11,225 folders / 5,210 pending folders in the same
+  unpublished generation 1, with active=null. Do not restart that traversal or
+  treat observations as published games. No Gradle build/gate claim, ROM
+  removal, cloud write, FolderSync action or release occurred.
+- **Remaining:** normal-device integration, automatic supported-CHD extraction,
+  full collection publication/mappings/fresh metadata, defensible canonical
+  Top-25 retention, restore and exact reviewed migration. S7 remains the sole
+  ACTIVE stage; S8/S9/S10 remain NOT STARTED.
+
 ### S7 shared original-ISO identification — 2026-10-06
 
 - Individual-entry curation remains stopped. A bounded parser accepts the

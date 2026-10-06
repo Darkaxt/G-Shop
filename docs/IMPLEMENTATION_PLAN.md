@@ -759,6 +759,11 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   workflow persists exact version-bound evidence without full-ROM downloads,
   guessed official tags or weakened migration checks. No header declaration
   substitutes for download/cloud integrity or reliable Top acceptance.
+  The uncompressed Drive checksum path is implemented and host-verified through
+  normal job creation, the real adapter, atomic classification/publication,
+  canonical query and durable shared-cache recovery. Native integration and
+  automatic supported-CHD header extraction remain unfinished in S7; do not
+  confuse the bounded live header lookup with collection-wide device proof.
 - Prove Drive restoration on the Thor, inventory exact SD files and cloud
   IDs/version/digests, and build a private keep/remove/preserve manifest.
 - Preserve saves/BIOS/settings, uncertain paths and files without identical

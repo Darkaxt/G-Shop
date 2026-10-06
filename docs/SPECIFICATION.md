@@ -345,6 +345,20 @@ classification, patch ownership, reception, transfer and migration gates remain
 unchanged. This does not authorize downloading every remote ROM or replacing
 strict cloud/local integrity checks with a CHD header declaration.
 
+Normal collection identification detail (2026-10-06): for a mapped, explicitly
+supported uncompressed standalone ROM/ISO, the versioned Drive file's MD5/SHA-1
+can describe that ROM directly. Do not promote checksums of ZIP/CHD/RVZ or other
+containers, ambiguous multi-member editions, unsupported formats or stale manual
+raw assertions. An exact cryptographic raw match may establish an otherwise
+unclassified official release only when ScreenScraper explicitly returns
+`notgame=false` and all five `hack/trad/demo/unl/beta` flags as zero. Missing
+flags, CRC-only evidence, manual unknown/corrections, patch/base relationships
+and declared modifications stay reviewable. Persist the provider facts and
+current identity/metadata/item binding together, including durable shared-store
+recovery. Rename-only changes preserve those facts; replacement bytes retire
+automatic classification and assigned release facts, without deleting manual
+evidence. This supplies metadata identity, not reliable reception or Top rank.
+
 ### META-04 — Hacks, translations and score ownership
 
 Support distinct content tags for `Hack`, `T-Eng`, `Dub`, `Undub`, `Uncensor`,

@@ -672,7 +672,9 @@ class MetadataRefreshJobs {
                     ? edition.languages.single
                     : null,
                 revision: edition.revision,
-                romIdentifier: matchReview ? null : _rawIdentifier(edition),
+                romIdentifier: matchReview
+                    ? null
+                    : await _rawIdentifier(txn, edition, game.platformId!),
                 refreshGeneration: generation);
         final keyData = request?.toJson()
           ?..remove('editionId')
@@ -717,11 +719,31 @@ class MetadataRefreshJobs {
   /// The edition binding preserves this assertion through lookup/publication.
   /// Conflicting or malformed assertions leave title discovery for review; the
   /// adapter still checks kind, filename, hash syntax, size and returned hash.
-  static MetadataRomIdentifier? _rawIdentifier(EditionIdentity edition) {
+  static Future<MetadataRomIdentifier?> _rawIdentifier(
+      DatabaseExecutor db, EditionIdentity edition, String platformId) async {
     final evidence = edition.evidence
         .where((item) => item.kind == 'rawRomIdentifier')
         .toList(growable: false);
+    if (evidence.isEmpty) {
+      if (edition.members.length != 1) return null;
+      final rows = await db.query('library_artifacts',
+          columns: ['record_json'],
+          where: 'artifact_id = ?',
+          whereArgs: [edition.members.single.artifactId.key],
+          limit: 1);
+      if (rows.isEmpty) return null;
+      return MetadataRomIdentifier.fromUncompressedDriveArtifact(
+          RemoteArtifact.fromJson(
+              jsonDecode(rows.single['record_json'] as String)),
+          platformId);
+    }
     if (evidence.length != 1) return null;
+    // A preserved manual assertion made before the current content marker is
+    // review evidence, not proof about a replacement blob.
+    final rawIndex = edition.evidence.indexOf(evidence.single);
+    final markerIndex = edition.evidence.lastIndexWhere(
+        (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
+    if (markerIndex > rawIndex) return null;
     try {
       final value = jsonDecode(evidence.single.value);
       if (value is! Map<String, dynamic>) return null;
@@ -1868,7 +1890,8 @@ class MetadataRefreshJobs {
           var outcome = status;
           var rated = 0;
           final editionId = target['edition_id'] as String;
-          final identity = await _identity(txn, editionId);
+          var identity = await _identity(txn, editionId);
+          String? committedIdentityKey;
           if (identity == null ||
               LibraryStore.metadataIdentity(identity, providerId: providerId) !=
                   target['identity_key']) {
@@ -1909,11 +1932,34 @@ class MetadataRefreshJobs {
                       request.refreshGeneration) {
                 outcome = 'superseded';
               } else {
-                final shared = await _sharedStore;
-                await shared?.preserve(copy, identity, txn);
-                if (cancel.isCancelled) throw const _RefreshCommitCancelled();
-                await store.putMetadata(copy, transaction: txn);
-                rated = copy.ratings.isEmpty ? 0 : 1;
+                if (result.officialRomEvidence != null) {
+                  final game = GameIdentity.fromJson(
+                      jsonDecode(identity['game_json'] as String));
+                  final edition = EditionIdentity.fromJson(
+                      jsonDecode(identity['edition_json'] as String));
+                  final currentRaw =
+                      await _rawIdentifier(txn, edition, game.platformId!);
+                  final classified = _officialRelease(edition, game, request,
+                      copy, result.officialRomEvidence!, currentRaw);
+                  if (classified == null) {
+                    outcome = 'needsReview';
+                  } else {
+                    await txn.update('library_editions',
+                        {'record_json': jsonEncode(classified.toJson())},
+                        where: 'edition_id = ?', whereArgs: [editionId]);
+                    identity = (await _identity(txn, editionId))!;
+                    committedIdentityKey = LibraryStore.metadataIdentity(
+                        identity,
+                        providerId: providerId);
+                  }
+                }
+                if (outcome == 'matched') {
+                  final shared = await _sharedStore;
+                  await shared?.preserve(copy, identity, txn);
+                  if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+                  await store.putMetadata(copy, transaction: txn);
+                  rated = copy.ratings.isEmpty ? 0 : 1;
+                }
               }
             }
           }
@@ -1922,6 +1968,8 @@ class MetadataRefreshJobs {
               {
                 'status': outcome,
                 'rated': rated,
+                if (committedIdentityKey != null)
+                  'identity_key': committedIdentityKey,
                 'candidates_json': jsonEncode(candidates
                     .map((candidate) => {
                           'providerGameId': candidate.providerGameId,
@@ -1944,6 +1992,88 @@ class MetadataRefreshJobs {
       });
       if (count.length != 0) committed(count.counts, count.rated);
       if (count.length < 128) break;
+    }
+  }
+
+  /// Only this exact provider-ROM response can establish an unclassified
+  /// release. Manual classifications, patch/base relationships and changed
+  /// catalogue bytes are never overwritten by a provider's ordinary-game facts.
+  static EditionIdentity? _officialRelease(
+      EditionIdentity edition,
+      GameIdentity game,
+      MetadataLookupRequest request,
+      MetadataRecord record,
+      IdentityEvidence evidence,
+      MetadataRomIdentifier? currentRaw) {
+    final raw = request.romIdentifier;
+    if (record.providerId != 'screenscraper' ||
+        evidence.source != 'screenscraper' ||
+        evidence.kind != 'exactRomOfficialRelease' ||
+        !{'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
+            .contains(record.matchMethod) ||
+        raw == null ||
+        raw.kind == RomIdentifierKind.container ||
+        ![raw.md5, raw.sha1]
+            .any((hash) => hash != null && !RegExp(r'^0+$').hasMatch(hash)) ||
+        currentRaw == null ||
+        jsonEncode(currentRaw.toJson()) != jsonEncode(raw.toJson()) ||
+        game.baseGameId != null ||
+        edition.patchId != null ||
+        edition.isTranslation == true ||
+        edition.translatedLanguages.isNotEmpty ||
+        (edition.tags.isNotEmpty &&
+            !(edition.tags.length == 1 && edition.tags.contains('unknown'))) ||
+        edition.evidence.any(
+            (e) => e.source == 'manual' && e.kind == 'contentClassification')) {
+      return null;
+    }
+    try {
+      final facts = jsonDecode(evidence.value);
+      const flags = ['hack', 'trad', 'demo', 'unl', 'beta'];
+      if (facts is! Map<String, dynamic> ||
+          facts['providerGameId'] != record.providerGameId ||
+          facts['notgame'] != false ||
+          facts['flags'] is! Map ||
+          !flags.every((key) => facts['flags'][key] == '0') ||
+          facts['retrievedAt'] !=
+              record.retrievedAt.toUtc().toIso8601String() ||
+          jsonEncode(facts['identifier']) != jsonEncode(raw.toJson())) {
+        return null;
+      }
+      List<String>? codes(String key) {
+        final value = facts[key];
+        if (value is! List ||
+            value.length > 16 ||
+            value.any(
+                (v) => v is! String || !RegExp(r'^[a-z]{2,3}$').hasMatch(v))) {
+          return null;
+        }
+        return value.cast<String>();
+      }
+
+      final regions = codes('regions');
+      final languages = codes('languages');
+      if (regions == null || languages == null) return null;
+      return EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'tags': ['official'],
+        'isTranslation': false,
+        'regions': edition.regions.isEmpty ? regions : edition.regions,
+        'languages': edition.languages.isEmpty ? languages : edition.languages,
+        'evidence': [
+          ...edition.evidence.map((e) => e.toJson()),
+          IdentityEvidence(
+              source: evidence.source,
+              kind: evidence.kind,
+              value: jsonEncode({
+                ...facts,
+                'assignedRegions': edition.regions.isEmpty,
+                'assignedLanguages': edition.languages.isEmpty
+              })).toJson()
+        ]
+      });
+    } on FormatException {
+      return null;
     }
   }
 }

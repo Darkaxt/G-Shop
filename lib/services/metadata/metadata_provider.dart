@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
+import '../../models/system_model.dart';
 
 enum RomIdentifierKind { rawRom, rawIso, container }
 
@@ -60,6 +61,72 @@ class MetadataRomIdentifier {
             .sublist(64, 84)
             .map((v) => v.toRadixString(16).padLeft(2, '0'))
             .join());
+  }
+
+  /// Drive hashes describe the stored file. They are compatible ROM evidence
+  /// only for explicitly supported, uncompressed standalone formats.
+  static MetadataRomIdentifier? fromUncompressedDriveArtifact(
+      RemoteArtifact artifact, String platformId) {
+    const standalone = {
+      '.nes',
+      '.sfc',
+      '.smc',
+      '.z64',
+      '.n64',
+      '.v64',
+      '.nds',
+      '.gb',
+      '.gbc',
+      '.gba',
+      '.sms',
+      '.gg',
+      '.md',
+      '.gen',
+      '.pce',
+      '.lnx',
+      '.ngp',
+      '.ngc',
+      '.a26',
+      '.a52',
+      '.a78',
+      '.iso',
+      '.gcm'
+    };
+    final system = SystemModel.supportedSystems
+        .where((s) => s.id == platformId)
+        .firstOrNull;
+    final name = artifact.displayName;
+    final dot = name.lastIndexOf('.');
+    final extension = dot < 0 ? '' : name.substring(dot).toLowerCase();
+    if (artifact.id.providerId != 'drive' ||
+        artifact.id.accountId?.isNotEmpty != true ||
+        artifact.version?.isNotEmpty != true ||
+        (artifact.sizeBytes ?? 0) <= 0 ||
+        name.contains(RegExp(r'[/\\:\x00]')) ||
+        dot < 1 ||
+        !standalone.contains(extension) ||
+        system?.romExtensions.contains(extension) != true) {
+      return null;
+    }
+    final md5 = artifact.providerChecksums['md5'];
+    final sha1 = artifact.providerChecksums['sha1'];
+    if (md5 == null && sha1 == null) return null;
+    for (final entry in {32: md5, 40: sha1}.entries) {
+      final value = entry.value;
+      if (value != null &&
+          (!RegExp('^[0-9a-fA-F]{${entry.key}}\$').hasMatch(value) ||
+              RegExp(r'^0+$').hasMatch(value))) {
+        return null;
+      }
+    }
+    return MetadataRomIdentifier(
+        kind: {'.iso', '.gcm'}.contains(extension)
+            ? RomIdentifierKind.rawIso
+            : RomIdentifierKind.rawRom,
+        filename: name,
+        sizeBytes: artifact.sizeBytes!,
+        md5: md5,
+        sha1: sha1);
   }
 
   Map<String, dynamic> toJson() => {
@@ -319,6 +386,10 @@ class MetadataLookupResult {
   final MetadataQuota? quota;
   final Duration? retryAfter;
 
+  /// Exact-ROM provider facts, not a title-based or default classification.
+  /// The worker revalidates the request/binding before applying these facts.
+  final IdentityEvidence? officialRomEvidence;
+
   /// Locally generated guidance only; never a raw provider response or exception.
   final String message;
   MetadataLookupResult(
@@ -327,6 +398,7 @@ class MetadataLookupResult {
       List<MetadataLookupCandidate> candidates = const [],
       this.quota,
       this.retryAfter,
+      this.officialRomEvidence,
       required this.message})
       : candidates = List.unmodifiable(candidates);
   @override

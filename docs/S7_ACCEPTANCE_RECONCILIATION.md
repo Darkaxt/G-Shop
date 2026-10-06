@@ -9,6 +9,22 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Automatic uncompressed-Drive checkpoint (2026-10-06): normal catalogue snapshots
+now derive compatible, version-bound MD5/SHA-1/size only from mapped standalone
+formats. The real ScreenScraper adapter can establish unknown official releases
+only with exact nonzero cryptographic evidence, explicit notgame=false and all
+five unmodified flags. Publication revalidates the current artifact and honors
+manual unknown, patch/base and modification facts. Classification, release
+assignments, metadata and item identity keys commit together. Host integration
+proves canonical grouping/advisory query, shared-cache close/reopen/identity
+recovery, rename stability and changed-byte retirement. Folder declarations and
+stale manual-raw boundaries pass. Two fresh real-provider header lookups passed
+without full ROM/artwork downloads. Focused worker/store/score regressions and
+scoped analysis passed; the bounded 30,000-edition worker fixture observed about
+238 MB peak RSS and joined normally. No full repository suite or Gradle build
+ran. Native integration/automatic CHD extraction and the full metadata/ranking/
+restore/migration acceptance below remain unfinished; S7 is still ACTIVE.
+
 Shared-identification checkpoint (2026-10-06): the supported DVD CHD header
 parser and live PSP/PS2 original-ISO lookup path are verified without decoding
 ROMs or using container checksums. ScreenScraper's observed large-ISO size cap

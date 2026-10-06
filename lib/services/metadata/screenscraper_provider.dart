@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../models/library_identity.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -427,10 +428,19 @@ class ScreenScraperProvider
       final official = request.contentTags.length == 1 &&
           request.contentTags.single.toLowerCase() == 'official';
       final rom = _rom(matched!);
+      const flags = ['hack', 'trad', 'demo', 'unl', 'beta'];
+      final inferOfficial = raw != null &&
+          [raw.md5, raw.sha1]
+              .any((hash) => hash != null && !RegExp(r'^0+$').hasMatch(hash)) &&
+          (request.contentTags.isEmpty ||
+              (request.contentTags.length == 1 &&
+                  request.contentTags.single == 'unknown')) &&
+          _text(matched['notgame']) == 'false' &&
+          flags.every((key) => _text(rom?[key]) == '0');
       final modifiedRom = ['hack', 'trad', 'demo', 'unl', 'beta']
           .any((key) => _text(rom?[key]) == '1');
       if ((!byId && raw == null) ||
-          !official ||
+          (!official && !inferOfficial) ||
           modifiedRom ||
           request.baseProviderGameId != null ||
           (request.revision?.isNotEmpty == true && raw == null) ||
@@ -438,12 +448,41 @@ class ScreenScraperProvider
         return _result(MetadataLookupStatus.needsReview,
             candidates: candidates, quota: quota);
       }
-      final record = _record(matched, request, candidates.single);
+      List<String> codes(String key) => (_text(rom?[key]) ?? '')
+          .split(',')
+          .map((value) => value.trim().toLowerCase())
+          .where((value) => RegExp(r'^[a-z]{2,3}$').hasMatch(value))
+          .toSet()
+          .take(16)
+          .toList()
+        ..sort();
+      final regions = codes('romregions');
+      final languages = codes('romlangues');
+      final effectiveRequest =
+          inferOfficial && request.region == null && regions.length == 1
+              ? MetadataLookupRequest.fromJson(
+                  {...request.toJson(), 'region': regions.single})
+              : request;
+      final record = _record(matched, effectiveRequest, candidates.single);
       return MetadataLookupResult(
           status: MetadataLookupStatus.matched,
           record: record,
           candidates: candidates,
           quota: quota,
+          officialRomEvidence: !inferOfficial
+              ? null
+              : IdentityEvidence(
+                  source: providerId,
+                  kind: 'exactRomOfficialRelease',
+                  value: jsonEncode({
+                    'providerGameId': record.providerGameId,
+                    'identifier': raw.toJson(),
+                    'flags': {for (final key in flags) key: '0'},
+                    'notgame': false,
+                    'regions': regions,
+                    'languages': languages,
+                    'retrievedAt': record.retrievedAt.toUtc().toIso8601String(),
+                  })),
           message: candidates.single.evidence == 'rawRomSha1AndCappedSize'
               ? 'Metadata matched by original ISO SHA-1; provider size is capped. '
                   'This is not file-integrity verification; rating confidence is unassessed.'

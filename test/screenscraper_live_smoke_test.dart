@@ -89,9 +89,10 @@ void main() {
           // Deliberately not a title: the provider must match the raw identifier.
           title: 'CHD identifier verification',
           romIdentifier: raw,
-          contentTags: {'official'},
+          contentTags: {},
           refreshGeneration: 1));
       expect(result.status, MetadataLookupStatus.matched);
+      expect(result.officialRomEvidence?.kind, 'exactRomOfficialRelease');
       final evidence = raw!.sizeBytes > 0x7fffffff
           ? 'rawRomSha1AndCappedSize'
           : 'rawRomHashAndSize';

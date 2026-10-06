@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -13,6 +14,7 @@ import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
 import 'package:retro_eshop/services/metadata/igdb_provider.dart';
+import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
 
 class _Wire implements HttpClientAdapter {
   final Object response;
@@ -96,19 +98,239 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
               where: 'edition_id = ?', whereArgs: [id]))
           .single['group_key'] as String;
 
-  Future<List<String>> catalogue({String platform = 'snes'}) async {
+  Future<List<String>> catalogue(
+      {String platform = 'snes', bool rawDrive = false}) async {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
       systemSlug TEXT, displayName TEXT, artifact_key TEXT, remote_artifact TEXT,
       is_folder INTEGER DEFAULT 0)''');
     await LibraryQuery.install(db);
     for (final n in [1, 2]) {
-      await db.insert('games',
-          {'id': n, 'systemSlug': platform, 'displayName': 'Fixture $n'});
+      final artifact = RemoteArtifact(
+          id: RemoteArtifactId(
+              providerId: 'drive',
+              sourceId: 'fixture-source',
+              accountId: 'fixture-account',
+              providerFileId: 'file-$n'),
+          displayPath: 'Fixture $n.sfc',
+          displayName: 'Fixture $n.sfc',
+          version: '1',
+          sizeBytes: 1024,
+          providerChecksums: {'sha1': 'a' * 40});
+      await db.insert('games', {
+        'id': n,
+        'systemSlug': platform,
+        'displayName': 'Fixture $n',
+        if (rawDrive) 'artifact_key': artifact.id.key,
+        if (rawDrive) 'remote_artifact': jsonEncode(artifact.toJson())
+      });
     }
     return db
         .transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
   }
+
+  test(
+      'automatic Drive raw match persists classification and current metadata atomically',
+      () async {
+    final ids = await catalogue(rawDrive: true);
+    final initial = await db.query('library_editions');
+    final root = await Directory.systemTemp.createTemp('rshop-auto-identity-');
+    var shared = await SharedMetadataStore.open(root,
+        factory: factory, verifyAccess: () async {});
+    addTearDown(() async {
+      await shared.close();
+      await root.delete(recursive: true);
+    });
+    final jobs = MetadataRefreshJobs(Future.value(db),
+        sharedStore: Future.value(shared));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final wire = _Wire({
+      'response': {
+        'jeu': {
+          'id': '42',
+          'systeme': {'id': '4'},
+          'notgame': false,
+          'noms': [
+            {'region': 'us', 'text': 'Fixture'}
+          ],
+          'synopsis': [
+            {'langue': 'en', 'text': 'Fresh description'}
+          ],
+          'note': {'text': '17'},
+          'rom': {
+            'romsize': '1024',
+            'romsha1': 'a' * 40,
+            'romregions': 'us',
+            'romlangues': 'en',
+            'hack': '0',
+            'trad': '0',
+            'demo': '0',
+            'unl': '0',
+            'beta': '0'
+          }
+        }
+      }
+    });
+    final api = ScreenScraperProvider(
+        httpClientAdapter: wire,
+        readDeveloperCredentials: () async =>
+            const ScreenScraperDeveloperCredentials(
+                developerId: 'fixture-dev',
+                developerPassword: 'fixture-secret',
+                softwareName: 'fixture'),
+        readUserCredentials: () async => const ScreenScraperUserCredentials(
+            username: 'fixture-user', password: 'fixture-secret'));
+    addTearDown(api.close);
+    final report = await jobs.run(job.id, api);
+    expect(report.counts, {'matched': 2});
+    for (final id in ids) {
+      final edition = (await store.edition(id))!;
+      expect(edition.tags, {'official'});
+      expect(edition.regions, ['us']);
+      expect(edition.languages, ['en']);
+      expect(edition.evidence.where((e) => e.kind == 'exactRomOfficialRelease'),
+          hasLength(1));
+      expect(
+          (await store.metadata(id, 'screenscraper'))!.descriptions.single.text,
+          'Fresh description');
+      final saved = (await db.query('metadata_refresh_items',
+              where: 'job_id = ? AND edition_id = ?', whereArgs: [job.id, id]))
+          .single;
+      final identity = (await db.rawQuery(
+              '''SELECT g.record_json AS game_json, e.record_json AS edition_json
+        FROM library_editions e JOIN library_game_identities g ON g.game_id=e.game_id
+        WHERE e.edition_id=?''', [id]))
+          .single;
+      expect(saved['identity_key'],
+          LibraryStore.metadataIdentity(identity, providerId: 'screenscraper'));
+    }
+    expect(await key(ids.first), await key(ids.last));
+    await db.transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+    expect(await store.metadata(ids.first, 'screenscraper'), isNotNull,
+        reason: 'unchanged catalogue retains exact binding');
+    final page =
+        await LibraryQuery(Future.value(db)).page(filter: LibraryQueryFilter());
+    expect(page.collectionGames, 1);
+    expect(page.items.single.score!.rating.normalizedValue, 85);
+    expect(page.items.single.rank, isNull);
+    expect(wire.requests, hasLength(2),
+        reason: 'metadata calls only; zero ROM-body requests');
+    await shared.close();
+    shared = await SharedMetadataStore.open(root,
+        factory: factory, existingOnly: true, verifyAccess: () async {});
+    await db.delete('library_metadata');
+    for (final row in initial) {
+      await store.putEdition(
+          EditionIdentity.fromJson(jsonDecode(row['record_json'] as String)));
+    }
+    expect(await shared.restore(db), 2,
+        reason:
+            'durable cache restores the automatic identity with no repeated lookup');
+    expect((await store.edition(ids.first))!.tags, {'official'});
+    expect(await store.metadata(ids.first, 'screenscraper'), isNotNull);
+    final row = (await db.query('games', where: 'id = 1')).single;
+    final original =
+        jsonDecode(row['remote_artifact'] as String) as Map<String, dynamic>;
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode({
+            ...original,
+            'displayName': 'Renamed.sfc',
+            'displayPath': 'Renamed.sfc',
+            'version': '2'
+          })
+        },
+        where: 'id = 1');
+    await db.transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+    expect((await store.edition(ids.first))!.tags, {'official'});
+    expect(await store.metadata(ids.first, 'screenscraper'), isNotNull);
+    await db.update(
+        'games',
+        {
+          'remote_artifact': jsonEncode({
+            ...original,
+            'providerChecksums': {'sha1': 'b' * 40},
+            'version': '3'
+          })
+        },
+        where: 'id = 1');
+    await db.transaction((txn) => LibraryStore.catalogueEditions(txn).toList());
+    final changed = (await store.edition(ids.first))!;
+    expect(changed.tags, isEmpty,
+        reason: 'a replacement blob cannot inherit official classification');
+    expect(changed.isTranslation, isNull);
+    expect(changed.regions, isEmpty);
+    expect(changed.languages, isEmpty);
+    expect(changed.evidence.where((e) => e.kind == 'exactRomOfficialRelease'),
+        isEmpty);
+    expect(
+        changed.evidence
+            .where((e) => e.kind == 'previousExactRomOfficialRelease'),
+        hasLength(1));
+    expect(await store.metadata(ids.first, 'screenscraper'), isNull);
+    expect((await store.edition(ids.last))!.tags, {'official'});
+  });
+
+  test(
+      'automatic raw classification preserves manual unknown and patch ownership',
+      () async {
+    final ids = await catalogue(rawDrive: true);
+    final first = (await store.edition(ids.first))!;
+    await store.putEdition(EditionIdentity.fromJson({
+      ...first.toJson(),
+      'tags': ['unknown'],
+      'evidence': [
+        ...first.evidence.map((e) => e.toJson()),
+        IdentityEvidence(
+                source: 'manual',
+                kind: 'contentClassification',
+                value: '["unknown"]')
+            .toJson()
+      ]
+    }));
+    final second = (await store.edition(ids.last))!;
+    await store.putEdition(EditionIdentity.fromJson(
+        {...second.toJson(), 'patchId': 'fixture-patch'}));
+    final before = await db.query('library_editions');
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final wire = _Wire({
+      'response': {
+        'jeu': {
+          'id': '42',
+          'systeme': {'id': '4'},
+          'notgame': false,
+          'noms': [
+            {'region': 'us', 'text': 'Fixture'}
+          ],
+          'rom': {
+            'romsize': '1024',
+            'romsha1': 'a' * 40,
+            'hack': '0',
+            'trad': '0',
+            'demo': '0',
+            'unl': '0',
+            'beta': '0'
+          }
+        }
+      }
+    });
+    final api = ScreenScraperProvider(
+        httpClientAdapter: wire,
+        readDeveloperCredentials: () async =>
+            const ScreenScraperDeveloperCredentials(
+                developerId: 'fixture-dev',
+                developerPassword: 'fixture-secret',
+                softwareName: 'fixture'),
+        readUserCredentials: () async => const ScreenScraperUserCredentials(
+            username: 'fixture-user', password: 'fixture-secret'));
+    addTearDown(api.close);
+    expect((await jobs.run(job.id, api)).counts, {'needsReview': 2});
+    expect(await db.query('library_editions'), before);
+    expect(await db.query('library_metadata'), isEmpty);
+    expect(await key(ids.first), isNot(await key(ids.last)));
+  });
 
   for (final capped in [false, true]) {
     test(
