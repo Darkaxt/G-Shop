@@ -851,6 +851,13 @@ Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
 
+Current native checkpoint (2026-10-06): N64 IGDB job 72 is terminal; ordinary
+Best 25 shows 25 results and explicit provisional coverage (55/1543 ranked).
+The single fresh Game Gear ScreenScraper job 73 is now running. Root generation
+1 remains unpublished and progressing; no reset, SD removal or later-stage work
+is authorized by these narrower results. Complete fresh coverage and defensible
+retention before reviewed migration execution.
+
 Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
 QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 

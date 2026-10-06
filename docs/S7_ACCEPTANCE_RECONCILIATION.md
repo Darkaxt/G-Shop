@@ -1,5 +1,25 @@
 # S7 live metadata and Thor migration
 
+## N64 terminal pass and ordinary ranking view — 2026-10-06
+
+The same IGDB job 72 is terminal: 120 matched (96 rated), 866 needs-review,
+286 unmatched and 271 ambiguous account for all 1,543 requests. The normal N64
+Best-25 UI returns 25 results and visibly reports `55/1543 ranked · 25 matching
+games · Provisional`, with the accepted IGDB community basis and vote-count
+threshold. Read-only evidence confirms 55 eligible groups and no dirty N64
+projection rows. This verifies current matching/query integration while retaining
+the required coverage warning; it does not prove whole-collection Top membership.
+
+Normal controls then started the single fresh Game Gear ScreenScraper job 73,
+with 546 captured requests, after N64's worker completed. It is running without
+a blocked status. The same unpublished root generation 1 continues advancing,
+with no configuration change or generation reset. Both physical screens are OFF.
+See `IMPLEMENTATION_STATUS.md` for inspected counts and preservation evidence.
+
+META-01 full fresh coverage and MIGRATE-01 ranking/review/execution remain open.
+S7 remains the sole ACTIVE stage; S8-S10 remain NOT STARTED. No title curation,
+ROM removal, cloud mutation, FolderSync action or release is implied by this proof.
+
 ## Large-catalogue next-folder scheduling — 2026-10-06
 
 The live Thor query plan scans catalogue entries and sorts them to choose one

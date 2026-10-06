@@ -5,6 +5,49 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 N64 terminal matching / native Top query / next fresh scope — 2026-10-06
+
+- The same N64 IGDB job 72 is now `completed`. All 1,543 captured requests have
+  terminal outcomes: 120 matched (96 rated), 866 needs-review, 286 unmatched and
+  271 ambiguous. Its immutable capture retains 147 original identifiers/current
+  corroborations and 147 official classifications. The read-only observer finds
+  no linked artwork child; IGDB implements `MetadataProvider`, not the separate
+  artwork-provider interface. No second N64 pass or per-title correction was used.
+- Normal Nintendo 64 browsing -> menu -> Filter -> Best 25 -> close displays
+  exactly 25 games. Reopening Filter visibly reports the accepted IGDB community
+  basis (20+ ratings, assessed systems only) and `55/1543 ranked · 25 matching
+  games · Provisional`. The ordinary query rebuilt all six existing projections;
+  the N64 projection has 55 eligible groups and zero dirty editions. This proves
+  current UI/query integration, not a defensible whole-collection retention set.
+  The temporary discovery filter was cleared afterwards.
+- With the previous metadata worker terminal, normal Game metadata controls
+  selected ScreenScraper and `gamegear`, then created ONE fresh job 73. Its
+  current capture has 546 requests (544 unknown, two official); observed state
+  is `running`, with 544 pending, one matched/rated and one needs-review, without
+  a blocked status. This pass uses the existing already-local archive identifier
+  path; completed Game Gear jobs 66/68 are not reused as fresh coverage proof.
+  No ROM body download or guessed classification was requested.
+- Root traversal remains the SAME unpublished generation 1 / nextGeneration 2;
+  it advanced to 181,583 observations and 2,072 pending folders. Actual schema-v37
+  query evidence still starts with the pending-work index and exact entry lookup.
+  Continue this generation; do not reset it because metadata scopes finish first.
+- Configuration SHA-256 is unchanged from the preceding checkpoint. R-Shop PID
+  1836 and unrelated NetherSX2 PID 15069 remain alive. Both physical displays are
+  freshly confirmed committed OFF after UI work. No ROM/save/BIOS, cloud original,
+  FolderSync configuration or external release was changed. No Gradle command was
+  needed for unchanged production source; no new gate/profile claim is made.
+- S7 remains the sole ACTIVE stage. Full fresh scope coverage, root publication,
+  defensible canonical retention and the reviewed SD migration remain unfinished;
+  S8-S10 remain NOT STARTED. These native results do not waive any migration gate.
+- Subsequent screen-off observation proves the SAME Game Gear job advancing:
+  pending 530, matched/rated four, needs-review ten, ambiguous two and three
+  captured original identifiers. Root generation 1 reached 188,651 observations
+  with 2,062 pending folders. Cleanup transaction
+  `979e478fdbab85a6449475f3e4826dec` is APPLIED: only its temporary screenshot and
+  empty capture directory were permanently removed (1,119,385 bytes). The exact
+  device screenshot was removed and freshly confirmed absent. Required observer,
+  APK and private migration evidence remain retained.
+
 ### S7 normal native upgrade and same-generation resume — 2026-10-06
 
 - N64 ScreenScraper job 70 and linked artwork job 71 reached `completed` before
