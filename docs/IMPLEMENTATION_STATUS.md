@@ -5,6 +5,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 authorized standardized matching — 2026-10-06
+
+- Specification revision 9 records the explicit authorized evidence-tier policy.
+  Exact title/platform/region and compatible regional year replace exact company
+  wording and full-date vetoes. Ports/bundles/remakes/remasters keep their own IDs;
+  wrong platform/region/year, ambiguous/capped results, unknown classifications
+  and modification/edition conflicts remain reviewable. Names do not verify ROM
+  bytes or waive score/removal safeguards. Old saved captures keep their original
+  policy and serialization, including legacy title/date semantics.
+- Focused regressions, normal two-provider worker publication, offline grouping/
+  ranking, source-change rejection and shared-store recovery passed. A real
+  deterministic cohort of twelve previously rejected current PSP releases
+  yielded ten IGDB matches and two needsReview; four meet the unchanged community
+  vote floor. No title-specific corrections or provider-ID guesses were used.
+  The same real cohort matched all twelve through ScreenScraper regional name
+  confidence, without raw-classification claims. An initial failed live check
+  exposed missing search-response `notgame`/ROM fields; a reproduced regression
+  fixed this only for already-official editions, retaining explicit conflicts
+  and all unknown raw-classification requirements.
+- Normal Thor PSP job 64 completed: 341 requests, 75 matches (old job 45: twelve),
+  177 needsReview, 39 ambiguous, 50 unmatched, zero failed/unsupported/pending.
+  On final build 193 the ordinary PSP Best 25 query displays 35/341 ranked and
+  25 matching games, Provisional; the old projection had six eligible groups.
+  This proves publication into the native collection query, not full coverage
+  or safe SD eviction. No individual entries were manually approved.
+- Final debug APK: 223,625,058 bytes, SHA-256
+  `1d60472e3232f1d4faf9842710fc57630a886906ef646a2243f00a96c6bd976c`,
+  package `com.darkaxt.rshop.debug`, same verified signing certificate.
+  Install -r preserved data; configuration SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both displays are confirmed committed OFF. ROMs, cloud originals, saves,
+  FolderSync and ownership claims were unchanged; no release occurred.
+- Build 193 exited zero with the shared gate acquired (FIFO ticket 196).
+  Observed workers=2, parallel=false, Gradle maximum heap=3 GiB; assessed Kotlin
+  2.2.20 in-process shares that heap, required JVM flags remain. Test forks are
+  configured one/512 MiB (none ran during assemble); native task pools are one,
+  not a measured total-host cap. No memory failure/increase. Evidence log:
+  `D:\Temp\rshop-s7-standardized-build193-20261006.log`; bounded private cohort:
+  `D:\Temp\rshop-standardized-cohort-20261006.json`.
+  Six exact task-only host diagnostics/compiler/UI outputs were transactionally
+  removed (30,211 bytes), together with three task-only device probe/capture
+  copies. Current APK/log and the private cohort remain. A final auxiliary
+  READONLY aggregate process was killed by Android; its incomplete output is
+  not counted as evidence. The app remained alive, and subsequent normal UI
+  confirmed the complete cached PSP query on the final build after restart.
+- S7 remains the sole ACTIVE stage; defensible full collection rankings,
+  restoration coverage and reviewed safe SD migration remain unfinished.
+  S8-S10 remain NOT STARTED. The matching-policy change does not close S7.
+
 ### S7 explicit standardized adoption — 2026-10-06
 
 - Normal local/cloud byte review now offers a separate deliberate adoption

@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions and save backups
 
-Authoritative specification, revision 8, 2026-10-06.
+Authoritative specification, revision 9, 2026-10-06.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -380,19 +380,28 @@ recovery. Rename-only changes preserve those facts; replacement bytes retire
 automatic classification and assigned release facts, without deleting manual
 evidence. This supplies metadata identity, not reliable reception or Top rank.
 
-S7 cross-provider identification detail (2026-10-06): an otherwise unassigned
-IGDB identity may be corroborated from current, exact-hash ScreenScraper metadata
-for an unmodified official release. Require one uniquely agreeing IGDB candidate:
-nonempty exact normalized title, mapped platform, full regional release date,
-developer and publisher with their correct roles. No fuzzy title, company alias,
-year-only date or highest-score choice establishes this identity. Preserve the
-source record fingerprint and revalidate its current binding before publication.
-Conflicting/missing facts, multiple agreeing candidates, modified/base-linked
-editions, existing identity corrections and changed source records remain review
-or identity-change outcomes. Persist the corroborated provider identity and
-metadata atomically; retain provenance through shared-store recovery. This is
-an implementation of evidence-based matching, not a relaxation of reception,
-vote-count, ownership, freshness, canonical grouping or migration gates.
+S7 standardized identification policy (2026-10-06, explicitly authorized by
+the user: "Yes—standardize matching"): replace the former requirement for
+identical developer/publisher wording and full regional dates with deterministic
+evidence tiers. Exact raw cryptographic evidence and explicit identity corrections
+retain their existing priority. Otherwise, an already classified unmodified
+official edition may match a uniquely agreeing, bounded provider result using a
+nonempty exact normalized title, mapped platform and explicit compatible region.
+ScreenScraper title discovery requires an exact regional (or worldwide) title and
+regional release evidence; it must not claim raw-byte verification. IGDB requires
+current bound ScreenScraper release facts and a matching regional release year.
+Day/month disagreement or different/missing company wording alone is not a veto.
+Known year, region, platform, edition and modification conflicts still reject;
+missing required evidence, truncated results and multiple qualifying candidates
+remain reviewable. Official ports, remakes, remasters and bundles may match their
+own provider records, never a parent's score. No fuzzy title, invented confidence
+weight, highest-score selection or title-only classification of unknown editions.
+Keep hacks, translations, audio/restoration editions, revisions and base-linked
+editions separate. Persist the matching method and captured source facts, including
+the source fingerprint; revalidate current binding before atomic publication and
+retain provenance through shared-store recovery. Saved requests remain immutable.
+Reception, vote-count, ownership, freshness, canonical grouping and exact
+recoverable cloud-byte requirements for SD deletion are unchanged.
 
 ### META-04 — Hacks, translations and score ownership
 

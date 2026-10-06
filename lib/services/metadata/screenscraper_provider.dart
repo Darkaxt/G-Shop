@@ -367,6 +367,8 @@ class ScreenScraperProvider
         games = _maps(data['jeux']);
       }
       final candidates = <MetadataLookupCandidate>[];
+      final eligibleTitles = <int>[];
+      final matchedGames = <Map<String, dynamic>>[];
       Map<String, dynamic>? matched;
       for (final game in games) {
         final id = _text(game['id']);
@@ -393,7 +395,38 @@ class ScreenScraperProvider
           continue;
         }
         final titleMatched = titles.any((title) =>
-            _normalizeTitle(title.text) == _normalizeTitle(request.title));
+            normalizeMetadataTitle(title.text).isNotEmpty &&
+            normalizeMetadataTitle(title.text) ==
+                normalizeMetadataTitle(request.title));
+        final titleQualified = !byId &&
+            raw == null &&
+            (data['jeux'] as List).length < 30 &&
+            request.region != null &&
+            titleMatched &&
+            request.contentTags.length == 1 &&
+            request.contentTags.contains('official') &&
+            request.baseProviderGameId == null &&
+            request.revision?.isNotEmpty != true &&
+            // Search omits raw-classification fields. Existing official tags
+            // are required above; an explicit conflicting non-game still vetoes.
+            (game['notgame'] == null || _text(game['notgame']) == 'false') &&
+            titles.any((title) =>
+                normalizeMetadataTitle(title.text) ==
+                    normalizeMetadataTitle(request.title) &&
+                {_region(request.region!), 'wor'}
+                    .contains(_region(title.region ?? ''))) &&
+            selectEditionReleaseDate(
+                    _localized(game['dates'], dimension: 'region')
+                        .where((date) =>
+                            _region(date.region ?? '') ==
+                            _region(request.region!))
+                        .toList(),
+                    regions: [_region(request.region!)]) !=
+                null &&
+            !['hack', 'trad', 'demo', 'unl', 'beta']
+                .any((key) => _text(_rom(game)?[key]) == '1');
+        if (titleQualified) eligibleTitles.add(candidates.length);
+        matchedGames.add(game);
         candidates.add(MetadataLookupCandidate(
             providerGameId: id!,
             platformId: request.platformId,
@@ -414,13 +447,23 @@ class ScreenScraperProvider
                 ? 'verifiedProviderId'
                 : raw != null
                     ? rawEvidence!
-                    : titleMatched
-                        ? 'platformAndTitle'
-                        : 'providerTitleCandidate'));
+                    : titleQualified
+                        ? 'exactRegionalOfficialTitle'
+                        : titleMatched
+                            ? 'platformAndTitle'
+                            : 'providerTitleCandidate'));
         matched = game;
       }
       if (candidates.isEmpty) {
         return _result(MetadataLookupStatus.unmatched, quota: quota);
+      }
+      if (eligibleTitles.length == 1) {
+        final selected = eligibleTitles.single;
+        matched = matchedGames[selected];
+        final candidate = candidates[selected];
+        candidates
+          ..clear()
+          ..add(candidate);
       }
       if (candidates.length > 1) {
         return _result(MetadataLookupStatus.ambiguous,
@@ -442,7 +485,9 @@ class ScreenScraperProvider
           flags.every((key) => _text(rom?[key]) == '0');
       final modifiedRom = ['hack', 'trad', 'demo', 'unl', 'beta']
           .any((key) => _text(rom?[key]) == '1');
-      if ((!byId && raw == null) ||
+      if ((!byId &&
+              raw == null &&
+              candidates.single.evidence != 'exactRegionalOfficialTitle') ||
           (!official && !inferOfficial) ||
           modifiedRom ||
           request.baseProviderGameId != null ||
@@ -630,6 +675,13 @@ class ScreenScraperProvider
         retrievedAt: fetched,
         refreshGeneration: request.refreshGeneration,
         matchMethod: candidate.evidence,
+        matchEvidence: candidate.evidence == 'exactRegionalOfficialTitle'
+            ? {
+                'matchingPolicy': 'regionalReleaseV1',
+                'title': request.title,
+                'region': _region(request.region!)
+              }
+            : const {},
         titles: candidate.titles,
         descriptions: descriptions,
         releaseDates: releaseDates,
@@ -802,9 +854,6 @@ class ScreenScraperProvider
         'france' => 'fr',
         _ => value.toLowerCase(),
       };
-
-  static String _normalizeTitle(String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'[\s\-_:!?.\x27\x22,()]+'), '');
 
   static MetadataMedia? _mediaEntry(Map<String, dynamic> entry,
       {required String providerGameId, required int providerPlatformId}) {

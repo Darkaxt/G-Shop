@@ -233,8 +233,11 @@ class LibraryStore {
             final ownership = metadataOverallOwnership(
                 game, edition, record, bases[game.baseGameId]);
             if (((provider == 'screenscraper' &&
-                        {'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
-                            .contains(record.matchMethod)) ||
+                        {
+                          'rawRomHashAndSize',
+                          'rawRomSha1AndCappedSize',
+                          'exactRegionalOfficialTitle'
+                        }.contains(record.matchMethod)) ||
                     (provider == 'igdb' &&
                         record.matchMethod == 'corroboratedOfficialRelease')) &&
                 ownership == OverallRatingOwnership.game) {
@@ -999,6 +1002,7 @@ class LibraryStore {
       const groupingMethods = {
         'rawRomHashAndSize',
         'rawRomSha1AndCappedSize',
+        'exactRegionalOfficialTitle',
         'corroboratedOfficialRelease',
         'verifiedProjectId'
       };

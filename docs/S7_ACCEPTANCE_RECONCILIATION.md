@@ -1,5 +1,78 @@
 # S7 live metadata and Thor migration
 
+## Authorized standardized matching — 2026-10-06
+
+Revision 9 records the user's explicit matching-policy change. The previous
+cross-provider rule vetoed otherwise exact releases for company-name differences
+and regional day/month disagreements. A bounded real cohort of twelve previously
+rejected, current ScreenScraper-backed PSP entries now reaches the real IGDB
+adapter through the normal persistent worker: ten matched, two needsReview.
+Four accepted records meet the unchanged known community-vote floor; the cohort
+Top remains provisional. Private capture:
+`D:\Temp\rshop-standardized-cohort-20261006.json`. No individual corrections,
+provider-ID guesses, invented score weights or owner ROM downloads were used.
+
+The same real twelve-entry cohort also passed ScreenScraper name lookup: all
+twelve matched with `exactRegionalOfficialTitle`, and none emitted raw-byte
+classification evidence. Its initial failed pass exposed that `jeuRecherche`
+omits `notgame`/ROM fields. A reproduced regression removed that requirement
+only for already-classified official name matching; explicit non-game conflicts
+remain rejected, and unknown raw classification still requires all original
+positive flags. This is a provider-shape fix, not inferred official tagging.
+
+Both adapters use the same exact Unicode-letter/digit title normalization.
+ScreenScraper can uniquely select an already classified official release with
+an exact regional/worldwide title and compatible regional date, rejecting fuzzy
+neighbours, truncation, supplied raw conflicts, modifications and revisions.
+It records `exactRegionalOfficialTitle`, not raw-byte verification or automatic
+classification. IGDB uses the current source fingerprint, title/platform/region
+and compatible regional year; company wording is descriptive, not a key. Ordinary
+port/bundle/remake/remaster records may match their own IDs. Parent/version
+variants without sufficient edition evidence remain reviewable.
+
+New corroboration captures explicitly name `regionalReleaseV1`; old captures
+without that field retain `exactReleaseV1` and are not rewritten. Current source
+binding is rechecked atomically before publication. Unknown classifications,
+hacks/translation/audio/restoration ownership, source changes, wrong region/year,
+multiple qualifying candidates and capped search results cannot obtain trusted
+Top ranks through this policy. Cloud/local byte, adoption and deletion gates
+are unchanged.
+
+Focused adapter regressions reproduced the original failures before the fix.
+Host verification passed for the two-provider persistent workflow, offline
+canonical grouping/ranking, changed-source rejection and shared-store recovery.
+Affected catalogue/worker/store/rating/shared-cache checks passed; scoped analysis
+is clean. A regression found and corrected a saved-job compatibility difference:
+legacy captures retain their original title normalization and any-exact-date
+rule, while new captures reject conflicting regional years.
+
+Normal Thor IGDB PSP job 64 completed all 341 requests: 75 matched, 177 needsReview,
+39 ambiguous and 50 unmatched, with no failed/unsupported items or pending work.
+The old job 45 matched twelve. The updated library's ordinary PSP Best 25 filter
+now reports 35/341 eligible canonical games and 25 matching games, truthfully
+Provisional; the prior projection had six eligible groups. A completed job is not
+complete collection coverage. No individual classification or match was approved.
+
+Signature-preserving build 193 installed with -r after the job completed;
+the normal library query above was rechecked on that final build after restart.
+The last auxiliary READONLY aggregate process was killed by Android; its incomplete
+output is not verification evidence. The app remained alive, and the normal UI
+subsequently showed the complete cached result, not an error or an updating state.
+Config SHA-256
+remains `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+Both physical screens are confirmed committed OFF. Shared Gradle gate acquired;
+observed workers=2, parallel=false, Gradle heap=3 GiB, preserved JVM flags and
+assessed Kotlin 2.2.20 in-process sharing that heap. Test forks were configured
+one/512 MiB (none ran during assemble), native pools remain one per task, not a
+measured host-wide cap. No memory failure or budget increase. No cloud, ROM,
+save, FolderSync or ownership/deletion mutation occurred.
+Six exact task-only host diagnostics/compiler/UI outputs were transactionally
+removed (30,211 bytes), and all three task-only device probe/capture copies were
+removed after inspection. The current APK/log and bounded private cohort remain.
+
+This is matching progress, not S7 closure: full collection ranking, archive
+restoration coverage and reviewed safe migration remain required.
+
 ## Deliberate standalone adoption — 2026-10-06
 
 The normal review now separates read-only byte checking from explicit adoption.

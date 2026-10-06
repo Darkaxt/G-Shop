@@ -838,7 +838,14 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   Establish defensible Top-25 retention per console; no fabricated scores or
   automatic deletion of unresolved games. Count canonical games, retain bundles.
 - Resolve shared matching defects rather than curate individual games. The
-  supported DVD CHD original-identifier parser and observed ScreenScraper ISO
+  authorized revision-9 standardized policy is S7 work: prove unique exact
+  platform/title/region selection in ScreenScraper and current bound regional-year
+  corroboration in IGDB without company-wording/day-month vetoes. Preserve
+  ambiguity, edition/modification conflicts, immutable jobs, atomic publication,
+  shared-store provenance and unchanged score/removal gates. Verify the normal
+  persistent worker and a bounded real multi-entry provider cohort before native
+  breadth. This is not a later stage or a per-game correction programme.
+  The supported DVD CHD original-identifier parser and observed ScreenScraper ISO
   size cap are bounded S7 work, not a new stage. Verify header -> live adapter
   and adapter -> persistent job -> grouping/advisory query independently.
   The actual normal workflow must persist exact version-bound evidence without

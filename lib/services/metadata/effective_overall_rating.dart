@@ -1,6 +1,7 @@
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
-import 'metadata_provider.dart' show MetadataCorroboration;
+import 'metadata_provider.dart'
+    show MetadataCorroboration, normalizeMetadataTitle;
 
 enum OverallRatingOwnership { game, originalGame, project }
 
@@ -265,6 +266,21 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
         (record.providerId == 'screenscraper' &&
             {'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
                 .contains(record.matchMethod))) {
+      return OverallRatingOwnership.game;
+    }
+    if (record.providerId == 'screenscraper' &&
+        record.matchMethod == 'exactRegionalOfficialTitle' &&
+        edition.revision?.isNotEmpty != true &&
+        edition.patchId == null &&
+        edition.translatedLanguages.isEmpty &&
+        record.matchEvidence['matchingPolicy'] == 'regionalReleaseV1' &&
+        record.matchEvidence['title'] is String &&
+        {'us', 'eu', 'jp', 'wor'}.contains(record.matchEvidence['region']) &&
+        record.titles.any((title) =>
+            normalizeMetadataTitle(title.text).isNotEmpty &&
+            normalizeMetadataTitle(title.text) ==
+                normalizeMetadataTitle(
+                    record.matchEvidence['title'] as String))) {
       return OverallRatingOwnership.game;
     }
     return null;

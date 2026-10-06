@@ -169,7 +169,12 @@ class MetadataRomIdentifier {
   }
 }
 
-/// Compact facts from a current hash-bound ScreenScraper official release.
+/// Exact title equality shared by the two providers. Punctuation is not identity;
+/// letters, digits and their order are. Never transliterate or fuzzy-match here.
+String normalizeMetadataTitle(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
+
+/// Compact facts from a current bound ScreenScraper official release.
 /// The worker, not an imported catalogue claim, establishes this provenance.
 class MetadataCorroboration {
   final String providerGameId,
@@ -179,6 +184,7 @@ class MetadataCorroboration {
       developer,
       publisher;
   final List<String> titles;
+  final String matchingPolicy;
   MetadataCorroboration({
     required this.providerGameId,
     required this.recordHash,
@@ -187,21 +193,29 @@ class MetadataCorroboration {
     required this.region,
     required this.developer,
     required this.publisher,
+    this.matchingPolicy = 'regionalReleaseV1',
   }) : titles = List.unmodifiable(titles) {
     final date = DateTime.tryParse(releaseDate);
+    final partial =
+        RegExp(r'^([1-9][0-9]{3})(?:-([0-9]{2}))?$').firstMatch(releaseDate);
+    final partialValid = partial != null &&
+        (partial[2] == null ||
+            (int.parse(partial[2]!) >= 1 && int.parse(partial[2]!) <= 12));
     if (!RegExp(r'^[1-9][0-9]*$').hasMatch(providerGameId) ||
         !RegExp(r'^[0-9a-f]{64}$').hasMatch(recordHash) ||
         titles.isEmpty ||
         titles.length > 32 ||
         titles.any((t) => t.trim().isEmpty || t.length > 512) ||
         !{'us', 'eu', 'jp', 'wor'}.contains(region) ||
-        !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(releaseDate) ||
-        date == null ||
-        date.year < 1 ||
-        date.toIso8601String().substring(0, 10) != releaseDate ||
-        developer.trim().isEmpty ||
+        !{'exactReleaseV1', 'regionalReleaseV1'}.contains(matchingPolicy) ||
+        (!(matchingPolicy == 'regionalReleaseV1' && partialValid) &&
+            (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(releaseDate) ||
+                date == null ||
+                date.year < 1 ||
+                date.toIso8601String().substring(0, 10) != releaseDate)) ||
+        (matchingPolicy == 'exactReleaseV1' && developer.trim().isEmpty) ||
         developer.length > 256 ||
-        publisher.trim().isEmpty ||
+        (matchingPolicy == 'exactReleaseV1' && publisher.trim().isEmpty) ||
         publisher.length > 256) {
       throw const FormatException('Invalid metadata corroboration');
     }
@@ -214,7 +228,8 @@ class MetadataCorroboration {
         'releaseDate': releaseDate,
         'region': region,
         'developer': developer,
-        'publisher': publisher
+        'publisher': publisher,
+        if (matchingPolicy != 'exactReleaseV1') 'matchingPolicy': matchingPolicy
       };
   factory MetadataCorroboration.fromJson(Map<String, dynamic> json) {
     _rejectUnexpectedKeys(
@@ -227,12 +242,15 @@ class MetadataCorroboration {
           'releaseDate',
           'region',
           'developer',
-          'publisher'
+          'publisher',
+          'matchingPolicy'
         },
         'metadata corroboration');
     if (json['providerId'] != 'screenscraper' ||
         json['titles'] is! List ||
-        (json['titles'] as List).any((t) => t is! String)) {
+        (json['titles'] as List).any((t) => t is! String) ||
+        json['developer'] is! String ||
+        json['publisher'] is! String) {
       throw const FormatException('Invalid metadata corroboration source');
     }
     return MetadataCorroboration(
@@ -242,8 +260,11 @@ class MetadataCorroboration {
         titles: (json['titles'] as List).cast<String>(),
         releaseDate: _requiredString(json, 'releaseDate', 'corroboration'),
         region: _requiredString(json, 'region', 'corroboration'),
-        developer: _requiredString(json, 'developer', 'corroboration'),
-        publisher: _requiredString(json, 'publisher', 'corroboration'));
+        developer: json['developer'] as String,
+        publisher: json['publisher'] as String,
+        matchingPolicy:
+            _optionalString(json, 'matchingPolicy', 'corroboration') ??
+                'exactReleaseV1');
   }
 }
 

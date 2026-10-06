@@ -60,6 +60,55 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
+  test('current official cohort uses standardized regional name confidence',
+      () async {
+    final cohort = jsonDecode(
+            await File(values['RSHOP_CORROBORATION_FIXTURE']!).readAsString())
+        as List;
+    expect(cohort.length, inInclusiveRange(2, 16));
+    final api = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(api.close);
+    final counts = <String, int>{};
+    for (var n = 0; n < cohort.length; n++) {
+      final sample = cohort[n] as Map<String, dynamic>;
+      expect(sample['tags'], ['official']);
+      final result = await api.lookup(MetadataLookupRequest(
+          gameId: 'regional-cohort-$n',
+          editionId: 'regional-cohort-edition-$n',
+          platformId: sample['platform'] as String,
+          title: sample['title'] as String,
+          region: sample['region'] as String,
+          contentTags: {'official'},
+          refreshGeneration: 1));
+      counts.update(result.status.name, (count) => count + 1,
+          ifAbsent: () => 1);
+      expect(result.officialRomEvidence, isNull,
+          reason: 'Name confidence never becomes raw-byte classification.');
+      if (result.status != MetadataLookupStatus.matched) {
+        expect(result.record, isNull);
+        continue;
+      }
+      expect(result.record!.matchMethod, 'exactRegionalOfficialTitle');
+      expect(
+          result.record!.matchEvidence['matchingPolicy'], 'regionalReleaseV1');
+      expect(result.record!.matchEvidence['region'], sample['region']);
+    }
+    expect(counts['matched'] ?? 0, greaterThan(0));
+    stdout.writeln('SCREENSCRAPER_REGIONAL_COHORT ${jsonEncode({
+          'items': cohort.length,
+          'outcomes': counts,
+          'rawClassificationClaims': 0
+        })}');
+  },
+      skip: developer.isConfigured &&
+              user.isConfigured &&
+              values.containsKey('RSHOP_CORROBORATION_FIXTURE')
+          ? false
+          : 'A bounded current cohort and legitimate credentials must be explicitly provided.',
+      timeout: Timeout.none);
+
   test('declared DVD CHD original identifiers match the real provider',
       () async {
     final samples = jsonDecode(values['RSHOP_LIVE_CHD_SAMPLES']!) as List;

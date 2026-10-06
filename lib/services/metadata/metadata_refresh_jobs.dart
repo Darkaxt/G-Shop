@@ -837,7 +837,8 @@ class MetadataRefreshJobs {
   }
 
   static Future<MetadataCorroboration?> _currentCorroboration(
-      DatabaseExecutor db, Map<String, Object?> identity) async {
+      DatabaseExecutor db, Map<String, Object?> identity,
+      {String matchingPolicy = 'regionalReleaseV1'}) async {
     final game =
         GameIdentity.fromJson(jsonDecode(identity['game_json'] as String));
     final edition = EditionIdentity.fromJson(
@@ -853,7 +854,7 @@ class MetadataRefreshJobs {
         edition.translatedLanguages.isNotEmpty ||
         edition.patchId != null ||
         edition.revision?.isNotEmpty == true ||
-        edition.regions.length != 1) {
+        edition.regions.length > 1) {
       return null;
     }
     final rows = await db.query('library_metadata',
@@ -873,8 +874,12 @@ class MetadataRefreshJobs {
         record.platformId != game.platformId ||
         record.editionId != edition.id ||
         !LibraryStore.hasConsistentProvenance(record) ||
-        !{'rawRomHashAndSize', 'rawRomSha1AndCappedSize'}
-            .contains(record.matchMethod)) {
+        !{
+          'rawRomHashAndSize',
+          'rawRomSha1AndCappedSize',
+          if (matchingPolicy != 'exactReleaseV1') 'exactRegionalOfficialTitle',
+          if (matchingPolicy != 'exactReleaseV1') 'verifiedProviderId'
+        }.contains(record.matchMethod)) {
       return null;
     }
     final newer = await db.rawQuery('''SELECT 1 FROM metadata_refresh_items i
@@ -892,8 +897,23 @@ class MetadataRefreshJobs {
       'world': 'wor',
       'wor': 'wor'
     };
-    final region = regions[edition.regions.single.trim().toLowerCase()];
+    final selectedRegion = edition.regions.length == 1
+        ? edition.regions.single
+        : record.matchMethod == 'exactRegionalOfficialTitle'
+            ? await _lookupRegion(db, game, edition)
+            : null;
+    final region = regions[selectedRegion?.trim().toLowerCase()];
     if (region == null) return null;
+    if (record.matchMethod == 'exactRegionalOfficialTitle' &&
+        (record.matchEvidence['matchingPolicy'] != 'regionalReleaseV1' ||
+            record.matchEvidence['region'] != region ||
+            record.matchEvidence['title'] is! String ||
+            !record.titles.any((t) =>
+                normalizeMetadataTitle(t.text) ==
+                normalizeMetadataTitle(
+                    record.matchEvidence['title'] as String)))) {
+      return null;
+    }
     final dates = record.releaseDates
         .where((d) =>
             d.region != null &&
@@ -920,7 +940,8 @@ class MetadataRefreshJobs {
           releaseDate: date ?? '',
           region: region,
           developer: record.developer ?? '',
-          publisher: record.publisher ?? '');
+          publisher: record.publisher ?? '',
+          matchingPolicy: matchingPolicy);
     } on FormatException {
       return null;
     }
@@ -2226,6 +2247,25 @@ class MetadataRefreshJobs {
             record.providerId == providerId &&
             record.refreshGeneration == request.refreshGeneration &&
             LibraryStore.hasConsistentProvenance(record) &&
+            (record.matchMethod != 'exactRegionalOfficialTitle' ||
+                (providerId == 'screenscraper' &&
+                    request.region != null &&
+                    request.contentTags.length == 1 &&
+                    request.contentTags.contains('official') &&
+                    request.baseProviderGameId == null &&
+                    request.revision?.isNotEmpty != true &&
+                    record.matchEvidence['matchingPolicy'] ==
+                        'regionalReleaseV1' &&
+                    record.matchEvidence['title'] == request.title &&
+                    record.matchEvidence['region'] ==
+                        (const {
+                              'usa': 'us',
+                              'japan': 'jp',
+                              'japon': 'jp',
+                              'europe': 'eu',
+                              'world': 'wor'
+                            }[request.region?.toLowerCase()] ??
+                            request.region?.toLowerCase()))) &&
             (record.matchMethod != 'corroboratedOfficialRelease' ||
                 (providerId == 'igdb' &&
                     request.corroboration != null &&
@@ -2288,7 +2328,8 @@ class MetadataRefreshJobs {
             final copy = MetadataRecord.fromJson(
                 {...record!.toJson(), 'editionId': editionId});
             if (copy.matchMethod == 'corroboratedOfficialRelease') {
-              final facts = await _currentCorroboration(txn, identity);
+              final facts = await _currentCorroboration(txn, identity,
+                  matchingPolicy: request.corroboration!.matchingPolicy);
               if (facts == null ||
                   jsonEncode(_canonical(facts.toJson())) !=
                       jsonEncode(_canonical(request.corroboration!.toJson()))) {

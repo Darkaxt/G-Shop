@@ -394,6 +394,120 @@ void main() {
     expect(result.record, isNull);
   });
 
+  test('unique regional official title excludes fuzzy search neighbours',
+      () async {
+    final exact = _game()..['notgame'] = 'false';
+    final neighbour = _game(id: '99')
+      ..['noms'] = [
+        {'region': 'us', 'text': 'Fixture Adventure 2'}
+      ];
+    final provider = _provider(_Wire({
+      'response': {
+        'jeux': [neighbour, exact]
+      }
+    }));
+    addTearDown(provider.close);
+    final result = await provider
+        .lookup(_request(verifiedProviderGameId: null, region: 'us'));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(result.record!.providerGameId, '42');
+    expect(result.record!.matchMethod, 'exactRegionalOfficialTitle');
+    expect(result.officialRomEvidence, isNull,
+        reason: 'Title confidence is not cryptographic classification proof.');
+  });
+
+  test(
+      'regional title confidence keeps conflicts and unknown editions reviewable',
+      () async {
+    final exact = _game()..['notgame'] = 'false';
+    final duplicate = _game(id: '99')..['notgame'] = 'false';
+    for (final request in [
+      _request(verifiedProviderGameId: null),
+      _request(verifiedProviderGameId: null, region: 'jp'),
+      _request(verifiedProviderGameId: null, region: 'us', tags: {'unknown'}),
+      _request(verifiedProviderGameId: null, region: 'us', tags: {'T-Eng'}),
+      _request(verifiedProviderGameId: null, region: 'us', revision: 'Rev 1'),
+    ]) {
+      final provider = _provider(_Wire({
+        'response': {
+          'jeux': [exact]
+        }
+      }));
+      final result = await provider.lookup(request);
+      provider.close();
+      expect(result.record, isNull);
+    }
+    final provider = _provider(_Wire({
+      'response': {
+        'jeux': [exact, duplicate]
+      }
+    }));
+    addTearDown(provider.close);
+    expect(
+        (await provider
+                .lookup(_request(verifiedProviderGameId: null, region: 'us')))
+            .status,
+        MetadataLookupStatus.ambiguous);
+  });
+
+  test('regional search does not require omitted raw-classification fields',
+      () async {
+    for (final notGame in [null, false, true]) {
+      // Real jeuRecherche omits ROM/notgame fields; these are required to infer
+      // unknown raw classification, not to match an already official edition.
+      final game = _game()..remove('rom');
+      if (notGame != null) game['notgame'] = notGame;
+      final api = _provider(_Wire({
+        'response': {
+          'jeux': [game]
+        }
+      }));
+      final result = await api
+          .lookup(_request(verifiedProviderGameId: null, region: 'us'));
+      api.close();
+      expect(result.record != null, notGame != true);
+      expect(result.officialRomEvidence, isNull);
+    }
+  });
+
+  test('title confidence cannot override raw conflicts or truncated search',
+      () async {
+    final exact = _game()..['notgame'] = 'false';
+    final truncated = _provider(_Wire({
+      'response': {
+        'jeux': [
+          exact,
+          for (var n = 0; n < 29; n++)
+            _game(id: '${100 + n}')
+              ..['noms'] = [
+                {'region': 'us', 'text': 'Neighbour $n'}
+              ]
+        ]
+      }
+    }));
+    addTearDown(truncated.close);
+    expect(
+        (await truncated
+                .lookup(_request(verifiedProviderGameId: null, region: 'us')))
+            .record,
+        isNull);
+    final rawConflict = _provider(_Wire({
+      'response': {'jeu': exact}
+    }));
+    addTearDown(rawConflict.close);
+    expect(
+        (await rawConflict.lookup(_request(
+                verifiedProviderGameId: null,
+                region: 'us',
+                identifier: const MetadataRomIdentifier(
+                    kind: RomIdentifierKind.rawRom,
+                    filename: 'Fixture.sfc',
+                    sizeBytes: 1024,
+                    md5: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'))))
+            .record,
+        isNull);
+  });
+
   test('container checksum is never sent as raw-ROM identifier', () async {
     final wire = _Wire({
       'response': {

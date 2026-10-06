@@ -160,8 +160,10 @@ class IgdbMetadataProvider implements MetadataProvider {
             previewDescriptions: game['summary'] is String
                 ? [MetadataText(text: game['summary'] as String)]
                 : const [],
-            titleMatched: titles
-                .any((t) => _normalize(t.text) == _normalize(request.title)),
+            titleMatched: titles.any((t) =>
+                normalizeMetadataTitle(t.text).isNotEmpty &&
+                normalizeMetadataTitle(t.text) ==
+                    normalizeMetadataTitle(request.title)),
             evidence: id == null ? 'platformAndTitle' : 'verifiedProviderId'));
         games.add(game);
       }
@@ -312,11 +314,17 @@ class IgdbMetadataProvider implements MetadataProvider {
   static bool _corroborates(
       Map<String, dynamic> game, MetadataCorroboration facts, int platform) {
     final type = game['game_type'];
+    final legacy = facts.matchingPolicy == 'exactReleaseV1';
+    final kind = type is Map && type['type'] is String
+        ? _normalize(type['type'] as String)
+        : null;
     if (type is! Map ||
-        type['type'] is! String ||
-        _normalize(type['type'] as String) != 'maingame' ||
+        !(legacy
+            ? kind == 'maingame'
+            : {'maingame', 'port', 'bundle', 'remake', 'remaster'}
+                .contains(kind)) ||
         game['version_parent'] != null ||
-        game['parent_game'] != null ||
+        (legacy && game['parent_game'] != null) ||
         (game['alternative_names'] is List &&
             (game['alternative_names'] as List).length > 128)) {
       return false;
@@ -327,9 +335,11 @@ class IgdbMetadataProvider implements MetadataProvider {
         for (final alternative in game['alternative_names'] as List)
           if (alternative is Map) alternative['name']
     ];
+    final normalizeTitle = legacy ? _normalize : normalizeMetadataTitle;
     if (!titles.whereType<String>().any((title) =>
-        _normalize(title).isNotEmpty &&
-        facts.titles.any((known) => _normalize(known) == _normalize(title)))) {
+        normalizeTitle(title).isNotEmpty &&
+        facts.titles
+            .any((known) => normalizeTitle(known) == normalizeTitle(title)))) {
       return false;
     }
     final releases = game['release_dates'];
@@ -339,28 +349,39 @@ class IgdbMetadataProvider implements MetadataProvider {
       'jp': 'japan',
       'wor': 'worldwide'
     };
-    if (releases is! List ||
-        releases.length > 256 ||
-        !releases.any((release) {
-          if (release is! Map ||
-              release['platform'] != platform ||
-              release['date'] is! int ||
-              release['date_format'] is! Map ||
-              (release['date_format'] as Map)['format'] != 'YYYYMMDD' ||
-              release['release_region'] is! Map ||
-              (release['release_region'] as Map)['region'] !=
-                  regions[facts.region]) {
-            return false;
-          }
-          return DateTime.fromMillisecondsSinceEpoch(
-                      (release['date'] as int) * 1000,
-                      isUtc: true)
-                  .toIso8601String()
-                  .substring(0, 10) ==
-              facts.releaseDate;
-        })) {
+    if (releases is! List || releases.length > 256) return false;
+    final regionalDates = <String>[];
+    for (final release in releases) {
+      if (release is! Map ||
+          release['platform'] != platform ||
+          release['date'] is! int ||
+          release['date_format'] is! Map ||
+          !(legacy
+              ? (release['date_format'] as Map)['format'] == 'YYYYMMDD'
+              : {'YYYYMMDD', 'YYYYMM', 'YYYY'}
+                  .contains((release['date_format'] as Map)['format'])) ||
+          release['release_region'] is! Map ||
+          (release['release_region'] as Map)['region'] !=
+              regions[facts.region]) {
+        continue;
+      }
+      final date = DateTime.fromMillisecondsSinceEpoch(
+              (release['date'] as int) * 1000,
+              isUtc: true)
+          .toIso8601String();
+      regionalDates.add(legacy ? date.substring(0, 10) : date.substring(0, 4));
+    }
+    final expectedDate =
+        legacy ? facts.releaseDate : facts.releaseDate.substring(0, 4);
+    if (regionalDates.isEmpty ||
+        (legacy
+            ? !regionalDates.contains(expectedDate)
+            : regionalDates.any((date) => date != expectedDate))) {
       return false;
     }
+    // Companies are display/provenance facts, not stable cross-service keys.
+    // Exact title + platform + regional year is the authorized evidence tier.
+    if (!legacy) return true;
     final companies = game['involved_companies'];
     if (companies is! List || companies.length > 256) return false;
     bool role(String role, String expected) => companies.any((company) =>
