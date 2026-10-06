@@ -926,6 +926,11 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   supports migration execution but does not close its ranking or restore gates.
 - Apply the exact reviewed removals only after recovery gates pass, ensuring
   external sync will not refill them and archival profiles remain unchanged.
+  The narrow LoLSuite `device.on_demand_folders` guard is implemented and
+  host-verified: excluded folder/overlapping targets cannot plan, bootstrap or
+  apply old plans. Leave the live list unchanged until reviewed migration
+  execution; then activate only actual reviewed targets and revalidate rejection
+  of their exact plans and absence of active transfer before any removal.
 - Verify retained sets, bytes/free space, save safety, and restore a removed
   test game via R-Shop before returning it to the intended retention state.
 - Reconcile the entire specification including migration, commit verified code

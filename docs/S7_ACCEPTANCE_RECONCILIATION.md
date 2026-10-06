@@ -2,12 +2,22 @@
 
 ## External-sync collision review — 2026-10-06
 
+Subsequent bounded remediation added a device-folder on-demand exclusion to the
+deployed LoLSuite manager: planners/bootstrap/old-plan application reject excluded
+targets before ADB, while menus omit them and unaffected targets/selection hashes
+remain unchanged. Focused regression and existing route checks passed, and an
+actual CLI rejected a temporarily excluded target without creating a plan. The
+versioned patch and source identities are recorded in the review. No live config
+exclusion is active yet; activation and exact-plan verification belong to reviewed
+migration execution. This does not close MIGRATE-01.
+
 The read-only [external-sync review](S7_EXTERNAL_SYNC_REVIEW.md) establishes that
 LoLSuite's missing desired files are always additions: neither ownership-record
 removal nor preserve-all retirement prevents refill. Inspected UI/CLI routes
 require explicit transfer confirmation; bounded Windows task/startup/process
-checks found no matching automatic launcher or active manager. No LoLSuite or
-FolderSync changes were made. This is not universal background-sync exclusion.
+checks found no matching automatic launcher or active manager. That initial audit
+made no changes; subsequent source remediation did not change archive settings,
+ownership or FolderSync. This is not universal background-sync exclusion.
 
 The actual target-specific no-refill arrangement and execution-time checks remain
 required before reviewed SD removal. Archive profiles and ownership journals are

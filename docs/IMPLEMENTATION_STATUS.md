@@ -5,6 +5,35 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 device-sync no-refill guard — 2026-10-06
+
+- Remediated the inspected LoLSuite refill risk with an optional exact
+  `device.on_demand_folders` exclusion, not altered archive caps. Both planners,
+  ownership bootstraps and old-plan bindings reject excluded/overlapping folders
+  before ADB. Menus omit them; plan-all continues unaffected targets. Current
+  selection fingerprints remain identical under independent pre-change checks.
+- The focused regression failed before implementation. Exclusion and existing
+  configuration/coverage/UI checks passed serially; a real CLI with a temporary
+  excluded-target config refused planning and produced no output directory.
+  Live device/coverage configs and ownership remain unchanged. The guard is not
+  activated until the actual reviewed migration chooses its folders.
+- Because LoLSuite is not a Git repository, the applied source/test patch is
+  versioned in `integrations/lolsuite/on_demand_sync.patch`; reverse applicability
+  was checked. Details and exact source identities are in
+  `S7_EXTERNAL_SYNC_REVIEW.md`. No ROMs, saves, FolderSync or cloud originals were
+  changed. No Gradle command/build/profile change or external release occurred.
+- S7 remains ACTIVE. Actual exclusion activation/exact-plan revalidation, full
+  fresh metadata/reception, defensible retention, root publication and reviewed
+  migration remain required. S8-S10 remain NOT STARTED.
+- Fresh read-only observations revalidated the same PID 26853, N64 job 70 and
+  root generation 1: pending metadata 542 -> 446, accepted/rated 98 -> 108;
+  catalogue pending folders 6,780 -> 6,516. Neither worker was restarted and no
+  new generation/job was created. Both displays are OFF; R-Shop's full config
+  still matches its recorded baseline. These are progress, not terminal coverage.
+  Reviewed cleanup `607cee57ce722902ffe2a4b426bce653` permanently removed only
+  expendable before-images/validation/config copies (1,033,689 bytes). Persistent
+  tests passed again after cleanup; the versioned patch provides exact recovery.
+
 ### S7 screen-off worker observation — 2026-10-06
 
 - Revalidated the same live R-Shop PID 26853, N64 job 70 and root generation 1.

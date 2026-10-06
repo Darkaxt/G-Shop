@@ -1,0 +1,2 @@
+# Unified-diff context blanks are data, not source whitespace errors.
+on_demand_sync.patch -whitespace
