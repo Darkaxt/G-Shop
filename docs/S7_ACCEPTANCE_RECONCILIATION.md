@@ -1,6 +1,27 @@
 # S7 live metadata and Thor migration
 
-## Current matching / recovery-journal / root-resume check — 2026-10-06
+## Current N64 normal recovery checkpoint — 2026-10-06
+
+The new explicit standalone N64 ZIP/7z path is verified through the normal Thor
+queue, native archive validation, exact-leaf owned emulator grant, actual online
+and fresh offline title-screen boot, owned removal and identical re-download.
+The original failed saved item succeeded after the parser's evidenced RomVault
+marker/known-size LZMA corrections; it was not replaced to hide the failure.
+See the latest implementation-status checkpoint for APK/checksum/build evidence.
+
+The final READONLY audit confirms zero isolated-root transfers, installations and
+owners, and two completed removal journals without issues. Original ROM bytes and
+full source configuration are unchanged; the normal N64 target and PSP Best-25
+view are restored, Wi-Fi is enabled, and both physical displays are committed OFF.
+The expendable test copies and now-empty device test directory are removed.
+
+This satisfies the bounded N64 format workflow, not collection-wide recovery or
+MIGRATE-01. Generation 1 remains pending (148,325 observations / 9,524 pending
+folders at the inspected checkpoint); classification, defensible full rankings,
+other format recovery and reviewed save/space-safe migration remain unfinished.
+S7 is the sole ACTIVE stage and S8-S10 remain NOT STARTED.
+
+## Previous matching / recovery-journal / root-resume check — 2026-10-06
 
 The authorized revision-9 matching implementation (`f270427`) remains installed
 on unchanged APK 206. Fresh focused provider checks selected by `regional` passed,

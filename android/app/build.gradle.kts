@@ -98,6 +98,8 @@ dependencies {
     // invalidation boundary, not a second sign-in or account provider.
     implementation("com.google.android.gms:play-services-auth:21.6.0")
     implementation("com.hierynomus:smbj:0.13.0")
+    // Bounded raw LZMA/LZMA2 decoding for the validated single-ROM N64 7z route.
+    implementation("org.tukaani:xz:1.12")
     testImplementation("junit:junit:4.13.2")
 }
 

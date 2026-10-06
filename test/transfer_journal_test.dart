@@ -458,7 +458,22 @@ void main() {
     expect((await journal.transfer(typed.id))!.archivePlatformId, 'gamegear');
     expect(typed.copyWith(lifecycle: TransferLifecycle.paused).archivePlatformId, 'gamegear');
     await expectLater(journal.save(TransferRecord.fromJson({...typed.toJson()}..remove('archivePlatformId'))), throwsStateError);
-    expect(() => TransferRecord.fromJson({...legacy.toJson(), 'archivePlatformId': 'n64'}), throwsArgumentError);
+    expect(() => TransferRecord.fromJson({...legacy.toJson(), 'archivePlatformId': 'psp'}), throwsArgumentError);
+  });
+
+  test('N64 archive mapping persists without approving untyped seven zip', () async {
+    for (final extension in ['7z', 'zip']) {
+      final legacy = TransferRecord.fromJson({..._queued(id: 'n64-$extension').toJson(),
+        'relativePath': 'Game.$extension'});
+      expect(legacy.archivePlatformId, isNull);
+      final typed = TransferRecord.fromJson({...legacy.toJson(), 'archivePlatformId': 'n64'});
+      await journal.create(typed);
+      expect((await journal.transfer(typed.id))!.archivePlatformId, 'n64');
+      expect(typed.copyWith(lifecycle: TransferLifecycle.paused).archivePlatformId, 'n64');
+      await expectLater(journal.save(TransferRecord.fromJson({...typed.toJson()}..remove('archivePlatformId'))), throwsStateError);
+    }
+    expect(() => TransferRecord.fromJson({..._queued().toJson(),
+      'relativePath': 'Game.chd', 'archivePlatformId': 'n64'}), throwsArgumentError);
   });
 
   test('new reservations reject preexisting stage or publication evidence',

@@ -454,10 +454,23 @@ class DriveRuntime {
       cancellation: cancellation);
 
   /// Explicitly adopts one standalone file, never a saved observation, bundle,
-  /// archive or title-based namesake. Ownership does not authorize migration.
+  /// unsupported archive or title-based namesake. Ownership does not authorize migration.
+  static String? _archiveMapping(String filename, Set<String> extensions) {
+    final ext = p.posix.extension(filename).toLowerCase();
+    final mapped = extensions.map((e) => e.toLowerCase()).toSet();
+    if (ext == '.zip' && mapped.length == 1 && mapped.contains('.gg')) {
+      return 'gamegear';
+    }
+    if ((ext == '.7z' || ext == '.zip') && mapped.length == 3 &&
+        mapped.containsAll(const {'.z64', '.n64', '.v64'})) {
+      return 'n64';
+    }
+    return null;
+  }
+
   static bool supportsStandaloneAdoption(String filename, Set<String> extensions) {
     final extension = p.posix.extension(filename).toLowerCase();
-    if (extension == '.zip') return extensions.length == 1 && extensions.single.toLowerCase() == '.gg';
+    if (_archiveMapping(filename, extensions) != null) return true;
     return extensions.map((e) => e.toLowerCase()).contains(extension) &&
         !BundleReferences.isManifest(filename) &&
         !{'.zip', '.7z', '.rar', '.gz', '.gdi'}.contains(extension);
@@ -484,7 +497,7 @@ class DriveRuntime {
       await _compareLocalCloudBytes(config: config, artifact: artifact,
           destinationRoot: destinationRoot, relativePath: relativePath,
           cancellation: cancellation,
-          validateArchive: artifact.displayName.toLowerCase().endsWith('.zip'),
+          archivePlatformId: _archiveMapping(artifact.displayName, supportedExtensions),
           onVerified: (observation, stagePath, check) async {
             await DriveDownloadBoundary(config: config, artifact: artifact,
                 catalogue: catalogue, api: apiFor(config.drive!))
@@ -502,7 +515,7 @@ class DriveRuntime {
                 .toRadixString(16).padLeft(2, '0')).join()}';
             installation = await journal.adoptVerifiedFile(observation, id: id,
                 stagePath: stagePath, checkCancellation: check,
-                archivePlatformId: artifact.displayName.toLowerCase().endsWith('.zip') ? 'gamegear' : null);
+                archivePlatformId: _archiveMapping(artifact.displayName, supportedExtensions));
           });
     });
     return installation;
@@ -515,7 +528,7 @@ class DriveRuntime {
     required String relativePath,
     required CancelToken cancellation,
     Future<void> Function(DriveLocalCloudObservation, String, void Function())? onVerified,
-    bool validateArchive = false,
+    String? archivePlatformId,
   }) async {
     _requireConnectedLane();
     _requireArtifactSource(config, artifact);
@@ -583,8 +596,12 @@ class DriveRuntime {
         final finalLocal = await verification.verifyBytes(
             session.bytes(identity.sizeBytes),
             cancellation: cancellation);
-        if (validateArchive) {
-          await session.validateGameGearZip();
+        if (archivePlatformId != null) {
+          if (archivePlatformId == 'gamegear') {
+            await session.validateGameGearZip();
+          } else {
+            await session.validateN64Archive(relativePath);
+          }
           checkCancellation();
         }
         final current = await _storage.inspect(
@@ -688,13 +705,18 @@ class DriveRuntime {
         relativePath: record.relativePath);
     await InstallationIndex(journal, storage: _storage)
         .requireInstallation(record, installation, bundleOwner: bundleOwner);
-    if (record.relativePath.toLowerCase().endsWith('.zip')) {
-      if (record.archivePlatformId != 'gamegear') throw const OwnedStorageException('unsupported_archive');
+    if (record.archivePlatformId != null) {
       final session = await _storage.open(destinationRoot: record.destinationRoot,
           relativePath: record.relativePath, stagePath: record.stagePath,
           durableOffset: record.durableOffset, expectedIdentity: installation!.fileIdentity,
           published: true);
-      try { await session.validateGameGearZip(); } finally { await session.close(); }
+      try {
+        if (record.archivePlatformId == 'gamegear') {
+          await session.validateGameGearZip();
+        } else {
+          await session.validateN64Archive(record.relativePath);
+        }
+      } finally { await session.close(); }
     }
   }
 

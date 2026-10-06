@@ -81,6 +81,12 @@ class TransferPublication {
 /// Durable transfer intent. The remote artifact and all path fields are an exact
 /// immutable snapshot; only journal-controlled progress fields can be copied.
 class TransferRecord {
+  static bool supportsArchiveMapping(String path, String? platform) {
+    final lower = path.toLowerCase();
+    return (platform == 'gamegear' && lower.endsWith('.zip')) ||
+        (platform == 'n64' && (lower.endsWith('.7z') || lower.endsWith('.zip')));
+  }
+
   final String id;
   final RemoteArtifact artifact;
   final String destinationRoot;
@@ -145,8 +151,7 @@ class TransferRecord {
         verifiedChecksums = _checksums(verifiedChecksums),
         bundleMembers = List.unmodifiable(bundleMembers) {
     if (archivePlatformId != null &&
-        (archivePlatformId != 'gamegear' ||
-            !relativePath.toLowerCase().endsWith('.zip') ||
+        (!supportsArchiveMapping(relativePath, archivePlatformId) ||
             bundleOwner != null || bundleMembers.isNotEmpty)) {
       throw ArgumentError('Unsupported archive mapping');
     }

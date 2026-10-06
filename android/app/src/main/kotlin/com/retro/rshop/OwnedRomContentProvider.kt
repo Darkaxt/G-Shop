@@ -64,7 +64,8 @@ class OwnedRomContentProvider : ContentProvider() {
             return result
         }
 
-        private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null): JSONObject {
+        private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null,
+            requiredArchivePlatform: String? = null): JSONObject {
             if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
                 uri.query != null || uri.fragment != null) throw FileNotFoundException("Invalid ROM grant")
             val grant = OwnedRomGrantPath.parse(uri.pathSegments)
@@ -109,12 +110,18 @@ class OwnedRomContentProvider : ContentProvider() {
                     }
                     val dependencies = result.optJSONArray("dependencies") ?: JSONArray()
                     val members = transfer.optJSONArray("bundleMembers") ?: JSONArray()
-                    if (grant.document && (!grant.filename.lowercase(Locale.ROOT).endsWith(".zip") ||
-                        transfer.optString("archivePlatformId") != "gamegear")) {
+                    val filename = grant.filename.lowercase(Locale.ROOT)
+                    val platform = transfer.optString("archivePlatformId")
+                    val supportedArchive = (platform == "gamegear" && filename.endsWith(".zip")) ||
+                        (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
+                    if (requiredArchivePlatform != null && platform != requiredArchivePlatform) {
+                        throw FileNotFoundException("Archive mapping changed")
+                    }
+                    if (grant.document && !supportedArchive) {
                         throw FileNotFoundException("Unsupported document grant")
                     }
-                    if (result.getString("relativePath").lowercase(Locale.ROOT).endsWith(".zip") &&
-                        (transfer.optString("archivePlatformId") != "gamegear" || owner != null ||
+                    if ((filename.endsWith(".zip") || filename.endsWith(".7z") || filename.endsWith(".rar")) &&
+                        (!supportedArchive || owner != null ||
                             dependencies.length() != 0 || members.length() != 0)) {
                         throw FileNotFoundException("Unsupported archive intent")
                     }
@@ -137,6 +144,7 @@ class OwnedRomContentProvider : ContentProvider() {
                         }
                         openCommitted(context, childUri, result.getString("transferId")).use { }
                     }
+                    if (supportedArchive) result.put("_validatedArchivePlatformId", platform)
                     return result
                 }
             } finally { db.close() }
@@ -152,10 +160,11 @@ class OwnedRomContentProvider : ContentProvider() {
             else -> a == b
         }
 
-        fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null): ParcelFileDescriptor {
+        fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null,
+            requiredArchivePlatform: String? = null): ParcelFileDescriptor {
             var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
             try {
-                val saved = manifest(context, uri, bundleOwner)
+                val saved = manifest(context, uri, bundleOwner, requiredArchivePlatform)
                 val rootPath = saved.getString("destinationRoot")
                 val relative = saved.getString("relativePath")
                 val pieces = relative.split('/')
@@ -182,8 +191,12 @@ class OwnedRomContentProvider : ContentProvider() {
                 if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
                     throw FileNotFoundException("Installation object changed")
                 }
-                if (relative.lowercase(Locale.ROOT).endsWith(".zip")) {
-                    OwnedGameGearZip.validate("/proc/self/fd/$file")
+                val platform = saved.optString("_validatedArchivePlatformId")
+                if (platform.isNotEmpty()) {
+                    val path = "/proc/self/fd/$file"
+                    if (platform == "gamegear") OwnedGameGearZip.validate(path)
+                    else if (relative.lowercase(Locale.ROOT).endsWith(".7z")) OwnedN64SevenZip.validate(path)
+                    else OwnedGameGearZip.validateN64(path)
                     if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
                         throw FileNotFoundException("Archive changed during validation")
                     }
@@ -200,7 +213,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     throw FileNotFoundException("Installation path changed")
                 }
                 // Recheck durable ownership after opening the pinned object.
-                if (manifest(context, uri, bundleOwner).toString() != saved.toString()) {
+                if (manifest(context, uri, bundleOwner, requiredArchivePlatform).toString() != saved.toString()) {
                     throw FileNotFoundException("Installation ownership changed")
                 }
                 val result = ParcelFileDescriptor.adoptFd(file)

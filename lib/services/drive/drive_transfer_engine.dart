@@ -136,7 +136,8 @@ class DriveTransferOperation {
       _record = await _engine.journal.transfer(transferId);
       if (_record == null) throw StateError('Unknown transfer');
       _notifyCheckpoint();
-      if (record.relativePath.toLowerCase().endsWith('.zip') && record.archivePlatformId != 'gamegear') {
+      if (['.zip', '.7z', '.rar'].any(record.relativePath.toLowerCase().endsWith) &&
+          !TransferRecord.supportsArchiveMapping(record.relativePath, record.archivePlatformId)) {
         throw const OwnedStorageException('unsupported_archive');
       }
       if (record.lifecycle == TransferLifecycle.completed) {
@@ -412,6 +413,10 @@ class DriveTransferOperation {
     if (record.archivePlatformId == 'gamegear') {
       _checkCancellation();
       await _session!.validateGameGearZip();
+      _checkCancellation();
+    } else if (record.archivePlatformId == 'n64') {
+      _checkCancellation();
+      await _session!.validateN64Archive(record.relativePath);
       _checkCancellation();
     }
   }

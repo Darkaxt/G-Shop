@@ -45,26 +45,33 @@ internal class OwnedStorageService(private val context: Context) {
             worker.execute {
                 try {
                     if (closed) throw Failure("closed")
-                    if (call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear") {
+                    if (call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear" ||
+                        call.method == "launchOwnedRetroArchN64") {
                         val gameGear = call.method == "launchOwnedRetroArchGameGear"
-                        if (gameGear && !string(call, "filename").lowercase(java.util.Locale.ROOT).endsWith(".zip")) throw Failure("unsupported_archive")
-                        val uri = if (gameGear) OwnedRomContentProvider.gameGearUri(context,
+                        val n64 = call.method == "launchOwnedRetroArchN64"
+                        val retroArch = gameGear || n64
+                        val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
+                        if ((gameGear && !filename.endsWith(".zip")) ||
+                            (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z"))) throw Failure("unsupported_archive")
+                        val uri = if (retroArch) OwnedRomContentProvider.gameGearUri(context,
                             string(call, "installationId"), string(call, "filename"))
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
-                        OwnedRomContentProvider.openCommitted(context, uri).use { }
+                        OwnedRomContentProvider.openCommitted(context, uri,
+                            requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else null).use { }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)
                             } else try {
-                                val app = if (gameGear) "com.retroarch.aarch64" else "org.dolphinemu.dolphinemu"
+                                val app = if (retroArch) "com.retroarch.aarch64" else "org.dolphinemu.dolphinemu"
                                 val intent = context.packageManager.getLaunchIntentForPackage(app)
                                     ?: throw Failure("emulator_missing")
-                                if (gameGear) {
+                                if (retroArch) {
                                     intent.setClassName(app, "com.retroarch.browser.retroactivity.RetroActivityFuture")
                                     val data = context.packageManager.getApplicationInfo(app, 0).dataDir
                                     intent.putExtra("ROM", uri.toString())
-                                    intent.putExtra("LIBRETRO", "$data/cores/genesis_plus_gx_libretro_android.so")
+                                    val core = if (gameGear) "genesis_plus_gx" else "mupen64plus_next_gles3"
+                                    intent.putExtra("LIBRETRO", "$data/cores/${core}_libretro_android.so")
                                 }
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)
@@ -176,11 +183,18 @@ internal class OwnedStorageService(private val context: Context) {
             syncCheckpoint(session)
             identityMap(OwnedStorageNative.identity(session.fileFd))
         }
-        "ownedValidateGameGearZip" -> {
+        "ownedValidateGameGearZip", "ownedValidateN64Zip", "ownedValidateN64SevenZip" -> {
             val session = session(call)
             validateLocation(session)
             val before = OwnedStorageNative.identity(session.fileFd)
-            try { OwnedGameGearZip.validate("/proc/self/fd/${session.fileFd}") }
+            try {
+                val path = "/proc/self/fd/${session.fileFd}"
+                when (call.method) {
+                    "ownedValidateGameGearZip" -> OwnedGameGearZip.validate(path)
+                    "ownedValidateN64Zip" -> OwnedGameGearZip.validateN64(path)
+                    else -> OwnedN64SevenZip.validate(path)
+                }
+            }
             catch (_: IOException) { throw Failure("unsupported_archive") }
             validateLocation(session)
             if (!before.contentEquals(OwnedStorageNative.identity(session.fileFd))) throw Failure("changed")

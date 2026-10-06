@@ -591,12 +591,14 @@ class DownloadQueueManager extends ChangeNotifier {
       final bundle = BundleReferences.isManifest(extension);
       final supportsPlaylist = item.system.romExtensions.contains('.cue');
       final gameGearZip = item.system.id == 'gamegear' && extension.endsWith('.zip');
+      final n64Archive = item.system.id == 'n64' && ['.7z', '.zip'].any(extension.endsWith);
+      final mappedArchive = gameGearZip || n64Archive;
       if (artifact == null ||
           config == null ||
           item.game.isFolder ||
-          !(gameGearZip || item.system.romExtensions.any(extension.endsWith) ||
+          !(mappedArchive || item.system.romExtensions.any(extension.endsWith) ||
               (supportsPlaylist && extension.endsWith('.m3u'))) ||
-          (!gameGearZip && ['.zip', '.rar', '.7z'].any(extension.endsWith))) {
+          (!mappedArchive && ['.zip', '.rar', '.7z'].any(extension.endsWith))) {
         throw const DriveTransferException(DriveTransferIssue.invalidSource);
       }
       var record = bundle
@@ -615,7 +617,7 @@ class DownloadQueueManager extends ChangeNotifier {
               artifact: artifact,
               destinationRoot: item.targetFolder,
               relativePath: item.game.filename,
-              archivePlatformId: gameGearZip ? 'gamegear' : null);
+              archivePlatformId: mappedArchive ? item.system.id : null);
       if (item.transferId != null && item.transferId != record.id) {
         throw const OwnedStorageException('changed');
       }

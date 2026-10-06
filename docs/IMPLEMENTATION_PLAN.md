@@ -23,6 +23,16 @@ closes the normal Game Gear ZIP round-trip proof, not all format or migration
 criteria. Keep S7 ACTIVE and finish defensible rankings and reviewed execution;
 do not open S8-S10 or infer bulk-removal authority from this test.
 
+S7 normal N64 recovery checkpoint (2026-10-06): the corrected normal debug APK
+now completes the same saved 7z queue item, reaches the installed N64 core's title
+screen online and in a fresh emulator process offline, then passes normal owned
+removal/re-download/removal with identical bytes and issue-free durable journals.
+Original SD bytes and complete source configuration are unchanged; the temporary
+target is removed, the ordinary N64 target/PSP Best-25 view restored, Wi-Fi enabled
+and both screens committed OFF. This closes that bounded format workflow only;
+classification, full rankings, other formats and exact reviewed migration remain
+S7 work. No later stage becomes ACTIVE.
+
 S7 durable byte-observation checkpoint (2026-10-06): normal debug build 186
 persists successful exact local/cloud checks in the existing private journal,
 after native read closure. Normal Thor verification followed by app restart
@@ -873,6 +883,11 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   with full collection, ranking, recovery or migration acceptance.
 - Prove Drive restoration on the Thor, inventory exact SD files and cloud
   IDs/version/digests, and build a private keep/remove/preserve manifest.
+  N64's predominantly 7z collection requires bounded single-ROM 7z validation
+  (including encoded headers), immutable explicit mapping and the existing owned
+  RetroArch handoff. Verify malformed/oversized/unsafe layouts and unchanged
+  Game Gear ZIP behavior, then prove the normal N64 queue/offline/removal cycle;
+  a direct-local emulator boot or ZIP-only support is not the restoration gate.
 - Preserve saves/BIOS/settings, uncertain paths and files without identical
   recoverable cloud copies. Revalidate at execution; journal per-file results.
   Implement the explicit standalone adoption detail through the normal byte

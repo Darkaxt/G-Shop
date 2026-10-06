@@ -5,6 +5,62 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 N64 archive queue / offline launch / removal / recovery — 2026-10-06
+
+- Explicit standalone N64 ZIP/7z mappings now participate in the normal queue,
+  immutable transfer record, pre-publication native validation, installation
+  journal and exact-leaf read-only RetroArch handoff. Unsupported/untyped archives,
+  multi-file layouts, unsafe names, malformed CRCs and excessive output/dictionary
+  budgets remain rejected. No extraction or original-archive rewrite is performed.
+- The real source exposed two layout differences missing from the first synthetic
+  fixtures: RomVault's documented, header-bound 32-byte structured marker and LZMA
+  streams with both a known size and an end marker. The narrow parser now validates
+  those structures explicitly using XZ 1.12; it does not ignore generic padding or
+  swallow corruption. Focused native regression tests and the unchanged real host
+  archive passed before the corrected APK was installed.
+- APK SHA-256 `c27fbd0dce378c999ce7bbb05436fc919db742c512bf1b9f5f54b95f6534e03a`
+  was installed in place with the unchanged debug signer. The original failed queue
+  item was retried, not deleted/recreated. Normal default-account reconnection was
+  required after APK replacement; no source was saved or remapped during consent.
+- Normal DOWNLOAD published the 5,670,365-byte USA 7z into the initially absent,
+  isolated `RShopProof-N64-20261006` directory. SHA-256
+  `851a51ea358fbbe59e5f818b418f428d8fc3b18888fb400295ee2ef0ae3e6277`
+  matched the source. Normal Open in RetroArch reached the actual Super Mario 64
+  title screen in Mupen64Plus-Next. After normal emulator Quit, its PID was absent;
+  a new emulator process reached the title screen again with Wi-Fi disabled.
+  Activity acceptance alone was not treated as boot evidence.
+- Normal DELETE showed the exact isolated leaf and removed only the owned copy.
+  A second normal DOWNLOAD published identical bytes. The read-only journal audit
+  confirmed `archivePlatformId=n64`, completed publication, one installation/owner
+  and `stageRetired=true`. A second inspected normal DELETE and Clear Done left
+  zero test-root transfers/installations/owners and two completed, issue-free
+  removal journals. The original SD archive remained hash-identical throughout.
+- The normal folder picker restored `/storage/75D7-DC5F/Roms/n64`. Complete source
+  configuration SHA-256 returned to the exact baseline
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Wi-Fi is enabled; PSP-only Best 25 remains 35/341 ranked, 25 results, Provisional,
+  with zero favorites. The empty test directory was removed non-recursively and
+  absence verified. Both physical displays are freshly confirmed committed OFF.
+- Focused Dart queue/journal/adoption/handoff tests and analysis passed. Both native
+  builds acquired `Local\Darka.AndroidGradleBuildGate`; the first waited behind an
+  existing build without interruption or overlap. Latest build log
+  `7034c6896cd243bda43ccb3c5dd403bc.log` verifies two workers, no parallel projects
+  and a 3-GB Gradle heap. Kotlin was requested in-process, sharing that budget;
+  tests were configured for one 512-MB fork. Current app Ninja rules use a depth-1
+  compile/link pool per ABI. No memory failure or budget increase occurred; test
+  fork heaps and Kotlin runtime strategy were not independently measured.
+- Root catalogue generation 1 is still pending (148,325 observations, 9,524 pending
+  folders at the inspected checkpoint; nextGeneration 2). Classification and
+  whole-collection Top-25 coverage remain unresolved. This verifies one real N64
+  recovery workflow, not every archive/console or MIGRATE-01 closure. S7 remains
+  the sole ACTIVE stage; S8-S10 remain NOT STARTED. No original ROM, save, BIOS,
+  FolderSync setting or cloud file was changed. A microG stopping dialog occurred
+  while offline and was dismissed; no claim of its cause or remediation is made.
+- Reviewed cleanup transaction `e74eb43e735482aec7a01ff513060c9d` removed only the
+  task-owned host capture/probe/compiler output (1,885,661 bytes). The exact device
+  XML/PNG captures are verified absent. The bounded read-only journal observer is
+  retained for the remaining S7 diagnosis; the installed APK is intentionally kept.
+
 ### S7 matching recheck / durable recovery evidence / root resume — 2026-10-06
 
 - Fresh focused `regional` ScreenScraper/IGDB checks passed for revision-9 matching,

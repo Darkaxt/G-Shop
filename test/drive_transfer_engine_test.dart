@@ -194,6 +194,8 @@ class _Native {
     final s = sessions[a['session']] ?? fail('closed');
     switch (call.method) {
       case 'ownedValidateGameGearZip':
+      case 'ownedValidateN64SevenZip':
+      case 'ownedValidateN64Zip':
         if (invalidArchive) fail('unsupported_archive');
         return null;
       case 'ownedWrite':
@@ -332,6 +334,34 @@ void main() {
     expect(native.files['/roms/fixture.zip']!.bytes, payload);
     expect(result.archivePlatformId, 'gamegear');
   });
+  for (final extension in ['7z', 'zip']) {
+    test('N64 $extension validates before publication, recovery and offline reuse', () async {
+      final name = 'fixture.$extension';
+      final method = extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
+      await queue(source: artifact(name: name), name: name, archivePlatformId: 'n64');
+      native.after = (call) async { if (call.method == 'ownedPublish') throw StateError('lost receipt'); };
+      expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
+      expect(native.methods.indexOf(method), lessThan(native.methods.indexOf('ownedPublish')));
+      native.after = null;
+      native.invalidArchive = true;
+      expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
+      expect(await journal.installationForTarget(destinationRoot: '/roms', relativePath: name), isNull);
+      native.invalidArchive = false;
+      final ready = await engine().start('transfer').result;
+      expect(ready.lifecycle, TransferLifecycle.completed);
+      expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.completed);
+      expect(requests, [0]);
+      expect(native.methods.where((m) => m == method), hasLength(4));
+      expect(native.methods, isNot(contains('ownedValidateGameGearZip')));
+      expect(native.files['/roms/$name']!.bytes, payload);
+    });
+    test('legacy untyped $extension fails before network and native IO', () async {
+      await queue(source: artifact(name: 'fixture.$extension'), name: 'fixture.$extension');
+      expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
+      expect(requests, isEmpty);
+      expect(native.methods, isEmpty);
+    });
+  }
   test('malformed archive cannot publish or obtain ownership', () async {
     await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip', archivePlatformId: 'gamegear');
     native.invalidArchive = true;

@@ -22,9 +22,18 @@ final class OwnedGameGearZip {
     private static final int BUFFER = 65536;
 
     static void validate(String descriptorPath) throws IOException {
+        validate(descriptorPath, false);
+    }
+
+    static void validateN64(String descriptorPath) throws IOException {
+        validate(descriptorPath, true);
+    }
+
+    private static void validate(String descriptorPath, boolean n64) throws IOException {
+        long limit = n64 ? OwnedN64SevenZip.ROM_LIMIT : MAX_MEMBER_BYTES;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
-            require(length >= 98 && length <= MAX_MEMBER_BYTES + 3L * BUFFER);
+            require(length >= 98 && length <= limit + 3L * BUFFER);
             byte[] tail = read(file, Math.max(0, length - BUFFER - 22),
                     (int) Math.min(length, BUFFER + 22L));
             int end = -1;
@@ -46,7 +55,7 @@ final class OwnedGameGearZip {
             require((flags & ~0x080e) == 0 && (method == 0 || method == 8) &&
                     (method != 0 || (flags & 6) == 0));
             long crc = u32(central, 16), compressed = u32(central, 20), raw = u32(central, 24);
-            require(raw > 0 && raw <= MAX_MEMBER_BYTES && compressed > 0 && compressed <= MAX_MEMBER_BYTES);
+            require(raw >= (n64 ? 4 : 1) && raw <= limit && compressed > 0 && compressed <= limit);
             int nameLength = u16(central, 28), extraLength = u16(central, 30), commentLength = u16(central, 32);
             require(nameLength > 3 && nameLength <= 1024 &&
                     46 + nameLength + extraLength + commentLength == central.length);
@@ -59,8 +68,9 @@ final class OwnedGameGearZip {
                         .onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
                         .decode(ByteBuffer.wrap(name)).toString();
             } catch (CharacterCodingException error) { throw invalid(); }
-            require(decoded.toLowerCase(Locale.ROOT).endsWith(".gg") &&
-                    !decoded.startsWith(".") && !decoded.matches(".*[\\\\/:\\x00-\\x1f\\x7f].*"));
+            require((n64 ? OwnedN64SevenZip.safeName(decoded) : decoded.toLowerCase(Locale.ROOT).endsWith(".gg")) &&
+                    !decoded.startsWith(".") && decoded.chars().noneMatch(c ->
+                            c < 32 || c == 127 || c == '/' || c == '\\' || c == ':'));
             extras(central, 46 + nameLength, extraLength);
             byte[] local = read(file, 0, 30);
             require(u32(local, 0) == 0x04034b50L && u16(local, 4) == u16(central, 6) &&
@@ -87,7 +97,7 @@ final class OwnedGameGearZip {
             // The exact single member covers all bytes before the central record.
             // No hidden local entries, SFX prefix, ZIP64 records or trailing data.
             CRC32 actual = new CRC32();
-            byte[] input = new byte[BUFFER], output = new byte[BUFFER];
+            byte[] input = new byte[BUFFER], output = new byte[BUFFER], magic = new byte[4];
             file.seek(dataStart);
             long remaining = compressed, produced = 0;
             Inflater inflater = method == 8 ? new Inflater(true) : null;
@@ -96,6 +106,7 @@ final class OwnedGameGearZip {
                     int count = (int) Math.min(remaining, BUFFER);
                     file.readFully(input, 0, count); remaining -= count;
                     if (inflater == null) {
+                        if (n64) prefix(input, count, produced, magic);
                         produced += count; actual.update(input, 0, count);
                     } else {
                         require(!inflater.finished());
@@ -103,6 +114,7 @@ final class OwnedGameGearZip {
                         while (!inflater.needsInput() && !inflater.finished()) {
                             int inflated = inflater.inflate(output);
                             require(inflated > 0 || inflater.finished());
+                            if (n64) prefix(output, inflated, produced, magic);
                             produced += inflated;
                             require(produced <= raw);
                             actual.update(output, 0, inflated);
@@ -112,9 +124,14 @@ final class OwnedGameGearZip {
                 }
                 require(inflater == null || (inflater.finished() && inflater.getRemaining() == 0));
                 require(produced == raw && actual.getValue() == crc);
+                require(!n64 || OwnedN64SevenZip.n64Magic(magic));
             } catch (DataFormatException error) { throw invalid(); }
             finally { if (inflater != null) inflater.end(); }
         }
+    }
+
+    private static void prefix(byte[] bytes, int count, long produced, byte[] magic) {
+        for (int i = 0; i < count && produced + i < 4; i++) magic[(int) produced + i] = bytes[i];
     }
 
     private static void extras(byte[] bytes, int offset, int size) throws IOException {

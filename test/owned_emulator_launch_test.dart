@@ -71,4 +71,19 @@ void main() {
     expect(calls.single.arguments, {'installationId': installed.id, 'filename': 'Game.zip'});
     expect(OwnedEmulatorLauncher.supports(zip, system), isFalse);
   });
+  test('mapped N64 archives retain their filename and require fresh ownership', () async {
+    final n64 = SystemModel.supportedSystems.singleWhere((s) => s.id == 'n64');
+    for (final extension in ['7z', 'zip']) {
+      calls.clear();
+      final archive = exactGame('n64-$extension', name: 'Game.$extension');
+      final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+        'artifact': archive.remoteArtifact!.toJson(), 'relativePath': archive.filename});
+      final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+      expect(RomManager.getTargetFilename(archive, n64), archive.filename);
+      await launcher.open(archive, n64, '/owned');
+      expect(calls.single.method, 'launchOwnedRetroArchN64');
+      expect(calls.single.arguments, {'installationId': installed.id, 'filename': archive.filename});
+      expect(OwnedEmulatorLauncher.supports(archive, system), isFalse);
+    }
+  });
 }

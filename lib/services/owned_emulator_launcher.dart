@@ -1,9 +1,10 @@
 import 'package:flutter/services.dart';
 import '../models/game_item.dart';
 import '../models/system_model.dart';
+import '../models/transfer_record.dart';
 import 'rom_manager.dart';
 
-/// Verified owned-file handoff to the installed Dolphin or Game Gear RetroArch
+/// Verified owned-file handoff to the installed Dolphin or mapped RetroArch
 /// route. No source access, emulator setup mutation or companions.
 class OwnedEmulatorLauncher {
   final RomManager romManager;
@@ -17,7 +18,7 @@ class OwnedEmulatorLauncher {
       game.remoteArtifact != null && !game.isFolder &&
       ((const {'gc', 'wii'}.contains(system.id) &&
       system.romExtensions.any((ext) => game.filename.toLowerCase().endsWith(ext))) ||
-      (system.id == 'gamegear' && game.filename.toLowerCase().endsWith('.zip')));
+      TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
   Future<void> open(GameItem game, SystemModel system, String root) {
     if (!supports(game, system)) {
@@ -36,7 +37,8 @@ class OwnedEmulatorLauncher {
 
   Future<void> _open(GameItem game, SystemModel system, String root) async {
     final installed = await romManager.requireInstalledArtifact(game, root);
-    await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' : 'launchOwnedDolphin', {
+    await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' :
+        system.id == 'n64' ? 'launchOwnedRetroArchN64' : 'launchOwnedDolphin', {
       'installationId': installed.id, 'filename': installed.relativePath,
     });
   }

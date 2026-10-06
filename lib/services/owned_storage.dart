@@ -289,6 +289,15 @@ class OwnedStorageSession {
     await _storage._invoke('ownedValidateGameGearZip', {'session': id});
   }
 
+  Future<void> validateN64Archive(String filename) async {
+    _requireOpen();
+    final method = filename.toLowerCase().endsWith('.7z')
+        ? 'ownedValidateN64SevenZip' : filename.toLowerCase().endsWith('.zip')
+        ? 'ownedValidateN64Zip' : null;
+    if (method == null) throw const OwnedStorageException('unsupported_archive');
+    await _storage._invoke(method, {'session': id});
+  }
+
   /// Caller must journal publishing intent and verified evidence beforehand.
   /// This no-clobber namespace operation alone never commits an installation.
   Future<NativeFileIdentity> publish(

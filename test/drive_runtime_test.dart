@@ -248,6 +248,8 @@ class _NativeStorage {
       case 'ownedCheckpoint':
         return identity;
       case 'ownedValidateGameGearZip':
+      case 'ownedValidateN64SevenZip':
+      case 'ownedValidateN64Zip':
         expect(sessionOpen, isTrue);
         if (invalidArchive) throw PlatformException(code: 'unsupported_archive');
         return null;
@@ -611,7 +613,9 @@ void main() {
   }
   test('explicit Game Gear mapping admits a ZIP without admitting other archive layouts', () {
     expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gg'}), isTrue);
-    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.z64', '.n64', '.v64'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.z64', '.n64', '.v64'}), isTrue);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.z64', '.n64', '.v64'}), isTrue);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.z64'}), isFalse);
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gg'}), isFalse);
     expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.gg'}), isFalse);
   });
@@ -666,6 +670,49 @@ void main() {
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
   });
+  for (final extension in ['7z', 'zip']) {
+    test('normal N64 $extension queue publishes typed bytes and revalidates offline', () async {
+      final name = 'fixture.$extension';
+      final fixture = await _TransferFixture.create(reserve: false, name: name);
+      final runtime = fixture.runtime();
+      final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
+      final n64 = SystemModel.supportedSystems.singleWhere((s) => s.id == 'n64');
+      final terminal = _queueTerminal(queue);
+      queue.addToQueue(GameItem(filename: name, displayName: 'Fixture',
+          url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
+          remoteArtifact: _artifact(name: name)), n64, '/roms');
+      final item = await terminal;
+      expect(item.status, DownloadStatus.completed, reason: item.error);
+      final record = (await fixture.journal.transfer(item.transferId!))!;
+      expect(record.archivePlatformId, 'n64');
+      expect(record.relativePath, name);
+      await runtime.requireInstalledTransfer(record);
+      final method = extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
+      expect(fixture.native.calls.where((m) => m == method), hasLength(2));
+      expect(fixture.native.calls.indexOf(method), lessThan(fixture.native.calls.indexOf('ownedPublish')));
+      expect(fixture.native.calls, isNot(contains('ownedValidateGameGearZip')));
+      fixture.native.invalidArchive = true;
+      await expectLater(runtime.requireInstalledTransfer(record), throwsA(isA<OwnedStorageException>()));
+      expect(fixture.native.sessionOpen, isFalse);
+      await queue.close(); queue.dispose();
+      fixture.driver.finishSignOut.complete(); await runtime.disconnect();
+    });
+    test('N64 $extension adoption validates without downloading or mutating local bytes', () async {
+      final name = 'fixture.$extension';
+      final fixture = await _TransferFixture.create(reserve: false, name: name);
+      fixture.native.bytes.addAll([1, 2, 3, 4, 5]); fixture.native.published = true;
+      final runtime = fixture.runtime();
+      final installed = await runtime.adoptLocalCloudBytes(config: _transferConfig,
+          artifact: _artifact(name: name), destinationRoot: '/roms', relativePath: name,
+          supportedExtensions: {'.z64', '.n64', '.v64'}, cancellation: CancelToken());
+      final record = (await fixture.journal.transfer(installed.transferId))!;
+      expect(record.archivePlatformId, 'n64');
+      await runtime.requireInstalledTransfer(record);
+      expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
+      expect(fixture.native.calls, isNot(contains('ownedPublish')));
+      expect(fixture.native.sessionOpen, isFalse);
+    });
+  }
 
   test('standalone adoption rejects unsupported archives and dependency manifests before IO', () async {
     for (final name in ['fixture.7z', 'fixture.cue', 'fixture.m3u', 'fixture.gdi', 'fixture.unknown']) {

@@ -299,6 +299,26 @@ Adoption does not delete anything or waive MIGRATE-01's ranking, format-restore,
 save/sync and execution-time revalidation gates. Reuse the existing verified owned
 installation/removal path rather than introducing an alternate deletion engine.
 
+S7 N64 archive recovery detail (2026-10-06): explicitly mapped standalone N64
+7z/ZIP files may retain their exact archive bytes and filename when validation
+finds exactly one safe `.z64`, `.n64` or `.v64` member with matching N64 byte-order
+signature. Reuse the owned installation and exact document-leaf RetroArch grant,
+using the installed Mupen64Plus-Next core. Do not extract, convert or mutate ROMs.
+For 7z, admit only single-stream COPY/LZMA/LZMA2 layouts, plain or encoded headers,
+with bounded metadata, dictionary and decompression work and verified CRCs. Reject
+encryption, multiple members/streams, unsafe paths, unsupported filters, malformed
+ranges and trailing data before installation. Valid single-LZMA RomVault archives may contain the
+documented 32-byte `RomVault7Z01`/`RomVault7Z02` structured metadata block immediately
+before the encoded next header. Admit it only when its CRC, absolute header
+position and header size exactly agree with the validated signature/next header;
+do not ignore arbitrary gaps or add trailing-data tolerance. This preserves the
+requested source archive bytes, rather than repacking an otherwise valid archive.
+ZIP keeps the existing strict
+single-member layout rules. Persist `n64` as immutable archive mapping, never infer
+approval for legacy untyped archives. Host validation is not live recovery proof:
+the normal queue/offline boot/removal/re-download gate remains required before
+this format can permit migration.
+
 Acceptance: download -> verify -> open in existing emulator -> offline use ->
 explicit local removal -> re-download; multi-disc, replaced-owned-file,
 redirected-path and save-preservation fixtures,
