@@ -1,5 +1,19 @@
 # S7 live metadata and Thor migration
 
+## External-sync collision review — 2026-10-06
+
+The read-only [external-sync review](S7_EXTERNAL_SYNC_REVIEW.md) establishes that
+LoLSuite's missing desired files are always additions: neither ownership-record
+removal nor preserve-all retirement prevents refill. Inspected UI/CLI routes
+require explicit transfer confirmation; bounded Windows task/startup/process
+checks found no matching automatic launcher or active manager. No LoLSuite or
+FolderSync changes were made. This is not universal background-sync exclusion.
+
+The actual target-specific no-refill arrangement and execution-time checks remain
+required before reviewed SD removal. Archive profiles and ownership journals are
+not replaced by R-Shop's dynamic Top-25. S7 remains ACTIVE; this review does not
+close its save/sync-safety gate or authorize file deletion.
+
 ## Deterministic search/navigation ownership checkpoint — 2026-10-06
 
 The real screen/widget regression reproduced a deferred search claim appearing
