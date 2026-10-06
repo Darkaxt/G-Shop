@@ -5,6 +5,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 remaining-gate audit and Game Gear breadth — 2026-10-06
+
+- A fixed bounded READONLY native diagnostic inspected actual persisted jobs
+  and the six current projections. Before the new pass, all projections were
+  clean: eligible canonical groups are PS2 59/220, PSP 35/341, GameCube 0/205,
+  PS1 0/405, N64 0/1543 and Game Gear 0/548. These are observed group keys, not
+  proof that every unclassified duplicate is already correctly canonicalized.
+  Missing coverage is not an updating/dirty-projection explanation for migration.
+- Persisted bulk captures explain a major remaining identity boundary:
+  GameCube job 51 captured 195 unknown / one official / ten other-tagged editions;
+  PS1 job 50 captured 401 unknown / four official; N64 jobs 31/33 captured 1,518
+  unknown / 25 other-tagged. None had supported raw identifiers. Filename/title
+  matches, ZIP/7z/RVZ container digests or absence of patch tags cannot silently
+  establish official classification. The owner's reviewed LoLSuite profile
+  describes retail selections but does not itself bind a current converted cloud
+  blob cryptographically. No classifications or curated rankings were imported.
+  An explicit classification-source decision was asked; it does not block the
+  independently required scrape currently running and is not stage completion.
+- The audit found Game Gear's earlier native jobs covered only one entry each.
+  Normal settings started exactly one Game Gear-only ScreenScraper pass, job 66,
+  on 548 current editions. Latest authoritative observation: running, 77 checked,
+  one matched/rated, 50 needsReview, ten ambiguous, 16 unmatched, 471 pending,
+  zero failures. Captures have 546 unknown / two official and 311 region hints.
+  Continue this same persisted ID; do not recreate it after an observer failure.
+  No second metadata job was started. Final traversal/IGDB coverage remains
+  unfinished, not a blocker or evidence that S7 has closed.
+- An auxiliary app_process observation while the screens were off was killed;
+  it is not terminal-job evidence. Subsequent normal UI and a successful fixed
+  READONLY foreground observation confirmed job 66 and its increasing progress.
+  The app remained alive; no memory-exhaustion cause is claimed from that kill.
+  The private helper/source and current capture remain at
+  `D:\Temp\rshop-s7-remaining-gates-20261006` until this live job's outcome is
+  verified (cleanup transaction `df179c1d8993cfe821d879429c8cc50a`).
+- No Gradle build, app replacement, source remapping, ROM payload, ownership,
+  removal, cloud write, FolderSync or save operation occurred. Configuration hash
+  remains `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both physical displays are confirmed committed OFF while job 66 continues.
+  S7 remains the sole ACTIVE stage; S8-S10 remain NOT STARTED. Required metadata,
+  defensible retention, recovery and actual reviewed migration are unfinished.
+
 ### S7 standardized matching — PS2 breadth verification, 2026-10-06
 
 - On unchanged build 193 / implementation `f270427`, the normal settings flow

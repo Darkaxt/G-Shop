@@ -884,6 +884,8 @@ required before overall completion.
 
 ## S8 — Per-ROM dual-display companion launching
 
+Status: NOT STARTED.
+
 Requirements: COMPANION-01; recheck CORE-02, DRIVE-06, QA-02/03/04.
 Depends on: S1-S7 acceptance and the established ordinary emulator handoff.
 

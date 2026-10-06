@@ -1,5 +1,42 @@
 # S7 live metadata and Thor migration
 
+## Remaining-gate audit and omitted Game Gear pass — 2026-10-06
+
+A fixed bounded READONLY diagnostic inspected the current six projections and
+latest persisted console-wide jobs. Before new work, all six projections were
+clean: PS2 59/220 score-qualified groups, PSP 35/341, GC 0/205, PS1 0/405,
+N64 0/1543 and Game Gear 0/548. Unknown duplicate groups cannot be declared
+canonical merely because this diagnostic counts existing keys.
+
+GameCube job 51 captured 195 unknown / one official / ten other-tagged editions;
+PS1 job 50 captured 401 unknown / four official; N64 jobs 31/33 captured 1,518
+unknown / 25 other-tagged. They have no supported raw identifiers. This is not
+permission to reinterpret a container digest as a raw ROM or classify by title.
+The read-only host profile check found retail-selection intent, not an exact
+current converted-artifact binding. No import or classification was performed;
+explicit authority to use reviewed selection manifests as a classification source
+was requested, separately from scores and deletion authority.
+
+The same audit found only single-entry native Game Gear checks. Normal settings
+created one new Game Gear-only ScreenScraper job, ID 66, capturing 548 editions.
+Latest successful native observation: state running, 77 checked, one matched/rated,
+50 needsReview, ten ambiguous, 16 unmatched, 471 pending and no failures.
+Captures include 546 unknown / two official and 311 unambiguous region hints.
+Do not recreate this job. A killed auxiliary observer while screens were off did
+not stop the job: subsequent normal UI and a successful foreground READONLY
+observation demonstrated continued progress. No cause is assigned to that kill.
+The fixed helper/source and current private screenshot remain only for the live
+job's outcome, registered in cleanup transaction
+`df179c1d8993cfe821d879429c8cc50a` under
+`D:\Temp\rshop-s7-remaining-gates-20261006`.
+
+No Gradle invocation, deployment, ROM payload, source change, classification,
+ownership claim, save operation, FolderSync action or cloud write occurred.
+Configuration hash remains unchanged. S7 stays ACTIVE: the fresh traversal and
+remaining full ranking/recovery/migration criteria have not passed. No required
+work was deferred to S8-S10 and no later stage was opened.
+Both physical displays are confirmed committed OFF while job 66 continues.
+
 ## PS2 breadth on the standardized policy — 2026-10-06
 
 The unchanged final build 193 / implementation `f270427` completed a fresh normal
