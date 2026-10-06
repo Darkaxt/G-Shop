@@ -221,6 +221,25 @@ to S4 before stage closure; S5 owns the actual source/scope/coverage presentatio
 
 ## S7 mapped-scope extension — 2026-10-05
 
+### Current Game Gear support boundary — 2026-10-06
+
+A read-only public IGDB check used the existing application credentials, without
+renewing its secret or changing the native database. `/v4/games/count` with
+`where platforms = (35) & rating_count >= 20;` returned 19. The corresponding
+bounded `/v4/games` query returned all 19 records, retaining original community
+scores/counts and platform lists. This is an upper bound on supported candidates,
+not nineteen accepted collection members: several records span other platforms,
+and current identity/edition/release evidence remains required.
+
+The query does not establish an adequate whole-collection ranking or authorize a
+Game Gear basis extension. Do not lower the vote floor, import the provider's
+global list as collection membership, borrow a different edition's score, or fill
+25 positions with unqualified records. Complete the native fresh identifier pass
+and subsequent current-bound IGDB pass; assess actual accepted evidence before
+changing the production scope. Game Gear remains unapproved in the current
+`productionOverallScoreBases`, and its uncertain ROMs remain protected from SD
+removal. This is current S7 evidence, not a later-stage deferral or stage closure.
+
 The existing opt-in persistent-worker capture was extended to fifteen public
 official releases on N64, PSP and Game Gear. Each accepted fixture used one
 literal offered title and the provider's platform-checked ID. It did not touch

@@ -5,6 +5,57 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Game Gear terminal identification and artwork — 2026-10-07
+
+- The SAME normal ScreenScraper job 73 reached `completed`: all 546 captured
+  requests have explicit terminal outcomes — 177 matched (174 rated), 260
+  needs-review, 42 ambiguous, 66 unmatched and one invalid response. Its current
+  request evidence contains 178 original ROM identifiers. Completion of the pass
+  is not full identification or trustworthy whole-collection ranking coverage.
+- Fresh read-only inspection binds 178 validated local raw-member identifiers
+  to their current Drive artifacts; 176 were accepted and classified official,
+  173 rated. One accepted lookup was not counted by this specific local-archive
+  evidence check. These are automatic provider-backed facts, not manual tags or
+  container-hash matches.
+- The read-only native observer selected the exact linked artwork child, job 74,
+  rather than treating metadata completion or an earlier parent's artwork as its
+  completion evidence. Job 74 progressed from 28 matched/304 pending to
+  `completed`, with all 332 artwork requests matched and no blocked status.
+  Only after that terminal result did the normal UI request one fresh IGDB pass
+  for Game Gear. Native job 75 is now `running`, without a blocked status. Its
+  immutable 546-request capture includes 177 official classifications, 369
+  unknown editions, 178 original identifiers and 55 current release
+  corroborations. Initial observed outcomes are four matched (one rated),
+  28 needs-review, four ambiguous, two unmatched and 508 pending. This proves
+  the new evidence reached the normal subsequent provider pass, not its terminal
+  coverage or approval of Game Gear's ranking basis.
+- Root catalogue traversal remains the SAME unpublished generation 1, with
+  nextGeneration 2: 241,799 observations and 1,667 pending folders. Native schema
+  37 still uses the pending-work index followed by exact entry lookup. No reset,
+  false empty publication or second catalogue traversal was introduced.
+- Game Gear's overall-score basis remains unapproved. The public IGDB check in
+  `SCORE_RECEPTION_ASSESSMENT.md` is only an upper bound of 19 potentially
+  sufficiently supported provider records, not accepted collection membership.
+  The fresh bound IGDB pass and reception assessment remain required before any
+  scope extension; no vote-floor reduction, fabricated rank or title curation.
+- S7 is the sole ACTIVE stage. Full fresh coverage, defensible canonical
+  retention, root publication and reviewed SD migration remain unfinished;
+  S8-S10 remain NOT STARTED. No Gradle build, APK update, ROM removal, cloud
+  mutation, FolderSync change or release was needed for this continuation.
+- Configuration SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`;
+  R-Shop PID 1836 and unrelated NetherSX2 PID 15069 remain alive. Both physical
+  displays were freshly confirmed committed OFF during the artwork continuation.
+- Normal Game Gear metadata controls visibly show `Running` for the new pass;
+  subsequent read-only inspection confirms the SAME job 75 advancing to 13
+  matched (four rated), 133 needs-review, 20 ambiguous, seven unmatched and 373
+  pending, without a block. Root generation 1 has 251,220 observations / 5,829
+  pending folders; it remains unpublished. No second provider pass was started.
+- Reviewed cleanup transaction `ca14b90b6d0caf74ba58f9b002a8795e` is APPLIED:
+  only its disposable UI screenshot and empty directory were permanently removed
+  (1,316,340 bytes), plus the exact device screenshot confirmed absent. Required
+  read-only observers, APK and private migration evidence remain retained.
+
 ### S7 N64 terminal matching / native Top query / next fresh scope — 2026-10-06
 
 - The same N64 IGDB job 72 is now `completed`. All 1,543 captured requests have

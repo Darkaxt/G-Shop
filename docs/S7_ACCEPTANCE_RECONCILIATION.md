@@ -1,5 +1,24 @@
 # S7 live metadata and Thor migration
 
+## Game Gear terminal identification and linked artwork — 2026-10-07
+
+Normal ScreenScraper job 73 reached `completed`: 177 matched (174 rated),
+260 needs-review, 42 ambiguous, 66 unmatched and one invalid response account
+for all 546 captured requests. Current request evidence includes 178 original
+ROM identifiers. Its actual linked artwork child 74 subsequently completed all
+332 artwork requests. Only then did normal controls request one current-bound
+IGDB pass. Native job 75 is running with 546 requests, retaining 177 official
+classifications, 178 raw identifiers and 55 current release corroborations.
+Neither terminal lookup outcomes nor advisory ScreenScraper scores prove
+whole-collection Top membership.
+
+Root generation 1 remains unpublished and advancing. The public IGDB support
+check records only 19 potentially supported Game Gear provider records, not
+collection membership or scope approval. Game Gear remains outside the approved
+production ranking basis while its current bound evidence is assessed.
+META-01/META-05 and MIGRATE-01 remain open; S7 is sole ACTIVE, S8-S10 NOT STARTED.
+No migration/removal, cloud mutation, provider-secret change or release occurred.
+
 ## N64 terminal pass and ordinary ranking view — 2026-10-06
 
 The same IGDB job 72 is terminal: 120 matched (96 rated), 866 needs-review,
