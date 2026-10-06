@@ -795,6 +795,17 @@ support is inferred. Verify normal download, actual online/offline emulator
 boot, owned removal and identical re-download in an isolated target. Preserve
 original ROMs, emulator settings and existing save files.
 
+S7 PSP recovery detail: the current standalone PSP CHD collection uses the same
+owned committed-leaf/document-shaped read grant with installed official PPSSPP.
+Its exported Android VIEW route receives only the exact ready installation URI,
+not a directory, writable/persistable grant or guessed local path. Recheck durable
+ownership and standalone/no-bundle constraints before launch and external open.
+Missing PPSSPP must report the emulator prerequisite, not imply a successful
+boot. Prove normal download, online and fresh offline boot, exact owned removal
+and identical re-download in an isolated destination. Do not infer PSP archive,
+ISO/CSO/PBP or bundle recovery from this CHD proof; unresolved formats remain
+preserved during migration. Preserve original ROMs and existing saves/settings.
+
 Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
 identities, all bundle members, before/after space, saved-data preservation and
 cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion

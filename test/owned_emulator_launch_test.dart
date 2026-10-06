@@ -103,4 +103,21 @@ void main() {
     await expectLater(missing.open(chd, psx, '/owned'), throwsStateError);
     expect(calls, hasLength(1));
   });
+  test('standalone PSP CHD requires ownership and uses PPSSPP without path grants', () async {
+    final psp = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psp');
+    final chd = exactGame('psp-chd', name: 'Game.chd');
+    final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+      'artifact': chd.remoteArtifact!.toJson(), 'relativePath': chd.filename});
+    final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+    expect(OwnedEmulatorLauncher.supports(chd, psp), isTrue);
+    await launcher.open(chd, psp, '/owned');
+    expect(calls.single.method, 'launchOwnedPPSSPP');
+    expect(calls.single.arguments, {'installationId': installed.id, 'filename': chd.filename});
+    for (final extension in ['zip', '7z', 'iso', 'cso', 'pbp']) {
+      expect(OwnedEmulatorLauncher.supports(exactGame('other', name: 'Game.$extension'), psp), isFalse);
+    }
+    final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+    await expectLater(missing.open(chd, psp, '/owned'), throwsStateError);
+    expect(calls, hasLength(1));
+  });
 }

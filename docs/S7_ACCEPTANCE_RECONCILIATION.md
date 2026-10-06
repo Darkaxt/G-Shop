@@ -1,5 +1,33 @@
 # S7 live metadata and Thor migration
 
+## PSP standalone CHD recovery checkpoint — 2026-10-06
+
+The normal owned-file route supports standalone PSP CHDs through installed
+official PPSSPP. The existing exact document-shaped read grant retains the leaf
+extension; no directory, write, archive-member or bundle access is inferred.
+Durable ownership and standalone constraints are rechecked on external open.
+
+Normal DOWNLOAD, actual online title-screen boot, cold offline boot, reviewed
+owned DELETE and identical normal re-download passed on the Thor. The downloaded
+43,841,741-byte CHD matched the H: original SHA-256. Durable publication recorded
+copy completion, retired staging and one installation/owner. Final normal DELETE
+left zero isolated-root transfers/installations/owners and two completed,
+issue-free removal journals. The empty proof directory is absent. The normal
+picker restored PSP storage, and the full source configuration returned to its
+exact pre-test hash. Official PPSSPP was a missing prerequisite and remains
+installed; its missing-package branch was not separately forced live.
+
+The SAME saved metadata job and root generation resumed, not recreated. PSP-only
+Best-25 remains Provisional, both screens are OFF, Wi-Fi is enabled and original
+ROM/save/BIOS/FolderSync/cloud data are preserved. See the status ledger for
+focused tests, gated build 221, effective resource/profile limits and APK evidence.
+
+This verifies the bounded PSP CHD recovery workflow, not collection migration.
+Full fresh metadata/reception coverage, defensible per-console rankings, root
+publication, other format recovery and reviewed save/space-safe migration remain
+unfinished. S7 is the sole ACTIVE stage; S8-S10 remain NOT STARTED. The bulk
+provenance-classification policy decision remains pending.
+
 ## Drive authorization lifecycle checkpoint — 2026-10-06
 
 The existing serialized authorization boundary now reuses its successful

@@ -4,7 +4,7 @@ import '../models/system_model.dart';
 import '../models/transfer_record.dart';
 import 'rom_manager.dart';
 
-/// Verified owned-file handoff to the installed Dolphin or mapped RetroArch
+/// Verified owned-file handoff to installed Dolphin, PPSSPP or mapped RetroArch
 /// route. No source access, emulator setup mutation or companions.
 class OwnedEmulatorLauncher {
   final RomManager romManager;
@@ -18,7 +18,7 @@ class OwnedEmulatorLauncher {
       game.remoteArtifact != null && !game.isFolder &&
       ((const {'gc', 'wii'}.contains(system.id) &&
       system.romExtensions.any((ext) => game.filename.toLowerCase().endsWith(ext))) ||
-      (system.id == 'psx' && game.filename.toLowerCase().endsWith('.chd')) ||
+      (const {'psx', 'psp'}.contains(system.id) && game.filename.toLowerCase().endsWith('.chd')) ||
       TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
   Future<void> open(GameItem game, SystemModel system, String root) {
@@ -40,7 +40,8 @@ class OwnedEmulatorLauncher {
     final installed = await romManager.requireInstalledArtifact(game, root);
     await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' :
         system.id == 'n64' ? 'launchOwnedRetroArchN64' :
-        system.id == 'psx' ? 'launchOwnedRetroArchPSX' : 'launchOwnedDolphin', {
+        system.id == 'psx' ? 'launchOwnedRetroArchPSX' :
+        system.id == 'psp' ? 'launchOwnedPPSSPP' : 'launchOwnedDolphin', {
       'installationId': installed.id, 'filename': installed.relativePath,
     });
   }

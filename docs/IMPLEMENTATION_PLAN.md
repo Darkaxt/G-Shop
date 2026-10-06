@@ -899,6 +899,11 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   grant and installed RetroArch PCSX ReARMed route. Verify normal download,
   actual boot online/offline, exact owned removal and identical re-download in
   an isolated destination; do not grant whole folders or infer bundle support.
+  Prove the current standalone PSP CHD collection through installed official
+  PPSSPP's exported VIEW route and the same exact owned document-leaf grant.
+  Verify ownership, missing-emulator reporting and existing handoff isolation,
+  then normal download/online and fresh offline boot/removal/identical re-download.
+  No PSP archive or bundle approval is implied by this standalone CHD slice.
   N64's predominantly 7z collection requires bounded single-ROM 7z validation
   (including encoded headers), immutable explicit mapping and the existing owned
   RetroArch handoff. Verify malformed/oversized/unsafe layouts and unchanged

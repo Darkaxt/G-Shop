@@ -5,6 +5,72 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 PSP standalone CHD owned recovery — 2026-10-06
+
+- Added the PSP CHD route to the existing verified committed-leaf handoff.
+  Installed official PPSSPP receives an explicit VIEW intent and only the exact
+  document-shaped read URI. Ownership and standalone/no-bundle checks run before
+  handoff and external open. No directory/write grant, guessed path or inferred
+  PSP ISO/CSO/PBP/archive support was added. The menu identifies PPSSPP.
+- Normal DOWNLOAD published a 43,841,741-byte PSP test CHD in the initially absent
+  isolated `RShopProof-PSP-20261006` destination. Device SHA-256
+  `b7c09f4f2c959ada163afb23168eb61169642d75929e195db7280be04a001f46`
+  matched the unchanged H: original. Normal R-Shop handoff reached the actual
+  game title screen. A cold emulator launch reached that screen with Wi-Fi
+  disabled: the first process was stopped after leaving the game, PID absence
+  was observed, and the offline launch had a new PID. Intent acceptance alone
+  was not counted as boot proof.
+- Normal DELETE removed only the reviewed isolated leaf. Normal re-download
+  recovered identical bytes; the read-only journal confirmed completed copy
+  publication, retired staging, one installation and one owner. Final normal
+  DELETE left zero isolated-root transfers/installations/owners and two completed
+  issue-free removal journals. The empty proof directory was removed
+  non-recursively and absence verified. Original ROM folders were not modified.
+- Official [PPSSPP 1.20.4](https://www.ppsspp.org/download/) was a missing live
+  prerequisite and was installed without replacing an existing same-package app.
+  Official APK SHA-256
+  `dd702a31270ecd68db37afee311d6efe08b1d4da9601d2750ce1a73bbd316c3f`,
+  verified signer SHA-256
+  `c5342629df16762391907b3297aad122b4c1a8a9e608dfb94217a08e3bbf13a2`.
+  It remains installed. Missing-emulator reporting uses the existing native
+  prerequisite failure path; it was not forced again after installation.
+- Focused owned-launch Dart regressions and scoped analysis passed. The new PSP
+  regression failed before implementation and passed after it. Native exact-leaf
+  grant JUnit XML has no failures/errors. No full suite was run. Gated native-test
+  and debug packaging ticket 221 acquired `Local\Darka.AndroidGradleBuildGate`
+  (`gate_acquired=true`) and exited 0. Inspected effective profile: two workers,
+  parallel=false, 3-GiB Gradle heap; required 1-GiB Metaspace/256-MiB code cache
+  preserved. Kotlin 2.2.20 was assessed/requested in-process, sharing that heap;
+  no independent task-level strategy marker is claimed. Tests were configured
+  for one 512-MiB fork; runtime fork heap was not independently measured. Actual
+  app arm64 Ninja compile/link pool depth is one; complete plugin-native coverage
+  is not claimed. No memory failure or budget increase occurred. Retained log:
+  `1a95779983764c31b87a4be6ae4320f6.log` in the shared gate log directory.
+- Same-signer in-place R-Shop installation succeeded; APK SHA-256
+  `1a0af3d5464cf9113273ec349db36d7e615b0e34db8afcea0a051add8542349f`.
+  The normal PSP folder picker restored `/storage/75D7-DC5F/Roms/psp`; fresh full
+  source-configuration SHA-256 returned to the exact baseline
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Normal Drive reconnect and same-transfer resume resolved the post-install
+  authorization pause without replacing the queued item. Normal Saved jobs
+  resumed SAME N64 job 70: running, pending 1,043 -> 961, accepted/rated/raw-bound
+  41 -> 55. Root Refresh retained SAME generation 1 and nextGeneration=2:
+  observations 151,289 -> 152,247, pending folders 8,549 -> 8,215, active=null.
+  These show progress, not completed scrape or catalogue publication.
+- PSP-only Best-25 view is restored: 35/269 ranked, 25 results, explicitly
+  Provisional. Wi-Fi is enabled and both physical displays are freshly committed
+  OFF. No original ROM, save, BIOS, FolderSync setting or cloud file was edited.
+  Exact task-owned device XML/PNG captures are verified absent. Reviewed cleanup
+  `331360f780b87b522b9c481b08c956de` removed only expendable host captures, the UI
+  helper and official installation APK (46,814,094 bytes);
+  the installed apps, R-Shop APK/build log and bounded read-only S7 observer
+  remain required for the active stage.
+- S7 remains the sole ACTIVE stage. Complete fresh metadata, defensible per-console
+  Top-25, root publication, other formats and reviewed save/space-safe migration
+  remain required. The bulk LoLSuite-provenance classification decision remains
+  pending; unknown editions are not silently classified or ranked. S8-S10 remain
+  NOT STARTED. No external release occurred.
+
 ### S7 account-bound Drive token reuse and checkpoint resume — 2026-10-06
 
 - Traced redundant native authorization to `DriveAuthorization.acquire`: every
