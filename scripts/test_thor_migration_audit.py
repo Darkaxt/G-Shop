@@ -3,6 +3,8 @@ import io
 import json
 from pathlib import Path
 import shlex
+import re
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -12,6 +14,105 @@ from thor_migration_audit import Device, GATES, compare_observation, checked_rel
 
 
 class MigrationAuditTests(unittest.TestCase):
+    def test_cloud_projection_does_not_copy_a_live_database(self):
+        device = Mock()
+        config = json.dumps({'sources': [{'id': 'source', 'drive': {
+            'account_id': 'account', 'root_folder_id': 'root'}}]}).encode()
+        device.private.return_value = config
+        payload = {'schema': 'rshop.s7.cache.v1', 'platform': 'psp',
+                   'artifacts': [self.cloud], 'states': [
+                       {'scope': ['source', 'account', 'root'], 'active': 3, 'pending': 4}]}
+        device.cache_snapshot.return_value = json.dumps(payload).encode()
+        artifacts, scopes = audit.cloud_snapshot(device, 'psp')
+        self.assertEqual(artifacts, [self.cloud])
+        self.assertEqual(scopes, [{'sourceId': 'source', 'accountId': 'account',
+                                  'rootFolderId': 'root', 'activeGeneration': 3,
+                                  'pendingGeneration': 4}])
+        device.cache_snapshot.assert_called_once_with('psp')
+        self.assertEqual(device.private.call_args_list,
+                         [unittest.mock.call('app_flutter/config.json', 1048576)] * 2)
+
+    def test_cloud_projection_rejects_incomplete_foreign_or_oversized_snapshots(self):
+        device = Mock()
+        device.private.return_value = b'{"sources":[]}'
+        good = {'schema': 'rshop.s7.cache.v1', 'platform': 'psp',
+                'artifacts': [], 'states': []}
+        for index, change in enumerate(({'schema': 'other'}, {'platform': 'ps2'}, {'error': 'bound'},
+                       {'artifacts': {}}, {'artifacts': [{}] * 2001},
+                       {'states': [{'scope': 'same', 'active': 1, 'pending': None}] * 2},
+                       {'states': [{'scope': 's', 'active': -1, 'pending': None}]},
+                       {'states': [{'scope': ['source', 'account', 'root'], 'pending': None}]},
+                       {'states': [
+                           {'scope': ['s', 'a', 'r'], 'active': 1, 'pending': None},
+                           {'scope': ['s', 'a', 'r'], 'active': 1, 'pending': None}]},
+                       {'states': [{}] * 257})):
+            device.cache_snapshot.return_value = json.dumps(dict(good, **change)).encode()
+            with self.subTest(case=index):
+                with self.assertRaises(ValueError):
+                    audit.cloud_snapshot(device, 'psp')
+        device.cache_snapshot.return_value = b'{' + b' ' * 1048576 + b'}'
+        with self.assertRaises(ValueError):
+            audit.cloud_snapshot(device, 'psp')
+
+    def test_cloud_projection_rejects_changed_configuration(self):
+        device = Mock()
+        device.private.side_effect = [b'{"sources":[]}', b'{"sources":[],"changed":true}']
+        device.cache_snapshot.return_value = json.dumps({
+            'schema': 'rshop.s7.cache.v1', 'platform': 'psp',
+            'artifacts': [], 'states': []}).encode()
+        with self.assertRaisesRegex(ValueError, 'Configuration changed'):
+            audit.cloud_snapshot(device, 'psp')
+
+    def test_native_projection_invocation_is_fixed_and_bounded(self):
+        device = Device('adb', 'serial', 'com.darkaxt.rshop.debug',
+                        '/data/local/tmp/rshop-s7-cache-snapshot.jar')
+        with patch.object(device, '_read', return_value=b'{}') as read:
+            self.assertEqual(device.cache_snapshot('psp'), b'{}')
+            command, limit = read.call_args.args
+            self.assertEqual(limit, 1048576)
+            self.assertEqual(command[:6], ['adb', '-s', 'serial', 'exec-out', 'run-as',
+                                         'com.darkaxt.rshop.debug'])
+            self.assertEqual(command[6:8], ['sh', '-c'])
+            self.assertEqual(command[8], 'CLASSPATH=/data/local/tmp/rshop-s7-cache-snapshot.jar '
+                                        'app_process /system/bin RShopMigrationCacheSnapshot psp')
+        for platform in ('psp; id', '../psp', ''):
+            with self.assertRaises(ValueError):
+                device.cache_snapshot(platform)
+        with self.assertRaises(ValueError):
+            Device('adb', 'serial', 'package', '/data/local/tmp/../private.jar')
+        with self.assertRaises(ValueError):
+            Device('adb', 'serial', 'package').cache_snapshot('psp')
+
+    def test_native_sql_exports_exact_platform_and_generations_with_bounds(self):
+        source = (Path(__file__).parent / 'RShopMigrationCacheSnapshot.java').read_text()
+        query = re.search(r'String SQL = """\n(.*?)\n\s*""";', source, re.S).group(1)
+        with sqlite3.connect(':memory:') as db:
+            db.execute('CREATE TABLE games(systemSlug TEXT, remote_artifact TEXT)')
+            db.execute('CREATE TABLE drive_catalogue_state(scope TEXT,active INTEGER,pending INTEGER)')
+            db.execute('INSERT INTO games VALUES (?,?)', ('psp', json.dumps(self.cloud)))
+            db.execute('INSERT INTO games VALUES (?,?)', ('ps2', 'foreign invalid json'))
+            db.execute('INSERT INTO drive_catalogue_state VALUES (?,?,?)',
+                       ('["s","a","r"]', 1, 2))
+            read = lambda: json.loads(db.execute(query, ('psp', 'psp')).fetchone()[0])
+            result = read()
+            self.assertEqual(result['artifacts'], [self.cloud])
+            self.assertEqual(result['states'], [{'scope': ['s', 'a', 'r'],
+                                                 'active': 1, 'pending': 2}])
+            db.executemany('INSERT INTO games VALUES (?,?)', [('psp', '{}')] * 2000)
+            self.assertEqual(read()['error'], 'projection_bound')
+            db.execute('DELETE FROM games')
+            # Bound is checked before attempting to parse/serialize huge JSON.
+            db.execute('INSERT INTO games VALUES (?,?)', ('psp', 'x' * 900001))
+            self.assertEqual(read()['error'], 'projection_bound')
+            db.execute('DELETE FROM games')
+            db.executemany('INSERT INTO drive_catalogue_state VALUES (?,?,?)',
+                           [('s', 1, None)] * 256)
+            self.assertEqual(read()['error'], 'projection_bound')
+            db.execute('DELETE FROM drive_catalogue_state')
+            db.execute('INSERT INTO drive_catalogue_state VALUES (?,?,?)',
+                       ('x' * 65537, 1, None))
+            self.assertEqual(read()['error'], 'projection_bound')
+
     @staticmethod
     def bulk_regular(path, before='1 2 3 4 5', after='1 2 3 4 5', resolved=None):
         return '\0'.join([path, 'regular', resolved or path, before, after, '']).encode()

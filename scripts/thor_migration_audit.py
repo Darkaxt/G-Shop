@@ -14,7 +14,6 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shlex
-import sqlite3
 import subprocess
 
 GATES = ["canonical_identity_review", "defensible_retention",
@@ -64,15 +63,27 @@ def compare_observation(local, candidates):
 
 
 class Device:
-    def __init__(self, adb, serial, package):
+    def __init__(self, adb, serial, package, cache_helper=None):
         self.prefix = [adb, '-s', serial]
         self.package = package
+        if cache_helper is not None and not re.fullmatch(
+                r'/data/local/tmp/[A-Za-z0-9_.-]+\.jar', cache_helper):
+            raise ValueError('An exact prepared native helper path is required')
+        self.cache_helper = cache_helper
 
     def shell(self, command):
         return self._read(self.prefix + ['exec-out', 'sh', '-c', command], 8 * 1048576)
 
     def private(self, path, limit):
         return self._read(self.prefix + ['exec-out', 'run-as', self.package, 'cat', path], limit)
+
+    def cache_snapshot(self, platform):
+        if not self.cache_helper or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', platform):
+            raise ValueError('Prepared native cache helper and platform required')
+        command = ('CLASSPATH=' + self.cache_helper +
+                   ' app_process /system/bin RShopMigrationCacheSnapshot ' + platform)
+        return self._read(self.prefix + ['exec-out', 'run-as', self.package,
+                                        'sh', '-c', command], 1048576)
 
     def _read(self, command, limit):
         # Bound the reader itself; neither ROM bytes nor unbounded fixture output
@@ -100,32 +111,48 @@ class Device:
 def cloud_snapshot(device, platform):
     config_bytes = device.private('app_flutter/config.json', 1048576)
     config = json.loads(config_bytes)
-    db = sqlite3.connect(':memory:')
-    try:
-        db.deserialize(device.private('databases/rshop.db', 64 * 1048576))
-        if db.execute('pragma quick_check').fetchone() != ('ok',):
-            raise ValueError('Not a consistent catalogue observation; no journal written')
-        artifacts = [json.loads(row[0]) for row in db.execute(
-            'select remote_artifact from games where systemSlug=? and remote_artifact is not null',
-            (platform,))]
-        scopes = []
-        for source in config['sources']:
-            drive = source.get('drive')
-            if not drive:
-                continue
-            scope = json.dumps([source['id'], drive['account_id'], drive['root_folder_id']],
-                               separators=(',', ':'))
-            state = db.execute('select active,pending from drive_catalogue_state where scope=?',
-                               (scope,)).fetchone()
-            scopes.append({'sourceId': source['id'], 'accountId': drive['account_id'],
-                           'rootFolderId': drive['root_folder_id'],
-                           'activeGeneration': state[0] if state else None,
-                           'pendingGeneration': state[1] if state else None})
-        if config_bytes != device.private('app_flutter/config.json', 1048576):
-            raise ValueError('Configuration changed during observation')
-        return artifacts, scopes
-    finally:
-        db.close()
+    payload = device.cache_snapshot(platform)
+    if len(payload) > 1048576:
+        raise ValueError('Native catalogue projection exceeds buffer limit')
+    snapshot = json.loads(payload)
+    if (not isinstance(snapshot, dict) or snapshot.get('error') or
+            snapshot.get('schema') != 'rshop.s7.cache.v1' or
+            snapshot.get('platform') != platform):
+        raise ValueError('Invalid native catalogue projection')
+    artifacts, states = snapshot.get('artifacts'), snapshot.get('states')
+    if (not isinstance(artifacts, list) or len(artifacts) > 2000 or
+            not isinstance(states, list) or len(states) > 256):
+        raise ValueError('Invalid native catalogue projection rows')
+    if any(not isinstance(a, dict) or not isinstance(a.get('displayName'), str)
+           or not a['displayName'] for a in artifacts):
+        raise ValueError('Invalid native artifact record')
+    by_scope = {}
+    for state in states:
+        if not isinstance(state, dict):
+            raise ValueError('Invalid native catalogue state')
+        scope_parts = state.get('scope')
+        if (not isinstance(scope_parts, list) or len(scope_parts) != 3 or
+                any(not isinstance(part, str) or not part for part in scope_parts) or
+                tuple(scope_parts) in by_scope or
+                not {'active', 'pending'}.issubset(state) or
+                any(state.get(k) is not None and
+                    (type(state[k]) is not int or state[k] < 1) for k in ('active', 'pending'))):
+            raise ValueError('Invalid native catalogue state identity')
+        by_scope[tuple(scope_parts)] = state
+    scopes = []
+    for source in config['sources']:
+        drive = source.get('drive')
+        if not drive:
+            continue
+        scope = (source['id'], drive['account_id'], drive['root_folder_id'])
+        state = by_scope.get(scope)
+        scopes.append({'sourceId': source['id'], 'accountId': drive['account_id'],
+                       'rootFolderId': drive['root_folder_id'],
+                       'activeGeneration': state['active'] if state else None,
+                       'pendingGeneration': state['pending'] if state else None})
+    if config_bytes != device.private('app_flutter/config.json', 1048576):
+        raise ValueError('Configuration changed during observation')
+    return artifacts, scopes
 
 
 def local_observation(device, path, root, hash_required):
@@ -235,6 +262,7 @@ def main():
     parser.add_argument('--adb', required=True)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--package', default='com.darkaxt.rshop.debug')
+    parser.add_argument('--cache-helper', help='Exact prepared native cache-snapshot .jar path')
     parser.add_argument('--platform', required=True)
     parser.add_argument('--root', required=True)
     parser.add_argument('--extension', action='append', required=True)
@@ -249,7 +277,9 @@ def main():
     if not args.root.startswith('/storage/') or not (
             '/Roms/' in args.root or (args.inventory_only and args.root.endswith('/Roms'))):
         raise ValueError('An explicit SD console directory is required')
-    device = Device(args.adb, args.serial, args.package)
+    if not args.inventory_only and not args.cache_helper:
+        parser.error('--cache-helper is required for consistent cached comparison')
+    device = Device(args.adb, args.serial, args.package, args.cache_helper)
     if device.shell('realpath ' + shlex.quote(args.root)).decode().strip() != args.root:
         raise ValueError('Root is redirected or not normalized')
     artifacts, scopes = ([], []) if args.inventory_only else cloud_snapshot(device, args.platform)

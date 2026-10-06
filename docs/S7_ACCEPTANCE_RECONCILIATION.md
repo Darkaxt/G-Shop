@@ -9,6 +9,46 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Native cached-comparison verification (2026-10-06): the audit no longer copies
+the growing live database. A fixed READONLY on-device query projects platform
+artifacts and catalogue generations in one SQLite statement; configuration is
+checked before/after. Row/input/output guards reject oversize or malformed
+results, never silently truncate. The 1 MiB projection/transport cap remains
+bounded. Thor lacks SQLite JSON functions, so the query uses portable plain-SQL
+aggregation of stored serialized records, then strict host validation. All six
+mapped consoles passed: PSP 269 artifacts / 172,513 bytes, PS1 319 / 191,024,
+PS2 202 / 129,135, N64 1,391 / 838,891, GameCube 134 / 82,064 and Game Gear
+182 / 108,651. N64's measured 836,435 artifact bytes justified a 900,000-byte
+input bound within the same 1 MiB result cap (initial input guard was 512 KiB).
+Focused host checks exercise the shipped SQL, framing, provider-scope validation,
+config changes and all original preservation gates. No full suite or Gradle
+build was needed for this helper; javac/d8 were invoked with 256 MiB budgets.
+
+The real N64 comparison exited zero and every private journal row independently
+reconciles with its terminal summary: 320 stable .7z archives have matching
+cached size/MD5 (3,267,752,208 bytes); two non-ROM files (1,124 bytes) are preserved.
+The exclusive journal is D:\Temp\rshop-s7-n64-native-cache-audit-v2-20261006.jsonl.
+The first invocation incorrectly selected .zip for this .7z directory and
+therefore proved only preservation, not ROM comparison; that expendable journal
+is excluded from acceptance. The corrected invocation uses the independently
+observed extension. This remains cached comparison evidence, not live cloud
+version/readability, retention, ownership, tested recovery or removal authority.
+The verified helper jar remains on-device for remaining S7 observations; its
+SHA-256 is f94d5f9f4ea3e32a85cde37363b146b757901e38b50ad0658b04a11457ac46b5.
+Transactional exact-file cleanup removed only its expendable host class/jar
+outputs (5,687 bytes) and the superseded wrong-extension journal (401,360 bytes).
+The corrected private journal, all prior valid inventories and device helper
+are retained. No user/app data was deleted; compiler outputs are reproducible
+from the committed source, and the obsolete journal was intentionally discarded.
+
+After the same saved-job resume, PSP job 44 completed all 341 edition items with
+zero pending; its normal linked artwork job 49 also completed, with zero pending.
+No replacement metadata job or per-title correction was created. Root generation
+1 remains unpublished at 92,021 observations / 14,445 pending folders, next
+generation 2. Both displays remain OFF. S7 is the sole ACTIVE stage: full
+collection coverage, defensible retention, current identical cloud-recovery
+proof and reviewed migration remain unfinished.
+
 Saved-job recovery verified (2026-10-06): the normal settings now expose a
 bounded, indexed, keyset-paged local history for the selected metadata provider.
 A newer console pass no longer hides an older paused pass. Selection reads its

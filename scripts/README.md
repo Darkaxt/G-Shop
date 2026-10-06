@@ -6,9 +6,13 @@ SD artifacts with the normal app's published Drive-cache records and streams
 hashing on the device. It never reads ROM bodies into the Windows process.
 
 Use an explicitly inspected console directory and keep its output outside Git:
+inspect its actual archive extensions as well (for example, N64 on this Thor
+uses `.7z`, not `.zip`). A completed non-ROM-only inventory is not ROM comparison
+proof when an incorrect extension selector excluded the ROMs.
 
 ```powershell
 python -B scripts/thor_migration_audit.py --adb <adb.exe> --serial bfa98654 `
+  --cache-helper /data/local/tmp/rshop-s7-cache-snapshot.jar `
   --platform gamegear --root /storage/75D7-DC5F/Roms/gamegear `
   --extension .zip --output D:\RShopPrivate\Migration\<unique-audit>.jsonl
 ```
@@ -21,9 +25,41 @@ not a live revalidation or restore proof. Canonical identity, defensible retenti
 restore, save/sync safety and execution-time revalidation remain required before
 the separate reviewed migration can remove anything.
 
-Config reads are capped at 1 MiB, database observations at 64 MiB, and device
-shell output at 8 MiB. Inconsistent catalogue observations fail without repair
-or automatic retry. One client runs at a time; there are no arbitrary deadlines.
+Config and native projection reads are each capped at 1 MiB; device shell output
+is capped at 8 MiB. The audit no longer copies/deserializes a live database. The
+fixed native helper opens the app cache READONLY under `run-as` and produces
+artifacts and catalogue generations in one SQLite statement, including WAL
+state. Its single bounded result fits one cursor window. Configuration is read
+before and after; changed config, invalid records, oversized output or a helper
+failure aborts before a journal is created. No automatic retry or repair occurs.
+One client runs at a time; there are no arbitrary deadlines.
+
+Prepare the helper once for the current source before cached comparisons:
+
+```powershell
+$taskNative = 'D:\Temp\rshop-s7-cache-snapshot'
+New-Item -ItemType Directory -Path $taskNative -Force | Out-Null
+javac -J-Xmx256m -cp '<Android SDK>\platforms\android-36\android.jar' `
+  -d $taskNative scripts\RShopMigrationCacheSnapshot.java
+# Use the same JDK for d8; bound its VM independently (no Gradle build required).
+$env:JAVA_OPTS = '-Xmx256m'
+& '<Android SDK>\build-tools\36.0.0\d8.bat' `
+  --lib '<Android SDK>\platforms\android-36\android.jar' `
+  --output "$taskNative\rshop-s7-cache-snapshot.jar" `
+  "$taskNative\RShopMigrationCacheSnapshot.class"
+adb -s bfa98654 push "$taskNative\rshop-s7-cache-snapshot.jar" `
+  /data/local/tmp/rshop-s7-cache-snapshot.jar
+```
+
+Require each command to exit zero; do not push an older jar after compilation
+failure. The helper accepts only a validated platform, no SQL or database path.
+It limits artifacts to 2,000 / 900,000 UTF-8 input bytes and catalogue states to
+256 / 65,536 bytes before constructing the result; excess rows are rejected, not
+silently truncated. The 1 MiB transport cap remains unchanged. N64's measured
+836,435 artifact bytes required a larger input bound than the initial 512 KiB;
+it still fits the same output budget. Plain SQL concatenates already-serialized
+records; the host validates the complete JSON before use. Android's SQLite on
+this Thor has no JSON aggregation functions, so they are not required.
 
 For a local inventory before cloud/retention verification, append
 `--inventory-only`. This mode does not read the app database/config or hash ROMs:
@@ -31,9 +67,9 @@ it records exact paths, sizes and before/after file stats. ROM records explicitl
 say `cloud_not_observed` (or `local_changed`); non-ROM files remain preserved.
 The private journal has no cloud identity/digest proof and cannot authorize a
 removal. It works independently of an unpublished scan or a catalogue larger
-than the comparison mode's 64 MiB observation cap. Do not increase that cap or
-copy a live database to pretend this inventory proves recovery. The separate
-cloud comparison still requires a consistent, bounded cache observation.
+than a host database-copy buffer. Never copy a live database to pretend this
+inventory proves recovery. The separate cloud comparison requires the prepared
+native helper for a consistent, bounded cache observation.
 
 Inventory-only mode also permits an explicitly inspected SD `.../Roms` root;
 use a noncanonical scope label such as `--platform sd-inventory` there. Directory

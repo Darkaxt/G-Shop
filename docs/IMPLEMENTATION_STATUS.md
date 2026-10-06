@@ -5,6 +5,36 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 native cached comparison and completed PSP recovery — 2026-10-06
+
+- Replaced the audit's raw live-database copy with a fixed READONLY native query.
+  Artifacts/generations share one statement snapshot; the host checks config
+  before/after and validates bounded complete JSON. The six mapped-console
+  projections passed on Thor; largest was N64 at 838,891 bytes, under the 1 MiB
+  transport cap. Its 836,435 artifact bytes justified a 900,000-byte input guard;
+  no database-copy cap, process heap or removal gate was raised. Android's missing
+  SQLite JSON functions were diagnosed and the query uses plain SQL instead.
+- The corrected N64 audit exited zero and independent row/footer reconciliation
+  verified 320 stable archives with matching cached size/digests (3,267,752,208
+  bytes), plus two preserved non-ROM files (1,124 bytes). The first .zip-selected
+  invocation was a configuration mistake on a .7z directory, not comparison
+  proof; it is excluded. The correct private journal is
+  `D:\Temp\rshop-s7-n64-native-cache-audit-v2-20261006.jsonl`. Every disposition is
+  preserve and removalAuthorized=false. This is not current recovery authority.
+- Focused host contracts, including the shipped SQL and bounds, passed. The
+  helper was compiled with javac/d8 using requested 256 MiB budgets, pushed and
+  verified by matching SHA-256. No Gradle build, APK update or release was needed.
+  Compiled host intermediates are expendable; the device helper is retained for
+  remaining S7 audit work, with its hash in the reconciliation ledger.
+- Older PSP metadata 44 completed its 341 edition items with no pending work;
+  its normal linked artwork 49 also completed. No replacement metadata pass or
+  per-title correction occurred. Root generation 1 remains unpublished at
+  92,021 observations / 14,445 pending folders, next generation 2. Both displays
+  are OFF; ROMs, saves, Drive originals and FolderSync remain unchanged.
+- S7 remains the sole ACTIVE stage; full collection publication/coverage,
+  defensible Top-25 retention, current identical recoverable copies and reviewed
+  migration are unfinished. S8-S10 remain NOT STARTED.
+
 ### S7 saved metadata history and native recovery — 2026-10-06
 
 - Saved jobs now exposes bounded local history for the selected provider;
