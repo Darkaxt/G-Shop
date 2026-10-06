@@ -1,5 +1,21 @@
 # S7 live metadata and Thor migration
 
+## Current network boundary and saved-work recovery — 2026-10-06
+
+The normal same-job resume reproduced an `unavailable` access check before any
+new metadata lookup. Host authentication passed; Thor HTTPS was blocked across
+Google and ScreenScraper, and its HTTP connectivity probe identified the hotel
+captive portal. The normal portal Continue action restored connectivity, then
+normal app Resume advanced the same N64 job 70, without changing credentials or
+creating another pass. Normal source Refresh likewise advanced root generation 1,
+not a replacement generation. Subsequent screen-off observations confirmed both
+workers progressing. The configuration hash and app/emulator PIDs are unchanged.
+
+This establishes the current transport cause and resumed workflow, not terminal
+coverage, the historical pause cause, score reliability or migration completion.
+MIGRATE-01 remains open; S7 is sole ACTIVE and S8-S10 remain NOT STARTED. See the
+status ledger for inspected counts, boundary results and preserved-state proof.
+
 ## Protected shared-file evidence — 2026-10-06
 
 The bounded read-only baseline recorded 137 files across 16 explicit shared

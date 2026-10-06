@@ -5,6 +5,43 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 captive-portal recovery / same-job resume — 2026-10-06
+
+- Normal Resume kept N64 metadata job 70 intact but its access check returned
+  `unavailable`, without processing another item. The current authenticated host
+  ScreenScraper adapter check passed. Thor IPv4 HTTPS probes to Google and both
+  ScreenScraper origins failed with `No route to host`; the ordinary HTTP
+  connectivity probe returned a hotel captive-portal redirect. Android's earlier
+  ever-validated state was not proof of current Internet access. No quota or
+  credential failure is inferred. Windows hotspot creation was rejected; no
+  hotspot configuration or credential change was made.
+- The hotel's normal browser Continue action restored Thor HTTPS: Google's
+  connectivity endpoint returned 204 and the unauthenticated ScreenScraper API
+  returned 403, rather than a transport failure. Normal Resume then advanced the
+  SAME job 70: pending 292 -> 287 -> 268 -> 263; matched/rated 115 -> 119. The
+  last observation is `running`, with null blocked_status. No fresh/retry job,
+  provider change or individual-game curation was introduced.
+- Normal Sources -> Collection -> Refresh resumed the SAME unpublished root
+  generation 1: observations 159,305 -> 159,420, pending folders 6,056 -> 6,030,
+  nextGeneration remains 2. Existing published catalogues remain unchanged until
+  traversal succeeds; neither terminal traversal nor full scrape is claimed.
+- Both displays were freshly confirmed OFF; the later observation proves both
+  workers still advance. R-Shop PID 26853 and NetherSX2 PID 15069 remain alive.
+  Full configuration retains SHA-256
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  No ROM/save/BIOS/cloud-original/FolderSync mutation occurred. No Gradle ran,
+  so no new gate acquisition or effective build profile is claimed.
+- S7 remains sole ACTIVE. Full fresh metadata/root publication, defensible
+  rankings, preservation and exact reviewed migration remain required. S8-S10
+  remain NOT STARTED. This supersedes the earlier unknown pause diagnosis only
+  for the reproduced current access-check failure, not its historical cause.
+- Final screen-off observation: job 70 remains running, pending 249 and
+  matched/rated 121; root observations 159,539 and pending folders 5,988. No new
+  generation was created. Reviewed cleanup `61b0e87213333566242eb5878dc2107f`
+  permanently removed only the temporary capture/directory (667,027 bytes);
+  its exact device PNG and temporary browser tab were also removed. Protected
+  private evidence, installed APK and ongoing observer remain retained.
+
 ### S7 shared protected-file baseline — 2026-10-06
 
 - Added bounded read-only `scripts/thor_protected_baseline.py`, reusing the
