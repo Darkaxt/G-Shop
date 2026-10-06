@@ -8,11 +8,19 @@ folder count driving lookup work. The additive v37 pending-work index and
 work-first join correct that access path without changing cursor/order or
 publication semantics. Focused production upgrade and traversal checks pass;
 an isolated in-memory Thor SQLite experiment verifies the revised access plan.
-The normal debug APK is built and signer-verified but not installed over the
-currently advancing jobs. See the status ledger for source/build evidence.
-Native app upgrade/resume and terminal collection publication remain current S7
-work, not a completed acceptance criterion or a later-stage deferral. MIGRATE-01
-remains open; S7 remains sole ACTIVE, with S8-S10 NOT STARTED.
+Normal debug build 225 was subsequently signer/hash-verified and installed by
+ordinary update after the metadata/artwork workers became terminal. Native
+schema-v37 startup preserves streamed digests of every pending-generation entry,
+work cursor and consumed page, together with terminal job outcomes and unchanged
+configuration. The installed SQLite plan now starts with the pending-work index.
+Normal account reauthorization (without saving a source) and Refresh advance the
+same root generation 1, not a replacement. See the status ledger for inspected
+counts and preserved-state proof; no quantified speedup is claimed.
+Native app upgrade/resume is verified. Terminal collection publication, full
+fresh coverage and MIGRATE-01 remain open; S7 remains sole ACTIVE, with S8-S10
+NOT STARTED. The one normal N64 IGDB pass now captures newly bound ScreenScraper
+evidence and is progressing, not complete. No acceptance criterion or deletion
+gate is waived by these narrower native results.
 
 ## Current network boundary and saved-work recovery — 2026-10-06
 

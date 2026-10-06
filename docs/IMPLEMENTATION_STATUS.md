@@ -5,6 +5,53 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 normal native upgrade and same-generation resume — 2026-10-06
+
+- N64 ScreenScraper job 70 and linked artwork job 71 reached `completed` before
+  the update. Job 70 accepted/rated 147 items; artwork 71 accepted 298 and
+  retained two `invalidResponse` outcomes. Terminal traversal is not full
+  identification, reliable-score coverage or migration completion.
+- Fresh signer verification and SHA-256 inspection of normal debug build 225
+  passed; `adb install -r` succeeded without uninstall/data reset. Ordinary
+  startup reached the console carousel, not a stalled splash. Production schema
+  36 -> 37 completed. Frozen pre-start and stable post-migration read-only
+  streamed digests agree for all 163,203 entries, 26,841 work rows (including
+  row order/page cursors) and 22,913 consumed-page rows. Metadata/artwork outcomes,
+  pending generation 1 and nextGeneration 2 are unchanged.
+- The installed application's actual SQLite plan uses the partial pending-work
+  index first and exact entry lookup second, with no temporary sort. This proves
+  native upgrade/access-path integration, not a quantified traversal speedup.
+- Normal source Refresh initially required Drive interaction. The ordinary
+  Connect/account chooser restored access with the existing default account;
+  returned without saving any source or changing its root/mappings. Normal
+  Refresh then resumed the SAME generation 1: observations 163,203 -> 163,238 ->
+  164,678 -> 164,948; pending folders 4,861 -> 4,848 -> 4,431 -> 4,356.
+  The root remains unpublished; nextGeneration remains 2.
+- Normal Game metadata UI selected IGDB and N64 only, then created one fresh
+  pass, job 72, after job 70/artwork 71 were terminal. Its immutable capture
+  includes the 147 newly bound original identifiers/corroborations and official
+  classifications. It is `running`, without a blocked status: pending 1,543 ->
+  1,485, matched 5, rated 4. Review/ambiguity/unmatched outcomes remain explicit.
+  No duplicate pass, guessed classifications, imported ranks or per-game
+  corrections were introduced.
+- Configuration SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  NetherSX2 PID 15069 remains alive. Both displays were confirmed OFF after
+  the native actions. No ROM/save/BIOS, cloud original or FolderSync was changed.
+  No new Gradle command was run; build 225's already-inspected gate/profile
+  evidence remains applicable to unchanged production source.
+- S7 remains sole ACTIVE: terminal root publication, full fresh coverage,
+  defensible canonical Top-25 sets and reviewed preservation/migration remain
+  unfinished. S8-S10 remain NOT STARTED. Native upgrade/checkpoint preservation
+  and same-generation resume now have actual installed-app evidence.
+- Subsequent screen-off read-only check confirms continuing work: the SAME
+  IGDB job 72 has pending 1,375, matched 18 and rated 13, without a blocked
+  status; root generation 1 has 165,501 observations / 4,223 pending folders.
+  Reviewed cleanup `b5a6d240752264c40eaba866bdf30c53` is APPLIED, removing only
+  the temporary UI capture and empty capture directory (1,085,324 bytes), plus
+  its exact device screenshot. The normal APK, ongoing bounded observer and
+  protected private evidence remain retained for required S7 work.
+
 ### S7 next-folder scheduling regression — 2026-10-06
 
 - The Thor's actual schema-v36 query plan starts with catalogue entries and
