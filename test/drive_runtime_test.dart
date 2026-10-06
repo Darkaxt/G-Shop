@@ -210,8 +210,11 @@ class _NativeStorage {
         if (args['mode'] == 'quarantine') {
           expect(quarantinePresent, isTrue);
           expect(args['expectedIdentity'], identity);
-        } else {
+        } else if (args['mode'] != 'published') {
           stagePresent = true;
+        } else {
+          expect(args['durableOffset'], bytes.length);
+          expect(args['expectedIdentity'], identity);
         }
         return {'session': 'session', 'identity': identity};
       case 'ownedWrite':
@@ -514,6 +517,103 @@ Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('recovery review proves current local/cloud bytes without ownership',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
+    fixture.native.published = true;
+    final runtime = fixture.runtime();
+    final result = await runtime.verifyLocalCloudBytes(
+        config: _transferConfig,
+        artifact: _artifact(),
+        destinationRoot: '/roms',
+        relativePath: 'fixture.chd',
+        cancellation: CancelToken());
+    expect(result.sizeBytes, 5);
+    expect(result.checksums['md5'], _md5);
+    expect(result.checksums['sha256'], hasLength(64));
+    expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
+        hasLength(2));
+    expect(fixture.media.requests, hasLength(1));
+    expect(fixture.native.sessionOpen, isFalse);
+    expect(fixture.native.stagePresent, isFalse);
+    expect(fixture.native.calls.where((c) => !{
+      'ownedPrepare', 'ownedInspect', 'ownedOpen', 'ownedRead',
+      'ownedCheckpoint', 'ownedClose'
+    }.contains(c)), isEmpty);
+    expect(await fixture.db.query('transfer_records'), isEmpty);
+    expect(await fixture.db.query('installed_artifacts'), isEmpty);
+  });
+  for (final corruption in ['local', 'cloud', 'version', 'namespace', 'overwrite']) {
+    test('recovery review rejects $corruption change and drains native reads', () async {
+      final fixture = await _TransferFixture.create(reserve: false);
+      fixture.native.bytes.addAll(corruption == 'local' ? [5,4,3,2,1] : [1,2,3,4,5]);
+      fixture.native.published = true;
+      fixture.media.mediaResponse = (_, __) async {
+        if (corruption == 'version') fixture.metadata.version = '2';
+        if (corruption == 'namespace') fixture.native.targetChanged = true;
+        // Same inode, size and timestamp: only a second byte pass catches this.
+        if (corruption == 'overwrite') fixture.native.bytes[0] = 9;
+        return ResponseBody(Stream.value(Uint8List.fromList(
+            corruption == 'cloud' ? [5,4,3,2,1] : [1,2,3,4,5])), 200,
+            headers: {'content-length': ['5']});
+      };
+      await expectLater(fixture.runtime().verifyLocalCloudBytes(
+          config: _transferConfig, artifact: _artifact(), destinationRoot: '/roms',
+          relativePath: 'fixture.chd', cancellation: CancelToken()),
+          corruption == 'namespace'
+              ? throwsA(isA<OwnedStorageException>().having((e) => e.code, 'code', 'changed'))
+              : throwsA(isA<DriveTransferException>().having((e) => e.issue, 'issue',
+                  corruption == 'version' ? DriveTransferIssue.sourceChanged
+                      : DriveTransferIssue.checksumMismatch)));
+      expect(fixture.native.sessionOpen, isFalse);
+      expect(fixture.native.stagePresent, isFalse);
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    });
+  }
+  test('missing local file makes no cloud request and creates no stage', () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    await expectLater(fixture.runtime().verifyLocalCloudBytes(config: _transferConfig,
+        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
+        cancellation: CancelToken()),
+        throwsA(isA<OwnedStorageException>().having((e) => e.code, 'code', 'not_found')));
+    expect(fixture.media.requests, isEmpty);
+    expect(fixture.metadata.requests, isEmpty);
+    expect(fixture.native.stagePresent, isFalse);
+    expect(await fixture.db.query('transfer_records'), isEmpty);
+  });
+  test('disconnect joins recovery cancellation before native/transport teardown', () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    fixture.native.bytes.addAll([1,2,3,4,5]);
+    fixture.native.published = true;
+    final entered = Completer<void>(), cancelled = Completer<void>(), drain = Completer<void>();
+    fixture.media.mediaResponse = (options, cancellation) async {
+      entered.complete();
+      await cancellation;
+      cancelled.complete();
+      await drain.future;
+      throw DioException(requestOptions: options, type: DioExceptionType.cancel);
+    };
+    final runtime = fixture.runtime();
+    final review = runtime.verifyLocalCloudBytes(config: _transferConfig,
+        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
+        cancellation: CancelToken());
+    final failed = expectLater(review, throwsA(isA<DriveTransferException>()));
+    await entered.future;
+    await expectLater(runtime.verifyLocalCloudBytes(config: _transferConfig,
+        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
+        cancellation: CancelToken()), throwsA(isA<DriveTransferException>()));
+    final disconnect = runtime.disconnect();
+    await cancelled.future;
+    expect(fixture.native.sessionOpen, isTrue);
+    expect(fixture.media.closed, isFalse);
+    fixture.driver.finishSignOut.complete();
+    drain.complete();
+    await failed;
+    await disconnect;
+    expect(fixture.native.sessionOpen, isFalse);
+    expect(fixture.media.closed, isTrue);
+  });
   test('metadata header reads exactly 140 bytes without staging a large ROM',
       () async {
     const size = 4294967296;

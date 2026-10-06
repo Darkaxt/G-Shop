@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../core/responsive/responsive.dart';
 import '../../models/download_item.dart';
 import '../../models/game_item.dart';
+import '../../models/config/provider_config.dart';
 import '../../models/game_metadata_info.dart';
 import '../../models/system_model.dart';
 import '../../models/ra_models.dart';
@@ -49,6 +50,7 @@ import 'widgets/screenshots_carousel.dart';
 import 'widgets/section_header.dart';
 import 'widgets/summary_section.dart';
 import 'widgets/variant_picker_overlay.dart';
+import 'widgets/drive_recovery_review_dialog.dart';
 
 class GameDetailScreen extends ConsumerStatefulWidget {
   final GameItem game;
@@ -545,6 +547,18 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.raMatchKey];
     return [
+      if (!variant.isFolder && variant.remoteArtifact != null &&
+          variant.providerConfig?.type == ProviderType.drive)
+        QuickMenuItem(label: 'Check local/cloud bytes',
+            icon: Icons.fact_check_outlined,
+            onSelect: () {
+              closeQuickMenu();
+              showDialog<void>(context: context, barrierDismissible: false,
+                  builder: (_) => DriveRecoveryReviewDialog(
+                      config: variant.providerConfig!,
+                      artifact: variant.remoteArtifact!,
+                      destinationRoot: widget.targetFolder));
+            }),
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(

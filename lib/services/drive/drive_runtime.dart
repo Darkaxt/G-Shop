@@ -57,6 +57,18 @@ typedef OwnedRemovalRecoveryReport = ({
   Map<String, int> issues,
 });
 
+/// A current byte observation, not adoption, a restore-format certificate, or
+/// removal authority. Execution must revalidate independently of this result.
+typedef DriveLocalCloudObservation = ({
+  RemoteArtifact artifact,
+  String destinationRoot,
+  String relativePath,
+  NativeFileIdentity localIdentity,
+  int sizeBytes,
+  Map<String, String> checksums,
+  DateTime observedAt,
+});
+
 /// Process-wide native account lane and source-scoped refresh/transfer jobs. No token
 /// resides in provider configs or download items. Background calls never consent.
 class DriveRuntime {
@@ -83,6 +95,7 @@ class DriveRuntime {
   final _refreshCancellation = <String, CancelToken>{};
   final _bundlePlans = <CancelToken, Future<TransferRecord>>{};
   final _metadataHeaders = <CancelToken, Future<Uint8List>>{};
+  final _recoveryReviews = <CancelToken, Future<DriveLocalCloudObservation>>{};
   bool _disconnecting = false;
   int _laneGeneration = 0;
 
@@ -426,6 +439,115 @@ class DriveRuntime {
         artifact.id.sourceId != config.sourceId ||
         artifact.id.accountId != config.drive!.accountId) {
       throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+  }
+
+  /// Explicit one-file recovery review, including unmanaged namesakes. Uses
+  /// pinned read-only native IO and current rooted Drive boundaries. No transfer
+  /// reservation, publication, installation claim, or namespace mutation occurs.
+  Future<DriveLocalCloudObservation> verifyLocalCloudBytes({
+    required ProviderConfig config,
+    required RemoteArtifact artifact,
+    required String destinationRoot,
+    required String relativePath,
+    required CancelToken cancellation,
+  }) async {
+    _requireConnectedLane();
+    _requireArtifactSource(config, artifact);
+    final verification = DriveVerification(artifact);
+    if (_recoveryReviews.isNotEmpty ||
+        relativePath != artifact.displayName ||
+        relativePath.isEmpty ||
+        relativePath == '.' ||
+        relativePath == '..' ||
+        RegExp(r'[\\/\x00-\x1f<>:"|?*]').hasMatch(relativePath)) {
+      throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+    void checkCancellation() {
+      if (cancellation.isCancelled) {
+        throw const DriveTransferException(DriveTransferIssue.cancelled);
+      }
+    }
+
+    final operation = () async {
+      checkCancellation();
+      final plan = await _storage.prepare(destinationRoot);
+      if (plan.destinationRoot != destinationRoot) {
+        throw const OwnedStorageException('changed');
+      }
+      final stagePath = plan.stagePath('recovery-review');
+      final identity = await _storage.inspect(
+          destinationRoot: destinationRoot,
+          relativePath: relativePath,
+          stagePath: stagePath,
+          published: true);
+      if (identity == null) throw const OwnedStorageException('not_found');
+      if (identity.sizeBytes != artifact.sizeBytes) {
+        throw const DriveTransferException(DriveTransferIssue.truncated);
+      }
+      checkCancellation();
+      final session = await _storage.open(
+          destinationRoot: destinationRoot,
+          relativePath: relativePath,
+          stagePath: stagePath,
+          durableOffset: identity.sizeBytes,
+          expectedIdentity: identity,
+          published: true);
+      try {
+        final local = await verification.verifyBytes(
+            session.bytes(identity.sizeBytes),
+            cancellation: cancellation);
+        final boundary = DriveDownloadBoundary(
+            config: config,
+            artifact: artifact,
+            catalogue: catalogue,
+            api: apiFor(config.drive!));
+        await boundary.revalidate(cancellation: cancellation);
+        final media = _mediaApis.putIfAbsent(
+            config.drive!.accountId,
+            () => _createMediaApi(
+                authorizationFor(config.drive!.serverClientId),
+                config.drive!.accountId));
+        final response =
+            await media.open(artifact, offset: 0, cancelToken: cancellation);
+        final cloud = await verification.verifyBytes(response.bytes,
+            cancellation: cancellation);
+        await boundary.revalidate(cancellation: cancellation);
+        // Stat alone cannot detect coarse-timestamp/same-size overwrites.
+        final finalLocal = await verification.verifyBytes(
+            session.bytes(identity.sizeBytes),
+            cancellation: cancellation);
+        final current = await _storage.inspect(
+            destinationRoot: destinationRoot,
+            relativePath: relativePath,
+            stagePath: stagePath,
+            published: true);
+        if (cloud['sha256'] != local['sha256'] ||
+            finalLocal['sha256'] != cloud['sha256'] ||
+            !identity.matches(await session.checkpoint()) ||
+            current == null ||
+            !identity.matches(current)) {
+          throw const OwnedStorageException('changed');
+        }
+        checkCancellation();
+        return (
+          artifact: artifact,
+          destinationRoot: destinationRoot,
+          relativePath: relativePath,
+          localIdentity: identity,
+          sizeBytes: identity.sizeBytes,
+          checksums: cloud,
+          observedAt: DateTime.now().toUtc()
+        );
+      } finally {
+        await session.close();
+      }
+    }();
+    _recoveryReviews[cancellation] = operation;
+    try {
+      return await operation;
+    } finally {
+      _recoveryReviews.remove(cancellation);
     }
   }
 
@@ -817,6 +939,10 @@ class DriveRuntime {
       }
       final plans = _bundlePlans.values.toList();
       final headers = _metadataHeaders.values.toList();
+      final reviews = _recoveryReviews.values.toList();
+      for (final cancellation in _recoveryReviews.keys.toList()) {
+        cancellation.cancel();
+      }
       for (final cancellation in _metadataHeaders.keys.toList()) {
         cancellation.cancel();
       }
@@ -838,6 +964,8 @@ class DriveRuntime {
           plan.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
         for (final header in headers)
           header.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+        for (final review in reviews)
+          review.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
       ]);
     } finally {
       for (final api in _apis.values) {

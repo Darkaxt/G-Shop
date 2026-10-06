@@ -1,5 +1,59 @@
 # S7 live metadata and Thor migration
 
+## Reusable current local/cloud observation — 2026-10-06
+
+The normal Drive detail menu's explicit check uses existing native read-only
+storage and Drive boundaries. It requires an exact configured root and filename,
+pins the local identity, streams local/cloud hashes without saving a ROM copy,
+revalidates rooted catalogue/file version before and after the cloud stream, then
+hashes the local file again and checks its current namespace/session identity.
+Only one such review runs at once; cancellation/disconnect joins its resource
+closure. Opening the dialog alone does nothing. This advances MIGRATE-01's
+current-cloud byte comparison, but does not satisfy adoption, restore-format,
+execution journal, complete ranking or removal criteria. Results are observations,
+not reusable deletion certificates. No title-specific matching exception exists.
+
+Focused production-runtime/boundary and dialog tests passed, as did scoped Dart
+analysis. Native verification first exposed an actual protocol mismatch: published
+read sessions require durableOffset=size, not zero. The fake native boundary was
+tightened, the failure reproduced and the caller corrected before native success.
+Missing files avoid cloud requests; changed/corrupt bytes, cloud version, local
+namespace, same-size/coarse-timestamp overwrite and cancellation/disconnect drain
+are tested. No production fallback, arbitrary wait or retry was introduced.
+
+Normal Thor build 185 completed a full comparison for the existing
+`/storage/75D7-DC5F/Roms/gc/Animal Crossing (USA, Canada).rvz`, 20,131,764 bytes,
+cloud version 2, UI observation time 2026-10-06 06:49:28.711400. The app result and
+independent local hashes before/after agree:
+`0d7aeb487d665ce3fceffc25ea8041afeffe44faf223640e84f5f8dcb4f2578f`.
+This one small file proves a standardized byte path, not metadata curation or
+adoption. Controller A started the explicit check; controller B cancelled a
+second actual running comparison and returned to normal details. Normal default
+account reconnection and Refresh preserved the source/config/root generation.
+
+Sequential debug builds 184/185 acquired `Local\Darka.AndroidGradleBuildGate`,
+with verified workers=2, parallel=false, Gradle heap 3,221,225,472 bytes and assessed
+Kotlin 2.2.20 in-process sharing that heap. Required metaspace=1G/code-cache=256m
+flags remained. Forked-test settings are one/512 MiB (no test JVM in assemble);
+native one-slot pools are configured, not a total-host guarantee. No memory failure
+or budget increase occurred. Logs remain required evidence at
+`D:\Temp\rshop-s7-gradle-build184-20261006.log` and
+`D:\Temp\rshop-s7-gradle-build185-20261006.log`.
+The independently inspected installed APK is 179,382,635 bytes, SHA-256
+`407b1df151aa2f9ac6201580bf46e4cb65101d4297e858e47e248ae85b649b1b`,
+package com.darkaxt.rshop.debug / version 1.7.0 code 12, signer SHA-256
+`06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+Normal install -r preserved app data; no publication occurred.
+
+Final native observation confirms PS1 job 50 completed 405 processed entries
+with no pending work; its linked artwork 53 completed. Root generation 1/next 2
+remains unpublished but advanced to 137,544 observations / 12,466 pending folders.
+Both displays are committed OFF; config SHA-256 is unchanged at
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+No ROM/save/cloud-original/FolderSync mutation occurred. S7 remains ACTIVE;
+complete fresh ranking coverage, strict durable execution/adoption and actual
+reviewed migration remain unmet. S8-S10 remain NOT STARTED.
+
 ## Private exact-path retention review and bulk continuation — 2026-10-06
 
 The existing read-only audit's optional `--retention-helper` observes the normal

@@ -13,7 +13,19 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
-S7 private migration-review checkpoint (2026-10-06): the existing read-only
+S7 current-cloud byte checkpoint (2026-10-06): normal debug build 185 provides
+an explicit reusable local/cloud comparison from any non-folder Drive detail
+menu. It streams the exact local file and current rooted cloud file, checks
+version/digests and local identity again, and joins cancellation/disconnect to
+read closure. Normal Thor verification and controller cancellation passed;
+this observation does not adopt files, certify every restore format or authorize
+removal. PS1 job 50 and linked artwork 53 completed without snapshot recreation.
+Root generation 1 remains unpublished and progressing. Next required work is
+collection-wide publication/defensible rankings and the reviewed execution-time
+migration journal; do not curate individual entries. S7 remains the sole ACTIVE
+stage and S8-S10 remain NOT STARTED.
+
+Historical S7 private migration-review checkpoint (2026-10-06): the existing read-only
 audit now joins exact cached artifact keys to the shared canonical retention
 query, retaining edition/member IDs and reporting files, bytes and distinct
 bound games. The real N64 review completed: 322 paths / 3,267,753,332 bytes,

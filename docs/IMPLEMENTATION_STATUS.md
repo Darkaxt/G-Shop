@@ -5,6 +5,42 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 reusable current local/cloud byte verification — 2026-10-06
+
+- Normal Drive details now expose an explicit "Check local/cloud bytes" action.
+  Opening it performs no network work. Verification pins the exact native local
+  file, streams both local and current rooted Drive bytes, revalidates cloud
+  identity/version before and after, then rereads and rechecks local identity.
+  Cancellation and disconnect await read closure. No new copy, transfer journal,
+  installed claim, adoption or deletion is created. No title-specific rule exists.
+- Focused runtime/dialog contracts and scoped analysis passed. Native testing
+  exposed the published-read protocol's required durable offset equal to file
+  size; its fixture was tightened to reproduce the failure before correcting the
+  caller. Corrupt bytes, changed version/namespace, same-size overwrite, missing
+  files and joined cancellation are covered. No full suite was run.
+- Normal Thor build 185 verified the existing 20,131,764-byte RVZ against current
+  cloud version 2. The independently observed local SHA-256 before/after agrees
+  with the app's full comparison:
+  `0d7aeb487d665ce3fceffc25ea8041afeffe44faf223640e84f5f8dcb4f2578f`.
+  A second actual running comparison was cancelled with controller B and returned
+  to normal details. Default-account authorization was restored through normal
+  UI without saving a new source, mapping or scope. This is current byte proof,
+  not durable migration/removal authority or completed format-specific recovery.
+- Builds 184 and 185 ran sequentially through the acquired shared Gradle mutex.
+  Observed workers=2, parallel=false, Gradle heap=3 GiB; assessed Kotlin 2.2.20
+  ran in-process within that heap. Existing metaspace/code-cache flags remained.
+  Test fork=1/512 MiB and native one-slot pools are configuration evidence, not
+  a measured total-host cap; no forked test JVM ran in assembly. No memory-related
+  failure or budget increase occurred. Signature-checked install -r preserved data.
+- PS1 metadata job 50 completed its existing 405 entries; linked artwork 53 also
+  completed. Root generation 1/next 2 continues at 137,544 observations / 12,466
+  pending folders, still unpublished. Both displays are committed OFF and config
+  SHA-256 remains
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  ROMs/saves/cloud originals/FolderSync remain unchanged. S7 remains the sole
+  ACTIVE stage: complete collection/ranking coverage, strict reviewed execution
+  journal and actual migration remain unfinished. S8-S10 are NOT STARTED.
+
 ### S7 exact artifact-to-retention review — 2026-10-06
 
 - The existing private read-only migration audit now joins exact normal-cache
