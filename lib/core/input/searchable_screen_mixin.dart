@@ -30,6 +30,8 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
   bool _isSearchFocused = false;
   bool _isClosingSearch = false;
   int _searchOverlaySuspendCount = 0;
+  late final OverlayPriorityManager _searchPriorityManager;
+  int? _searchClaimToken;
 
   final FocusNode searchFieldNode = FocusNode();
   final TextEditingController searchTextController = TextEditingController();
@@ -70,10 +72,19 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
   // ---------------------------------------------------------------------------
 
   void initSearch() {
+    _searchPriorityManager = ref.read(overlayPriorityProvider.notifier);
     searchFieldNode.addListener(_onSearchFocusChange);
   }
 
   void disposeSearch() {
+    final token = _searchClaimToken;
+    _searchClaimToken = null;
+    if (token != null) {
+      // dispose runs during widget finalization; release only this screen's
+      // exact claim after that phase, never a different search's priority.
+      final manager = _searchPriorityManager;
+      Future.microtask(() => manager.release(token));
+    }
     searchFieldNode.removeListener(_onSearchFocusChange);
     searchTextController.dispose();
     searchFieldNode.dispose();
@@ -91,9 +102,10 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
     onSearchSelectionReset();
     _isClosingSearch = false;
     setState(() => _isSearching = true);
+    _claimSearchPriority();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _isSearching) {
+      if (mounted && _isSearching && _searchOverlaySuspendCount == 0) {
         searchFieldNode.requestFocus();
       }
     });
@@ -102,6 +114,7 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
   void closeSearch() {
     _isClosingSearch = true;
     _searchOverlaySuspendCount = 0;
+    _releaseSearchPriority();
     FocusManager.instance.primaryFocus?.unfocus();
     FocusScope.of(context).unfocus();
 
@@ -148,24 +161,38 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
   // Overlay suspend/resume — call around Navigator.push from search
   // ---------------------------------------------------------------------------
 
+  // Search state, navigation and priority share one owner. A widget's deferred
+  // focus callback must not recreate a claim after navigation suspended it.
+  void _claimSearchPriority() {
+    if (_searchOverlaySuspendCount == 0) {
+      _searchClaimToken ??= _searchPriorityManager.claim(OverlayPriority.search);
+    }
+  }
+
+  void _releaseSearchPriority() {
+    final token = _searchClaimToken;
+    _searchClaimToken = null;
+    if (token != null) _searchPriorityManager.release(token);
+  }
+
   /// Temporarily resets overlay priority to `none` so the pushed screen's
   /// actions are not blocked by the lingering search priority.
   /// Uses a counter so nested suspend/resume pairs are balanced.
   void suspendSearchOverlay() {
     if (_isSearching) {
-      _searchOverlaySuspendCount++;
+      setState(() => _searchOverlaySuspendCount++);
       if (_searchOverlaySuspendCount == 1) {
-        ref.read(overlayPriorityProvider.notifier).releaseByPriority(OverlayPriority.search);
+        _releaseSearchPriority();
       }
     }
   }
 
   /// Restores `search` priority after returning from a pushed route.
   void resumeSearchOverlay() {
-    if (_isSearching && _searchOverlaySuspendCount > 0) {
-      _searchOverlaySuspendCount--;
+    if (mounted && _isSearching && _searchOverlaySuspendCount > 0) {
+      setState(() => _searchOverlaySuspendCount--);
       if (_searchOverlaySuspendCount == 0) {
-        ref.read(overlayPriorityProvider.notifier).claim(OverlayPriority.search);
+        _claimSearchPriority();
       }
     }
   }
@@ -226,6 +253,7 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
   Widget buildSearchWidget({required String searchQuery}) {
     return SearchFocusScope(
       isVisible: _isSearching,
+      isActive: _searchOverlaySuspendCount == 0,
       textFieldFocusNode: searchFieldNode,
       onClose: closeSearch,
       child: SearchOverlay(
@@ -266,11 +294,12 @@ mixin SearchableScreenMixin<T extends ConsumerStatefulWidget>
     final hasFocus = searchFieldNode.hasFocus;
     setState(() => _isSearchFocused = hasFocus);
 
-    if (!hasFocus && _isSearching && !_isClosingSearch) {
+    if (!hasFocus && _isSearching && !_isClosingSearch &&
+        _searchOverlaySuspendCount == 0) {
       if (!screenFocusNode.hasFocus) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _isSearching && !_isClosingSearch &&
-              !searchFieldNode.hasFocus) {
+              _searchOverlaySuspendCount == 0 && !searchFieldNode.hasFocus) {
             requestScreenFocus();
           }
         });

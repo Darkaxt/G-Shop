@@ -855,6 +855,10 @@ Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
 QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
 - Run the fresh full metadata pass and record real coverage/match/rating results.
+  Close the reproduced search-navigation priority race: the screen owns one exact
+  claim across open/suspend/resume/close/dispose; deferred search-widget callbacks
+  cannot block the pushed detail route. Verify pending-frame, nested, independent
+  overlay and normal search -> detail -> menu -> return workflows.
   Recheck the observed repeated native Drive authorization during root traversal
   and archive identification. Reuse only an in-memory account-bound grant; prove
   rejection renewal, stale concurrent rejection, reconnect/sign-out invalidation

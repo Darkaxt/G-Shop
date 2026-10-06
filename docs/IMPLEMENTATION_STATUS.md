@@ -5,6 +5,59 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 deterministic search/navigation ownership — 2026-10-06
+
+- Reproduced a pending-frame race with the real searchable-screen mixin and
+  search focus widget: navigation suspended before the widget's deferred claim,
+  then that claim restored search priority on the detail route and blocked its
+  menu. The regression failed before the production change. This establishes
+  the reproducible blocking defect, not the exact timing of the earlier live
+  transient. This checkpoint supersedes the preceding unresolved investigation.
+- The screen now owns one exact search claim, synchronously acquired on open,
+  released on suspend/close/dispose and restored only after balanced resume.
+  The widget owns focus only; deferred callbacks cannot focus suspended search
+  or recreate a claim. Disposal releases only its captured token after widget
+  finalization. Other overlays' claims remain intact; no delay, timeout, retry
+  or broad priority-release fallback was introduced.
+- Focused search/navigation, overlay-priority, download-overlay and source-menu
+  checks passed. The final search fixture also passed serialized, and scoped
+  Dart analysis reported no issues. Pending-frame, actual Navigator/quick-menu,
+  nested suspension, independent claims and disposal were exercised. No full
+  suite was run. Native PS2 and Library search -> detail -> menu -> return passed
+  by controller/touch without an app restart or ROM mutation.
+- Build ticket 223 acquired `Local\Darka.AndroidGradleBuildGate`
+  (`gate_acquired=true`) and exited 0. Inspected effective profile: two workers,
+  parallel=false and 3-GiB Gradle heap, preserving 1-GiB Metaspace/256-MiB code
+  cache. Kotlin 2.2.20 was assessed/requested in-process, sharing that heap;
+  compile tasks were up-to-date, so execution strategy was not independently
+  observed. Test tasks were configured for one 512-MiB fork but not executed in
+  this packaging command. Native budget two/app pool one was configured; current
+  generated Ninja runtime concurrency was not independently verified. No memory
+  failure or budget increase occurred. Retained log:
+  `43e73cc474b54344a5761aab227b37bc.log` in the shared-gate log directory.
+- Same-signer in-place APK installation succeeded. APK SHA-256
+  `64a020e66d76ec70c10d87a2cf21d2d865d28f6d9f2ace3cb0ab7f241e4a0802`,
+  signer SHA-256
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+  Default-account reconnect succeeded after the authorization pause. Normal
+  Saved jobs resumed SAME N64 job 70: running, pending 672 -> 668, accepted/rated
+  90. Normal root Refresh resumed SAME generation 1: observations 155,375 ->
+  155,667, pending folders 7,291 -> 7,196, nextGeneration=2. These are progress,
+  not terminal scrape coverage or root publication.
+- Full source configuration still matches baseline SHA-256
+  `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`;
+  PSP-only Library Best-25 and PS2 Installed Only preferences are unchanged.
+  Original ROMs/saves/BIOS/cloud files and FolderSync are preserved. Both physical
+  screens are freshly committed OFF. Exact device captures are absent; reviewed
+  cleanup `d8dc790bbedd268df9e867a040abb2ad` removed only the expendable host
+  capture/helper tree (1,642,932 bytes, permanently removed). The bounded S7
+  observer, current APK and build log remain intentional verification outputs.
+- S7 remains the sole ACTIVE stage. Full fresh metadata/reception, defensible
+  per-console Top-25, root publication, remaining formats and reviewed save/space-
+  safe migration remain required. The pending bulk provenance decision is not
+  silently replaced by title-based classification. S8-S10 are NOT STARTED.
+  No external release occurred.
+
 ### S7 PS2 standalone CHD owned recovery — 2026-10-06
 
 - Added standalone PS2 CHDs to the existing committed-leaf handoff. Installed

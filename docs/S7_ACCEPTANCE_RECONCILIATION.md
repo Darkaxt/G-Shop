@@ -1,5 +1,35 @@
 # S7 live metadata and Thor migration
 
+## Deterministic search/navigation ownership checkpoint — 2026-10-06
+
+The real screen/widget regression reproduced a deferred search claim appearing
+after navigation suspension and blocking the detail quick menu. Search now has
+one screen-owned exact claim; the widget manages focus only. Suspension, balanced
+resume, close and disposal preserve unrelated overlay claims. Deferred callbacks
+cannot reclaim search priority or focus while suspended. This supersedes the
+earlier unresolved search/menu investigation, without claiming instrumentation
+of that historical live event's timing.
+
+Focused host regression/overlay/navigation checks and scoped analysis passed.
+Normal native PS2 and Library search -> detail -> menu -> return passed using
+controller and touch, without restart or ROM mutation. Same-signer APK replacement
+preserved configuration and filter preferences. Build 223 acquired the shared
+gate and passed with two workers, no parallel execution and an inspected 3-GiB
+Gradle heap. Kotlin was requested in-process; test-fork/native runtime concurrency
+was not independently measured. No memory failure occurred. Full evidence and
+artifact identity are in the status ledger.
+
+Normal reconnect/resume restored the SAME N64 job 70 and root generation 1, with
+fresh observations proving forward progress. Both physical screens are OFF;
+original data, source configuration and FolderSync are preserved. Task-owned
+captures/helpers were reviewed and removed; ongoing verification outputs remain.
+
+This closes only the bounded search/navigation defect. S7 is still the sole ACTIVE
+stage: full fresh metadata/reception coverage, defensible per-console rankings,
+root publication, remaining formats and reviewed save/space-safe migration remain
+required. The bulk provenance-classification decision remains pending. S8-S10
+are NOT STARTED; no release or SD migration completion is claimed.
+
 ## PS2 standalone CHD recovery checkpoint — 2026-10-06
 
 The existing owned-file route now hands standalone PS2 CHDs to installed

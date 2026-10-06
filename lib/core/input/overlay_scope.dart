@@ -204,9 +204,12 @@ class _DialogFocusScopeState extends ConsumerState<DialogFocusScope> {
   }
 }
 
+/// Search focus only. The screen owns its exact priority claim so deferred
+/// widget callbacks cannot reclaim input while navigation suspends search.
 class SearchFocusScope extends ConsumerStatefulWidget {
   final Widget child;
   final bool isVisible;
+  final bool isActive;
   final VoidCallback? onClose;
   final FocusNode? textFieldFocusNode;
 
@@ -214,6 +217,7 @@ class SearchFocusScope extends ConsumerStatefulWidget {
     super.key,
     required this.child,
     required this.isVisible,
+    this.isActive = true,
     this.onClose,
     this.textFieldFocusNode,
   });
@@ -224,17 +228,14 @@ class SearchFocusScope extends ConsumerStatefulWidget {
 
 class _SearchFocusScopeState extends ConsumerState<SearchFocusScope> {
   final FocusScopeNode _scopeNode = FocusScopeNode(debugLabel: 'SearchScope');
-  late final OverlayPriorityManager _priorityManager;
-  int? _claimToken;
 
   @override
   void initState() {
     super.initState();
-    _priorityManager = ref.read(overlayPriorityProvider.notifier);
     if (widget.isVisible) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _claimPriority();
+        if (mounted && widget.isVisible && widget.isActive) {
+          _requestFocus();
         }
       });
     }
@@ -246,50 +247,25 @@ class _SearchFocusScopeState extends ConsumerState<SearchFocusScope> {
 
     if (widget.isVisible && !oldWidget.isVisible) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _claimPriority();
+        if (mounted && widget.isVisible && widget.isActive) {
+          _requestFocus();
         }
-      });
-    } else if (!widget.isVisible && oldWidget.isVisible) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _releasePriority();
       });
     }
   }
 
   @override
   void dispose() {
-    final token = _claimToken;
-    if (token != null) {
-      _claimToken = null;
-      final manager = _priorityManager;
-      Future(() {
-        if (!manager.release(token)) {
-          manager.releaseByPriority(OverlayPriority.search);
-        }
-      });
-    }
     _scopeNode.dispose();
     super.dispose();
   }
 
-  void _claimPriority() {
-    _claimToken ??= _priorityManager.claim(OverlayPriority.search);
+  void _requestFocus() {
     if (widget.textFieldFocusNode != null) {
       widget.textFieldFocusNode!.requestFocus();
     } else {
       _scopeNode.requestFocus();
     }
-  }
-
-  void _releasePriority() {
-    final token = _claimToken;
-    if (token == null) return;
-    _claimToken = null;
-    if (!_priorityManager.release(token)) {
-      _priorityManager.releaseByPriority(OverlayPriority.search);
-    }
-    restoreMainFocus(ref);
   }
 
   @override
@@ -300,7 +276,8 @@ class _SearchFocusScopeState extends ConsumerState<SearchFocusScope> {
 
     return FocusScope(
       node: _scopeNode,
-      autofocus: true,
+      autofocus: widget.isActive,
+      canRequestFocus: widget.isActive,
       child: widget.child,
     );
   }
