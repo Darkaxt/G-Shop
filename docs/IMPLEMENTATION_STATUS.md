@@ -5,6 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 next-folder scheduling regression — 2026-10-06
+
+- The Thor's actual schema-v36 query plan starts with catalogue entries and
+  uses a temporary sort to choose one pending folder. A bounded host fixture
+  reproduced lookup growth from 65 to 100,051 SQLite VM steps after 20,000
+  completed folders. Added a partial pending-work index plus a work-first join;
+  order, exact scope/generation and page cursors remain unchanged.
+- Production schema-v37 upgrade preserves active/pending generations, entries,
+  work and consumed-page checkpoints. Focused upgrade/reopen and traversal
+  checks pass, including failure preservation, pagination, cancellation and
+  publication boundaries. Scoped analysis passes. The exact SQL also passes
+  on the Thor's SQLite engine against an isolated in-memory fixture: pending
+  index first, exact entry lookup second, no temporary sort. This is not an
+  installed-app migration or measured live traversal speedup.
+- Final normal debug build 225 passed after the query change, through the shared
+  gate with two workers, no parallel projects and a verified 3 GiB Gradle heap.
+  Kotlin 2.2.20 remains in-process, sharing that budget; Metaspace 1 GiB and code
+  cache 256 MiB are preserved. Test configuration reports one fork/512 MiB;
+  actual native/plugin concurrency remains unverified. No memory failure or
+  budget increase occurred. Build log: `fed5b9bdb2244bcbb680172b19df1bb8.log`.
+  The earlier build 224 predates the final work-first query and is superseded.
+- APK SHA-256 `1e9864cba565460af592278492da795c8fdea2e047594c1fb51864bd4a9d7f83`,
+  package `com.darkaxt.rshop.debug`, version 1.7.0/12, unchanged debug signer
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+  Retained for the next native upgrade; not installed over the working jobs.
+- Same N64 metadata job 70 is still running: pending 79, matched/rated 139,
+  no blocked status, no linked artwork job yet. Stored provider budget reports
+  max_threads=1, requests_per_minute=3072, remaining_requests=14779 and no quota
+  exhaustion. Root generation 1 is still unpublished at 161,294 observations /
+  5,394 pending folders; nextGeneration remains 2. These counts do not certify
+  metadata completeness, canonical coverage or deletion authority.
+- Both displays remain OFF. No production device database, ROM/save/BIOS,
+  cloud original or FolderSync was changed. S7 remains sole ACTIVE; native
+  upgrade/resume, full fresh coverage, defensible rankings and reviewed
+  preservation/migration remain unfinished. S8-S10 remain NOT STARTED.
+- Later read-only observation: the SAME job 70 advances to pending 31 /
+  matched-and-rated 144; root generation 1 advances to 161,797 observations /
+  5,239 pending folders. R-Shop/NetherSX2 PIDs remain 26853/15069 and displays
+  remain OFF. Reviewed cleanup `8b3d6d8dce1771bc83a204862770029c` permanently
+  removed only three temporary in-memory fixture files (10,821 bytes) and its
+  exact device JAR. Regression source, build and ongoing observer are retained.
+
 ### S7 PSP save-location boundary — 2026-10-06
 
 - Read-only checks found neither internal nor SD-root `PSP` path available.

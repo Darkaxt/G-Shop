@@ -36,10 +36,18 @@ class DriveCatalogueSchema {
       page_token TEXT, done INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY(scope, generation, file_id)
     )''');
+    await installPendingWorkIndex(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS drive_catalogue_pages (
       scope TEXT NOT NULL, generation INTEGER NOT NULL, file_id TEXT NOT NULL,
       page_token TEXT NOT NULL, PRIMARY KEY(scope, generation, file_id, page_token)
     )''');
+  }
+
+  static Future<void> installPendingWorkIndex(DatabaseExecutor db) async {
+    // Equal scope/generation keys are ordered by rowid in this index, keeping
+    // durable insertion order without rescanning already completed folders.
+    await db.execute('''CREATE INDEX IF NOT EXISTS drive_catalogue_pending_work
+      ON drive_catalogue_work(scope, generation) WHERE done=0''');
   }
 }
 
@@ -103,9 +111,11 @@ class DriveCatalogue {
     try {
       while (true) {
         _cancelled(cancelToken);
+        // Keep pending work outermost: older Android SQLite planners otherwise
+        // scan the full catalogue and sort it to choose a single work item.
         final work = await db.rawQuery(
             '''SELECT w.*, e.record_json, e.display_path
-          FROM drive_catalogue_work w JOIN drive_catalogue_entries e
+          FROM drive_catalogue_work w CROSS JOIN drive_catalogue_entries e
           ON e.scope=w.scope AND e.generation=w.generation AND e.file_id=w.file_id
           WHERE w.scope=? AND w.generation=? AND w.done=0 ORDER BY w.rowid LIMIT 1''',
             [scope, generation]);

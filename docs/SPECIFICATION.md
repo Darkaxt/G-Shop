@@ -204,6 +204,13 @@ successful traversal. An interrupted/error refresh must not look like an empty
 library or remove existing entries. Reflect renamed/moved/deleted entries on a
 successful refresh without changing existing installed files.
 
+S7 traversal implementation detail (2026-10-06): next-folder scheduling retains
+durable insertion order, exact scope/generation and the saved page cursor. Use
+the pending-work index and a work-first lookup rather than scanning/sorting the
+whole catalogue for each folder. Existing databases receive the additive index
+without resetting active/pending generations or changing entries/checkpoints.
+Publication and final folder-boundary validation remain unchanged.
+
 First scope: ordinary binary files in a selected personal My Drive subtree.
 Shared Drives, Workspace document export and shortcut traversal are not supported
 initially; surface them explicitly instead of following them outside the root.

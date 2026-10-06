@@ -1,5 +1,19 @@
 # S7 live metadata and Thor migration
 
+## Large-catalogue next-folder scheduling — 2026-10-06
+
+The live Thor query plan scans catalogue entries and sorts them to choose one
+pending work item. A bounded production-SQL regression demonstrates completed
+folder count driving lookup work. The additive v37 pending-work index and
+work-first join correct that access path without changing cursor/order or
+publication semantics. Focused production upgrade and traversal checks pass;
+an isolated in-memory Thor SQLite experiment verifies the revised access plan.
+The normal debug APK is built and signer-verified but not installed over the
+currently advancing jobs. See the status ledger for source/build evidence.
+Native app upgrade/resume and terminal collection publication remain current S7
+work, not a completed acceptance criterion or a later-stage deferral. MIGRATE-01
+remains open; S7 remains sole ACTIVE, with S8-S10 NOT STARTED.
+
 ## Current network boundary and saved-work recovery — 2026-10-06
 
 The normal same-job resume reproduced an `unavailable` access check before any

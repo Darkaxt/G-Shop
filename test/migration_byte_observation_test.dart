@@ -74,7 +74,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await service.database;
-      expect(await db.getVersion(), 36);
+      expect(await db.getVersion(), 37);
       for (final name in before.keys) {
         expect(await db.query(name), before[name], reason: name);
       }
