@@ -251,6 +251,34 @@ the user's collection, resolve independent reception disagreements or approve
 Game Gear Top membership. Preserve uncertain ROMs; do not turn eight displayed
 scores into an invented ranked retention set. Full S7 acceptance remains open.
 
+### Bounded alternative-source screening — 2026-10-07
+
+This is S7 source-selection evidence, not a new approved ranking basis. RAWG's
+[documented API](https://rawg.io/apidocs) supplies ratings/counts and offers a
+key-required personal-use tier with attribution. A live read of its public
+[Game Gear page](https://rawg.io/games/game-gear), parsing only the returned
+initial-state game records, found 40 distinct records with at least 20 ratings;
+all 40 span multiple platforms. That first page is neither full source coverage
+nor accepted collection membership. Multi-platform aggregates are not inherently
+invalid, but their counts alone do not establish edition ownership. The separate
+[Sonic GG/SMS](https://rawg.io/games/sonic-the-hedgehog-ggsms) and
+[Sonic 2 GG/SMS](https://rawg.io/games/sonic-the-hedgehog-2-ggsms) web-tool
+representations each report only two ratings; these are not authenticated API
+captures. Do not substitute the more popular parent records to repair
+that support gap. No RAWG credentials, adapter or production policy were added.
+
+The web-tool representation of GameFAQs [Game Gear Dynamite Headdy statistics](https://gamefaqs.gamespot.com/gamegear/586683-dynamite-headdy/stats),
+labelled as crawled eight months earlier, identifies a 2.68/5 community average
+from 34 users, separately from Genesis. This is not a fresh provider capture.
+That is a potentially useful aggregate, not a reception assessment or binding to
+the owner's collection. Direct host HTTP requests for a GameFAQs game-statistics
+page and its robots document returned 403; some web-tool fetches also failed.
+This does not prove permanent source unavailability. Supported access, permitted
+automated use, broader coverage and exact identities remain unestablished; no
+browser bypass, scraper or provider integration was introduced on this evidence.
+
+### Extended reception capture — 2026-10-05
+
 The existing opt-in persistent-worker capture was extended to fifteen public
 official releases on N64, PSP and Game Gear. Each accepted fixture used one
 literal offered title and the provider's platform-checked ID. It did not touch

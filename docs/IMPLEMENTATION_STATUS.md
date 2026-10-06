@@ -5,6 +5,22 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 alternative-score source screening — 2026-10-07
+
+- Bounded primary-source screening is recorded in `SCORE_RECEPTION_ASSESSMENT.md`.
+  RAWG's public Game Gear page does not demonstrate sufficiently supported
+  distinct-edition coverage; GameFAQs offers a potentially useful platform-specific
+  aggregate, but current direct HTTP access returned 403 and the retrieved web
+  representation is old. Neither source was integrated or approved on this evidence.
+- The existing native observer confirmed the SAME root generation 1 advancing
+  to 258,337 observations / 4,102 pending folders, with active=null and
+  nextGeneration=2. This is a verified wait, not terminal publication or a new pass.
+- S7 remains the sole ACTIVE stage. Fresh whole-collection coverage, defensible
+  retention and exact reviewed migration remain unsatisfied; S8-S10 NOT STARTED.
+  No production behavior, ranking threshold, credentials, ROMs, cloud originals,
+  FolderSync settings or APK changed. No Gradle command ran, so no new gate or
+  build-profile claim applies. Both physical displays were confirmed OFF.
+
 ### S7 Game Gear terminal identification and artwork — 2026-10-07
 
 - The SAME normal ScreenScraper job 73 reached `completed`: all 546 captured
