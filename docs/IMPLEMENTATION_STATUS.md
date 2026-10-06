@@ -46,6 +46,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   remain OFF. Reviewed cleanup `8b3d6d8dce1771bc83a204862770029c` permanently
   removed only three temporary in-memory fixture files (10,821 bytes) and its
   exact device JAR. Regression source, build and ongoing observer are retained.
+- Same N64 ScreenScraper job 70 subsequently reaches `completed`, with 147
+  accepted/rated items. This is completion of its captured pass, not full
+  identification or reliable-score coverage. Linked artwork job 71 is still
+  `running`: matched 171, pending 128, invalidResponse 1. Root generation 1
+  remains unpublished at 162,700 observations / 5,001 pending folders.
+  Continue the existing artwork worker; then perform the normal APK upgrade,
+  verify schema-v37/checkpoint preservation and resume the same root generation.
+  The normal N64 IGDB pass must capture the newly bound release evidence only
+  after the current metadata/artwork controller work ends; no duplicate pass
+  has been created. All remaining coverage/migration acceptance stays open.
 
 ### S7 PSP save-location boundary — 2026-10-06
 
