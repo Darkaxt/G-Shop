@@ -9,6 +9,31 @@ integration with it nor SD-card mirroring is part of S7 or S10.
 
 ## Required acceptance
 
+Whole-SD inventory verification (2026-10-06): the corrected native run joined
+with exit zero. Its private journal header, every observation and completed
+footer reconcile exactly: 15,964 unique stable files / 722,865,729,304 bytes;
+15,053 extension-classified artifacts and 911 non-ROM files. These include bundle
+audio tracks and are not canonical-game counts. Every file remains preserved,
+with no calculated digest or cloud candidate and removalAuthorized=false.
+The earlier unbounded `find -exec ... +` exceeded Android's argument limit;
+explicit batches now enforce 64 paths / 16 KiB and exact ordered responses.
+Focused host verification passes, including the long quoted/Unicode byte-bound
+case and incomplete/out-of-root/link/changed-file contracts. The complete journal
+is retained outside Git for later revalidation, not cloud-recovery authority.
+
+Normal PS2 ScreenScraper job 46 completed 225 editions: 122 matched, 32 review,
+4 ambiguous, 67 unmatched, 113 rated and no failed/unsupported/pending items.
+Its header workflow persists 175 bindings. Normal IGDB job 48 also completed all
+225 editions: 20 matched/rated, 127 review, 46 ambiguous, 32 unmatched and no
+pending items. Eighteen publications use automatic official-release corroboration;
+ten meet the existing vote-support floor. This is not a defensible full Top set.
+The normal Resume saved job control restarted the existing linked artwork job
+47 after its deliberate pause, without a replacement job or individual-title
+corrections. Native controls show an active operation. Collection generation 1
+reached 86,091 observations / 12,862 pending folders and remains unpublished.
+Both displays were confirmed OFF. No ROM removal, FolderSync change, Gradle build
+or later-stage implementation occurred; S7 remains the sole ACTIVE stage.
+
 Breadth/inventory checkpoint (2026-10-06): normal PSP IGDB job 45 completed its
 341 editions: 12 matched, 222 review, 57 ambiguous and 50 unmatched; 11 carry a
 rating. Ten matches use the new automatic corroboration path, all with current

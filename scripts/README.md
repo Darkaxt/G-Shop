@@ -35,6 +35,16 @@ than the comparison mode's 64 MiB observation cap. Do not increase that cap or
 copy a live database to pretend this inventory proves recovery. The separate
 cloud comparison still requires a consistent, bounded cache observation.
 
+Inventory-only mode also permits an explicitly inspected SD `.../Roms` root;
+use a noncanonical scope label such as `--platform sd-inventory` there. Directory
+and extension counts are observations, not game identities or Top membership.
+Paths are NUL-enumerated and stat requests are sent in batches of at most 64
+paths / 16 KiB of UTF-8 command data. Android's `find -exec ... +` may exceed its
+argument limit, so it is not used for the stat stage. Each response must return
+every exact requested path in order; malformed/missing/out-of-root observations
+abort without a completed journal. Spaces, quotes and embedded newlines remain
+path data, not commands. Links and changed files are preserved.
+
 Focused host contracts (synthetic, no device/network):
 
 ```powershell

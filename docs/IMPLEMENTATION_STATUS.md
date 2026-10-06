@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 whole-SD inventory and automatic PS2 outcomes — 2026-10-06
+
+- The read-only native whole-SD inventory exited zero. Independent streaming
+  reconciliation verified its header, 15,964 unique stable observations and final
+  summary: 722,865,729,304 bytes, all preserved. The 15,053 extension-classified
+  artifacts include bundle tracks; 911 other files are preserved. No cloud copy,
+  hash, canonical-game ownership or removal authority is inferred. The private
+  journal is `D:\Temp\rshop-s7-full-sd-inventory-v2-20261006.jsonl`.
+- Android's oversized `find -exec ... +` failure is fixed with count/UTF-8-byte
+  bounded stat batches and exact response verification. Focused host contracts
+  pass, including long quoted/Unicode paths, missing responses and preservation
+  boundaries. Only one host verification workload ran at a time.
+- Normal PS2 ScreenScraper job 46 completed 225 editions: 122 matched, 32 review,
+  4 ambiguous, 67 unmatched and 113 rated. Normal IGDB job 48 completed the same
+  scope: 20 matched/rated, 127 review, 46 ambiguous, 32 unmatched. Neither has
+  pending or failed/unsupported work. Eighteen IGDB publications are automatic
+  corroborations; ten meet vote support. No individual-game correction was used.
+- Normal Resume saved job resumed existing linked artwork 47. The collection
+  generation remains unpublished at the observed 86,091 entries / 12,862 pending
+  folders. These are not complete ranking, recovery or migration evidence.
+- Both displays are confirmed OFF. No Gradle build, ROM removal, cloud mutation,
+  FolderSync change or release occurred. S7 is ACTIVE; S8-S10 are NOT STARTED.
+
 ### S7 automatic breadth and independent SD inventory — 2026-10-06
 
 - The completed normal PSP IGDB job 45 requested all 341 editions: 12 matched,

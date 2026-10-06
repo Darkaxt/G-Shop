@@ -155,6 +155,81 @@ def local_observation(device, path, root, hash_required):
             'stable': before == after and resolved == path}
 
 
+def inventory_observations(device, root):
+    # Paths are arguments, never shell programs. NUL framing preserves names.
+    # Android find's {} + may exceed ARG_MAX: bound both count and command bytes.
+    # Do not follow links or open/hash ROM bodies. Every failure aborts the run.
+    program = r'''set -e
+for path do
+  printf '%s\0' "$path"
+  if test -L "$path"; then printf 'link\0'; continue; fi
+  resolved=$(realpath "$path")
+  before=$(stat -c '%d %i %s %Y %Z' "$path")
+  after=$(stat -c '%d %i %s %Y %Z' "$path")
+  printf 'regular\0%s\0%s\0%s\0' "$resolved" "$before" "$after"
+done'''
+    data = device.shell('find ' + shlex.quote(root) +
+                        ' \\( -type f -o -type l \\) -print0')
+    if data and not data.endswith(b'\0'):
+        raise ValueError('Incomplete inventory framing')
+    paths = [value.decode('utf-8') for value in data.split(b'\0')[:-1]] if data else []
+    seen = set()
+    for path in paths:
+        checked_relative_path(path, root)
+        if path in seen:
+            raise ValueError('Duplicate inventory path')
+        seen.add(path)
+    prefix = 'sh -c ' + shlex.quote(program) + ' sh'
+    batch = []
+    command = prefix
+    for path in paths:
+        argument = ' ' + shlex.quote(path)
+        if len((prefix + argument).encode('utf-8')) > 16384:
+            raise ValueError('Inventory path exceeds command byte bound')
+        if len(batch) == 64 or len((command + argument).encode('utf-8')) > 16384:
+            yield from _inventory_records(device.shell(command), root, batch)
+            batch, command = [], prefix
+        batch.append(path)
+        command += argument
+    if batch:
+        yield from _inventory_records(device.shell(command), root, batch)
+
+
+def _inventory_records(data, root, expected):
+    if not data or not data.endswith(b'\0'):
+        raise ValueError('Incomplete inventory response')
+    fields = data.split(b'\0')[:-1]
+    index = 0
+    observed = []
+    while index < len(fields):
+        if index + 2 > len(fields):
+            raise ValueError('Incomplete inventory record')
+        path, kind = (value.decode('utf-8') for value in fields[index:index + 2])
+        index += 2
+        relative = checked_relative_path(path, root)
+        if len(observed) >= len(expected) or path != expected[len(observed)]:
+            raise ValueError('Inventory response path mismatch')
+        observed.append(path)
+        common = {'path': path, 'relativePath': relative, 'name': PurePosixPath(path).name,
+                  'md5': None}
+        if kind == 'link':
+            yield dict(common, sizeBytes=0, stable=False, issue='symbolic_link_preserved')
+            continue
+        if kind != 'regular' or index + 3 > len(fields):
+            raise ValueError('Invalid inventory record')
+        resolved, before, after = (value.decode('utf-8') for value in fields[index:index + 3])
+        index += 3
+        checked_relative_path(resolved, root)
+        before, after = ([int(v) for v in value.split()] for value in (before, after))
+        if any(len(stat) != 5 or stat[2] < 0 for stat in (before, after)):
+            raise ValueError('Invalid inventory file stats')
+        yield dict(common, sizeBytes=before[2], resolvedPath=resolved,
+                   beforeStat=before, afterStat=after,
+                   stable=before == after and resolved == path)
+    if observed != expected:
+        raise ValueError('Incomplete inventory response')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--adb', required=True)
@@ -171,7 +246,8 @@ def main():
     output = args.output.resolve()
     if not args.output.is_absolute() or output.is_relative_to(repo):
         raise ValueError('Private audit output must be absolute and outside the repository')
-    if not args.root.startswith('/storage/') or '/Roms/' not in args.root:
+    if not args.root.startswith('/storage/') or not (
+            '/Roms/' in args.root or (args.inventory_only and args.root.endswith('/Roms'))):
         raise ValueError('An explicit SD console directory is required')
     device = Device(args.adb, args.serial, args.package)
     if device.shell('realpath ' + shlex.quote(args.root)).decode().strip() != args.root:
@@ -196,18 +272,19 @@ def main():
                 'cloudEvidence': ('inventory_only_no_cloud_evidence' if args.inventory_only else
                                   'published_app_cache_not_live_revalidation'),
                 'scopes': scopes, 'removalAuthorized': False})
-        paths = device.shell('find ' + shlex.quote(args.root) +
-                             ' \\( -type f -o -type l \\) -print0').split(b'\0')
-        for raw in paths:
-            if not raw:
-                continue
-            path = raw.decode('utf-8')
-            checked_relative_path(path, args.root)
-            name = PurePosixPath(path).name
+        if args.inventory_only:
+            observations = inventory_observations(device, args.root)
+        else:
+            paths = device.shell('find ' + shlex.quote(args.root) +
+                                 ' \\( -type f -o -type l \\) -print0').split(b'\0')
+            observations = (local_observation(device, raw.decode('utf-8'), args.root,
+                PurePosixPath(raw.decode('utf-8')).suffix.lower() in extensions and
+                len(by_name.get(PurePosixPath(raw.decode('utf-8')).name, [])) == 1)
+                for raw in paths if raw)
+        for local in observations:
+            name = local['name']
             candidates = by_name.get(name, [])
             is_game_artifact = PurePosixPath(name).suffix.lower() in extensions
-            local = local_observation(device, path, args.root,
-                                      is_game_artifact and len(candidates) == 1)
             if not is_game_artifact:
                 comparison = {'comparison': 'non_rom_preserved', 'disposition': 'preserve',
                               'removalAuthorized': False, 'remainingGates': []}
