@@ -1,5 +1,64 @@
 # S7 live metadata and Thor migration
 
+## Durable exact-byte observations — 2026-10-06
+
+Build 186 adds a bounded, append-only observation table to the existing private
+journal (additive database 35-to-36 upgrade). A successful full check closes its
+native read, awaits the evidence append and only then reports success. Cancellation
+and disconnect still join the operation; a failed append cannot claim saved
+success. An atomic append completed during cancellation may remain as valid
+historical evidence, not a current success or ownership mutation. Record validation
+binds exact Drive account/source/file/version, configured root/filename, native
+identity, size and cryptographic digests. Latest lookup uses insertion order and
+exact indexed keys, not clock ordering, title normalization or provider guessing.
+
+Normal UI shows a saved check explicitly as past evidence. Its local-only read
+does not require sign-in or reread a ROM/cloud body. This supports restart-safe
+pre-execution review under MIGRATE-01, but does NOT satisfy the strict execution
+journal, format-specific restore, adoption, complete ranking or actual removal
+criteria. All execution-time checks remain required. No individual-game metadata
+correction or title-specific rule was introduced.
+
+Fresh focused runtime/dialog/record checks, affected upgrade/journal checks and
+scoped analysis passed. Production v35-to-v36 upgrade preserved existing table
+contents and saved jobs; database close/reopen preserved observations. Contracts
+cover no evidence on failed byte/source checks, close-before-append, joined
+cancellation, commit failure, exact account/source/root/path isolation and invalid
+serialization. Two existing synthetic migration assertions were diagnosed: an
+old-footprint downgrade must drop the newer saved-job index with its column, and
+SQLite legitimately selected that index plus a composite primary key rather than
+one particular alternative index. Tests retain actual index/content verification;
+no production behavior or safety gate was bypassed. No full suite was run.
+
+Actual Thor check used the same existing small RVZ as the prior standardized
+protocol proof: 20,131,764 bytes, current cloud version 2, observed
+2026-10-06 07:18:55.561600. It reported "Byte observation saved privately for
+restart-safe review". After a process restart, opening the normal review displayed
+the same timestamp/version as "Past byte match" and "not rechecked now", not current
+verification. Independent local SHA-256 still agrees:
+`0d7aeb487d665ce3fceffc25ea8041afeffe44faf223640e84f5f8dcb4f2578f`.
+
+Build 186 ran through the acquired `Local\Darka.AndroidGradleBuildGate` supervisor.
+Observed workers=2, parallel=false and Gradle maximum heap=3,221,225,472 bytes;
+assessed Kotlin 2.2.20 ran in-process within that heap. Required metaspace=1G and
+code-cache=256m arguments remained. Configured test fork=1/512 MiB (none ran in
+assembly) and native one-slot pools do not establish a total-host memory cap.
+No memory-related failure or budget increase occurred. Log retained at
+`D:\Temp\rshop-s7-gradle-build186-20261006.log`; current APK is 179,398,509 bytes,
+SHA-256 `01597b6121e0741a1cc54c6ab7348938853c9155aa4ae4fc71c2fdbcc8d40735`,
+package com.darkaxt.rshop.debug / 1.7.0 code 12, signer
+`06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+Signature-checked install -r preserved app data; no publication occurred.
+
+Normal default-account reconnect after update/restart and Refresh resumed the
+same unpublished generation 1/next 2: 138,771 observations / 12,099 pending folders.
+PS1 metadata 50 and linked artwork 53 remain completed. Config SHA-256 remains
+`45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+Both displays are committed OFF. Exact reviewed task UI XML was removed; required
+APK/log/private audit/probe evidence remains. No ROM/save/cloud-original/FolderSync
+mutation occurred. S7 remains ACTIVE with full rankings, reviewed execution/adoption
+and migration unfinished; S8-S10 are NOT STARTED.
+
 ## Reusable current local/cloud observation — 2026-10-06
 
 The normal Drive detail menu's explicit check uses existing native read-only

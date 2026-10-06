@@ -11,6 +11,7 @@ import '../../models/config/drive_source_config.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/config/source.dart';
 import '../../models/library_identity.dart';
+import '../../models/local_cloud_byte_observation.dart';
 import '../../models/owned_removal_record.dart';
 import '../../models/transfer_record.dart';
 import '../database_service.dart';
@@ -29,6 +30,8 @@ import 'drive_transfer_engine.dart';
 import 'drive_verification.dart';
 import 'drive_bundle.dart';
 import 'google_drive_sign_in.dart';
+
+export '../../models/local_cloud_byte_observation.dart';
 
 /// Bounded diagnostics for one offline maintenance pass, never artifact data.
 class StageRetirementRecoveryReport {
@@ -55,18 +58,6 @@ typedef OwnedRemovalRecoveryReport = ({
   int skippedActive,
   bool stopped,
   Map<String, int> issues,
-});
-
-/// A current byte observation, not adoption, a restore-format certificate, or
-/// removal authority. Execution must revalidate independently of this result.
-typedef DriveLocalCloudObservation = ({
-  RemoteArtifact artifact,
-  String destinationRoot,
-  String relativePath,
-  NativeFileIdentity localIdentity,
-  int sizeBytes,
-  Map<String, String> checksums,
-  DateTime observedAt,
 });
 
 /// Process-wide native account lane and source-scoped refresh/transfer jobs. No token
@@ -493,6 +484,7 @@ class DriveRuntime {
           durableOffset: identity.sizeBytes,
           expectedIdentity: identity,
           published: true);
+      late DriveLocalCloudObservation observation;
       try {
         final local = await verification.verifyBytes(
             session.bytes(identity.sizeBytes),
@@ -530,18 +522,21 @@ class DriveRuntime {
           throw const OwnedStorageException('changed');
         }
         checkCancellation();
-        return (
-          artifact: artifact,
-          destinationRoot: destinationRoot,
-          relativePath: relativePath,
-          localIdentity: identity,
-          sizeBytes: identity.sizeBytes,
-          checksums: cloud,
-          observedAt: DateTime.now().toUtc()
-        );
+        observation = DriveLocalCloudObservation(
+            artifact: artifact,
+            destinationRoot: destinationRoot,
+            relativePath: relativePath,
+            localIdentity: identity,
+            sizeBytes: identity.sizeBytes,
+            checksums: cloud,
+            observedAt: DateTime.now().toUtc());
       } finally {
         await session.close();
       }
+      checkCancellation();
+      await journal.saveByteObservation(observation);
+      checkCancellation();
+      return observation;
     }();
     _recoveryReviews[cancellation] = operation;
     try {
@@ -550,6 +545,17 @@ class DriveRuntime {
       _recoveryReviews.remove(cancellation);
     }
   }
+
+  /// Reading a saved observation is local-only and does not require sign-in.
+  Future<DriveLocalCloudObservation?> savedLocalCloudObservation({
+    required RemoteArtifact artifact,
+    required String destinationRoot,
+    required String relativePath,
+  }) =>
+      journal.latestByteObservation(
+          artifactId: artifact.id,
+          destinationRoot: destinationRoot,
+          relativePath: relativePath);
 
   /// Read only the supported CHD header, within the existing account/source lane.
   /// This is metadata evidence, not verification or installation of ROM bytes.

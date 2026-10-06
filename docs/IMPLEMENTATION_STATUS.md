@@ -5,6 +5,42 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 restart-safe byte observations — 2026-10-06
+
+- Successful exact local/cloud checks now append bounded validated evidence to
+  the existing private journal only after native read closure. Database 36 adds
+  the observation table/index without rewriting cache, metadata jobs, transfers,
+  ownership or removal records. Lookup is exact account/source/file/root/path,
+  bounded and offline. Past checks are not current verification, format recovery,
+  adoption, ranking evidence or deletion authority. No title-specific rule exists.
+- Focused runtime/dialog/persistence and affected migration/journal checks passed;
+  scoped analysis passed. Actual production v35-to-v36 upgrade, database reopen,
+  failure/cancellation drain and account/path isolation were exercised. Existing
+  synthetic downgrade fixtures needed removal of a newer index before dropping
+  its column; another assertion was corrected to accept SQLite's observed valid
+  indexed plan while still proving the required index and unchanged rating facts.
+  No production fallback or full-suite run was introduced.
+- Build 186's normal Thor UI verified the existing 20,131,764-byte RVZ against
+  cloud version 2 at 2026-10-06 07:18:55.561600, then a process restart retained
+  the same observation. Reopening showed "Past byte match" and "not rechecked
+  now", with no current-success claim. Independent local SHA-256 remains
+  `0d7aeb487d665ce3fceffc25ea8041afeffe44faf223640e84f5f8dcb4f2578f`.
+- Build 186 completed through the acquired host-wide Gradle gate: observed two
+  workers, no parallel project execution, 3 GiB Gradle heap, assessed Kotlin
+  2.2.20 in-process sharing that budget. Required JVM flags remained; test forks
+  are configured one/512 MiB (none ran in assemble), native one-slot pools are
+  configured rather than a measured total-host cap. No memory failure/increase.
+  Signature-checked install -r preserved data; no release occurred.
+- Existing default-account authorization was restored through normal UI after
+  APK update/restart, without saving or remapping a source. The same root scan
+  resumed, reaching 138,771 observations / 12,099 pending folders, generation 1 /
+  next 2, unpublished. PS1 50 and linked artwork 53 remain completed. Config
+  SHA-256 remains `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+  Both displays are committed OFF. The reviewed task UI dump was removed; current
+  APK/build log remain verification evidence. ROMs/saves/cloud originals/FolderSync
+  are unchanged. S7 remains the sole ACTIVE stage; full ranking coverage, strict
+  reviewed execution/adoption and migration are unfinished. S8-S10 NOT STARTED.
+
 ### S7 reusable current local/cloud byte verification — 2026-10-06
 
 - Normal Drive details now expose an explicit "Check local/cloud bytes" action.

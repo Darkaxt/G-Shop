@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 
 import '../models/transfer_record.dart';
 import '../models/owned_removal_record.dart';
+import '../models/library_identity.dart';
+import '../models/local_cloud_byte_observation.dart';
 import 'installation_paths.dart';
 
 /// Additive transfer/install schema. Integration into the application database
@@ -29,6 +31,7 @@ class TransferJournalSchema {
     await installReplacements(db);
     await installBundles(db);
     await installRemovalJournal(db);
+    await installByteObservations(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS installed_artifacts (
       installation_id TEXT PRIMARY KEY,
       transfer_id TEXT NOT NULL UNIQUE,
@@ -49,6 +52,18 @@ class TransferJournalSchema {
   static Future<void> installArtifactIndex(DatabaseExecutor db) =>
       db.execute('''CREATE INDEX IF NOT EXISTS idx_transfer_artifact
       ON transfer_records(artifact_key, destination_root, relative_path)''');
+
+  static Future<void> installByteObservations(DatabaseExecutor db) async {
+    // Separate from ownership/removal intents. An observation is never adoption.
+    await db.execute('''CREATE TABLE IF NOT EXISTS migration_byte_observations (
+      observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      artifact_key TEXT NOT NULL, destination_root TEXT NOT NULL,
+      relative_path TEXT NOT NULL, record_json TEXT NOT NULL
+    )''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_migration_byte_target
+      ON migration_byte_observations(artifact_key, destination_root,
+        relative_path, observation_id DESC)''');
+  }
 
   static Future<void> installReplacements(DatabaseExecutor db) async {
     await db.execute('''CREATE TABLE IF NOT EXISTS transfer_replacements (
@@ -94,6 +109,52 @@ class TransferJournal {
   static const _digestHexLengths = {'md5': 32, 'sha1': 40, 'sha256': 64};
   final Future<Database> _database;
   TransferJournal(this._database);
+
+  /// Append only after verified read closure. This has no ownership side effects.
+  Future<void> saveByteObservation(
+      DriveLocalCloudObservation observation) async {
+    final encoded = jsonEncode(observation.toJson());
+    if (utf8.encode(encoded).length > 16384) {
+      throw StateError('Byte observation exceeds bounded journal record');
+    }
+    final db = await _database;
+    await db.insert('migration_byte_observations', {
+      'artifact_key': observation.artifact.id.key,
+      'destination_root': observation.destinationRoot,
+      'relative_path': observation.relativePath,
+      'record_json': encoded,
+    });
+  }
+
+  /// A bounded offline read. Returned evidence remains historical even when its
+  /// version/digest matches today's cached artifact; it grants no file authority.
+  Future<DriveLocalCloudObservation?> latestByteObservation({
+    required RemoteArtifactId artifactId,
+    required String destinationRoot,
+    required String relativePath,
+  }) async {
+    final db = await _database;
+    final rows = await db.query('migration_byte_observations',
+        columns: ['record_json'],
+        where:
+            'artifact_key = ? AND destination_root = ? AND relative_path = ?',
+        whereArgs: [artifactId.key, destinationRoot, relativePath],
+        orderBy: 'observation_id DESC',
+        limit: 1);
+    if (rows.isEmpty) return null;
+    final encoded = rows.single['record_json'] as String;
+    if (utf8.encode(encoded).length > 16384) {
+      throw const FormatException('Oversized byte observation');
+    }
+    final saved = DriveLocalCloudObservation.fromJson(
+        (jsonDecode(encoded) as Map).cast<String, dynamic>());
+    if (saved.artifact.id != artifactId ||
+        saved.destinationRoot != destinationRoot ||
+        saved.relativePath != relativePath) {
+      throw const FormatException('Byte observation binding changed');
+    }
+    return saved;
+  }
 
   Future<OwnedRemovalRecord> beginRemoval(
       TransferRecord transfer, InstalledArtifact installation,

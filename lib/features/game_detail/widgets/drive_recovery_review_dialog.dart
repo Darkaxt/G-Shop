@@ -33,7 +33,34 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
   CancelToken? _cancellation;
   bool _running = false, _closeRequested = false;
   DriveLocalCloudObservation? _result;
+  DriveLocalCloudObservation? _saved;
+  bool _savedReadFailed = false;
   String? _issue;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSaved();
+  }
+
+  Future<void> _loadSaved() async {
+    DriveLocalCloudObservation? saved;
+    var failed = false;
+    try {
+      saved = await (widget.runtime ?? DriveRuntime.instance)
+          .savedLocalCloudObservation(
+              artifact: widget.artifact,
+              destinationRoot: widget.destinationRoot,
+              relativePath: widget.artifact.displayName);
+    } catch (_) {
+      failed = true;
+    }
+    if (!mounted) return;
+    setState(() {
+      _saved = saved;
+      _savedReadFailed = failed;
+    });
+  }
 
   @override
   void dispose() {
@@ -139,6 +166,17 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
                         'Reads the complete cloud file (${GameMetadata.formatFileSize(widget.artifact.sizeBytes ?? 0)}) and streams cryptographic checks. '
                         'No ROM copy is saved. Does not adopt or delete local files.'),
                     const SizedBox(height: 12),
+                    if (_saved case final saved?
+                        when _result == null && !_running) ...[
+                      Text('Past byte match: ${saved.observedAt.toLocal()}\n'
+                          'Source version then: ${saved.artifact.version}\n'
+                          'Local/cloud bytes are not rechecked now. This saved observation '
+                          'does not authorize adoption or removal.'),
+                      const SizedBox(height: 12),
+                    ],
+                    if (_savedReadFailed && _result == null && !_running)
+                      const Text(
+                          'Saved observation unavailable. No past verification is claimed.'),
                     if (_running) ...[
                       const LinearProgressIndicator(),
                       const SizedBox(height: 8),
@@ -150,6 +188,8 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
                       Text('Not verified: $_issue. Files preserved.'),
                     if (_result case final result?) ...[
                       const Text('Current byte match verified.'),
+                      const Text(
+                          'Byte observation saved privately for restart-safe review.'),
                       Text('Source version: ${result.artifact.version}\n'
                           'Observed: ${result.observedAt.toLocal()}\n'
                           'SHA-256: ${result.checksums['sha256']}'),

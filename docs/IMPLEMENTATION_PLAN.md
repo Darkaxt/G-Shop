@@ -13,7 +13,18 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
-S7 current-cloud byte checkpoint (2026-10-06): normal debug build 185 provides
+S7 durable byte-observation checkpoint (2026-10-06): normal debug build 186
+persists successful exact local/cloud checks in the existing private journal,
+after native read closure. Normal Thor verification followed by app restart
+proved the observation survives and is explicitly labelled historical; opening
+the review reads local evidence only and does not grant adoption/removal authority.
+Database 36 adds only the bounded observation table/index. Root generation 1/next
+2 resumed at 138,771 observations / 12,099 pending folders and remains unpublished.
+S7 is the sole ACTIVE stage: complete defensible collection rankings, reviewed
+execution/adoption and actual migration remain unfinished. S8-S10 remain NOT
+STARTED. Continue standardized collection workflows, not individual-game curation.
+
+Historical S7 current-cloud byte checkpoint (2026-10-06): normal debug build 185 provides
 an explicit reusable local/cloud comparison from any non-folder Drive detail
 menu. It streams the exact local file and current rooted cloud file, checks
 version/digests and local identity again, and joins cancellation/disconnect to

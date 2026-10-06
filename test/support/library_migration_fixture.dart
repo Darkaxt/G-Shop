@@ -62,6 +62,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     // Recreate the selected legacy footprint in this synthetic DB, then use
     // the production onUpgrade entry point rather than invoking its helpers.
     for (final table in [
+      'migration_byte_observations',
       'library_canonical_claims',
       'metadata_artwork_items',
       'metadata_artwork_cache',
@@ -98,6 +99,9 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
       await opened.execute('DROP INDEX IF EXISTS idx_transfer_artifact');
     }
     if (previousVersion >= 18) {
+      // This synthetic downgrade removes the column introduced in v18. Its
+      // newer saved-history index must leave with it; a real legacy DB has neither.
+      await opened.execute('DROP INDEX IF EXISTS idx_metadata_saved_jobs');
       await opened
           .execute('ALTER TABLE metadata_refresh_jobs DROP COLUMN is_artwork');
     }
@@ -132,7 +136,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     DatabaseService.resetForTesting();
 
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 35);
+    expect(await opened.getVersion(), 36);
     expect(await opened.query('metadata_provider_limits'), isEmpty);
     expect(await opened.query('transfer_replacements'), isEmpty);
     expect(await opened.query('owned_removals'), isEmpty);
@@ -194,7 +198,7 @@ Future<void> verifyLibraryMigration({int previousVersion = 13}) async {
     await opened.close();
     DatabaseService.resetForTesting();
     opened = await DatabaseService().database;
-    expect(await opened.getVersion(), 35);
+    expect(await opened.getVersion(), 36);
     final recovered =
         await MetadataRefreshJobs(Future.value(opened)).report(refresh.id);
     expect(recovered.state, 'paused');

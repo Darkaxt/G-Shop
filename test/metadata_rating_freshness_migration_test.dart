@@ -74,7 +74,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await DatabaseService().database;
-      expect(await db.getVersion(), 35);
+      expect(await db.getVersion(), 36);
       expect(await db.query('library_metadata'), metadataBefore);
       expect(await db.query('metadata_refresh_items'), itemsBefore);
       final jobs = await db.query('metadata_refresh_jobs');
@@ -85,10 +85,17 @@ void main() {
         WHERE i.edition_id = ? AND i.identity_key = ? AND j.provider_id = ?
           AND j.is_artwork = 0 AND j.generation > ?''',
           ['fixture-edition', itemsBefore.single['identity_key'], 'igdb', 1]);
+      final index =
+          await db.rawQuery('PRAGMA index_info(idx_metadata_refresh_edition)');
       expect(
-          plan.any((row) => (row['detail'] as String)
-              .contains('idx_metadata_refresh_edition')),
-          isTrue);
+          index.map((row) => row['name']).toList(), ['edition_id', 'job_id']);
+      // SQLite may choose the newer saved-job index plus the item's composite
+      // primary key instead. Require indexed searches, not a forced query plan.
+      expect(plan, isNotEmpty);
+      expect(
+          plan.every((row) => (row['detail'] as String).startsWith('SEARCH ')),
+          isTrue,
+          reason: plan.toString());
       final result = (await LibraryStore(Future.value(db))
           .effectiveRatings(['fixture-edition']))['fixture-edition']!;
       expect(result.rating.toJson(), record.ratings.single.toJson());

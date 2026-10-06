@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/core/input/app_intents.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/services/drive/drive_runtime.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/features/game_detail/widgets/drive_recovery_review_dialog.dart';
@@ -12,6 +13,18 @@ import 'package:retro_eshop/features/game_detail/widgets/drive_recovery_review_d
 class _Runtime extends DriveRuntime {
   final result = Completer<DriveLocalCloudObservation>();
   CancelToken? cancellation;
+  DriveLocalCloudObservation? saved;
+  int savedReads = 0;
+  @override
+  Future<DriveLocalCloudObservation?> savedLocalCloudObservation({
+    required RemoteArtifact artifact,
+    required String destinationRoot,
+    required String relativePath,
+  }) async {
+    savedReads++;
+    return saved;
+  }
+
   @override
   Future<DriveLocalCloudObservation> verifyLocalCloudBytes(
       {required ProviderConfig config,
@@ -25,6 +38,50 @@ class _Runtime extends DriveRuntime {
 }
 
 void main() {
+  testWidgets(
+      'past observation is labelled historical without starting network work',
+      (tester) async {
+    final runtime = _Runtime();
+    final artifact = RemoteArtifact(
+        id: RemoteArtifactId(
+            providerId: 'drive',
+            sourceId: 'source',
+            accountId: 'account',
+            providerFileId: 'file'),
+        displayName: 'fixture.chd',
+        displayPath: 'fixture.chd',
+        sizeBytes: 5,
+        version: '1',
+        canDownload: true,
+        providerChecksums: const {'md5': '7cfdd07889b3295d6a550914ab35e068'});
+    runtime.saved = DriveLocalCloudObservation(
+        artifact: artifact,
+        destinationRoot: '/roms',
+        relativePath: 'fixture.chd',
+        sizeBytes: 5,
+        localIdentity: NativeFileIdentity(
+            volumeId: 'volume',
+            fileId: 'file',
+            sizeBytes: 5,
+            modifiedAt: DateTime.utc(2026, 10, 6)),
+        checksums: {
+          'md5': '7cfdd07889b3295d6a550914ab35e068',
+          'sha256': 'a' * 64
+        },
+        observedAt: DateTime.utc(2026, 10, 6));
+    await tester.pumpWidget(MaterialApp(
+        home: DriveRecoveryReviewDialog(
+            config: const ProviderConfig(type: ProviderType.drive, priority: 1),
+            artifact: artifact,
+            destinationRoot: '/roms',
+            runtime: runtime)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Past byte match'), findsOneWidget);
+    expect(find.textContaining('not rechecked now'), findsOneWidget);
+    expect(find.text('Current byte match verified.'), findsNothing);
+    expect(runtime.savedReads, 1);
+    expect(runtime.cancellation, isNull);
+  });
   testWidgets('review is explicit and cancel waits for actual operation drain',
       (tester) async {
     final runtime = _Runtime();

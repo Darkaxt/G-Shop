@@ -74,6 +74,19 @@ class _Catalogue extends DriveCatalogue {
 }
 
 const _md5 = '7cfdd07889b3295d6a550914ab35e068';
+
+class _HeldObservationJournal extends TransferJournal {
+  final entered = Completer<void>(), release = Completer<void>();
+  final bool fail;
+  _HeldObservationJournal(super.database, {this.fail = false});
+  @override
+  Future<void> saveByteObservation(DriveLocalCloudObservation observation) async {
+    entered.complete();
+    await release.future;
+    if (fail) throw StateError('Synthetic journal failure');
+    await super.saveByteObservation(observation);
+  }
+}
 const _transferConfig = ProviderConfig(
     type: ProviderType.drive,
     priority: 1,
@@ -543,7 +556,44 @@ void main() {
     }.contains(c)), isEmpty);
     expect(await fixture.db.query('transfer_records'), isEmpty);
     expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    final saved = (await fixture.db.query('migration_byte_observations')).single;
+    final evidence = jsonDecode(saved['record_json'] as String) as Map;
+    expect(evidence['artifact']['version'], '1');
+    expect(evidence['checksums']['sha256'], result.checksums['sha256']);
+    expect(evidence['localIdentity']['fileId'], result.localIdentity.fileId);
+    // A new runtime over the existing durable journal performs only a local read.
+    final reopened = fixture.runtime();
+    final prior = await reopened.savedLocalCloudObservation(
+        artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd');
+    expect(prior?.observedAt, result.observedAt);
+    expect(fixture.media.requests, hasLength(1));
   });
+  for (final fail in [false, true]) {
+    test('byte observation waits for closed reads and durable journal: failure=$fail', () async {
+      late _HeldObservationJournal held;
+      final fixture = await _TransferFixture.create(reserve: false,
+          createJournal: (db) => held = _HeldObservationJournal(db, fail: fail));
+      fixture.native.bytes.addAll([1,2,3,4,5]);
+      fixture.native.published = true;
+      final token = CancelToken();
+      final review = fixture.runtime().verifyLocalCloudBytes(config: _transferConfig,
+          artifact: _artifact(), destinationRoot: '/roms', relativePath: 'fixture.chd',
+          cancellation: token);
+      final failed = expectLater(review, fail ? throwsStateError :
+          throwsA(isA<DriveTransferException>().having((e) => e.issue, 'issue', DriveTransferIssue.cancelled)));
+      await held.entered.future;
+      expect(fixture.native.sessionOpen, isFalse);
+      expect(await fixture.db.query('migration_byte_observations'), isEmpty);
+      token.cancel();
+      held.release.complete();
+      await failed;
+      // A cancellation cannot undo an atomic past-observation commit or claim
+      // a current success. Neither outcome grants transfer/removal ownership.
+      expect(await fixture.db.query('migration_byte_observations'), hasLength(fail ? 0 : 1));
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(await fixture.db.query('owned_removals'), isEmpty);
+    });
+  }
   for (final corruption in ['local', 'cloud', 'version', 'namespace', 'overwrite']) {
     test('recovery review rejects $corruption change and drains native reads', () async {
       final fixture = await _TransferFixture.create(reserve: false);
@@ -569,6 +619,7 @@ void main() {
       expect(fixture.native.sessionOpen, isFalse);
       expect(fixture.native.stagePresent, isFalse);
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(await fixture.db.query('migration_byte_observations'), isEmpty);
     });
   }
   test('missing local file makes no cloud request and creates no stage', () async {
@@ -581,6 +632,7 @@ void main() {
     expect(fixture.metadata.requests, isEmpty);
     expect(fixture.native.stagePresent, isFalse);
     expect(await fixture.db.query('transfer_records'), isEmpty);
+    expect(await fixture.db.query('migration_byte_observations'), isEmpty);
   });
   test('disconnect joins recovery cancellation before native/transport teardown', () async {
     final fixture = await _TransferFixture.create(reserve: false);
@@ -613,6 +665,7 @@ void main() {
     await disconnect;
     expect(fixture.native.sessionOpen, isFalse);
     expect(fixture.media.closed, isTrue);
+    expect(await fixture.db.query('migration_byte_observations'), isEmpty);
   });
   test('metadata header reads exactly 140 bytes without staging a large ROM',
       () async {
