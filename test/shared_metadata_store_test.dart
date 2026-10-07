@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
@@ -94,6 +95,126 @@ void main() {
         reason: 'Actual catalogue changes still require fresh recovery');
     expect(controls.state.loading, false);
     expect(controls.state.sharedStorageUnavailable, false);
+  });
+
+  test('artwork recovery publishes validated manifests in bounded transactions',
+      () async {
+    sqfliteFfiInit();
+    var observe = false, uncommittedWrites = 0;
+    final pageSizes = <int>[];
+    final factory = buildDatabaseFactory(
+        tag: 'shared-artwork-recovery',
+        invokeMethod: (method, [arguments]) async {
+          if (observe && method == 'batch' && arguments is Map) {
+            final operations = arguments['operations'] as List;
+            final artwork = operations.where((op) =>
+                ((op as Map)['sql'] as String? ?? '')
+                    .contains('INTO metadata_artwork_cache'));
+            if (artwork.isNotEmpty) {
+              expect(arguments['transactionId'], isNotNull);
+              pageSizes.add(artwork.length);
+            }
+          }
+          if (observe &&
+              arguments is Map &&
+              (arguments['sql'] as String? ?? '')
+                  .contains('INTO metadata_artwork_cache') &&
+              arguments['transactionId'] == null) {
+            uncommittedWrites++;
+          }
+          return ffiMethodCallHandleNoIsolate(FfiMethodCall(method, arguments));
+        });
+    final db = await controlsDatabase(factory: factory);
+    final root = await Directory.systemTemp.createTemp('rshop-artwork-pages-');
+    final shared = await SharedMetadataStore.open(root, factory: factory);
+    addTearDown(() async {
+      await shared.close();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    final bytes = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==');
+    final filename = '${sha256.convert(bytes)}.png';
+    await shared.artworkRoot.create();
+    await File(p.join(shared.artworkRoot.path, filename)).writeAsBytes(bytes);
+    final retrievedAt = DateTime.utc(2026, 10, 7);
+    for (var i = 0; i < 129; i++) {
+      await shared.preserveBlob(
+          MetadataArtworkBlob('fixture-$i', filename, bytes.length),
+          retrievedAt);
+    }
+    // Seed a receipt while valid, then change its exact bytes without changing
+    // length. Readers must still reject it, not weaken blob integrity.
+    final damaged = List<int>.from(bytes)..[35] ^= 1;
+    final damagedName = '${sha256.convert(damaged)}.png';
+    final damagedFile = File(p.join(shared.artworkRoot.path, damagedName));
+    await damagedFile.writeAsBytes(damaged);
+    await shared.preserveBlob(
+        MetadataArtworkBlob('damaged', damagedName, bytes.length), retrievedAt);
+    await damagedFile.writeAsBytes(bytes);
+    observe = true;
+    expect(await shared.restore(db), 0);
+    final restored = await db.query('metadata_artwork_cache');
+    // Receipts are not advertised as available images. Integrity is checked on
+    // consumption, without rereading every cached image while opening settings.
+    expect(restored, hasLength(130));
+    expect(
+        restored
+            .every((r) => r['retrieved_at'] == retrievedAt.toIso8601String()),
+        true);
+    expect(uncommittedWrites, 0,
+        reason:
+            'Per-image autocommit fsyncs must be replaced by bounded pages');
+    expect(pageSizes, [128, 2]);
+  });
+
+  test('shared artwork consumption rejects same-size replacement bytes',
+      () async {
+    final db = await controlsDatabase();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-artwork-integrity-');
+    final shared = await SharedMetadataStore.open(root,
+        factory: databaseFactoryFfiNoIsolate);
+    final provider = ControlsArtworkProvider();
+    final cache = MetadataArtworkCache(Future.value(db), shared.artworkRoot,
+        sharedStore: shared);
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(cache),
+        sharedStore: Future.value(shared),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await shared.close();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    await controls.refresh(systemSlug: 'psx');
+    final edition = provider.calls.single.editionId;
+    final cover = (await cache.artworkForEdition(edition)).cover!;
+    final file = File.fromUri(Uri.parse(cover));
+    final bytes = await file.readAsBytes();
+    final replacement = List<int>.from(bytes)..[35] ^= 1;
+    await file.writeAsBytes(replacement);
+    expect((await cache.artworkForEdition(edition)).cover, isNull,
+        reason: 'Equal size alone cannot validate a shared image');
+    await db.delete('metadata_artwork_cache');
+    await shared.restore(db);
+    expect((await cache.artworkForEdition(edition)).cover, isNull);
+    expect(await cache.previewForEdition(edition), isNull);
+    await file.writeAsBytes(bytes);
+    expect((await cache.artworkForEdition(edition)).cover, cover);
+    await file.delete();
+    expect((await cache.artworkForEdition(edition)).cover, isNull);
+    expect(provider.calls, hasLength(1));
+    expect(provider.artworkCalls, 1,
+        reason: 'Reading never repairs via network');
   });
 
   for (final version in [4, 5]) {

@@ -681,6 +681,15 @@ a full unchanged-catalogue rebuild. A real catalogue notification, including one
 arriving during an earlier recovery, must still schedule recovery of that newer
 snapshot; do not coalesce different catalogue states at the raw-store boundary.
 
+Artwork recovery detail (2026-10-07): rebuild the immutable artwork receipt
+projection in bounded transactions without opening every image body during
+metadata/settings startup. A receipt is not proof that a file is currently
+available. Every image consumption must validate its bounded current length and
+content-addressed SHA-256 before returning a cover/screenshot path. Missing,
+same-size replaced or oversized bodies produce the normal fallback without a
+network request or erasing usable text/score metadata. Keep full validation at
+publication, migration and ES-DE export boundaries.
+
 Use the published remote catalogue, not local ROM presence, as the membership
 input for scraping and shared metadata updates. A successful catalogue/provider
 refresh updates exact affected identities and their current metadata; an outage

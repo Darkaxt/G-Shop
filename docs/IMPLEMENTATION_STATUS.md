@@ -5,6 +5,66 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 bounded artwork recovery and live worker continuation — 2026-10-07
+
+- Phase diagnostics on the unchanged native catalogue isolated the cold wait:
+  43,599 rooted artifact rows indexed in 3,653 ms; 917 shared bindings checked
+  by 11,163 ms; final recovery took 35,574 ms. Artwork comprises 1,145 unique
+  files / 468,979,309 referenced bytes. A second diagnostic separated hashing
+  and per-image publication; its screen-off/mixed-state timing is not comparable
+  to the awake cold-start measurement. Native query plans confirm indexed exact
+  artifact/member lookups, not per-game whole-table scans.
+- Recovery now rebuilds content-addressed image receipts in transactions of at
+  most 128 records, without opening every image. Receipt presence does not claim
+  image availability: cache consumers check current bounded size and SHA-256
+  before exposing any path. Same-size replacement and missing images return the
+  fallback; no network repair or metadata/score erasure. Full validation remains
+  at publication, migration and ES-DE export. No catalogue/binding checks were
+  skipped or replaced by raw-store coalescing.
+- Regression checks failed before implementation for per-image autocommit and
+  same-size replacement exposure. Focused recovery, source/account ambiguity,
+  bundle/base/manual-edit rejection, artwork jobs/restart, ES-DE import and normal
+  controls Pause/Resume verification pass. The 130-receipt regression verifies
+  exact 128/2 batches and offline rejection/recovery of replaced bytes. Scoped
+  analysis and diff checks are clean; no full-suite or large resource run.
+- Required builds 251/252 (phase diagnosis) and 254 (final) ran serially through
+  the shared gate; final receipt confirms gate acquired, exit=0, workers=2,
+  parallel=false, Gradle heap=3,221,225,472 bytes. Assessed Kotlin 2.2.20 runs
+  in-process within that heap; required Metaspace 1 GiB/code cache 256 MiB remain.
+  Test-task configuration is one fork/512 MiB; native/plugin effective concurrency
+  remains unverified. No memory failure or budget increase. Final build log:
+  `3a1517073667477c855dae9c292d152f.log`.
+- Final host and installed APK SHA-256:
+  `3a74b4ad195d192e17c886472e37b3d15736b502eff99dc8314fccd34e3e6ab7`.
+  Debug signer is unchanged; update used install -r, no reset/uninstall/force-stop.
+  Awake normal cold recovery indexed the same 43,599 rows in 3,467 ms, checked
+  917 bindings by 10,750 ms and restored all 1,145 receipts by 10,985 ms. Artwork
+  recovery consumed about 235 ms rather than the former 24,411 ms. This removes
+  bulk image rereading from startup, not the remaining catalogue/binding latency.
+- APK updates left Drive authorization interaction-required. Normal default
+  account reconnect succeeded without changing roots/mappings or saving a new
+  source. Job 76 stayed paused at requested=2,552 through update, then normal
+  Resume actually advanced requests/outcomes. Joined normal Pause at 2,572
+  verifies unchanged configuration hash
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`,
+  active=1/pending=null/nextGeneration=2. Job totals remain 44,204: matched=54
+  (rated=53), needsReview=813, ambiguous=190, unmatched=1,472,
+  invalidResponse=35, pending=41,640. No external SQL observer overlaps a worker.
+  Normal Resume then advances again to requested=2,582 / pending=41,630; this
+  continuation did not recreate the job or repeat completed outcomes.
+  Both physical displays are freshly confirmed committed OFF after normal sleep.
+- S7 remains sole ACTIVE. Full fresh scrape, canonical/defensible retention,
+  current readable exact-cloud-byte proof, remaining format round trips and
+  reviewed migration remain unfinished; S8-S10 NOT STARTED. Standardized matching
+  approval is implemented by f270427; the separate classification-provenance
+  proposal is not approved. No original ROM/save/BIOS, FolderSync or cloud file
+  changed, no SD migration or release occurred.
+
+Cleanup: reviewed exact-file transaction 30c103cbcdb6c54b3fe2f877ea81cb5b removed
+only the consumed 6,317-byte diagnostic Java compiler intermediate. Absence is
+verified; retained Java source and deployed jar reproduce it. Logs/source/jar
+remain needed verification evidence; no user data or repository output was purged.
+
 ### S7 catalogue-aware settings recovery — 2026-10-07
 
 - Traced unchanged settings loading to an independent full shared-store restore

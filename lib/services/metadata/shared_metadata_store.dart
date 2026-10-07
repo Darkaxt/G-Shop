@@ -1281,6 +1281,7 @@ class SharedMetadataStore {
     String? editionCursor, providerCursor;
     int? generationCursor;
     var restored = 0;
+    var catalogueRows = 0, recordRows = 0;
     await destination.transaction((txn) async {
       // Android's system SQLite need not include JSON1. Decode bounded pages
       // with the existing artifact model, then index the same pinned catalogue
@@ -1297,6 +1298,7 @@ class SharedMetadataStore {
             AND remote_artifact IS NOT NULL ORDER BY id LIMIT 128''',
               [cacheCursor]);
           final batch = txn.batch();
+          catalogueRows += rows.length;
           for (final row in rows) {
             final artifact = RemoteArtifact.fromJson(
                 jsonDecode(row['remote_artifact'] as String));
@@ -1317,6 +1319,11 @@ class SharedMetadataStore {
           shared_metadata_catalogue(platform, artifact_key)''');
         await txn.execute('''CREATE INDEX shared_metadata_object ON
           shared_metadata_catalogue(platform, provider, account, file_id)''');
+        assert(() {
+          debugPrint('Shared metadata catalogue indexed: '
+              'rows=$catalogueRows elapsedMs=${watch.elapsedMilliseconds}');
+          return true;
+        }());
         while (true) {
           await requireAccess();
           final page = await _db.rawQuery(
@@ -1337,6 +1344,7 @@ class SharedMetadataStore {
           // Restore the newest coherent binding before older provider records
           // of that edition, not whichever provider happened to be inserted first.
           for (final row in page) {
+            recordRows++;
             var record = MetadataRecord.fromJson(
                 jsonDecode(row['record_json'] as String));
             if (!LibraryStore.hasConsistentProvenance(record) ||
@@ -1409,13 +1417,20 @@ class SharedMetadataStore {
           generationCursor = page.last['generation'] as int;
           providerCursor = page.last['provider_id'] as String;
         }
+        assert(() {
+          debugPrint('Shared metadata bindings checked: '
+              'rows=$recordRows elapsedMs=${watch.elapsedMilliseconds}');
+          return true;
+        }());
       } finally {
         await txn.execute('DROP TABLE shared_metadata_catalogue');
       }
     });
-    // Blobs are independent of ROM residency. Invalid/missing bodies are never
-    // advertised as available and do not erase a usable private projection.
+    // Restore immutable receipts, not an assertion of present image bytes.
+    // Cache consumers validate the exact bounded hash before exposing a path;
+    // opening settings must not reread the entire shared artwork collection.
     var keyCursor = '';
+    var artworkRows = 0;
     while (true) {
       await requireAccess();
       final page = await _db.query('metadata_artwork_cache',
@@ -1423,21 +1438,38 @@ class SharedMetadataStore {
           whereArgs: [keyCursor],
           orderBy: 'media_key',
           limit: 128);
-      for (final row in page) {
-        final blob = MetadataArtworkBlob(row['media_key'] as String,
-            row['filename'] as String, row['byte_length'] as int);
-        if (await _validBlob(
-            File(p.join(artworkRoot.path, blob.filename)), blob)) {
-          await MetadataArtworkCache.publish(
-              destination, blob, DateTime.parse(row['retrieved_at'] as String));
+      await destination.transaction((txn) async {
+        final batch = txn.batch();
+        for (final row in page) {
+          artworkRows++;
+          final filename = row['filename'] as String;
+          final length = row['byte_length'] as int;
+          if (!RegExp(r'^[a-f0-9]{64}\.png$').hasMatch(filename) ||
+              length < 57 ||
+              length > MetadataArtworkCache.maxBytes) {
+            continue;
+          }
+          batch.insert(
+              'metadata_artwork_cache',
+              {
+                'media_key': row['media_key'],
+                'filename': filename,
+                'byte_length': length,
+                'retrieved_at': DateTime.parse(row['retrieved_at'] as String)
+                    .toUtc()
+                    .toIso8601String(),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace);
         }
-      }
+        await batch.commit(noResult: true);
+      });
       if (page.length < 128) break;
       keyCursor = page.last['media_key'] as String;
     }
     assert(() {
       debugPrint('Shared metadata recovery completed: '
-          'restored=$restored elapsedMs=${watch.elapsedMilliseconds}');
+          'restored=$restored elapsedMs=${watch.elapsedMilliseconds} '
+          'artworkRows=$artworkRows');
       return true;
     }());
     return restored;

@@ -1,5 +1,28 @@
 # S7 live metadata and Thor migration
 
+## Cold artwork recovery corrected — 2026-10-07
+
+Native phase diagnostics located 24.4 seconds of the 35.6-second awake cold
+recovery in rereading 447 MiB of shared artwork and per-image commits. Recovery
+now restores bounded receipt batches; every image reader validates current
+bounded size and exact content hash before exposing its path. Reproducible
+regressions verify the former autocommit behavior and same-size replacement
+exposure, exact 128/2 receipt batches, corruption/missing-image fallback, offline
+recovery and unchanged binding/manual-edit/worker checks. Publication, migration
+and ES-DE export retain full validation. No binding validation was skipped.
+
+Signer-preserving build 254 matches the installed APK. Its normal awake cold
+recovery completed in 10,985 ms with the same catalogue/binding/artwork counts;
+artwork took about 235 ms. Remaining catalogue/binding latency is not declared
+fixed. Default-account reconnect and normal saved-job Resume actually advance
+job 76, not merely display Running. Joined Pause at requested=2,572 verifies
+unchanged configuration/root generation and preserved job membership; see the
+status ledger for inspected counts and gate/resource evidence.
+
+S7 remains ACTIVE: full fresh scraping, defensible canonical retention, current
+recoverable bytes, remaining round trips and reviewed migration remain required.
+S8-S10 remain NOT STARTED; no original ROM removal or release occurred.
+
 ## Repeated settings recovery corrected — 2026-10-07
 
 Normal settings now joins the library's catalogue-aware recovery future. Its

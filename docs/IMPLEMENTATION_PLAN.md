@@ -37,9 +37,12 @@ full recovery whenever it loads. Real SQLite regression reproduces the former
 three-pass behavior and verifies one unchanged pass plus distinct recoveries for
 notifications arriving during an active pass. Native build 250 verifies one
 cold recovery and no additional recovery when switching IGDB/ScreenScraper.
-Cold full-catalogue recovery still takes 36 seconds; that latency remains S7
-work, not a completed performance contract or a later-stage deferral. The same
-job 76 resumes from requested=2,551 with configuration/generation preserved.
+The later build-254 phase diagnosis replaces the 36-second observation: bounded
+receipt recovery plus current on-consumption hash checks reduced awake cold
+recovery to 10,985 ms. Remaining catalogue/binding latency remains S7 work, not
+a completed performance contract or later-stage deferral. After normal default
+account reconnect, actual job 76 advancement reaches requested=2,572 at joined
+Pause with configuration/generation preserved; continue that same saved job.
 
 S7 current recovery work (2026-10-07): prove the required standalone Game Boy 7z
 workflow through the existing immutable `gb` archive mapping, pinned native

@@ -381,10 +381,30 @@ class MetadataArtworkCache {
     final filename = rows.single['filename'] as String;
     if (!RegExp(r'^[a-f0-9]{64}\.png$').hasMatch(filename)) return null;
     final file = File(p.join(root.path, filename));
-    return await file.exists() &&
-            await file.length() == rows.single['byte_length']
-        ? file
-        : null;
+    final length = rows.single['byte_length'] as int;
+    if (length < 57 || length > maxBytes) return null;
+    try {
+      if (!await file.exists() || await file.length() != length) return null;
+      var received = 0;
+      final digest = await sha256
+          .bind(file.openRead().map((chunk) {
+            received += chunk.length;
+            if (received > maxBytes) {
+              throw const FormatException(
+                  'Artwork exceeds the bounded body budget');
+            }
+            return chunk;
+          }))
+          .first;
+      return received == length &&
+              digest.toString() == filename.substring(0, 64)
+          ? file
+          : null;
+    } on FileSystemException {
+      return null;
+    } on FormatException {
+      return null;
+    }
   }
 
   /// Current, owned local media only. No selectors/URLs escape to card loaders.
