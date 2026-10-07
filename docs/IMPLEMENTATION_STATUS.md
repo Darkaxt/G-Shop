@@ -5,6 +5,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 NES census verified and inventory format coverage reconciled — 2026-10-07
+
+- The serial audit's NES journal reached its terminal result. An independent
+  pass reconciled every record, comparison count, byte total and disposition:
+  1,498 cached byte matches (113,113,373 bytes), three ambiguous cloud candidates
+  (332,143 bytes) and one non-ROM file (1,305 bytes). All 1,502 observations remain
+  preserve/removalAuthorized=false. Cached matches are not current cloud
+  readability, canonical ranking or restoration proof. The same serial handle
+  advanced to GBA; its Python child was observed live at 21.5 MiB working set.
+- The complete 15,964-record private SD inventory was reconciled against current
+  configured targets and SystemModel's actual ROM/archive extensions. Its old
+  selector omitted one n3ds .cci file (887,275,520 bytes) and 15 Wii U .wua files
+  (73,412,799,323 bytes) despite those suffixes being supported for browsing.
+  This corrects the interpretation, not the immutable original journal. Include
+  these explicit formats in subsequent scoped comparisons after the current
+  serial batch; do not call them verified recoverable installations.
+- Additional observed exceptions need separate identity/format treatment: 566
+  .dsi files reside beneath the NDS target (4,226,909,024 bytes), while .dsi is a
+  DSi format, not an NDS format; 111 .zcci files beneath n3ds (118,358,489,409 bytes)
+  and 11 Wii .wad files (342,127,424 bytes) are not in those systems' current
+  supported suffixes. Do not silently relabel these, guess mappings, move them,
+  or infer recovery from the neighbouring console folder.
+- The SNES directory also contains 220 .msu files and 7,477 .pcm files, together
+  107,670,794,965 bytes. Satellaview has another nine .msu and 84 .pcm files,
+  together 4,948,440,212 bytes. These suffixes may represent related content;
+  no bundle association was proven by counting them. Preserve them until exact
+  required-member relationships and restore routes are established. The old
+  non_rom_preserved label must not be read as expendability or no migration work.
+- Saved ScreenScraper job 76 is still running, requested=937 at this checkpoint,
+  without a blocked status. Active catalogue generation 1/no pending generation
+  and configuration SHA-256 eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d
+  are unchanged. Both displays are independently committed OFF. No build,
+  app update, source/config change, ROM/save/BIOS removal, cloud write, FolderSync
+  operation or release occurred. S7 remains sole ACTIVE; S8-S10 NOT STARTED.
+
 ### S7 Game Boy Color census completed; remaining serial audits started — 2026-10-07
 
 - The existing Game Boy Color audit completed and every file record reconciles

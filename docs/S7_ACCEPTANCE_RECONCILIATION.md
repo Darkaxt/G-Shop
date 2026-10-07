@@ -1,5 +1,27 @@
 # S7 live metadata and Thor migration
 
+## NES comparison and actual format boundaries — 2026-10-07
+
+NES's terminal private comparison reconciles 1,498 cached byte matches, three
+ambiguous candidates and one non-ROM file. All 1,502 paths remain preserved;
+current cloud revalidation, defensible ranking and tested restore are still
+required. The same serial audit is now running GBA, not a replacement audit.
+
+The complete SD inventory contains supported browsing suffixes omitted by its
+old selector: one n3ds .cci and 15 Wii U .wua files (74,300,074,843 bytes combined).
+Subsequent scoped comparisons must include them. There are also 566 DSi .dsi
+files under the NDS target, unsupported .zcci/.wad observations, and substantial
+.msu/.pcm content under SNES/Satellaview. Folder location and suffix counts do
+not establish console/edition identity, bundle membership or restoration.
+Preserve these explicit exceptions; do not call the old non-ROM classification
+proof that they are unrelated or expendable. See the status ledger for exact
+aggregate evidence. No private paths, hashes or provider IDs enter Git.
+
+The same metadata job 76 continues, configuration and published generation are
+unchanged, and both displays are OFF. S7 remains the sole ACTIVE stage with
+coverage/retention/recovery/reviewed migration criteria open. No deletion or
+stage-completion claim follows from the census.
+
 ## Third console comparison verified; census continues — 2026-10-07
 
 Game Boy Color's completed private journal has 823 cached byte matches, three
