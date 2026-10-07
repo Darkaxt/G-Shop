@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/game_item.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/system_model.dart';
 import '../../../utils/game_metadata.dart';
 import '../../../widgets/installed_indicator.dart';
@@ -13,6 +14,7 @@ class SingleVersionDisplay extends StatelessWidget {
   final bool isInstalled;
   final bool isSelected;
   final bool isFocused;
+  final bool? downloadAvailable;
   final FocusNode? focusNode;
   final VoidCallback? onTap;
 
@@ -23,6 +25,7 @@ class SingleVersionDisplay extends StatelessWidget {
     required this.isInstalled,
     this.isSelected = false,
     this.isFocused = false,
+    this.downloadAvailable,
     this.focusNode,
     this.onTap,
   });
@@ -104,7 +107,8 @@ class SingleVersionDisplay extends StatelessWidget {
                         runSpacing: 4,
                         children: [
                           for (final tag in metadata.primaryTags)
-                            _TagPill(label: tag.raw, alpha: isFocused ? 0.9 : 0.6),
+                            _TagPill(
+                                label: tag.raw, alpha: isFocused ? 0.9 : 0.6),
                           _TagPill(
                             label: metadata.fileType.toUpperCase(),
                             alpha: isFocused ? 0.5 : 0.3,
@@ -114,6 +118,11 @@ class SingleVersionDisplay extends StatelessWidget {
                               label: variant.providerConfig!.shortLabel,
                               alpha: isFocused ? 0.5 : 0.3,
                             ),
+                          if (!isInstalled &&
+                              !(downloadAvailable ?? variant.hasDownloadSource))
+                            _TagPill(
+                                label: L.of(context).gameDetail_unavailable,
+                                alpha: isFocused ? 0.5 : 0.3),
                         ],
                       ),
                     ),
@@ -129,7 +138,8 @@ class SingleVersionDisplay extends StatelessWidget {
                   text: variant.filename,
                   animate: isFocused,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: isFocused ? 0.35 : 0.2),
+                    color:
+                        Colors.white.withValues(alpha: isFocused ? 0.35 : 0.2),
                     fontSize: 9,
                   ),
                 ),

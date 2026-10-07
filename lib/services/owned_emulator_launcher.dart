@@ -41,6 +41,8 @@ class OwnedEmulatorLauncher {
     await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' :
         system.id == 'n64' ? 'launchOwnedRetroArchN64' :
         system.id == 'gb' ? 'launchOwnedRetroArchGameBoy' :
+        system.id == 'gbc' ? 'launchOwnedRetroArchGameBoyColor' :
+        system.id == 'gba' ? 'launchOwnedRetroArchGameBoyAdvance' :
         system.id == 'psx' ? 'launchOwnedRetroArchPSX' :
         system.id == 'psp' ? 'launchOwnedPPSSPP' :
         system.id == 'ps2' ? 'launchOwnedNetherSX2' : 'launchOwnedDolphin', {

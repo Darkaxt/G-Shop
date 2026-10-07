@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
@@ -8,6 +10,7 @@ import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/game_list/logic/game_list_controller.dart';
 import 'package:retro_eshop/models/config/system_config.dart';
@@ -510,6 +513,39 @@ void main() {
       controller.dispose();
     }
   });
+
+  for (final operation in ['details', 'ratings', 'covers']) {
+    test('exact $operation reads leave unrelated projection work pending',
+        () async {
+      await seed(1, score: 91);
+      final unrelated = await seed(2, score: 73, platform: 'snes');
+      final before = await db.query('library_query_dirty',
+          where: 'edition_id = ?', whereArgs: [unrelated]);
+      expect(before, isNotEmpty);
+      switch (operation) {
+        case 'details':
+          expect((await query.cachedMetadata('Game 1.7z', 'psx'))?.cacheRowId, 1);
+        case 'ratings':
+          expect((await query.cachedRatings([1], assessedBases: [basis]))[1]
+              ?.rating.normalizedValue, 91);
+        case 'covers':
+          final cache = MetadataArtworkCache(
+              Future.value(db), Directory('D:/Temp/rshop-unused-artwork'));
+          expect(await query.cachedCovers([1], cache), {1: null});
+      }
+      expect(await db.query('library_query_dirty',
+          where: 'edition_id = ?', whereArgs: [unrelated]), before,
+          reason: 'Reading a card must not rebuild unrelated rankings.');
+      expect(await db.query('library_query_cache_dirty',
+          where: 'cache_row_id = ?', whereArgs: [2]), isNotEmpty);
+      expect(await db.query('library_query_editions',
+          where: 'cache_row_id = ?', whereArgs: [2]), isEmpty);
+      // Collection queries still consume all pending work and preserve ranking.
+      expect((await read()).collectionGames, 2);
+      expect(await db.query('library_query_cache_dirty'), isEmpty);
+      expect(await db.query('library_query_dirty'), isEmpty);
+    });
+  }
 
   test('card score pages preserve each exact cached edition, not group winners',
       () async {

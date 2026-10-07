@@ -466,6 +466,12 @@ class DriveRuntime {
     if (ext == '.7z' && mapped.length == 1 && mapped.contains('.gb')) {
       return 'gb';
     }
+    if (ext == '.7z' && mapped.length == 1 && mapped.contains('.gbc')) {
+      return 'gbc';
+    }
+    if (ext == '.7z' && mapped.length == 1 && mapped.contains('.gba')) {
+      return 'gba';
+    }
     if ((ext == '.7z' || ext == '.zip') && mapped.length == 3 &&
         mapped.containsAll(const {'.z64', '.n64', '.v64'})) {
       return 'n64';
@@ -604,8 +610,8 @@ class DriveRuntime {
         if (archivePlatformId != null) {
           if (archivePlatformId == 'gamegear') {
             await session.validateGameGearZip();
-          } else if (archivePlatformId == 'gb') {
-            await session.validateGameBoySevenZip();
+          } else if (const {'gb', 'gbc', 'gba'}.contains(archivePlatformId)) {
+            await session.validateGameBoySevenZip(archivePlatformId);
           } else {
             await session.validateN64Archive(relativePath);
           }
@@ -833,8 +839,8 @@ class DriveRuntime {
       try {
         if (record.archivePlatformId == 'gamegear') {
           await session.validateGameGearZip();
-        } else if (record.archivePlatformId == 'gb') {
-          await session.validateGameBoySevenZip();
+        } else if (const {'gb', 'gbc', 'gba'}.contains(record.archivePlatformId)) {
+          await session.validateGameBoySevenZip(record.archivePlatformId!);
         } else {
           await session.validateN64Archive(record.relativePath);
         }

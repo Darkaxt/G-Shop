@@ -16,6 +16,7 @@ class VariantPickerOverlay extends ConsumerStatefulWidget {
   final List<GameItem> variants;
   final SystemModel system;
   final Map<int, bool> installedStatus;
+  final bool isLocalOnly;
   final Future<bool> Function(int index) onDownload;
   final void Function(int index) onDelete;
   final VoidCallback onClose;
@@ -25,6 +26,7 @@ class VariantPickerOverlay extends ConsumerStatefulWidget {
     required this.variants,
     required this.system,
     required this.installedStatus,
+    this.isLocalOnly = false,
     required this.onDownload,
     required this.onDelete,
     required this.onClose,
@@ -103,7 +105,8 @@ class _VariantPickerOverlayState extends ConsumerState<VariantPickerOverlay>
     if (isInstalled) {
       ref.read(feedbackServiceProvider).warning();
       widget.onDelete(index);
-    } else {
+    } else if (!widget.isLocalOnly &&
+        widget.variants[index].hasDownloadSource) {
       ref.read(feedbackServiceProvider).confirm();
       widget.onDownload(index);
     }
@@ -302,7 +305,10 @@ class _VariantPickerOverlayState extends ConsumerState<VariantPickerOverlay>
     return ListView.builder(
       shrinkWrap: true,
       padding: EdgeInsets.fromLTRB(
-        rs.spacing.sm, 0, rs.spacing.sm, rs.spacing.sm,
+        rs.spacing.sm,
+        0,
+        rs.spacing.sm,
+        rs.spacing.sm,
       ),
       itemCount: widget.variants.length,
       itemBuilder: (context, index) {
@@ -312,8 +318,7 @@ class _VariantPickerOverlayState extends ConsumerState<VariantPickerOverlay>
         return Padding(
           key: _cardKeys[index],
           padding: EdgeInsets.only(
-            bottom:
-                index < widget.variants.length - 1 ? rs.spacing.xs : 0,
+            bottom: index < widget.variants.length - 1 ? rs.spacing.xs : 0,
           ),
           child: GestureDetector(
             onTap: () {
@@ -332,6 +337,8 @@ class _VariantPickerOverlayState extends ConsumerState<VariantPickerOverlay>
                   isInstalled: isInstalled,
                   isSelected: isFocused,
                   isFocused: isFocused,
+                  downloadAvailable: !widget.isLocalOnly &&
+                      widget.variants[index].hasDownloadSource,
                 ),
               ),
             ),
@@ -340,5 +347,4 @@ class _VariantPickerOverlayState extends ConsumerState<VariantPickerOverlay>
       },
     );
   }
-
 }

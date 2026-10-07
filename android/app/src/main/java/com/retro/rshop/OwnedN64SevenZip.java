@@ -26,8 +26,8 @@ final class OwnedN64SevenZip {
         return validate(descriptorPath, "n64");
     }
 
-    /** Metadata-only extension of the same bounded single-member decoder.
-     * A mapped suffix is not provider identity or emulator/restore approval. */
+    /** Shared bounded single-member decoder for explicit handheld mappings.
+     * A mapped suffix is not provider identity or migration approval. */
     static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
         require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform) ||
                 "gba".equals(platform));

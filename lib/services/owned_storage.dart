@@ -312,9 +312,15 @@ class OwnedStorageSession {
     await _storage._invoke(method, {'session': id});
   }
 
-  Future<void> validateGameBoySevenZip() async {
+  Future<void> validateGameBoySevenZip([String platform = 'gb']) async {
     _requireOpen();
-    await _storage._invoke('ownedValidateGameBoySevenZip', {'session': id});
+    final method = switch (platform) {
+      'gb' => 'ownedValidateGameBoySevenZip',
+      'gbc' => 'ownedValidateGameBoyColorSevenZip',
+      'gba' => 'ownedValidateGameBoyAdvanceSevenZip',
+      _ => throw const OwnedStorageException('unsupported_archive'),
+    };
+    await _storage._invoke(method, {'session': id});
   }
 
   /// Caller must journal publishing intent and verified evidence beforehand.

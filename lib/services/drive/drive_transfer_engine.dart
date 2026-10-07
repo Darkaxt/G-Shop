@@ -418,9 +418,9 @@ class DriveTransferOperation {
       _checkCancellation();
       await _session!.validateN64Archive(record.relativePath);
       _checkCancellation();
-    } else if (record.archivePlatformId == 'gb') {
+    } else if (const {'gb', 'gbc', 'gba'}.contains(record.archivePlatformId)) {
       _checkCancellation();
-      await _session!.validateGameBoySevenZip();
+      await _session!.validateGameBoySevenZip(record.archivePlatformId!);
       _checkCancellation();
     }
   }

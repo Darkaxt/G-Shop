@@ -223,6 +223,7 @@ class MainActivity : FlutterActivity() {
             if (call.method.startsWith("owned") || call.method == "launchOwnedDolphin" ||
                 call.method == "launchOwnedRetroArchGameGear" || call.method == "launchOwnedRetroArchN64" ||
                 call.method == "launchOwnedRetroArchGameBoy" ||
+                call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
                 call.method == "launchOwnedNetherSX2") {
                 val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }

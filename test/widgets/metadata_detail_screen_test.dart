@@ -255,6 +255,10 @@ void defineMetadataDetailScreenChecks({
       await finishCacheRead();
       expect(find.textContaining('IGDB users 89/100'), findsOneWidget);
       expect(find.textContaining('Avg Rating'), findsNothing);
+      // A source-less cached row remains browseable but cannot acquire a
+      // provider merely because its console has remote sources configured.
+      expect(find.text('UNAVAILABLE'), findsOneWidget);
+      expect(find.text('Press A to download'), findsNothing);
       await checkpoint?.call('detail-cached-score', tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonStart);
       await tester.pumpAndSettle();

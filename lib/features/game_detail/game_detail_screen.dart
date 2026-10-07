@@ -565,7 +565,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(
-            label: const {'gamegear', 'n64', 'gb', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' :
+            label: const {'gamegear', 'n64', 'gb', 'gbc', 'gba', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' :
                 widget.system.id == 'psp' ? 'Open in PPSSPP' :
                 widget.system.id == 'ps2' ? 'Open in NetherSX2' : 'Open in Dolphin',
             icon: Icons.play_arrow_rounded,
@@ -926,6 +926,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                   variants: widget.variants,
                   system: widget.system,
                   installedStatus: state.installedStatus,
+                  isLocalOnly: widget.isLocalOnly,
                   onDownload: (index) async {
                     final success = await controller.addVariantToQueue(index);
                     if (success) _fireAddToQueueAnimation();
@@ -1501,19 +1502,23 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     bool isMultiRom,
   ) {
     if (state.isAddingToQueue) return DownloadButtonState.adding;
-    if (widget.isLocalOnly && !state.isVariantInstalled) {
-      return DownloadButtonState.unavailable;
-    }
     if (isMultiRom) {
       final allInstalled =
           state.installedStatus.length == widget.variants.length &&
               state.installedStatus.values.every((v) => v);
-      return allInstalled
-          ? DownloadButtonState.installed
-          : DownloadButtonState.download;
+      if (allInstalled) return DownloadButtonState.installed;
+      final hasActionableVariant = widget.variants.asMap().entries.any((entry) =>
+          state.installedStatus[entry.key] == true ||
+          (!widget.isLocalOnly && entry.value.hasDownloadSource));
+      return hasActionableVariant
+          ? DownloadButtonState.download
+          : DownloadButtonState.unavailable;
     }
     if (state.isVariantInstalled) return DownloadButtonState.delete;
-    return DownloadButtonState.download;
+    return !widget.isLocalOnly &&
+            widget.variants[state.selectedIndex].hasDownloadSource
+        ? DownloadButtonState.download
+        : DownloadButtonState.unavailable;
   }
 
   String _getButtonHintText(GameDetailState state, bool isMultiRom) {
@@ -1521,6 +1526,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (state.isAddingToQueue) return '';
     if (isMultiRom) return l.gameDetail_pressAPickVersion;
     if (state.isVariantInstalled) return l.gameDetail_pressAManage;
+    if (widget.isLocalOnly ||
+        !widget.variants[state.selectedIndex].hasDownloadSource) {
+      return '';
+    }
     return l.gameDetail_pressADownload;
   }
 }

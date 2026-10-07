@@ -48,17 +48,22 @@ internal class OwnedStorageService(private val context: Context) {
                     if (call.method == "launchOwnedDolphin" || call.method == "launchOwnedRetroArchGameGear" ||
                         call.method == "launchOwnedRetroArchN64" || call.method == "launchOwnedRetroArchPSX" ||
                         call.method == "launchOwnedRetroArchGameBoy" ||
+                        call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                         call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2") {
                         val gameGear = call.method == "launchOwnedRetroArchGameGear"
                         val gameBoy = call.method == "launchOwnedRetroArchGameBoy"
+                        val gameBoyColor = call.method == "launchOwnedRetroArchGameBoyColor"
+                        val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance"
+                        val handheld = gameBoy || gameBoyColor || gameBoyAdvance
+                        val handheldPlatform = if (gameBoyAdvance) "gba" else if (gameBoyColor) "gbc" else "gb"
                         val n64 = call.method == "launchOwnedRetroArchN64"
                         val psx = call.method == "launchOwnedRetroArchPSX"
                         val psp = call.method == "launchOwnedPPSSPP"
                         val ps2 = call.method == "launchOwnedNetherSX2"
-                        val retroArch = gameGear || n64 || gameBoy || psx
+                        val retroArch = gameGear || n64 || handheld || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
                         if ((gameGear && !filename.endsWith(".zip")) ||
-                            (gameBoy && !filename.endsWith(".7z")) ||
+                            (handheld && !filename.endsWith(".7z")) ||
                             (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
                             ((psx || psp || ps2) && !filename.endsWith(".chd"))) throw Failure("unsupported_archive")
                         val uri = if (retroArch || psp || ps2) OwnedRomContentProvider.gameGearUri(context,
@@ -66,7 +71,7 @@ internal class OwnedStorageService(private val context: Context) {
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
-                            requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else if (gameBoy) "gb" else null,
+                            requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else if (handheld) handheldPlatform else null,
                             requiredStandaloneChd = psx || psp || ps2).use { }
                         main.post {
                             if (closed) {
@@ -81,7 +86,7 @@ internal class OwnedStorageService(private val context: Context) {
                                     intent.setClassName(app, "com.retroarch.browser.retroactivity.RetroActivityFuture")
                                     val data = context.packageManager.getApplicationInfo(app, 0).dataDir
                                     intent.putExtra("ROM", uri.toString())
-                                    val core = if (gameGear) "genesis_plus_gx" else if (n64) "mupen64plus_next_gles3" else if (gameBoy) "sameboy" else "pcsx_rearmed"
+                                    val core = if (gameGear) "genesis_plus_gx" else if (n64) "mupen64plus_next_gles3" else if (gameBoyAdvance) "mgba" else if (handheld) "sameboy" else "pcsx_rearmed"
                                     intent.putExtra("LIBRETRO", "$data/cores/${core}_libretro_android.so")
                                 }
                                 if (psp) {
@@ -204,7 +209,8 @@ internal class OwnedStorageService(private val context: Context) {
             syncCheckpoint(session)
             identityMap(OwnedStorageNative.identity(session.fileFd))
         }
-        "ownedValidateGameGearZip", "ownedValidateN64Zip", "ownedValidateN64SevenZip", "ownedValidateGameBoySevenZip" -> {
+        "ownedValidateGameGearZip", "ownedValidateN64Zip", "ownedValidateN64SevenZip", "ownedValidateGameBoySevenZip",
+        "ownedValidateGameBoyColorSevenZip", "ownedValidateGameBoyAdvanceSevenZip" -> {
             val session = session(call)
             validateLocation(session)
             val before = OwnedStorageNative.identity(session.fileFd)
@@ -214,6 +220,8 @@ internal class OwnedStorageService(private val context: Context) {
                     "ownedValidateGameGearZip" -> OwnedGameGearZip.validate(path)
                     "ownedValidateN64Zip" -> OwnedGameGearZip.validateN64(path)
                     "ownedValidateGameBoySevenZip" -> OwnedN64SevenZip.validate(path, "gb")
+                    "ownedValidateGameBoyColorSevenZip" -> OwnedN64SevenZip.validate(path, "gbc")
+                    "ownedValidateGameBoyAdvanceSevenZip" -> OwnedN64SevenZip.validate(path, "gba")
                     else -> OwnedN64SevenZip.validate(path)
                 }
             }

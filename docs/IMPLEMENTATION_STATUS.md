@@ -5,6 +5,77 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 exact card reads and handheld recovery integration — 2026-10-07
+
+- Exact cached detail/rating/cover reads no longer drain the collection-wide
+  ranking/facet dirty queue. A reproducible real-SQLite regression failed for
+  all three readers before the change; focused checks now leave unrelated work
+  pending and verify that the subsequent collection query still consumes it
+  correctly. Current identity and ambiguity checks remain required. This fixes
+  card-scoped projection work, not the full Library projection's latency: the
+  normal post-update collection query held the database for several minutes
+  before finishing. No timeout, restart or speculative global-query fix was used.
+- Explicit GBC/GBA single-member 7z mappings reuse the existing pinned decoder,
+  complete stream/CRC checks, 16/32 MiB raw budgets and owned read-only leaf
+  handoff. Normal queue, typed recovery/adoption/offline validation, wrong-platform
+  rejection and launcher fixtures pass. Existing native decoder/grant checks
+  also pass. SameBoy and mGBA are the actual installed cores, not inferred from
+  information files. No ZIP/bundle or mixed-platform support is claimed.
+- Normal isolated Thor workflows verify GBC online boot/input and cold new-process
+  offline boot/input; GBA online boot and cold new-process offline boot. Both
+  verify owned removal, identical provider-verified re-download and a second
+  issue-free removal, with zero remaining proof owners and two completed removal
+  records each. GBA input beyond the title/high-score screens was not established;
+  button highlighting is not gameplay-input evidence. No original ROM was removed.
+- A source-less local cache row in a mixed remote console previously offered
+  Download and created a failed queue entry. Download capability now belongs to
+  the exact entry in the detail/controller/variant picker. Regression-first queue
+  checks and normal detail/picker touch/controller fixtures pass: missing local
+  entries are explicitly unavailable, installed local entries remain manageable,
+  and Drive entries require their own artifact and respect download denial.
+  Native normal GBA search confirms the installed local entry offers Delete and
+  the independently identified uninstalled Drive edition offers Download. The
+  missing-local rendering/queue case is host-verified, not a native missing-file
+  claim. No title-based identity borrowing or automatic adoption was introduced.
+- Focused serial Flutter checks cover library query/migration, artwork jobs,
+  Drive runtime/transfer and owned emulator handoff, plus detail source eligibility,
+  normal detail rendering, variant touch/controller behavior and exact Drive
+  identity. Scoped analysis and whitespace checks pass. No full suite was run;
+  unchanged checks from this task were retained rather than repeated for commit.
+- Final normal debug build 280 succeeded and host/installed APK hashes match:
+  `fea752ae0e946f7c8b61b5ae736aa64cca5fdc41f8fe89943f40e8503bab8426`.
+  Package/version and signer remain unchanged; installation used install -r,
+  without reset/uninstall/force-stop. The shared gate was acquired, with observed
+  workers=2, parallel=false and Gradle heap=3,221,225,472 bytes. Kotlin 2.2.20
+  runs in-process in that budget; required Metaspace 1 GiB/code cache 256 MiB stay.
+  Test-task configuration is one fork/512 MiB, not an executed test-JVM claim.
+  Native environment concurrency hint is two; actual plugin/Ninja concurrency
+  remains unverified. No memory failure or budget increase occurred. Build log:
+  `74a88734c3a7411ba9dc5b7c53ff62fc.log`. Earlier gated build 279 failed from
+  PowerShell splitting the unquoted target into a stray `.dart` task; the retry
+  quoted the complete argument after confirmed completion, not a memory change.
+- Joined post-update observation verifies unchanged full configuration hash
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`,
+  seven source objects, original console mappings and active=1/pending=null/
+  nextGeneration=2. RetroArch settings retain their baseline hash. Saved job 76
+  retains 44,204 items at requested=3,217: matched=74/rated=73, needsReview=997,
+  ambiguous=236, unmatched=1,862, invalidResponse=39, pending=40,996.
+- The first normal Resume stopped before progress with Drive interactionRequired.
+  Normal default-account Connect completed, verified by the connected state and
+  disappearance of source authorization errors, without saving/changing a source.
+  Resume of the same job then actually advanced requested lookups to 3,226 and
+  pending to 40,987. No duplicate job or external SQL observer overlaps this
+  resumed worker. Both physical displays are freshly confirmed committed OFF.
+- Reviewed empty isolated GBC/GBA proof directories were removed non-recursively.
+  Exact-file cleanup transaction 7d5f761542108d6499c7ea5f08647585 removed only the
+  consumed 4,205-byte observer compiler intermediate; absence is verified. Java
+  source, deployed jar and diagnostic proof remain available. Original saves,
+  BIOS, cloud files and external sync mechanisms remain untouched.
+- S7 remains sole ACTIVE: full fresh coverage, defensible canonical Top-25,
+  current complete readable cloud-byte proof, remaining format workflows and
+  reviewed migration are unfinished. S8-S10 remain NOT STARTED. No external
+  release or save-sync retirement is claimed.
+
 ### S10 conditional legacy save-sync retirement authorized — 2026-10-07
 
 - Specification revision 10 records the user's instruction to uninstall the old

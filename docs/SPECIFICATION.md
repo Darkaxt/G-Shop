@@ -296,6 +296,15 @@ appears only after installed-state commit; cancellation does not rely on sleeps.
 
 ### DRIVE-06 — Usable, save-safe local installations
 
+S7 mixed-catalogue integration detail (2026-10-07): download availability belongs
+to the exact selected entry, not its console's configured providers. A missing
+local cache row without a source is unavailable; never borrow a namesake's
+provider or Drive identity. Keep installed local management available. In mixed
+variant pickers, touch/controller selection must queue only variants with their
+own source; unavailable variants stay visible and explicitly labelled. Drive
+entries also require the exact artifact and must respect a declared denial of
+download capability. A missing source must not create a failed queue item.
+
 Install already emulator-ready files supported by the mapped system (including
 CHD/RVZ/WUA where supported). Do not add Android media conversion. Preserve
 multi-disc/bundle dependencies and playlists using safe relative paths; no bundle
@@ -909,6 +918,18 @@ configuration; R-Shop does not copy, obtain or mutate BIOS/settings. Verify norm
 download, actual online and fresh offline boot, owned removal and identical
 re-download in an isolated target. Missing emulator/BIOS remains a prerequisite,
 not a boot claim. Unproved archive/ISO/bundle formats remain preserved.
+
+S7 handheld archive recovery detail: extend the existing Game Boy single-member
+7z route to explicitly mapped GBC/GBA installations. Reuse its pinned-descriptor
+decoder, complete stream/CRC checks and exact owned document-leaf grant; require
+one matching `.gbc` or `.gba` member, with the existing 16/32 MiB raw budgets.
+Use installed RetroArch SameBoy for GB/GBC and mGBA for GBA. Preserve immutable
+console mapping through queue, publication, crash recovery and offline reopen;
+unknown/mixed mappings, wrong members and unsupported codecs/bundles remain
+rejected. Prove each normal queue -> actual online/cold offline boot -> exact
+owned removal -> identical re-download cycle in an isolated target before
+approving that console's migration. Metadata identification alone is not proof
+of restoration, ranking or removal eligibility. Preserve original saves/settings.
 
 Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
 identities, all bundle members, before/after space, saved-data preservation and

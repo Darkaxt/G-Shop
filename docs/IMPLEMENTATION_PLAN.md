@@ -32,6 +32,16 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
+S7 mixed-catalogue remediation (2026-10-07): the real handheld restore workflow
+exposed a source-less cached local entry offering Download in a console with
+Drive sources. Replace console-wide action eligibility with exact-entry source
+capability across detail, variant selection and controller queue entry points.
+Preserve local installed management and exact remote identity; no name-based
+fallback or provider adoption. Verify regression-first queue isolation, normal
+detail/variant touch/controller rendering and actual Thor local/remote actions.
+The saved metadata job remains the same immutable job 76; resume it rather than
+recreating its capture. This defect belongs to DRIVE-06 integration in S7.
+
 S7 cached-metadata recovery checkpoint (2026-10-07): normal settings now joins
 the existing catalogue-aware library recovery rather than initiating an extra
 full recovery whenever it loads. Real SQLite regression reproduces the former
@@ -901,6 +911,13 @@ private inventories or credentials.
 Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
+
+Current S7 recovery work (2026-10-07): extend the verified GB single-member 7z
+route to explicit GBC/GBA mappings, using the existing bounded decoder and owned
+document leaf. SameBoy/mGBA are installed; verify publication/crash/offline
+revalidation and wrong-platform rejection, then each normal isolated native
+boot/removal/identical-redownload cycle. Do not confuse the completed metadata
+identification slice with these still-unproved recovery criteria.
 
 Current S7 identification work (2026-10-07): extend the existing exact-local
 single-member 7z observation to GB/GBC, whose SD census contains hundreds of

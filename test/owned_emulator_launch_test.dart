@@ -98,7 +98,7 @@ void main() {
     expect(calls.single.method, 'launchOwnedRetroArchGameBoy');
     expect(calls.single.arguments, {'installationId': installed.id, 'filename': archive.filename});
     expect(OwnedEmulatorLauncher.supports(exactGame('zip', name: 'Game.zip'), gb), isFalse);
-    for (final id in ['gbc', 'gba', 'gc']) {
+    for (final id in ['gc']) {
       expect(OwnedEmulatorLauncher.supports(archive,
           SystemModel.supportedSystems.singleWhere((s) => s.id == id)), isFalse);
     }
@@ -106,6 +106,26 @@ void main() {
     await expectLater(missing.open(archive, gb, '/owned'), throwsStateError);
     expect(calls, hasLength(1));
   });
+  for (final (platform, method) in [
+    ('gbc', 'launchOwnedRetroArchGameBoyColor'),
+    ('gba', 'launchOwnedRetroArchGameBoyAdvance'),
+  ]) {
+    test('mapped $platform 7z keeps an exact owned console-specific handoff', () async {
+      final system = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
+      final archive = exactGame('$platform-7z', name: 'Game.7z');
+      final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+        'artifact': archive.remoteArtifact!.toJson(), 'relativePath': archive.filename});
+      final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+      expect(OwnedEmulatorLauncher.supports(archive, system), isTrue);
+      await launcher.open(archive, system, '/owned');
+      expect(calls.single.method, method);
+      expect(calls.single.arguments, {'installationId': installed.id, 'filename': archive.filename});
+      expect(OwnedEmulatorLauncher.supports(exactGame('zip', name: 'Game.zip'), system), isFalse);
+      final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+      await expectLater(missing.open(archive, system, '/owned'), throwsStateError);
+      expect(calls, hasLength(1));
+    });
+  }
   test('standalone PS1 CHD uses an exact owned RetroArch handoff', () async {
     final psx = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psx');
     final chd = exactGame('psx-chd', name: 'Game.chd');

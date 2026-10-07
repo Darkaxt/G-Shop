@@ -465,7 +465,11 @@ class GameDetailController extends ChangeNotifier {
   }
 
   Future<bool> addToQueue() async {
-    if (_state.isAddingToQueue) return false;
+    if (_state.isAddingToQueue ||
+        isLocalOnly ||
+        !selectedVariant.hasDownloadSource) {
+      return false;
+    }
 
     _state = _state.copyWith(isAddingToQueue: true, clearError: true);
     notifyListeners();
@@ -625,6 +629,7 @@ class GameDetailController extends ChangeNotifier {
   Future<bool> addVariantToQueue(int index) async {
     if (_state.isAddingToQueue) return false;
     if (index < 0 || index >= variants.length) return false;
+    if (isLocalOnly || !variants[index].hasDownloadSource) return false;
 
     _state = _state.copyWith(isAddingToQueue: true, clearError: true);
     notifyListeners();

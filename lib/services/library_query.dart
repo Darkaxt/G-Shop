@@ -639,6 +639,28 @@ class LibraryQuery {
     });
   }
 
+  static Future<Map<int, String>> _exactCacheEditions(
+      DatabaseExecutor txn, List<int> cacheRowIds) async {
+    final result = <int, String>{};
+    for (final id in cacheRowIds) {
+      final editions = await LibraryStore.catalogueEditions(txn, cacheRowId: id)
+          .take(2).toList();
+      if (editions.length != 1) continue;
+      final rows = await txn.rawQuery('''SELECT g.record_json AS game_json,
+        e.record_json AS edition_json FROM library_editions e
+        JOIN library_game_identities g ON g.game_id = e.game_id
+        WHERE e.edition_id = ? LIMIT 2''', [editions.single]);
+      if (rows.length == 1 &&
+          await LibraryStore.isCurrentCatalogueIdentity(txn, rows.single)) {
+        result[id] = editions.single;
+      }
+    }
+    // These consumers do not own the ranking/facet projection. Leave its dirty
+    // work for the collection query rather than draining it while holding a
+    // single card's transaction (and blocking the normal transfer journal).
+    return result;
+  }
+
   /// One exact selected ROM's current, identity-bound metadata. This does not
   /// look through siblings, read payloads or start a provider refresh.
   Future<GameMetadataInfo?> cachedMetadata(
@@ -665,14 +687,13 @@ class LibraryQuery {
             lastUpdated: 0,
             cacheRowId: files.first['id'] as int);
       }
-      await _refresh(txn, productionOverallScoreBases);
       final cacheId = files.single['id'] as int;
+      final bindings = await _exactCacheEditions(txn, [cacheId]);
       final rows = await txn.rawQuery('''SELECT e.edition_id,
         e.record_json AS edition_json, g.record_json AS game_json
-        FROM library_query_editions q JOIN library_editions e
-          ON e.edition_id = q.edition_id
+        FROM library_editions e
         JOIN library_game_identities g ON g.game_id = e.game_id
-        WHERE q.cache_row_id = ? AND q.member = 1 LIMIT 2''', [cacheId]);
+        WHERE e.edition_id = ? LIMIT 2''', [bindings[cacheId]]);
       if (rows.length != 1) {
         return GameMetadataInfo(
             filename: selectionKey,
@@ -786,17 +807,12 @@ class LibraryQuery {
     final bases = assessedBases ?? productionOverallScoreBases;
     final db = await _database;
     return db.transaction((txn) async {
-      await _refresh(txn, bases);
-      final rows = await txn.rawQuery('''SELECT cache_row_id,
-        MIN(edition_id) AS edition_id FROM library_query_editions
-        WHERE member = 1 AND cache_row_id IN
-          (${List.filled(ids.length, '?').join(',')})
-        GROUP BY cache_row_id HAVING COUNT(*) = 1''', ids);
+      final bindings = await _exactCacheEditions(txn, ids);
       final scores = await LibraryStore.readEffectiveRatings(
-          txn, rows.map((row) => row['edition_id'] as String).toList(),
+          txn, bindings.values.toSet().toList(),
           assessedBases: bases);
-      for (final row in rows) {
-        result[row['cache_row_id'] as int] = scores[row['edition_id']];
+      for (final binding in bindings.entries) {
+        result[binding.key] = scores[binding.value];
       }
       return Map<int, EffectiveOverallRating?>.unmodifiable(result);
     });
@@ -812,18 +828,10 @@ class LibraryQuery {
     final result = {for (final id in ids) id: null as String?};
     if (ids.isEmpty) return Map.unmodifiable(result);
     final db = await _database;
-    final rows = await db.transaction((txn) async {
-      await _refresh(txn, productionOverallScoreBases);
-      return txn.rawQuery('''SELECT cache_row_id,
-        MIN(edition_id) AS edition_id FROM library_query_editions
-        WHERE member = 1 AND cache_row_id IN
-          (${List.filled(ids.length, '?').join(',')})
-        GROUP BY cache_row_id HAVING COUNT(*) = 1''', ids);
-    });
-    for (final row in rows) {
-      final artwork =
-          await cache.artworkForEdition(row['edition_id'] as String);
-      result[row['cache_row_id'] as int] = artwork.cover;
+    final bindings = await db.transaction((txn) => _exactCacheEditions(txn, ids));
+    for (final binding in bindings.entries) {
+      final artwork = await cache.artworkForEdition(binding.value);
+      result[binding.key] = artwork.cover;
     }
     return Map.unmodifiable(result);
   }

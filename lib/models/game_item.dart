@@ -37,6 +37,18 @@ class GameItem {
   final List<AlternativeSource> alternativeSources;
   final RemoteArtifact? remoteArtifact;
 
+  /// A console may mix local cache rows and remote entries. Only this exact
+  /// entry's source can offer a download; never borrow a console's provider or
+  /// an identically named remote artifact for a local row.
+  bool get hasDownloadSource {
+    final provider = providerConfig;
+    if (provider == null) return false;
+    if (provider.type == ProviderType.drive) {
+      return remoteArtifact != null && remoteArtifact!.canDownload != false;
+    }
+    return remoteArtifact == null;
+  }
+
   /// Exact file identity is independent of title, location and current version.
   /// Legacy providers retain their existing filename grouping.
   String get identityKey => remoteArtifact == null
@@ -55,8 +67,12 @@ class GameItem {
     if (artifact == null) return filename;
     final digests = artifact.providerChecksums.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    final content = jsonEncode([artifact.id.key, artifact.version,
-      artifact.sizeBytes, {for (final digest in digests) digest.key: digest.value}]);
+    final content = jsonEncode([
+      artifact.id.key,
+      artifact.version,
+      artifact.sizeBytes,
+      {for (final digest in digests) digest.key: digest.value}
+    ]);
     return '\u0000artifact-ra:${sha256.convert(utf8.encode(content))}';
   }
 
@@ -106,7 +122,10 @@ class GameItem {
           : null,
       hasThumbnail: json['hasThumbnail'] as bool? ?? false,
       isFolder: json['isFolder'] as bool? ?? false,
-      remoteArtifact: json['remoteArtifact'] == null ? null : RemoteArtifact.fromJson((json['remoteArtifact'] as Map).cast<String, dynamic>()),
+      remoteArtifact: json['remoteArtifact'] == null
+          ? null
+          : RemoteArtifact.fromJson(
+              (json['remoteArtifact'] as Map).cast<String, dynamic>()),
     );
   }
 

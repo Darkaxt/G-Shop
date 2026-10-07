@@ -1,5 +1,34 @@
 # S7 live metadata and Thor migration
 
+## Exact-card reads and GBC/GBA recovery — 2026-10-07
+
+Exact cached detail, rating and cover reads now resolve only their bounded exact
+cache identities, leaving collection ranking/facet projection work to collection
+queries. Real SQLite regressions verify unrelated dirty rows remain pending and
+the later collection query still ranks correctly. This does not establish a full
+Library latency fix: its post-update projection finished only after a long live
+database wait, without reset, process termination or timeout-based recovery.
+
+Explicit mapped GBC/GBA single-member 7z recovery is integrated through normal
+queue/publication, typed crash and offline revalidation, ownership and exact-leaf
+RetroArch launching. Host and native format/grant checks pass. Normal isolated
+Thor workflows verify each actual online/cold offline boot, owned removal,
+identical provider-verified re-download and second issue-free removal. GBC input
+was demonstrated; GBA gameplay input was not. Original ROMs/settings were
+preserved, mappings restored and the reviewed empty proof directories removed.
+
+Mixed-console actions now use each entry's own source capability. Missing local
+rows cannot enter the queue; local installed management is preserved. Host normal
+detail/picker touch/controller fixtures and native installed-local/independent
+Drive actions verify that distinction without merging title namesakes. The native
+missing-local action is not separately claimed. See IMPLEMENTATION_STATUS.md for
+current installed artifact, acquired Gradle gate/profile and preservation evidence.
+
+Only these bounded integration slices are verified. S7 remains ACTIVE: the full
+fresh job, canonical/defensible Top-25 sets, current readable exact cloud bytes,
+remaining format workflows and reviewed migration are required. S8-S10 remain
+NOT STARTED; no bulk deletion, save-sync retirement or publication occurred.
+
 ## Cold artwork recovery corrected — 2026-10-07
 
 Native phase diagnostics located 24.4 seconds of the 35.6-second awake cold
