@@ -418,6 +418,10 @@ class DriveTransferOperation {
       _checkCancellation();
       await _session!.validateN64Archive(record.relativePath);
       _checkCancellation();
+    } else if (record.archivePlatformId == 'nes') {
+      _checkCancellation();
+      await _session!.validateNesSevenZip();
+      _checkCancellation();
     } else if (const {'gb', 'gbc', 'gba'}.contains(record.archivePlatformId)) {
       _checkCancellation();
       await _session!.validateGameBoySevenZip(record.archivePlatformId!);

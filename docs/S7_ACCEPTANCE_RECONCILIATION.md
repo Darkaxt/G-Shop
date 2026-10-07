@@ -1,5 +1,27 @@
 # S7 live metadata and Thor migration
 
+## Explicit NES archive recovery — 2026-10-07
+
+Revision 11's NES 7z profile now uses the existing bounded single-member decoder
+and normal owned queue, publication, mapping, adoption, offline validation and
+exact read-only RetroArch/FCEUmm handoff. Focused regression-first host/native
+checks verify the accepted signature/budget and reject wrong members, unsafe
+paths, mixed mappings, ZIP and unsupported layouts. Metadata identity publication
+is host-verified; a completed fresh NES collection scrape is not claimed.
+
+The normal isolated Thor workflow proves actual online boot and cold new-process
+offline boot with no active network, owned removal, identical re-download and
+second removal. FCEUmm availability was verified through normal core installation.
+The prototype/aftermarket proof item creates no official classification or Top
+exception. Original mappings/settings were restored exactly, the empty proof
+directory removed, saved job 76 resumed with actual progress and screens switched
+off. See IMPLEMENTATION_STATUS.md for artifact and Gradle resource evidence.
+
+Only this required format integration slice is verified. S7 stays ACTIVE: full
+fresh coverage, defensible canonical Top-25, current readable cloud bytes,
+remaining format workflows and reviewed migration remain required. S8-S10 stay
+NOT STARTED; legacy sync mechanisms and original ROMs/saves remain untouched.
+
 ## Exact-card reads and GBC/GBA recovery — 2026-10-07
 
 Exact cached detail, rating and cover reads now resolve only their bounded exact

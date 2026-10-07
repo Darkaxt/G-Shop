@@ -289,6 +289,7 @@ class _NativeStorage {
       case 'ownedValidateGameBoySevenZip':
       case 'ownedValidateGameBoyColorSevenZip':
       case 'ownedValidateGameBoyAdvanceSevenZip':
+      case 'ownedValidateNesSevenZip':
       case 'ownedValidateN64SevenZip':
       case 'ownedValidateN64Zip':
         expect(sessionOpen, isTrue);
@@ -711,11 +712,12 @@ void main() {
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
   });
-  for (final platform in ['gb', 'gbc', 'gba']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes']) {
    for (final invalid in [false, true]) {
     test('normal $platform 7z queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}', () async {
       final method = platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
-          platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' : 'ownedValidateGameBoyAdvanceSevenZip';
+          platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' :
+          platform == 'nes' ? 'ownedValidateNesSevenZip' : 'ownedValidateGameBoyAdvanceSevenZip';
       final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
       fixture.native.invalidArchive = invalid;
       final runtime = fixture.runtime();
@@ -752,6 +754,11 @@ void main() {
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gb'}), isTrue);
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gbc'}), isTrue);
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gba'}), isTrue);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes'}), isTrue);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.nes'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes', '.sfc'}), isFalse);
+    expect(TransferRecord.supportsArchiveMapping('Game.7z', 'nes'), isTrue);
+    expect(TransferRecord.supportsArchiveMapping('Game.zip', 'nes'), isFalse);
     for (final extensions in [{'.gb', '.gbc'}, {'.gbc', '.gba'}, {'.7z'}]) {
       expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions), isFalse);
     }
@@ -761,6 +768,7 @@ void main() {
   for (final (platform, method) in [
     ('gbc', 'ownedValidateGameBoyColorSevenZip'),
     ('gba', 'ownedValidateGameBoyAdvanceSevenZip'),
+    ('nes', 'ownedValidateNesSevenZip'),
   ]) {
     test('$platform 7z adoption retains its exact mapping and revalidates before reuse', () async {
       final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
@@ -998,7 +1006,7 @@ void main() {
     expect(await fixture.db.query('transfer_target_owners'), isEmpty);
     expect(fixture.native.stagePresent, isFalse);
   });
-  for (final platform in ['gb', 'gbc', 'gba']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes']) {
     test('$platform ZIP is not silently promoted to the 7z metadata profile',
         () async {
       final fixture =

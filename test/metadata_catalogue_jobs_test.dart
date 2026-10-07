@@ -737,7 +737,7 @@ void main() {
         isNull);
   });
 
-  for (final platform in ['gb', 'gbc', 'gba']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes']) {
     test('$platform job leaves unsupported ZIP identity unresolved', () async {
       final artifact = RemoteArtifact.fromJson({
         ...remote('archive').toJson(),

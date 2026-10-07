@@ -26,11 +26,11 @@ final class OwnedN64SevenZip {
         return validate(descriptorPath, "n64");
     }
 
-    /** Shared bounded single-member decoder for explicit handheld mappings.
+    /** Shared bounded single-member decoder for explicit console mappings.
      * A mapped suffix is not provider identity or migration approval. */
     static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
         require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform) ||
-                "gba".equals(platform));
+                "gba".equals(platform) || "nes".equals(platform));
         boolean n64 = "n64".equals(platform);
         long limit = n64 ? ROM_LIMIT : ("gba".equals(platform) ? 32L : 16L) * 1024 * 1024;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
@@ -65,20 +65,21 @@ final class OwnedN64SevenZip {
                     romVault = true;
                 }
                 byte[] decoded = new byte[(int) stream.unpacked];
-                decode(file, stream, decoded, false, null);
+                decode(file, stream, decoded, null, null);
                 header = decoded;
                 romEnd = 32 + stream.position;
             }
             Reader plain = new Reader(header); plain.expect(1); plain.expect(4);
             Stream rom = streams(plain, limit);
             require(!romVault || rom.method == 1);
-            require(rom.position == 0 && rom.packed == romEnd - 32 && rom.unpacked >= 4);
+            require(rom.position == 0 && rom.packed == romEnd - 32 &&
+                    rom.unpacked >= ("nes".equals(platform) ? 16 : 4));
             plain.expect(5); require(plain.number() == 1);
             String name = files(plain);
             require(name != null && safeName(name, platform));
             plain.expect(0); plain.end();
             OwnedArchiveIdentity identity = new OwnedArchiveIdentity();
-            decode(file, rom, null, n64, identity);
+            decode(file, rom, null, platform, identity);
             return identity.member(name);
         }
     }
@@ -192,6 +193,7 @@ final class OwnedN64SevenZip {
         String lower = name.toLowerCase(Locale.ROOT);
         boolean extension = "n64".equals(platform)
                 ? lower.endsWith(".n64") || lower.endsWith(".z64") || lower.endsWith(".v64")
+                : "nes".equals(platform) ? lower.endsWith(".nes")
                 : "gba".equals(platform) ? lower.endsWith(".gba")
                 : lower.endsWith(".gb") || "gbc".equals(platform) && lower.endsWith(".gbc");
         return extension &&
@@ -204,7 +206,7 @@ final class OwnedN64SevenZip {
         return magic == 0x40123780L || magic == 0x12408037L || magic == 0x80371240L;
     }
 
-    private static void decode(RandomAccessFile file, Stream s, byte[] header, boolean rom,
+    private static void decode(RandomAccessFile file, Stream s, byte[] header, String platform,
                                OwnedArchiveIdentity identity) throws IOException {
         require(s.position <= file.length() - 32 && s.packed <= file.length() - 32 - s.position);
         file.seek(32 + s.position);
@@ -230,7 +232,9 @@ final class OwnedN64SevenZip {
             }
             require(count == s.unpacked && crc.getValue() == s.crc && input.available() == 0 &&
                     bounded.remaining == 0 && (s.packedCrc == null || bounded.crc.getValue() == s.packedCrc));
-            require(!rom || n64Magic(magic));
+            require(!"n64".equals(platform) || n64Magic(magic));
+            require(!"nes".equals(platform) ||
+                    Arrays.equals(magic, new byte[]{'N', 'E', 'S', 0x1a}));
         }
     }
 

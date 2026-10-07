@@ -16,6 +16,65 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void nesProfileStreamsInesAndNes2IdentityWithoutChangingArchive() throws Exception {
+        for (boolean nes2 : new boolean[]{false, true}) {
+            byte[] raw = new byte[16 + 16384 + 8192];
+            System.arraycopy(new byte[]{'N', 'E', 'S', 0x1a}, 0, raw, 0, 4);
+            raw[4] = 1; raw[5] = 1; raw[7] = (byte) (nes2 ? 8 : 0);
+            for (int codec : new int[]{0, 1, 2}) {
+                for (boolean encodedHeader : new boolean[]{false, true}) {
+                    byte[] encoded = archive("Game.nes", raw, codec, encodedHeader, raw.length, codec == 2 ? 0 : 4096, 1);
+                    File file = File.createTempFile("rshop-nes-identity-", ".7z");
+                    try {
+                        Files.write(file.toPath(), encoded);
+                        java.util.Map<String, Object> value = OwnedN64SevenZip.validate(file.getPath(), "nes");
+                        assertEquals("Game.nes", value.get("filename"));
+                        assertEquals((long) raw.length, value.get("sizeBytes"));
+                        assertEquals(hash(raw, "MD5"), value.get("md5"));
+                        assertEquals(hash(raw, "SHA-1"), value.get("sha1"));
+                        assertNotEquals(hash(encoded, "MD5"), value.get("md5"));
+                        assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+                    } finally { assertTrue(file.delete()); }
+                }
+            }
+        }
+    }
+
+    @Test public void nesProfileRejectsInvalidHeaderNamesAndWorkBudget() throws Exception {
+        byte[] raw = rom();
+        System.arraycopy(new byte[]{'N', 'E', 'S', 0x1a}, 0, raw, 0, 4);
+        byte[][] invalid = {
+            archive("Game.gb", raw, 1, true, raw.length, 4096, 1),
+            archive("Game.sfc", raw, 1, true, raw.length, 4096, 1),
+            archive("../Game.nes", raw, 1, true, raw.length, 4096, 1),
+            archive("Game.nes", rom(), 1, true, raw.length, 4096, 1),
+            archive("Game.nes", Arrays.copyOf(raw, 4), 1, true, 4, 4096, 1),
+            archive("Game.nes", raw, 1, true, 16L * 1024 * 1024 + 1, 4096, 1),
+            archive("Game.nes", raw, 1, true, raw.length, 4096, 2),
+        };
+        for (byte[] encoded : invalid) {
+            File file = File.createTempFile("rshop-nes-reject-", ".7z");
+            try {
+                Files.write(file.toPath(), encoded);
+                try { OwnedN64SevenZip.validate(file.getPath(), "nes"); fail("Invalid NES profile accepted"); }
+                catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+            } finally { assertTrue(file.delete()); }
+        }
+    }
+
+    @Test public void nesMemberCannotBorrowAnotherConsoleProfile() throws Exception {
+        byte[] raw = rom();
+        System.arraycopy(new byte[]{'N', 'E', 'S', 0x1a}, 0, raw, 0, 4);
+        File file = File.createTempFile("rshop-nes-mapping-", ".7z");
+        try {
+            Files.write(file.toPath(), archive("Game.nes", raw, 1, true, raw.length, 4096, 1));
+            for (String platform : new String[]{"n64", "gb", "gbc", "gba", "snes"}) {
+                try { OwnedN64SevenZip.validate(file.getPath(), platform); fail("Wrong console accepted"); }
+                catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+            }
+        } finally { assertTrue(file.delete()); }
+    }
+
     @Test public void mappedGbaSevenZipStreamsMemberIdentityWithoutChangingArchive() throws Exception {
         byte[] raw = rom();
         raw[0] = 0;

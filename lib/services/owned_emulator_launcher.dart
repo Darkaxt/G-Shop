@@ -40,6 +40,7 @@ class OwnedEmulatorLauncher {
     final installed = await romManager.requireInstalledArtifact(game, root);
     await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' :
         system.id == 'n64' ? 'launchOwnedRetroArchN64' :
+        system.id == 'nes' ? 'launchOwnedRetroArchNes' :
         system.id == 'gb' ? 'launchOwnedRetroArchGameBoy' :
         system.id == 'gbc' ? 'launchOwnedRetroArchGameBoyColor' :
         system.id == 'gba' ? 'launchOwnedRetroArchGameBoyAdvance' :

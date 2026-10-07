@@ -223,6 +223,7 @@ class MainActivity : FlutterActivity() {
             if (call.method.startsWith("owned") || call.method == "launchOwnedDolphin" ||
                 call.method == "launchOwnedRetroArchGameGear" || call.method == "launchOwnedRetroArchN64" ||
                 call.method == "launchOwnedRetroArchGameBoy" ||
+                call.method == "launchOwnedRetroArchNes" ||
                 call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
                 call.method == "launchOwnedNetherSX2") {

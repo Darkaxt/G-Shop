@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 10.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 11.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S10
@@ -31,6 +31,16 @@ do not hold an external read cursor alongside writes to its rollback-journal
 database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
+
+S7 NES vertical slice (2026-10-07): the completed NES census establishes an
+actual 1,498-archive migration cohort, not speculative console coverage. Reuse
+the explicit bounded 7z path for a single valid `.nes` member / 16 MiB raw budget
+through local-only metadata identification, immutable installation/adoption,
+offline reopen and exact-leaf RetroArch FCEUmm handoff. Verify profile isolation,
+complete stream/CRC/digest checks and existing routes with focused regressions;
+then prove normal native online/cold offline boot, owned removal and identical
+re-download in an isolated destination. Preserve job 76, mappings and original
+ROMs/saves/settings. No SNES/bundle support or ranking approval is implied.
 
 S7 unchanged-snapshot remediation (2026-10-07): the normal cache writer performs
 an UPDATE for identical snapshot rows, firing membership/projection invalidation

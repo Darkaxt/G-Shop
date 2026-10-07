@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions and save backups
 
-Authoritative specification, revision 10, 2026-10-07.
+Authoritative specification, revision 11, 2026-10-07.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -546,6 +546,23 @@ installation/adoption/removal support, completed-request rewrite or new scoring
 exception follows. Verify the native decoder, ordinary persisted provider/shared
 recovery path and real multi-entry already-local workflow. NES/SNES profile
 expansion is not implemented merely because the same decoder could support it.
+
+S7 NES archive detail (2026-10-07): the completed NES census has 1,498 exact
+local/cloud archive-byte matches, but the existing owned archive route cannot
+identify or restore this actual collection. Complete that required migration
+boundary with an explicit NES 7z profile: one safe `.nes` member, a 16 MiB raw
+budget, a valid iNES/NES 2.0 signature and unchanged bounded header/dictionary,
+complete stream/CRC and pinned-file checks. Existing local metadata identification
+retains exact container/cloud checks and version-bound publication, with no
+remote ROM-body request or saved-request/membership rewrite. Installation,
+adoption and offline reopen retain immutable NES mapping and the exact owned
+read-only leaf grant. Use the installed RetroArch FCEUmm core after verifying its
+actual availability. Prove the normal download/online and cold offline boot,
+owned removal and identical re-download cycle in an isolated target. Wrong
+members, mixed mappings, unsupported layouts and unproved bundles stay rejected;
+no SNES expansion, inferred official classification or ranking exception follows.
+Preserve original ROMs, saves, BIOS and emulator settings. This is an ordinary
+format integration for META-01/META-03 and MIGRATE-01 in the sole ACTIVE S7.
 
 ### META-04 — Hacks, translations and score ownership
 

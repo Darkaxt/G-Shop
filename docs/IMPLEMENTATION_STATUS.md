@@ -5,6 +5,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 NES owned archive recovery — 2026-10-07
+
+- Revision 11's explicit single-member NES 7z profile is integrated through the
+  existing pinned bounded decoder, normal queue/publication, immutable mapping,
+  adoption, offline validation, local metadata identification and exact read-only
+  RetroArch leaf grant. Only `.nes`, a 16 MiB raw budget, minimum 16-byte header
+  and `NES` signature are accepted; existing complete stream/CRC checks remain.
+  No ZIP, SNES, bundle, title-based adoption or ranking exception was added.
+- Regression-first host checks reproduced missing NES support before the change.
+  Focused serial Flutter runtime/launch/metadata-job/transfer/storage/journal
+  checks pass; scoped analysis and whitespace checks pass. Native decoder/grant
+  XML reports zero failures/errors. These verify identity binding and rejection
+  behavior, not completion of the collection's fresh metadata pass.
+- The combined gated native test/debug build passed (log
+  `ddaa1712e3f84f9bbe12f0d64c469fd5.log`). The supervisor acquired
+  `Local\\Darka.AndroidGradleBuildGate`; observed workers=2, parallel=false,
+  Gradle heap=3,221,225,472 bytes. Kotlin 2.2.20 ran in-process in that budget,
+  preserving Metaspace 1 GiB/code cache 256 MiB. Test-task configuration was one
+  fork/512 MiB. Native environment concurrency hint was two; actual Ninja
+  concurrency remains unverified. No memory failure or budget increase occurred.
+  The earlier RED invocation waited for confirmed external-build completion.
+- Normal signer-preserving install -r updated the existing debug package, without
+  uninstall/reset/force-stop. Host and installed APK SHA-256 match
+  `7bf5d33b441e9c2c32350626de76fee8ec921bbc356f920e0fe9ecd628b65cd4`.
+  FCEUmm was absent and was installed through RetroArch's normal Core Downloader;
+  the normal Load Core list confirmed it. Other cores were not updated.
+- A new empty isolated destination proved normal Drive download and actual NES
+  boot, then cold new-process offline boot with Wi-Fi disabled and no active
+  default network. Normal Quit ended the first emulator process; the offline
+  boot used a new process. No gameplay-input or collection-retention claim is
+  inferred from this prototype/aftermarket proof item.
+- Normal owned removal left the isolated directory empty. Normal re-download
+  produced identical archive SHA-256; a second owned removal again left it empty.
+  The original destination was restored through the folder picker and its empty
+  proof directory removed non-recursively. Original ROMs/saves/BIOS were not
+  removed. Configuration hash and RetroArch settings hash match their baseline.
+- Saved ScreenScraper job 76 remains the same 44,204-item capture. Joined Pause
+  held requested=3,781; root state stayed active=1/pending=2/nextGeneration=3.
+  Normal Resume actually advanced requested lookups to 3,789. No external SQL
+  observer overlaps the resumed worker. Both physical displays are confirmed OFF.
+- Online/offline proof captures remain private for diagnosis. S7 remains sole
+  ACTIVE: full fresh coverage, defensible canonical Top-25, current complete
+  readable cloud-byte proof, remaining format workflows and reviewed migration
+  are unfinished. S8-S10 remain NOT STARTED. Legacy save-sync mechanisms remain
+  untouched; no external release or retirement is claimed.
+- Cleanup transaction `da9363a0fb91e7f03762752032ee2eb9` removed only the reviewed
+  disposable 126,606-byte last-screen capture. The online/offline proof images and
+  required installed-build evidence remain; no broad temporary-tree cleanup ran.
+
 ### S7 identical catalogue-write invalidation — 2026-10-07
 
 - The normal `saveGames` upsert updated identical cached rows and therefore fired
