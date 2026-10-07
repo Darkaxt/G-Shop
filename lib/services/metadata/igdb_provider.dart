@@ -114,7 +114,7 @@ class IgdbMetadataProvider implements MetadataProvider {
       }
       final query =
           'fields $_fields${request.corroboration == null ? '' : ',$_corroborationFields'}; '
-          '${id == null ? 'search ${jsonEncode(request.title)}; where platforms = ($platform);' : 'where id = $id;'} limit 30;';
+          '${id == null ? 'search ${jsonEncode(request.searchTitle)}; where platforms = ($platform);' : 'where id = $id;'} limit 30;';
       final response = await _post(
           'https://api.igdb.com/v4/games',
           query,
@@ -163,7 +163,7 @@ class IgdbMetadataProvider implements MetadataProvider {
             titleMatched: titles.any((t) =>
                 normalizeMetadataTitle(t.text).isNotEmpty &&
                 normalizeMetadataTitle(t.text) ==
-                    normalizeMetadataTitle(request.title)),
+                    normalizeMetadataTitle(request.searchTitle)),
             evidence: id == null ? 'platformAndTitle' : 'verifiedProviderId'));
         games.add(game);
       }

@@ -480,6 +480,16 @@ explicitly cleared manual regions take precedence. The hint is not an assigned
 region, content classification, verified match, score or removal authority. Saved
 jobs keep their captured requests; new capture does not rewrite running work.
 
+NDS catalogue-title detail (S7, 2026-10-07): the observed four-digit retail and
+`z` plus three-digit catalogue numbers before ` - ` are listing ordinals, not
+game-title words. Omit that narrowly shaped leading prefix in NDS provider search
+and exact candidate-title comparison. Preserve the original captured title,
+raw-ROM filename, game/edition identity and request JSON; record the derived
+search title/method when a qualified match is published. Do not alter other
+platforms or actual game numbers lacking this prefix shape. This is title
+discovery only: unknown/modified editions remain reviewable, and existing
+classification, regional evidence, ambiguity, score and migration gates apply.
+
 Acceptance: ordinary releases, punctuation/localization variants, wrong-platform
 matches, container hashes, conversion/rename and conflicting candidates; false
 matches are rejected and correction survives re-scraping.

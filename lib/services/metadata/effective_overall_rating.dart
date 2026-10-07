@@ -1,7 +1,7 @@
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
 import 'metadata_provider.dart'
-    show MetadataCorroboration, normalizeMetadataTitle;
+    show MetadataCorroboration, metadataSearchTitle, normalizeMetadataTitle;
 
 enum OverallRatingOwnership { game, originalGame, project }
 
@@ -292,8 +292,8 @@ OverallRatingOwnership? metadataOverallOwnership(GameIdentity game,
         record.titles.any((title) =>
             normalizeMetadataTitle(title.text).isNotEmpty &&
             normalizeMetadataTitle(title.text) ==
-                normalizeMetadataTitle(
-                    record.matchEvidence['title'] as String))) {
+                normalizeMetadataTitle(metadataSearchTitle(record.platformId,
+                    record.matchEvidence['title'] as String)))) {
       return OverallRatingOwnership.game;
     }
     return null;

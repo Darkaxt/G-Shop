@@ -150,6 +150,94 @@ ScreenScraperProvider _provider(_Wire wire, {bool configured = true}) =>
         clock: () => DateTime.utc(2026, 9, 8));
 
 void main() {
+  test('NDS catalogue numbers are not part of provider title discovery',
+      () async {
+    for (final prefix in ['6280', 'z491']) {
+      for (final tags in [
+        <String>{},
+        {'official'},
+        {'Hack'},
+        {'T-Eng'}
+      ]) {
+        final game = _game(system: '15')..['notgame'] = 'false';
+        final wire = _Wire({
+          'response': {
+            'jeux': [game]
+          }
+        });
+        final api = _provider(wire);
+        final request = _request(
+            platform: 'nds',
+            verifiedProviderGameId: null,
+            title: '$prefix - Fixture Adventure',
+            region: 'us',
+            tags: tags);
+        final captured = jsonEncode(request.toJson());
+        final result = await api.lookup(request);
+        api.close();
+        expect(wire.requests.single.queryParameters['recherche'],
+            'Fixture Adventure');
+        expect(result.candidates.single.titleMatched, isTrue);
+        expect(jsonEncode(request.toJson()), captured);
+        expect(result.officialRomEvidence, isNull);
+        expect(
+            result.status,
+            tags.contains('official')
+                ? MetadataLookupStatus.matched
+                : MetadataLookupStatus.needsReview);
+        if (result.record != null) {
+          expect(result.record!.matchEvidence['title'], request.title);
+          expect(
+              result.record!.matchEvidence['searchTitle'], 'Fixture Adventure');
+          expect(result.record!.matchEvidence['titleNormalization'],
+              'ndsCatalogueNumberV1');
+        }
+      }
+    }
+  });
+
+  test('NDS discovery preserves game numbers, other consoles and raw names',
+      () async {
+    for (final (platform, title) in [
+      ('nds', '42 - All-Time Classics'),
+      ('nds', '100 Classic Games'),
+      ('nds', '1234 Adventures'),
+      ('nds', 'z491 Adventures'),
+      ('snes', '6280 - Fixture Adventure'),
+      ('psp', 'z491 - Fixture Adventure'),
+    ]) {
+      final wire = _Wire({
+        'response': {'jeux': <Object>[]}
+      });
+      final api = _provider(wire);
+      await api.lookup(_request(
+          platform: platform, title: title, verifiedProviderGameId: null));
+      api.close();
+      expect(wire.requests.single.queryParameters['recherche'], title);
+    }
+    final wire = _Wire({
+      'response': {'jeu': _game(system: '15')}
+    });
+    final api = _provider(wire);
+    final request = _request(
+        platform: 'nds',
+        title: '6280 - Fixture Adventure',
+        verifiedProviderGameId: null,
+        identifier: const MetadataRomIdentifier(
+            kind: RomIdentifierKind.rawRom,
+            filename: '6280 - Fixture Adventure (USA).nds',
+            sizeBytes: 1024,
+            crc32: 'ABCDEF12'));
+    final captured = jsonEncode(request.toJson());
+    await api.lookup(request);
+    api.close();
+    expect(wire.requests.single.queryParameters['romnom'],
+        '6280 - Fixture Adventure (USA).nds');
+    expect(
+        wire.requests.single.queryParameters.containsKey('recherche'), isFalse);
+    expect(jsonEncode(request.toJson()), captured);
+  });
+
   test('reviewed edition region selects its cover instead of provider order',
       () async {
     final game = _game();

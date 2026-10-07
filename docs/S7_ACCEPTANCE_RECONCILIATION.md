@@ -1,5 +1,31 @@
 # S7 live metadata and Thor migration
 
+## NDS catalogue-title discovery — 2026-10-07
+
+Literal listing ordinals prevented NDS title discovery. The narrowly shared
+derivation now serves both providers, qualified rating ownership and subsequent
+IGDB corroboration while preserving original captures/raw names and classification,
+region, ambiguity and score gates. Regression-first adapter, real persistent worker,
+affected rating/query checks and scoped analysis pass. Bounded real ScreenScraper
+queries produce candidates for all three public samples without publishing an
+unknown edition or manufacturing a score. The acquired-gate debug build succeeds;
+the preserving native update has independently matching APK/configuration hashes.
+
+Normal hotel-network sign-in resolves the observed microG unreachable-host crash,
+and default-account reconnect permits the SAME saved job to advance. Normal joined
+Pause, fixed bounded READONLY membership checks and Resume preserve its 44,204
+items. Newly processed numbered NDS captures remain intact; the two reached so far
+are unmatched, so native positive-candidate publication is not claimed. Diagnostic
+processes/JARs finish and are removed before Resume; both displays are OFF/Asleep.
+Exact counters, proof boundaries, artifact hashes, build settings and cleanup are
+recorded in IMPLEMENTATION_STATUS.md.
+
+This verifies discovery and same-job continuation, not full NDS/collection coverage
+or defensible Top-25 migration. S7 remains the sole ACTIVE stage with required
+coverage, retention, format recovery, current cloud gates and reviewed migration
+unfinished. S8-S11 remain NOT STARTED, including CACHE-01's Settings and automatic
+rotation. No original ROM/save/BIOS, cloud data or legacy sync was removed.
+
 ## Metadata identifier Pause contract — 2026-10-07
 
 The normal local-archive read exposed typed Drive cancellation escaping as an

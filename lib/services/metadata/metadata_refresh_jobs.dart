@@ -918,8 +918,8 @@ class MetadataRefreshJobs {
             record.matchEvidence['title'] is! String ||
             !record.titles.any((t) =>
                 normalizeMetadataTitle(t.text) ==
-                normalizeMetadataTitle(
-                    record.matchEvidence['title'] as String)))) {
+                normalizeMetadataTitle(metadataSearchTitle(record.platformId,
+                    record.matchEvidence['title'] as String))))) {
       return null;
     }
     final dates = record.releaseDates
@@ -964,8 +964,8 @@ class MetadataRefreshJobs {
       MetadataLookupRequest request,
       Map<String, Object?> identity,
       CancelToken cancel) async {
-    final archive =
-        {'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes'}.contains(request.platformId);
+    final archive = {'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes'}
+        .contains(request.platformId);
     if ((archive ? _readArchiveIdentifier == null : _readRomHeader == null) ||
         request.romIdentifier != null ||
         request.verifiedProviderGameId != null ||
@@ -1006,7 +1006,8 @@ class MetadataRefreshJobs {
         !(archive
             ? {'n64', 'gamegear'}.contains(request.platformId) &&
                     artifact.displayName.toLowerCase().endsWith('.zip') ||
-                {'n64', 'gb', 'gbc', 'gba', 'nes', 'snes'}.contains(request.platformId) &&
+                {'n64', 'gb', 'gbc', 'gba', 'nes', 'snes'}
+                        .contains(request.platformId) &&
                     artifact.displayName.toLowerCase().endsWith('.7z')
             : artifact.displayName.toLowerCase().endsWith('.chd'))) {
       return null;
@@ -1015,18 +1016,22 @@ class MetadataRefreshJobs {
     final MetadataRomIdentifier? raw;
     try {
       if (archive) {
-        raw = await _readArchiveIdentifier!(artifact, request.platformId, cancel);
+        raw =
+            await _readArchiveIdentifier!(artifact, request.platformId, cancel);
       } else {
-        final bytes = await _readRomHeader!(artifact, request.platformId, cancel);
+        final bytes =
+            await _readRomHeader!(artifact, request.platformId, cancel);
         raw = bytes == null
             ? null
-            : MetadataRomIdentifier.fromChdDvdHeader(bytes, artifact.displayName);
+            : MetadataRomIdentifier.fromChdDvdHeader(
+                bytes, artifact.displayName);
       }
     } catch (error) {
       // Drive reads drain before reporting cancellation. Translate only that
       // typed outcome for this job's signal, not errors racing with Pause.
       if (cancel.isCancelled &&
-          (error is DriveApiException && error.issue == DriveApiIssue.cancelled ||
+          (error is DriveApiException &&
+                  error.issue == DriveApiIssue.cancelled ||
               error is DriveTransferException &&
                   error.issue == DriveTransferIssue.cancelled)) {
         throw const _RefreshCommitCancelled();

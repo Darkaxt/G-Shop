@@ -94,6 +94,31 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
       region: 'jp',
       developer: 'Nintendo',
       publisher: 'Nintendo');
+  test('IGDB NDS discovery omits catalogue number without assigning identity',
+      () async {
+    final wire = _Transport([
+      {
+        ...fixture,
+        'platforms': [20]
+      }
+    ]);
+    final api = provider(wire);
+    addTearDown(api.close);
+    final captured = MetadataLookupRequest.fromJson({
+      ...request(platform: 'nds', tags: {}).toJson(),
+      'title': '6280 - Super Mario World',
+    });
+    final before = jsonEncode(captured.toJson());
+    final result = await api.lookup(captured);
+    expect(wire.requests.last.data,
+        contains('search "Super Mario World"; where platforms = (20);'));
+    expect(result.candidates.single.titleMatched, isTrue);
+    expect(result.status, MetadataLookupStatus.needsReview);
+    expect(result.record, isNull);
+    expect(result.officialRomEvidence, isNull);
+    expect(jsonEncode(captured.toJson()), before);
+  });
+
   final corroboratedWire = {
     ...fixture,
     'release_dates': [
@@ -453,6 +478,117 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
     });
   }
 
+  test('normal NDS worker retains numbered captures and classification gates',
+      () async {
+    final db = await factory.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games (id INTEGER PRIMARY KEY,
+      systemSlug TEXT, displayName TEXT, filename TEXT,
+      is_folder INTEGER DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
+    await LibraryQuery.install(db);
+    final tags = [
+      <String>[],
+      ['official'],
+      ['Hack'],
+      ['T-Eng']
+    ];
+    for (var n = 0; n < tags.length; n++) {
+      final title = '${6200 + n} - Fixture Adventure';
+      await db.insert('games', {
+        'id': n + 1,
+        'systemSlug': 'nds',
+        'displayName': title,
+        'filename': '$title (USA).7z'
+      });
+    }
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    final store = LibraryStore(Future.value(db));
+    final seed = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final seedRows = await db.query('metadata_refresh_items',
+        where: 'job_id = ?', whereArgs: [seed.id], orderBy: 'edition_id');
+    for (var n = 0; n < seedRows.length; n++) {
+      final edition =
+          (await store.edition(seedRows[n]['edition_id'] as String))!;
+      await store.putEdition(EditionIdentity.fromJson({
+        ...edition.toJson(),
+        'tags': tags[n],
+      }));
+    }
+    final wire = _Transport({
+      'response': {
+        'jeux': [
+          {
+            'id': '456',
+            'systeme': {'id': '15'},
+            'noms': [
+              {'region': 'us', 'text': 'Fixture Adventure'}
+            ],
+            'dates': [
+              {'region': 'us', 'text': '2007-01-01'}
+            ],
+            'note': {'text': '18'},
+          }
+        ]
+      }
+    });
+    final ss = ScreenScraperProvider(
+        httpClientAdapter: wire,
+        readDeveloperCredentials: () async =>
+            const ScreenScraperDeveloperCredentials(
+                developerId: 'fixture',
+                developerPassword: 'fixture',
+                softwareName: 'fixture'),
+        readUserCredentials: () async => const ScreenScraperUserCredentials(
+            username: 'fixture', password: 'fixture'));
+    addTearDown(ss.close);
+    final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final before = await db.query('metadata_refresh_items',
+        where: 'job_id = ?', whereArgs: [job.id], orderBy: 'edition_id');
+    final result = await jobs.run(job.id, ss);
+    expect(result.state, 'completed');
+    expect(result.counts, {'matched': 1, 'needsReview': 3});
+    final after = await db.query('metadata_refresh_items',
+        where: 'job_id = ?', whereArgs: [job.id], orderBy: 'edition_id');
+    for (var n = 0; n < after.length; n++) {
+      expect(after[n]['request_json'], before[n]['request_json']);
+      final request = jsonDecode(after[n]['request_json'] as String);
+      final edition = (await store.edition(after[n]['edition_id'] as String))!;
+      expect(edition.tags.toList(), request['contentTags']);
+      final record = await store.metadata(edition.id, ss.providerId);
+      if (edition.tags.contains('official')) {
+        expect(record!.matchEvidence['title'], request['title']);
+        expect(record.matchEvidence['searchTitle'], 'Fixture Adventure');
+        final rating = (await store.effectiveRatings([edition.id]))[edition.id];
+        expect(rating, isNotNull);
+        expect(rating!.ownership, OverallRatingOwnership.game);
+        expect(rating.rankingEligible, isFalse);
+      } else {
+        expect(record, isNull);
+      }
+    }
+    expect(wire.requests, hasLength(4));
+    expect(wire.requests.map((r) => r.queryParameters['recherche']),
+        everyElement('Fixture Adventure'));
+    final top = await LibraryQuery(Future.value(db))
+        .page(filter: LibraryQueryFilter(top: 25));
+    expect(top.rankedGames, 0);
+    expect(top.provisional, isTrue);
+    final igdb = await jobs.createFromCatalogue(providerId: 'igdb');
+    final igdbItems = await db.query('metadata_refresh_items',
+        where: 'job_id = ?', whereArgs: [igdb.id]);
+    final official = igdbItems.singleWhere((item) =>
+        (jsonDecode(item['request_json'] as String)['contentTags'] as List)
+            .contains('official'));
+    final corroborated = jsonDecode(official['request_json'] as String);
+    expect(corroborated['title'], 'Fixture Adventure');
+    expect(corroborated['corroboration']['providerGameId'], '456');
+    final calls = wire.requests.length;
+    await jobs.run(job.id, ss);
+    expect(wire.requests.length, calls);
+  });
+
   test('normal two-provider workers bind regional title facts and rank offline',
       () async {
     final db = await factory.openDatabase(inMemoryDatabasePath);
@@ -789,7 +925,12 @@ void defineIgdbProviderChecks(DatabaseFactory factory) {
         'filename': 'Super Mario World translation.sfc'
       });
       final jobs = MetadataRefreshJobs(Future.value(db));
-      final wire = _Transport([fixture]);
+      // This case exercises an advisory original-game score. SNES now has an
+      // assessed community basis, so use actual support below its 20-vote floor
+      // rather than assuming that every SNES score is unassessed.
+      final wire = _Transport([
+        {...fixture, 'rating_count': 19}
+      ]);
       final api = provider(wire);
       addTearDown(api.close);
       final store = LibraryStore(Future.value(db));

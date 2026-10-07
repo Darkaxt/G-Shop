@@ -344,7 +344,7 @@ class ScreenScraperProvider
           if (raw.md5 != null) 'md5': raw.md5!.toLowerCase(),
           if (raw.sha1 != null) 'sha1': raw.sha1!.toLowerCase(),
         },
-        if (!byId && raw == null) 'recherche': request.title,
+        if (!byId && raw == null) 'recherche': request.searchTitle,
       };
       final response = await _readApi(
           byId || raw != null ? 'jeuInfos.php' : 'jeuRecherche.php',
@@ -397,7 +397,7 @@ class ScreenScraperProvider
         final titleMatched = titles.any((title) =>
             normalizeMetadataTitle(title.text).isNotEmpty &&
             normalizeMetadataTitle(title.text) ==
-                normalizeMetadataTitle(request.title));
+                normalizeMetadataTitle(request.searchTitle));
         final titleQualified = !byId &&
             raw == null &&
             (data['jeux'] as List).length < 30 &&
@@ -412,7 +412,7 @@ class ScreenScraperProvider
             (game['notgame'] == null || _text(game['notgame']) == 'false') &&
             titles.any((title) =>
                 normalizeMetadataTitle(title.text) ==
-                    normalizeMetadataTitle(request.title) &&
+                    normalizeMetadataTitle(request.searchTitle) &&
                 {_region(request.region!), 'wor'}
                     .contains(_region(title.region ?? ''))) &&
             selectEditionReleaseDate(
@@ -679,6 +679,10 @@ class ScreenScraperProvider
             ? {
                 'matchingPolicy': 'regionalReleaseV1',
                 'title': request.title,
+                if (request.searchTitle != request.title) ...{
+                  'searchTitle': request.searchTitle,
+                  'titleNormalization': 'ndsCatalogueNumberV1',
+                },
                 'region': _region(request.region!)
               }
             : const {},

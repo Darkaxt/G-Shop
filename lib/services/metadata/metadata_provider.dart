@@ -174,6 +174,13 @@ class MetadataRomIdentifier {
 String normalizeMetadataTitle(String value) =>
     value.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
 
+/// Only observed NDS listing ordinals are omitted from title discovery. The
+/// captured title remains the provenance binding, not this derived query.
+String metadataSearchTitle(String platformId, String title) =>
+    platformId == 'nds'
+        ? title.replaceFirst(RegExp(r'^(?:[0-9]{4}|z[0-9]{3}) - (?=\S)'), '')
+        : title;
+
 /// Compact facts from a current bound ScreenScraper official release.
 /// The worker, not an imported catalogue claim, establishes this provenance.
 class MetadataCorroboration {
@@ -285,6 +292,11 @@ class MetadataLookupRequest {
   final MetadataRomIdentifier? romIdentifier;
   final MetadataCorroboration? corroboration;
   final int refreshGeneration;
+
+  /// NDS listings include catalogue ordinals. They are not
+  /// title words. Derive only the query; never rewrite captured identity or ROM
+  /// filenames, or infer classification from a cleaned name.
+  String get searchTitle => metadataSearchTitle(platformId, title);
 
   MetadataLookupRequest({
     required this.gameId,

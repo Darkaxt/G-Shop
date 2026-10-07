@@ -1110,7 +1110,12 @@ restoration/removal support and does not authorize speculative NES/SNES expansio
   Establish defensible Top-25 retention per console; no fabricated scores or
   automatic deletion of unresolved games. Count canonical games, retain bundles.
 - Resolve shared matching defects rather than curate individual games. The
-  authorized revision-9 standardized policy is S7 work: prove unique exact
+  reproduced NDS catalogue-number defect belongs to this same S7 boundary:
+  strip only the observed ordinal shape for provider discovery, retain captured
+  requests/raw names and prove both adapters plus normal persistent publication.
+  Verify bounded real NDS candidate discovery and same-job native continuation;
+  do not promote unknown editions or recapture/rewrite saved job 76.
+  The authorized revision-9 standardized policy is S7 work: prove unique exact
   platform/title/region selection in ScreenScraper and current bound regional-year
   corroboration in IGDB without company-wording/day-month vetoes. Preserve
   ambiguity, edition/modification conflicts, immutable jobs, atomic publication,

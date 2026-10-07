@@ -5,6 +5,56 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 NDS catalogue-title discovery — verified continuation, 2026-10-07
+
+- A bounded audit reproduced numbered NDS catalogue titles being sent literally
+  to both title-discovery adapters. Real ScreenScraper queries for two captured
+  names returned no usable game; omitting the listing ordinal returned candidates.
+  The shared derivation now omits only the observed four-digit or `z`/three-digit
+  prefix followed by ` - ` on NDS. Original request JSON, raw-ROM names and
+  identities remain unchanged. Qualified match provenance retains the original
+  title plus the derived search/method; ownership and IGDB corroboration use the
+  same derivation. Other consoles and meaningful game numbers are unchanged.
+- Regression-first adapter and normal persistent worker checks pass, including
+  unknown/Hack/T-Eng review gates, exact-region official publication, immutable
+  captures, rating ownership, subsequent current corroboration and no completed
+  job replay. Focused affected provider/request and rating-store checks plus
+  scoped analysis pass serially. An old SNES advisory fixture failed with and
+  without this fix because SNES now has an assessed community basis; its support
+  was corrected to 19 votes, below the existing floor, without changing policy.
+  No full suite was run.
+- Bounded real ScreenScraper checks for three public numbered NDS titles pass:
+  two produce reviewable candidates and one remains ambiguous. No metadata record,
+  official classification or score is fabricated. This is live host-provider proof,
+  not full native collection coverage or permission to promote unknown editions.
+- Shared-gate debug assembly succeeded with actual gate acquisition, FIFO ticket
+  349. Observed workers=2, parallel=false and Gradle heap=3,221,225,472 bytes.
+  Kotlin 2.2.20 is configured in-process; compile tasks were up-to-date. Test task
+  settings are one fork/512 MiB (not executed by assembly); current app JNI compile
+  and link pools have depth one for all three ABIs. No memory failure or heap
+  increase occurred. Log: `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/22b09f74dea4463da22830a63e381131.log`.
+- Signer-preserving debug install succeeded. Host/installed APK SHA-256 is
+  `31478c76a3fcf4c870f9c16ee4b194a65fcdcdf93d4e2ca3ac6b821b57bbd03a`;
+  configuration remains `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  Hotel captive-portal expiry caused microG's real NoRouteToHostException during
+  reconnect; normal network sign-in restored VALIDATED internet, then normal
+  default-account reconnect succeeded. No credentials/source/settings were replaced.
+- The SAME saved job advanced requested=5,564 -> 5,610. Normal Pause joined cleanly;
+  fixed bounded READONLY diagnostics confirm Paused and exactly 44,204 members,
+  pending=38,610. Two newly processed numbered NDS entries retain their captured
+  names and genuinely remain unmatched; native positive-candidate publication is
+  not claimed from them. Native Resume follows diagnostic completion/removal
+  and advances requested=5,652/pending=38,568, Running.
+  No external database reader remains beside the writer. Both physical displays
+  are committed OFF and wakefulness is Asleep.
+- The exact temporary device diagnostic JAR is removed and confirmed absent.
+  Reviewed cleanup ticket `33a71d48b9b3a0313af26fd7e624bff88b1ea48b9ad520196a774cc6210e1c1d`
+  removed only expendable compiler output (4,722 bytes), without errors. Private
+  diagnostic source/JAR and required build evidence remain for further verification.
+  S7 remains the sole ACTIVE stage: full coverage, defensible retention, required
+  format/cloud recovery and reviewed migration are unfinished. S8-S11 remain
+  NOT STARTED; no ROM/save/BIOS removal, legacy-sync action or release occurred.
+
 ### Authorized managed-cache/settings scope — 2026-10-07
 
 - Specification revision 13 records the user's explicit requirement for managed

@@ -60,6 +60,51 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
+  test('live NDS numbered catalogue titles discover reviewable candidates',
+      () async {
+    final api = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(api.close);
+    const titles = [
+      "6280 - Mimi's Party Fun!",
+      'z491 - Pokemon Mystery Dungeon - Blue Rescue Team',
+      '0001 - Electroplankton',
+    ];
+    for (var n = 0; n < titles.length; n++) {
+      final request = MetadataLookupRequest(
+          gameId: 'nds-discovery-$n',
+          editionId: 'nds-discovery-edition-$n',
+          platformId: 'nds',
+          title: titles[n],
+          refreshGeneration: 1);
+      final captured = jsonEncode(request.toJson());
+      final result = await api.lookup(request);
+      expect(
+          result.status,
+          anyOf(MetadataLookupStatus.needsReview,
+              MetadataLookupStatus.ambiguous));
+      expect(result.candidates, isNotEmpty);
+      expect(result.candidates.every((c) => c.platformId == 'nds'), isTrue);
+      expect(result.record, isNull);
+      expect(result.officialRomEvidence, isNull);
+      expect(jsonEncode(request.toJson()), captured);
+      stdout.writeln('NDS_DISCOVERY ${jsonEncode({
+            'sample': n,
+            'status': result.status.name,
+            'candidates': result.candidates.length,
+            'titleMatched': result.candidates.any((c) => c.titleMatched),
+            'published': result.record != null
+          })}');
+    }
+  },
+      skip: developer.isConfigured &&
+              user.isConfigured &&
+              Platform.environment['RSHOP_NDS_DISCOVERY_CAPTURE'] == 'true'
+          ? false
+          : 'Explicit NDS discovery capture and credentials required.',
+      timeout: Timeout.none);
+
   test('current official cohort uses standardized regional name confidence',
       () async {
     final cohort = jsonDecode(
