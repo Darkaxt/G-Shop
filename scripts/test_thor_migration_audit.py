@@ -46,12 +46,18 @@ class MigrationAuditTests(unittest.TestCase):
         dart = (root / 'lib/services/library_query.dart').read_text(encoding='utf-8')
         ranks = re.search(r"static String _rankedScope\(String scope\) => '''(.*?)''';",
                           dart, re.S).group(1).replace('$scope', 'AND platform_id = ?')
-        method = dart[dart.index('Future<LibraryRetentionPage> retentionPage'):]
-        page = re.search(r"final response = await txn.rawQuery\('''(.*?)'''", method, re.S).group(1)
+        method = dart[dart.index('static Future<LibraryRetentionPage> _retentionPage'):
+                      dart.index('static void _validate')]
+        page = re.search(r"final response = await txn.rawQuery\(\s*'''(.*?)'''", method, re.S).group(1)
         native = (root / 'scripts/RShopRetentionSnapshot.java').read_text(encoding='utf-8')
         shipped = re.search(r'String SQL = """\s*(.*?)\s*""";', native, re.S).group(1)
-        expected = page.replace('$cte', ranks).strip()
-        if shipped != expected:
+        # Native review is the normal paged query, not the optional exact-row
+        # review. Instantiate that explicit null branch, preserving SQL tokens.
+        row_filter = "${cacheRowId == null ? '' : 'WHERE s.cache_row_id = ?'}"
+        if page.count(row_filter) != 1:
+            raise AssertionError('Unrecognized retention row-filter expression')
+        expected = page.replace('$cte', ranks).replace(row_filter, '').strip()
+        if shipped.split() != expected.split():
             raise AssertionError('Native retention observation must use the actual Dart query')
         return shipped
 
@@ -411,7 +417,7 @@ class MigrationAuditTests(unittest.TestCase):
         device.retention_page.assert_called_once_with('n64', 0)
         for change in ({'schema': 'rshop.s7.retention.v1'}, {'platform': 'psx'},
                        {'offset': 1}, {'readOnly': False}, {'removalAuthorized': True},
-                       {'total_members': 2001}, {'members': []},
+                       {'total_members': 100001}, {'members': []},
                        {'members': [dict(member, canonical_rank=True)]},
                        {'members': [dict(member, edition_id='x' * 4097)]},
                        {'members': [dict(member, artifact_key=4)]}):
@@ -427,6 +433,86 @@ class MigrationAuditTests(unittest.TestCase):
             device.retention_page.side_effect = [json.dumps(first).encode(), json.dumps(second).encode()]
             with self.assertRaises(ValueError):
                 audit.retention_snapshot(device, 'n64')
+
+    def test_retention_pages_cross_old_2000_member_limit(self):
+        def pages():
+            for offset in range(0, 2049, 128):
+                members = [{'artifact_key': f'key-{n}', 'edition_id': f'edition-{n}',
+                            'game_id': f'game-{n}', 'group_key': f'group-{n}',
+                            'canonical_rank': n + 1}
+                           for n in range(offset, min(offset + 128, 2049))]
+                yield json.dumps(dict(self.retention_fixture(members,
+                    collection_games=2049, ranked_games=2049, total_members=2049),
+                    schema='rshop.s7.retention.v2', readOnly=True,
+                    removalAuthorized=False, offset=offset)).encode()
+        device = Mock()
+        device.retention_page.side_effect = pages()
+        snapshot = audit.retention_snapshot(device, 'n64')
+        self.assertEqual(len(snapshot['members']), 2049)
+        self.assertEqual(snapshot['members'][-1]['canonical_rank'], 2049)
+        self.assertEqual(device.retention_page.call_args.args, ('n64', 2048))
+
+    def test_retention_keeps_only_inspected_artifacts_but_observes_entire_scope(self):
+        total = 16384
+        wanted = {'key-0', 'key-9000', 'key-16383'}
+        def pages():
+            for offset in range(0, total, 128):
+                members = [{'artifact_key': f'key-{n}', 'edition_id': f'edition-{n}',
+                            'game_id': f'game-{n}', 'group_key': f'group-{n}',
+                            'canonical_rank': n + 1}
+                           for n in range(offset, offset + 128)]
+                yield json.dumps(dict(self.retention_fixture(members,
+                    platform='nes', collection_games=total, ranked_games=total, total_members=total),
+                    schema='rshop.s7.retention.v2', readOnly=True,
+                    removalAuthorized=False, offset=offset)).encode()
+        device = Mock()
+        device.retention_page.side_effect = pages()
+        result = audit.retention_snapshot(device, 'nes', wanted)
+        self.assertEqual(result['total_members'], total)
+        self.assertEqual(result['ranked_games'], total)
+        self.assertEqual({m['artifact_key'] for m in result['members']}, wanted)
+        self.assertEqual(len(result['members']), 3)
+        self.assertEqual(device.retention_page.call_count, total // 128)
+
+    def test_retention_subset_preserves_duplicate_drift_and_memory_guards(self):
+        member = {'artifact_key': 'unrelated', 'edition_id': 'edition',
+                  'game_id': 'game', 'group_key': 'group', 'canonical_rank': 1}
+        first = dict(self.retention_fixture([member], collection_games=2,
+            ranked_games=2, total_members=2), schema='rshop.s7.retention.v2',
+            readOnly=True, removalAuthorized=False, offset=0)
+        device = Mock()
+        # Even an unrelated duplicate or changing summary invalidates the audit.
+        for second in (dict(first, offset=1), dict(first, offset=1,
+                members=[dict(member, edition_id='other')], dirty_editions=1)):
+            device.retention_page.side_effect = [json.dumps(first).encode(), json.dumps(second).encode()]
+            with self.assertRaises(ValueError):
+                audit.retention_snapshot(device, 'n64', {'wanted'})
+        device.retention_page.side_effect = None
+        device.retention_page.return_value = json.dumps(first).encode()
+        with patch.object(audit, 'MAX_RETENTION_IDENTITY_BYTES', 1):
+            with self.assertRaisesRegex(ValueError, 'observed identity bound'):
+                audit.retention_snapshot(device, 'n64', {'wanted'})
+        with patch.object(audit, 'MAX_RETAINED_RETENTION_BYTES', 1):
+            with self.assertRaisesRegex(ValueError, 'retained member bound'):
+                audit.retention_snapshot(device, 'n64')
+        with self.assertRaisesRegex(ValueError, 'requested identity bound'):
+            audit.retention_snapshot(device, 'n64', {'x' * 4097})
+        device.retention_page.return_value = b' ' * 1048577
+        with self.assertRaisesRegex(ValueError, 'page exceeds'):
+            audit.retention_snapshot(device, 'n64', set())
+
+    def test_retention_native_invocation_can_read_large_scope_with_bounded_heap(self):
+        device = Device('adb', 'serial', 'package',
+                        retention_helper='/data/local/tmp/retention.jar')
+        with patch.object(device, '_read', return_value=b'{}') as read:
+            device.retention_page('nes', 16384)
+            command, limit = read.call_args.args
+            self.assertEqual(limit, 1048576)
+            self.assertEqual(command[-1], 'CLASSPATH=/data/local/tmp/retention.jar '
+                'app_process -Xmx128m /system/bin RShopRetentionSnapshot nes 16384')
+        for offset in (-1, True, 100001, '0;id'):
+            with self.assertRaises(ValueError):
+                device.retention_page('nes', offset)
 
     def test_native_retention_projection_joins_primary_key_not_filename(self):
         source = (Path(__file__).parent / 'RShopRetentionSnapshot.java').read_text()

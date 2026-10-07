@@ -45,6 +45,7 @@ WITH scoped AS (
         throw new IllegalArgumentException("Exact platform and bounded offset required");
       }
       int offset = Integer.parseInt(args[1]);
+      if (offset > 100000) throw new IllegalArgumentException("Catalogue bound");
       String query = "SELECT q.*,g.artifact_key,"
           + "(SELECT COUNT(*) FROM library_query_dirty) AS dirty_editions,"
           + "(SELECT COUNT(*) FROM library_query_cache_dirty) AS dirty_artifacts FROM ("

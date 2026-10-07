@@ -5,6 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 large-console retention audit — 2026-10-07
+
+- A regression reproduced the audit's incorrect 2,000-member ceiling against
+  the already-supported larger console catalogues. Retention observation now
+  validates 128-row pages through the existing 100,000-member census bound,
+  retaining only exact artifact keys associated with inspected SD candidates.
+  Duplicate identities and summary drift still reject the entire observation,
+  including discarded rows. Observed identity and retained-binding byte budgets
+  are each 16 MiB; individual pages remain capped at 1 MiB. No ranking, ownership,
+  download or removal policy changed.
+- Focused host contracts pass, including 2,049-member paging, a 16,384-member
+  scope retaining only three requested bindings, invalid/duplicate/drifting
+  observations and byte bounds. The SQL-equivalence verifier was repaired to
+  select the previously factored production retention method and instantiate
+  its explicit normal-page branch; SQL tokens remain identical to the fixed
+  native observer. Diff checks pass. No full suite or Gradle build was needed.
+- Fresh javac and D8 compilation each used an explicit 128 MiB heap. The unique
+  prepared native helper's host/device SHA-256 both equal
+  `59e3c775d1a34a258fe87ce3e8d0fdc25806cbc8ed62fe9a92bd8e7a9fde3e4a`.
+  Native observation uses `app_process -Xmx128m`. After normal Pause joined
+  scrape 76 at requested=5,129/pending=39,088, offset 2,048 returned 128 members
+  and a complete 10,100-member NES traversal terminated successfully. This
+  summary-only proof retained zero bindings deliberately; it is not an SD
+  keep/remove manifest or execution proof. Actual summary: 10,100 canonical
+  groups/members, zero ranked/unbound artifacts, 216 dirty editions and ten dirty
+  artifacts. Incomplete/dirty ranking remains unusable for removal planning.
+  A mid-traversal host process observation was 22,306,816-byte working set;
+  that is a diagnostic sample, not a measured peak or universal memory bound.
+- Configuration SHA-256 remains
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  Normal Resume advanced the SAME immutable job to requested=5,132/pending=39,085
+  with Running status; it was not recreated. No external SQLite reader remains
+  alongside the writer. Both displays were confirmed committed OFF afterwards,
+  with wakefulness Asleep. The unique
+  device helper is retained for the next exact inspected-cohort audit; expendable
+  host compiler outputs were removed by reviewed cleanup ticket (11,705 bytes,
+  no residuals; they are reproducible, not backups). No ROM/save,
+  cloud or legacy sync app/task changes occurred. S7 alone remains ACTIVE;
+  complete fresh coverage, defensible retention, current readable cloud copies,
+  remaining recovery and reviewed migration execution remain required. S8-S10
+  are NOT STARTED. Legacy retirement remains conditional on verified S10.
+
 ### S7 exact-artifact retention review — 2026-10-07
 
 - The existing recovery review now binds the full current RemoteArtifact JSON,

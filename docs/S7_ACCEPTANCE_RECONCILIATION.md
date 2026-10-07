@@ -1,5 +1,25 @@
 # S7 live metadata and Thor migration
 
+## Large-console retention audit — 2026-10-07
+
+The read-only audit's 2,000-member ceiling was inconsistent with supported
+catalogue sizes. Regression-first remediation preserves fixed 128-row pages,
+1 MiB transport, complete duplicate/summary validation and explicit byte budgets,
+while retaining only bindings for exact inspected SD/cloud artifact keys. The
+production ranking and removal gates are unchanged. Focused host contracts and
+the repaired production/native SQL-equivalence check pass.
+
+Fresh bounded compilation and a hash-verified helper on the Thor prove offset
+2,048 and successful traversal of the complete 10,100-member NES scope after
+normal Pause joined the writer. This summary-only traversal intentionally retained
+no bindings; it does not prove a reviewed SD manifest. Zero ranks and pending
+projection dirt remain truthful and cannot justify removal. Configuration is
+unchanged; normal Resume advances the same saved scrape. Both screens were
+switched off. See IMPLEMENTATION_STATUS.md for exact observations and boundaries.
+S7 remains sole ACTIVE; coverage, defensible sets, current cloud/restore gates
+and reviewed execution remain required. S8-S10 are NOT STARTED; old save-sync
+mechanisms stay untouched until verified S10 handover.
+
 ## Exact-artifact retention review — 2026-10-07
 
 The normal game-detail recovery review now resolves the full current remote

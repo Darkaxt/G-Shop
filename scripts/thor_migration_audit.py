@@ -22,6 +22,9 @@ GATES = ["canonical_identity_review", "defensible_retention",
          "live_cloud_revalidation", "tested_restore", "save_sync_safety",
          "execution_time_local_revalidation"]
 MAX_RETAINED_ARTIFACT_BYTES = 16 * 1048576
+MAX_RETENTION_MEMBERS = 100000  # Same supported catalogue bound as cloud_snapshot.
+MAX_RETENTION_IDENTITY_BYTES = 16 * 1048576
+MAX_RETAINED_RETENTION_BYTES = 16 * 1048576
 
 
 def checked_relative_path(path, root):
@@ -140,10 +143,10 @@ class Device:
     def retention_page(self, platform, offset):
         if (not self.retention_helper or
                 not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', platform) or
-                type(offset) is not int or not 0 <= offset <= 2000):
+                type(offset) is not int or not 0 <= offset <= MAX_RETENTION_MEMBERS):
             raise ValueError('Prepared native retention helper and bounded page required')
         command = ('CLASSPATH=' + self.retention_helper +
-                   ' app_process /system/bin RShopRetentionSnapshot ' + platform + ' ' + str(offset))
+                   ' app_process -Xmx128m /system/bin RShopRetentionSnapshot ' + platform + ' ' + str(offset))
         return self._read(self.prefix + ['exec-out', 'run-as', self.package,
                                         'sh', '-c', command], 1048576)
 
@@ -170,7 +173,7 @@ class Device:
             process.stdout.close()
 
 
-def retention_snapshot(device, platform):
+def retention_snapshot(device, platform, artifact_keys=None):
     """Bounded observational pages; execution must revalidate actual membership.
 
     Summary changes abort this review. Unchanged counts alone do NOT prove an
@@ -178,16 +181,29 @@ def retention_snapshot(device, platform):
     """
     fields = ('collection_games', 'ranked_games', 'total_members',
               'unbound_artifacts', 'dirty_editions', 'dirty_artifacts')
+    if artifact_keys is not None:
+        artifact_keys = set(artifact_keys)
+        if (any(not isinstance(key, str) or not key or
+                len(key.encode('utf-8')) > 4096 for key in artifact_keys) or
+                sum(len(key.encode('utf-8')) for key in artifact_keys) >
+                MAX_RETAINED_RETENTION_BYTES):
+            raise ValueError('Retention requested identity bound exceeded')
     result = None
     offset = 0
+    identity_bytes = retained_bytes = 0
     editions = set()
     while True:
-        page = json.loads(device.retention_page(platform, offset))
+        payload = device.retention_page(platform, offset)
+        if len(payload) > 1048576:
+            raise ValueError('Retention page exceeds buffer limit')
+        page = json.loads(payload)
         if (not isinstance(page, dict) or page.get('schema') != 'rshop.s7.retention.v2' or
                 page.get('platform') != platform or page.get('offset') != offset or
                 page.get('readOnly') is not True or page.get('removalAuthorized') is not False or
                 any(type(page.get(f)) is not int or page[f] < 0 for f in fields) or
-                page['total_members'] > 2000 or page['ranked_games'] > page['collection_games'] or
+                page['total_members'] > MAX_RETENTION_MEMBERS or
+                page['collection_games'] > page['total_members'] or
+                page['ranked_games'] > page['collection_games'] or
                 not isinstance(page.get('members'), list) or len(page['members']) > 128):
             raise ValueError('Invalid bounded retention observation')
         if result is None:
@@ -211,7 +227,14 @@ def retention_snapshot(device, platform):
                       not 1 <= member['canonical_rank'] <= page['ranked_games']))):
                 raise ValueError('Invalid or repeated retention binding')
             editions.add(member['edition_id'])
-            result['members'].append(member)
+            identity_bytes += len(member['edition_id'].encode('utf-8'))
+            if identity_bytes > MAX_RETENTION_IDENTITY_BYTES:
+                raise ValueError('Retention observed identity bound exceeded')
+            if artifact_keys is None or member['artifact_key'] in artifact_keys:
+                retained_bytes += len(json.dumps(member, ensure_ascii=False).encode('utf-8'))
+                if retained_bytes > MAX_RETAINED_RETENTION_BYTES:
+                    raise ValueError('Retention retained member bound exceeded')
+                result['members'].append(member)
         offset += len(page['members'])
         if offset == result['total_members']:
             return result
@@ -443,7 +466,16 @@ def main():
             checked_relative_path(path, args.root)
     artifacts, scopes = ([], []) if args.inventory_only else cloud_snapshot(
         device, args.platform, {PurePosixPath(path).name for path in paths})
-    retention = retention_snapshot(device, args.platform) if args.retention_helper else None
+    retention = retention_snapshot(device, args.platform, {
+        json.dumps([identity[field] for field in
+                    ('providerId', 'sourceId', 'accountId', 'providerFileId')],
+                   separators=(',', ':'), ensure_ascii=False)
+        for artifact in artifacts
+        for identity in [artifact.get('id')]
+        if isinstance(identity, dict) and all(
+            isinstance(identity.get(field), str) and identity[field]
+            for field in ('providerId', 'sourceId', 'accountId', 'providerFileId'))
+    }) if args.retention_helper else None
     by_name = collections.defaultdict(list)
     for artifact in artifacts:
         by_name[artifact['displayName']].append(artifact)

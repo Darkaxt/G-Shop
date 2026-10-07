@@ -52,6 +52,16 @@ without ROM changes. All cloud/restore/save/sync/execution gates remain required
 this does not close S7. After normal default-account reconnect, the same scrape
 advanced to requested=4,943/pending=39,274; both screens are confirmed OFF.
 
+Verified S7 audit scalability: regression-first removal of the incorrect
+2,000-member audit ceiling preserves bounded 128-row reads and validates every
+console member, retaining only exact inspected-cohort bindings. Fixed native
+SQL still matches the production normal-page query. Thor offset 2,048 and the
+full 10,100-member NES traversal pass after normal writer Pause, with unchanged
+configuration and truthful zero/dirty ranks. This is observation, not a reviewed
+SD manifest or deletion authority. Resume advances the same immutable scrape to
+requested=5,132/pending=39,085; complete ranking and reviewed execution remain
+ordinary S7 work. S7 alone is ACTIVE; S8-S10 remain NOT STARTED.
+
 S7 NES vertical slice (2026-10-07): the completed NES census establishes an
 actual 1,498-archive migration cohort, not speculative console coverage. Reuse
 the explicit bounded 7z path for a single valid `.nes` member / 16 MiB raw budget
