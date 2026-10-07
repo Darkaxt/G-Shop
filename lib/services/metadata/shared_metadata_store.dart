@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite/sqflite.dart';
@@ -1272,6 +1273,11 @@ class SharedMetadataStore {
   /// membership, provider match or installation is invented from cached names.
   Future<int> restore(Database destination) async {
     await requireAccess();
+    final watch = Stopwatch()..start();
+    assert(() {
+      debugPrint('Shared metadata recovery started');
+      return true;
+    }());
     String? editionCursor, providerCursor;
     int? generationCursor;
     var restored = 0;
@@ -1429,6 +1435,11 @@ class SharedMetadataStore {
       if (page.length < 128) break;
       keyCursor = page.last['media_key'] as String;
     }
+    assert(() {
+      debugPrint('Shared metadata recovery completed: '
+          'restored=$restored elapsedMs=${watch.elapsedMilliseconds}');
+      return true;
+    }());
     return restored;
   }
 

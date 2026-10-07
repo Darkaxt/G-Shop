@@ -5,6 +5,56 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 catalogue-aware settings recovery — 2026-10-07
+
+- Traced unchanged settings loading to an independent full shared-store restore
+  in addition to the library readiness restore. A real SQLite/provider regression
+  failed with three passes instead of one. Settings now reads the same library
+  recovery future without watching/recreating the app-scoped metadata worker.
+  A second catalogue notification during recovery still gets its own pinned pass.
+  Raw-store in-flight coalescing was rejected during integration review because
+  it could join a newer catalogue state to an older snapshot; it is not shipped.
+- Focused real SQLite recovery, changed-edition/manual-edit rejection, source and
+  account ambiguity, base/bundle recovery and normal worker Pause/Resume checks
+  pass. The bounded 129-edition recovery/query fixture passes without network;
+  no full-suite/30,000-edition workload was run. Scoped analysis and diff checks
+  are clean. Debug diagnostics report only recovery phase/count/elapsed time,
+  not source/account IDs, filenames, credentials or metadata bodies.
+- Final build 250 acquired `Local\Darka.AndroidGradleBuildGate` and exited zero.
+  Observed workers=2, parallel=false, Gradle heap=3,221,225,472 bytes; assessed
+  Kotlin 2.2.20 runs in-process within that heap. Required Metaspace 1 GiB/code
+  cache 256 MiB remain. Test-task configuration is one fork/512 MiB, not an
+  executed native test; full plugin-native concurrency remains unverified.
+  No memory failure or budget increase. Build log:
+  `45dbf9d52468465fbc7caad71d5b3155.log`. Earlier build 249 was superseded after
+  rejecting raw-store coalescing; both builds ran serially through the same gate.
+- Host and installed APK SHA-256:
+  `06a483d719474d270655069a178df399b6aa8fa502b00ac599d3d761758d197d`.
+  Package `com.darkaxt.rshop.debug`, version 1.7.0/12 and debug signer unchanged
+  (`06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`).
+  In-place updates preserved app data; no reset/uninstall/force-stop was used.
+- Before/after update observations with worker paused verify configuration hash
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`,
+  active=1/pending=null/nextGeneration=2 and unchanged job 76: requested=2,551,
+  matched=54 (rated=53), needsReview=807, ambiguous=189, unmatched=1,460,
+  invalidResponse=34, pending=41,660 (44,204 total). Normal native cold recovery
+  completed once with restored=0 / elapsedMs=36,038. Normal IGDB switching and
+  switching back loaded saved credentials immediately without another recovery
+  start. Saved jobs showed the same paused job 76; normal selection/Resume showed
+  Running from that checkpoint. No external SQL observation overlaps the resumed
+  worker. Both physical displays confirmed OFF after normal sleep.
+- Cold full-catalogue recovery latency remains unresolved S7 work; removal of
+  duplicate passes is not proof of a complete performance fix. Full fresh scrape,
+  canonical/defensible retention, current recoverable cloud-byte proof, remaining
+  format round trips and reviewed migration remain unfinished. S7 alone ACTIVE;
+  S8-S10 NOT STARTED. No original ROM/save/BIOS, FolderSync or cloud file changed.
+- Execution correction: an early compile-error test run had not yet exited when
+  a second launch was mistakenly attempted. It was refused by a locked SQLite
+  DLL before tests ran; the first process's completion was then confirmed before
+  subsequent verification. No concurrent Gradle build or memory exhaustion
+  occurred. The final verified implementation contains neither that compilation
+  error nor the rejected raw-store coalescing.
+
 ### S7 Game Boy owned recovery round trip — 2026-10-07
 
 - Extended the existing owned archive route only to explicitly mapped GB 7z:

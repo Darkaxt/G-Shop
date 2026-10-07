@@ -675,6 +675,12 @@ Handle revoked storage permission, unavailable/remounted storage and interrupted
 publication explicitly without replacing the last usable generation. App-private
 metadata already present must migrate without dropping verified facts or files.
 
+Settings and library readers join the same catalogue-aware recovery operation.
+Reopening settings or switching metadata providers must not independently repeat
+a full unchanged-catalogue rebuild. A real catalogue notification, including one
+arriving during an earlier recovery, must still schedule recovery of that newer
+snapshot; do not coalesce different catalogue states at the raw-store boundary.
+
 Use the published remote catalogue, not local ROM presence, as the membership
 input for scraping and shared metadata updates. A successful catalogue/provider
 refresh updates exact affected identities and their current metadata; an outage

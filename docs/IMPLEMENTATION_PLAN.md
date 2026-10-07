@@ -31,6 +31,16 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
+S7 cached-metadata recovery checkpoint (2026-10-07): normal settings now joins
+the existing catalogue-aware library recovery rather than initiating an extra
+full recovery whenever it loads. Real SQLite regression reproduces the former
+three-pass behavior and verifies one unchanged pass plus distinct recoveries for
+notifications arriving during an active pass. Native build 250 verifies one
+cold recovery and no additional recovery when switching IGDB/ScreenScraper.
+Cold full-catalogue recovery still takes 36 seconds; that latency remains S7
+work, not a completed performance contract or a later-stage deferral. The same
+job 76 resumes from requested=2,551 with configuration/generation preserved.
+
 S7 current recovery work (2026-10-07): prove the required standalone Game Boy 7z
 workflow through the existing immutable `gb` archive mapping, pinned native
 validation, owned queue publication and exact read-only RetroArch SameBoy grant.

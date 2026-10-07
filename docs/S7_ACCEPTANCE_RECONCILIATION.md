@@ -1,5 +1,28 @@
 # S7 live metadata and Thor migration
 
+## Repeated settings recovery corrected — 2026-10-07
+
+Normal settings now joins the library's catalogue-aware recovery future. Its
+previous independent `restore()` calls reproduced three real SQLite recovery
+passes for unchanged settings/library reads. Focused verification now proves
+one unchanged pass, and a separate pinned recovery for each actual catalogue
+notification, including notifications arriving during recovery. Raw-store
+coalescing was rejected because it could swallow a newer catalogue state.
+Changed members, account/source ambiguity, manual edits, base/bundle bindings,
+durable recovery and normal worker Pause/Resume retain their existing checks.
+
+The normal signer-preserving debug update (build 250) has matching host/installed
+SHA-256 and retained configuration, seven sources, generation 1 and every saved
+job 76 outcome. Native cold recovery completed once (36,038 ms); normal IGDB and
+ScreenScraper switching then read the saved credentials without another recovery
+start. Normal saved-job selection/Resume showed job 76 Running at its preserved
+2,551-request checkpoint. Both physical displays are OFF.
+
+This corrects duplicated recovery, not its remaining cold full-catalogue latency.
+Full fresh coverage, defensible canonical retention, current recoverable cloud
+bytes and remaining required recovery/migration workflows still keep S7 ACTIVE.
+No S8-S10 work, original ROM removal, classification exception or release occurred.
+
 ## Game Boy owned 7z recovery verified — 2026-10-07
 
 The explicitly mapped GB 7z route now participates in the normal queue,

@@ -114,6 +114,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
   final void Function() _catalogueChanged;
   final Future<MetadataArtworkCache>? _artworkCache;
   final Future<SharedMetadataStore?>? _sharedStore;
+  final Future<int> Function()? _restoreProjection;
   final Future<String?> Function(String systemId)? _configuredTarget;
   Future<void>? _operation, _loading, _closing;
   bool _closed = false;
@@ -126,6 +127,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       required IgdbCredentialStore igdbCredentials,
       Future<MetadataArtworkCache>? artworkCache,
       Future<SharedMetadataStore?>? sharedStore,
+      Future<int> Function()? restoreProjection,
       Future<Uint8List?> Function(RemoteArtifact, String, CancelToken)?
           readRomHeader,
       Future<MetadataRomIdentifier?> Function(
@@ -144,6 +146,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         _catalogueChanged = catalogueChanged,
         _artworkCache = artworkCache,
         _sharedStore = sharedStore,
+        _restoreProjection = restoreProjection,
         _configuredTarget = configuredTarget,
         super(const MetadataControlsState()) {
     // These owned futures can fail before load reaches them (or before an artwork
@@ -171,7 +174,12 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
             sharedDirectory: prefs.getString(sharedMetadataDirectoryKey)));
         try {
           final store = await _sharedStore;
-          await store?.restore(db);
+          final restore = _restoreProjection;
+          if (restore != null) {
+            await restore();
+          } else {
+            await store?.restore(db);
+          }
           _set(state.copyWith(
               esDeTargets: await store?.esDeTargets() ?? const []));
         } catch (_) {
@@ -593,6 +601,11 @@ final metadataControlsProvider =
       igdbCredentials: igdb,
       artworkCache: ref.watch(metadataArtworkCacheProvider),
       sharedStore: ref.watch(sharedMetadataStoreProvider),
+      // Join the same catalogue-invalidated recovery as normal library readers.
+      // Reading, rather than watching, does not recreate the app-scoped worker
+      // or abandon its saved job when the catalogue notification changes.
+      restoreProjection: () =>
+          ref.read(sharedMetadataProjectionProvider.future),
       readRomHeader: (artifact, platformId, cancel) async {
         final config =
             await ref.read(configStorageServiceProvider).loadConfig();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,6 +22,8 @@ import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
 import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/src/database_factory_ffi_io.dart';
+import 'package:sqflite_common_ffi/src/sqflite_import.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'metadata_controls_test.dart'
@@ -29,6 +32,69 @@ import 'metadata_controls_test.dart'
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  test('normal settings joins library recovery until catalogue invalidation',
+      () async {
+    sqfliteFfiInit();
+    var passes = 0;
+    Completer<void>? entered, release;
+    final factory = buildDatabaseFactory(
+        tag: 'shared-settings-recovery',
+        invokeMethod: (method, [arguments]) async {
+          if (arguments is Map &&
+              (arguments['sql'] as String? ?? '')
+                  .contains('CREATE TEMP TABLE shared_metadata_catalogue')) {
+            passes++;
+            if (entered != null && !entered.isCompleted) {
+              entered.complete();
+              await release!.future;
+            }
+          }
+          return ffiMethodCallHandleNoIsolate(FfiMethodCall(method, arguments));
+        });
+    final db = await controlsDatabase(factory: factory);
+    final root =
+        await Directory.systemTemp.createTemp('rshop-settings-recovery-');
+    final shared = await SharedMetadataStore.open(root, factory: factory);
+    FlutterSecureStorage.setMockInitialValues({});
+    final container = ProviderContainer(overrides: [
+      libraryDbProvider.overrideWithValue(_SharedFixtureDatabase(db)),
+      sharedMetadataStoreProvider.overrideWithValue(Future.value(shared)),
+    ]);
+    final subscription =
+        container.listen(sharedMetadataProjectionProvider, (_, __) {});
+    final controls = container.read(metadataControlsProvider.notifier);
+    addTearDown(() async {
+      await controls.close();
+      subscription.close();
+      container.dispose();
+      await shared.close();
+      await db.close();
+      await root.delete(recursive: true);
+    });
+    await controls.load();
+    await container.read(sharedMetadataProjectionProvider.future);
+    await controls.load();
+    expect(passes, 1,
+        reason: 'Reopening settings must not repeat the library pass');
+    entered = Completer<void>();
+    release = Completer<void>();
+    container.read(gameDbChangedProvider.notifier).state++;
+    final firstChange = container.read(sharedMetadataProjectionProvider.future);
+    await entered.future;
+    // A second real catalogue notification while recovery is active must not
+    // join its older pinned snapshot, even though unchanged settings do join it.
+    container.read(gameDbChangedProvider.notifier).state++;
+    final secondChange =
+        container.read(sharedMetadataProjectionProvider.future);
+    release.complete();
+    await Future.wait([firstChange, secondChange]);
+    await controls.load();
+    expect(passes, 3,
+        reason: 'Actual catalogue changes still require fresh recovery');
+    expect(controls.state.loading, false);
+    expect(controls.state.sharedStorageUnavailable, false);
+  });
 
   for (final version in [4, 5]) {
     test(
