@@ -1247,4 +1247,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |
 | COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
-| SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and emulator-load restore; compatibility, conflicts, last-good recovery and no ROM mirroring/FolderSync changes |
+| SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and emulator-load restore; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
