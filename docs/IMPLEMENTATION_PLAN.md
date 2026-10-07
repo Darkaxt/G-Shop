@@ -32,6 +32,18 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
+S7 unchanged-snapshot remediation (2026-10-07): the normal cache writer performs
+an UPDATE for identical snapshot rows, firing membership/projection invalidation
+for the entire collection. Reproduce through the production saveGames writer and
+real SQLite query triggers; skip only identical effective persisted values in
+the same upsert. Preserve cover/thumbnail retention, actual identity/content and
+provider changes, source-authorized orphan deletion and transaction semantics.
+Verify focused writer/query/migration checks and the native normal cache-first
+console writer without replacing the saved metadata job. Home's explicit Sync
+performs a different, full online-root refresh and is not required to reproduce
+this unchanged-write defect. No trigger migration, new framework,
+timer or speculative refresh policy is needed.
+
 S7 mixed-catalogue remediation (2026-10-07): the real handheld restore workflow
 exposed a source-less cached local entry offering Download in a console with
 Drive sources. Replace console-wide action eligibility with exact-entry source

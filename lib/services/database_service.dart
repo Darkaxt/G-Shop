@@ -466,7 +466,10 @@ class DatabaseService {
         }
       }
 
-      // 2. Upsert incoming games — preserves cover_url and has_thumbnail
+      // 2. Upsert incoming games — preserves cover_url and has_thumbnail.
+      // Do not fire membership/projection triggers for identical snapshots.
+      // Compare the effective persisted values, including retained artwork;
+      // IS NOT keeps nullable fields in the same atomic SQLite write boundary.
       final batch = txn.batch();
       for (final game in games) {
         final conflictTarget = game.remoteArtifact == null
@@ -486,6 +489,16 @@ class DatabaseService {
             is_folder = excluded.is_folder,
             alternative_sources = excluded.alternative_sources,
             remote_artifact = excluded.remote_artifact
+          WHERE filename IS NOT excluded.filename
+            OR displayName IS NOT excluded.displayName
+            OR url IS NOT excluded.url
+            OR region IS NOT excluded.region
+            OR cover_url IS NOT COALESCE(excluded.cover_url, cover_url)
+            OR provider_config IS NOT excluded.provider_config
+            OR has_thumbnail IS NOT MAX(has_thumbnail, excluded.has_thumbnail)
+            OR is_folder IS NOT excluded.is_folder
+            OR alternative_sources IS NOT excluded.alternative_sources
+            OR remote_artifact IS NOT excluded.remote_artifact
         ''', [
           systemSlug,
           game.filename,

@@ -5,6 +5,60 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 identical catalogue-write invalidation — 2026-10-07
+
+- The normal `saveGames` upsert updated identical cached rows and therefore fired
+  the membership/projection triggers for the whole console. The production-writer
+  regression reproduced this with real SQLite triggers. The same atomic upsert
+  now compares NULL-safe effective persisted values before updating, including
+  retained artwork/thumbnail values. Actual changes and explicitly authorized
+  orphan removal still invalidate their affected entries; no trigger migration,
+  timer, new refresh framework or change to publication authority was added.
+- The regression failed before the fix and passes afterwards. Focused serial
+  database/query/migration/exact-identity checks and scoped analysis pass for the
+  current code. These cover retained artwork, real identity changes and orphan
+  authority, not just an empty UPDATE count. No full suite was run.
+- Gated debug build 283 passed. The supervisor acquired
+  `Local\\Darka.AndroidGradleBuildGate`; observed workers=2, parallel=false and
+  Gradle heap=3,221,225,472 bytes. Kotlin 2.2.20 uses in-process compilation in
+  that budget, retaining Metaspace 1 GiB/code cache 256 MiB. Test-task configuration
+  is one fork/512 MiB, not an executed test-JVM claim. Native environment hint is
+  two; actual plugin/Ninja concurrency is unverified. No memory failure or budget
+  increase occurred. Log: `7138616c8aeb4288ba00747abfae0945.log`.
+- The signer-preserving `install -r` update is installed; host and installed APK
+  SHA-256 match `769ac73362a4d039d4d0216ae4385cc4352835ca3124fdfc277eab3911de0eaf`.
+  Normal Pause joined saved job 76 at requested=3,329 before installation,
+  preserving its 44,204-item capture and configuration hash
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+- The old native dirty backlog was cache=7,896 / editions=7,986. The normal Library
+  query consumed it; a subsequent fixed read-only aggregate observed both queues
+  empty, with cacheRows=46,818 / editions=47,307. One earlier observer process
+  returned `Killed` without a result; its cause is not established and no result
+  is inferred from it. No SQL observer runs alongside the ongoing refresh.
+- Home's explicit GBA Sync started an online refresh of the full source, not the
+  original cache-first writer path. Normal Disconnect (not Revoke) drained it;
+  the terminal sync reports deliberate cancellation, not success. The retained
+  catalogue is active=1/pending=2/nextGeneration=3; the partial refresh checkpoint
+  is preserved, not published or discarded. Its identical 207-row local fallback
+  also left both dirty queues empty.
+- Native normal GBA console opening then completed its cached background write;
+  Home's fresh Synced label confirms that path finished. The normal cached
+  smart-sync across 13 consoles also finished before read-only observation.
+  CacheRows=46,818 / editions=47,307 and both dirty queues remain unchanged at zero,
+  rather than re-enqueuing the old 7,896-row GBA snapshot. This verifies the actual
+  unchanged-write defect, not an online root-refresh completion or a quantitative
+  global-Library latency claim. Configuration, saved job 76 and the original
+  RetroArch settings hash remain unchanged.
+- Normal default-account Connect reached the connected state again without
+  saving/changing any source. Resume of the SAME job 76 advanced actual requested
+  lookups from 3,329 to 3,339; no fresh capture or external SQL observer overlaps
+  that resumed worker. Both physical displays are freshly confirmed committed OFF.
+- Exact cleanup transaction `d4873e3950bd34beca46885e9ae712a4` removed only the
+  consumed 2,416-byte diagnostic compiler intermediate; absence is verified.
+  Reproducible observer source/jar remain. Old save-sync mechanisms, original
+  ROMs/saves/BIOS and cloud files remain untouched. S7 remains sole ACTIVE;
+  S8-S10 remain NOT STARTED.
+
 ### S7 exact card reads and handheld recovery integration — 2026-10-07
 
 - Exact cached detail/rating/cover reads no longer drain the collection-wide

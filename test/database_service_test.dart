@@ -5,6 +5,7 @@ import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
@@ -83,6 +84,45 @@ void main() {
   });
 
   // ─── Schema ─────────────────────────────────────────────
+
+  test('unchanged normal catalogue sync does not invalidate collection queries',
+      () async {
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await LibraryQuery.install(db);
+    const local = GameItem(filename: 'Local (USA).nes', displayName: 'Local',
+        url: '', cachedCoverUrl: 'https://example.invalid/cover',
+        hasThumbnail: true);
+    final remote = exactGame('cloud-file');
+    await service.saveGames('nes', [local, remote]);
+    final query = LibraryQuery(Future.value(db));
+    final before = await query.page(filter: LibraryQueryFilter());
+    expect(before.collectionGames, 2);
+    expect(await db.query('library_query_cache_dirty'), isEmpty);
+    expect(await db.query('library_query_dirty'), isEmpty);
+    final cachedRows = await db.query('games', orderBy: 'id');
+
+    // The same snapshot is written by normal startup/console sync. Missing
+    // incoming cover/thumbnail data still preserves the existing values.
+    await service.saveGames('nes', [local.copyWith(hasThumbnail: false), remote]);
+    await service.saveGames('nes', await service.getGames('nes'),
+        deleteOrphans: true, authoritativeDriveSourceIds: {'source'});
+    expect(await db.query('games', orderBy: 'id'), cachedRows);
+    expect(await db.query('library_query_cache_dirty'), isEmpty,
+        reason: 'An identical snapshot must not rebuild the full catalogue.');
+    expect(await db.query('library_query_dirty'), isEmpty);
+
+    // A real exact-identity rename remains an invalidation, and orphan removal
+    // retains the normal explicit source-authority checks.
+    await service.saveGames('nes', [local, exactGame('cloud-file', name: 'Renamed.nes')]);
+    final remoteId = cachedRows.singleWhere((r) => r['artifact_key'] != null)['id'];
+    expect(await db.query('library_query_cache_dirty'), [{'cache_row_id': remoteId}]);
+    expect(await db.query('library_query_dirty'), hasLength(1));
+    expect((await query.page(filter: LibraryQueryFilter())).collectionGames, 2);
+    await service.saveGames('nes', [local], deleteOrphans: true,
+        authoritativeDriveSourceIds: {'source'});
+    expect((await query.page(filter: LibraryQueryFilter())).collectionGames, 1);
+  });
 
   test(
       'normal catalogue writer feeds fresh metadata without promoting legacy scores',
