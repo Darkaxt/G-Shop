@@ -1,5 +1,30 @@
 # S7 live metadata and Thor migration
 
+## Published root and indexed reads — 2026-10-07
+
+The read-only diagnostic failure is now traced to SQLITE_BUSY, not memory
+exhaustion. Production EXPLAIN regressions reproduce the repeated generation
+scan/recursive descendant rebuild. The revised entries query preserves exact
+scope, active-generation guards, supported-root validation, subtree membership,
+order and paging while using direct root reads and parent-index traversal.
+Both reproductions fail before the change and pass afterwards; affected
+catalogue/provider/source-setup checks and scoped analysis pass.
+
+Normal gated build 235 passed, preserving the signer/package and installing
+in place after normal Disconnect. Native startup/default-account reconnect and
+unchanged complete configuration hash are verified. OPEN_READONLY evidence
+confirms terminal publication of the SAME generation 1: active=1, pending=null,
+nextGeneration=2, 267,562 observations, zero pending folders and schema 37.
+Root publication is no longer an unresolved S7 acceptance item. No new scan was
+started. Normal root Edit mappings completes with observed console-folder choices
+on the Thor. Back without Save preserves the complete configuration hash.
+Both physical displays are subsequently confirmed committed OFF.
+
+See the status ledger for the exact APK/profile and focused verification evidence.
+S7 remains sole ACTIVE: full metadata coverage, trustworthy canonical retention,
+exact current byte binding and reviewed migration/restore remain unfinished.
+S8-S10 stay NOT STARTED; no removal or cloud/archive mutation is implied.
+
 ## Bounded publication transport and preserved native checkpoint — 2026-10-07
 
 Root traversal reached 267,562 observations, 37,384 observed folders and zero

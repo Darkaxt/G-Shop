@@ -5,6 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 published-catalogue query remediation — 2026-10-07
+
+- Android logcat traces the read-only observer's `Killed` result to an uncaught
+  `SQLiteDatabaseLockedException` (SQLITE_BUSY), not an OOM or R-Shop crash.
+  R-Shop remained alive with about 9.5 GiB available device memory. Production
+  source inspection identifies the expensive post-refresh exclusion report;
+  attribution of that specific native lock owner is an inference, not a stack
+  capture. The diagnostic now reports databaseBusy without a fatal exception.
+- Actual production-SQL EXPLAIN regressions reproduce generation scans in the
+  recursive step. Root pages now read the indexed validated generation directly;
+  subfolder traversal drives an exact scope/generation/parent lookup per node.
+  Both regressions failed before the fix and passed afterwards. Focused catalogue,
+  provider and source-setup checks pass, including supported-root validation,
+  stale-generation rejection, scope isolation and subtree membership. Scoped
+  analysis and whitespace checks pass; no full suite was run.
+- Required normal debug build 235 exited successfully through the shared gate.
+  The observed profile is two workers, parallel=false and 3 GiB Gradle; existing
+  Kotlin 2.2.20 in-process shares that budget. Metaspace 1 GiB/code cache 256 MiB
+  are preserved. Test-task configuration is one fork/512 MiB, not executed test
+  JVM evidence; app Ninja pools are depth one and plugin-native concurrency is
+  not established by environment hints. No memory failure or budget raise occurred.
+- APK SHA-256 `aa41a576e22d4e22ad7d0d2971e34221d835a56baf74cf5cf30c51fc45e8f7c7`,
+  package com.darkaxt.rshop.debug/version 1.7.0/12 and unchanged signer verified.
+  Normal Disconnect, in-place update, normal startup and default-account reconnect
+  passed without Save, uninstall, revocation or configuration reset. Configuration
+  SHA-256 remains `45b35fbd1c1eec0cdc5d72dff803a373e758e8229e99dcbb76c7da38ec02d4bb`.
+- Fresh native OPEN_READONLY evidence now confirms active=1, pending=null,
+  nextGeneration=2, 267,562 observations and zero pending folders, schema 37.
+  This closes terminal root publication, without recreating the scan. Opening
+  normal root Edit mappings exercises the new read path and completes with
+  observed console-folder choices, without a refresh or mapping Save. Returning
+  from that screen leaves the complete configuration hash unchanged.
+- S7 remains sole ACTIVE. Full fresh identification, defensible whole-collection
+  retention and exact reviewed migration remain required; S8-S10 NOT STARTED.
+  Matching approval does not waive classification, score support or exact
+  recoverable-byte requirements. No ROM/save/BIOS/cloud-original/FolderSync change,
+  removal, external release or push occurred.
+- Both physical displays are freshly confirmed committed OFF. Reviewed cleanup
+  transaction d31467a92a3b0c14acd4dbd8171e8241 removed only the disposable native
+  screenshot (126,059 bytes); its exact device copy is confirmed absent. APK,
+  build logs and read-only observers remain for verification/recovery.
+
 ### S7 bounded final folder validation — 2026-10-07
 
 - Root traversal reached 267,562 observations and zero pending folder pages in

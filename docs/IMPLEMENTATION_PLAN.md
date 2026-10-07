@@ -858,6 +858,13 @@ old-snapshot preservation and same-generation resume before native integration.
 The existing traversal worker/checkpoint stays intact until a normal disconnect
 has joined it; any debug update must preserve signing, sources and saved rows.
 
+Published-read remediation (2026-10-07): reproduce the actual recursive query
+plan used by the post-refresh exclusion report and mapping list. Correct its
+whole-generation recursive scan; use indexed validated-root pages and parent
+lookups for subfolders, retaining account/source/generation and page semantics.
+Verify query plans against the production SQL as well as returned membership,
+then verify normal native publication/reporting without resetting the snapshot.
+
 Current native checkpoint (2026-10-06): N64 IGDB job 72 is terminal; ordinary
 Best 25 shows 25 results and explicit provisional coverage (55/1543 ranked).
 The single fresh Game Gear ScreenScraper job 73 reached a terminal outcome on

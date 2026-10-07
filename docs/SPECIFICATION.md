@@ -221,6 +221,15 @@ the current generation/cursors and old published snapshot on interruption.
 Batching reduces HTTP round trips, not quota usage, and supplies no subtree
 snapshot transaction or file recovery/removal authority.
 
+S7 published-catalogue query detail (2026-10-07): root pages use the indexed
+scope/generation of the validated traversal snapshot, excluding its root record,
+without rebuilding the descendant tree for every page. Subfolder pages still
+traverse only that folder's descendants, using an indexed parent lookup for each
+visited folder and an exact file lookup for returned records. Preserve published
+generation checks, supported-root validation, ordering and page boundaries. This
+also applies to the existing source exclusion report and folder-mapping reads;
+it does not infer membership across sources or unpublished generations.
+
 First scope: ordinary binary files in a selected personal My Drive subtree.
 Shared Drives, Workspace document export and shortcut traversal are not supported
 initially; surface them explicitly instead of following them outside the root.

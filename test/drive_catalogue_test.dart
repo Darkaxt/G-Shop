@@ -16,6 +16,61 @@ DriveFile rom(String id, String parent, {String name = 'Same.chd'}) =>
         version: '1',
         canDownload: true);
 
+class _QueryTraceDatabase implements Database {
+  final Database inner;
+  final plans = <List<String>>[];
+  final statements = <String>[];
+  _QueryTraceDatabase(this.inner);
+  @override
+  Future<T> transaction<T>(Future<T> Function(Transaction) action,
+          {bool? exclusive}) =>
+      inner.transaction(
+          (txn) => action(_QueryTraceTransaction(txn, statements, plans)),
+          exclusive: exclusive);
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _QueryTraceTransaction implements Transaction {
+  final Transaction inner;
+  final List<String> statements;
+  final List<List<String>> plans;
+  _QueryTraceTransaction(this.inner, this.statements, this.plans);
+  @override
+  Future<List<Map<String, Object?>>> rawQuery(String sql,
+      [List<Object?>? arguments]) async {
+    statements.add(sql);
+    plans.add((await inner.rawQuery('EXPLAIN QUERY PLAN $sql', arguments))
+        .map((row) => row['detail'] as String)
+        .toList());
+    return inner.rawQuery(sql, arguments);
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> query(String table,
+          {bool? distinct,
+          List<String>? columns,
+          String? where,
+          List<Object?>? whereArgs,
+          String? groupBy,
+          String? having,
+          String? orderBy,
+          int? limit,
+          int? offset}) =>
+      inner.query(table,
+          distinct: distinct,
+          columns: columns,
+          where: where,
+          whereArgs: whereArgs,
+          groupBy: groupBy,
+          having: having,
+          orderBy: orderBy,
+          limit: limit,
+          offset: offset);
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _Api implements DriveCatalogueApi {
   final nodes = <String, DriveFile>{'root-id': folder('root-id', 'my-drive')};
   final pages = <String, DriveFilePage>{};
@@ -80,6 +135,62 @@ void main() {
           accountId: 'account',
           rootFolderId: 'root-id',
           folderId: folderId);
+
+  test('published root page does not rebuild the observed subtree', () async {
+    api.nodes['console'] = folder('console', 'root-id');
+    api.pages['root-id:'] = DriveFilePage(files: [api.nodes['console']!]);
+    api.pages['console:'] = DriveFilePage(files: [rom('game', 'console')]);
+    await refresh();
+    final trace = _QueryTraceDatabase(db);
+    final page = await DriveCatalogue(Future.value(trace)).entries(
+        sourceId: 'source',
+        accountId: 'account',
+        rootFolderId: 'root-id',
+        folderId: 'root-id',
+        generation: 1,
+        limit: 1,
+        offset: 1);
+    expect(page.map((entry) => entry.file.id), ['game']);
+    expect(trace.statements.single, isNot(contains('WITH RECURSIVE')));
+    expect(trace.plans.single, contains(contains('scope=? AND generation=?')));
+  });
+
+  test('subfolder traversal uses the parent index for each descendant',
+      () async {
+    api.nodes['console'] = folder('console', 'root-id');
+    api.nodes['nested'] = folder('nested', 'console');
+    api.pages['root-id:'] = DriveFilePage(
+        files: [api.nodes['console']!, rom('outside-console', 'root-id')]);
+    api.pages['console:'] = DriveFilePage(files: [api.nodes['nested']!]);
+    api.pages['nested:'] = DriveFilePage(files: [rom('game', 'nested')]);
+    await refresh();
+    final trace = _QueryTraceDatabase(db);
+    final page = await DriveCatalogue(Future.value(trace)).entries(
+        sourceId: 'source',
+        accountId: 'account',
+        rootFolderId: 'root-id',
+        folderId: 'console',
+        generation: 1);
+    expect(page.map((entry) => entry.file.id), ['game', 'nested']);
+    expect(
+        trace.plans.single,
+        contains(contains(
+            'drive_catalogue_parent (scope=? AND generation=? AND parent_id=?)')));
+  });
+
+  test('root indexed page still requires its supported root record', () async {
+    api.pages['root-id:'] = DriveFilePage(files: [rom('game', 'root-id')]);
+    await refresh();
+    expect((await entries()).single.file.id, 'game');
+    await db.update('drive_catalogue_entries', {'is_folder': 0},
+        where: 'scope=? AND generation=? AND file_id=?',
+        whereArgs: [
+          DriveCatalogue.scopeKey('source', 'account', 'root-id'),
+          1,
+          'root-id'
+        ]);
+    expect(await entries(), isEmpty);
+  });
 
   test('publication rechecks every folder in bounded metadata batches',
       () async {

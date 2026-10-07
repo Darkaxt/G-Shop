@@ -448,15 +448,37 @@ class DriveCatalogue {
           throw const DriveCatalogueException('snapshotChanged');
         }
       }
+      // Every row of a published generation was observed by the validated root
+      // traversal. A root page need not rebuild that same tree on each request.
+      // Still require its supported root row and the exact active generation.
+      if (folderId == rootFolderId) {
+        final rows = await txn.rawQuery('''SELECT e.record_json,e.display_path
+          FROM drive_catalogue_state s
+          JOIN drive_catalogue_entries r ON r.scope=s.scope
+            AND r.generation=COALESCE(?,s.active) AND r.file_id=? AND r.is_folder=1
+          JOIN drive_catalogue_entries e ON e.scope=r.scope AND e.generation=r.generation
+          WHERE s.scope=? AND e.file_id!=r.file_id
+          ORDER BY e.file_id LIMIT ? OFFSET ?''',
+            [generation, rootFolderId, scope, limit, offset]);
+        return rows
+            .map((r) => DriveCatalogueEntry(
+                DriveFile.fromJson(jsonDecode(r['record_json'] as String)
+                    as Map<String, dynamic>),
+                r['display_path'] as String))
+            .toList();
+      }
       final rows =
           await txn.rawQuery('''WITH RECURSIVE descendants(file_id) AS (
       SELECT e.file_id FROM drive_catalogue_entries e JOIN drive_catalogue_state s ON s.scope=e.scope
       WHERE e.scope=? AND e.generation=COALESCE(?,s.active) AND e.file_id=? AND e.is_folder=1
-      UNION ALL SELECT e.file_id FROM drive_catalogue_entries e JOIN descendants d ON e.parent_id=d.file_id
-      JOIN drive_catalogue_state s ON s.scope=e.scope WHERE e.scope=? AND e.generation=COALESCE(?,s.active)
-    ) SELECT e.record_json, e.display_path FROM drive_catalogue_entries e
-      JOIN descendants d ON d.file_id=e.file_id JOIN drive_catalogue_state s ON s.scope=e.scope
-      WHERE e.scope=? AND e.generation=COALESCE(?,s.active) AND e.file_id!=?
+      UNION ALL SELECT e.file_id FROM drive_catalogue_state s
+      CROSS JOIN descendants d
+      CROSS JOIN drive_catalogue_entries e INDEXED BY drive_catalogue_parent ON e.parent_id=d.file_id
+      WHERE s.scope=? AND e.scope=s.scope AND e.generation=COALESCE(?,s.active)
+    ) SELECT e.record_json, e.display_path FROM drive_catalogue_state s
+      CROSS JOIN descendants d
+      CROSS JOIN drive_catalogue_entries e ON d.file_id=e.file_id
+      WHERE s.scope=? AND e.scope=s.scope AND e.generation=COALESCE(?,s.active) AND e.file_id!=?
       ORDER BY e.file_id LIMIT ? OFFSET ?''', [
         scope,
         generation,
