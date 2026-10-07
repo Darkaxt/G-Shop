@@ -5,6 +5,77 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 SNES owned archive recovery — 2026-10-07
+
+- Revision 12's explicit SNES single-member 7z profile is integrated through the
+  existing pinned decoder, normal queue/publication, immutable mapping, adoption,
+  offline validation, local raw metadata identification and exact read-only
+  RetroArch leaf grant. Accept one safe `.sfc`/`.smc` within 16 MiB and preserve
+  every raw byte/copier header. Stream/CRC validation is not game identity or
+  bootability. ZIP, mixed mappings, untyped transfers and MSU/PCM bundles remain
+  rejected; no classification or ranking exception was introduced.
+- Regression-first Flutter/native checks reproduced missing support before the
+  implementation. Focused serial runtime, metadata-job, emulator-launch,
+  transfer, storage and journal checks passed; scoped analysis and diff checks
+  passed. Inspected current native decoder/grant XML has zero failures/errors.
+  Native metadata publication is not claimed: full fresh coverage remains open.
+- Combined gated native tests/debug build 301 passed; log
+  `3c1c9548fbac4e6c8342f635b5888b96.log`. The supervisor acquired
+  `Local\Darka.AndroidGradleBuildGate`. Observed workers=2, parallel=false,
+  Gradle heap=3,221,225,472 bytes. Kotlin 2.2.20 runs in-process in that budget;
+  Metaspace 1 GiB/code cache 256 MiB remain. Test-task configuration is one
+  fork/512 MiB. Native environment hint is two, but the inspected Ninja command
+  lacks explicit `-j`; actual native concurrency is not verified. No memory
+  failure or budget increase occurred. Earlier RED build 300 safely waited for
+  external activity and retired only a verified-idle incompatible daemon.
+- Signer-preserving `install -r` updated the existing debug app without reset,
+  uninstall or force-stop. Host and independently inspected installed APK match
+  SHA-256 `4a507062f2cae23f464888f7b4ff7f98476f5cfd1453bfd31d7d27a3b1a67997`.
+  Missing Snes9x was installed through RetroArch's normal Core Downloader; normal
+  running core reports Snes9x 1.63. Other cores/settings were not changed.
+- Normal Drive download in a new empty isolated destination reached Complete.
+  R-Shop's normal Open in RetroArch actually booted the game online (PID 17099),
+  and Start advanced its title menu. Normal Quit ended that process. With Wi-Fi
+  disabled and no active default network, normal Open booted the same installation
+  in new PID 22487. Private online/offline captures retain actual framebuffer
+  proof; gameplay/input beyond the title menu is not claimed. The aftermarket
+  proof item does not establish official classification, reception or retention.
+- Normal owned Delete emptied the proof directory. Re-download initially failed
+  `api_unavailable`: the reconnected hotel network had no validation and system
+  logs showed Google DNS failure. Android's normal Fix connectivity action
+  established a new validated network; normal Retry then reached Complete with
+  identical archive SHA-256. This was not a speculative production patch/retry
+  loop. Hotspot diagnostics found the host service disabled; no hotspot, service
+  configuration or DNS settings change occurred.
+- A second normal owned Delete emptied the isolated directory. Original SNES
+  destination was restored through normal folder selection; full configuration
+  SHA-256 remains `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  RetroArch configuration retains its fresh baseline
+  `a42f6537446759beeb88ebf53e1c1d0bd037617ef4527c4bc2d19b884c10e54a`.
+  The exact empty proof directory was removed non-recursively and absence checked.
+  Original ROMs/saves/BIOS, cloud files and legacy save sync remain untouched.
+- Joined read-only observation before Resume confirms job 76 paused at requested
+  3,848 with unchanged 44,204-item capture, active catalogue=1/pending=2/next=3.
+  Normal Saved jobs selection and Resume advanced the SAME job to requested
+  3,852/pending=40,363. No external SQL observer overlaps the resumed worker.
+  Both physical displays are freshly confirmed committed OFF.
+- S7 remains sole ACTIVE: complete fresh coverage (including scoped Wii),
+  defensible canonical Top-25 sets, current readable cloud-byte proof, remaining
+  format/bundle workflows and reviewed migration are unfinished. S8-S10 remain
+  NOT STARTED. No external release or legacy-sync retirement is claimed.
+- Continuation verification inspected the unchanged production diff, native
+  decoder/grant reports and successful gated build log. Fresh serial runtime,
+  metadata-job, emulator-launch, transfer-engine and storage tests passed; the
+  invocation's only failure was a nonexistent journal-test filename, corrected
+  by a separate successful `test/transfer_journal_test.dart` invocation. The
+  scoped analysis of all changed Dart sources/tests found no issues. Host and
+  freshly resolved installed APK hashes still agree with the recorded artifact.
+  The live saved worker still advances: Running, requested=4,070, pending=40,145,
+  matched=93/rated=90. No worker restart or external SQL read occurred. Both
+  displays subsequently reached committed OFF. Transactional cleanup
+  `c18bd725369b9c6ee209fe478fd56a6a` removed only the consumed `screen.png`
+  diagnostic (134,573 bytes); online/offline proof captures remain private.
+
 ### S7 NES owned archive recovery — 2026-10-07
 
 - Revision 11's explicit single-member NES 7z profile is integrated through the

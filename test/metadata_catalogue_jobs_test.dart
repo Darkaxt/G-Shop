@@ -737,7 +737,7 @@ void main() {
         isNull);
   });
 
-  for (final platform in ['gb', 'gbc', 'gba', 'nes']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes']) {
     test('$platform job leaves unsupported ZIP identity unresolved', () async {
       final artifact = RemoteArtifact.fromJson({
         ...remote('archive').toJson(),
@@ -767,7 +767,7 @@ void main() {
       var reads = 0;
       final raw = MetadataRomIdentifier(
           kind: RomIdentifierKind.rawRom,
-          filename: 'Game.$platform',
+          filename: platform == 'snes' ? 'Game.sfc' : 'Game.$platform',
           sizeBytes: 8192,
           md5: 'b' * 32,
           sha1: 'c' * 40);

@@ -1,5 +1,32 @@
 # S7 live metadata and Thor migration
 
+## Explicit SNES archive recovery — 2026-10-07
+
+Revision 12's explicit one-member SNES 7z profile uses the existing bounded
+decoder and normal queue/publication, immutable mapping, adoption, offline
+validation and exact owned read-only RetroArch/Snes9x grant. Preserve raw
+`.sfc`/`.smc` bytes and copier headers, with complete stream/CRC validation and a
+16 MiB raw budget. Regressions reject wrong members, unsafe names, mixed mappings,
+oversized streams and multi-member layouts. Metadata raw evidence/publication is
+host-verified, not a completed native SNES fresh-provider pass.
+
+Normal isolated Thor workflow proves provider-verified download, actual online
+boot/title-menu input and cold new-process offline boot with no active network,
+owned removal, identical re-download and second removal. A temporary hotel DNS
+failure was resolved with Android's normal connectivity repair; normal Retry
+then completed, without a production retry workaround. Snes9x was installed
+through normal core controls. Original targets/configuration were restored,
+the exact empty proof directory removed, saved job 76 resumed with actual
+progress and both displays confirmed OFF. See IMPLEMENTATION_STATUS.md for
+artifact, process, preservation and acquired Gradle gate/profile evidence.
+
+This closes the bounded standalone-SNES restoration integration, not collection
+migration. MSU/PCM bundles/ZIP and unknown ownership remain unapproved. S7 is sole
+ACTIVE; full fresh coverage, canonical defensible Top-25, current readable cloud
+bytes, remaining format/bundle workflows and reviewed migration remain required.
+S8-S10 are NOT STARTED. No original ROM/save/cloud mutation, legacy-sync retirement
+or external release occurred.
+
 ## Explicit NES archive recovery — 2026-10-07
 
 Revision 11's NES 7z profile now uses the existing bounded single-member decoder

@@ -475,6 +475,9 @@ class DriveRuntime {
     if (ext == '.7z' && mapped.length == 1 && mapped.contains('.nes')) {
       return 'nes';
     }
+    if (ext == '.7z' && mapped.length == 2 && mapped.containsAll(const {'.sfc', '.smc'})) {
+      return 'snes';
+    }
     if ((ext == '.7z' || ext == '.zip') && mapped.length == 3 &&
         mapped.containsAll(const {'.z64', '.n64', '.v64'})) {
       return 'n64';
@@ -615,6 +618,8 @@ class DriveRuntime {
             await session.validateGameGearZip();
           } else if (archivePlatformId == 'nes') {
             await session.validateNesSevenZip();
+          } else if (archivePlatformId == 'snes') {
+            await session.validateSnesSevenZip();
           } else if (const {'gb', 'gbc', 'gba'}.contains(archivePlatformId)) {
             await session.validateGameBoySevenZip(archivePlatformId);
           } else {
@@ -727,14 +732,14 @@ class DriveRuntime {
     final extension = p.extension(name).toLowerCase();
     if (!(platformId == 'n64' && {'.7z', '.zip'}.contains(extension) ||
             platformId == 'gamegear' && extension == '.zip' ||
-            {'gb', 'gbc', 'gba', 'nes'}.contains(platformId) && extension == '.7z') ||
+            {'gb', 'gbc', 'gba', 'nes', 'snes'}.contains(platformId) && extension == '.7z') ||
         name.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
         name.startsWith('.') ||
         (artifact.sizeBytes ?? 0) <= 0 ||
         artifact.sizeBytes! >
             (platformId == 'gba'
                         ? 32
-                        : {'gb', 'gbc', 'nes'}.contains(platformId)
+                        : {'gb', 'gbc', 'nes', 'snes'}.contains(platformId)
                             ? 16
                             : 128) *
                     1024 *
@@ -795,6 +800,7 @@ class DriveRuntime {
         'gbc' => {'.gb', '.gbc'},
         'gba' => {'.gba'},
         'nes' => {'.nes'},
+        'snes' => {'.sfc', '.smc'},
         _ => {'.gg'},
       };
       if (raw.kind != RomIdentifierKind.rawRom ||
@@ -847,6 +853,8 @@ class DriveRuntime {
           await session.validateGameGearZip();
         } else if (record.archivePlatformId == 'nes') {
           await session.validateNesSevenZip();
+        } else if (record.archivePlatformId == 'snes') {
+          await session.validateSnesSevenZip();
         } else if (const {'gb', 'gbc', 'gba'}.contains(record.archivePlatformId)) {
           await session.validateGameBoySevenZip(record.archivePlatformId!);
         } else {

@@ -110,6 +110,7 @@ void main() {
     ('gbc', 'launchOwnedRetroArchGameBoyColor'),
     ('gba', 'launchOwnedRetroArchGameBoyAdvance'),
     ('nes', 'launchOwnedRetroArchNes'),
+    ('snes', 'launchOwnedRetroArchSnes'),
   ]) {
     test('mapped $platform 7z keeps an exact owned console-specific handoff', () async {
       final system = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);

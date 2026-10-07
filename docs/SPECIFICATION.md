@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions and save backups
 
-Authoritative specification, revision 11, 2026-10-07.
+Authoritative specification, revision 12, 2026-10-07.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -384,6 +384,22 @@ boot, exact owned test removal and identical re-download in an isolated target.
 Preserve original ROMs, saves, BIOS and emulator settings. Metadata identification
 alone does not satisfy this independent restoration requirement or authorize SD
 removal; every MIGRATE-01 ranking/current-byte/review gate remains applicable.
+
+S7 SNES archive recovery detail (2026-10-07): explicitly mapped standalone SNES
+7z files use the same bounded single-member decoder and exact owned document
+leaf. Require one safe `.sfc` or `.smc` member, complete stream/CRC checks and the
+existing 16 MiB raw budget. Preserve all raw bytes, including any copier header;
+do not normalize, repack or invent a universal SNES magic/header test. Container
+validation establishes bounded readable bytes, not game identity or bootability.
+Bind streamed raw digests to the current cloud container for normal metadata
+identification. Persist `snes` in the immutable transfer intent, require the exact
+console mapping, and revalidate before publication, adoption and offline open.
+Use RetroArch's Snes9x core through the existing read-only owned leaf route.
+Prove normal download, actual online/cold-offline boot, exact owned removal and
+identical re-download in an isolated destination before migration approval.
+ZIP, multi-member MSU/PCM bundles and untyped transfers are not approved by this
+single-ROM path. Preserve original ROMs, saves, BIOS, settings and unresolved
+bundles; all MIGRATE-01 ranking/current-byte/review gates still apply.
 
 Acceptance: download -> verify -> open in existing emulator -> offline use ->
 explicit local removal -> re-download; multi-disc, replaced-owned-file,

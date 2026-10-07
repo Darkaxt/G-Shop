@@ -16,6 +16,58 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void snesProfileStreamsExactSfcAndSmcIdentityWithoutNormalization() throws Exception {
+        for (String suffix : new String[]{"sfc", "smc"}) {
+            byte[] raw = new byte[32768 + (suffix.equals("smc") ? 512 : 0)];
+            for (int i = 0; i < raw.length; i++) raw[i] = (byte) (i * 17);
+            for (int codec : new int[]{0, 1, 2}) {
+                for (boolean encodedHeader : new boolean[]{false, true}) {
+                    byte[] encoded = archive("Game." + suffix, raw, codec, encodedHeader,
+                            raw.length, codec == 2 ? 0 : 4096, 1);
+                    File file = File.createTempFile("rshop-snes-identity-", ".7z");
+                    try {
+                        Files.write(file.toPath(), encoded);
+                        java.util.Map<String, Object> value = OwnedN64SevenZip.validate(file.getPath(), "snes");
+                        assertEquals("Game." + suffix, value.get("filename"));
+                        assertEquals((long) raw.length, value.get("sizeBytes"));
+                        assertEquals(hash(raw, "MD5"), value.get("md5"));
+                        assertEquals(hash(raw, "SHA-1"), value.get("sha1"));
+                        assertNotEquals(hash(encoded, "MD5"), value.get("md5"));
+                        assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+                    } finally { assertTrue(file.delete()); }
+                }
+            }
+        }
+    }
+
+    @Test public void snesProfileRejectsBundlesWrongMembersUnsafeNamesAndWorkBudget() throws Exception {
+        byte[] raw = rom();
+        byte[][] invalid = {
+            archive("Game.nes", raw, 1, true, raw.length, 4096, 1),
+            archive("Game.msu", raw, 1, true, raw.length, 4096, 1),
+            archive("Game.pcm", raw, 1, true, raw.length, 4096, 1),
+            archive("../Game.sfc", raw, 1, true, raw.length, 4096, 1),
+            archive("Game.smc", raw, 1, true, 16L * 1024 * 1024 + 1, 4096, 1),
+            archive("Game.sfc", raw, 1, true, raw.length, 4096, 2),
+        };
+        for (byte[] encoded : invalid) {
+            File file = File.createTempFile("rshop-snes-reject-", ".7z");
+            try {
+                Files.write(file.toPath(), encoded);
+                try { OwnedN64SevenZip.validate(file.getPath(), "snes"); fail("Invalid SNES profile accepted"); }
+                catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+            } finally { assertTrue(file.delete()); }
+        }
+        File file = File.createTempFile("rshop-snes-mapping-", ".7z");
+        try {
+            Files.write(file.toPath(), archive("Game.sfc", raw, 1, true, raw.length, 4096, 1));
+            for (String platform : new String[]{"n64", "gb", "gbc", "gba", "nes"}) {
+                try { OwnedN64SevenZip.validate(file.getPath(), platform); fail("Wrong console accepted"); }
+                catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+            }
+        } finally { assertTrue(file.delete()); }
+    }
+
     @Test public void nesProfileStreamsInesAndNes2IdentityWithoutChangingArchive() throws Exception {
         for (boolean nes2 : new boolean[]{false, true}) {
             byte[] raw = new byte[16 + 16384 + 8192];

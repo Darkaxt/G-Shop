@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 11.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 12.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S10
@@ -933,6 +933,15 @@ private inventories or credentials.
 Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
+
+Verified S7 recovery slice (2026-10-07): the explicit SNES `.sfc`/`.smc`
+single-member 7z profile uses the existing bounded decoder, immutable mapping,
+metadata publication and Snes9x handoff. Rejection/profile isolation and normal
+online/cold-offline boot, removal/identical-redownload passed in an isolated
+target; original configuration was restored. Native fresh metadata coverage,
+defensible ranking and execution-time readable cloud proof remain required.
+See the acceptance/status ledgers. This does not approve MSU/PCM bundles or
+substitute the census's 559 cached matches for execution-time proof.
 
 Current S7 recovery work (2026-10-07): extend the verified GB single-member 7z
 route to explicit GBC/GBA mappings, using the existing bounded decoder and owned

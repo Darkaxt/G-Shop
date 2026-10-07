@@ -113,7 +113,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     val filename = grant.filename.lowercase(Locale.ROOT)
                     val platform = transfer.optString("archivePlatformId")
                     val supportedArchive = (platform == "gamegear" && filename.endsWith(".zip")) ||
-                        (platform in setOf("gb", "gbc", "gba", "nes") && filename.endsWith(".7z")) ||
+                        (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
                         (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
                     val standaloneChd = OwnedRomGrantPath.standaloneChd(filename, platform,
                         owner != null, dependencies.length(), members.length())

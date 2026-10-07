@@ -290,6 +290,7 @@ class _NativeStorage {
       case 'ownedValidateGameBoyColorSevenZip':
       case 'ownedValidateGameBoyAdvanceSevenZip':
       case 'ownedValidateNesSevenZip':
+      case 'ownedValidateSnesSevenZip':
       case 'ownedValidateN64SevenZip':
       case 'ownedValidateN64Zip':
         expect(sessionOpen, isTrue);
@@ -712,12 +713,13 @@ void main() {
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
   });
-  for (final platform in ['gb', 'gbc', 'gba', 'nes']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes']) {
    for (final invalid in [false, true]) {
     test('normal $platform 7z queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}', () async {
       final method = platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
           platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' :
-          platform == 'nes' ? 'ownedValidateNesSevenZip' : 'ownedValidateGameBoyAdvanceSevenZip';
+          platform == 'nes' ? 'ownedValidateNesSevenZip' :
+          platform == 'snes' ? 'ownedValidateSnesSevenZip' : 'ownedValidateGameBoyAdvanceSevenZip';
       final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
       fixture.native.invalidArchive = invalid;
       final runtime = fixture.runtime();
@@ -759,6 +761,11 @@ void main() {
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.nes', '.sfc'}), isFalse);
     expect(TransferRecord.supportsArchiveMapping('Game.7z', 'nes'), isTrue);
     expect(TransferRecord.supportsArchiveMapping('Game.zip', 'nes'), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.sfc', '.smc'}), isTrue);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.sfc', '.smc', '.pcm'}), isFalse);
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.sfc', '.smc'}), isFalse);
+    expect(TransferRecord.supportsArchiveMapping('Game.7z', 'snes'), isTrue);
+    expect(TransferRecord.supportsArchiveMapping('Game.zip', 'snes'), isFalse);
     for (final extensions in [{'.gb', '.gbc'}, {'.gbc', '.gba'}, {'.7z'}]) {
       expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions), isFalse);
     }
@@ -769,6 +776,7 @@ void main() {
     ('gbc', 'ownedValidateGameBoyColorSevenZip'),
     ('gba', 'ownedValidateGameBoyAdvanceSevenZip'),
     ('nes', 'ownedValidateNesSevenZip'),
+    ('snes', 'ownedValidateSnesSevenZip'),
   ]) {
     test('$platform 7z adoption retains its exact mapping and revalidates before reuse', () async {
       final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
@@ -777,7 +785,7 @@ void main() {
       final runtime = fixture.runtime();
       final installed = await runtime.adoptLocalCloudBytes(config: _transferConfig,
           artifact: _artifact(name: 'fixture.7z'), destinationRoot: '/roms', relativePath: 'fixture.7z',
-          supportedExtensions: {'.$platform'}, cancellation: CancelToken());
+          supportedExtensions: platform == 'snes' ? {'.sfc', '.smc'} : {'.$platform'}, cancellation: CancelToken());
       final record = (await fixture.journal.transfer(installed.transferId))!;
       expect(record.archivePlatformId, platform);
       await runtime.requireInstalledTransfer(record);
@@ -1006,7 +1014,7 @@ void main() {
     expect(await fixture.db.query('transfer_target_owners'), isEmpty);
     expect(fixture.native.stagePresent, isFalse);
   });
-  for (final platform in ['gb', 'gbc', 'gba', 'nes']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes']) {
     test('$platform ZIP is not silently promoted to the 7z metadata profile',
         () async {
       final fixture =
@@ -1029,7 +1037,7 @@ void main() {
       final fixture =
           await _TransferFixture.create(name: 'fixture.7z', reserve: false);
       fixture.native.archivePlatform = platform;
-      final member = 'fixture.$platform';
+      final member = platform == 'snes' ? 'fixture.smc' : 'fixture.$platform';
       fixture.native.archiveObservation['raw'] = {
         ...((fixture.native.archiveObservation['raw'] as Map)
             .cast<String, Object?>()),

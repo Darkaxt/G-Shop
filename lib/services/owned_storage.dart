@@ -317,6 +317,11 @@ class OwnedStorageSession {
     await _storage._invoke('ownedValidateNesSevenZip', {'session': id});
   }
 
+  Future<void> validateSnesSevenZip() async {
+    _requireOpen();
+    await _storage._invoke('ownedValidateSnesSevenZip', {'session': id});
+  }
+
   Future<void> validateGameBoySevenZip([String platform = 'gb']) async {
     _requireOpen();
     final method = switch (platform) {

@@ -30,7 +30,7 @@ final class OwnedN64SevenZip {
      * A mapped suffix is not provider identity or migration approval. */
     static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
         require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform) ||
-                "gba".equals(platform) || "nes".equals(platform));
+                "gba".equals(platform) || "nes".equals(platform) || "snes".equals(platform));
         boolean n64 = "n64".equals(platform);
         long limit = n64 ? ROM_LIMIT : ("gba".equals(platform) ? 32L : 16L) * 1024 * 1024;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
@@ -194,6 +194,7 @@ final class OwnedN64SevenZip {
         boolean extension = "n64".equals(platform)
                 ? lower.endsWith(".n64") || lower.endsWith(".z64") || lower.endsWith(".v64")
                 : "nes".equals(platform) ? lower.endsWith(".nes")
+                : "snes".equals(platform) ? lower.endsWith(".sfc") || lower.endsWith(".smc")
                 : "gba".equals(platform) ? lower.endsWith(".gba")
                 : lower.endsWith(".gb") || "gbc".equals(platform) && lower.endsWith(".gbc");
         return extension &&
