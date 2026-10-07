@@ -902,6 +902,11 @@ Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
 QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
 - Run the fresh full metadata pass and record real coverage/match/rating results.
+  The saved 44,204-item ScreenScraper job 76 predates the subsequently verified
+  Wii mapping. Complete a scoped Wii pass at a safe normal provider boundary;
+  do not recreate or silently expand job 76. Reconcile the SD inventory's actual
+  supported formats, not just its original ROM selector, before any membership
+  or migration completeness claim. Unsupported/unproven paths remain preserved.
   Close the reproduced search-navigation priority race: the screen owns one exact
   claim across open/suspend/resume/close/dispose; deferred search-widget callbacks
   cannot block the pushed detail route. Verify pending-frame, nested, independent

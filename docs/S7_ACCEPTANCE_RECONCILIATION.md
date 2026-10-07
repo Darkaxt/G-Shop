@@ -1,5 +1,24 @@
 # S7 live metadata and Thor migration
 
+## Wii coverage gap resolved at mapping boundary — 2026-10-07
+
+The private inventory exposed Wii outside configured coverage. Normal import
+added the unique observed published-root Wii folder and its existing external SD
+target, preserving all 38 previous consoles and seven source objects. Normal Home
+indexing now observes 212 Wii catalogue rows. Native reads verify direct-root
+folder membership, unchanged active generation 1/no pending generation and the
+same progressing metadata job 76. Neither row counts nor folder membership prove
+canonical identities, identical local/cloud bytes or successful restoration.
+
+Job 76's immutable 44,204-item capture excludes this new mapping. A later scoped
+Wii pass remains ordinary required work inside S7, not a later-stage deferral.
+The old SD inventory selector also omits real formats; absence from its selected
+ROM count never authorizes deletion. Unsupported formats/platforms, unknown
+membership and untrustworthy rankings remain preserved. S7 remains ACTIVE with
+full metadata, defensible Top-25 sets and reviewed migration criteria open.
+S8-S10 remain NOT STARTED. Both physical displays are verified OFF; transient
+import/diagnostic outputs were removed without touching original games or saves.
+
 ## Capture and destination correction verified — 2026-10-07
 
 The existing whole-collection capture committed as saved ScreenScraper job 76,

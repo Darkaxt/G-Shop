@@ -5,6 +5,39 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 missing Wii mapping corrected and indexed — 2026-10-07
+
+- Reconciliation of the private SD inventory found 50 Wii ROM observations
+  outside configured consoles. A fixed OPEN_READONLY query verified one exact
+  `Nintendo - Wii` direct child in published root generation 1. Normal Console
+  Settings import and Back/save added only Wii, targeting the existing external
+  `/storage/75D7-DC5F/Roms/wii` directory. Payload comparisons preserve all 38
+  previous console objects and all seven sources; native source hashes also
+  remain unchanged. Final configuration SHA-256 is
+  eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d.
+- Ordinary Home indexing published 212 Wii catalogue rows. These are artifact
+  observations, not canonical games or proven local/cloud membership. Saved
+  ScreenScraper job 76 remains running in process 610, progressing through
+  requested=303 and 320 without a duplicate capture or restart. Its 44,204-item
+  immutable capture predates Wii and cannot satisfy Wii coverage. Run a scoped
+  Wii pass after the existing provider work reaches a safe normal boundary.
+- The SD inventory's 15,964 records are not 15,964 ROMs: its terminal summary
+  separates 7,263 selected ROM observations from 8,701 preserved non-ROM records.
+  That selector omits some actual formats, including DSi .dsi and Wii U .wua;
+  .zcci/.wad and unsupported platforms likewise remain preserved unless actual
+  supported identity/restore coverage is demonstrated. Do not use selector
+  absence, folder counts or mapping presence as removal authority.
+- Matching approval remains limited to revision 9's standardized policy; it does
+  not authorize new classification provenance or relax score/recovery gates.
+  S7 remains sole ACTIVE. Fresh full coverage, reliable retention and reviewed
+  migration are unfinished; S8-S10 remain NOT STARTED.
+- Both displays are freshly confirmed committed OFF. Cleanup transaction
+  70644e9fe8c8c2c7658dc098e36f24e6 removed only six disposable host files and their
+  empty directory (1,560,751 recorded bytes including directory accounting).
+  Hash-checked device import/picker copies and exact diagnostic screenshot/jar
+  were removed. No ROM/save/BIOS/cloud-original/FolderSync mutation, Gradle
+  invocation, APK change, release or push occurred.
+
 ### S7 whole-collection capture committed and SD targets corrected — 2026-10-07
 
 - The same accepted capture committed as ScreenScraper job 76 with 44,204 saved
