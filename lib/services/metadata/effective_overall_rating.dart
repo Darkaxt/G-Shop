@@ -47,7 +47,8 @@ class AssessedOverallScoreBasis {
   }
 }
 
-/// META-05's recorded assessment, extended for N64/PSP in S7 on 2026-10-05.
+/// META-05's recorded assessment, extended in S7 for N64/PSP (2026-10-05)
+/// and GB/GBC (2026-10-07).
 /// Use the provider's actual game-level
 /// community average, not its one-critic-sensitive blended total. This is a
 /// confidence floor, not a confidence interval or a platform-specific critic
@@ -59,7 +60,17 @@ final productionOverallScoreBases =
       kind: RatingKind.communityAggregate,
       scaleMinimum: 0,
       scaleMaximum: 100,
-      platformIds: {'psx', 'ps2', 'gba', 'gc', 'switch', 'n64', 'psp'},
+      platformIds: {
+        'psx',
+        'ps2',
+        'gba',
+        'gc',
+        'switch',
+        'n64',
+        'psp',
+        'gb',
+        'gbc'
+      },
       minimumVoteCount: 20,
       assessmentReference:
           'docs/SCORE_RECEPTION_ASSESSMENT.md#igdb-remediation-capture-and-decision'),

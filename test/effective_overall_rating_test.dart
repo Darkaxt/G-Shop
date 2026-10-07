@@ -318,8 +318,9 @@ void main() {
     expect(stale.rankingEligible, isFalse);
   });
 
-  test('S7 assessed N64 and PSP retain the community support boundary', () {
-    for (final platform in ['n64', 'psp']) {
+  test('S7 assessed handhelds and N64 retain the community support boundary',
+      () {
+    for (final platform in ['n64', 'psp', 'gb', 'gbc']) {
       final scopedGame =
           GameIdentity.fromJson({...game.toJson(), 'platformId': platform});
       for (final votes in [null, 10, 19, 20]) {

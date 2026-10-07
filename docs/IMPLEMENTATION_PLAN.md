@@ -20,9 +20,15 @@ top-level console mappings while preserving all seven source objects and the six
 existing console configurations. Home indexing terminated with 44,204 artifact
 rows across 29 populated consoles; do not equate artifacts with canonical games
 or completed coverage. The one normal Entire collection ScreenScraper capture
-committed as saved job 76, with 44,204 items and progressing requests. Continue
-that immutable job, then close remaining coverage/retention/migration criteria
-without recreating the snapshot.
+committed as saved job 76, with 44,204 items. A native database exception stopped
+its worker at requested=1,689 while the durable state still said running. Normal
+startup after a signer-preserving update recovered the same job to paused;
+default-account reconnect and Resume are advancing it again. GB and GBC each
+have two real accepted raw bindings; the failure's exact cause remains open.
+Perform direct database observations only after normal Pause joins the worker;
+do not hold an external read cursor alongside writes to its rollback-journal
+database. Continue that immutable job, then close the remaining coverage,
+retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
 S7 storage-target reconciliation (2026-10-07): after the live capture committed,

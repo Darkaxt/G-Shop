@@ -5,6 +5,81 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 current raw-binding, reception and recovery checkpoint — 2026-10-07
+
+- The approved standardized matching policy is already implemented by f270427;
+  this approval does not authorize the separate unanswered bulk-classification
+  provenance proposal. S7 remains the sole ACTIVE stage; S8-S10 NOT STARTED.
+- The normal saved ScreenScraper job accepted and persisted two GB and two GBC
+  entries
+  using validated raw members from their exact already-local Drive-matching
+  archives. All four have explicit official classification and advisory ratings.
+  Native observations at joined Pause checkpoints verify that multi-entry
+  workflow; neither container checks nor advisory ratings are a recovery/Top
+  claim. No completed saved request was rewritten to manufacture acceptance.
+- A native database exception stopped the worker at requested=1,689 while its
+  durable state still said running. The exact cause remains unproven. Long
+  external read cursors against the rollback-journal database are a possible
+  contributor, not a confirmed diagnosis. Direct SQL observations now occur only
+  after normal Pause joins the worker. Debug-only diagnostics add the numeric
+  database result code and up to four allowlisted application source locations,
+  never exception messages, SQL, account data or secrets. The red/green fixture
+  verifies code retention and SQL/value redaction; runtime recovery was not
+  replaced by retries, timeouts, WAL changes or state-reset shortcuts.
+- The existing public reception benchmark assesses GB/GBC against independent
+  same-platform community reception. The existing IGDB community basis now
+  includes them with unchanged scale, precedence, freshness, ownership and
+  minimum twenty-user-vote rules. The focused boundary regression failed before
+  extension and passed afterwards. A fresh live capture followed by offline
+  production query selected seven supported games from ten public fixtures,
+  identical Top-25 membership and explicitly provisional coverage. Low-vote and
+  unrated records stay unranked. This does not establish complete private-library
+  ranking. See SCORE_RECEPTION_ASSESSMENT.md for the primary-source evidence.
+- Required normal debug build ticket 240 passed through the shared gate. The
+  observed profile was two workers, parallel=false, 3,221,225,472-byte Gradle
+  heap, preserving Metaspace 1 GiB and code cache 256 MiB. Assessed Kotlin 2.2.20
+  compiles in-process within that heap. Test-task configuration is one fork /
+  512 MiB, not executed JVM evidence; plugin-native concurrency is not proven by
+  the two-job environment hints. No memory failure or heap increase occurred.
+  Inspected log: 3c33708eb453483f8f32ce4082db0c57.log. Scoped analysis and focused
+  metadata controls / effective score / Library-query checks passed; no full
+  suite was run.
+- Normal Disconnect preceded the signer-preserving in-place update, without
+  revoke, uninstall, force-stop, credential replacement or configuration Save.
+  Host and installed base.apk independently match SHA-256
+  3ea4987ea903dc1306aafc5bc479bf05648ac7555cfe57ae4858956a039f36e2,
+  unchanged com.darkaxt.rshop.debug, version 1.7.0/12 and the established signer.
+  Normal startup recovered job 76 to paused at requested=1,689, preserving every
+  outcome and all 44,204 immutable items. Configuration SHA-256 remains
+  eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d;
+  active=1/pending=null/nextGeneration=2 and all seven sources remain unchanged.
+  Default-account Connect and same-job Resume succeeded. The final joined normal
+  Pause checkpoint at requested=1,759 retained 42,449 pending / 29 matched
+  entries, unchanged configuration and published generation; Resume continued
+  the same job with no new database exception observed. That
+  recovery is not proof that the earlier failure's cause is fixed.
+- The final serial supported-format census terminated successfully. Independent
+  record/count/byte/disposition reconciliation verified n3ds's 113 files /
+  119,245,766,194 bytes: 112 nonselected preserved observations /
+  118,358,490,674 bytes and one .cci exact-name miss / 887,275,520 bytes. Wii U's
+  16 files / 73,412,799,575 bytes comprise 15 cached .wua matches /
+  73,412,799,323 bytes and one 252-byte non-ROM file. Every disposition is
+  preserve/removalAuthorized=false. An exact-name miss is not proof of absent
+  equivalent content. Cached matches do not prove current cloud readability,
+  canonical Top-25 membership or tested restoration. Private journals stay
+  outside Git; no census worker remains live.
+- Remaining S7 acceptance work: full fresh metadata,
+  classification/canonical and defensible retention reconciliation, current
+  recoverable cloud bytes, required format round trips and the exact reviewed
+  migration. The native failure also remains under investigation. These are
+  ordinary unfinished S7 work, not later-stage deferrals or completed criteria.
+  No ROM/save/BIOS/cloud-original removal, FolderSync change, second metadata
+  worker, SD migration or external release occurred.
+- Both physical displays were freshly confirmed committed OFF after Resume.
+  Reviewed cleanup removed only the consumed 13,477-byte device UI dump; the
+  exact raw-binding observers, private census journals, build log and live-test
+  APK remain needed evidence. No shared build/cache directory was swept.
+
 ### S7 local GB/GBC identification and bounded subfolder paging — 2026-10-07
 
 - Extended only the existing metadata observation route to already-local GB/GBC

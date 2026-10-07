@@ -250,10 +250,22 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     return _operation = () async {
       try {
         await action();
-      } catch (error) {
+      } catch (error, stack) {
         assert(() {
           // Never log exception messages, transport bodies, credentials or IDs.
           debugPrint('Metadata operation failure type: ${error.runtimeType}');
+          if (error is DatabaseException) {
+            debugPrint(
+                'Metadata database result code: ${error.getResultCode()}');
+          }
+          // Keep only application source locations, not arbitrary stack text.
+          final frames =
+              RegExp(r'package:retro_eshop/[A-Za-z0-9_./]+\.dart:\d+:\d+')
+                  .allMatches(stack.toString())
+                  .take(4);
+          for (final frame in frames) {
+            debugPrint('Metadata operation frame: ${frame.group(0)}');
+          }
           return true;
         }());
         // Neither transport exceptions nor secure values belong in UI state.

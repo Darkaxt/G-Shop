@@ -222,6 +222,18 @@ void main() {
       ('gamegear', 'Streets of Rage', {'official'}),
       ('gamegear', 'Sonic the Hedgehog: Triple Trouble', {'official'}),
       ('gamegear', 'Super Columns', {'official'}),
+      // GB/GBC are now part of the normal already-local identification slice.
+      // This captures coverage only; it cannot approve their ranking policy.
+      ('gb', 'Super Mario Land 2: 6 Golden Coins', {'official'}),
+      ('gb', "The Legend of Zelda: Link's Awakening", {'official'}),
+      ('gb', 'Metroid II: Return of Samus', {'official'}),
+      ('gb', "Kirby's Dream Land", {'official'}),
+      ('gb', 'Batman Forever', {'official'}),
+      ('gbc', 'Pokémon Crystal Version', {'official'}),
+      ('gbc', 'The Legend of Zelda: Oracle of Ages', {'official'}),
+      ('gbc', 'Wario Land 3', {'official'}),
+      ('gbc', 'Perfect Dark', {'official'}),
+      ('gbc', 'The Grinch', {'official'}),
       ('snes', 'Chrono Trigger: Crimson Echoes', {'Hack'}),
       ('gba', 'Pokémon Unbound', {'Hack'}),
     ];
@@ -238,11 +250,16 @@ void main() {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (
       id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
-      displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
+      displayName TEXT NOT NULL, filename TEXT NOT NULL,
+      is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
     await LibraryQuery.install(db);
-    for (final (platform, title, _) in requestedSample) {
-      await db.insert('games', {'systemSlug': platform, 'displayName': title});
+    for (final (index, (platform, title, _)) in requestedSample.indexed) {
+      await db.insert('games', {
+        'systemSlug': platform,
+        'displayName': title,
+        'filename': 'Benchmark$index.rom',
+      });
     }
     final jobs = MetadataRefreshJobs(Future.value(db));
     final store = LibraryStore(Future.value(db));
@@ -364,10 +381,14 @@ void main() {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (
       id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
-      displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
+      displayName TEXT NOT NULL, filename TEXT NOT NULL,
+      is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
-    await db
-        .insert('games', {'systemSlug': 'snes', 'displayName': liveGameTitle});
+    await db.insert('games', {
+      'systemSlug': 'snes',
+      'displayName': liveGameTitle,
+      'filename': 'Benchmark.sfc',
+    });
     final jobs = MetadataRefreshJobs(Future.value(db));
     final transport = _BoundaryTransport();
     final provider = IgdbMetadataProvider(

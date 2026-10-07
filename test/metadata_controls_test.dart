@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/services/library_store.dart';
@@ -559,6 +560,41 @@ void main() {
     expect(provider.closed, isTrue);
     controls.dispose();
     await db.close();
+  });
+
+  test('database diagnostics retain result codes but redact SQL and values',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsProvider();
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+    });
+    await controls.load();
+    final messages = <String>[];
+    final previousPrint = debugPrint;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) messages.add(message);
+    };
+    addTearDown(() => debugPrint = previousPrint);
+    provider.reply = (_, __) async {
+      await db.rawQuery('SELECT * FROM PRIVATE_DIAGNOSTIC_MARKER');
+      throw StateError('Unreachable');
+    };
+    await controls.refresh(systemSlug: 'psx');
+    expect(controls.state.error, isTrue);
+    expect(controls.state.report!.state, 'paused');
+    expect(messages.join('\n'), contains('Metadata database result code: 1'));
+    expect(messages.join('\n'), isNot(contains('PRIVATE_DIAGNOSTIC_MARKER')));
+    expect(messages.join('\n'), isNot(contains('SELECT *')));
   });
 
   test('a failed lookup during pause still joins and closes provider resources',

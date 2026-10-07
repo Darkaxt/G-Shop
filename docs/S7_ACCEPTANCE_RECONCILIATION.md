@@ -18,12 +18,23 @@ maximum pages of 148/95 ms, versus the previous repeated approximately eight
 seconds. It preserves the current published snapshot without schema changes.
 Normal APK installation, default-account reconnect and same-job Resume succeeded;
 job 76's 44,204-item capture/configuration/checkpoint survived the updates.
-The same job is progressing with no blocked status. See the status ledger for
-artifact identity and acquired gate/effective resource-profile evidence.
+At requested=1,689 a native database exception stopped that worker despite its
+durable running state. Normal startup of the subsequent signer-preserving update
+recovered it to paused with every item/outcome retained. Normal default-account
+reconnect and same-job Resume are advancing it again. The exact failure cause
+remains unproven; debug diagnostics expose only SQLite's numeric code and
+allowlisted application source locations. Long external read cursors against the
+rollback-journal database must not overlap the worker; observations require a
+joined normal Pause checkpoint. See the status ledger for artifact identity and
+acquired gate/effective resource-profile evidence.
 
-Real multi-entry GB/GBC raw binding and matching remain open until ordinary
-provider work reaches compatible already-local files. No completed requests were
-rewritten or second worker started to manufacture that result. Full fresh
+Two GB and two GBC entries now have real provider-accepted, persisted
+validated-raw-member bindings through the normal saved worker. Raw/container
+identity separation,
+explicit official classification and advisory ratings are verified; this is not
+archive installation/restoration proof or a defensible Top. No completed
+requests were rewritten or
+second worker started to manufacture that result. Full fresh
 metadata, defensible canonical retention, current cloud/recovery proof and
 reviewed migration also remain S7 acceptance gates. The separate unapproved
 classification-provenance change remains unapproved; standardized matching did
@@ -35,9 +46,14 @@ Their 776 / 559 cached matches do not supply live recovery/ranking authority.
 Every mismatch, missing counterpart and companion observation remains preserved.
 That same serial audit also completed Mega Drive, SG-1000, Virtual Boy and FDS;
 all terminal records/bytes/dispositions independently reconcile. The original
-handle exited successfully before a new serial census started for the explicitly
-supported .cci/.wua selector omissions. Their verification remains open until
-terminal records reconcile. Private journals and all local files are preserved.
+handle exited successfully before a serial census covered the explicitly
+supported .cci/.wua selector omissions. That census has now terminated
+successfully and every record/count/byte/disposition independently reconciles:
+the 113-file n3ds scope preserves 112 nonselected observations and one .cci
+exact-name miss; Wii U preserves 15 cached .wua byte matches and its one non-ROM
+observation. An exact-name miss is not proof that equivalent content is absent
+under another name or container. Private journals and all local files are
+preserved; cached matches are not current cloud/recovery/ranking authority.
 
 ## NES comparison and actual format boundaries — 2026-10-07
 

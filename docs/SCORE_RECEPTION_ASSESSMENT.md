@@ -353,3 +353,72 @@ with Top 25 also returning nine and coverage explicitly provisional. It did not
 rank the sparse Game Gear records, unrated record, ambiguous Sonic or ten-vote
 Dragonball. Scoped analysis and diff checks passed. No full suite, Gradle build
 or native APK replacement was performed for this extension.
+
+### GB/GBC reception coverage — 2026-10-07
+
+The same opt-in public persistent-worker benchmark captured ten original GB/GBC
+releases at 04:05:00–04:05:05 UTC using the legitimate existing IGDB credentials.
+Literal offered titles and platform-checked candidate IDs supplied explicit
+benchmark review, not a production title-only classification rule. Randomizers,
+sequels and colour-conversion projects were not selected as the original game.
+No private library, device job, ROM body or artwork participated. The fixture's
+legacy catalogue schema was corrected to include populated non-null filenames,
+matching the real schema after the initial local failure; production matching
+was unchanged. The live capture and offline production query passed.
+
+| Platform / release | IGDB ID | Community / votes | Support |
+| --- | ---: | ---: | --- |
+| GB / Super Mario Land 2: 6 Golden Coins | 1071 | 80.63 / 210 | Supported |
+| GB / Link's Awakening (original monochrome) | 1028 | 86.42 / 235 | Supported; not DX or the Switch remake |
+| GB / Metroid II: Return of Samus | 1102 | 73.12 / 92 | Supported; not Samus Returns |
+| GB / Kirby's Dream Land | 1063 | 77.85 / 190 | Supported; not Dream Land 2 |
+| GB / Batman Forever | 77350 | 70 / 2 | Too few votes |
+| GBC / Pokémon Crystal Version | 1514 | 89.06 / 432 | Supported |
+| GBC / Oracle of Ages | 1041 | 84.25 / 173 | Supported; not its randomizer |
+| GBC / Wario Land 3 | 1698 | 79.89 / 58 | Supported; not The Master Quest or a colour conversion |
+| GBC / Perfect Dark | 1464 | 62.13 / 9 | Too few votes; not the N64 record |
+| GBC / The Grinch | 265046 | Missing | Unrated, not zero |
+
+The [IGDB field contract](https://api-docs.igdb.com/#game) still supplies the same
+user-average/count semantics. Independent Nintendo Life community records,
+checked on 2026-10-07, distinguish these original platforms:
+[Mario Land 2](https://www.nintendolife.com/reviews/2011/09/super_mario_land_2_6_golden_coins_3dsvc)
+8.2/10 from 1,318 users;
+[Link's Awakening](https://www.nintendolife.com/games/gameboy/legend_of_zelda_links_awakening)
+8.9 from 720;
+[Metroid II](https://www.nintendolife.com/games/gameboy/metroid_ii_return_of_samus)
+7.1 from 794; and
+[Kirby's Dream Land](https://www.nintendolife.com/games/gameboy/kirbys_dream_land)
+7.6 from 646 agree on the GB reception bands and relative ordering.
+[Crystal](https://www.nintendolife.com/games/gbc/pokemon_crystal) is 8.4 from 648,
+[Oracle of Ages](https://www.nintendolife.com/games/gbc/legend_of_zelda_oracle_of_ages)
+8.1 from 376, and [Wario Land 3](https://www.nintendolife.com/games/gbc/wario_land_3)
+7.6 from 233: the two communities share that ordering but not identical values.
+These independent counts never replace IGDB's own counts.
+
+[GB Batman Forever](https://www.nintendolife.com/games/gameboy/batman_forever)
+is 5.4/10 from 38 users, substantially below IGDB's two-vote 70/100. This is
+exactly the sparse-sample risk addressed by the existing floor: exclude it from
+Top claims, rather than boost, blend or invent votes. GBC
+[Perfect Dark](https://www.nintendolife.com/games/gbc/perfect_dark) is 6.4 from
+39 users, consistent with IGDB's 62.13 but still not sufficient to rescue its
+nine-vote record. The Grinch remains unrated. Numerical agreement is not a vote
+count or permission to borrow another port's stronger aggregate.
+
+Decision: extend the existing game-level IGDB community basis to `gb` and `gbc`,
+with unchanged scale, fixed precedence, exact ownership/platform/identity,
+freshness and known-at-least-20-user-votes rules. The representative assessment
+from S4 remains the foundation; this bounded extension checks new collection
+scope, not a new estimator or a claim of complete collection coverage. No
+ScreenScraper advisory promotion, critic/total fallback, hack-parent inheritance,
+unknown-count exception, threshold reduction or removal authority is introduced.
+Verification: the focused support-boundary regression failed before extension
+and passed afterwards. Effective-score and production indexed-query checks
+passed, retaining the low/unknown-vote, stale-record and ownership exclusions.
+A fresh real-provider capture at 04:12:31–04:12:35 UTC returned the same evidence;
+after closing its network adapter, the offline production query selected seven
+supported canonical games from ten fixtures, with identical Top-25 membership
+and explicitly provisional coverage. Scoped analysis passed. The normal updated
+debug APK was subsequently built and installed without changing the saved
+ScreenScraper capture. This public assessment is not a claim that the private
+GB/GBC collection now has a complete defensible ranking.
