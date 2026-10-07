@@ -5,6 +5,54 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Wii RVZ native recovery — verified, 2026-10-08
+
+- Used the unchanged installed debug APK, independently rechecked SHA-256
+  `e86c6224b3a9a2123535cd7acddfdc23104518b0f1f92b768e4c56adf56aed6e`.
+  No build, installation, provider-credential change or production-code edit was
+  needed. The existing GC/Wii exact owned URI and explicit Dolphin package read
+  grant serve the real Wii route without a broader permission or alternate engine.
+- Normal native workflow: select an isolated destination in Console Settings ->
+  exact Drive download -> committed installation -> matching original SHA-256 ->
+  Dolphin rendering Wii/game startup screens -> normal Exit -> background-only
+  process reclamation after Exit -> confirmed no Dolphin process and no active
+  default network -> fresh offline launch reaching the game's profile screen ->
+  normal Exit -> restore Wi-Fi -> normal owned removal -> exact file absent while
+  its remote entry/cover/basic attributes remain -> normal identical re-download
+  -> committed installation -> restored copy reaches the same profile screen.
+  This is boot/profile-screen proof, not gameplay, save creation or all Wii formats.
+  The sample has no freshly scraped rating/synopsis; this proof does not claim one.
+- Both completed copies and the unchanged original are 235,528,788 bytes with
+  identical SHA-256. Full size alone was not treated as completion: publication
+  was allowed to finish, and normal UI reported Complete before each handoff.
+  Advancing native read/write counters verified work during publication; no
+  transfer was restarted or declared failed because observation took time.
+- Normal final owned removal deletes only the isolated test copy. Normal Settings
+  saves the original Wii destination and restores the complete configuration hash
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  The reviewed empty isolated directory is removed and confirmed absent. The
+  original ROM and the previously recorded existing GC save hashes still match;
+  Wii controller and graphics configuration hashes match their pre-test values.
+- Emulator-state qualification: normal first Wii boot initializes NAND runtime
+  files and adds a generated WirelessMac line to Dolphin.ini. Hashing the current
+  config with only that line omitted exactly reproduces the recorded baseline;
+  all other config bytes are unchanged. The selected game's save-data directory
+  is empty. No profile/gameplay/save action or manual emulator-setting change was
+  performed. NAND aggregate hashes differ, so whole-NAND byte preservation is
+  NOT claimed. Leave the emulator's valid runtime initialization intact rather
+  than delete or overwrite system/NAND files to manufacture a matching hash.
+- Same saved metadata job pauses cleanly at requested=5,907/pending=38,314 and
+  resumes normally after restoration: requested=5,910/pending=38,311, Running.
+  No recapture or external DB observer. Both physical displays are committed OFF
+  and wakefulness is Asleep. Device screenshot scratch is absent; required native
+  captures remain private in `D:/Temp/rshop-s7-wii-proof-20261007`, not in Git.
+- Wii RVZ recovery is verified separately from GC. S7 remains the sole ACTIVE
+  stage: full fresh coverage, defensible Top-25 retention, other required format
+  recovery, current cloud checks and reviewed migration remain unfinished.
+  S8-S11 remain NOT STARTED. No original ROM/cloud object was removed or changed;
+  no save/BIOS was manually edited or removed. Legacy sync and archival profiles
+  remain untouched; no release occurred.
+
 ### S7 GC RVZ / Dolphin read-grant lifetime — verified, 2026-10-07
 
 - Normal owned RVZ download completed with matching original bytes, but installed

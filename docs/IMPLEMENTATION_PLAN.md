@@ -37,7 +37,18 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S11 remain NOT STARTED.
 
-Latest S7 verification (2026-10-07): normal NES/SNES Best-25 reports truthful
+Verified S7 Wii RVZ checkpoint (2026-10-08): normal exact owned Drive download,
+committed publication, online startup, cold offline profile-screen boot, normal
+removal and identical re-download/restored boot pass on the Thor using the
+unchanged installed APK. The original ROM and complete R-Shop configuration are
+preserved/restored and the isolated target is absent. Normal Dolphin Wii NAND/MAC
+initialization is recorded explicitly, not claimed byte-identical. The same saved
+metadata job resumes with advancing counters and both screens OFF/Asleep. This
+closes only standalone Wii RVZ recovery; full metadata/retention, other required
+formats, current cloud gates and reviewed migration still prevent S7 closure.
+See the acceptance and status ledgers for the actual proof and safety boundaries.
+
+Earlier S7 verification (2026-10-07): normal NES/SNES Best-25 reports truthful
 empty/provisional owner coverage, with clean joined v2 bindings/projections;
 positive eligible ranking remains host-verified. Bounded page write batching
 passes snapshot rollback and actual file-backed resource checks. Its gated build

@@ -1,5 +1,32 @@
 # S7 live metadata and Thor migration
 
+## Wii RVZ native recovery — 2026-10-08
+
+The unchanged installed APK and existing exact owned Dolphin route now have real
+Wii-specific proof, not an inference from GC. Normal isolated Drive download and
+committed publication produce bytes identical to the original. Dolphin renders
+startup online; after normal Exit, background-only process reclamation and
+confirmed absence of a process/default network, a fresh offline launch reaches
+the game's profile screen. Normal owned removal leaves the remote entry and its
+cover/basic attributes, and a second normal download publishes identical bytes
+and boots to the same screen. This does not prove gameplay, fresh scraped metadata,
+archives/bundles or other Wii formats.
+
+Final owned removal and normal Settings save restore the owner destination and
+complete R-Shop configuration hash. The exact empty test target is absent; the
+original ROM, recorded existing GC save and Wii controller/graphics hashes match.
+Normal Wii boot initializes NAND runtime data and a WirelessMac line; omitting
+only that generated line reproduces Dolphin.ini's original hash. The sample's
+save-data directory is empty and no save/profile action was selected. Whole-NAND
+byte equality is explicitly not claimed or manufactured by deleting runtime data.
+
+The same saved metadata job cleanly pauses/resumes and advances real counters;
+both screens are OFF/Asleep. Precise verification boundaries, counters, hashes and
+private capture location are in IMPLEMENTATION_STATUS.md. No build or production
+change was needed. This closes Wii RVZ recovery only: S7 remains sole ACTIVE with
+full fresh coverage, defensible retention, other required formats, current cloud
+checks and reviewed migration unfinished. S8-S11 remain NOT STARTED.
+
 ## GameCube RVZ / Dolphin grant lifetime — 2026-10-07
 
 Normal owned Drive download produced complete matching RVZ bytes, but Dolphin
