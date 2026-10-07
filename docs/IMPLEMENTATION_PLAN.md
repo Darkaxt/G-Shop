@@ -19,19 +19,19 @@ fresh status/reconciliation evidence. Normal mapping Save added 32 exact observe
 top-level console mappings while preserving all seven source objects and the six
 existing console configurations. Home indexing terminated with 44,204 artifact
 rows across 29 populated consoles; do not equate artifacts with canonical games
-or completed coverage. One normal Entire collection ScreenScraper fresh operation
-has been accepted. Observe its immutable capture and provider progress, then close
-remaining coverage/retention/migration criteria without recreating that snapshot.
+or completed coverage. The one normal Entire collection ScreenScraper capture
+committed as saved job 76, with 44,204 items and progressing requests. Continue
+that immutable job, then close remaining coverage/retention/migration criteria
+without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
-S7 storage-target reconciliation (2026-10-07): new root mappings currently use
-default internal destinations, while the original six consoles use the SD Roms
-root. The actual SD contains console aliases different from some app IDs. Keep
-the live immutable capture intact. At its terminal capture checkpoint reconcile
-exact intended targets through normal settings/import, preserving original six
-targets/source objects and unmanaged files; verify local/cloud membership before
-claiming full collection coverage or building retention/removal decisions. This
-belongs to S7, not a later-stage deferral.
+S7 storage-target reconciliation (2026-10-07): after the live capture committed,
+normal Console Settings import and Back/save corrected the 32 new internal
+defaults to confirmed SD directories, including four explicit console aliases.
+All 38 targets, original six console configurations and seven source objects
+are verified after save. Verify exact local/cloud membership before claiming
+full collection coverage or building retention/removal decisions. This remains
+S7 work, not a later-stage deferral; target correction is not a removal grant.
 
 S7 normal Game Gear ZIP recovery checkpoint (2026-10-06): unchanged APK 206
 completed a real download into an isolated task-created folder, booted through

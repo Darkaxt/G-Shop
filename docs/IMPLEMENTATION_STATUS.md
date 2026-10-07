@@ -5,6 +5,37 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 whole-collection capture committed and SD targets corrected — 2026-10-07
+
+- The same accepted capture committed as ScreenScraper job 76 with 44,204 saved
+  items. OPEN_READONLY evidence observes running state and increasing requested
+  work (1, then 54, then 69); no new snapshot, source refresh or process restart
+  was introduced. At the 69-request checkpoint: four matched/rated, four ambiguous,
+  two invalidResponse, 22 needsReview, 36 unmatched and 44,136 pending. These are
+  partial outcomes, not successful whole-collection coverage or approved ranking.
+- After capture commit, normal Console Settings -> Import applied exactly 32
+  target-only corrections into existing SD directories. Confirmed aliases are
+  jaguar -> atarijaguar, lynx -> atarilynx, tgcd -> tg-cd and sg1000 -> sg-1000;
+  the other new targets use their observed same-ID SD directories. Alternate
+  region aliases examined contain only systeminfo.txt, not competing ROM sets.
+  Existing directory presence and non-systeminfo file counts are not ROM identity,
+  recoverability, complete membership or removal evidence.
+- Payload comparison before and after ordinary Back/save verifies all 38 intended
+  target values and all seven source objects. The native per-object hashes of all
+  six original console configurations and all seven sources remain unchanged.
+  Final complete configuration SHA-256 is
+  21e5f56e86a778dd42ced74a4cc3363cec45710d073a03b0fe1937762687a615.
+  Published root state remains active=1, pending=null, nextGeneration=2.
+- This closes the erroneous destination configuration, not the local/cloud census,
+  metadata coverage, reliable Top-25 retention or reviewed migration criteria.
+  Continue saved job 76; never reinterpret its immutable capture or promote
+  uncertain editions to improve coverage. S7 stays sole ACTIVE; S8-S10 NOT STARTED.
+- Both physical displays are freshly confirmed committed OFF. Cleanup transaction
+  9f353a7209babb4333bd0bc8eb454cc6 removed only the three disposable host outputs
+  (256,320 bytes). Exact device import, picker-cache copy and screenshot paths are
+  confirmed absent after use. No ROM/save/BIOS/cloud-original/FolderSync mutation,
+  Gradle invocation, APK change, release or push occurred.
+
 ### S7 capture wait and actual storage-target reconciliation — 2026-10-07
 
 - The accepted whole-collection operation is still in the same app process (PID

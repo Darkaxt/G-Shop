@@ -1,5 +1,24 @@
 # S7 live metadata and Thor migration
 
+## Capture and destination correction verified — 2026-10-07
+
+The existing whole-collection capture committed as saved ScreenScraper job 76,
+with 44,204 immutable items and progressing provider requests. Its partial
+matched/review/error outcomes do not close META-01 or authorize ranked retention.
+After commit, ordinary Console Settings import and Back/save corrected the 32
+new internal defaults to confirmed SD targets, including the four non-identical
+console aliases. All 38 target values, original six console-object hashes and
+seven source-object hashes were verified after save. No private configuration or
+inventory is published in Git; the transient import copies have been removed.
+
+The earlier destination gap below is now resolved. Exact local/cloud membership,
+whole-collection metadata/score coverage, defensible per-console Top-25 sets and
+reviewed execution-time migration remain S7 requirements. Continue the same saved
+job and preserve unresolved files; no ROM removal was performed. The published
+root remains generation 1 with no pending generation. Both displays are OFF.
+S7 remains ACTIVE; S8-S10 remain NOT STARTED. See the status ledger for hashes,
+partial outcomes and exact cleanup evidence. No build was required.
+
 ## Actual new-mapping targets remain to be reconciled — 2026-10-07
 
 The original six consoles retain their SD targets. The 32 newly added root
