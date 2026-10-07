@@ -1,5 +1,40 @@
 # S7 live metadata and Thor migration
 
+## Bounded publication transport and preserved native checkpoint — 2026-10-07
+
+Root traversal reached 267,562 observations, 37,384 observed folders and zero
+pending folder pages in generation 1. The original final validation performed
+one HTTP GET per observed folder. The bounded regression reproduced it; the
+existing API now batches at most 100 exact read-only folder GETs while preserving
+every folder identity/name/parent/status check, account boundary, cancellation
+and atomic publication rule. Focused affected checks and scoped analysis passed.
+Google batch round trips are reduced; inner requests still consume individual
+quota units and do not constitute a subtree transaction.
+
+Normal Disconnect drained owned work before an in-place, signer-preserving debug
+update. Streaming read-only digests match all entry/work/page rows before and
+after installation, without a database copy, reset or schema change. Required
+normal build 234 passed through the acquired shared gate with observed two
+workers/no-parallel/3 GiB Gradle and existing Kotlin in-process compilation.
+The preceding gated attempt 233 failed from PowerShell argument splitting, not
+memory exhaustion. See IMPLEMENTATION_STATUS.md for artifact/profile evidence.
+
+Normal default-account reconnect and root Refresh retained pending generation 1,
+nextGeneration 2 and all traversal observations. The latest native state remains
+active=null/pending=1; it is NOT terminal publication or proof of live batch
+progress. This acceptance item remains open until actual publication or a
+specific terminal failure is observed. Neither a successful build nor unchanged
+checkpoint counters substitute for that external-system result.
+
+The fresh whole-SD inventory has reconciled 15,964 unique records and exact
+terminal group/byte totals. All records explicitly preserve their files; it
+supplies no identity, ownership, rank or deletion authority. Full fresh metadata,
+defensible canonical retention and reviewed migration/restore remain unfinished.
+S7 stays sole ACTIVE; S8-S10 stay NOT STARTED. No ROM/save/BIOS/cloud-original or
+FolderSync changes, removals or release occurred. Both screens are confirmed OFF.
+The separate classification-provenance question is still unanswered; it was not
+silently covered by the user's standardized-matching approval.
+
 ## Game Gear terminal identification and linked artwork — 2026-10-07
 
 Normal ScreenScraper job 73 reached `completed`: 177 matched (174 rated),

@@ -17,6 +17,10 @@ class _Files implements DriveCatalogueApi {
   final List<DriveFile> extraFiles;
   _Files({this.extraFiles = const []});
   @override
+  Future<List<DriveFile>> getFolderBatch(List<String> ids,
+          {CancelToken? cancelToken}) async =>
+      [for (final id in ids) await getFile(id, cancelToken: cancelToken)];
+  @override
   Future<DriveFile> getFile(String id, {CancelToken? cancelToken}) async =>
       DriveFile(
           id: id,

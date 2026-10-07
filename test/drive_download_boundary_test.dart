@@ -30,6 +30,10 @@ class _Api implements DriveCatalogueApi {
   };
   final reads = <String>[];
   @override
+  Future<List<DriveFile>> getFolderBatch(List<String> ids,
+          {CancelToken? cancelToken}) async =>
+      [for (final id in ids) await getFile(id, cancelToken: cancelToken)];
+  @override
   Future<DriveFile> getFile(String id, {CancelToken? cancelToken}) async {
     reads.add(id);
     return nodes[id]!;

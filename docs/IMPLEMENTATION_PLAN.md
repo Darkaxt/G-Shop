@@ -851,6 +851,13 @@ Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
 
+Publication transport work (2026-10-07): retain every final folder check, but
+combine at most 100 exact metadata GETs per documented Drive batch. Verify
+complete response reconciliation, cancellation, authentication/quota handling,
+old-snapshot preservation and same-generation resume before native integration.
+The existing traversal worker/checkpoint stays intact until a normal disconnect
+has joined it; any debug update must preserve signing, sources and saved rows.
+
 Current native checkpoint (2026-10-06): N64 IGDB job 72 is terminal; ordinary
 Best 25 shows 25 results and explicit provisional coverage (55/1543 ranked).
 The single fresh Game Gear ScreenScraper job 73 reached a terminal outcome on

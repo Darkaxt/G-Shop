@@ -9,6 +9,10 @@ import 'package:retro_eshop/services/drive/drive_api.dart';
 
 class _FakeApi implements DriveCatalogueApi {
   @override
+  Future<List<DriveFile>> getFolderBatch(List<String> ids,
+          {cancelToken}) async =>
+      [for (final id in ids) await getFile(id, cancelToken: cancelToken)];
+  @override
   Future<DriveFile> getFile(String id, {cancelToken}) async {
     expect(id, 'root');
     return DriveFile(

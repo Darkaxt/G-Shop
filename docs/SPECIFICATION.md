@@ -211,6 +211,16 @@ whole catalogue for each folder. Existing databases receive the additive index
 without resetting active/pending generations or changing entries/checkpoints.
 Publication and final folder-boundary validation remain unchanged.
 
+S7 publication transport detail (2026-10-07): recheck every observed folder in
+bounded Drive v3 metadata batches of at most 100 exact IDs. Use the documented
+fixed-origin batch endpoint with read-only inner GETs, bounded response bytes,
+exact response-ID reconciliation and the existing account/cancellation rules.
+Every folder's identity, name, parent and supported-folder status must still
+match; missing, changed, malformed or failed replies prevent publication. Keep
+the current generation/cursors and old published snapshot on interruption.
+Batching reduces HTTP round trips, not quota usage, and supplies no subtree
+snapshot transaction or file recovery/removal authority.
+
 First scope: ordinary binary files in a selected personal My Drive subtree.
 Shared Drives, Workspace document export and shortcut traversal are not supported
 initially; surface them explicitly instead of following them outside the root.

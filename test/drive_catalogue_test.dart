@@ -20,11 +20,27 @@ class _Api implements DriveCatalogueApi {
   final nodes = <String, DriveFile>{'root-id': folder('root-id', 'my-drive')};
   final pages = <String, DriveFilePage>{};
   final listed = <String>[];
+  final folderBatches = <List<String>>[];
   String? fail;
   void Function(String)? beforeList;
+  void Function()? beforeBatch;
+  bool failBatch = false;
+  List<DriveFile> Function(List<DriveFile>)? batchResult;
   @override
   Future<DriveFile> getFile(String id, {CancelToken? cancelToken}) async =>
       nodes[id] ?? (throw const DriveApiException(DriveApiIssue.notFound));
+  @override
+  Future<List<DriveFile>> getFolderBatch(List<String> ids,
+      {CancelToken? cancelToken}) async {
+    folderBatches.add(List.of(ids));
+    beforeBatch?.call();
+    if (failBatch) throw const DriveApiException(DriveApiIssue.quota);
+    final result = [
+      for (final id in ids) await getFile(id, cancelToken: cancelToken)
+    ];
+    return batchResult?.call(result) ?? result;
+  }
+
   @override
   Future<DriveFilePage> listChildren(String parentId,
       {String? pageToken,
@@ -64,6 +80,78 @@ void main() {
           accountId: 'account',
           rootFolderId: 'root-id',
           folderId: folderId);
+
+  test('publication rechecks every folder in bounded metadata batches',
+      () async {
+    final children = [
+      for (var i = 0; i < 204; i++)
+        folder('folder-${i.toString().padLeft(3, '0')}', 'root-id')
+    ];
+    for (final child in children) {
+      api.nodes[child.id] = child;
+    }
+    api.pages['root-id:'] =
+        DriveFilePage(files: children.sublist(0, 100), nextPageToken: 'p2');
+    api.pages['root-id:p2'] =
+        DriveFilePage(files: children.sublist(100, 200), nextPageToken: 'p3');
+    api.pages['root-id:p3'] = DriveFilePage(files: children.sublist(200));
+    await refresh();
+    expect(api.folderBatches.map((batch) => batch.length), [100, 100, 5]);
+    expect(api.folderBatches.expand((batch) => batch).toSet(),
+        api.nodes.keys.toSet());
+    expect(api.folderBatches.expand((batch) => batch).length, 205);
+    expect((await db.query('drive_catalogue_state')).single['pending'], isNull);
+    expect((await db.query('drive_catalogue_state')).single['active'], 1);
+  });
+
+  test('failed final batch preserves snapshot and resumes the same generation',
+      () async {
+    api.pages['root-id:'] = DriveFilePage(files: [rom('old', 'root-id')]);
+    await refresh();
+    api.pages['root-id:'] = DriveFilePage(files: [rom('new', 'root-id')]);
+    api.failBatch = true;
+    await expectLater(refresh(), throwsA(isA<DriveApiException>()));
+    expect((await entries()).single.file.id, 'old');
+    final before = (await db.query('drive_catalogue_state')).single;
+    expect(before['active'], 1);
+    expect(before['pending'], 2);
+    api.failBatch = false;
+    api.listed.clear();
+    await refresh();
+    final after = (await db.query('drive_catalogue_state')).single;
+    expect(api.listed, isEmpty);
+    expect(after['active'], 2);
+    expect(after['pending'], isNull);
+    expect(after['next_generation'], before['next_generation']);
+    expect((await entries()).single.file.id, 'new');
+  });
+
+  test('cancellation during final batch preserves checkpoint and old snapshot',
+      () async {
+    api.pages['root-id:'] = DriveFilePage(files: [rom('old', 'root-id')]);
+    await refresh();
+    api.pages['root-id:'] = DriveFilePage(files: [rom('new', 'root-id')]);
+    final cancel = CancelToken();
+    api.beforeBatch = () => cancel.cancel();
+    await expectLater(
+        refresh(cancel: cancel), throwsA(isA<DriveCatalogueException>()));
+    expect((await entries()).single.file.id, 'old');
+    expect((await db.query('drive_catalogue_state')).single['pending'], 2);
+  });
+
+  test('short batch cannot publish, changed folder rejects pending generation',
+      () async {
+    api.pages['root-id:'] = DriveFilePage(files: [rom('old', 'root-id')]);
+    await refresh();
+    api.pages['root-id:'] = DriveFilePage(files: [rom('new', 'root-id')]);
+    api.batchResult = (_) => [];
+    await expectLater(refresh(), throwsA(isA<DriveApiException>()));
+    expect((await entries()).single.file.id, 'old');
+    api.batchResult = (_) => [folder('root-id', 'outside')];
+    await expectLater(refresh(), throwsA(isA<DriveCatalogueException>()));
+    expect((await entries()).single.file.id, 'old');
+    expect((await db.query('drive_catalogue_state')).single['pending'], isNull);
+  });
 
   test('pages, nested folders and duplicate names preserve exact IDs',
       () async {

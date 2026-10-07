@@ -5,6 +5,59 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 bounded final folder validation — 2026-10-07
+
+- Root traversal reached 267,562 observations and zero pending folder pages in
+  the SAME generation 1. Final publication still required individual HTTP GETs
+  for all 37,384 observed folders. The bounded regression reproduced that
+  transport behavior before the change. Final validation now uses the documented
+  [Drive v3 batch protocol](https://developers.google.com/workspace/drive/api/guides/performance)
+  with at most 100 read-only metadata GETs, not fewer identity checks or quota
+  units. No traversal/checkpoint/schema or publication authority was changed.
+- Focused API/catalogue/download-boundary/provider/source-setup checks passed;
+  final scoped analysis reports no issues. Inspected regressions cover exact
+  once-only response identity/order, complete framing, response/request bounds,
+  cancellation, one rejected-token renewal, typed quota/access failures, old
+  published snapshot preservation, same-generation resume and changed-folder
+  rejection. The separate nested-HTTP framing regression failed before its CRLF
+  correction and passed afterwards. No full suite or concurrent test run was used.
+- Normal Disconnect (not Revoke) drained owned Drive work before the signed
+  in-place debug update. Read-only streaming digests verified all 267,562 entry,
+  37,384 work and 38,795 page rows unchanged after installation. An initial
+  diagnostic read encountered SQLITE_BUSY during actual startup library sync;
+  it was repeated only after that visible startup sync finished. This was an
+  observer failure, not evidence of corrupt rows or a memory failure.
+- Gated attempt 233 failed from an unquoted PowerShell target property becoming
+  a stray `.dart` task; after confirmed exit, corrected attempt 234 succeeded.
+  The supervisor actually acquired `Local\Darka.AndroidGradleBuildGate` and
+  observed two workers, parallel=false and a 3 GiB Gradle maximum heap. Kotlin
+  2.2.20 uses the existing in-process strategy within that heap; Metaspace 1 GiB
+  and code cache 256 MiB remain preserved. Test-task configuration reports one
+  fork/512 MiB, not executed JVM measurement. Existing app native Ninja pools
+  are depth one; actual plugin-native concurrency remains unverified. No memory
+  failure or budget increase occurred. Both attempt logs remain retained in
+  `D:/Temp/rshop-s7-folder-batch-build-20261007`.
+- APK SHA-256 is
+  `0209b16fcde15ce1de80654000182f42a22af8ee851556641242413954ab1d58`;
+  package com.darkaxt.rshop.debug, version 1.7.0/12, unchanged verified signer.
+  Normal native startup and default-account reconnect succeeded without Save,
+  uninstall, configuration reset or account revocation. Normal root Refresh
+  resumed the saved generation. Latest read-only state is active=null,
+  pending=1, nextGeneration=2, 267,562 observations, zero pending folder pages.
+  Those persisted counts DO NOT prove that final validation is progressing or
+  terminal; native batch publication remains unverified.
+- The fresh read-only SD inventory reconciles every one of 15,964 records,
+  unique paths, group counts and all 722,865,729,304 logical bytes. Every record
+  remains preserve/removalAuthorized=false. No payload hashes, cloud binding,
+  ownership, removals or reclaimed-space claims come from this inventory.
+- S7 is sole ACTIVE; full fresh identification, defensible whole-collection
+  ranking, exact reviewed migration and restore/removal verification remain
+  required. S8-S10 remain NOT STARTED. The reviewed-manifest classification
+  question remains unanswered; the approved standardized matching policy does
+  not authorize that import. No ROM/save/BIOS/FolderSync/cloud-original mutation,
+  external release or push occurred. Both physical screens are confirmed OFF.
+  Private evidence, checkpoint helper, APK and necessary build logs are retained.
+
 ### S7 alternative-score source screening — 2026-10-07
 
 - Bounded primary-source screening is recorded in `SCORE_RECEPTION_ASSESSMENT.md`.

@@ -202,12 +202,22 @@ class DriveCatalogue {
             limit: 100,
             offset: offset);
         if (folders.isEmpty) break;
-        for (final row in folders) {
+        _cancelled(cancelToken);
+        final expectedFolders = [
+          for (final row in folders)
+            DriveFile.fromJson(jsonDecode(row['record_json'] as String)
+                as Map<String, dynamic>)
+        ];
+        final actualFolders = await api.getFolderBatch(
+            expectedFolders.map((folder) => folder.id).toList(),
+            cancelToken: cancelToken);
+        _cancelled(cancelToken);
+        if (actualFolders.length != expectedFolders.length) {
+          throw const DriveApiException(DriveApiIssue.invalidResponse);
+        }
+        for (var index = 0; index < expectedFolders.length; index++) {
           _cancelled(cancelToken);
-          final expected = DriveFile.fromJson(
-              jsonDecode(row['record_json'] as String) as Map<String, dynamic>);
-          _sameFolder(expected,
-              await api.getFile(expected.id, cancelToken: cancelToken));
+          _sameFolder(expectedFolders[index], actualFolders[index]);
         }
         offset += folders.length;
       }
