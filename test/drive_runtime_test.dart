@@ -151,6 +151,25 @@ class _Transport implements HttpClientAdapter {
       'mimeType': 'application/vnd.google-apps.folder',
       'parents': <String>[]
     };
+    if (options.uri.toString() == 'https://www.googleapis.com/batch/drive/v3') {
+      expect(options.method, 'POST');
+      final body = options.data as String;
+      final parts =
+          RegExp(r'Content-ID: <folder-(\d+)>').allMatches(body).toList();
+      expect(parts, hasLength(1));
+      expect(body, contains('GET /drive/v3/files/folder?'));
+      return ResponseBody.fromString(
+          '${parts.map((part) => '--fixture_batch\r\n'
+              'Content-Type: application/http\r\n'
+              'Content-ID: <response-folder-${part.group(1)}>\r\n\r\n'
+              'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n'
+              '${jsonEncode(folder)}\r\n').join()}'
+          '--fixture_batch--\r\n',
+          200,
+          headers: {
+            'content-type': ['multipart/mixed; boundary=fixture_batch']
+          });
+    }
     final Object response = options.path == 'files'
         ? {
             'files': [file]
@@ -182,6 +201,7 @@ class _NativeStorage {
     },
   };
   Future<void> Function()? onArchiveRead;
+  String archivePlatform = 'n64';
   final channel = const MethodChannel('runtime-fixture-storage');
   final bytes = <int>[];
   final writeStarted = Completer<void>();
@@ -227,7 +247,7 @@ class _NativeStorage {
       case 'ownedReadArchiveIdentifier':
         expect(args['destinationRoot'], '/roms');
         expect(args['relativePath'], 'fixture.7z');
-        expect(args['platformId'], 'n64');
+        expect(args['platformId'], archivePlatform);
         await onArchiveRead?.call();
         return archiveObservation;
       case 'ownedPrepare':
@@ -905,6 +925,71 @@ void main() {
     expect(await fixture.db.query('transfer_target_owners'), isEmpty);
     expect(fixture.native.stagePresent, isFalse);
   });
+  for (final platform in ['gb', 'gbc']) {
+    test('$platform ZIP is not silently promoted to the 7z metadata profile',
+        () async {
+      final fixture =
+          await _TransferFixture.create(name: 'fixture.zip', reserve: false);
+      expect(
+          await fixture.runtime().readMetadataArchive(
+              config: _transferConfig,
+              artifact: _artifact(name: 'fixture.zip'),
+              platformId: platform,
+              destinationRoot: '/roms',
+              cancellation: CancelToken()),
+          isNull);
+      expect(fixture.native.calls, isEmpty);
+      expect(fixture.metadata.requests, isEmpty);
+      expect(fixture.media.requests, isEmpty);
+    });
+    test(
+        '$platform local 7z metadata reads use raw hashes without installation',
+        () async {
+      final fixture =
+          await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+      fixture.native.archivePlatform = platform;
+      final member = platform == 'gb' ? 'fixture.gb' : 'fixture.gbc';
+      fixture.native.archiveObservation['raw'] = {
+        ...((fixture.native.archiveObservation['raw'] as Map)
+            .cast<String, Object?>()),
+        'filename': member,
+      };
+      final raw = await fixture.runtime().readMetadataArchive(
+          config: _transferConfig,
+          artifact: _artifact(name: 'fixture.7z'),
+          platformId: platform,
+          destinationRoot: '/roms',
+          cancellation: CancelToken());
+      expect(raw, isNotNull);
+      expect(raw!.filename, member);
+      expect(raw.sha1, 'c' * 40);
+      expect(raw.md5, 'b' * 32);
+      expect(fixture.native.calls, ['ownedReadArchiveIdentifier']);
+      expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
+          hasLength(2));
+      expect(fixture.media.requests, isEmpty);
+      expect(await fixture.db.query('transfer_records'), isEmpty);
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(fixture.native.stagePresent, isFalse);
+    });
+    test('$platform 7z rejects a raw member from another mapped platform',
+        () async {
+      final fixture =
+          await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+      fixture.native.archivePlatform = platform;
+      await expectLater(
+          fixture.runtime().readMetadataArchive(
+              config: _transferConfig,
+              artifact: _artifact(name: 'fixture.7z'),
+              platformId: platform,
+              destinationRoot: '/roms',
+              cancellation: CancelToken()),
+          throwsA(isA<DriveTransferException>().having(
+              (e) => e.issue, 'issue', DriveTransferIssue.invalidResponse)));
+      expect(fixture.media.requests, isEmpty);
+    });
+  }
+
   test('metadata archive container mismatch cannot supply raw evidence',
       () async {
     final fixture =
@@ -1116,7 +1201,10 @@ void main() {
     expect(completed.lifecycle, TransferLifecycle.completed);
     expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
     expect(fixture.native.sessionOpen, isFalse);
-    expect(fixture.driver.grants, greaterThan(grantsBefore));
+    // Catalogue setup already obtained this account's reusable grant. The
+    // transfer must authorize its media request without another sign-in.
+    expect(grantsBefore, greaterThan(0));
+    expect(fixture.driver.grants, grantsBefore);
     expect(fixture.media.requests.single.path, 'files/file');
     expect(fixture.media.requests.single.headers['Authorization'],
         'Bearer synthetic-token');

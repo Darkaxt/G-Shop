@@ -962,11 +962,13 @@ class MetadataRefreshJobs {
       MetadataLookupRequest request,
       Map<String, Object?> identity,
       CancelToken cancel) async {
-    final archive = {'n64', 'gamegear'}.contains(request.platformId);
+    final archive =
+        {'n64', 'gamegear', 'gb', 'gbc'}.contains(request.platformId);
     if ((archive ? _readArchiveIdentifier == null : _readRomHeader == null) ||
         request.romIdentifier != null ||
         request.verifiedProviderGameId != null ||
-        !{'psp', 'ps2', 'n64', 'gamegear'}.contains(request.platformId)) {
+        !{'psp', 'ps2', 'n64', 'gamegear', 'gb', 'gbc'}
+            .contains(request.platformId)) {
       return null;
     }
     final game =
@@ -1000,8 +1002,9 @@ class MetadataRefreshJobs {
         artifact.canDownload != true ||
         (artifact.sizeBytes ?? 0) < (archive ? 1 : 140) ||
         !(archive
-            ? artifact.displayName.toLowerCase().endsWith('.zip') ||
-                request.platformId == 'n64' &&
+            ? {'n64', 'gamegear'}.contains(request.platformId) &&
+                    artifact.displayName.toLowerCase().endsWith('.zip') ||
+                {'n64', 'gb', 'gbc'}.contains(request.platformId) &&
                     artifact.displayName.toLowerCase().endsWith('.7z')
             : artifact.displayName.toLowerCase().endsWith('.chd'))) {
       return null;

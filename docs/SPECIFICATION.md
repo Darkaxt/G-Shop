@@ -485,6 +485,23 @@ with the job request; changed bytes retire it, while manual/modified/ambiguous
 editions remain protected. This identifies bytes, not reception or migration
 authority, and does not turn container digests into raw-ROM digests.
 
+S7 Game Boy archive identification detail (2026-10-07): extend that same
+read-only, exact-local-leaf workflow to explicitly mapped Game Boy/Game Boy Color
+7z artifacts already present on the SD card. Reuse the bounded single-member
+7z decoder with a 16 MiB raw-member budget (plus the existing bounded header
+overhead for the complete file), unchanged header/dictionary
+limits and complete CRC/stream validation. A Game Boy member must have .gb;
+Game Boy Color permits .gb/.gbc. Reject other platforms, unsafe names, extra
+members, unsupported layouts/codecs and changed local/cloud bindings. Keep raw
+member digests separate from the complete container's Drive digests. Extension
+validation itself establishes neither official classification nor console
+identity; the normal exact provider-match/explicit-flags rules still apply.
+This identifies existing bytes for META-01/META-03. It does not add archive
+installation/emulator/removal support or authorize remote ROM-body downloads,
+extraction, ownership inference, ranking/removal exceptions or rewriting saved
+job membership/completed requests. Verify the normal persisted worker and real
+already-local multi-entry provider workflow before claiming native integration.
+
 ### META-04 — Hacks, translations and score ownership
 
 Support distinct content tags for `Hack`, `T-Eng`, `Dub`, `Undub`, `Uncensor`,

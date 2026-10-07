@@ -16,6 +16,56 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void mappedGameBoySevenZipReturnsRawMemberNotContainerIdentity() throws Exception {
+        byte[] raw = rom();
+        raw[0] = 0; // This path must not misapply N64's magic check.
+        for (String platform : new String[]{"gb", "gbc"}) {
+            String name = "Game." + platform;
+            byte[] encoded = archive(name, raw, 1, true, raw.length, 4096, 1);
+            File file = File.createTempFile("rshop-gb-identity-", ".7z");
+            try {
+                Files.write(file.toPath(), encoded);
+                java.util.Map<?, ?> value = (java.util.Map<?, ?>) OwnedN64SevenZip.class
+                        .getDeclaredMethod("validate", String.class, String.class)
+                        .invoke(null, file.getPath(), platform);
+                assertEquals(name, value.get("filename"));
+                assertEquals(hash(raw, "SHA-1"), value.get("sha1"));
+                assertEquals(hash(raw, "MD5"), value.get("md5"));
+                assertNotEquals(hash(encoded, "MD5"), value.get("md5"));
+                assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+            } finally { assertTrue(file.delete()); }
+        }
+    }
+
+    @Test public void gameBoyProfileRejectsWrongNamesAndUnboundedRawSize() throws Exception {
+        for (String platform : new String[]{"gb", "gbc", "snes"}) {
+            for (String name : new String[]{"Game.z64", "../Game.gb", "Game.gba"}) {
+                File file = File.createTempFile("rshop-gb-reject-", ".7z");
+                try {
+                    Files.write(file.toPath(), archive(name, rom(), 1, true, rom().length, 4096, 1));
+                    try {
+                        OwnedN64SevenZip.class.getDeclaredMethod("validate", String.class, String.class)
+                                .invoke(null, file.getPath(), platform);
+                        fail("Wrong mapped member must not identify a Game Boy ROM");
+                    } catch (java.lang.reflect.InvocationTargetException error) {
+                        assertTrue(error.getCause() instanceof IOException);
+                    }
+                } finally { assertTrue(file.delete()); }
+            }
+        }
+        File file = File.createTempFile("rshop-gb-bound-", ".7z");
+        try {
+            Files.write(file.toPath(), archive("Game.gb", rom(), 1, true, 16L * 1024 * 1024 + 1, 4096, 1));
+            try {
+                OwnedN64SevenZip.class.getDeclaredMethod("validate", String.class, String.class)
+                        .invoke(null, file.getPath(), "gb");
+                fail("Raw work budget must be checked before decoding");
+            } catch (java.lang.reflect.InvocationTargetException error) {
+                assertTrue(error.getCause() instanceof IOException);
+            }
+        } finally { assertTrue(file.delete()); }
+    }
+
     @Test public void validatedArchiveReturnsMemberHashesNotContainerHashes() throws Exception {
         byte[] raw = rom();
         byte[] encoded = archive("Game.z64", raw, 1, true, raw.length, 4096, 1);

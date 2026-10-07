@@ -5,6 +5,106 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 local GB/GBC identification and bounded subfolder paging — 2026-10-07
+
+- Extended only the existing metadata observation route to already-local GB/GBC
+  single-member 7z files. The native decoder retains its bounded header,
+  dictionary, complete stream/CRC and safe-name rules, with a 16 MiB raw budget.
+  Runtime checks still require the exact configured source/account/target, all
+  complete-container Drive checksums and before/after current cloud lineage.
+  Raw member evidence is atomically pinned to that artifact version; manual
+  unknown classifications, modified/base-linked editions and completed saved
+  requests remain protected. No GB/GBC installation or removal support is added.
+- Focused native regressions failed on the absent profiled entry point before
+  implementation and passed afterwards. Focused Dart runtime, persistent-worker
+  and real ScreenScraper-adapter contract fixtures passed, including raw/container
+  separation, unsupported ZIP, restart reuse, modification protection and shared
+  response recovery. Adapter fixtures use synthetic responses, not real provider
+  acceptance. Scoped analysis passed. The stale transport fixture now supplies
+  actual-shaped folder batches and asserts authenticated access-token reuse;
+  production authentication was not weakened to satisfy the old fixture.
+- Actual Android database diagnostics exposed approximately eight-second
+  mapped-subfolder pages during startup. The recursive query fetched record JSON
+  before sorting/limiting all descendant IDs. It now selects the bounded ID page
+  first, then reads only those payloads, without a schema/reset/migration or a
+  MATERIALIZED keyword requirement. Exact source/generation/parent traversal,
+  supported anchor, ordering and offsets remain unchanged. The strengthened
+  production-SQL query-plan regression failed before the change and passed after
+  it; focused catalogue/provider checks and scoped analysis also passed.
+- A READONLY Android diagnostic executed token-identical production SQL against
+  the actual saved GB/GBC mappings and published generation. Game Boy's 9,112
+  descendant records were traversed in 72 pages / 4,406 ms (maximum page 148 ms);
+  Game Boy Color's 3,082 records in 25 pages / 623 ms (maximum page 95 ms).
+  These include folders and filtered files, not canonical-game counts. Ordered
+  page continuity, bounded payloads and unchanged published generation passed.
+  This proves the actual SQLite read path, not full end-to-end provider matching.
+- Native regressions and both required normal APK builds passed through acquired
+  shared gates (tickets 237-239). Observed settings were two workers,
+  parallel=false and 3,221,225,472-byte Gradle heap; assessed Kotlin 2.2.20 uses
+  in-process compilation sharing that heap. Required Metaspace/code-cache flags
+  were preserved. Test configuration is one fork/512 MiB; full plugin-native
+  concurrency is not established by the environment hints. No memory failure
+  or heap increase occurred. Inspected gate logs are
+  58554a55c0044294a86c509a531e9417.log,
+  3dcf15944ab54818b3f2460a76a3ef7a.log and
+  dba82f8a996f4646ade4d8bef71d7de9.log. The earlier red native run (ticket 236)
+  failed on the expected missing method, not memory exhaustion.
+- Normal Pause joined ScreenScraper job 76 before Disconnect and signer-preserving
+  in-place updates. The final installed normal debug APK has SHA-256
+  156caa7c9c5ba3d8fbc31196c7c7674ba84231dc9ee03b4798f3c9f1d5cf8c32,
+  unchanged package com.darkaxt.rshop.debug, version 1.7.0/12 and signer from
+  DEVELOPMENT_SETUP.md. Native reads retained configuration SHA-256
+  eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d,
+  active=1/pending=null/nextGeneration=2 and all 44,204 saved items. The same
+  requested=1,285 checkpoint and outcomes survived installation. Normal default
+  account reconnect and Resume advanced that same job to requested=1,310 with
+  no blocked status. No fresh replacement job or duplicate worker was started.
+- Real GB/GBC raw-binding/provider acceptance remains an open S7 verification
+  item. The progressing job has not yet reached the next already-local archives;
+  a bounded pending read observed the first local GBC/GB candidates respectively
+  200/364 pending positions away. Presence is not checksum/format/identity proof.
+  Do not replace the existing queue or claim native provider integration from
+  synthetic fixtures. Both physical displays were confirmed committed OFF.
+  S7 remains sole ACTIVE; S8-S10 NOT STARTED. No ROM/save/BIOS/cloud-original
+  write/removal, FolderSync change, ranking exception or external release occurred.
+- Reviewed cleanup e4545970cef093601c384e7eea7b7988 removed only six disposable
+  compiler/paging-diagnostic entries (30,159 bytes). The exact device paging jar
+  and UI dump were also reviewed and removed. The bounded binding observer's
+  source/jar and installed device jar remain needed to observe ordinary job 76's
+  upcoming GB/GBC raw evidence; private journals and the verified live-test APK
+  are intentional retained outputs. No shared cache/build root was swept.
+
+### S7 GBA and SNES terminal censuses independently reconciled — 2026-10-07
+
+- GBA's 798 records / 6,226,878,722 bytes reconcile with its terminal journal:
+  776 cached byte matches (5,974,050,983 bytes), 14 exact-name misses
+  (192,835,288 bytes), seven size mismatches (59,990,457 bytes) and one non-ROM
+  file (1,994 bytes). Every disposition remains preserve/removalAuthorized=false.
+- SNES's 8,501 records / 108,675,215,336 bytes likewise reconcile record by
+  record: 559 cached byte matches (468,163,473 bytes), 220 exact-name misses
+  (526,974,976 bytes) and 7,722 preserved non-ROM observations
+  (107,680,076,887 bytes). The latter includes companion content, not expendable
+  files. Relationships, cloud availability and restore routes are not inferred.
+- The same serial handle subsequently completed Mega Drive, SG-1000, Virtual
+  Boy and FDS and exited successfully. Every record/count/byte/disposition was
+  independently reconciled:
+
+  | Console | Records | Cached byte matches | Exact-name misses | Preserved non-ROM | Total bytes |
+  | --- | ---: | ---: | ---: | ---: | ---: |
+  | Mega Drive | 508 | 505 | 0 | 3 | 351,190,946 |
+  | SG-1000 | 110 | 65 | 42 | 3 | 1,723,775 |
+  | Virtual Boy | 85 | 83 | 0 | 2 | 33,392,682 |
+  | FDS | 85 | 0 | 84 | 1 | 3,931,516 |
+
+  All remain preserve/removalAuthorized=false. FDS misses do not prove absence
+  of equivalent raw members under different formats/names. One subsequent
+  serial census now covers the earlier selector's supported n3ds .cci and Wii U
+  .wua omissions using verified configured SD targets; terminal results are not
+  yet claimed. Cached matches do not prove current cloud readability, canonical
+  Top-25 retention or tested restoration. Private journals stay outside Git.
+  Metadata coverage and reviewed migration remain required work within ACTIVE
+  S7, not later-stage deferrals.
+
 ### S7 NES census verified and inventory format coverage reconciled — 2026-10-07
 
 - The serial audit's NES journal reached its terminal result. An independent

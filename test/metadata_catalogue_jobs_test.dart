@@ -737,6 +737,72 @@ void main() {
         isNull);
   });
 
+  for (final platform in ['gb', 'gbc']) {
+    test('$platform job leaves unsupported ZIP identity unresolved', () async {
+      final artifact = RemoteArtifact.fromJson({
+        ...remote('archive').toJson(),
+        'displayName': 'Game.zip',
+        'displayPath': 'Game.zip',
+        'canDownload': true
+      });
+      await cache(platform, artifact.displayName, artifact: artifact);
+      jobs = MetadataRefreshJobs(Future.value(db),
+          readArchiveIdentifier: (_, __, ___) async {
+        fail('The explicitly supported GB/GBC profile is 7z only');
+      });
+      final provider = _ReviewProvider();
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      await jobs.run(job.id, provider);
+      expect(provider.requests.single.romIdentifier, isNull);
+    });
+    test('$platform normal jobs persist exact local 7z member evidence once',
+        () async {
+      final artifact = RemoteArtifact.fromJson({
+        ...remote('archive').toJson(),
+        'displayName': 'Game (USA).7z',
+        'displayPath': 'Game (USA).7z',
+        'canDownload': true
+      });
+      await cache(platform, artifact.displayName, artifact: artifact);
+      var reads = 0;
+      final raw = MetadataRomIdentifier(
+          kind: RomIdentifierKind.rawRom,
+          filename: platform == 'gb' ? 'Game.gb' : 'Game.gbc',
+          sizeBytes: 8192,
+          md5: 'b' * 32,
+          sha1: 'c' * 40);
+      jobs = MetadataRefreshJobs(Future.value(db),
+          readArchiveIdentifier: (source, mapped, cancel) async {
+        expect(mapped, platform);
+        expect(source.toJson(), artifact.toJson());
+        reads++;
+        return raw;
+      });
+      final provider = _ReviewProvider();
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      await jobs.run(job.id, provider);
+      expect(provider.requests.single.romIdentifier?.toJson(), raw.toJson());
+      expect(reads, 1);
+      final edition = (await store
+          .edition((await items(job.id)).single['edition_id'] as String))!;
+      expect(edition.tags, isEmpty,
+          reason: 'Reading raw bytes does not infer official status');
+      expect(
+          edition.evidence
+              .singleWhere((e) => e.kind == 'rawRomIdentifier')
+              .source,
+          'driveLocalArchive');
+      final restarted = MetadataRefreshJobs(Future.value(db),
+          readArchiveIdentifier: (_, __, ___) async {
+        fail('Unchanged local archive evidence must survive restart');
+      });
+      final next =
+          await restarted.createFromCatalogue(providerId: 'screenscraper');
+      await restarted.run(next.id, provider);
+      expect(provider.requests.last.romIdentifier?.toJson(), raw.toJson());
+    });
+  }
+
   test('archive changed during identification cannot publish raw evidence',
       () async {
     final artifact = RemoteArtifact.fromJson({

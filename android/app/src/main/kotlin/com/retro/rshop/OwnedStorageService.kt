@@ -362,7 +362,8 @@ internal class OwnedStorageService(private val context: Context) {
         val platform = string(call, "platformId")
         val name = target.name.lowercase(java.util.Locale.ROOT)
         if (!(platform == "gamegear" && name.endsWith(".zip") ||
-                platform == "n64" && (name.endsWith(".zip") || name.endsWith(".7z"))))
+                platform == "n64" && (name.endsWith(".zip") || name.endsWith(".7z")) ||
+                platform in setOf("gb", "gbc") && name.endsWith(".7z")))
             throw Failure("unsupported_archive")
         var root = -1; var file = -1
         try {
@@ -375,7 +376,7 @@ internal class OwnedStorageService(private val context: Context) {
             val raw = when {
                 platform == "gamegear" -> OwnedGameGearZip.validate(path)
                 name.endsWith(".zip") -> OwnedGameGearZip.validateN64(path)
-                else -> OwnedN64SevenZip.validate(path)
+                else -> OwnedN64SevenZip.validate(path, platform)
             }
             if (container != OwnedArchiveIdentity.container(path) ||
                 !before.contentEquals(OwnedStorageNative.identity(file)) ||

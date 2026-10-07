@@ -871,6 +871,25 @@ Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
 
+Current S7 identification work (2026-10-07): extend the existing exact-local
+single-member 7z observation to GB/GBC, whose SD census contains hundreds of
+matching containers but whose raw members are not yet identified by the normal
+worker. Verify bounded native decoding, mapped raw suffixes, complete container
+checksums, unchanged cloud/local revalidation, atomic persisted raw evidence,
+same-job cancellation/reuse and explicit modification protection. Then prove
+the already-local multi-entry lookup on the Thor through normal provider work.
+No archive restore approval, inferred official tags, remote ROM bodies or
+second metadata worker follows from this identification slice.
+
+Native integration exposed a remaining mapped-subfolder paging cost: Android's
+database operation log records repeated approximately eight-second recursive
+pages during startup, blocking metadata controls. The current query fetches
+record payloads before sorting/limiting all descendants. Select the bounded
+file-ID page first, then fetch only those payloads. Preserve exact parent-tree,
+scope/generation, folder validation, ordering and offset semantics; verify query
+plans and actual native startup/resume. This is a defect preventing the current
+S7 integration check, not a new stage or a database-reset workaround.
+
 Publication transport work (2026-10-07): retain every final folder check, but
 combine at most 100 exact metadata GETs per documented Drive batch. Verify
 complete response reconciliation, cancellation, authentication/quota handling,

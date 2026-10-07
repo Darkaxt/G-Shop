@@ -1,5 +1,44 @@
 # S7 live metadata and Thor migration
 
+## Local GB/GBC identification slice and paging defect — 2026-10-07
+
+The existing exact-local archive observation supports mapped GB/GBC 7z files
+with a 16 MiB raw budget and unchanged bounded stream, CRC, safe-name, complete
+container-digest and local/cloud lineage checks. Persisted worker regressions and
+the actual ScreenScraper-adapter/shared recovery contract pass with synthetic
+responses. Native JVM decoder regressions pass. These are verified enabling
+changes for META-01/META-03, not real GB/GBC provider acceptance, archive restore
+approval, fabricated classification or authority to remove any files.
+
+The native integration exposed payload-before-limit subfolder query cost. Its
+production SQL now selects the bounded descendant-ID page before fetching JSON.
+Query-plan/offset/scope regressions pass. A READONLY Android execution of
+token-identical SQL verified complete ordered GB/GBC mapping traversal with
+maximum pages of 148/95 ms, versus the previous repeated approximately eight
+seconds. It preserves the current published snapshot without schema changes.
+Normal APK installation, default-account reconnect and same-job Resume succeeded;
+job 76's 44,204-item capture/configuration/checkpoint survived the updates.
+The same job is progressing with no blocked status. See the status ledger for
+artifact identity and acquired gate/effective resource-profile evidence.
+
+Real multi-entry GB/GBC raw binding and matching remain open until ordinary
+provider work reaches compatible already-local files. No completed requests were
+rewritten or second worker started to manufacture that result. Full fresh
+metadata, defensible canonical retention, current cloud/recovery proof and
+reviewed migration also remain S7 acceptance gates. The separate unapproved
+classification-provenance change remains unapproved; standardized matching did
+not authorize it. S7 remains sole ACTIVE, S8-S10 NOT STARTED; screens are OFF.
+
+GBA and SNES terminal private comparison journals now independently reconcile
+all records, counts, bytes and dispositions (798 / 8,501 files respectively).
+Their 776 / 559 cached matches do not supply live recovery/ranking authority.
+Every mismatch, missing counterpart and companion observation remains preserved.
+That same serial audit also completed Mega Drive, SG-1000, Virtual Boy and FDS;
+all terminal records/bytes/dispositions independently reconcile. The original
+handle exited successfully before a new serial census started for the explicitly
+supported .cci/.wua selector omissions. Their verification remains open until
+terminal records reconcile. Private journals and all local files are preserved.
+
 ## NES comparison and actual format boundaries — 2026-10-07
 
 NES's terminal private comparison reconciles 1,498 cached byte matches, three

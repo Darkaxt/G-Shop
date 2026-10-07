@@ -176,6 +176,19 @@ void main() {
         trace.plans.single,
         contains(contains(
             'drive_catalogue_parent (scope=? AND generation=? AND parent_id=?)')));
+    // Both the anchor and result row must be exact file lookups. A parent-index
+    // recursive step alone does not protect the outer join from a scope scan.
+    expect(
+        trace.plans.single.where((step) => step.startsWith('SEARCH e ') &&
+            step.contains('scope=? AND generation=? AND file_id=?')),
+        hasLength(2), reason: trace.plans.single.join('\n'));
+    expect(trace.plans.single,
+        contains(anyOf(contains('CO-ROUTINE page'), contains('MATERIALIZE page'))),
+        reason: 'Select the bounded page before reading record_json payloads');
+    final nextPage = await DriveCatalogue(Future.value(trace)).entries(
+        sourceId: 'source', accountId: 'account', rootFolderId: 'root-id',
+        folderId: 'console', generation: 1, limit: 1, offset: 1);
+    expect(nextPage.map((entry) => entry.file.id), ['nested']);
   });
 
   test('root indexed page still requires its supported root record', () async {

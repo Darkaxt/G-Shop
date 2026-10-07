@@ -23,9 +23,18 @@ final class OwnedN64SevenZip {
     private static final byte[] SIGNATURE = {0x37, 0x7a, (byte) 0xbc, (byte) 0xaf, 0x27, 0x1c};
 
     static java.util.Map<String, Object> validate(String descriptorPath) throws IOException {
+        return validate(descriptorPath, "n64");
+    }
+
+    /** Metadata-only extension of the same bounded single-member decoder.
+     * A mapped suffix is not provider identity or emulator/restore approval. */
+    static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
+        require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform));
+        boolean n64 = "n64".equals(platform);
+        long limit = n64 ? ROM_LIMIT : 16L * 1024 * 1024;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
-            require(length >= 32 && length <= ROM_LIMIT + 3L * HEADER_LIMIT);
+            require(length >= 32 && length <= limit + 3L * HEADER_LIMIT);
             byte[] signature = read(file, 0, 32);
             require(Arrays.equals(SIGNATURE, Arrays.copyOf(signature, 6)) && signature[6] == 0 &&
                     (signature[7] & 255) <= 4 && crc(signature, 12, 20) == le32(signature, 8));
@@ -60,15 +69,15 @@ final class OwnedN64SevenZip {
                 romEnd = 32 + stream.position;
             }
             Reader plain = new Reader(header); plain.expect(1); plain.expect(4);
-            Stream rom = streams(plain, ROM_LIMIT);
+            Stream rom = streams(plain, limit);
             require(!romVault || rom.method == 1);
             require(rom.position == 0 && rom.packed == romEnd - 32 && rom.unpacked >= 4);
             plain.expect(5); require(plain.number() == 1);
             String name = files(plain);
-            require(name != null && safeName(name));
+            require(name != null && safeName(name, platform));
             plain.expect(0); plain.end();
             OwnedArchiveIdentity identity = new OwnedArchiveIdentity();
-            decode(file, rom, null, true, identity);
+            decode(file, rom, null, n64, identity);
             return identity.member(name);
         }
     }
@@ -175,8 +184,15 @@ final class OwnedN64SevenZip {
     }
 
     static boolean safeName(String name) {
+        return safeName(name, "n64");
+    }
+
+    private static boolean safeName(String name, String platform) {
         String lower = name.toLowerCase(Locale.ROOT);
-        return (lower.endsWith(".n64") || lower.endsWith(".z64") || lower.endsWith(".v64")) &&
+        boolean extension = "n64".equals(platform)
+                ? lower.endsWith(".n64") || lower.endsWith(".z64") || lower.endsWith(".v64")
+                : lower.endsWith(".gb") || "gbc".equals(platform) && lower.endsWith(".gbc");
+        return extension &&
                 !name.startsWith(".") && name.chars().noneMatch(c ->
                         c < 32 || c == 127 || c == '/' || c == '\\' || c == ':');
     }

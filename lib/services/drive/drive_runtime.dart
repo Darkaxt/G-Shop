@@ -710,11 +710,14 @@ class DriveRuntime {
     final name = artifact.displayName;
     final extension = p.extension(name).toLowerCase();
     if (!(platformId == 'n64' && {'.7z', '.zip'}.contains(extension) ||
-            platformId == 'gamegear' && extension == '.zip') ||
+            platformId == 'gamegear' && extension == '.zip' ||
+            {'gb', 'gbc'}.contains(platformId) && extension == '.7z') ||
         name.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
         name.startsWith('.') ||
         (artifact.sizeBytes ?? 0) <= 0 ||
-        artifact.sizeBytes! > 128 * 1024 * 1024 + 3 * 65536 ||
+        artifact.sizeBytes! >
+            ({'gb', 'gbc'}.contains(platformId) ? 16 : 128) * 1024 * 1024 +
+                3 * 65536 ||
         _metadataArchives.containsKey(cancellation)) {
       return null;
     }
@@ -764,7 +767,12 @@ class DriveRuntime {
       }
       final raw = MetadataRomIdentifier.fromJson(
           (observation['raw'] as Map).cast<String, dynamic>());
-      final allowed = platformId == 'n64' ? {'.z64', '.n64', '.v64'} : {'.gg'};
+      final allowed = switch (platformId) {
+        'n64' => {'.z64', '.n64', '.v64'},
+        'gb' => {'.gb'},
+        'gbc' => {'.gb', '.gbc'},
+        _ => {'.gg'},
+      };
       if (raw.kind != RomIdentifierKind.rawRom ||
           raw.sizeBytes <= 0 ||
           raw.sizeBytes > (platformId == 'n64' ? 128 : 16) * 1024 * 1024 ||
