@@ -4,6 +4,83 @@ Authority: SPECIFICATION.md, META-05. Initial assessment owner: S4 (closed).
 The collection-scope extension below belongs to ACTIVE S7. Current stage state
 is in IMPLEMENTATION_STATUS.md. Source assessment is not whole-stage closure.
 
+## NES/SNES collection-scope assessment — 2026-10-07
+
+The existing serial public persistent-worker benchmark captured ten original
+NES/SNES releases at 14:24:29–14:25:37 UTC. Exact offered titles/platform IDs were
+explicitly reviewed in the public fixture; this is not a new automatic library
+classification rule. The two initial punctuation mismatches were corrected to
+the actual offered titles, without adding a production alias/retry mechanism.
+The existing META-05 representative assessment remains the foundation. This
+extension assesses two actual S7 collection scopes, not a new estimator.
+
+| Platform / original release | IGDB ID | Actual community / votes | Support |
+| --- | ---: | ---: | --- |
+| NES / Super Mario Bros. 3 | 1068 | 89.36 / 1,740 | Supported |
+| NES / Mega Man 2 | 1715 | 85.17 / 390 | Supported |
+| NES / Castlevania II: Simon's Quest | 1116 | 61.88 / 148 | Supported; different communities disagree |
+| NES / Dr. Jekyll and Mr. Hyde | 7961 | 17.72 / 17 | Too few votes |
+| NES / Action 52 | 5340 | 19.34 / 10 | Too few votes; original unlicensed multicart, not a hack |
+| SNES / Super Mario World | 1070 | 91.69 / 2,043 | Supported |
+| SNES / Chrono Trigger | 1802 | 93.25 / 1,393 | Supported |
+| SNES / Super Ghouls'n Ghosts | 6621 | 74.36 / 94 | Supported; not Restoration |
+| SNES / Shaq-Fu | 8536 | 40.23 / 20 | Supported at the unchanged floor |
+| SNES / Super James Pond | 4443 | 64.78 / 32 | Supported game-level record; not a SNES-specific average |
+
+Independent original-platform evidence inspected on 2026-10-07:
+[NES Mario 3](https://gamefaqs.gamespot.com/nes/525245-super-mario-bros-3/stats)
+4.54/5 from 6,769 users and
+[NES Mega Man 2](https://gamefaqs.gamespot.com/nes/563442-mega-man-2/stats)
+4.26/5 from 3,032 support high reception. Nintendo Life's own
+[NES Castlevania II community](https://www.nintendolife.com/reviews/vc/castlevania_ii_simons_quest_nes)
+6.7/10 from 123 users corroborates IGDB's middle band. The
+[GameSpot NES/FDS hub](https://www.gamespot.com/games/castlevania-ii-simons-quest/reviews/)
+instead reports 7.9/10 from 1,413 users, a material difference. Its pooled hub and
+different voters are not the same sample; Nintendo Life's NES-specific community
+and GameSpot's individual NES 6.5 review corroborate the lower band. This resolves
+the source-selection question in favor of the labelled community basis, not a
+claim that all communities agree, a causal explanation of every vote, or a
+title-specific adjustment. No independent count is attached to IGDB.
+
+[NES Dr. Jekyll](https://gamefaqs.gamespot.com/nes/563406-dr-jekyll-and-mr-hyde/stats)
+1.15/5 from 333 supports low reception but cannot rescue IGDB's seventeen votes.
+[SNES Mario World](https://gamefaqs.gamespot.com/snes/519824-super-mario-world/stats)
+4.54/5 from 8,253 and
+[SNES Chrono Trigger](https://gamefaqs.gamespot.com/snes/563538-chrono-trigger/stats)
+4.55/5 from 7,250 support high reception; GBA/PC/PS/mobile ports were not used.
+[SNES Ghouls](https://gamefaqs.gamespot.com/snes/588732-super-ghouls-n-ghosts/stats)
+3.7/5 from 949 agrees with 74.36/100. GameFAQs' own
+[SNES Shaq-Fu review](https://gamefaqs.gamespot.com/snes/588653-shaq-fu/reviews/24205)
+5/10 is one individual review, not a consensus target; it supports a lower band
+relative to the acclaimed examples. No inaccessible aggregate page or Genesis
+review was substituted. Its twenty-vote IGDB sample meets the existing floor,
+not a statistical confidence guarantee. GameFAQs identifies
+[Super James Pond](https://gamefaqs.gamespot.com/snes/588736-super-james-pond)
+as James Pond II/RoboCod and labels its 51-user reception Fair. That corroborates
+middle reception and the alias identity, not numerical equality with a global
+multiplatform average. Unsupported aggregate evidence for Action 52 was not
+invented; the ten-vote score remains excluded regardless of its extreme value.
+
+Decision: extend the existing assessed IGDB community basis to `nes`/`snes` with
+unchanged 0–100 scale, precedence, twenty-known-vote minimum, current bound
+identity/ownership and freshness rules. Never substitute blended totals (Mario
+World's one-critic total is 95.85), critic counts or scores from another port.
+Projects, ambiguous identities and unreviewed classifications remain separate.
+This public assessment does not complete collection coverage, establish a
+defensible whole-collection Top-25, or grant SD removal authority. The initial
+offline production query correctly ranked zero until this scope was assessed.
+
+Verification: the focused support-boundary test failed at NES/twenty votes before
+extension and passed afterwards. The existing effective-score and indexed-query
+checks passed, including provisional retention, stale/unknown/low counts and
+project ownership. A fresh real-provider capture at 14:33:24–14:33:29 UTC returned
+the same score/count evidence; after closing its network adapter, the production
+cached/offline query selected eight supported canonical games from ten fixtures,
+with identical Top-25 membership and explicitly provisional coverage. Scoped
+Dart analysis and diff checks passed. Native integration remains current S7
+work until the updated ordinary APK is built and verified; it is not inferred
+from this host evidence.
+
 ## Decision
 
 ScreenScraper's current `note` is usable as a labelled, sourced advisory score,

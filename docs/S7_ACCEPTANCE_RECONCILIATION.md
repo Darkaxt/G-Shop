@@ -1,5 +1,19 @@
 # S7 live metadata and Thor migration
 
+## NES/SNES reception scope — 2026-10-07
+
+Host-verified extension of the existing game-level IGDB community basis retains
+the twenty-known-vote floor and all identity/ownership/freshness rules. The real
+public worker's cached/offline Top selects eight of ten reviewed fixtures, with
+low-vote records excluded and coverage provisional. The cached-policy regression
+verifies re-projection without rescraping and preservation of unresolved retention
+members. See SCORE_RECEPTION_ASSESSMENT.md for sourced reception and disagreements.
+Native integration is awaiting the single gated ordinary debug build; not yet
+claimed. The existing live scrape continues unchanged. This is progress against
+META-05/MIGRATE-01, not complete collection ranking or SD-removal authority.
+S7 stays ACTIVE; remaining collection coverage, restore and migration criteria
+are unchanged, and S8-S10 stay NOT STARTED.
+
 ## Explicit SNES archive recovery — 2026-10-07
 
 Revision 12's explicit one-member SNES 7z profile uses the existing bounded

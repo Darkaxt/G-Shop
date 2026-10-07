@@ -943,6 +943,17 @@ defensible ranking and execution-time readable cloud proof remain required.
 See the acceptance/status ledgers. This does not approve MSU/PCM bundles or
 substitute the census's 559 cached matches for execution-time proof.
 
+S7 NES/SNES ranking checkpoint (2026-10-07): the real serial public-worker
+assessment supports extending the existing game-level IGDB community basis,
+retaining twenty known votes, identity/ownership, freshness and canonical query
+rules. Regression-first support boundaries, cached policy re-projection and
+real-provider offline query are host-verified: eight of ten public fixtures rank;
+low-vote entries remain preserved and coverage is provisional. Ordinary native
+integration is still current S7 work, with one retained gated build request.
+The native saved scrape remains the same job and must not be restarted. Public
+benchmark review is not library classification, whole-collection ranking or
+migration authority; see SCORE_RECEPTION_ASSESSMENT.md and the status ledger.
+
 Current S7 recovery work (2026-10-07): extend the verified GB single-member 7z
 route to explicit GBC/GBA mappings, using the existing bounded decoder and owned
 document leaf. SameBoy/mGBA are installed; verify publication/crash/offline

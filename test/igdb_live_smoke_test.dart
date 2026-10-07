@@ -234,6 +234,19 @@ void main() {
       ('gbc', 'Wario Land 3', {'official'}),
       ('gbc', 'Perfect Dark', {'official'}),
       ('gbc', 'The Grinch', {'official'}),
+      // S7's now-restorable NES/SNES scopes. Capture actual high/middle/low
+      // reception before any production score-policy extension; explicit
+      // benchmark review never becomes automatic library classification.
+      ('nes', 'Super Mario Bros. 3', {'official'}),
+      ('nes', 'Mega Man 2', {'official'}),
+      ('nes', "Castlevania II: Simon's Quest", {'official'}),
+      ('nes', 'Dr. Jekyll and Mr. Hyde', {'official'}),
+      ('nes', 'Action 52', {'official'}),
+      ('snes', 'Super Mario World', {'official'}),
+      ('snes', 'Chrono Trigger', {'official'}),
+      ('snes', "Super Ghouls'n Ghosts", {'official'}),
+      ('snes', 'Shaq-Fu', {'official'}),
+      ('snes', 'Super James Pond', {'official'}),
       ('snes', 'Chrono Trigger: Crimson Echoes', {'Hack'}),
       ('gba', 'Pokémon Unbound', {'Hack'}),
     ];

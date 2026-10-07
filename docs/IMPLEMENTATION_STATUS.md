@@ -5,6 +5,40 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 NES/SNES reception scope — 2026-10-07
+
+- The real serial public benchmark captured ten reviewed original NES/SNES
+  releases and compared independent original-platform reception. The recorded
+  decision in SCORE_RECEPTION_ASSESSMENT.md extends the existing IGDB game-level
+  community basis to these actual S7 collection scopes, retaining known twenty
+  votes, actual 0–100 user average, fixed precedence, identity/ownership and
+  freshness. Material Castlevania II community disagreement and global James
+  Pond scope remain explicit; no blended total, critic fallback, borrowed votes,
+  title boost, unknown-count exception or automatic official classification.
+- RED reproduced NES/twenty-vote rejection before extension; focused effective
+  rating and indexed-query checks passed after it. Fresh real-provider capture
+  at 14:33:24–14:33:29 UTC yielded eight supported canonical games from ten
+  reviewed public fixtures after closing the network adapter, identical Top-25
+  membership and explicitly provisional coverage. A focused real-SQLite policy
+  refresh check proves already-cached NES/SNES records are reprojected without
+  another scrape and low-vote/provisional retention members remain preserved.
+  Its initial fixture used a nonexistent retention `items` getter; that local
+  compilation error was corrected to the actual members/disposition API, then
+  the check passed. Production retention behavior was not changed. Scoped Dart
+  analysis of the changed production and all three changed test files passed
+  after that additional query fixture; diff checks passed.
+- Native integration is not yet claimed. Ordinary debug build 302 is waiting
+  through the single retained gate supervisor request; do not launch another
+  build or infer gate acquisition from FIFO ticket registration. The existing
+  Thor scrape is still running: fresh normal UI observed requested=4,349,
+  matched=101, rated=98 and pending=39,866. It was not paused/recreated for the
+  host assessment. Both displays were subsequently confirmed committed OFF.
+- S7 remains the sole ACTIVE stage. Whole-collection fresh coverage, reviewed
+  identities and defensible canonical Top-25, current readable exact cloud
+  copies, required remaining recovery workflows and reviewed migration execution
+  remain unfinished. S8-S10 are NOT STARTED; no original ROM/save/cloud changes,
+  legacy sync retirement or external release occurred.
+
 ### S7 SNES owned archive recovery — 2026-10-07
 
 - Revision 12's explicit SNES single-member 7z profile is integrated through the

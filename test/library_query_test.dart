@@ -679,6 +679,67 @@ void main() {
     expect(revised.items, isEmpty);
   });
 
+  test('NES SNES policy refresh ranks cached records without rescraping',
+      () async {
+    for (final (n, platform, votes) in [
+      (1, 'nes', 20),
+      (2, 'nes', 19),
+      (3, 'snes', 20),
+      (4, 'snes', 19),
+    ]) {
+      final id = await seed(n, platform: platform, score: 99);
+      final cached = (await store.metadata(id, 'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...cached.toJson(),
+        'ratings': [
+          ...cached.ratings.map((r) => r.toJson()),
+          SourcedRating.parse(
+                  sourceId: 'igdb',
+                  sourceLabel: 'IGDB users',
+                  providerGameId: cached.providerGameId,
+                  rawValue: 80,
+                  scaleMinimum: 0,
+                  scaleMaximum: 100,
+                  voteCount: votes,
+                  kind: RatingKind.communityAggregate,
+                  retrievedAt: at)!
+              .toJson()
+        ]
+      }));
+    }
+    final basis = productionOverallScoreBases.single;
+    final previousScope = AssessedOverallScoreBasis(
+        sourceId: basis.sourceId,
+        kind: basis.kind,
+        scaleMinimum: basis.scaleMinimum,
+        scaleMaximum: basis.scaleMaximum,
+        platformIds: basis.platformIds.difference({'nes', 'snes'}),
+        minimumVoteCount: basis.minimumVoteCount,
+        assessmentReference: basis.assessmentReference);
+    final before = await query.page(
+        filter: LibraryQueryFilter(top: 25), assessedBases: [previousScope]);
+    expect(before.rankedGames, 0);
+    expect(before.items, isEmpty);
+    final after = await query.page(filter: LibraryQueryFilter(top: 25));
+    expect(after.collectionGames, 4);
+    expect(after.rankedGames, 2);
+    expect(after.provisional, isTrue);
+    expect(after.items.map((item) => item.platformId).toSet(), {'nes', 'snes'});
+    for (final item in after.items) {
+      expect(item.score!.rating.normalizedValue, 80);
+      expect(item.score!.rating.kind, RatingKind.communityAggregate);
+      expect(item.score!.rating.voteCount, 20);
+    }
+    for (final platform in ['nes', 'snes']) {
+      final retained = await query.retentionPage(platformId: platform);
+      expect(retained.provisional, isTrue);
+      expect(
+          retained.members.every((member) => retained.disposition(member) !=
+              LibraryRetentionDisposition.outsideSample),
+          isTrue);
+    }
+  });
+
   test('ranks collection before tag search view and genre intersections',
       () async {
     final first = await seed(1, score: 95);

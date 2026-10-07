@@ -48,7 +48,7 @@ class AssessedOverallScoreBasis {
 }
 
 /// META-05's recorded assessment, extended in S7 for N64/PSP (2026-10-05)
-/// and GB/GBC (2026-10-07).
+/// and GB/GBC/NES/SNES (2026-10-07).
 /// Use the provider's actual game-level
 /// community average, not its one-critic-sensitive blended total. This is a
 /// confidence floor, not a confidence interval or a platform-specific critic
@@ -69,7 +69,9 @@ final productionOverallScoreBases =
         'n64',
         'psp',
         'gb',
-        'gbc'
+        'gbc',
+        'nes',
+        'snes'
       },
       minimumVoteCount: 20,
       assessmentReference:

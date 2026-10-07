@@ -291,10 +291,10 @@ void main() {
     expect(
         select([
           MetadataRecord.fromJson(
-              {...unsupported.toJson(), 'platformId': 'snes'})
+              {...unsupported.toJson(), 'platformId': 'saturn'})
         ],
             identity:
-                GameIdentity.fromJson({...game.toJson(), 'platformId': 'snes'}),
+                GameIdentity.fromJson({...game.toJson(), 'platformId': 'saturn'}),
             assessed: productionOverallScoreBases),
         isNull);
   });
@@ -318,9 +318,9 @@ void main() {
     expect(stale.rankingEligible, isFalse);
   });
 
-  test('S7 assessed handhelds and N64 retain the community support boundary',
+  test('S7 assessed consoles retain the community support boundary',
       () {
-    for (final platform in ['n64', 'psp', 'gb', 'gbc']) {
+    for (final platform in ['n64', 'psp', 'gb', 'gbc', 'nes', 'snes']) {
       final scopedGame =
           GameIdentity.fromJson({...game.toJson(), 'platformId': platform});
       for (final votes in [null, 10, 19, 20]) {
@@ -335,7 +335,8 @@ void main() {
             edition: official,
             records: [scopedRecord],
             assessedBases: productionOverallScoreBases);
-        expect(selected?.rankingEligible == true, votes == 20);
+        expect(selected?.rankingEligible == true, votes == 20,
+            reason: '$platform with $votes community votes');
         if (selected != null) {
           expect(
               selected.rating.toJson(), scopedRecord.ratings.single.toJson());
