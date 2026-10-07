@@ -13,6 +13,17 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
 
+Current S7 checkpoint (2026-10-07): root generation 1 is published, with no pending
+generation. Historical unpublished-root checkpoints below are superseded by the
+fresh status/reconciliation evidence. Normal mapping Save added 32 exact observed
+top-level console mappings while preserving all seven source objects and the six
+existing console configurations. Home indexing terminated with 44,204 artifact
+rows across 29 populated consoles; do not equate artifacts with canonical games
+or completed coverage. One normal Entire collection ScreenScraper fresh operation
+has been accepted. Observe its immutable capture and provider progress, then close
+remaining coverage/retention/migration criteria without recreating that snapshot.
+S7 is ACTIVE; S8-S10 remain NOT STARTED.
+
 S7 normal Game Gear ZIP recovery checkpoint (2026-10-06): unchanged APK 206
 completed a real download into an isolated task-created folder, booted through
 normal RetroArch handoff and cold offline launch, removed only that owned copy,

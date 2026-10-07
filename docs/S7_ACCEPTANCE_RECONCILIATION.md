@@ -1,5 +1,28 @@
 # S7 live metadata and Thor migration
 
+## Expanded normal catalogue mapping — 2026-10-07
+
+Normal root Edit mappings saved 32 new supported console mappings. Fixed read-only
+native queries verify the exact selected folders are direct children of the
+published generation-1 root. All seven source objects and the original six console
+configurations are byte-for-byte equivalent at their per-object hash boundary;
+only the authorized additional mappings change the whole configuration hash.
+Ordinary Home indexing subsequently reached its terminal UI state. The native
+cache contains 44,204 artifact rows across 29 populated consoles, not that many
+canonical games. Some configured consoles have no supported cached content and
+ambiguous/unsupported root folders remain unmapped; complete coverage is NOT
+claimed. The root stays active=1/pending=null/nextGeneration=2.
+
+One normal ScreenScraper Entire collection fresh operation was accepted after
+indexing completed. New immutable-job capture and provider progress still require
+observation. Matching uses the already approved revision-9 policy; ambiguous or
+unknown modified editions are not made official merely to improve coverage.
+This workflow changes no ROM/save/BIOS/cloud-original bytes or removal authority.
+S7 stays ACTIVE; its metadata, reliable retention and reviewed migration criteria
+remain open. S8-S10 remain NOT STARTED. See the live ledger for exact hashes.
+Both physical displays are subsequently confirmed OFF; the accepted operation
+is preserved and only the disposable screenshot/device copy was removed.
+
 ## Published root and indexed reads — 2026-10-07
 
 The read-only diagnostic failure is now traced to SQLITE_BUSY, not memory

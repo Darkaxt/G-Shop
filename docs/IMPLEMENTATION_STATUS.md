@@ -5,6 +5,45 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 broader normal console mapping and catalogue capture — 2026-10-07
+
+- The approved standardized matching policy is already authoritative in revision
+  9 and implemented by f270427. It removes company-wording/day-month equality as
+  a standalone veto, not platform/edition/year conflicts or modification guards.
+  No new classification-provenance approval is inferred from that instruction.
+- Normal root Edit mappings saved 32 additional supported console mappings once.
+  Exact native OPEN_READONLY checks confirm every selected folder is an observed
+  direct child of the published generation-1 root. Duplicate mappings for the
+  existing consoles and an unreviewed nested Arcade suggestion were cleared.
+  Ambiguous/unsupported folders remain unmapped, not silently assigned.
+- All seven source objects and all six pre-existing console configurations retain
+  their exact per-object SHA-256 values. The complete configuration intentionally
+  changes to 2e0f5888bbef7d40e0b06e9c671a71429c0f857cbcdd7e620761109499287620;
+  it now contains 38 console configurations. Root state remains active=1,
+  pending=null, nextGeneration=2. No new root scan was created.
+- Ordinary Home library indexing ran to terminal UI state. The subsequent native
+  read reports 44,204 cached artifact rows across 29 consoles with content.
+  These include revisions, archives and folder rows; this is NOT a canonical
+  game count, proven metadata coverage, or proof that every mapping has supported
+  content. Zero-content and still-unmapped systems remain ordinary S7 work.
+- The normal ScreenScraper controls show Entire collection. Fresh re-scrape was
+  invoked ONCE after indexing finished; busy/Pause state confirms the operation
+  was accepted. Immutable capture and actual new-job/provider progress must still
+  be observed before claiming that the full metadata pass is running or finished.
+- S7 remains the sole ACTIVE stage. Whole-collection identification, defensible
+  Top-25 retention and exact reviewed migration remain unfinished; S8-S10 remain
+  NOT STARTED. ROMs, saves, BIOS, cloud originals and FolderSync are unchanged.
+  No Gradle invocation, APK update, external publication or push was needed.
+- During immutable capture the fixed read-only observer reports databaseBusy;
+  that diagnostic is not treated as an app failure or absent job. No duplicate
+  scrape, reset, forced stop or guessed new-job ID was introduced. The unchanged
+  configuration hash was independently rechecked outside the database. Device
+  app PSS/RSS measured about 585/725 MiB; no memory failure was observed.
+- Both physical displays are confirmed committed OFF with the accepted operation
+  left intact. Cleanup transaction 558e2ad7115c1237918e1f982d8423da removed only
+  the 1,309,702-byte disposable screenshot; its exact device copy is confirmed
+  absent. Diagnostic helpers remain necessary for subsequent live verification.
+
 ### S7 published-catalogue query remediation — 2026-10-07
 
 - Android logcat traces the read-only observer's `Killed` result to an uncaught
