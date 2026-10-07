@@ -115,6 +115,15 @@ internal class OwnedStorageService(private val context: Context) {
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)
                                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                if (!retroArch && !psp && !ps2 && !wiiu) {
+                                    // Dolphin finishes MainActivity before its non-exported
+                                    // EmulationActivity reads the ROM. An intent-owned grant
+                                    // dies with that launcher; retain an exact package read
+                                    // grant instead. No prefix, tree, write or persistable
+                                    // permission. The provider rechecks durable ownership
+                                    // and the pinned object on every subsequent open.
+                                    context.grantUriPermission(app, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
                                 context.startActivity(intent)
                                 // Activity acceptance is not a claim that the ROM booted.
                                 result.success(null)

@@ -5,6 +5,63 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 GC RVZ / Dolphin read-grant lifetime — verified, 2026-10-07
+
+- Normal owned RVZ download completed with matching original bytes, but installed
+  Dolphin 2606 (42796) rejected the URI as nonexistent. The upstream 2606
+  [StartupHandler](https://github.com/dolphin-emu/dolphin/blob/2606/Source/Android/app/src/main/java/org/dolphinemu/dolphinemu/utils/StartupHandler.kt)
+  and [EmulationActivity](https://github.com/dolphin-emu/dolphin/blob/2606/Source/Android/app/src/main/java/org/dolphinemu/dolphinemu/activities/EmulationActivity.kt)
+  finish the exported launcher before boot. Its intent-owned grant expires there;
+  [ContentHandler](https://github.com/dolphin-emu/dolphin/blob/2606/Source/Android/app/src/main/java/org/dolphinemu/dolphinemu/utils/ContentHandler.java)
+  already supports R-Shop's original URI/query shape. Only explicit Dolphin
+  package permission changes: exact preflight-validated URI, read only, no
+  prefix/tree/write/persistable grant. Provider ownership/publication/object
+  checks and other emulator handoffs are unchanged.
+- The host wiring regression fails without the explicit grant and passes with
+  it; affected Dart handoff contracts and scoped analysis pass. This is wiring
+  protection, not a simulated Android lifecycle test. Fresh native grant-path
+  tests pass, and the real emulator proof below verifies the external boundary.
+  No full suite was run.
+- Gated focused native test/debug assembly succeeds, gate_acquired=true, FIFO
+  ticket 354. Observed workers=2, parallel=false, Gradle maximum heap=3,221,225,472
+  bytes. Kotlin 2.2.20 is configured in-process; native Kotlin compilation ran.
+  The executed test task is configured one fork/512 MiB. Inspected app JNI Ninja
+  rules use a shared depth-one compile/link pool for each of three ABIs. No memory
+  failure or heap increase. Log:
+  `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/71e00b2ccf7d4933a4677f9d5d19e3b9.log`.
+- Preserving debug update succeeds with unchanged signer
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+  Independently matched host/installed APK SHA-256:
+  `e86c6224b3a9a2123535cd7acddfdc23104518b0f1f92b768e4c56adf56aed6e`.
+  Isolated-target configuration is unchanged across installation; no app-data
+  reset or source remapping. The earlier failed boot left Dolphin unresponsive;
+  Android's offered Close app ended that failed session before the new proof.
+- Normal native proof: exact Drive queue -> complete standalone GC RVZ -> online
+  title rendering -> normal Exit -> background-only Dolphin process reclamation
+  after Exit -> confirmed no process/no active default network -> fresh offline
+  title rendering -> normal Exit -> owned removal/absent exact test file with
+  remote entry and metadata retained -> default-account reconnect -> same queued
+  Resume -> completed identical SHA-256 bytes -> restored title rendering.
+  No gameplay/save operation, URI-shape change, folder grant or cloud write.
+- Wi-Fi is restored; the device has no phone service, so attempted mobile-data
+  disable reports unsupported and its original setting remains unchanged. Normal
+  final owned removal cleans the test copy. Normal Console Settings restores
+  complete config SHA-256
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  Original ROM and existing save hashes match; Dolphin.ini, GCPadNew.ini and
+  GFX.ini match their baselines. The empty isolated destination is removed.
+  Online/offline/removed/restored captures remain private under
+  `D:/Temp/rshop-s7-gc-proof-20261007`, not in Git.
+- Same saved metadata job resumes normally: requested lookups 5,817 -> 5,819,
+  pending 38,403 -> 38,401, Running. No external DB observer runs beside it.
+  Both displays are committed OFF; wakefulness Asleep. Reviewed cleanup ticket
+  `32f41c901862d72b5aeb3db4eace81ff2142bc62d1f4bb76c01c50e1fda024d0`
+  removes only the expendable scratch capture (11,235 bytes), no errors.
+- This verifies GC RVZ recovery only. S7 remains the sole ACTIVE stage, with Wii
+  and other required formats, full fresh coverage, defensible retention/current
+  cloud gates and reviewed migration unfinished. S8-S11 remain NOT STARTED;
+  CACHE-01 controls/automatic rotation and SAVE-01 replacement are not claimed.
+
 ### S7 NDS catalogue-title discovery — verified continuation, 2026-10-07
 
 - A bounded audit reproduced numbered NDS catalogue titles being sent literally

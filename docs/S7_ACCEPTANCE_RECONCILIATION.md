@@ -1,5 +1,36 @@
 # S7 live metadata and Thor migration
 
+## GameCube RVZ / Dolphin grant lifetime — 2026-10-07
+
+Normal owned Drive download produced complete matching RVZ bytes, but Dolphin
+2606 reported its exact content URI nonexistent. Upstream StartupHandler and
+EmulationActivity finish the launcher before starting emulation; the intent-owned
+grant disappears with that activity. ContentHandler already supports the existing
+URI and metadata columns, so changing URI shape or widening provider access is
+not required. The fix gives only Dolphin an explicit read grant for the exact
+preflight-validated URI. Strict ownership/publication/native-object validation
+at every provider open is unchanged; no prefix/tree/write/persistable permission.
+
+Regression-first host wiring and affected handoff contracts pass, as do fresh
+native grant tests and gated debug assembly. Host wiring is not represented as
+an Android lifecycle simulation: the native proof closes that boundary. On Thor,
+the normal owned copy boots to the title screen online and from a fresh Dolphin
+process with no active default network. Normal removal retains its remote entry
+and metadata; reconnect/resume downloads identical bytes and the restored copy
+boots again. This is boot/title proof, not a gameplay or whole-console coverage
+claim. Original ROM, existing save and Dolphin config/controller hashes match.
+
+Normal final removal cleans only the isolated test copy. Normal Console Settings
+save restores the owner's complete configuration hash, and the empty target is
+removed. The same saved metadata job resumes and advances requested/pending
+counters. Both screens are committed OFF/Asleep. Private evidence and precise
+build/install/control boundaries are recorded in IMPLEMENTATION_STATUS.md.
+
+GC RVZ recovery is verified; S7 remains the sole ACTIVE stage. Wii/other-format
+recovery, full fresh metadata coverage, defensible Top-25 retention, execution-time
+cloud verification and reviewed migration remain unfinished. S8-S11 are NOT
+STARTED. No original ROM, save, BIOS, cloud object or legacy sync was removed.
+
 ## NDS catalogue-title discovery — 2026-10-07
 
 Literal listing ordinals prevented NDS title discovery. The narrowly shared

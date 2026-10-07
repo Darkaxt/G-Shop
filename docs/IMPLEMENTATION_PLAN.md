@@ -977,6 +977,16 @@ Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
 
+Verified S7 GC RVZ recovery (2026-10-07): Dolphin's launcher finishes before
+emulation reads the URI, invalidating the intent-owned read grant. Retain the
+existing URI and strict provider checks; add an exact read-only package grant
+only for Dolphin. Regression-first host wiring, affected handoff/grant contracts,
+gated native assembly and the normal online/cold-offline/removal/identical-restore
+cycle pass. Owner configuration, original ROM/save and Dolphin configuration
+hashes are preserved, the isolated target is removed, and the same metadata job
+resumes. This closes GC RVZ recovery only; Wii and other formats, full fresh
+coverage, defensible retention/current-cloud gates and migration remain required.
+
 Current S7 control fix (2026-10-07): a normal Pause while identifying an archive
 exposed a typed Drive cancellation escaping as an operation failure. Translate
 only signalled typed cancellation at the job's identifier boundary; retain read

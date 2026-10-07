@@ -964,6 +964,19 @@ support is inferred. Verify normal download, actual online/offline emulator
 boot, owned removal and identical re-download in an isolated target. Preserve
 original ROMs, emulator settings and existing save files.
 
+S7 Dolphin recovery detail: retain the existing exact owned content URI for
+emulator-ready GC/Wii files. Dolphin 2606 finishes its exported launcher before
+its non-exported emulation activity opens the ROM, so an activity-owned intent
+grant alone does not span the required workflow. Give only installed Dolphin an
+explicit read grant for that exact preflight-validated installation URI. No
+directory/prefix, write or persistable permission is granted; the provider still
+rechecks durable ownership, publication and current native object on every open,
+rejecting removed/changed installations. Prove each format/console's normal
+download, online and cold offline boot, owned removal and identical usable
+re-download in an isolated target before granting its migration eligibility.
+GC RVZ proof is not Wii or other-format proof. Restore owner configuration and
+preserve original ROMs, emulator settings and existing saves.
+
 S7 PSP recovery detail: the current standalone PSP CHD collection uses the same
 owned committed-leaf/document-shaped read grant with installed official PPSSPP.
 Its exported Android VIEW route receives only the exact ready installation URI,
