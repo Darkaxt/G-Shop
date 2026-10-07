@@ -28,10 +28,13 @@ the separate reviewed migration can remove anything.
 Config and native projection reads are each capped at 1 MiB; device shell output
 is capped at 8 MiB. The audit no longer copies/deserializes a live database. The
 fixed native helper opens the app cache READONLY under `run-as` and produces
-artifacts and catalogue generations in one SQLite statement, including WAL
-state. Its single bounded result fits one cursor window. Configuration is read
-before and after; changed config, invalid records, oversized output or a helper
-failure aborts before a journal is created. No automatic retry or repair occurs.
+128-artifact keyset pages with catalogue generations in one statement per page,
+including WAL state. Each bounded page fits one cursor window. Configuration is
+read before and after; changed config/count/generation, invalid/repeated cursors,
+incomplete pages, oversized output or a helper failure aborts before a journal
+is created. Pages are observations, not an atomic whole-collection snapshot;
+same-count mutations cannot be ruled out and execution must independently
+revalidate each exact artifact. No automatic retry or repair occurs.
 One client runs at a time; there are no arbitrary deadlines.
 
 Prepare the helper once for the current source before cached comparisons:
@@ -52,14 +55,18 @@ adb -s bfa98654 push "$taskNative\rshop-s7-cache-snapshot.jar" `
 ```
 
 Require each command to exit zero; do not push an older jar after compilation
-failure. The helper accepts only a validated platform, no SQL or database path.
-It limits artifacts to 2,000 / 900,000 UTF-8 input bytes and catalogue states to
-256 / 65,536 bytes before constructing the result; excess rows are rejected, not
-silently truncated. The 1 MiB transport cap remains unchanged. N64's measured
-836,435 artifact bytes required a larger input bound than the initial 512 KiB;
-it still fits the same output budget. Plain SQL concatenates already-serialized
-records; the host validates the complete JSON before use. Android's SQLite on
-this Thor has no JSON aggregation functions, so they are not required.
+failure. The helper accepts only a validated platform and nonnegative 64-bit row
+cursor, no SQL or database path. Its `rshop.s7.cache.v2` contract limits each page
+to 128 artifacts / 900,000 UTF-8 input bytes and catalogue states to 256 / 65,536
+bytes before constructing the result; oversized pages are rejected, not silently
+truncated. The 1 MiB transport cap remains unchanged. A 100,000-row census bound
+guards pagination, not a larger response buffer. The host retains only exact
+names enumerated under the inspected SD root, bounded to 16 MiB of serialized
+artifact records; all other records are discarded after validation. No ROM body
+enters Windows memory. Plain SQL concatenates already-serialized records; the
+host validates complete JSON and exact ordered row cursors. Android's SQLite on
+this Thor has no JSON aggregation functions, so they are not required. Recompile
+the helper from current source before use; v1 output is deliberately rejected.
 
 For a local inventory before cloud/retention verification, append
 `--inventory-only`. This mode does not read the app database/config or hash ROMs:

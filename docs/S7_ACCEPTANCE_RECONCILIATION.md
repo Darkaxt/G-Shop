@@ -1,5 +1,23 @@
 # S7 live metadata and Thor migration
 
+## Larger-console census now verified through bounded reads — 2026-10-07
+
+The old fixed projection correctly rejected Game Boy's larger catalogue. The
+replacement reads 128-record keyset pages without increasing the 1 MiB transport
+bound or copying a live database. Focused protocol/SQL regressions and a real
+2,646-artifact Thor traversal pass. Exact SD names bound retained records;
+configuration, catalogue-state/count and cursor drift fail closed. Cross-page
+coherence is observational only; execution-time exact revalidation remains
+mandatory. No claim of atomic full-collection capture is made.
+
+Master System and Game Boy cached-byte comparison journals are complete and
+independently reconciled. Their 829 cached matches and all unmatched/mismatching
+or non-ROM files remain preserved. This advances exact local/cloud census but
+does not prove current cloud readability, canonical retention or restoration of
+these formats. Other console censuses and the full metadata pass remain ordinary
+S7 work. S7 is sole ACTIVE; later stages remain NOT STARTED. No ROM/save/settings
+or cloud-original mutation was performed. Screens are verified OFF.
+
 ## Wii coverage gap resolved at mapping boundary — 2026-10-07
 
 The private inventory exposed Wii outside configured coverage. Normal import

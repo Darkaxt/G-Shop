@@ -5,6 +5,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 bounded census reader and two additional SD comparisons — 2026-10-07
+
+- The actual Game Boy projection rejected the former 2,000-row/900,000-byte
+  single-result contract (2,001 sampled rows / 1,256,547 bytes). The fixed
+  READONLY helper now emits validated 128-row keyset pages with unchanged 1 MiB
+  response and 900,000-byte page-input bounds. Per-console count, generation,
+  config and ordered cursor checks reject incomplete/drifting observations.
+  Only names actually enumerated under the inspected SD root are retained,
+  bounded to 16 MiB of serialized records. Cross-page reads are explicitly
+  observational, not an atomic snapshot or live recovery/removal authority.
+- Focused regression checks reproduce the missing page contract before the
+  change and pass afterwards, covering the actual SQL, traversal beyond the old
+  bound, row repeats/gaps, state/config drift, memory bounds and all unchanged
+  preservation gates. Native compilation and real Thor reads verify v2 against
+  2,646 Game Boy artifacts, with 128 records in the first page. The installed
+  read-only diagnostic jar has SHA-256
+  7364435c0ba6b37435bf9ba8c0990196d0fd1daa70c68f611cb348dcf0d46247.
+  An adversarial reverse-unordered SQL check exposed implicit aggregate ordering;
+  explicit ordered subqueries now align IDs/records and stable scope ordering.
+- Completed private journals were independently reconciled against every file
+  record and terminal aggregate: Master System has 228 cached byte matches,
+  228 without an exact-name cloud candidate and three non-ROM files; Game Boy
+  has 601 cached byte matches, three size mismatches, three without an exact-name
+  cloud candidate and one non-ROM file. All 1,067 observations remain preserve
+  with removalAuthorized=false. No absent candidate is guessed, and different
+  containers/filenames do not acquire identical-byte proof.
+- The one audit process was observed at approximately 21 MiB working set during
+  Game Boy verification. ROM hashing stays device-side and streaming; no ROM
+  bodies or database copies enter Windows. javac/d8 used explicit 256 MiB
+  budgets; native diagnostic calls use 128 MiB. No Gradle command or gate claim,
+  APK replacement, memory failure, source/config change, ROM removal, cloud
+  write, FolderSync change or release occurred. The original ScreenScraper job
+  76 remains running (requested=495, then 596); both physical
+  displays remain committed OFF. S7 stays sole ACTIVE; S8-S10 NOT STARTED.
+  Cleanup 73c460acfac9d1aa558d8ead612e67f9 removed only the disposable host
+  compiler outputs and empty staging directory (6,637 bytes). The hash-verified
+  device helper is retained for remaining S7 comparisons; private completed
+  journals remain required evidence. The final ordered helper's fresh native
+  traversal retained 604 exact SD-name candidates across the 2,646-row catalogue.
+
 ### S7 missing Wii mapping corrected and indexed — 2026-10-07
 
 - Reconciliation of the private SD inventory found 50 Wii ROM observations

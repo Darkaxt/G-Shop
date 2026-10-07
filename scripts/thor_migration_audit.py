@@ -21,6 +21,7 @@ import subprocess
 GATES = ["canonical_identity_review", "defensible_retention",
          "live_cloud_revalidation", "tested_restore", "save_sync_safety",
          "execution_time_local_revalidation"]
+MAX_RETAINED_ARTIFACT_BYTES = 16 * 1048576
 
 
 def checked_relative_path(path, root):
@@ -127,11 +128,12 @@ class Device:
     def private(self, path, limit):
         return self._read(self.prefix + ['exec-out', 'run-as', self.package, 'cat', path], limit)
 
-    def cache_snapshot(self, platform):
-        if not self.cache_helper or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', platform):
-            raise ValueError('Prepared native cache helper and platform required')
+    def cache_snapshot(self, platform, after=0):
+        if (not self.cache_helper or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', platform)
+                or type(after) is not int or not 0 <= after < 1 << 63):
+            raise ValueError('Prepared native cache helper, platform and row cursor required')
         command = ('CLASSPATH=' + self.cache_helper +
-                   ' app_process /system/bin RShopMigrationCacheSnapshot ' + platform)
+                   ' app_process -Xmx128m /system/bin RShopMigrationCacheSnapshot ' + platform + ' ' + str(after))
         return self._read(self.prefix + ['exec-out', 'run-as', self.package,
                                         'sh', '-c', command], 1048576)
 
@@ -217,24 +219,58 @@ def retention_snapshot(device, platform):
             raise ValueError('Incomplete retention observation')
 
 
-def cloud_snapshot(device, platform):
+def cloud_snapshot(device, platform, names=None):
+    """Bounded keyset pages, retaining only names present in the inspected SD set.
+
+    Reject row/count/generation/config drift. This is still a per-page cache
+    observation, never a collection-wide transaction or live recovery proof.
+    """
     config_bytes = device.private('app_flutter/config.json', 1048576)
     config = json.loads(config_bytes)
-    payload = device.cache_snapshot(platform)
-    if len(payload) > 1048576:
-        raise ValueError('Native catalogue projection exceeds buffer limit')
-    snapshot = json.loads(payload)
-    if (not isinstance(snapshot, dict) or snapshot.get('error') or
-            snapshot.get('schema') != 'rshop.s7.cache.v1' or
-            snapshot.get('platform') != platform):
-        raise ValueError('Invalid native catalogue projection')
-    artifacts, states = snapshot.get('artifacts'), snapshot.get('states')
-    if (not isinstance(artifacts, list) or len(artifacts) > 2000 or
-            not isinstance(states, list) or len(states) > 256):
-        raise ValueError('Invalid native catalogue projection rows')
-    if any(not isinstance(a, dict) or not isinstance(a.get('displayName'), str)
-           or not a['displayName'] for a in artifacts):
-        raise ValueError('Invalid native artifact record')
+    after = seen = retained_bytes = 0
+    artifacts, states, total = [], None, None
+    while True:
+        payload = device.cache_snapshot(platform, after)
+        if len(payload) > 1048576:
+            raise ValueError('Native catalogue projection exceeds buffer limit')
+        page = json.loads(payload)
+        if (not isinstance(page, dict) or page.get('error') or
+                page.get('schema') != 'rshop.s7.cache.v2' or page.get('platform') != platform or
+                type(page.get('after')) is not int or page['after'] != after or
+                type(page.get('totalArtifacts')) is not int or not 0 <= page['totalArtifacts'] <= 100000 or
+                not isinstance(page.get('artifacts'), list) or len(page['artifacts']) > 128 or
+                not isinstance(page.get('rowIds'), list) or len(page['rowIds']) != len(page['artifacts']) or
+                not isinstance(page.get('states'), list) or len(page['states']) > 256):
+            raise ValueError('Invalid native catalogue page')
+        ids = page['rowIds']
+        cursor = after
+        for row_id in ids:
+            if type(row_id) is not int or not cursor < row_id < 1 << 63:
+                raise ValueError('Invalid repeated or unordered row cursor')
+            cursor = row_id
+        if type(page.get('next')) is not int or page['next'] != cursor:
+            raise ValueError('Invalid next row cursor')
+        if states is None:
+            states, total = page['states'], page['totalArtifacts']
+        elif states != page['states'] or total != page['totalArtifacts']:
+            raise ValueError('Catalogue state changed during observation')
+        for artifact in page['artifacts']:
+            if (not isinstance(artifact, dict) or not isinstance(artifact.get('displayName'), str)
+                    or not artifact['displayName']):
+                raise ValueError('Invalid native artifact record')
+            if names is None or artifact['displayName'] in names:
+                retained_bytes += len(json.dumps(artifact, ensure_ascii=False).encode('utf-8'))
+                if retained_bytes > MAX_RETAINED_ARTIFACT_BYTES:
+                    raise ValueError('Catalogue retained artifact bound exceeded')
+                artifacts.append(artifact)
+        seen += len(ids)
+        if seen > total:
+            raise ValueError('Catalogue count changed during observation')
+        if len(ids) < 128:
+            if seen != total:
+                raise ValueError('Incomplete catalogue observation')
+            break
+        after = cursor
     by_scope = {}
     for state in states:
         if not isinstance(state, dict):
@@ -394,7 +430,19 @@ def main():
     device = Device(args.adb, args.serial, args.package, args.cache_helper, args.retention_helper)
     if device.shell('realpath ' + shlex.quote(args.root)).decode().strip() != args.root:
         raise ValueError('Root is redirected or not normalized')
-    artifacts, scopes = ([], []) if args.inventory_only else cloud_snapshot(device, args.platform)
+    paths = None
+    if not args.inventory_only:
+        data = device.shell('find ' + shlex.quote(args.root) +
+                            ' \\( -type f -o -type l \\) -print0')
+        if data and not data.endswith(b'\0'):
+            raise ValueError('Incomplete local path framing')
+        paths = [value.decode('utf-8') for value in data.split(b'\0')[:-1]] if data else []
+        if len(set(paths)) != len(paths):
+            raise ValueError('Duplicate local path')
+        for path in paths:
+            checked_relative_path(path, args.root)
+    artifacts, scopes = ([], []) if args.inventory_only else cloud_snapshot(
+        device, args.platform, {PurePosixPath(path).name for path in paths})
     retention = retention_snapshot(device, args.platform) if args.retention_helper else None
     by_name = collections.defaultdict(list)
     for artifact in artifacts:
@@ -416,7 +464,7 @@ def main():
                 'observedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 'serial': args.serial, 'platform': args.platform, 'root': args.root,
                 'cloudEvidence': ('inventory_only_no_cloud_evidence' if args.inventory_only else
-                                  'published_app_cache_not_live_revalidation'),
+                                  'per_page_published_cache_not_live_revalidation'),
                 'scopes': scopes, 'removalAuthorized': False,
                 'retention': None if retention is None else {
                     k: v for k, v in retention.items() if k != 'members'},
@@ -425,12 +473,10 @@ def main():
         if args.inventory_only:
             observations = inventory_observations(device, args.root)
         else:
-            paths = device.shell('find ' + shlex.quote(args.root) +
-                                 ' \\( -type f -o -type l \\) -print0').split(b'\0')
-            observations = (local_observation(device, raw.decode('utf-8'), args.root,
-                PurePosixPath(raw.decode('utf-8')).suffix.lower() in extensions and
-                len(by_name.get(PurePosixPath(raw.decode('utf-8')).name, [])) == 1)
-                for raw in paths if raw)
+            observations = (local_observation(device, path, args.root,
+                PurePosixPath(path).suffix.lower() in extensions and
+                len(by_name.get(PurePosixPath(path).name, [])) == 1)
+                for path in paths)
         for local in observations:
             name = local['name']
             candidates = by_name.get(name, [])

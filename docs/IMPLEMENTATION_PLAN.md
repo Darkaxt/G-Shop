@@ -951,6 +951,10 @@ QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
   with full collection, ranking, recovery or migration acceptance.
 - Prove Drive restoration on the Thor, inventory exact SD files and cloud
   IDs/version/digests, and build a private keep/remove/preserve manifest.
+  The observed Game Boy catalogue exceeds the former 2,000-row audit projection.
+  Use fixed READONLY 128-row keyset pages with unchanged 1 MiB transport bounds,
+  retaining only inspected SD names. Reject count/generation/config/cursor drift;
+  label cross-page reads observational, never atomic or live removal authority.
   The PS1 standalone CHD recovery slice uses the existing committed exact-leaf
   grant and installed RetroArch PCSX ReARMed route. Verify normal download,
   actual boot online/offline, exact owned removal and identical re-download in

@@ -16,6 +16,31 @@ from thor_migration_audit import Device, GATES, compare_observation, checked_rel
 
 class MigrationAuditTests(unittest.TestCase):
     @staticmethod
+    def cache_page(artifacts=(), row_ids=(), after=0, total=None, states=()):
+        return {'schema': 'rshop.s7.cache.v2', 'platform': 'psp',
+                'after': after, 'rowIds': list(row_ids),
+                'next': row_ids[-1] if row_ids else after,
+                'totalArtifacts': len(artifacts) if total is None else total,
+                'artifacts': list(artifacts), 'states': list(states)}
+
+    def test_cloud_pages_cross_old_limit_without_retaining_unrelated_names(self):
+        device = Mock()
+        device.private.return_value = b'{"sources":[]}'
+        rows = [dict(self.cloud, displayName=f'Other-{i}.zip') for i in range(2048)]
+        rows[-1] = self.cloud
+        pages = [self.cache_page(rows[start:start + 128],
+                                list(range(start + 1, start + 129)),
+                                after=start, total=2048)
+                 for start in range(0, 2048, 128)]
+        pages.append(self.cache_page(after=2048, total=2048))
+        device.cache_snapshot.side_effect = [json.dumps(page).encode() for page in pages]
+        artifacts, scopes = audit.cloud_snapshot(device, 'psp', {self.cloud['displayName']})
+        self.assertEqual(artifacts, [self.cloud])
+        self.assertEqual(scopes, [])
+        self.assertEqual(device.cache_snapshot.call_args_list,
+                         [unittest.mock.call('psp', after) for after in range(0, 2049, 128)])
+
+    @staticmethod
     def retention_sql():
         root = Path(__file__).resolve().parent.parent
         dart = (root / 'lib/services/library_query.dart').read_text(encoding='utf-8')
@@ -71,26 +96,26 @@ class MigrationAuditTests(unittest.TestCase):
         config = json.dumps({'sources': [{'id': 'source', 'drive': {
             'account_id': 'account', 'root_folder_id': 'root'}}]}).encode()
         device.private.return_value = config
-        payload = {'schema': 'rshop.s7.cache.v1', 'platform': 'psp',
-                   'artifacts': [self.cloud], 'states': [
-                       {'scope': ['source', 'account', 'root'], 'active': 3, 'pending': 4}]}
+        payload = self.cache_page([self.cloud], [7], states=[
+            {'scope': ['source', 'account', 'root'], 'active': 3, 'pending': 4}])
         device.cache_snapshot.return_value = json.dumps(payload).encode()
         artifacts, scopes = audit.cloud_snapshot(device, 'psp')
         self.assertEqual(artifacts, [self.cloud])
         self.assertEqual(scopes, [{'sourceId': 'source', 'accountId': 'account',
                                   'rootFolderId': 'root', 'activeGeneration': 3,
                                   'pendingGeneration': 4}])
-        device.cache_snapshot.assert_called_once_with('psp')
+        device.cache_snapshot.assert_called_once_with('psp', 0)
         self.assertEqual(device.private.call_args_list,
                          [unittest.mock.call('app_flutter/config.json', 1048576)] * 2)
 
     def test_cloud_projection_rejects_incomplete_foreign_or_oversized_snapshots(self):
         device = Mock()
         device.private.return_value = b'{"sources":[]}'
-        good = {'schema': 'rshop.s7.cache.v1', 'platform': 'psp',
-                'artifacts': [], 'states': []}
+        good = self.cache_page()
         for index, change in enumerate(({'schema': 'other'}, {'platform': 'ps2'}, {'error': 'bound'},
-                       {'artifacts': {}}, {'artifacts': [{}] * 2001},
+                       {'artifacts': {}}, {'artifacts': [{}] * 129},
+                       {'after': 1}, {'next': 1}, {'totalArtifacts': True},
+                       {'totalArtifacts': 100001}, {'rowIds': [1]},
                        {'states': [{'scope': 'same', 'active': 1, 'pending': None}] * 2},
                        {'states': [{'scope': 's', 'active': -1, 'pending': None}]},
                        {'states': [{'scope': ['source', 'account', 'root'], 'pending': None}]},
@@ -109,9 +134,7 @@ class MigrationAuditTests(unittest.TestCase):
     def test_cloud_projection_rejects_changed_configuration(self):
         device = Mock()
         device.private.side_effect = [b'{"sources":[]}', b'{"sources":[],"changed":true}']
-        device.cache_snapshot.return_value = json.dumps({
-            'schema': 'rshop.s7.cache.v1', 'platform': 'psp',
-            'artifacts': [], 'states': []}).encode()
+        device.cache_snapshot.return_value = json.dumps(self.cache_page()).encode()
         with self.assertRaisesRegex(ValueError, 'Configuration changed'):
             audit.cloud_snapshot(device, 'psp')
 
@@ -126,7 +149,7 @@ class MigrationAuditTests(unittest.TestCase):
                                          'com.darkaxt.rshop.debug'])
             self.assertEqual(command[6:8], ['sh', '-c'])
             self.assertEqual(command[8], 'CLASSPATH=/data/local/tmp/rshop-s7-cache-snapshot.jar '
-                                        'app_process /system/bin RShopMigrationCacheSnapshot psp')
+                                        'app_process -Xmx128m /system/bin RShopMigrationCacheSnapshot psp 0')
         for platform in ('psp; id', '../psp', ''):
             with self.assertRaises(ValueError):
                 device.cache_snapshot(platform)
@@ -134,27 +157,62 @@ class MigrationAuditTests(unittest.TestCase):
             Device('adb', 'serial', 'package', '/data/local/tmp/../private.jar')
         with self.assertRaises(ValueError):
             Device('adb', 'serial', 'package').cache_snapshot('psp')
+        for after in (-1, True, 1 << 63, '1;id'):
+            with self.assertRaises(ValueError):
+                device.cache_snapshot('psp', after)
+
+    def test_cloud_pages_reject_drift_repeats_missing_rows_and_memory_excess(self):
+        first = self.cache_page([self.cloud] * 128, list(range(1, 129)), total=129)
+        good = self.cache_page([self.cloud], [129], after=128, total=129)
+        for second in (dict(good, totalArtifacts=130), dict(good, after=127),
+                       dict(good, rowIds=[128], next=128),
+                       dict(good, next=130), self.cache_page(after=128, total=129),
+                       dict(good, states=[{'scope':['s','a','r'], 'active':1,'pending':None}])):
+            device = Mock()
+            device.private.return_value = b'{"sources":[]}'
+            device.cache_snapshot.side_effect = [json.dumps(first).encode(), json.dumps(second).encode()]
+            with self.subTest(second=second), self.assertRaises(ValueError):
+                audit.cloud_snapshot(device, 'psp')
+        device = Mock()
+        device.private.return_value = b'{"sources":[]}'
+        device.cache_snapshot.return_value = json.dumps(self.cache_page([self.cloud], [1])).encode()
+        with patch.object(audit, 'MAX_RETAINED_ARTIFACT_BYTES', 1), self.assertRaisesRegex(ValueError, 'retained'):
+            audit.cloud_snapshot(device, 'psp')
 
     def test_native_sql_exports_exact_platform_and_generations_with_bounds(self):
         source = (Path(__file__).parent / 'RShopMigrationCacheSnapshot.java').read_text()
         query = re.search(r'String SQL = """\n(.*?)\n\s*""";', source, re.S).group(1)
         with closing(sqlite3.connect(':memory:')) as db:
-            db.execute('CREATE TABLE games(systemSlug TEXT, remote_artifact TEXT)')
+            db.execute('CREATE TABLE games(id INTEGER PRIMARY KEY,systemSlug TEXT, remote_artifact TEXT)')
+            db.execute('PRAGMA reverse_unordered_selects=ON')
             db.execute('CREATE TABLE drive_catalogue_state(scope TEXT,active INTEGER,pending INTEGER)')
-            db.execute('INSERT INTO games VALUES (?,?)', ('psp', json.dumps(self.cloud)))
-            db.execute('INSERT INTO games VALUES (?,?)', ('ps2', 'foreign invalid json'))
+            db.execute('INSERT INTO games VALUES (1,?,?)', ('psp', json.dumps(self.cloud)))
+            db.execute('INSERT INTO games VALUES (2,?,?)', ('ps2', 'foreign invalid json'))
             db.execute('INSERT INTO drive_catalogue_state VALUES (?,?,?)',
                        ('["s","a","r"]', 1, 2))
-            read = lambda: json.loads(db.execute(query, ('psp', 'psp')).fetchone()[0])
+            read = lambda after=0: json.loads(db.execute(query, ('psp', after, 'psp', 'psp', after, after)).fetchone()[0])
             result = read()
             self.assertEqual(result['artifacts'], [self.cloud])
             self.assertEqual(result['states'], [{'scope': ['s', 'a', 'r'],
                                                  'active': 1, 'pending': 2}])
-            db.executemany('INSERT INTO games VALUES (?,?)', [('psp', '{}')] * 2000)
-            self.assertEqual(read()['error'], 'projection_bound')
+            db.executemany('INSERT INTO games(systemSlug,remote_artifact) VALUES (?,?)', [('psp', '{}')] * 2000)
+            all_ids = []
+            after = 0
+            while True:
+                page = read(after)
+                self.assertLessEqual(len(page['artifacts']), 128)
+                self.assertEqual(page['rowIds'], sorted(page['rowIds']))
+                self.assertEqual(page['totalArtifacts'], 2001)
+                all_ids.extend(page['rowIds'])
+                after = page['next']
+                if len(page['artifacts']) < 128:
+                    break
+            self.assertEqual(len(all_ids), 2001)
+            self.assertEqual(len(set(all_ids)), 2001)
+            self.assertNotIn(2, all_ids)
             db.execute('DELETE FROM games')
             # Bound is checked before attempting to parse/serialize huge JSON.
-            db.execute('INSERT INTO games VALUES (?,?)', ('psp', 'x' * 900001))
+            db.execute('INSERT INTO games(systemSlug,remote_artifact) VALUES (?,?)', ('psp', 'x' * 900001))
             self.assertEqual(read()['error'], 'projection_bound')
             db.execute('DELETE FROM games')
             db.executemany('INSERT INTO drive_catalogue_state VALUES (?,?,?)',
