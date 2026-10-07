@@ -925,7 +925,7 @@ void main() {
     expect(await fixture.db.query('transfer_target_owners'), isEmpty);
     expect(fixture.native.stagePresent, isFalse);
   });
-  for (final platform in ['gb', 'gbc']) {
+  for (final platform in ['gb', 'gbc', 'gba']) {
     test('$platform ZIP is not silently promoted to the 7z metadata profile',
         () async {
       final fixture =
@@ -948,7 +948,7 @@ void main() {
       final fixture =
           await _TransferFixture.create(name: 'fixture.7z', reserve: false);
       fixture.native.archivePlatform = platform;
-      final member = platform == 'gb' ? 'fixture.gb' : 'fixture.gbc';
+      final member = 'fixture.$platform';
       fixture.native.archiveObservation['raw'] = {
         ...((fixture.native.archiveObservation['raw'] as Map)
             .cast<String, Object?>()),

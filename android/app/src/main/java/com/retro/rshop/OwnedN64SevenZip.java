@@ -29,9 +29,10 @@ final class OwnedN64SevenZip {
     /** Metadata-only extension of the same bounded single-member decoder.
      * A mapped suffix is not provider identity or emulator/restore approval. */
     static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
-        require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform));
+        require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform) ||
+                "gba".equals(platform));
         boolean n64 = "n64".equals(platform);
-        long limit = n64 ? ROM_LIMIT : 16L * 1024 * 1024;
+        long limit = n64 ? ROM_LIMIT : ("gba".equals(platform) ? 32L : 16L) * 1024 * 1024;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
             require(length >= 32 && length <= limit + 3L * HEADER_LIMIT);
@@ -191,6 +192,7 @@ final class OwnedN64SevenZip {
         String lower = name.toLowerCase(Locale.ROOT);
         boolean extension = "n64".equals(platform)
                 ? lower.endsWith(".n64") || lower.endsWith(".z64") || lower.endsWith(".v64")
+                : "gba".equals(platform) ? lower.endsWith(".gba")
                 : lower.endsWith(".gb") || "gbc".equals(platform) && lower.endsWith(".gbc");
         return extension &&
                 !name.startsWith(".") && name.chars().noneMatch(c ->

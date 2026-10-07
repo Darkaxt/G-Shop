@@ -1,5 +1,26 @@
 # S7 live metadata and Thor migration
 
+## GBA exact-local identification integrated and verified — 2026-10-07
+
+The metadata-only single-member 7z route now admits explicit GBA mappings with
+one safe `.gba` member and a 32 MiB raw budget. Native stream/CRC, mapped-name,
+budget and existing GB/GBC/N64 regressions pass; normal runtime, persistent worker
+and provider-adapter/shared-recovery fixtures pass. The normal signer-preserving
+Thor update retained the configuration, seven sources, published generation and
+job 76's 44,204 immutable items and saved outcomes. Normal reconnect/Resume then
+accepted two GBA raw bindings with exact explicit provider official-release facts
+and advisory ratings. Observations were made only after normal Pause joined the
+worker; no completed request or catalogue membership was rewritten.
+
+This closes the GBA identification integration slice only. It adds no extraction,
+installation/adoption/removal support, remote ROM body or scoring exception.
+Full fresh coverage, canonical/defensible retention, current recoverable cloud
+bytes, format round trips and reviewed migration remain open in the sole ACTIVE
+S7. S8-S10 remain NOT STARTED. The previous native database failure's root cause
+is still unproven, although no new exception was observed after this update.
+See the status ledger for exact artifact/checkpoint and acquired build-gate
+profile evidence. No ROM/save/BIOS/cloud-original deletion or release occurred.
+
 ## Local GB/GBC identification slice and paging defect — 2026-10-07
 
 The existing exact-local archive observation supports mapped GB/GBC 7z files

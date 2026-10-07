@@ -16,6 +16,54 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void mappedGbaSevenZipStreamsMemberIdentityWithoutChangingArchive() throws Exception {
+        byte[] raw = rom();
+        raw[0] = 0;
+        byte[] encoded = archive("Game.gba", raw, 1, true, raw.length, 4096, 1);
+        File file = File.createTempFile("rshop-gba-identity-", ".7z");
+        try {
+            Files.write(file.toPath(), encoded);
+            java.util.Map<String, Object> value = OwnedN64SevenZip.validate(file.getPath(), "gba");
+            assertEquals("Game.gba", value.get("filename"));
+            assertEquals((long) raw.length, value.get("sizeBytes"));
+            assertEquals(hash(raw, "SHA-1"), value.get("sha1"));
+            assertEquals(hash(raw, "MD5"), value.get("md5"));
+            assertNotEquals(hash(encoded, "MD5"), value.get("md5"));
+            assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+        } finally { assertTrue(file.delete()); }
+    }
+
+    @Test public void gbaProfileAcceptsRawStreamAboveGameBoyBudget() throws Exception {
+        byte[] raw = new byte[17 * 1024 * 1024];
+        byte[] encoded = archive("Large.gba", raw, 1, true, raw.length, 4096, 1);
+        File file = File.createTempFile("rshop-gba-budget-", ".7z");
+        try {
+            Files.write(file.toPath(), encoded);
+            java.util.Map<String, Object> value = OwnedN64SevenZip.validate(file.getPath(), "gba");
+            assertEquals((long) raw.length, value.get("sizeBytes"));
+            assertEquals(hash(raw, "MD5"), value.get("md5"));
+            assertEquals(hash(raw, "SHA-1"), value.get("sha1"));
+            assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+        } finally { assertTrue(file.delete()); }
+    }
+
+    @Test public void gbaProfileRejectsWrongMemberAndDeclaredWorkBeyond32MiB() throws Exception {
+        for (String name : new String[]{"Game.gb", "Game.z64", "../Game.gba"}) {
+            File file = File.createTempFile("rshop-gba-reject-", ".7z");
+            try {
+                Files.write(file.toPath(), archive(name, rom(), 1, true, rom().length, 4096, 1));
+                try { OwnedN64SevenZip.validate(file.getPath(), "gba"); fail("Mapped member rejected"); }
+                catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+            } finally { assertTrue(file.delete()); }
+        }
+        File file = File.createTempFile("rshop-gba-bound-", ".7z");
+        try {
+            Files.write(file.toPath(), archive("Game.gba", rom(), 1, true, 32L * 1024 * 1024 + 1, 4096, 1));
+            try { OwnedN64SevenZip.validate(file.getPath(), "gba"); fail("Budget rejected before decoding"); }
+            catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+        } finally { assertTrue(file.delete()); }
+    }
+
     @Test public void mappedGameBoySevenZipReturnsRawMemberNotContainerIdentity() throws Exception {
         byte[] raw = rom();
         raw[0] = 0; // This path must not misapply N64's magic check.

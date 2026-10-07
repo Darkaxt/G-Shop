@@ -926,6 +926,14 @@ fresh coverage and defensible retention before reviewed migration execution.
 Requirements: MIGRATE-01; recheck META-01/META-05/META-07, DRIVE-04/05/06,
 QA-02/03/04. Depends on: S1-S6 integrated acceptance and live provider access.
 
+Verified identification slice (2026-10-07): the GB/GBC exact-local 7z route now
+also reads GBA's matching containers, retaining one `.gba` member / 32 MiB raw
+budget and every existing version, checksum, stream/CRC, modification and
+publication boundary. Native decoding, persistent provider/shared recovery and
+ordinary multi-entry Thor acceptance pass without replacing job 76. This closes
+META-01/META-03 identification enabling work, not all S7 acceptance; it adds no
+restoration/removal support and does not authorize speculative NES/SNES expansion.
+
 - Run the fresh full metadata pass and record real coverage/match/rating results.
   The saved 44,204-item ScreenScraper job 76 predates the subsequently verified
   Wii mapping. Complete a scoped Wii pass at a safe normal provider boundary;

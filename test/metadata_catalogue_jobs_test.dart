@@ -737,7 +737,7 @@ void main() {
         isNull);
   });
 
-  for (final platform in ['gb', 'gbc']) {
+  for (final platform in ['gb', 'gbc', 'gba']) {
     test('$platform job leaves unsupported ZIP identity unresolved', () async {
       final artifact = RemoteArtifact.fromJson({
         ...remote('archive').toJson(),
@@ -748,7 +748,7 @@ void main() {
       await cache(platform, artifact.displayName, artifact: artifact);
       jobs = MetadataRefreshJobs(Future.value(db),
           readArchiveIdentifier: (_, __, ___) async {
-        fail('The explicitly supported GB/GBC profile is 7z only');
+        fail('The explicitly supported handheld profile is 7z only');
       });
       final provider = _ReviewProvider();
       final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
@@ -767,7 +767,7 @@ void main() {
       var reads = 0;
       final raw = MetadataRomIdentifier(
           kind: RomIdentifierKind.rawRom,
-          filename: platform == 'gb' ? 'Game.gb' : 'Game.gbc',
+          filename: 'Game.$platform',
           sizeBytes: 8192,
           md5: 'b' * 32,
           sha1: 'c' * 40);

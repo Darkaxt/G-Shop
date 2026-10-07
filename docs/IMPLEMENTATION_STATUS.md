@@ -5,6 +5,63 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 GBA identification host proof and native update — 2026-10-07
+
+- Extended the existing metadata-only exact-local 7z path to explicitly mapped
+  GBA: one safe `.gba` member, 32 MiB raw work budget, unchanged bounded header,
+  dictionary, complete stream/CRC, container checksums and local/cloud version
+  checks. No extraction, installation/adoption/removal support, remote ROM body,
+  inferred official classification or scoring exception was added.
+- The new native and runtime positive regressions failed before the platform
+  extension. Focused native decoding now passes, including a streamed 17 MiB raw
+  fixture and rejection beyond 32 MiB, wrong-platform/path members, plus existing
+  GB/GBC/N64 checks. Focused runtime, persisted normal-worker and real-adapter
+  synthetic-response/shared-recovery checks pass. Scoped analysis is clean.
+  These host results do not substitute for live GBA provider acceptance.
+- Gate tickets 241 (expected regression failure), 242 (native verification) and
+  243 (normal debug build) each acquired `Local\Darka.AndroidGradleBuildGate`.
+  Observed profile: two workers, parallel=false, 3,221,225,472-byte Gradle heap;
+  required Metaspace 1 GiB/code cache 256 MiB preserved. Assessed Kotlin 2.2.20
+  compiles in-process in that heap. Test-task configuration is one fork/512 MiB;
+  native-plugin concurrency remains unverified, not proven by environment hints.
+  No memory failure or heap increase occurred. Green/build logs:
+  f8e02ea7e88e4edc95b3fc9f8080bd01.log and d01059072d614d5ea8b72323295acd3a.log.
+- A joined normal Pause at requested=1,998 preserved job 76's 44,204 items:
+  42,210 pending / 39 matched / 634 needs-review / 148 ambiguous /
+  1,144 unmatched / 29 invalid-response. Normal Disconnect preceded a
+  signer-preserving in-place update. Host and installed base.apk independently
+  match SHA-256 07cafa849ac3fe40c4a556cf74570708825056f761a14ded633f9be616f74d67;
+  unchanged package, version 1.7.0/12 and signer. Normal reconnect succeeded;
+  before/after observations verify identical configuration/source hashes,
+  active=1/pending=null/nextGeneration=2 and every saved outcome unchanged.
+- At the joined normal Pause checkpoint requested=2,140, two GBA entries have
+  exact local/cloud-container bindings, fully validated raw identifiers and
+  provider-accepted persisted metadata. Both have advisory ratings and explicit
+  ScreenScraper official-release evidence: all five modification flags are zero,
+  notgame=false and the exact identifier matches the saved raw request. The
+  native multi-entry identification workflow is verified, not archive restore
+  or Top eligibility. GB/GBC retain five/four accepted raw bindings respectively.
+  Job 76 still contains 44,204 items; outcomes are 42,069 pending / 43 matched /
+  683 needs-review / 155 ambiguous / 1,224 unmatched / 30 invalid-response.
+  Configuration, seven sources and generation remain unchanged. Normal same-job
+  Resume is verified Running again, without completed-request rewrites or a
+  second worker. External SQL observers ran only at joined normal Pause
+  checkpoints. No new database exception was observed after this update, but
+  the previous failure's root cause remains unproven. Both physical displays
+  were freshly confirmed committed OFF after the final normal Resume.
+- S7 remains sole ACTIVE. Full fresh coverage, defensible canonical retention,
+  exact recoverable cloud bytes, required round trips and reviewed migration
+  remain open; S8-S10 remain NOT STARTED. No ROM/save/BIOS/cloud-original deletion,
+  FolderSync change, SD migration or release occurred.
+
+Cleanup: reviewed exact-file transaction be8af18395e2da508cb3c9560c9452d6
+removed only the consumed 7,991-byte Java compiler intermediate. The observer
+source/deployment jar, private census journals, APK and verification logs remain
+needed evidence. The consumed 13,754-byte device UI dump was separately checked
+for stable exact identity/hash, removed at its exact task-owned path, and absence
+verified. Both intermediates are reproducible from retained source/tools; no
+shared cache/build tree or user file was removed.
+
 ### S7 current raw-binding, reception and recovery checkpoint — 2026-10-07
 
 - The approved standardized matching policy is already implemented by f270427;

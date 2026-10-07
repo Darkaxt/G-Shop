@@ -502,6 +502,19 @@ extraction, ownership inference, ranking/removal exceptions or rewriting saved
 job membership/completed requests. Verify the normal persisted worker and real
 already-local multi-entry provider workflow before claiming native integration.
 
+S7 GBA archive identification detail (2026-10-07): the current GBA census contains
+hundreds of exact local/cloud container matches. Extend the proven metadata-only
+7z route to explicitly mapped GBA archives with one safe `.gba` member and a
+32 MiB raw work budget. Reuse complete stream/CRC validation and the existing
+header/dictionary bounds, container checksums, local/rooted-cloud revalidation,
+atomic version-bound evidence and explicit modification/manual-state protection.
+The suffix does not establish provider identity or official classification.
+Unsupported ZIP/other layouts remain unresolved. No extraction, remote ROM body,
+installation/adoption/removal support, completed-request rewrite or new scoring
+exception follows. Verify the native decoder, ordinary persisted provider/shared
+recovery path and real multi-entry already-local workflow. NES/SNES profile
+expansion is not implemented merely because the same decoder could support it.
+
 ### META-04 — Hacks, translations and score ownership
 
 Support distinct content tags for `Hack`, `T-Eng`, `Dub`, `Undub`, `Uncensor`,

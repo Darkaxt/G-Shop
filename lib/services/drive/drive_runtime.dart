@@ -711,12 +711,18 @@ class DriveRuntime {
     final extension = p.extension(name).toLowerCase();
     if (!(platformId == 'n64' && {'.7z', '.zip'}.contains(extension) ||
             platformId == 'gamegear' && extension == '.zip' ||
-            {'gb', 'gbc'}.contains(platformId) && extension == '.7z') ||
+            {'gb', 'gbc', 'gba'}.contains(platformId) && extension == '.7z') ||
         name.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
         name.startsWith('.') ||
         (artifact.sizeBytes ?? 0) <= 0 ||
         artifact.sizeBytes! >
-            ({'gb', 'gbc'}.contains(platformId) ? 16 : 128) * 1024 * 1024 +
+            (platformId == 'gba'
+                        ? 32
+                        : {'gb', 'gbc'}.contains(platformId)
+                            ? 16
+                            : 128) *
+                    1024 *
+                    1024 +
                 3 * 65536 ||
         _metadataArchives.containsKey(cancellation)) {
       return null;
@@ -771,11 +777,19 @@ class DriveRuntime {
         'n64' => {'.z64', '.n64', '.v64'},
         'gb' => {'.gb'},
         'gbc' => {'.gb', '.gbc'},
+        'gba' => {'.gba'},
         _ => {'.gg'},
       };
       if (raw.kind != RomIdentifierKind.rawRom ||
           raw.sizeBytes <= 0 ||
-          raw.sizeBytes > (platformId == 'n64' ? 128 : 16) * 1024 * 1024 ||
+          raw.sizeBytes >
+              (platformId == 'n64'
+                      ? 128
+                      : platformId == 'gba'
+                          ? 32
+                          : 16) *
+                  1024 *
+                  1024 ||
           raw.filename.startsWith('.') ||
           raw.filename.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
           !allowed.contains(p.extension(raw.filename).toLowerCase()) ||

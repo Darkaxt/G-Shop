@@ -196,6 +196,7 @@ void defineVerifiedMatchGroupingChecks(DatabaseFactory factory) {
     ('n64', '14', 'z64'),
     ('gb', '9', 'gb'),
     ('gbc', '10', 'gbc'),
+    ('gba', '12', 'gba'),
   ]) {
     test(
         '$platform local archive identity flows through provider classification and shared recovery',
