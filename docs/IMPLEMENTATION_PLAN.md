@@ -1,9 +1,9 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 12.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 13.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S10
+Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do
 not replace the required live evidence. The user selected Top 25 per console as
 the final offline sample; S7 applies the reviewed, cloud-verified migration.
@@ -13,6 +13,11 @@ its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
 STARTED; external save-sync mechanisms remain unchanged until S10's verified
 replacement handover, authorized on 2026-10-07. S7 remains the sole ACTIVE stage.
+S11 was authorized on 2026-10-07 for configurable managed ROM cache duration,
+rotation queue and unified/per-console scope. Status: NOT STARTED. CACHE-01 is
+assigned to that named later stage: none of S7's one-time migration acceptance
+criteria depends on automatic ongoing rotation. Its final verification remains
+mandatory before overall completion; it must not open concurrent work in S7.
 
 Current S7 checkpoint (2026-10-07): root generation 1 is published, with no pending
 generation. Historical unpublished-root checkpoints below are superseded by the
@@ -30,7 +35,7 @@ Perform direct database observations only after normal Pause joins the worker;
 do not hold an external read cursor alongside writes to its rollback-journal
 database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
-S7 is ACTIVE; S8-S10 remain NOT STARTED.
+S7 is ACTIVE; S8-S11 remain NOT STARTED.
 
 Latest S7 verification (2026-10-07): normal NES/SNES Best-25 reports truthful
 empty/provisional owner coverage, with clean joined v2 bindings/projections;
@@ -61,6 +66,14 @@ configuration and truthful zero/dirty ranks. This is observation, not a reviewed
 SD manifest or deletion authority. Resume advances the same immutable scrape to
 requested=5,132/pending=39,085; complete ranking and reviewed execution remain
 ordinary S7 work. S7 alone is ACTIVE; S8-S10 remain NOT STARTED.
+
+Current S7 Wii U recovery slice: use the existing ready-file download and exact
+owned document-leaf grant for standalone WUA through installed Cemu's exported
+VIEW entry point. Verify standalone/no-bundle rejection, missing ownership and
+normal queue, actual online/cold offline boot, exact owned removal and identical
+re-download in an isolated destination. Preserve the current saved metadata job,
+original Wii U files, emulator settings and saves. No WUD/WUX/RPX/bundle approval,
+conversion, keys, companion behavior or S8-S10 work is implied by this slice.
 
 S7 NES vertical slice (2026-10-07): the completed NES census establishes an
 actual 1,498-archive migration cohort, not speculative console coverage. Reuse
@@ -1186,7 +1199,7 @@ Evidence: persistence/identity and native launch contract tests, Cocoon source a
 license review, actual Thor display-placement/controller proof, failure-path and
 ordinary-launch regression evidence, save/settings preservation and final
 S1-S8 reconciliation with zero unresolved required blockers/deferrals for those
-stages. Overall completion still requires S9 and S10.
+stages. Overall completion still requires S9, S10 and S11.
 
 ## S9 — Final cartridge and legacy-media visual coverage
 
@@ -1250,15 +1263,63 @@ Depends on: S1-S9 acceptance. No concurrent implementation with S7-S9.
   and unrelated apps/tasks. Verify package absence, task disabled/not running,
   and a subsequent R-Shop backup/restore/emulator-load round trip. Do not guess
   the package from the user's provisional "Drive Sync" name.
-- Reconcile every S1-S10 requirement, resolve required blockers/deferrals, run
-  appropriate final verification and commit. No release is authorized.
+- Reconcile delivered S1-S10 requirements, resolve their required blockers/deferrals,
+  run appropriate verification and commit. S11 remains required before overall
+  completion. No release is authorized.
 
 Evidence: inspected installed-emulator coverage matrix, native consent/scope and
 write-boundary proof, real RetroArch/standalone backup-and-load restore, durable
 generation/digest/identity/conflict and fault/restart contracts, UI/device proof,
 unchanged ROM archive and preserved save/cloud data, exact-target legacy sync
-handover evidence, successful post-handover backup/restore and final specification
-closure.
+handover evidence and successful post-handover backup/restore. This closes S10,
+not S11's managed-cache requirements or the overall specification.
+
+## S11 — Configurable managed ROM cache
+
+Status: NOT STARTED.
+Requirements: CACHE-01; recheck CORE-01/02/03, DRIVE-04/05/06, META-07,
+MIGRATE-01, SAVE-01 and QA-01/02/03/04.
+Depends on: S1-S10 acceptance. Do not begin while an earlier stage is ACTIVE.
+
+- Reuse configuration, owned-installation identities, validated offline-sample
+  protection and the existing durable removal workflow. No alternate deletion
+  engine or download concurrency rewrite. Preserve existing files/configuration
+  on upgrade; only the explicitly configured policy authorizes rotation.
+- Add Settings -> ROM cache controls for enablement, persistence days/custom/Never,
+  rotation queue size, LRU/FIFO order, optional byte budget and Unified/Per-console
+  scope. Support clear console-specific overrides/inheritance, retained inactive
+  mode settings, credential-free export and restart persistence. Show effective
+  limits, protected/eligible game counts and bytes, candidate reasons and blocks.
+- Add stable per-game pins and durable successful-handoff/installation usage
+  facts, without inventing telemetry for external emulator launches. Keep the
+  approved offline sample protected. Count complete game/edition bundles rather
+  than separate discs. Untrusted Top coverage cannot grant legacy-file removal.
+- Prove the narrow real path before broader policy coverage: configure a small
+  isolated cache -> normal exact owned downloads -> successful use -> policy-
+  driven rotation -> retained remote entry/metadata -> identical usable restore.
+  Native expiry proof must use actual configured/scheduled policy execution,
+  not manual deletion or test-only database timestamp rewriting.
+- Reconcile on legitimate lifecycle/background events. Join active work and
+  revalidate policy, protection, ownership, current cloud bytes/version and
+  proven format recovery before each exact removal. Preserve in-use, changed,
+  unmanaged, pinned, unproved or inaccessible installations and all saves,
+  metadata/artwork, BIOS/settings and cloud originals. Insufficient reclaimable
+  space remains explicit; it cannot authorize deletion outside these gates.
+- Verify focused expiry/clock/usage/order/tie/bundle/count/bytes and configuration
+  contracts, unified versus separate pools, scope changes, offline/revocation,
+  active-use/transfer races, cancellation/restart and cloud/local identity changes.
+  Prove controller/touch Settings plus actual expiry and capacity rotation on
+  Thor using isolated artifacts, then restore owner policy/targets and switch
+  both displays off. Keep live evidence private.
+- Reconcile the full authoritative specification, resolve every required blocker
+  and tracked deferral, run applicable final verification and commit the verified
+  result. No public release is authorized.
+
+Evidence: persisted Settings/controller proof, deterministic focused policy and
+durable-removal contracts, actual native automatic expiry/capacity rotation in
+both scope modes, identical emulator-usable restore, preserved pins/offline
+sample/saves/metadata/cloud originals, restored owner configuration and final
+S1-S11 reconciliation. A settings-only implementation does not close S11.
 
 ## Source extension map (baseline, not implemented classes)
 
@@ -1344,3 +1405,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
 | SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and emulator-load restore; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
+| CACHE-01 | S11 | Persisted Settings duration/queue/order/budget and unified/per-console scope; protected sample/pins; actual automatic expiry/capacity rotation through exact owned/cloud-verified removal and identical usable restore |

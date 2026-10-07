@@ -5,6 +5,73 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Authorized managed-cache/settings scope — 2026-10-07
+
+- Specification revision 13 records the user's explicit requirement for managed
+  ROM persistence/rotation and Settings controls for duration, rotation queue and
+  unified versus per-console scope. It supersedes the former no-automatic-eviction
+  rule only within CACHE-01, preserving ownership/cloud recovery, pins/offline
+  sample and saves. Configuration must distinguish time expiry from independent
+  capacity rotation, show effective scope and support console overrides.
+- S11 — Configurable managed ROM cache: NOT STARTED. Satisfied: requirement and
+  acceptance mapping only. Remaining: production configuration/UI, policy/lifecycle
+  integration, protection/usage tracking, durable exact automatic removal,
+  focused verification and real Thor rotation/restore in both scope modes.
+  No external blocker has been established; this is ordinary future-stage work.
+- Tracked deferral CACHE-01 belongs explicitly to S11 after S10, with final focused
+  policy/settings and native expiry/capacity/restore proof recorded in the plan.
+  Current S7 one-time migration and recovery criteria do not depend on it and are
+  unchanged. S7 remains the sole ACTIVE stage; S8-S11 are NOT STARTED. No settings
+  control, eviction behavior, new deployment or SD cleanup is claimed here.
+- Fresh document verification confirms one owner for every authoritative
+  requirement, CACHE-01 mapped to S11, no obsolete unconditional eviction ban,
+  resolving local Markdown links and clean Git whitespace checks. This is
+  specification/plan verification only; no Gradle build or native cache test was
+  run for this documentation change.
+
+### S7 standalone WUA recovery — ongoing checkpoint, 2026-10-07
+
+- The normal owned-installation route now supports standalone Wii U WUA through
+  installed Cemu's exported VIEW activity and the existing exact document-leaf
+  provider. Ownership/current identity checks remain mandatory; bundles, archive
+  mappings and other Wii U formats are rejected. The details menu now names Cemu
+  rather than Dolphin. No conversion or emulator configuration change was added.
+- The directly affected Dart launcher contract reproduced the missing route
+  before implementation and passes afterwards. Scoped analysis and focused native
+  `OwnedRomGrantPathTest` pass; diff checks pass. Initial gated native test/build
+  used ticket 322, log `e0378d765c554b5a96db13bd1c36c5a3.log`. The required
+  subsequent label build used ticket 324, log
+  `70ac50aa34af4fa5887f079203846de9.log`, and succeeded. Both were supervised
+  through the shared build gate. Observed workers=2, parallel=false and Gradle
+  maximum heap=3,221,225,472 bytes; Kotlin 2.2.20 uses the assessed in-process
+  strategy. Test configuration is one fork/512 MiB; only the initial focused test
+  command executed tests. App JNI compile/link pool depth remains one. No memory
+  failure or budget increase occurred.
+- Signer-preserving `install -r` succeeded; final host/installed APK SHA-256 is
+  `e93b4ab48ab28fa9e3a573b9feceb124acd248c1ec70fc9475f32f069ece07a9`.
+  Normal default-account reconnect was needed after the first update, without
+  saving/replacing a source. A real queue download completed into the newly
+  created isolated SD destination `RShop-Wua-Proof-20261007`. Its 63,106,846-byte
+  WUA SHA-256 is
+  `4432be0aa9d9528274f794d9db7ed9d707549aec54e2dba669eb86ede8b67981`.
+  The original Wii U ROM directory was not modified. The temporary Wii U target
+  remains selected for the unfinished recovery proof and MUST be restored to
+  `/storage/75D7-DC5F/Roms/wiiu` after that proof.
+- Normal "Open in Cemu" reached installed 0.5.2's EmulationActivity and rendered
+  the game's credits sequence. Android observed the exact owned WUA document URI
+  with mode/owned=0x1 and global/persistable/persisted=0x0. Existing unrelated Cemu
+  tree grants were not changed. Private online evidence is retained under
+  `D:/Temp/rshop-s7-wua-proof-20261007`. Normal Cemu Exit briefly produced an ANR
+  window; it subsequently returned to R-Shop and the emulation process exited
+  without force-stop. This is not an offline/recovery success claim: cold offline
+  launch, normal owned removal, identical re-download, isolated cleanup and target
+  restoration remain unfinished.
+- Saved scrape 76 remained at requested=5,263/pending=38,954, matched=123/rated=119.
+  Post-update Resume briefly reported Running then returned Paused without counter
+  progress; resolve that boundary before claiming scraping resumed. S7 alone is
+  ACTIVE, S8-S10 NOT STARTED. Legacy device sync and the scheduled task invoking
+  `sync-retrobat-saves.ps1` remain untouched, conditional on verified S10 handover.
+
 ### S7 large-console retention audit — 2026-10-07
 
 - A regression reproduced the audit's incorrect 2,000-member ceiling against

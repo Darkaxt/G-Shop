@@ -14,6 +14,12 @@ S10 verifies their R-Shop replacement. Then identify and uninstall the exact old
 device sync package and stop/disable only the scheduled task invoking
 `sync-retrobat-saves.ps1`, as authorized on 2026-10-07. Preserve saves, cloud
 backups and the laptop script. Do not start S10 while S7-S9 is ACTIVE.
+Authorized S11 adds configurable managed ROM cache persistence/rotation to the
+existing Settings panel, with unified or per-console scope. Reuse exact owned
+removal and verified cloud recovery; preserve pins, the offline sample and saves.
+This supersedes the former no-automatic-eviction restriction only within CACHE-01.
+S11 remains NOT STARTED while S7 is ACTIVE; do not open a second implementation
+front or silently enable deletion of pre-existing unmanaged files.
 
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.

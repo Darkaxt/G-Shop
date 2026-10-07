@@ -1,6 +1,6 @@
-# Google Drive, metadata expansion, companions and save backups
+# Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 12, 2026-10-07.
+Authoritative specification, revision 13, 2026-10-07.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -10,8 +10,9 @@ Upstream baseline: `AverageConsumer/R-Shop` at
 
 Turn R-Shop into an on-demand browser for a private cloud ROM library: inspect
 games and their fresh metadata, install selected games locally for ordinary
-emulator use, and explicitly remove owned local installations without changing
-the cloud originals or saves. The primary target is an Android handheld with an
+emulator use, and remove owned local installations manually or through the
+configured managed-cache policy without changing cloud originals or saves.
+The primary target is an Android handheld with an
 SD card (AYN Thor); existing R-Shop sources must remain usable.
 
 The user authorized implementation after preparation with "go ahead then" on
@@ -20,8 +21,9 @@ Google and ScreenScraper access are entirely new setup; do not assume existing
 credentials. Account consent remains user-controlled. Required live tests and a
 fresh metadata pass are part of acceptance; no release is authorized. The user
 also requested a final live SD-library migration retaining a small offline
-sample: Top 25 games per console. This is a one-time reviewed migration, not
-automatic eviction or permission to modify the cloud archive.
+sample: Top 25 games per console. That migration remains a one-time reviewed
+operation; the separately authorized CACHE-01 now covers ongoing cache rotation.
+Neither operation permits modifying the cloud archive.
 
 Scope extension authorized on 2026-10-02: add S8 for per-ROM companion launching
 on the Thor, with the ROM/emulator on the top display and its linked Android
@@ -50,6 +52,15 @@ scheduled task whose action invokes `sync-retrobat-saves.ps1`. This supersedes
 the earlier keep-installed rule only at that verified handover. Until then,
 preserve both mechanisms unchanged. Preserve saves, cloud backups, unrelated
 tasks/apps and the laptop script; no ROM/SD mirroring is authorized.
+
+Scope change authorized on 2026-10-07: indefinite accumulation of on-demand ROMs
+conflicts with the user's anti-littering/SD-space objective. Add configurable
+managed cache persistence and rotation to the existing Settings panel, including
+a persistence time window, rotation queue and unified or per-console scope.
+This explicitly supersedes the former exclusion of automatic ROM eviction,
+subject to CACHE-01's ownership, recovery and protection safeguards. S11 owns this
+feature after S10; S7 remains the sole ACTIVE stage. Its pending implementation
+does not excuse or alter any S7 migration/recovery acceptance criterion.
 
 User decisions incorporated:
 
@@ -145,7 +156,9 @@ Proposed names may change during implementation; these distinctions may not.
 Browsing and scraping must work for remote games without downloading ROM bodies.
 Metadata failures must not block browsing or downloading already identified files.
 Removing a local install must leave the remote library entry, metadata, favorites,
-and remote source intact. No bulk mirroring or automatic eviction is introduced.
+and remote source intact. No bulk mirroring is introduced. Automatic local ROM
+eviction is confined to the explicitly configured CACHE-01 policy; browsing,
+scraping and filtering do not themselves authorize it.
 
 Acceptance: a remote-only game can be scraped and browsed with zero ROM payload
 requests; it remains visible after removal of its local installation.
@@ -311,7 +324,8 @@ multi-disc/bundle dependencies and playlists using safe relative paths; no bundl
 is marked ready while a required member is missing. Unsafe or unsupported archive
 layouts are reported, not installed optimistically.
 
-Local removal is explicit and limited to installation-manifest-owned ROM paths.
+Manual local removal is explicit; automatic removal requires a configured
+CACHE-01 policy. Both are limited to installation-manifest-owned ROM paths.
 Revalidate file identity against the installed manifest immediately before removal;
 ownership recorded in the past is insufficient if another app replaced the file.
 Preserve changed or ambiguous files and report a conflict. Reject path escapes and
@@ -964,6 +978,16 @@ owned removal -> identical re-download cycle in an isolated target before
 approving that console's migration. Metadata identification alone is not proof
 of restoration, ranking or removal eligibility. Preserve original saves/settings.
 
+S7 Wii U recovery detail: prove the observed standalone WUA collection through
+installed Cemu's exported EmulationActivity VIEW route and the existing exact
+owned document-leaf read grant. Require current ready standalone ownership with
+no dependencies, bundle owner or archive mapping before launch and external
+open. Preserve URI flags and download/checksum/publication/removal gates. Prove
+normal download, actual online and cold offline boot, owned removal and identical
+re-download in an isolated destination. WUD/WUX/RPX, external bundles and other
+formats remain unproved; do not add conversion, keys or emulator configuration
+changes. This resolves existing DRIVE-06/MIGRATE-01 recovery scope, not a new stage.
+
 Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
 identities, all bundle members, before/after space, saved-data preservation and
 cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion
@@ -1002,7 +1026,7 @@ controller/touch proof; actual Thor ROM on top plus linked APK on bottom;
 independent associations for two ROMs; repeated launch, missing app, launch
 rejection and unavailable-display coverage; ordinary launch without a companion;
 save/settings preservation and both displays switched off after live testing.
-Reconcile all S1-S10 requirements before overall completion. S8 being planned is
+Reconcile all S1-S11 requirements before overall completion. S8 being planned is
 not implementation or acceptance evidence.
 
 ## 6c. Final original-media visual audit (S9)
@@ -1028,7 +1052,8 @@ supported systems, no unresolved cartridge or legacy-format gaps, provenance for
 added assets, decoded/bundled/mapping checks and visual review of compact/large
 cards on the Thor. Recheck cover replacement and badge/focus preservation, switch
 both displays off, and reconcile the delivered requirements. Overall completion
-also requires the subsequently authorized S10 save-backup stage.
+also requires the subsequently authorized S10 save-backup and S11 managed-cache
+stages.
 S9 is required at final closure, but does not retroactively block earlier stages
 or permit their existing acceptance criteria to be weakened.
 
@@ -1106,8 +1131,101 @@ Uninstall only that package, stop/disable only that task, and verify package
 absence, task disabled/not running and a subsequent working R-Shop save backup
 and emulator-load restore. Preserve existing save files/cloud backup data and
 the laptop script; unrelated apps/tasks remain unchanged. Record evidence and
-switch both displays off before final S1-S10 reconciliation. If exact target
+switch both displays off before S1-S10 reconciliation. S11 remains required for
+overall completion. If exact target
 identity is ambiguous, resolve it before removal; do not guess from display names.
+
+## 6e. Configurable managed ROM cache (S11)
+
+### CACHE-01 — Persistence window, rotation queue and console scope
+
+On-demand installations must not silently become an indefinitely accumulating
+permanent library. Add a normal Settings -> ROM cache section, with accessible
+controller/touch controls and credential-free configuration persistence/export.
+Keep this policy distinct from download queue concurrency, archival Top lists,
+metadata filters and the one-time MIGRATE-01 operation. S11 is the delivery owner;
+do not start it while S7-S10 has an ACTIVE stage. Reuse the existing owned
+installation and durable removal workflow rather than a second deletion engine.
+
+Settings must expose:
+
+- Automatic managed-cache cleanup enablement and an explicit keep-until-manually-
+  removed choice. Upgrade must not silently authorize eviction of pre-existing
+  unmanaged files or overwrite saved policy. Ordinary initial cache configuration
+  makes its automatic removal effects clear; it is not a development approval gate.
+- A configurable persistence window in days since the last recorded successful
+  R-Shop emulator handoff, falling back to verified installation completion for a
+  never-launched game. Include explicit Never and custom-duration choices. Show
+  the usage basis: launches outside R-Shop may not be observed; file modification,
+  directory presence, metadata browsing or a failed launch is not evidence of use.
+  Unknown usage history must not be advertised as verified inactivity.
+- Rotation queue size (maximum eligible unpinned games), eviction order (least
+  recently used by default or first installed/first out), and an optional byte
+  budget. Count one installed game/edition group with its complete required
+  bundle, not separate discs. Show actual eligible game count and bytes. A byte
+  budget prevents a count-only policy from treating tiny cartridges and large
+  optical games as equivalent storage demands.
+- Scope: one Unified pool across configured consoles, or independent Per-console
+  pools. Unified limits apply once to the combined pool; per-console limits apply
+  separately and allow console-specific duration/queue/budget settings with clear
+  inheritance from defaults. Changing mode retains inactive settings and never
+  silently reinterprets a global limit as a multiplied per-console allowance.
+- Per-game pin/unpin and clear protection/status/reason labels. Keep the approved
+  Top-25 offline sample and explicitly pinned games outside the rotation queue.
+  Protected bytes remain visible in total SD usage and cannot be purged to meet a
+  budget. Top protection uses the existing validated ranking semantics; an
+  incomplete ranking does not supply new removal authority for legacy files.
+
+Expiry and capacity are independent configured eligibility triggers: the window
+can make an unused unpinned install due for cleanup even below the queue limit;
+exceeding a queue/byte budget chooses eligible unpinned victims in the configured
+order even before their age window expires. Never disables age expiry, not an
+independently enabled capacity rule. Explain this in Settings. Resolve ties by
+stable installation identity. Show the effective scope, protected/unpinned counts,
+bytes, next due candidates and blocked reasons before policy activation/change.
+
+Only exact currently owned, unchanged, complete and demonstrably recoverable
+local ROM installations may be rotated. Revalidate the exact current cloud
+identity/version, readable complete copy and cryptographic integrity immediately
+before removal; retain the proven format-specific restore route. Offline, revoked
+access, missing/stale/truncated cloud data, changed local bytes, ambiguous identity
+or an unproved format preserves the file and reports why cleanup is blocked.
+No guessed folder deletion, unmanaged adoption, source failover by name or cloud
+write follows from enabling the policy. Preserve saves/states, BIOS, emulator
+settings, metadata/artwork, favorites, credentials and remote catalogue entries.
+
+Never evict a pinned/protected, actively launched/in-use, transferring, verifying,
+publishing or removing installation, or partially remove a required bundle. Join
+and serialize decisions with existing ownership/lifecycle operations. If safe
+space cannot be reclaimed, report the unmet limit or pause the new download; do
+not delete protected/ambiguous data, overpromise available space or cancel another
+operation merely to satisfy a budget. Recheck policy, protection and identity at
+execution, not only when a candidate list was calculated. Record durable per-
+installation decisions and outcomes so restart/cancellation cannot double-delete
+or lose the last truthful installed state. Scope/configuration changes are not
+permission to bypass these checks.
+
+Reconcile cleanup on normal application/queue/emulator-return events and through
+legitimate Android background scheduling when needed for the selected persistence
+window. Configured retention expiry is a product requirement, not a lifecycle
+timeout: use actual completion/cancellation signals and framework scheduling,
+never arbitrary sleeps, polling races or deadline-based lock stealing. Record
+last-use/protection/policy state durably and evaluate age boundaries against an
+explicit clock; clock anomalies must not accidentally purge an installation.
+
+Acceptance: focused policy/configuration/migration tests and controller/touch
+Settings proof cover custom/Never durations, exact expiry boundary, successful
+versus failed handoff and unknown/external usage, LRU/FIFO/ties, game-versus-disc
+counting, queue/byte limits, unified versus per-console isolation, inheritance,
+scope changes, pins/Top-25 protection and oversized protected samples. Verify
+offline/revoked/missing/changed cloud and local files, active-use/transfer races,
+bundle atomicity, cancellation/restart and storage loss without save or cloud
+mutation. Prove on Thor: configure policy -> normal owned test downloads -> actual
+usage -> deterministic expiry/capacity-driven rotation -> remote entry/metadata
+still available -> identical re-download and usable emulator launch. Use isolated
+test destinations; restore owner configuration and switch both screens off.
+Do not count manual deletion, unit fixtures or a displayed Settings form as proof
+of automatic native rotation. Reconcile S1-S11 before overall completion.
 
 ## 7. Quality and delivery requirements
 
@@ -1173,8 +1291,9 @@ blockers/deferrals. Preparation completion is not feature completion.
   download workarounds. SAVE-01's separately authorized save-backup uploads are
   the sole write exception; there is no SD-card or arbitrary-folder mirroring.
 - Android CHD/media conversion, a general downloader rewrite, or new ROM sites.
-- Automatic ongoing SD-card eviction, rewriting LoLSuite, or changing archival
-  Top lists. The explicit one-time Top-25 device migration is in scope.
+- Rewriting LoLSuite or changing archival Top lists. The explicit one-time Top-25
+  migration and separately configured CACHE-01 local rotation are in scope;
+  neither authorizes arbitrary SD cleanup or ROM/cloud mirroring.
 - Reusing outdated scraped files as the new metadata baseline.
 - A recommendation engine or replacement for curated archive/device Top lists.
   Metadata-backed browsing filters and the score-source remediation required by
