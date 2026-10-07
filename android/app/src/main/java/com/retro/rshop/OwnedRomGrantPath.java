@@ -43,5 +43,11 @@ final class OwnedRomGrantPath {
             archivePlatform.isEmpty() && !bundleMember && dependencies == 0 && members == 0;
     }
 
+    static boolean standaloneWua(String filename, String archivePlatform,
+            boolean bundleMember, int dependencies, int members) {
+        return leaf(filename) && filename.toLowerCase(Locale.ROOT).endsWith(".wua") &&
+            archivePlatform.isEmpty() && !bundleMember && dependencies == 0 && members == 0;
+    }
+
     private static FileNotFoundException invalid() { return new FileNotFoundException("Invalid ROM grant"); }
 }

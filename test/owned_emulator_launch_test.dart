@@ -179,4 +179,22 @@ void main() {
     await expectLater(missing.open(chd, psp, '/owned'), throwsStateError);
     expect(calls, hasLength(1));
   });
+  test('standalone Wii U WUA requires ownership and exact Cemu handoff', () async {
+    final wiiu = SystemModel.supportedSystems.singleWhere((s) => s.id == 'wiiu');
+    final wua = exactGame('wiiu-wua', name: 'Game.wua');
+    final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+      'artifact': wua.remoteArtifact!.toJson(), 'relativePath': wua.filename});
+    final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+    expect(OwnedEmulatorLauncher.supports(wua, wiiu), isTrue);
+    await launcher.open(wua, wiiu, '/owned');
+    expect(calls.single.method, 'launchOwnedCemu');
+    expect(calls.single.arguments, {'installationId': installed.id, 'filename': wua.filename});
+    for (final extension in ['zip', '7z', 'wud', 'wux', 'rpx', 'm3u']) {
+      expect(OwnedEmulatorLauncher.supports(exactGame('other', name: 'Game.$extension'), wiiu), isFalse);
+    }
+    expect(OwnedEmulatorLauncher.supports(wua, system), isFalse);
+    final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+    await expectLater(missing.open(wua, wiiu, '/owned'), throwsStateError);
+    expect(calls, hasLength(1));
+  });
 }

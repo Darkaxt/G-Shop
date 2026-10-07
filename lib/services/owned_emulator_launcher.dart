@@ -4,7 +4,7 @@ import '../models/system_model.dart';
 import '../models/transfer_record.dart';
 import 'rom_manager.dart';
 
-/// Verified owned-file handoff to installed Dolphin, PPSSPP, NetherSX2 or RetroArch
+/// Verified owned-file handoff to installed Dolphin, PPSSPP, NetherSX2, Cemu or RetroArch
 /// route. No source access, emulator setup mutation or companions.
 class OwnedEmulatorLauncher {
   final RomManager romManager;
@@ -19,6 +19,7 @@ class OwnedEmulatorLauncher {
       ((const {'gc', 'wii'}.contains(system.id) &&
       system.romExtensions.any((ext) => game.filename.toLowerCase().endsWith(ext))) ||
       (const {'psx', 'psp', 'ps2'}.contains(system.id) && game.filename.toLowerCase().endsWith('.chd')) ||
+      (system.id == 'wiiu' && game.filename.toLowerCase().endsWith('.wua')) ||
       TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
   Future<void> open(GameItem game, SystemModel system, String root) {
@@ -47,7 +48,8 @@ class OwnedEmulatorLauncher {
         system.id == 'gba' ? 'launchOwnedRetroArchGameBoyAdvance' :
         system.id == 'psx' ? 'launchOwnedRetroArchPSX' :
         system.id == 'psp' ? 'launchOwnedPPSSPP' :
-        system.id == 'ps2' ? 'launchOwnedNetherSX2' : 'launchOwnedDolphin', {
+        system.id == 'ps2' ? 'launchOwnedNetherSX2' :
+        system.id == 'wiiu' ? 'launchOwnedCemu' : 'launchOwnedDolphin', {
       'installationId': installed.id, 'filename': installed.relativePath,
     });
   }

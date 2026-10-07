@@ -65,7 +65,8 @@ class OwnedRomContentProvider : ContentProvider() {
         }
 
         private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null,
-            requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false): JSONObject {
+            requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
+            requiredStandaloneWua: Boolean = false): JSONObject {
             if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
                 uri.query != null || uri.fragment != null) throw FileNotFoundException("Invalid ROM grant")
             val grant = OwnedRomGrantPath.parse(uri.pathSegments)
@@ -117,13 +118,18 @@ class OwnedRomContentProvider : ContentProvider() {
                         (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
                     val standaloneChd = OwnedRomGrantPath.standaloneChd(filename, platform,
                         owner != null, dependencies.length(), members.length())
+                    val standaloneWua = OwnedRomGrantPath.standaloneWua(filename, platform,
+                        owner != null, dependencies.length(), members.length())
                     if (requiredArchivePlatform != null && platform != requiredArchivePlatform) {
                         throw FileNotFoundException("Archive mapping changed")
                     }
                     if (requiredStandaloneChd && !standaloneChd) {
                         throw FileNotFoundException("Unsupported standalone CHD grant")
                     }
-                    if (grant.document && !supportedArchive && !standaloneChd) {
+                    if (requiredStandaloneWua && !standaloneWua) {
+                        throw FileNotFoundException("Unsupported standalone WUA grant")
+                    }
+                    if (grant.document && !supportedArchive && !standaloneChd && !standaloneWua) {
                         throw FileNotFoundException("Unsupported document grant")
                     }
                     if ((filename.endsWith(".zip") || filename.endsWith(".7z") || filename.endsWith(".rar")) &&
@@ -167,10 +173,12 @@ class OwnedRomContentProvider : ContentProvider() {
         }
 
         fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null,
-            requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false): ParcelFileDescriptor {
+            requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
+            requiredStandaloneWua: Boolean = false): ParcelFileDescriptor {
             var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
             try {
-                val saved = manifest(context, uri, bundleOwner, requiredArchivePlatform, requiredStandaloneChd)
+                val saved = manifest(context, uri, bundleOwner, requiredArchivePlatform,
+                    requiredStandaloneChd, requiredStandaloneWua)
                 val rootPath = saved.getString("destinationRoot")
                 val relative = saved.getString("relativePath")
                 val pieces = relative.split('/')

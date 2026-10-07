@@ -1,5 +1,37 @@
 # S7 live metadata and Thor migration
 
+## Standalone WUA recovery — 2026-10-07
+
+The existing exact owned-ROM route now hands standalone Wii U WUA to installed
+Cemu, with a correctly named details-menu action. Bundles, archive mappings,
+unsafe paths and other Wii U formats do not acquire this route. Current identity,
+owned publication and read-only exact-leaf grants remain mandatory. Focused Dart
+and native grant contracts, scoped analysis and the shared-gate native builds
+passed on the unchanged production code now tested on Thor.
+
+The normal native workflow is verified: exact Drive download into an isolated
+destination -> Cemu game rendering -> cold offline rendering with no active
+default network -> normal owned removal with the remote entry retained -> same
+queued identical re-download -> installed state -> Cemu rendering of the restored
+copy. Rendering reached the game's credits, not a claimed gameplay session.
+Cemu's normal Exit was allowed to finish, including the observed delayed exit;
+no process was killed to obtain cleanup clearance.
+
+Only the isolated owned copy and disposable captures were removed. Normal
+console-settings save restored the owner's original Wii U mapping; the complete
+configuration, original ROM and Cemu settings/controller hashes match their
+baselines. The empty test directory is absent. The SAME saved metadata job now
+advances real requested/pending counters after normal reconnect/resume, rather
+than merely showing Running. Both physical displays are committed OFF and the
+Thor is Asleep. Exact hashes and private evidence boundaries are recorded in
+IMPLEMENTATION_STATUS.md.
+
+This closes only the standalone WUA recovery slice. S7 remains the sole ACTIVE
+stage: full fresh coverage, defensible canonical retention, remaining required
+format workflows, current cloud gates and reviewed migration are unfinished.
+S8-S11 remain NOT STARTED, including CACHE-01's configurable automatic rotation.
+Legacy save-sync mechanisms remain untouched pending verified S10 replacement.
+
 ## Large-console retention audit — 2026-10-07
 
 The read-only audit's 2,000-member ceiling was inconsistent with supported

@@ -51,7 +51,8 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "launchOwnedRetroArchNes" ||
                         call.method == "launchOwnedRetroArchSnes" ||
                         call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
-                        call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2") {
+                        call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2" ||
+                        call.method == "launchOwnedCemu") {
                         val gameGear = call.method == "launchOwnedRetroArchGameGear"
                         val gameBoy = call.method == "launchOwnedRetroArchGameBoy"
                         val gameBoyColor = call.method == "launchOwnedRetroArchGameBoyColor"
@@ -64,25 +65,29 @@ internal class OwnedStorageService(private val context: Context) {
                         val psx = call.method == "launchOwnedRetroArchPSX"
                         val psp = call.method == "launchOwnedPPSSPP"
                         val ps2 = call.method == "launchOwnedNetherSX2"
+                        val wiiu = call.method == "launchOwnedCemu"
                         val retroArch = gameGear || n64 || handheld || nes || snes || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
                         if ((gameGear && !filename.endsWith(".zip")) ||
                             ((handheld || nes || snes) && !filename.endsWith(".7z")) ||
                             (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
-                            ((psx || psp || ps2) && !filename.endsWith(".chd"))) throw Failure("unsupported_archive")
-                        val uri = if (retroArch || psp || ps2) OwnedRomContentProvider.gameGearUri(context,
+                            ((psx || psp || ps2) && !filename.endsWith(".chd")) ||
+                            (wiiu && !filename.endsWith(".wua"))) throw Failure("unsupported_archive")
+                        val uri = if (retroArch || psp || ps2 || wiiu) OwnedRomContentProvider.gameGearUri(context,
                             string(call, "installationId"), string(call, "filename"))
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
                             requiredArchivePlatform = if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else null,
-                            requiredStandaloneChd = psx || psp || ps2).use { }
+                            requiredStandaloneChd = psx || psp || ps2,
+                            requiredStandaloneWua = wiiu).use { }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)
                             } else try {
                                 val app = if (retroArch) "com.retroarch.aarch64" else if (psp) "org.ppsspp.ppsspp"
                                     else if (ps2) "xyz.aethersx2.android"
+                                    else if (wiiu) "info.cemu.cemu"
                                     else "org.dolphinemu.dolphinemu"
                                 val intent = context.packageManager.getLaunchIntentForPackage(app)
                                     ?: throw Failure("emulator_missing")
@@ -101,6 +106,11 @@ internal class OwnedStorageService(private val context: Context) {
                                 if (ps2) {
                                     intent.setClassName(app, "xyz.aethersx2.android.EmulationActivity")
                                     intent.putExtra("bootPath", uri.toString())
+                                }
+                                if (wiiu) {
+                                    intent.setClassName(app, "info.cemu.cemu.emulation.EmulationActivity")
+                                    intent.action = Intent.ACTION_VIEW
+                                    intent.setDataAndType(uri, "application/octet-stream")
                                 }
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)

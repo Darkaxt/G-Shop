@@ -6,6 +6,17 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class OwnedRomGrantPathTest {
+    @Test public void standaloneWuaCannotGrantOtherFormatsArchivesOrBundles() {
+        assertTrue(OwnedRomGrantPath.standaloneWua("Game.WUA", "", false, 0, 0));
+        for (String extension : new String[]{"zip", "7z", "wud", "wux", "rpx", "chd"}) {
+            assertFalse(OwnedRomGrantPath.standaloneWua("Game." + extension, "", false, 0, 0));
+        }
+        assertFalse(OwnedRomGrantPath.standaloneWua("Game.wua", "n64", false, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneWua("Game.wua", "", true, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneWua("Game.wua", "", false, 1, 1));
+        assertFalse(OwnedRomGrantPath.standaloneWua("Game.wua", "", false, 0, 1));
+        assertFalse(OwnedRomGrantPath.standaloneWua("../Game.wua", "", false, 0, 0));
+    }
     @Test public void standaloneChdDocumentCannotGrantAnArchiveOrBundle() {
         assertTrue(OwnedRomGrantPath.standaloneChd("Game.CHD", "", false, 0, 0));
         assertFalse(OwnedRomGrantPath.standaloneChd("Game.zip", "", false, 0, 0));

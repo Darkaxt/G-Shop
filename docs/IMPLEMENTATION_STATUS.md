@@ -29,7 +29,49 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   specification/plan verification only; no Gradle build or native cache test was
   run for this documentation change.
 
-### S7 standalone WUA recovery — ongoing checkpoint, 2026-10-07
+### S7 standalone WUA recovery — verified continuation, 2026-10-07
+
+- The required cold-offline route was observed with no Cemu process before
+  launch and no active default network before/during execution. Installed Cemu
+  rendered the game's credits through the exact read-only owned WUA document.
+  This proves game rendering, not a gameplay session. Wi-Fi was restored before
+  recovery. Normal Cemu Exit returned to R-Shop and its emulation process exited;
+  the earlier transient ANR/delayed exit was not worked around with a force-stop.
+- Normal owned removal left the remote entry available with DOWNLOAD. The same
+  queued re-download resumed after normal default-account reconnect and completed
+  at 63,106,846 bytes. Its SHA-256 again equals
+  `4432be0aa9d9528274f794d9db7ed9d707549aec54e2dba669eb86ede8b67981`,
+  identical to both the first download and untouched original. R-Shop reported
+  INSTALLED, and normal Open in Cemu launched a fresh emulation process which
+  rendered the restored copy's credits. Normal Exit completed before cleanup.
+- Only the isolated owned test ROM was then removed through R-Shop. After the
+  normal console-settings save completed, the Wii U target was restored to
+  `/storage/75D7-DC5F/Roms/wiiu` and the full configuration hash again equals
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  The original ROM retains the hash above. Cemu settings/controller hashes remain
+  `84efa61a16c0fa4752984943c938ed65daf05e735592ad05b46d7f60a3d9b2f3` and
+  `a69d6add585e7ddff92c9259085749c727956049aa2f939975078b9f2744af7c`.
+  No save, BIOS, emulator configuration or cloud original was removed.
+- The empty exact test directory was removed with non-recursive rmdir and
+  confirmed absent. The device scratch capture and reviewed host `screen.png`
+  were removed; cleanup ticket `725e68fac2a7a532edb92c4267aa0f52e1f815344522bf9b5adae401bb04efca`
+  applied its sole 1,126,604-byte candidate without errors. Required private
+  online/offline/removal/restored captures and the installed APK are retained.
+- Resume of the SAME saved scrape 76 now advances actual counters from
+  requested=5,263/pending=38,954 to requested=5,283/pending=38,934, Running,
+  matched=124/rated=120. No new job/source selection was created and no external
+  database reader runs alongside the writer. Both displays are committed OFF
+  with wakefulness Asleep. Full collection coverage, defensible Top-25,
+  remaining required format recovery and reviewed migration still remain open
+  in the sole ACTIVE S7. S8-S11 remain NOT STARTED; no automatic cache policy,
+  legacy sync retirement, full migration or public release is claimed.
+- Current production/test code is unchanged from the focused passing launcher
+  and native grant verification/builds below; the final APK hash was rechecked,
+  the native JUnit report inspected with zero failures/errors/skips, and the
+  complete diff reviewed. Those current-task results remain applicable; no
+  duplicate Gradle command or broad test suite was launched to repeat them.
+
+### S7 standalone WUA recovery — earlier checkpoint, 2026-10-07
 
 - The normal owned-installation route now supports standalone Wii U WUA through
   installed Cemu's exported VIEW activity and the existing exact document-leaf

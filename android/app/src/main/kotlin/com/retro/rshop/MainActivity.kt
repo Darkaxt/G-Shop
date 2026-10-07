@@ -227,7 +227,7 @@ class MainActivity : FlutterActivity() {
                 call.method == "launchOwnedRetroArchSnes" ||
                 call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
-                call.method == "launchOwnedNetherSX2") {
+                call.method == "launchOwnedNetherSX2" || call.method == "launchOwnedCemu") {
                 val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }
                 service.handle(call, result)
                 return@setMethodCallHandler

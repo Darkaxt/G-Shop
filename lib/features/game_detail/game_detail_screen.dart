@@ -568,7 +568,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         QuickMenuItem(
             label: const {'gamegear', 'n64', 'gb', 'gbc', 'gba', 'nes', 'snes', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' :
                 widget.system.id == 'psp' ? 'Open in PPSSPP' :
-                widget.system.id == 'ps2' ? 'Open in NetherSX2' : 'Open in Dolphin',
+                widget.system.id == 'ps2' ? 'Open in NetherSX2' :
+                widget.system.id == 'wiiu' ? 'Open in Cemu' : 'Open in Dolphin',
             icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
       QuickMenuItem(
