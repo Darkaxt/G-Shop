@@ -590,9 +590,8 @@ class DownloadQueueManager extends ChangeNotifier {
       final extension = item.game.filename.toLowerCase();
       final bundle = BundleReferences.isManifest(extension);
       final supportsPlaylist = item.system.romExtensions.contains('.cue');
-      final gameGearZip = item.system.id == 'gamegear' && extension.endsWith('.zip');
-      final n64Archive = item.system.id == 'n64' && ['.7z', '.zip'].any(extension.endsWith);
-      final mappedArchive = gameGearZip || n64Archive;
+      final mappedArchive = TransferRecord.supportsArchiveMapping(
+          item.game.filename, item.system.id);
       if (artifact == null ||
           config == null ||
           item.game.isFolder ||

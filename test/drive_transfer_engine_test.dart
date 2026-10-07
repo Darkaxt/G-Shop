@@ -195,6 +195,7 @@ class _Native {
     switch (call.method) {
       case 'ownedValidateGameGearZip':
       case 'ownedValidateN64SevenZip':
+      case 'ownedValidateGameBoySevenZip':
       case 'ownedValidateN64Zip':
         if (invalidArchive) fail('unsupported_archive');
         return null;
@@ -334,11 +335,12 @@ void main() {
     expect(native.files['/roms/fixture.zip']!.bytes, payload);
     expect(result.archivePlatformId, 'gamegear');
   });
-  for (final extension in ['7z', 'zip']) {
-    test('N64 $extension validates before publication, recovery and offline reuse', () async {
+  for (final (platform, extension) in [('n64', '7z'), ('n64', 'zip'), ('gb', '7z')]) {
+    test('$platform $extension validates before publication, recovery and offline reuse', () async {
       final name = 'fixture.$extension';
-      final method = extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
-      await queue(source: artifact(name: name), name: name, archivePlatformId: 'n64');
+      final method = platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
+          extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
+      await queue(source: artifact(name: name), name: name, archivePlatformId: platform);
       native.after = (call) async { if (call.method == 'ownedPublish') throw StateError('lost receipt'); };
       expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
       expect(native.methods.indexOf(method), lessThan(native.methods.indexOf('ownedPublish')));
@@ -354,13 +356,20 @@ void main() {
       expect(native.methods.where((m) => m == method), hasLength(4));
       expect(native.methods, isNot(contains('ownedValidateGameGearZip')));
       expect(native.files['/roms/$name']!.bytes, payload);
+      final game = GameItem(filename: name, displayName: 'Fixture', url: '',
+          remoteArtifact: ready.artifact);
+      expect((await RomManager(installations: InstallationIndex(journal,
+          storage: OwnedStorage(channel: native.channel)))
+          .requireInstalledArtifact(game, '/roms')).transferId, ready.id);
     });
-    test('legacy untyped $extension fails before network and native IO', () async {
-      await queue(source: artifact(name: 'fixture.$extension'), name: 'fixture.$extension');
-      expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
-      expect(requests, isEmpty);
-      expect(native.methods, isEmpty);
-    });
+    if (platform == 'n64') {
+      test('legacy untyped $extension fails before network and native IO', () async {
+        await queue(source: artifact(name: 'fixture.$extension'), name: 'fixture.$extension');
+        expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
+        expect(requests, isEmpty);
+        expect(native.methods, isEmpty);
+      });
+    }
   }
   test('malformed archive cannot publish or obtain ownership', () async {
     await queue(source: artifact(name: 'fixture.zip'), name: 'fixture.zip', archivePlatformId: 'gamegear');

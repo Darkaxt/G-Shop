@@ -113,6 +113,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     val filename = grant.filename.lowercase(Locale.ROOT)
                     val platform = transfer.optString("archivePlatformId")
                     val supportedArchive = (platform == "gamegear" && filename.endsWith(".zip")) ||
+                        (platform == "gb" && filename.endsWith(".7z")) ||
                         (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
                     val standaloneChd = OwnedRomGrantPath.standaloneChd(filename, platform,
                         owner != null, dependencies.length(), members.length())
@@ -200,7 +201,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 if (platform.isNotEmpty()) {
                     val path = "/proc/self/fd/$file"
                     if (platform == "gamegear") OwnedGameGearZip.validate(path)
-                    else if (relative.lowercase(Locale.ROOT).endsWith(".7z")) OwnedN64SevenZip.validate(path)
+                    else if (relative.lowercase(Locale.ROOT).endsWith(".7z")) OwnedN64SevenZip.validate(path, platform)
                     else OwnedGameGearZip.validateN64(path)
                     if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
                         throw FileNotFoundException("Archive changed during validation")

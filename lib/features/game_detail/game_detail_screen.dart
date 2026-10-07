@@ -565,7 +565,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(
-            label: const {'gamegear', 'n64', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' :
+            label: const {'gamegear', 'n64', 'gb', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' :
                 widget.system.id == 'psp' ? 'Open in PPSSPP' :
                 widget.system.id == 'ps2' ? 'Open in NetherSX2' : 'Open in Dolphin',
             icon: Icons.play_arrow_rounded,

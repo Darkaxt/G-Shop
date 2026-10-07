@@ -222,6 +222,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
             if (call.method.startsWith("owned") || call.method == "launchOwnedDolphin" ||
                 call.method == "launchOwnedRetroArchGameGear" || call.method == "launchOwnedRetroArchN64" ||
+                call.method == "launchOwnedRetroArchGameBoy" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
                 call.method == "launchOwnedNetherSX2") {
                 val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }

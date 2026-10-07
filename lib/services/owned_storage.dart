@@ -312,6 +312,11 @@ class OwnedStorageSession {
     await _storage._invoke(method, {'session': id});
   }
 
+  Future<void> validateGameBoySevenZip() async {
+    _requireOpen();
+    await _storage._invoke('ownedValidateGameBoySevenZip', {'session': id});
+  }
+
   /// Caller must journal publishing intent and verified evidence beforehand.
   /// This no-clobber namespace operation alone never commits an installation.
   Future<NativeFileIdentity> publish(

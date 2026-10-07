@@ -418,6 +418,10 @@ class DriveTransferOperation {
       _checkCancellation();
       await _session!.validateN64Archive(record.relativePath);
       _checkCancellation();
+    } else if (record.archivePlatformId == 'gb') {
+      _checkCancellation();
+      await _session!.validateGameBoySevenZip();
+      _checkCancellation();
     }
   }
 

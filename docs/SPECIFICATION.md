@@ -353,6 +353,20 @@ approval for legacy untyped archives. Host validation is not live recovery proof
 the normal queue/offline boot/removal/re-download gate remains required before
 this format can permit migration.
 
+S7 Game Boy recovery detail (2026-10-07): extend the existing owned archive route
+to explicitly mapped standalone `gb` 7z files, with one safe `.gb` member within
+the existing 16 MiB streamed validation budget. Preserve the exact archive bytes
+and name; do not extract, repack or infer approval for ZIP, GBC, GBA, bundles or
+legacy untyped transfers. Validate the pinned object before publication, recovery
+and each handoff using the existing complete stream/CRC and namespace checks.
+Persist `gb` in the immutable transfer intent. Use the exact read-only document
+leaf grant and installed RetroArch SameBoy core; no directory/prefix/write or
+persistable grant. Prove normal queue download, actual online and fresh offline
+boot, exact owned test removal and identical re-download in an isolated target.
+Preserve original ROMs, saves, BIOS and emulator settings. Metadata identification
+alone does not satisfy this independent restoration requirement or authorize SD
+removal; every MIGRATE-01 ranking/current-byte/review gate remains applicable.
+
 Acceptance: download -> verify -> open in existing emulator -> offline use ->
 explicit local removal -> re-download; multi-disc, replaced-owned-file,
 redirected-path and save-preservation fixtures,

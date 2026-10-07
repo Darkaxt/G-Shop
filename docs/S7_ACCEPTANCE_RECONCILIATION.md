@@ -1,5 +1,32 @@
 # S7 live metadata and Thor migration
 
+## Game Boy owned 7z recovery verified — 2026-10-07
+
+The explicitly mapped GB 7z route now participates in the normal queue,
+validated publication/recovery, owned installation resolution and exact-leaf
+RetroArch handoff. Existing bounded single-member decoding verifies one safe
+`.gb` member and complete CRC/stream integrity within a 16 MiB raw budget.
+Focused host checks and native checks pass. Live verification corrected the
+missing native method dispatch and chose the actually installed SameBoy core,
+rather than treating shared core information as proof of installed Gambatte.
+
+The real Thor workflow verified normal cloud download, unchanged archive bytes,
+online opening/input, normal emulator Quit, a cold new-process opening/input with
+Wi-Fi disabled, normal removal of only the isolated owned copy, exact re-download
+and a second issue-free normal removal. The original ROM and emulator settings
+retain baseline hashes. Normal folder selection restored the full original
+configuration; the same immutable job 76 resumed from its preserved checkpoint.
+Both physical displays are OFF. See IMPLEMENTATION_STATUS.md for inspected
+artifact, acquired gate/resource profile and preservation evidence.
+
+This closes only the GB standalone 7z recovery slice, not GBC/GBA or other
+unproven formats, collection-wide ranking or migration. The online cached-metadata
+wait remains unresolved; warmed offline opening does not prove that issue fixed.
+Full fresh metadata, defensible canonical retention, current complete readable
+cloud bytes and reviewed migration remain required in sole ACTIVE S7. The fresh
+focused standardized-matching checks pass without approving the separate
+unanswered classification-provenance proposal. S8-S10 remain NOT STARTED.
+
 ## GBA exact-local identification integrated and verified — 2026-10-07
 
 The metadata-only single-member 7z route now admits explicit GBA mappings with

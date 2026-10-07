@@ -86,6 +86,26 @@ void main() {
       expect(OwnedEmulatorLauncher.supports(archive, system), isFalse);
     }
   });
+  test('mapped Game Boy 7z requires ownership and uses the exact RetroArch leaf route', () async {
+    final gb = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gb');
+    final archive = exactGame('gb-7z', name: 'Game.7z');
+    final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+      'artifact': archive.remoteArtifact!.toJson(), 'relativePath': archive.filename});
+    final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+    expect(RomManager.getTargetFilename(archive, gb), archive.filename);
+    expect(OwnedEmulatorLauncher.supports(archive, gb), isTrue);
+    await launcher.open(archive, gb, '/owned');
+    expect(calls.single.method, 'launchOwnedRetroArchGameBoy');
+    expect(calls.single.arguments, {'installationId': installed.id, 'filename': archive.filename});
+    expect(OwnedEmulatorLauncher.supports(exactGame('zip', name: 'Game.zip'), gb), isFalse);
+    for (final id in ['gbc', 'gba', 'gc']) {
+      expect(OwnedEmulatorLauncher.supports(archive,
+          SystemModel.supportedSystems.singleWhere((s) => s.id == id)), isFalse);
+    }
+    final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+    await expectLater(missing.open(archive, gb, '/owned'), throwsStateError);
+    expect(calls, hasLength(1));
+  });
   test('standalone PS1 CHD uses an exact owned RetroArch handoff', () async {
     final psx = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psx');
     final chd = exactGame('psx-chd', name: 'Game.chd');

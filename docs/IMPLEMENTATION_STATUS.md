@@ -5,6 +5,64 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Game Boy owned recovery round trip — 2026-10-07
+
+- Extended the existing owned archive route only to explicitly mapped GB 7z:
+  one safe `.gb` member, 16 MiB raw budget, bounded decoding and full stream/CRC
+  validation before publication, recovery and offline open. Archive bytes/name
+  remain unchanged; immutable platform mapping and exact owned read-only leaf
+  grants are required. No ZIP/GBC/GBA/bundle recovery or directory/write grant
+  was added. Focused launcher/runtime/transfer/storage checks and scoped analysis
+  pass, including normal installation resolution after archive publication.
+- Native testing exposed two concrete integration errors: missing dispatch of
+  `launchOwnedRetroArchGameBoy` and selection of an uninstalled Gambatte core.
+  The dispatch is now connected; the actual installed SameBoy core is selected.
+  Normal R-Shop opening reached the game title screen and accepted input. After
+  normal emulator Quit and confirmed process exit, Wi-Fi was disabled and the
+  same owned copy opened in a new process and accepted gameplay input again.
+- Normal UI removal targeted only the task-created isolated proof copy. The same
+  single queued item was re-downloaded using the default existing Drive account;
+  its size and SHA-256 matched the source. Native read-only observation verified
+  completed installation and retired staging. A second normal removal left zero
+  proof-root owners and two terminal issue-free removal records. The original
+  SD ROM and RetroArch configuration retain their baseline checksums; no matching
+  game save/state was created. The reviewed empty proof directory was removed,
+  not any original collection directory or cloud file.
+- Normal folder selection restored the original GB target. The full saved
+  configuration hash equals its pre-proof baseline, preserving all seven source
+  objects and console settings. Published generation remains active=1,
+  pending=null, nextGeneration=2. Job 76 retained requested=2,487 and all 44,204
+  saved items/outcomes at its joined Pause checkpoint. Selecting that existing
+  job and normal Resume showed Running again. No external SQL observation
+  overlapped the resumed worker. Both physical displays were confirmed OFF.
+- Required gated builds 245/247/248 exited zero; the latest installed APK is
+  SHA-256 `face361e0a6f557626e4aea0237ffb0f4ae0c4cf72423d7ce5e0036314d3c377`,
+  unchanged debug package/version and signer. The shared gate was acquired;
+  observed workers=2, parallel=false, Gradle heap=3,221,225,472 bytes. Assessed
+  Kotlin 2.2.20 runs in-process within that heap. Test-task configuration is one
+  fork/512 MiB; full plugin-native concurrency remains unverified. No memory
+  failure or budget increase occurred. Latest build log:
+  `58cbd817212743d98c866a3123e62430.log`. No additional Gradle command was needed
+  for documentation or the focused standardized-matching recheck.
+- The already-approved standardized policy remains implemented by f270427.
+  Focused current ScreenScraper/IGDB regional-matching checks pass, including
+  company/day wording differences, conflicting release rejection and normal
+  two-provider binding/offline ranking. This does not approve the separate
+  unanswered bulk-classification proposal or establish full-library coverage.
+- Opening cached metadata incurred a long database/shared-projection wait during
+  the online check. A warmed offline launch was prompt, but the cause and full
+  performance contract remain unresolved; no timeout/retry workaround or claim
+  of a performance fix is made. S7 remains sole ACTIVE: full fresh coverage,
+  canonical/defensible retention, current cloud-byte proof for migration and
+  remaining required format round trips/migration are unfinished. S8-S10 remain
+  NOT STARTED. No original ROM/save/BIOS, FolderSync or cloud file was changed.
+
+Cleanup: exact-file transaction d722433530f98dfabc343ab4d822a3c4 reviewed and
+removed only the consumed 3,854-byte observer compiler intermediate. Its retained
+source and deployed jar reproduce it; screenshots/configuration before-image,
+APK and build logs remain verification evidence. The proof directory was removed
+only after both owned removals and an empty-directory check; absence was verified.
+
 ### S7 GBA identification host proof and native update — 2026-10-07
 
 - Extended the existing metadata-only exact-local 7z path to explicitly mapped

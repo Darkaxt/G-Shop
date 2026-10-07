@@ -286,6 +286,7 @@ class _NativeStorage {
       case 'ownedCheckpoint':
         return identity;
       case 'ownedValidateGameGearZip':
+      case 'ownedValidateGameBoySevenZip':
       case 'ownedValidateN64SevenZip':
       case 'ownedValidateN64Zip':
         expect(sessionOpen, isTrue);
@@ -707,6 +708,47 @@ void main() {
     queue.dispose();
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
+  });
+  for (final invalid in [false, true]) {
+    test('normal Game Boy 7z queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}', () async {
+      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
+      fixture.native.invalidArchive = invalid;
+      final runtime = fixture.runtime();
+      final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
+      final gb = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gb');
+      final terminal = _queueTerminal(queue);
+      queue.addToQueue(GameItem(filename: 'fixture.7z', displayName: 'Fixture',
+          url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
+          remoteArtifact: _artifact(name: 'fixture.7z')), gb, '/roms');
+      final item = await terminal;
+      expect(item.status, invalid ? DownloadStatus.error : DownloadStatus.completed, reason: item.error);
+      final record = (await fixture.journal.transfer(item.transferId!))!;
+      expect(record.archivePlatformId, 'gb');
+      expect(TransferRecord.fromJson(record.toJson()).archivePlatformId, 'gb');
+      expect(record.relativePath, 'fixture.7z');
+      if (invalid) {
+        expect(fixture.native.calls, isNot(contains('ownedPublish')));
+        expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      } else {
+        await runtime.requireInstalledTransfer(record);
+        expect(fixture.native.calls.where((m) => m == 'ownedValidateGameBoySevenZip'), hasLength(2));
+        expect(fixture.native.calls.indexOf('ownedValidateGameBoySevenZip'), lessThan(fixture.native.calls.indexOf('ownedPublish')));
+        fixture.native.invalidArchive = true;
+        await expectLater(runtime.requireInstalledTransfer(record), throwsA(isA<OwnedStorageException>()));
+      }
+      expect(fixture.native.calls, isNot(contains('ownedValidateN64SevenZip')));
+      expect(fixture.native.sessionOpen, isFalse);
+      await queue.close(); queue.dispose();
+      fixture.driver.finishSignOut.complete(); await runtime.disconnect();
+    });
+  }
+  test('Game Boy archive mapping does not admit other platforms or archive formats', () {
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gb'}), isTrue);
+    for (final extensions in [{'.gbc'}, {'.gba'}, {'.gb', '.gbc'}, {'.7z'}]) {
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions), isFalse);
+    }
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {'.gb'}), isFalse);
+    expect(TransferRecord.supportsArchiveMapping('Game.7z', null), isFalse);
   });
   for (final extension in ['7z', 'zip']) {
     test('normal N64 $extension queue publishes typed bytes and revalidates offline', () async {

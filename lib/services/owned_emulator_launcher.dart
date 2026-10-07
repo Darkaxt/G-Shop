@@ -40,6 +40,7 @@ class OwnedEmulatorLauncher {
     final installed = await romManager.requireInstalledArtifact(game, root);
     await channel.invokeMethod<void>(system.id == 'gamegear' ? 'launchOwnedRetroArchGameGear' :
         system.id == 'n64' ? 'launchOwnedRetroArchN64' :
+        system.id == 'gb' ? 'launchOwnedRetroArchGameBoy' :
         system.id == 'psx' ? 'launchOwnedRetroArchPSX' :
         system.id == 'psp' ? 'launchOwnedPPSSPP' :
         system.id == 'ps2' ? 'launchOwnedNetherSX2' : 'launchOwnedDolphin', {

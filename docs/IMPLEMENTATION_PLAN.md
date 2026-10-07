@@ -31,6 +31,17 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
+S7 current recovery work (2026-10-07): prove the required standalone Game Boy 7z
+workflow through the existing immutable `gb` archive mapping, pinned native
+validation, owned queue publication and exact read-only RetroArch SameBoy grant.
+Focused regressions preceded implementation; isolated online/cold-offline boot
+with input, owned removal, identical re-download and a second removal are now
+verified. Original configuration/ROM/emulator settings were preserved, the same
+saved metadata job resumed, and both physical displays were switched OFF.
+The cached-metadata wait remains unresolved; this closes only the GB format slice.
+This does not open another stage, approve GBC/GBA/ZIP recovery, or waive migration
+ranking, current cloud-byte verification, preservation and private review gates.
+
 S7 storage-target reconciliation (2026-10-07): after the live capture committed,
 normal Console Settings import and Back/save corrected the 32 new internal
 defaults to confirmed SD directories, including four explicit console aliases.

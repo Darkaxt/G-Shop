@@ -463,6 +463,9 @@ class DriveRuntime {
     if (ext == '.zip' && mapped.length == 1 && mapped.contains('.gg')) {
       return 'gamegear';
     }
+    if (ext == '.7z' && mapped.length == 1 && mapped.contains('.gb')) {
+      return 'gb';
+    }
     if ((ext == '.7z' || ext == '.zip') && mapped.length == 3 &&
         mapped.containsAll(const {'.z64', '.n64', '.v64'})) {
       return 'n64';
@@ -601,6 +604,8 @@ class DriveRuntime {
         if (archivePlatformId != null) {
           if (archivePlatformId == 'gamegear') {
             await session.validateGameGearZip();
+          } else if (archivePlatformId == 'gb') {
+            await session.validateGameBoySevenZip();
           } else {
             await session.validateN64Archive(relativePath);
           }
@@ -828,6 +833,8 @@ class DriveRuntime {
       try {
         if (record.archivePlatformId == 'gamegear') {
           await session.validateGameGearZip();
+        } else if (record.archivePlatformId == 'gb') {
+          await session.validateGameBoySevenZip();
         } else {
           await session.validateN64Archive(record.relativePath);
         }
