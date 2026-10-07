@@ -9,7 +9,11 @@ source/licensing when that stage starts, not during earlier-stage implementation
 Final S9 audits supported cartridge and legacy-media artwork coverage. It must
 not open a second ACTIVE stage or trigger speculative console-art generation.
 Authorized S10 adds emulator-aware save/save-state backup sync inside R-Shop.
-Leave FolderSync installed/configured as-is. Do not start S10 while S7-S9 is ACTIVE.
+Leave the existing device save-sync app and laptop save-sync task unchanged until
+S10 verifies their R-Shop replacement. Then identify and uninstall the exact old
+device sync package and stop/disable only the scheduled task invoking
+`sync-retrobat-saves.ps1`, as authorized on 2026-10-07. Preserve saves, cloud
+backups and the laptop script. Do not start S10 while S7-S9 is ACTIVE.
 
 - Read `docs/SPECIFICATION.md` as the authority, then
   `docs/IMPLEMENTATION_PLAN.md` and `docs/IMPLEMENTATION_STATUS.md`.

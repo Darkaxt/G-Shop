@@ -5,6 +5,20 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S10 conditional legacy save-sync retirement authorized — 2026-10-07
+
+- Specification revision 10 records the user's instruction to uninstall the old
+  device sync app and stop the laptop scheduled task associated with
+  `sync-retrobat-saves.ps1` after R-Shop's save sync is implemented and verified.
+  Exact package/task discovery and a safe, verified handover belong to S10;
+  the provisional "Drive Sync" name is not an established package identity.
+- Preserve both mechanisms until SAVE-01's replacement criteria pass. Then
+  uninstall the exact app and stop/disable the exact task, preserving saves,
+  cloud backups, the laptop script and unrelated apps/tasks. Verify their retired
+  state and a subsequent R-Shop backup/restore/emulator-load round trip.
+- S7 remains sole ACTIVE; S8-S10 remain NOT STARTED. This documentation update
+  does not start S10 or claim any device uninstall/task change or live proof.
+
 ### S7 bounded artwork recovery and live worker continuation — 2026-10-07
 
 - Phase diagnostics on the unchanged native catalogue isolated the cold wait:
@@ -4990,7 +5004,7 @@ ledger. Failed attempts remain failed; later verification is identified explicit
 | S7 | ACTIVE | S7_ACCEPTANCE_RECONCILIATION.md; both fresh provider traversals completed on the earlier two-console/PSP/PS1 scopes and the 225-row PS2 scope; five mappings expose 1,106 remote plus 547 local rows; PS2 cached checksum audit preserves all files; unchanged-evidence binding regression reproduced/fixed and a fresh reviewed score survives normal Thor Home sync | MIGRATE-01: whole-collection coverage, reviewed identities and defensible ranking, live cloud recovery, exact reviewed removals, retained-set and space audit |
 | S8 | NOT STARTED | User companion-launch choice recorded in revision 3 | COMPANION-01: per-ROM association, actual top/bottom display launching, failure paths and ordinary-launch/save-safety verification |
 | S9 | NOT STARTED | User complete physical-media coverage choice recorded in revision 5 | ART-01: complete cartridge/legacy-media asset matrix and native cover-state audit; final integrated reconciliation |
-| S10 | NOT STARTED | User save-backup and most-installed-emulator coverage instructions recorded in revision 7; initial read-only package discovery, not save-access proof | SAVE-01: every accessible installed-emulator route, evidence for inaccessible routes, separate backup consent, real backup/restore/emulator-load workflows, conflicts and last-good recovery; leave FolderSync unchanged |
+| S10 | NOT STARTED | User save-backup and most-installed-emulator coverage instructions recorded in revision 7; revision 10 adds conditional legacy-sync retirement; initial read-only package discovery, not save-access proof | SAVE-01: every accessible installed-emulator route, evidence for inaccessible routes, separate backup consent, real backup/restore/emulator-load workflows, conflicts and last-good recovery; exact old device app uninstall and laptop save-sync task stop/disable only after replacement verification, followed by post-handover proof |
 
 B1 (offline Thor) was resolved on 2026-10-02: the online native flow granted
 read-only authorization and returned the real Drive root/folder response. This

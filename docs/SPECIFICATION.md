@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions and save backups
 
-Authoritative specification, revision 9, 2026-10-06.
+Authoritative specification, revision 10, 2026-10-07.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -41,6 +41,15 @@ FolderSync installed and its existing folder pairs/schedules unchanged. This
 authorizes the separate SAVE-01 backup feature, not SD-card mirroring or writing
 to the ROM archive. Actual backup setup and additional Google consent remain
 explicit in the normal app workflow; no cloud backup is initiated by this spec.
+
+Conditional handover authorized on 2026-10-07: once R-Shop's replacement save
+sync satisfies SAVE-01's native backup/restore and installed-emulator coverage
+criteria, uninstall the old device sync app (user calls it "Drive Sync"; identify
+the actual package rather than assuming FolderSync) and stop/disable the laptop
+scheduled task whose action invokes `sync-retrobat-saves.ps1`. This supersedes
+the earlier keep-installed rule only at that verified handover. Until then,
+preserve both mechanisms unchanged. Preserve saves, cloud backups, unrelated
+tasks/apps and the laptop script; no ROM/SD mirroring is authorized.
 
 User decisions incorporated:
 
@@ -1004,8 +1013,9 @@ write access to app-created/explicitly authorized backup files (initial candidat
 does not authorize all existing descendants. Keep the ROM provider read-only and
 enforce the backup boundary in code even if an account grant includes both scopes.
 No public sharing, full-Drive write scope, ROM upload or cloud-original deletion.
-Keep FolderSync's existing configuration untouched; do not import its secrets or
-silently alter its save-backup jobs as part of this feature.
+Keep existing external sync configuration untouched until the authorized
+verified handover; do not import its secrets or silently alter its jobs while
+implementing the replacement.
 
 After explicit enablement, back up changed saves through persistent bounded work,
 including emulator-return and Android-supported background synchronization.
@@ -1033,9 +1043,17 @@ versus state compatibility, multiple ROM/edition isolation, changed files/groups
 conflicts, offline/relaunch/cancellation/revocation and lost/regranted storage.
 Prove last-good recovery after interrupted publication and reconnect/reinstall
 with expendable fixtures, without uninstalling the owner's app or damaging real
-saves. Verify no ROM/BIOS/settings transfers, archive writes or FolderSync
-configuration changes. Controller/touch setup, status and restore must work;
-switch both displays off and reconcile all S1-S10 requirements before completion.
+saves. Verify no ROM/BIOS/settings transfers or archive writes. Controller/touch
+setup, status and restore must work. After these replacement criteria pass,
+resolve the old device sync application's exact package and the scheduled task's
+exact identity by its `sync-retrobat-saves.ps1` action. Join any active old sync
+operation safely before handover; do not terminate an in-progress write blindly.
+Uninstall only that package, stop/disable only that task, and verify package
+absence, task disabled/not running and a subsequent working R-Shop save backup
+and emulator-load restore. Preserve existing save files/cloud backup data and
+the laptop script; unrelated apps/tasks remain unchanged. Record evidence and
+switch both displays off before final S1-S10 reconciliation. If exact target
+identity is ambiguous, resolve it before removal; do not guess from display names.
 
 ## 7. Quality and delivery requirements
 

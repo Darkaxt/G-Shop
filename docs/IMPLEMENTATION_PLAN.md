@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 9.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 10.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S10
@@ -11,7 +11,8 @@ S8 was added by the user on 2026-10-02; it must not open a second active stage.
 S9 was added on 2026-10-04 as the final cartridge/legacy-media visual audit;
 its status is NOT STARTED. It does not open another implementation front in S5.
 S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
-STARTED; FolderSync remains unchanged and S7 remains the sole ACTIVE stage.
+STARTED; external save-sync mechanisms remain unchanged until S10's verified
+replacement handover, authorized on 2026-10-07. S7 remains the sole ACTIVE stage.
 
 Current S7 checkpoint (2026-10-07): root generation 1 is published, with no pending
 generation. Historical unpublished-root checkpoints below are superseded by the
@@ -1122,8 +1123,8 @@ Requirements: SAVE-01; recheck CORE-01/02/03, DRIVE-01/06 and QA-01/02/03/04.
 Depends on: S1-S9 acceptance. No concurrent implementation with S7-S9.
 
 - Audit actual installed-emulator save/state paths, formats and legitimate
-  Android access. Show coverage and unsupported routes; preserve FolderSync's
-  installed app, folder pairs, schedules and credentials.
+  Android access. Show coverage and unsupported routes; preserve the old device
+  sync app and laptop scheduled task until the replacement handover below.
   Reconcile the full package inventory, including forks and embedded cores; the
   target is most installed emulators. Implement and verify every accessible
   route. Report saves/states separately and substantiate each inaccessible route;
@@ -1137,7 +1138,8 @@ Depends on: S1-S9 acceptance. No concurrent implementation with S7-S9.
   background work. Separate battery saves from version-sensitive save states.
 - Keep ROM Drive access read-only. Request/verify backup-only write authorization
   separately; enforce exact backup-area/file ownership. No ROM/SD mirroring,
-  archive mutations, cloud deletion or FolderSync job changes.
+  archive mutations or cloud deletion. No external sync job changes before
+  the verified handover.
 - Verify stable capture, streamed digests, recoverable last-good generations,
   cancellation/relaunch/offline/quota/revocation and storage loss/regrant.
   Restore atomically with a defined rollback; preserve divergent saves and offer
@@ -1145,13 +1147,22 @@ Depends on: S1-S9 acceptance. No concurrent implementation with S7-S9.
 - Verify normal controller/touch setup, coverage/status and restore, actual save
   loading, and discovery after reconnect/expendable reinstall. Preserve real
   saves/settings and switch both displays off.
+- After SAVE-01 replacement verification, identify the exact old device sync
+  package and laptop task invoking `sync-retrobat-saves.ps1`. Safely join any
+  active old sync operation, uninstall only the identified package and
+  stop/disable only that task. Preserve saves/cloud backups, the laptop script
+  and unrelated apps/tasks. Verify package absence, task disabled/not running,
+  and a subsequent R-Shop backup/restore/emulator-load round trip. Do not guess
+  the package from the user's provisional "Drive Sync" name.
 - Reconcile every S1-S10 requirement, resolve required blockers/deferrals, run
   appropriate final verification and commit. No release is authorized.
 
 Evidence: inspected installed-emulator coverage matrix, native consent/scope and
 write-boundary proof, real RetroArch/standalone backup-and-load restore, durable
 generation/digest/identity/conflict and fault/restart contracts, UI/device proof,
-unchanged ROM archive/FolderSync configuration and final specification closure.
+unchanged ROM archive and preserved save/cloud data, exact-target legacy sync
+handover evidence, successful post-handover backup/restore and final specification
+closure.
 
 ## Source extension map (baseline, not implemented classes)
 
