@@ -5,6 +5,37 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 capture wait and actual storage-target reconciliation — 2026-10-07
+
+- The accepted whole-collection operation is still in the same app process (PID
+  610). Its open writable rollback-journal descriptor, continuing database writes,
+  normal busy controls and OPEN_READONLY databaseBusy result are consistent with
+  the still-uncommitted capture; no new job ID or successful provider result is
+  inferred. No duplicate scrape, force-stop or APK update was performed.
+- Android reports Doze disabled, charging, top-sleeping/not-frozen app state and
+  an active power suspend blocker. No evidence supports blaming screen-off for
+  a frozen worker. Both committed physical display states remain OFF. Filesystem
+  watchers were diagnostic only; both exact task-owned watcher PIDs were stopped
+  after one produced excessive output. Subsequent process inspection confirms no
+  inotifyd observer remains; R-Shop PID 610 is unchanged.
+- Independent configuration parsing reveals the original six targets point to
+  the external SD Roms root, but all 32 newly added mappings use the default
+  internal /storage/emulated/0/ROMs targets. Actual SD root enumeration confirms
+  existing console directories, including aliases that differ from app IDs
+  (atarijaguar, atarilynx, sg-1000 and tg-cd). This is an unresolved S7
+  configuration/coverage item, not an approved migration profile or a completed
+  installed-game census. Do not infer all SD files are represented by 44,204
+  cached rows or construct deletion candidates from those defaults.
+- After the current immutable capture commits, reconcile intended destinations
+  through normal settings/import, preserving existing source objects and original
+  six targets. Confirm exact directory aliases and keep unmanaged original files
+  protected. Reconcile local/cloud membership before claiming full metadata or
+  retention coverage. This remains ordinary S7 work, not a later-stage deferral.
+- Complete configuration SHA-256 is still
+  2e0f5888bbef7d40e0b06e9c671a71429c0f857cbcdd7e620761109499287620.
+  S7 remains sole ACTIVE; S8-S10 NOT STARTED. No Gradle/build, ROM/save/BIOS,
+  cloud-original, FolderSync or storage-target mutation occurred in this check.
+
 ### S7 broader normal console mapping and catalogue capture — 2026-10-07
 
 - The approved standardized matching policy is already authoritative in revision

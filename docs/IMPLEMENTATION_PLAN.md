@@ -24,6 +24,15 @@ has been accepted. Observe its immutable capture and provider progress, then clo
 remaining coverage/retention/migration criteria without recreating that snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
+S7 storage-target reconciliation (2026-10-07): new root mappings currently use
+default internal destinations, while the original six consoles use the SD Roms
+root. The actual SD contains console aliases different from some app IDs. Keep
+the live immutable capture intact. At its terminal capture checkpoint reconcile
+exact intended targets through normal settings/import, preserving original six
+targets/source objects and unmanaged files; verify local/cloud membership before
+claiming full collection coverage or building retention/removal decisions. This
+belongs to S7, not a later-stage deferral.
+
 S7 normal Game Gear ZIP recovery checkpoint (2026-10-06): unchanged APK 206
 completed a real download into an isolated task-created folder, booted through
 normal RetroArch handoff and cold offline launch, removed only that owned copy,
@@ -885,7 +894,7 @@ Game Gear reception without assuming scope approval. Job 75 is now terminal:
 46 matched (eight rated), with only two accepted provider records having at least
 20 votes. Its capture retains 177 official classifications, 178 raw identifiers
 and 55 release corroborations. Game Gear remains unapproved for ranking.
-Root generation 1 remains unpublished and progressing; no reset,
+Root generation 1 subsequently published (2026-10-07); no reset,
 SD removal or later-stage work is authorized by these narrower results. Complete
 fresh coverage and defensible retention before reviewed migration execution.
 

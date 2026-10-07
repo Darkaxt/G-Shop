@@ -1,5 +1,23 @@
 # S7 live metadata and Thor migration
 
+## Actual new-mapping targets remain to be reconciled — 2026-10-07
+
+The original six consoles retain their SD targets. The 32 newly added root
+mappings currently use default internal-storage targets, not their existing SD
+directories. Some SD aliases differ from application system IDs. Consequently,
+the completed remote index cannot prove complete SD local membership, intended
+installation destinations or a defensible migration profile. This is ordinary
+unfinished S7 configuration/coverage work. Reconcile exact normal settings/import
+destinations after the live immutable capture commits, preserving sources, the
+original six targets and all unmanaged files; then verify actual membership.
+
+The same capture remains live in process 610, with an open journal descriptor
+and database writes. No new saved-job ID, metadata acceptance or terminal result
+is inferred from those diagnostic facts. Android does not report the app frozen
+or Doze-active. Both displays remain OFF; diagnostic filesystem observers have
+been stopped without touching the application. S7 stays ACTIVE; S8-S10 remain
+NOT STARTED. No storage-target changes or migration were performed.
+
 ## Expanded normal catalogue mapping — 2026-10-07
 
 Normal root Edit mappings saved 32 new supported console mappings. Fixed read-only
