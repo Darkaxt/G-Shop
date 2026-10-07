@@ -5,6 +5,61 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 bounded projection writes and native scope check — 2026-10-07
+
+- The normal pre-update NES/SNES Best-25 queries terminated with respectively
+  `0/10100` and `0/6514` ranked, zero matching games and explicit Provisional
+  coverage. Joined read-only v2 observations confirmed no unbound artifacts or
+  pending projection dirt. These owner caches contain no eligible scoped scores;
+  positive NES/SNES ranking remains host-verified, not native-proved. No ratings
+  were injected or unranked originals removed.
+- The global policy rebuild exposed per-edition SQLite bridge writes. A real
+  129-edition RED check observed 129 batches; the change sends one batch per
+  bounded 128-edition page inside the unchanged enclosing snapshot transaction.
+  A second-page failure regression proves rollback preserves the previous full
+  policy/projection/facet/dirty snapshot, followed by a successful normal retry.
+  Identity, score eligibility, membership and provisional retention are unchanged.
+- Focused query, effective-rating and migration checks passed. The old migration
+  fixture now changes an actual cache value before expecting its broken legacy
+  UPDATE trigger: identical writes intentionally perform no UPDATE. The existing
+  resource fixture also needed its normal canonical-group indexing after bulk
+  identity seeding; without it, the selector correctly returned zero members.
+  Its observer now includes actual batched inserts. Real file-backed 3,000 and
+  30,000-game checks pass, with maximum identity/metadata reads of 128 rows,
+  no warm-filter projection writes and unchanged Top-25/no-refill semantics.
+  The 30,000 projection measured 45,014 ms on the host, warm two queries 860 ms,
+  process peak RSS 264,183,808 bytes. These are diagnostics, not native latency
+  guarantees or cancellation deadlines. Scoped analysis and diff checks pass.
+- The required debug build passed, acquired the shared Gradle gate, and exited
+  zero; log `7fa966342ae248f6ad17bce46d67a453.log`. Observed two workers,
+  parallel=false and 3,221,225,472-byte Gradle heap; Kotlin 2.2.20 in-process
+  shares this budget (Kotlin compile was up-to-date). Test task configuration
+  is one fork/512 MiB, not a claim tests executed in assemble. Generated app JNI
+  Ninja files under `build/.cxx/debug/334d1i5j` verify compile/link pool
+  `rshop_native` with depth 1 per ABI. This is not universal plugin concurrency
+  proof. No memory failure or heap increase occurred.
+- Signer-preserving `install -r` updated the existing owner debug package without
+  reset/uninstall/force-stop. Host and installed APK SHA-256 both equal
+  `1984bd54fa2233f11fc7a71ff26db2c48a9e4ea7e4232535f88d77a40fa46202`.
+  Actual package version remains 12/1.7.0; numbered build labels are not APK
+  versions. Normal NES Library opened on this artifact. A comparable native
+  full-policy rebuild latency improvement is not yet claimed.
+- The same saved scrape 76 was found paused at requested=4,607, matched=110,
+  rated=106, pending=39,609 after `DriveAuthorizationException` at the silent
+  account-acquisition boundary. Normal default-account Connect reached Connected;
+  mappings were not saved/replaced and the immutable job was not recreated.
+  After reconnect, normal Resume advanced the SAME job to requested=4,618,
+  pending=39,598 with Running status. Matched=110/rated=106 remain truthful;
+  this is resumed progress, not complete scraping. No external SQLite observer
+  overlaps the resumed worker. Both physical displays were confirmed OFF.
+- R-Shop configuration and RetroArch configuration hashes remain respectively
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d` and
+  `a42f6537446759beeb88ebf53e1c1d0bd037617ef4527c4bc2d19b884c10e54a`.
+  S7 is sole ACTIVE; complete fresh coverage, defensible retention, current
+  readable exact cloud copies, remaining recovery workflows and reviewed
+  migration execution remain unfinished. S8-S10 are NOT STARTED. Original
+  ROMs/saves/BIOS/cloud files and legacy sync mechanisms remain untouched.
+
 ### S7 NES/SNES reception scope — 2026-10-07
 
 - The real serial public benchmark captured ten reviewed original NES/SNES
@@ -27,12 +82,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   the check passed. Production retention behavior was not changed. Scoped Dart
   analysis of the changed production and all three changed test files passed
   after that additional query fixture; diff checks passed.
-- Native integration is not yet claimed. Ordinary debug build 302 is waiting
-  through the single retained gate supervisor request; do not launch another
-  build or infer gate acquisition from FIFO ticket registration. The existing
-  Thor scrape is still running: fresh normal UI observed requested=4,349,
-  matched=101, rated=98 and pending=39,866. It was not paused/recreated for the
-  host assessment. Both displays were subsequently confirmed committed OFF.
+- The waiting-build checkpoint is superseded by the native query and batching
+  evidence above. Positive owner NES/SNES ranking is still not native-proved;
+  empty provisional coverage must not authorize removal.
 - S7 remains the sole ACTIVE stage. Whole-collection fresh coverage, reviewed
   identities and defensible canonical Top-25, current readable exact cloud
   copies, required remaining recovery workflows and reviewed migration execution

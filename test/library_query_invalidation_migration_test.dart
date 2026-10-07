@@ -70,7 +70,16 @@ void defineQueryInvalidationMigrationCheck({
             FROM library_query_editions WHERE platform_id = NEW.systemSlug
               AND catalogue_key = NEW.artifact_key;
         END''');
-      await expectLater(service.saveGames('psx', [original]),
+      // Identical cache UPSERTs intentionally perform no UPDATE now. Exercise
+      // the broken legacy trigger with an actual changed row, not a no-op.
+      await service.saveGames('psx', [original]);
+      await expectLater(
+          service.saveGames('psx', [
+            const GameItem(
+                filename: 'Fixture.chd',
+                displayName: 'Changed',
+                url: 'https://example.invalid/Fixture.chd')
+          ]),
           throwsA(isA<DatabaseException>()));
       await db.insert('library_query_dirty', {'edition_id': edition});
       final preserved = <String, List<Map<String, Object?>>>{};

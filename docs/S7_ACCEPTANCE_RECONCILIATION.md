@@ -1,5 +1,29 @@
 # S7 live metadata and Thor migration
 
+## Bounded query projection remediation — 2026-10-07
+
+One write batch per bounded 128-edition page replaces per-edition bridge writes,
+without changing the enclosing snapshot transaction or eligibility rules.
+Regression-first verification proves bounded transport and complete rollback
+after a second-page failure. Focused query/rating/migration and existing real
+file-backed 3,000/30,000-game checks pass; warm filters do not rebuild projections
+or refill below Top-25. Fixture corrections restore normal canonical indexing
+and actual UPDATE-trigger reproduction rather than weakening production rules.
+The gated build passed and its signer-preserving owner update is independently
+byte-verified; normal NES Library opens. A native full-rebuild performance
+guarantee is not claimed. See IMPLEMENTATION_STATUS.md for exact evidence.
+
+Before this batching update, normal owner NES/SNES Best-25 queries and joined
+v2 read-only observations verified empty, explicitly provisional rankings with
+clean bindings/projections. Eligible positive-score ranking remains host-verified,
+not proved on those owner collections. The existing whole-collection job is
+preserved; a silent Drive account-acquisition error required normal reconnect.
+Normal Resume then advanced that same job to requested=4,618/pending=39,598;
+both displays were subsequently confirmed OFF, with configuration unchanged.
+Collection coverage, defensible retained sets, exact readable cloud-byte proof,
+remaining recovery and reviewed migration criteria remain unfinished. S7 alone
+is ACTIVE, S8-S10 NOT STARTED; legacy sync and original data stay untouched.
+
 ## NES/SNES reception scope — 2026-10-07
 
 Host-verified extension of the existing game-level IGDB community basis retains
@@ -8,9 +32,10 @@ public worker's cached/offline Top selects eight of ten reviewed fixtures, with
 low-vote records excluded and coverage provisional. The cached-policy regression
 verifies re-projection without rescraping and preservation of unresolved retention
 members. See SCORE_RECEPTION_ASSESSMENT.md for sourced reception and disagreements.
-Native integration is awaiting the single gated ordinary debug build; not yet
-claimed. The existing live scrape continues unchanged. This is progress against
-META-05/MIGRATE-01, not complete collection ranking or SD-removal authority.
+Normal native NES/SNES Best-25 now verifies truthful empty/provisional behavior;
+positive eligible-score membership remains host-verified. The saved live scrape
+is preserved, not recreated. This is progress against META-05/MIGRATE-01,
+not complete collection ranking or SD-removal authority.
 S7 stays ACTIVE; remaining collection coverage, restore and migration criteria
 are unchanged, and S8-S10 stay NOT STARTED.
 

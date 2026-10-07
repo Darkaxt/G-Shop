@@ -115,10 +115,40 @@ class _ObservedTransaction implements Transaction {
   Future<void> execute(String sql, [List<Object?>? arguments]) =>
       db.execute(sql, arguments);
   @override
-  Batch batch() => db.batch();
+  Batch batch() => _ObservedBatch(db.batch(), owner);
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnsupportedError(
       'Unexpected transaction call ${invocation.memberName}');
+}
+
+class _ObservedBatch implements Batch {
+  final Batch db;
+  final _ObservedDatabase owner;
+  _ObservedBatch(this.db, this.owner);
+
+  @override
+  void insert(String table, Map<String, Object?> values,
+      {String? nullColumnHack, ConflictAlgorithm? conflictAlgorithm}) {
+    if (table == 'library_query_editions') owner.projectionWrites++;
+    db.insert(table, values,
+        nullColumnHack: nullColumnHack, conflictAlgorithm: conflictAlgorithm);
+  }
+
+  @override
+  void delete(String table, {String? where, List<Object?>? whereArgs}) =>
+      db.delete(table, where: where, whereArgs: whereArgs);
+
+  @override
+  Future<List<Object?>> commit(
+          {bool? exclusive, bool? noResult, bool? continueOnError}) =>
+      db.commit(
+          exclusive: exclusive,
+          noResult: noResult,
+          continueOnError: continueOnError);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnsupportedError(
+      'Unexpected batch call ${invocation.memberName}');
 }
 
 /// Same compact-query assertions on the host driver and the Android plugin.
@@ -238,6 +268,9 @@ Future<Map<String, Object?>> verifyLibraryQueryResource(DatabaseFactory factory,
         }
         await batch.commit(noResult: true);
       }
+      // Bulk identity seeding still needs the normal canonical-group index;
+      // otherwise every edition is correctly excluded as an unbound member.
+      await LibraryStore.indexCanonicalGroups(txn);
     });
     final observed = _ObservedDatabase(db);
     final query = LibraryQuery(Future.value(observed));
@@ -260,6 +293,8 @@ Future<Map<String, Object?>> verifyLibraryQueryResource(DatabaseFactory factory,
     expect(initial.items, hasLength(8));
     expect(observed.maxIdentityRows, lessThanOrEqualTo(128));
     expect(observed.maxMetadataRows, lessThanOrEqualTo(384));
+    expect(observed.projectionWrites, count,
+        reason: 'The observer must account for batched projection writes.');
     final writesBeforeFilters = observed.projectionWrites;
     final filterWatch = Stopwatch()..start();
     final filtered = await query.page(

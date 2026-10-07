@@ -27,6 +27,88 @@ class _CacheDatabase extends DatabaseService {
   Future<Database> get database => Future.value(cache);
 }
 
+// Observe actual SQLite work without substituting database results. Android
+// sends each executor call/batch commit over its native transport boundary.
+class _ProjectionDatabase implements Database {
+  final Database inner;
+  int batches = 0;
+  int standaloneWrites = 0;
+  _ProjectionDatabase(this.inner);
+
+  @override
+  Future<T> transaction<T>(Future<T> Function(Transaction) action,
+          {bool? exclusive}) =>
+      inner.transaction((txn) => action(_ProjectionTransaction(txn, this)),
+          exclusive: exclusive);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError('Unexpected projection database operation');
+}
+
+class _ProjectionTransaction implements Transaction {
+  final Transaction inner;
+  final _ProjectionDatabase observation;
+  _ProjectionTransaction(this.inner, this.observation);
+
+  @override
+  Batch batch() {
+    observation.batches++;
+    return inner.batch();
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> rawQuery(String sql,
+          [List<Object?>? arguments]) =>
+      inner.rawQuery(sql, arguments);
+
+  @override
+  Future<List<Map<String, Object?>>> query(String table,
+          {bool? distinct,
+          List<String>? columns,
+          String? where,
+          List<Object?>? whereArgs,
+          String? groupBy,
+          String? having,
+          String? orderBy,
+          int? limit,
+          int? offset}) =>
+      inner.query(table,
+          distinct: distinct,
+          columns: columns,
+          where: where,
+          whereArgs: whereArgs,
+          groupBy: groupBy,
+          having: having,
+          orderBy: orderBy,
+          limit: limit,
+          offset: offset);
+
+  @override
+  Future<int> insert(String table, Map<String, Object?> values,
+      {String? nullColumnHack, ConflictAlgorithm? conflictAlgorithm}) {
+    observation.standaloneWrites++;
+    return inner.insert(table, values,
+        nullColumnHack: nullColumnHack, conflictAlgorithm: conflictAlgorithm);
+  }
+
+  @override
+  Future<int> delete(String table, {String? where, List<Object?>? whereArgs}) {
+    observation.standaloneWrites++;
+    return inner.delete(table, where: where, whereArgs: whereArgs);
+  }
+
+  @override
+  Future<void> execute(String sql, [List<Object?>? arguments]) {
+    observation.standaloneWrites++;
+    return inner.execute(sql, arguments);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError('Unexpected projection transaction operation');
+}
+
 class _ConsoleCacheDatabase extends _CacheDatabase {
   final List<GameItem> games;
   _ConsoleCacheDatabase(super.cache, this.games);
@@ -137,6 +219,82 @@ void main() {
 
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
+
+  test('policy rebuild batches projection writes per bounded edition page',
+      () async {
+    for (var n = 1; n <= 129; n++) {
+      await seed(n);
+    }
+    await query.page(filter: LibraryQueryFilter(), assessedBases: [basis]);
+    final observed = _ProjectionDatabase(db);
+    final changedPolicy = AssessedOverallScoreBasis(
+        sourceId: basis.sourceId,
+        kind: basis.kind,
+        scaleMinimum: basis.scaleMinimum,
+        scaleMaximum: basis.scaleMaximum,
+        platformIds: basis.platformIds,
+        minimumVoteCount: basis.minimumVoteCount,
+        assessmentReference: 'new-assessed-policy');
+    final page = await LibraryQuery(Future.value(observed)).page(
+        filter: LibraryQueryFilter(limit: 128), assessedBases: [changedPolicy]);
+    expect(page.collectionGames, 129);
+    expect(page.totalMatches, 129);
+    expect(page.items, hasLength(128));
+    expect(page.provisional, isTrue);
+    expect(await db.query('library_query_dirty'), isEmpty);
+    expect(observed.batches, lessThanOrEqualTo(2),
+        reason: '129 editions require two bounded write batches, not 129.');
+    expect(observed.standaloneWrites, lessThanOrEqualTo(2),
+        reason: 'Only policy invalidation writes cross the bridge separately.');
+  });
+
+  test('failed projection page preserves the previous complete snapshot',
+      () async {
+    for (var n = 1; n <= 129; n++) {
+      await seed(n);
+    }
+    await read();
+    final snapshot = <String, List<Map<String, Object?>>>{};
+    for (final table in [
+      'library_query_policy',
+      'library_query_editions',
+      'library_query_facets',
+      'library_query_dirty'
+    ]) {
+      snapshot[table] = await db.query(table);
+    }
+    // Edition IDs are hashes, not insertion order. Target the actual second
+    // page, so this regression proves rollback of an already-written first page.
+    final secondPageCacheRow = (await db.rawQuery('''SELECT cache_row_id
+      FROM library_query_editions ORDER BY edition_id LIMIT 1 OFFSET 128'''))
+        .single['cache_row_id'] as int;
+    await db.execute('''CREATE TRIGGER projection_failure
+      BEFORE INSERT ON library_query_editions
+      WHEN NEW.cache_row_id = $secondPageCacheRow
+      BEGIN SELECT RAISE(ABORT, 'synthetic_projection_failure'); END''');
+    final changedPolicy = AssessedOverallScoreBasis(
+        sourceId: basis.sourceId,
+        kind: basis.kind,
+        scaleMinimum: basis.scaleMinimum,
+        scaleMaximum: basis.scaleMaximum,
+        platformIds: basis.platformIds,
+        minimumVoteCount: basis.minimumVoteCount,
+        assessmentReference: 'new-assessed-policy');
+    await expectLater(
+        query
+            .page(filter: LibraryQueryFilter(), assessedBases: [changedPolicy]),
+        throwsA(isA<DatabaseException>()));
+    for (final entry in snapshot.entries) {
+      expect(await db.query(entry.key), entry.value, reason: entry.key);
+    }
+    await db.execute('DROP TRIGGER projection_failure');
+    expect(
+        (await query.page(
+                filter: LibraryQueryFilter(), assessedBases: [changedPolicy]))
+            .collectionGames,
+        129);
+    expect(await db.query('library_query_dirty'), isEmpty);
+  });
 
   test('retention keeps an unscored member of a ranked canonical game',
       () async {
@@ -524,22 +682,32 @@ void main() {
       expect(before, isNotEmpty);
       switch (operation) {
         case 'details':
-          expect((await query.cachedMetadata('Game 1.7z', 'psx'))?.cacheRowId, 1);
+          expect(
+              (await query.cachedMetadata('Game 1.7z', 'psx'))?.cacheRowId, 1);
         case 'ratings':
-          expect((await query.cachedRatings([1], assessedBases: [basis]))[1]
-              ?.rating.normalizedValue, 91);
+          expect(
+              (await query.cachedRatings([1], assessedBases: [basis]))[1]
+                  ?.rating
+                  .normalizedValue,
+              91);
         case 'covers':
           final cache = MetadataArtworkCache(
               Future.value(db), Directory('D:/Temp/rshop-unused-artwork'));
           expect(await query.cachedCovers([1], cache), {1: null});
       }
-      expect(await db.query('library_query_dirty',
-          where: 'edition_id = ?', whereArgs: [unrelated]), before,
+      expect(
+          await db.query('library_query_dirty',
+              where: 'edition_id = ?', whereArgs: [unrelated]),
+          before,
           reason: 'Reading a card must not rebuild unrelated rankings.');
-      expect(await db.query('library_query_cache_dirty',
-          where: 'cache_row_id = ?', whereArgs: [2]), isNotEmpty);
-      expect(await db.query('library_query_editions',
-          where: 'cache_row_id = ?', whereArgs: [2]), isEmpty);
+      expect(
+          await db.query('library_query_cache_dirty',
+              where: 'cache_row_id = ?', whereArgs: [2]),
+          isNotEmpty);
+      expect(
+          await db.query('library_query_editions',
+              where: 'cache_row_id = ?', whereArgs: [2]),
+          isEmpty);
       // Collection queries still consume all pending work and preserve ranking.
       expect((await read()).collectionGames, 2);
       expect(await db.query('library_query_cache_dirty'), isEmpty);
@@ -734,7 +902,8 @@ void main() {
       final retained = await query.retentionPage(platformId: platform);
       expect(retained.provisional, isTrue);
       expect(
-          retained.members.every((member) => retained.disposition(member) !=
+          retained.members.every((member) =>
+              retained.disposition(member) !=
               LibraryRetentionDisposition.outsideSample),
           isTrue);
     }

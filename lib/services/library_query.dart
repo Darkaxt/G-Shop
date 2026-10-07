@@ -513,17 +513,21 @@ class LibraryQuery {
       final records = await db.rawQuery('''SELECT * FROM library_metadata
         WHERE edition_id IN (${List.filled(ids.length, '?').join(',')})
         AND provider_id IN ('screenscraper', 'igdb', 'romm')''', ids);
+      // Keep the existing transaction/snapshot and bounded edition page. Send
+      // its projection writes over Android's SQLite bridge once, not once per
+      // edition/facet. No later read in this page depends on these derived rows.
+      final batch = db.batch();
       for (final row in rows) {
         final id = row['edition_id'] as String;
-        await db.delete('library_query_facets',
+        batch.delete('library_query_facets',
             where: 'edition_id = ?', whereArgs: [id]);
         if (row['edition_json'] == null ||
             row['game_json'] == null ||
             row['group_key'] == null ||
             row['group_identity'] != LibraryStore.metadataIdentity(row)) {
-          await db.delete('library_query_editions',
+          batch.delete('library_query_editions',
               where: 'edition_id = ?', whereArgs: [id]);
-          await db.delete('library_query_dirty',
+          batch.delete('library_query_dirty',
               where: 'edition_id = ?', whereArgs: [id]);
           continue;
         }
@@ -559,7 +563,7 @@ class LibraryQuery {
                 b.sourceId == score.rating.sourceId &&
                 b.assessmentReference == score.assessmentReference)
             : null;
-        await db.insert(
+        batch.insert(
             'library_query_editions',
             {
               'edition_id': id,
@@ -604,7 +608,6 @@ class LibraryQuery {
           'region': edition.regions.toSet(),
           'language': edition.languages.toSet()
         };
-        final batch = db.batch();
         for (final facet in facets.entries) {
           for (final value in facet.value) {
             batch.insert(
@@ -619,8 +622,8 @@ class LibraryQuery {
         }
         batch.delete('library_query_dirty',
             where: 'edition_id = ?', whereArgs: [id]);
-        await batch.commit(noResult: true);
       }
+      await batch.commit(noResult: true);
     }
   }
 
@@ -644,7 +647,8 @@ class LibraryQuery {
     final result = <int, String>{};
     for (final id in cacheRowIds) {
       final editions = await LibraryStore.catalogueEditions(txn, cacheRowId: id)
-          .take(2).toList();
+          .take(2)
+          .toList();
       if (editions.length != 1) continue;
       final rows = await txn.rawQuery('''SELECT g.record_json AS game_json,
         e.record_json AS edition_json FROM library_editions e
@@ -828,7 +832,8 @@ class LibraryQuery {
     final result = {for (final id in ids) id: null as String?};
     if (ids.isEmpty) return Map.unmodifiable(result);
     final db = await _database;
-    final bindings = await db.transaction((txn) => _exactCacheEditions(txn, ids));
+    final bindings =
+        await db.transaction((txn) => _exactCacheEditions(txn, ids));
     for (final binding in bindings.entries) {
       final artwork = await cache.artworkForEdition(binding.value);
       result[binding.key] = artwork.cover;

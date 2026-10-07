@@ -32,6 +32,17 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S10 remain NOT STARTED.
 
+Latest S7 verification (2026-10-07): normal NES/SNES Best-25 reports truthful
+empty/provisional owner coverage, with clean joined v2 bindings/projections;
+positive eligible ranking remains host-verified. Bounded page write batching
+passes snapshot rollback and actual file-backed resource checks. Its gated build
+and signer-preserving owner update passed, with normal NES Library opening;
+native comparable full-rebuild latency is not claimed. A silent Drive account
+acquisition error paused job 76; normal default-account reconnect and Resume
+advanced that same immutable capture to requested=4,618/pending=39,598.
+Configuration remains unchanged and both screens are OFF. Continue this job and
+the remaining S7 recovery/current-byte/reviewed-migration acceptance criteria.
+
 S7 NES vertical slice (2026-10-07): the completed NES census establishes an
 actual 1,498-archive migration cohort, not speculative console coverage. Reuse
 the explicit bounded 7z path for a single valid `.nes` member / 16 MiB raw budget
@@ -949,7 +960,14 @@ retaining twenty known votes, identity/ownership, freshness and canonical query
 rules. Regression-first support boundaries, cached policy re-projection and
 real-provider offline query are host-verified: eight of ten public fixtures rank;
 low-vote entries remain preserved and coverage is provisional. Ordinary native
-integration is still current S7 work, with one retained gated build request.
+integration now verifies empty/provisional NES and SNES queries on the Thor;
+positive eligible-score selection is still host-verified because these native
+scopes currently have no accepted IGDB scores. The first changed-policy rebuild
+held the database busy for several minutes. Current S7 remediation batches
+derived projection/facet/dirty writes once per existing 128-edition page, within
+the same transaction. Verify bridge-work bounds, rollback of a later failed page,
+unchanged identity/ranking/query behavior and normal native integration. Do not
+reset the database, change the ranking policy or manufacture scored device rows.
 The native saved scrape remains the same job and must not be restarted. Public
 benchmark review is not library classification, whole-collection ranking or
 migration authority; see SCORE_RECEPTION_ASSESSMENT.md and the status ledger.
