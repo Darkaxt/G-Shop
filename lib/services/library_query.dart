@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:collection/collection.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/library_identity.dart';
@@ -871,8 +872,51 @@ class LibraryQuery {
     final db = await _database;
     return db.transaction((txn) async {
       await _refresh(txn, bases);
-      final cte = _rankedScope('AND platform_id = ?');
-      final response = await txn.rawQuery('''$cte, summary AS (SELECT
+      return _retentionPage(txn, platformId, limit: limit, offset: offset);
+    });
+  }
+
+  /// Exact current cache binding, not a title/filename lookup or a paged audit
+  /// join. The artifact snapshot, coverage and canonical rank share one owning
+  /// transaction. This is planning evidence only, never removal authority.
+  Future<LibraryRetentionPage> retentionForArtifact({
+    required String platformId,
+    required RemoteArtifact artifact,
+    List<AssessedOverallScoreBasis>? assessedBases,
+  }) async {
+    if (!RegExp(r'^[a-z0-9][a-z0-9_-]{0,63}$').hasMatch(platformId)) {
+      throw ArgumentError('Invalid retention scope');
+    }
+    final bases = List<AssessedOverallScoreBasis>.unmodifiable(
+        assessedBases ?? productionOverallScoreBases);
+    final db = await _database;
+    return db.transaction((txn) async {
+      await _refresh(txn, bases);
+      final files = await txn.query('games',
+          columns: ['id', 'remote_artifact'],
+          where: 'systemSlug = ? AND artifact_key = ? AND is_folder = 0',
+          whereArgs: [platformId, artifact.id.key],
+          limit: 2);
+      int cacheRowId = -1;
+      if (files.length == 1 && files.single['remote_artifact'] != null) {
+        final cached = jsonDecode(files.single['remote_artifact'] as String);
+        if (const DeepCollectionEquality().equals(cached, artifact.toJson())) {
+          cacheRowId = files.single['id'] as int;
+        }
+      }
+      // At most two projection rows suffice to reject an ambiguous binding.
+      // Missing/stale/duplicate bindings still return truthful scope coverage.
+      return _retentionPage(txn, platformId,
+          limit: 2, offset: 0, cacheRowId: cacheRowId);
+    });
+  }
+
+  static Future<LibraryRetentionPage> _retentionPage(
+      DatabaseExecutor txn, String platformId,
+      {required int limit, required int offset, int? cacheRowId}) async {
+    final cte = _rankedScope('AND platform_id = ?');
+    final response = await txn.rawQuery(
+        '''$cte, summary AS (SELECT
           (SELECT COUNT(DISTINCT group_key) FROM scoped) AS collection_games,
           (SELECT COUNT(*) FROM ranks) AS ranked_games,
           (SELECT COUNT(*) FROM scoped) AS total_members,
@@ -882,29 +926,35 @@ class LibraryQuery {
           page_rows AS (SELECT s.edition_id, s.game_id, s.group_key,
             s.cache_row_id, r.rank AS canonical_rank FROM scoped s
             LEFT JOIN ranks r ON r.group_key = s.group_key
+            ${cacheRowId == null ? '' : 'WHERE s.cache_row_id = ?'}
             ORDER BY r.rank IS NULL, r.rank, s.group_key, s.edition_id
             LIMIT ? OFFSET ?)
           SELECT page_rows.*, summary.* FROM summary
           LEFT JOIN page_rows ON 1 = 1
           ORDER BY canonical_rank IS NULL, canonical_rank, group_key, edition_id''',
-          [platformId, platformId, limit, offset]);
-      final summary = response.first;
-      return LibraryRetentionPage(
-          platformId: platformId,
-          collectionGames: summary['collection_games'] as int,
-          rankedGames: summary['ranked_games'] as int,
-          totalMembers: summary['total_members'] as int,
-          unboundArtifacts: summary['unbound_artifacts'] as int,
-          members: response
-              .where((r) => r['edition_id'] != null)
-              .map((r) => LibraryRetentionMember(
-                  editionId: r['edition_id'] as String,
-                  gameId: r['game_id'] as String,
-                  groupKey: r['group_key'] as String,
-                  cacheRowId: r['cache_row_id'] as int,
-                  canonicalRank: r['canonical_rank'] as int?))
-              .toList());
-    });
+        [
+          platformId,
+          platformId,
+          if (cacheRowId != null) cacheRowId,
+          limit,
+          offset
+        ]);
+    final summary = response.first;
+    return LibraryRetentionPage(
+        platformId: platformId,
+        collectionGames: summary['collection_games'] as int,
+        rankedGames: summary['ranked_games'] as int,
+        totalMembers: summary['total_members'] as int,
+        unboundArtifacts: summary['unbound_artifacts'] as int,
+        members: response
+            .where((r) => r['edition_id'] != null)
+            .map((r) => LibraryRetentionMember(
+                editionId: r['edition_id'] as String,
+                gameId: r['game_id'] as String,
+                groupKey: r['group_key'] as String,
+                cacheRowId: r['cache_row_id'] as int,
+                canonicalRank: r['canonical_rank'] as int?))
+            .toList());
   }
 
   static void _validate(LibraryQueryFilter filter) {

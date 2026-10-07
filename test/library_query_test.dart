@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,12 +159,15 @@ void main() {
       List<String> genres = const ['Action'],
       List<String> regions = const ['USA'],
       List<String> languages = const ['en'],
-      int votes = 100}) async {
+      int votes = 100,
+      RemoteArtifact? artifact}) async {
     await db.insert('games', {
       'id': n,
       'systemSlug': platform,
       'displayName': 'Game $n',
-      'filename': 'Game $n.7z'
+      'filename': artifact?.displayName ?? 'Game $n.7z',
+      if (artifact != null) 'artifact_key': artifact.id.key,
+      if (artifact != null) 'remote_artifact': jsonEncode(artifact.toJson()),
     });
     final id = (await db.transaction((txn) =>
             LibraryStore.catalogueEditions(txn, cacheRowId: n).toList()))
@@ -314,6 +318,85 @@ void main() {
     final last = page.members.singleWhere((m) => m.cacheRowId == 1);
     expect(last.canonicalRank, 26);
     expect(page.disposition(last).name, 'outsideSample');
+  });
+
+  test('exact artifact retention shares current canonical ranking and coverage',
+      () async {
+    RemoteArtifact remote(int n,
+            {String source = 'source', String version = '1'}) =>
+        RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: source,
+                accountId: 'account',
+                providerFileId: '$n'),
+            displayName: 'Game $n.7z',
+            displayPath: 'Game $n.7z',
+            version: version,
+            sizeBytes: 5,
+            canDownload: true);
+    for (var n = 1; n <= 26; n++) {
+      await seed(n, score: n.toDouble(), artifact: remote(n));
+    }
+    final page = await query.retentionForArtifact(
+        platformId: 'psx', artifact: remote(1), assessedBases: [basis]);
+    expect(page.collectionGames, 26);
+    expect(page.rankedGames, 26);
+    expect(page.totalMembers, 26);
+    expect(page.members.single.cacheRowId, 1);
+    expect(page.members.single.canonicalRank, 26);
+    expect(page.disposition(page.members.single).name, 'outsideSample');
+    for (final mismatch in [
+      remote(1, version: '2'),
+      remote(1, source: 'other')
+    ]) {
+      final unmatched = await query.retentionForArtifact(
+          platformId: 'psx', artifact: mismatch, assessedBases: [basis]);
+      expect(unmatched.members, isEmpty);
+    }
+    final otherPlatform = await query.retentionForArtifact(
+        platformId: 'snes', artifact: remote(1), assessedBases: [basis]);
+    expect(otherPlatform.members, isEmpty);
+    await seed(27, artifact: remote(27));
+    final provisional = await query.retentionForArtifact(
+        platformId: 'psx', artifact: remote(1), assessedBases: [basis]);
+    expect(provisional.provisional, isTrue);
+    expect(
+        provisional.disposition(provisional.members.single).name, 'preserve');
+  });
+
+  test('exact artifact review rejects namesakes and duplicate bindings',
+      () async {
+    final artifact = RemoteArtifact(
+        id: RemoteArtifactId(
+            providerId: 'drive',
+            sourceId: 'source',
+            accountId: 'account',
+            providerFileId: 'file'),
+        displayName: 'Game 1.7z',
+        displayPath: 'Game 1.7z',
+        version: '1');
+    await seed(1, score: 91);
+    expect(
+        (await query.retentionForArtifact(
+                platformId: 'psx', artifact: artifact, assessedBases: [basis]))
+            .members,
+        isEmpty,
+        reason: 'A legacy filename is not a remote identity.');
+    await seed(2, score: 82, artifact: artifact);
+    expect(
+        (await query.retentionForArtifact(
+                platformId: 'psx', artifact: artifact, assessedBases: [basis]))
+            .members
+            .single
+            .cacheRowId,
+        2);
+    await seed(3, score: 82, artifact: artifact);
+    expect(
+        (await query.retentionForArtifact(
+                platformId: 'psx', artifact: artifact, assessedBases: [basis]))
+            .members,
+        isEmpty);
   });
 
   test(

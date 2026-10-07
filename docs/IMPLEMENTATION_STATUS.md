@@ -5,6 +5,56 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 exact-artifact retention review — 2026-10-07
+
+- The existing recovery review now binds the full current RemoteArtifact JSON,
+  unique exact cache row, canonical rank and console coverage in one owning
+  transaction. The shared CTE/policy is unchanged; stale versions, duplicate
+  bindings and source/platform namesakes cannot supply a decision. Unresolved
+  evidence remains Preserve. This is planning evidence, not removal authority.
+- Focused real-SQLite query and recovery-dialog checks pass, covering current
+  rank/coverage, stale/duplicate rejection, provisional preservation, rank 25/26
+  labels, explicit adoption and joined cancellation. Scoped analysis and diff
+  checks pass. No repeated full-suite/resource run was needed for this isolated
+  query/UI addition; the unchanged bounded projection evidence above remains
+  applicable, not a new native performance guarantee.
+- The required debug build passed through the shared gate, FIFO ticket 320,
+  log `6c365dcd4cdc4b90b111f53631738e38.log`. Observed workers=2, parallel=false,
+  Gradle heap=3,221,225,472 bytes, with required metaspace/code-cache arguments
+  preserved. Kotlin 2.2.20 remains in-process (compile was up-to-date), sharing
+  that budget. Test task configuration remains one fork/512 MiB, not executed
+  Gradle tests in assemble. Current generated arm64 app JNI files verify
+  `rshop_native` compile/link pool depth 1; no universal plugin concurrency claim.
+  No memory failure or budget increase occurred. Only a confirmed-idle
+  incompatible daemon was retired by the supervisor.
+- Signer-preserving owner `install -r` succeeded, without reset/uninstall or
+  force-stop. Host/installed APK SHA-256 equals
+  `6b6170a98a3700523d3e916d12d63cdf9a501c26ecae98061cb4fe5fe86ab890`;
+  actual package remains version 12/1.7.0, with unchanged signing certificate.
+  Normal Library -> existing PSP filtered game -> Check local/cloud bytes shows
+  `Keep · canonical rank 25 (Top 25)` and `35/341 ranked · Provisional`.
+  Explicit Refresh returns the same result; normal Back returns to Library.
+  The dialog states planning-only/current-execution gates. No byte verification,
+  adoption, download or removal action was invoked for this UI check.
+- The same saved scrape 76 advanced before the update to requested=4,923,
+  matched=116, rated=112, pending=39,294, then was normally paused/joined.
+  Initial post-update Resume paused after one lookup at the same silent
+  account-acquisition boundary (`DriveAuthorizationException`, authorization
+  line 82). Normal Connect/default-account chooser reached Connected without
+  saving/replacing the source, then Resume retained the same job/capture.
+  After reconnect, the SAME job reached requested=4,943/pending=39,274 with
+  Running status (matched=116/rated=112). Both physical displays were then
+  confirmed committed OFF and wakefulness Asleep.
+- R-Shop and RetroArch configuration hashes remain respectively
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d` and
+  `a42f6537446759beeb88ebf53e1c1d0bd037617ef4527c4bc2d19b884c10e54a`.
+  S7 remains sole ACTIVE: collection coverage, defensible retained sets, exact
+  current readable cloud copies, remaining recovery and reviewed migration
+  execution remain required. S8-S10 are NOT STARTED. Original ROMs, saves,
+  settings, cloud files and legacy sync app/task remain untouched. The temporary
+  UI capture was removed through an exact reviewed cleanup ticket; the verified
+  APK is retained. No external release occurred.
+
 ### S7 bounded projection writes and native scope check — 2026-10-07
 
 - The normal pre-update NES/SNES Best-25 queries terminated with respectively

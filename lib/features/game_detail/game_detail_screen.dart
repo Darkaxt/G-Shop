@@ -555,6 +555,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
               closeQuickMenu();
               await showDialog<void>(context: context, barrierDismissible: false,
                   builder: (_) => DriveRecoveryReviewDialog(
+                      platformId: widget.system.id,
                       config: variant.providerConfig!,
                       artifact: variant.remoteArtifact!,
                       supportedExtensions: widget.system.romExtensions.where((extension) =>

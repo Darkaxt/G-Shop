@@ -1,5 +1,27 @@
 # S7 live metadata and Thor migration
 
+## Exact-artifact retention review — 2026-10-07
+
+The normal game-detail recovery review now resolves the full current remote
+artifact snapshot and its canonical rank/console coverage in one owning SQLite
+transaction. It reuses the existing ranking policy, rejects stale snapshots,
+duplicate cache bindings and cross-scope namesakes, and never treats missing
+evidence as an outside-sample decision. The UI explicitly labels this planning
+only; opening or refreshing it starts no byte check, adoption or removal.
+Focused real-SQLite and widget checks plus scoped analysis pass.
+
+The acquired-gate debug build passed and the owner update is independently
+byte-verified. Normal Thor Library -> PSP game -> Check local/cloud bytes shows
+canonical rank 25 and truthful `35/341 ranked · Provisional`; explicit Refresh
+preserves that result and normal Back closes the review. No Verify/adopt/download
+or Remove action was invoked. This proves this bounded native integration, not
+complete coverage, current cloud bytes or migration execution. The same saved
+scrape is preserved; its post-update silent-account failure was diagnosed and
+normal default-account reconnect is used without saving/replacing a source.
+Exact artifact/build, preservation and resumed-progress evidence is recorded in
+IMPLEMENTATION_STATUS.md. S7 remains sole ACTIVE; S8-S10 NOT STARTED. The legacy
+sync app/task remain untouched until the verified S10 handover.
+
 ## Bounded query projection remediation — 2026-10-07
 
 One write batch per bounded 128-edition page replaces per-edition bridge writes,

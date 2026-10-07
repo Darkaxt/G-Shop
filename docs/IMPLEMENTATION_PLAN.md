@@ -43,6 +43,15 @@ advanced that same immutable capture to requested=4,618/pending=39,598.
 Configuration remains unchanged and both screens are OFF. Continue this job and
 the remaining S7 recovery/current-byte/reviewed-migration acceptance criteria.
 
+Verified S7 review integration: one exact current RemoteArtifact snapshot now
+resolves to canonical retention in the same transaction as projection refresh
+and scope coverage. The existing query/recovery dialog rejects stale snapshots,
+duplicate bindings and scope namesakes. Focused checks and normal native PSP
+review prove rank 25 with provisional coverage, explicitly planning-only and
+without ROM changes. All cloud/restore/save/sync/execution gates remain required;
+this does not close S7. After normal default-account reconnect, the same scrape
+advanced to requested=4,943/pending=39,274; both screens are confirmed OFF.
+
 S7 NES vertical slice (2026-10-07): the completed NES census establishes an
 actual 1,498-archive migration cohort, not speculative console coverage. Reuse
 the explicit bounded 7z path for a single valid `.nes` member / 16 MiB raw budget

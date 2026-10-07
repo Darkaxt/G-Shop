@@ -10,6 +10,8 @@ import '../../../services/drive/drive_authorization.dart';
 import '../../../services/drive/drive_media.dart';
 import '../../../services/drive/drive_runtime.dart';
 import '../../../services/owned_storage.dart';
+import '../../../services/library_query.dart';
+import '../../../services/database_service.dart';
 import '../../../utils/game_metadata.dart';
 
 /// Byte review is read-only. Adoption is a separate explicit ownership action;
@@ -20,12 +22,16 @@ class DriveRecoveryReviewDialog extends StatefulWidget {
   final String destinationRoot;
   final Set<String> supportedExtensions;
   final DriveRuntime? runtime;
+  final String? platformId;
+  final LibraryQuery? libraryQuery;
   const DriveRecoveryReviewDialog(
       {super.key,
       required this.config,
       required this.artifact,
       required this.destinationRoot,
       this.supportedExtensions = const {},
+      this.platformId,
+      this.libraryQuery,
       this.runtime});
 
   @override
@@ -42,11 +48,51 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
   bool _adopting = false;
   InstalledArtifact? _adopted;
   String? _issue;
+  LibraryRetentionPage? _retention;
+  bool _retentionLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadSaved();
+    _loadRetention();
+  }
+
+  Future<void> _loadRetention() async {
+    if (_retentionLoading || widget.platformId == null) return;
+    setState(() {
+      _retentionLoading = true;
+      _retention = null;
+    });
+    LibraryRetentionPage? result;
+    try {
+      result = await (widget.libraryQuery ??
+              LibraryQuery(DatabaseService().database))
+          .retentionForArtifact(
+              platformId: widget.platformId!, artifact: widget.artifact);
+    } catch (_) {
+      // Missing/failed current evidence never becomes an outside-sample claim.
+    }
+    if (!mounted) return;
+    setState(() {
+      _retention = result;
+      _retentionLoading = false;
+    });
+  }
+
+  String _retentionSummary() {
+    final page = _retention;
+    if (page == null || page.members.length != 1) {
+      return 'Preserve · exact current retention binding unavailable';
+    }
+    final member = page.members.single;
+    return switch (page.disposition(member)) {
+      LibraryRetentionDisposition.keep =>
+        'Keep · canonical rank ${member.canonicalRank} (Top 25)',
+      LibraryRetentionDisposition.preserve => 'Preserve · ranking incomplete',
+      LibraryRetentionDisposition.outsideSample =>
+        'Outside sample · canonical rank ${member.canonicalRank}',
+    };
   }
 
   Future<void> _loadSaved() async {
@@ -100,19 +146,21 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
     try {
       if (adopt) {
         adopted = await (widget.runtime ?? DriveRuntime.instance)
-            .adoptLocalCloudBytes(config: widget.config, artifact: widget.artifact,
+            .adoptLocalCloudBytes(
+                config: widget.config,
+                artifact: widget.artifact,
                 destinationRoot: widget.destinationRoot,
                 relativePath: widget.artifact.displayName,
                 supportedExtensions: widget.supportedExtensions,
                 cancellation: cancellation);
       } else {
         result = await (widget.runtime ?? DriveRuntime.instance)
-          .verifyLocalCloudBytes(
-              config: widget.config,
-              artifact: widget.artifact,
-              destinationRoot: widget.destinationRoot,
-              relativePath: widget.artifact.displayName,
-              cancellation: cancellation);
+            .verifyLocalCloudBytes(
+                config: widget.config,
+                artifact: widget.artifact,
+                destinationRoot: widget.destinationRoot,
+                relativePath: widget.artifact.displayName,
+                cancellation: cancellation);
       }
     } on DriveTransferException catch (error) {
       issue = error.issue.name;
@@ -184,10 +232,30 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
                     Text(
                         '${widget.destinationRoot}/${widget.artifact.displayName}'),
                     const SizedBox(height: 12),
+                    const Text('Cached Top-25 retention review'),
+                    Text(_retentionLoading
+                        ? 'Resolving exact collection binding…'
+                        : _retentionSummary()),
+                    if (_retention case final page?)
+                      Text('${page.rankedGames}/${page.collectionGames} ranked'
+                          '${page.provisional ? ' · Provisional' : ''}'),
+                    const Text(
+                        'Planning only. No removal is authorized; cloud, '
+                        'restore, saves, sync and identities must be checked again '
+                        'at execution.'),
+                    if (widget.platformId != null)
+                      TextButton(
+                          onPressed: _running || _retentionLoading
+                              ? null
+                              : _loadRetention,
+                          child: const Text('Refresh retention review')),
+                    const SizedBox(height: 12),
                     if (DriveRuntime.supportsStandaloneAdoption(
-                        widget.artifact.displayName, widget.supportedExtensions) &&
+                            widget.artifact.displayName,
+                            widget.supportedExtensions) &&
                         _adopted == null) ...[
-                      const Text('Verify and adopt repeats the current byte check and '
+                      const Text(
+                          'Verify and adopt repeats the current byte check and '
                           'records this existing file as a managed R-Shop installation. '
                           'No file is deleted. Migration still requires ranking, '
                           'restore and save/sync checks.'),
@@ -213,8 +281,9 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
                       const SizedBox(height: 8),
                       Text(_closeRequested
                           ? 'Cancelling and closing reads…'
-                          : _adopting ? 'Verifying existing file before adoption…'
-                          : 'Comparing full local and current cloud bytes…'),
+                          : _adopting
+                              ? 'Verifying existing file before adoption…'
+                              : 'Comparing full local and current cloud bytes…'),
                     ],
                     if (_issue != null && !_running)
                       Text('Not verified: $_issue. Files preserved.'),
@@ -235,7 +304,8 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
                       const Text('Existing file adopted.'),
                       Text('Source version: ${installation.artifact.version}\n'
                           'SHA-256: ${installation.verifiedChecksums['sha256']}'),
-                      const Text('No file was deleted. Ownership is recorded privately; '
+                      const Text(
+                          'No file was deleted. Ownership is recorded privately; '
                           'future removal revalidates exact local bytes. This is not '
                           'a completed Top-25 migration or emulator-restore proof.'),
                     ],
@@ -246,9 +316,12 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
                   autofocus: _running || _result != null,
                   onPressed: _closeRequested ? null : _close,
                   child: Text(_running ? 'Cancel' : 'Close')),
-              if (!_running && _adopted == null && DriveRuntime.supportsStandaloneAdoption(
-                  widget.artifact.displayName, widget.supportedExtensions))
-                OutlinedButton(onPressed: () => _verify(adopt: true),
+              if (!_running &&
+                  _adopted == null &&
+                  DriveRuntime.supportsStandaloneAdoption(
+                      widget.artifact.displayName, widget.supportedExtensions))
+                OutlinedButton(
+                    onPressed: () => _verify(adopt: true),
                     child: const Text('Verify and adopt')),
               if (!_running && _adopted == null)
                 FilledButton(
