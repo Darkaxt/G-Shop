@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,7 @@ import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/drive/drive_catalogue.dart';
 import 'package:retro_eshop/services/drive/drive_api.dart';
+import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
@@ -869,6 +871,106 @@ void main() {
     expect(report.state, 'paused'); expect(report.counts, {'pending': 1}); expect(provider.calls, 0);
     expect(jsonDecode((await items(job.id)).single['request_json'] as String)['romIdentifier'], isNull);
   });
+
+  for (final archive in [true, false]) {
+    for (final transfer in [false, true]) {
+      test('pause joins ${archive ? 'archive' : 'header'} '
+          '${transfer ? 'transfer' : 'API'} cancellation without failure', () async {
+        final artifact = RemoteArtifact.fromJson({
+          ...remote('cancel-read').toJson(),
+          'displayName': archive ? 'Game.7z' : 'Game.chd',
+          'displayPath': archive ? 'Game.7z' : 'Game.chd',
+          'sizeBytes': 1024,
+          'canDownload': true,
+        });
+        await cache(archive ? 'n64' : 'psp', artifact.displayName,
+            artifact: artifact);
+        final entered = Completer<void>(), drained = Completer<void>();
+        var resumed = false;
+        Future<void> read(CancelToken cancel) async {
+          if (resumed) return;
+          entered.complete();
+          await cancel.whenCancel;
+          await drained.future;
+          if (transfer) {
+            throw const DriveTransferException(DriveTransferIssue.cancelled);
+          }
+          throw const DriveApiException(DriveApiIssue.cancelled);
+        }
+
+        jobs = MetadataRefreshJobs(Future.value(db),
+            readArchiveIdentifier: (_, __, cancel) async {
+          await read(cancel);
+          return null;
+        }, readRomHeader: (_, __, cancel) async {
+          await read(cancel);
+          return null;
+        });
+        final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+        final before = jsonEncode((await items(job.id)).single);
+        final provider = _ReviewProvider();
+        final run = jobs.run(job.id, provider);
+        final runCheck = expectLater(run,
+            completion(isA<MetadataRefreshReport>().having((r) => r.state, 'state', 'paused')));
+        await entered.future;
+        var joined = false;
+        final pause = jobs.pause().then((_) => joined = true);
+        final pauseCheck = expectLater(pause, completes);
+        await Future<void>.value();
+        expect(joined, isFalse, reason: 'Pause must await the actual read drain');
+        drained.complete();
+        await runCheck;
+        await pauseCheck;
+        expect(joined, isTrue);
+        expect((await jobs.report(job.id)).counts, {'pending': 1});
+        expect(jsonEncode((await items(job.id)).single), before);
+        expect(provider.calls, 0);
+        final edition = (await store.edition(
+            (await items(job.id)).single['edition_id'] as String))!;
+        expect(edition.evidence.where((e) => e.kind == 'rawRomIdentifier'), isEmpty);
+        resumed = true;
+        expect((await jobs.run(job.id, provider)).state, 'completed');
+        expect(provider.calls, 1);
+        expect((await db.query('metadata_refresh_jobs')).length, 1);
+      });
+    }
+  }
+
+  for (final cancelOwner in [false, true]) {
+    for (final error in <Exception>[
+      const DriveApiException(DriveApiIssue.cancelled),
+      const DriveTransferException(DriveTransferIssue.cancelled),
+      const DriveApiException(DriveApiIssue.accessDenied),
+      const DriveTransferException(DriveTransferIssue.sourceChanged),
+      const DriveTransferException(DriveTransferIssue.unavailable),
+      const FormatException('malformed native observation'),
+    ]) {
+      if (cancelOwner &&
+          (error is DriveApiException && error.issue == DriveApiIssue.cancelled ||
+              error is DriveTransferException && error.issue == DriveTransferIssue.cancelled)) {
+        continue;
+      }
+      test('identifier read preserves ${error.runtimeType}:$error '
+          'with owner cancellation=$cancelOwner', () async {
+        final artifact = RemoteArtifact.fromJson({
+          ...remote('read-error').toJson(),
+          'displayName': 'Game.7z', 'displayPath': 'Game.7z', 'canDownload': true,
+        });
+        await cache('n64', artifact.displayName, artifact: artifact);
+        jobs = MetadataRefreshJobs(Future.value(db),
+            readArchiveIdentifier: (_, __, cancel) async {
+          if (cancelOwner) cancel.cancel();
+          throw error;
+        });
+        final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+        final provider = _ReviewProvider();
+        await expectLater(jobs.run(job.id, provider), throwsA(same(error)));
+        expect((await jobs.report(job.id)).state, 'paused');
+        expect((await jobs.report(job.id)).counts, {'pending': 1});
+        expect(provider.calls, 0);
+      });
+    }
+  }
 
   test('replacement bytes cannot reuse an older explicit raw identifier',
       () async {

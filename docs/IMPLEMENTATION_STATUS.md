@@ -29,6 +29,53 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
   specification/plan verification only; no Gradle build or native cache test was
   run for this documentation change.
 
+### S7 metadata Pause cancellation — verified continuation, 2026-10-07
+
+- Normal Pause exposed a Drive API cancellation from the exact artifact
+  revalidation inside local archive identification. The owning job persisted
+  Paused but rethrew the exception, so both operation and Pause reported failure.
+  The identifier boundary now translates only typed Drive API/transfer cancellation
+  paired with that job's actual cancellation signal into its existing internal
+  cancelled outcome. Read draining, durable pending work, immutable membership
+  and atomic evidence publication are unchanged; unrelated errors are not hidden.
+- Regression-first reproduction failed for both archive and header API/transfer
+  cancellation. The changed tests and affected catalogue/job/runtime checks now
+  pass serially, including pending-item preservation, same-job resume, actual
+  drain joining and cancellation/error races. Unsignalled cancellation, denied
+  access, source change, unavailable transport and malformed data remain errors.
+  Focused controller Pause/error checks and scoped analysis also pass. No full
+  repository suite was run; the existing bounded 30,000-edition job check reported
+  a 241,610,752-byte RSS peak, not a whole-library ROM allocation.
+- Gated debug assembly succeeded under actual gate acquisition (FIFO ticket 343;
+  `Local\\Darka.AndroidGradleBuildGate`), with observed two workers, parallel=false
+  and 3,221,225,472-byte Gradle heap. Kotlin 2.2.20 is configured in-process within
+  that budget; its compile tasks were up-to-date. Configured test tasks report
+  one fork/512 MiB (not executed by assembly).
+  Current generated app JNI Ninja compile/link rules use the shared depth-one
+  pool for all three ABIs. No memory-related failure or heap increase occurred.
+  Build log: `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/c021ded84e6248d1910f837ab3b66c9f.log`.
+- Preserving `adb install -r` retained the existing debug signer
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+  Host and installed APK SHA-256 both equal
+  `21ee62b1579be65f85ebf2694b7147b023adf3cc48eca316e48ff0338aaeeba6`.
+  No uninstall, data reset, manual database change or source creation occurred.
+  Normal reconnect selected the already-authorized default account; Resume's
+  genuine missing-grant error before reconnect remained visible, as required.
+- Native controls: the SAME saved job advanced from requested=5,381 to 5,386,
+  then Pause joined cleanly at requested=5,392/pending=38,825 without an operation
+  error. A fixed bounded READONLY aggregate while paused confirms job 76 remains
+  Paused with exactly 44,204 items. Resume then advances requested=5,400 and
+  pending=38,817, Running, matched=130/rated=125. These are ordinary native
+  control/progress observations; the exact typed cancellation branch and error
+  races are proved by host regressions, not inferred from native timing.
+- The read-only diagnostic process completed before Resume, and its exact
+  temporary device JAR was removed and confirmed absent. The configuration hash
+  remains `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`;
+  both physical displays are committed OFF and wakefulness is Asleep. The same
+  job continues; no ROM/save/BIOS/settings cleanup or cloud mutation occurred.
+  This closes the Pause defect only. S7 remains ACTIVE with full fresh coverage,
+  defensible retention and reviewed migration unfinished; S8-S11 are NOT STARTED.
+
 ### S7 standalone WUA recovery — verified continuation, 2026-10-07
 
 - The required cold-offline route was observed with no Cemu process before

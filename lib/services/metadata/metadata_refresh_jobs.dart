@@ -8,6 +8,8 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
+import '../drive/drive_api.dart';
+import '../drive/drive_media.dart';
 import '../library_store.dart';
 import 'effective_overall_rating.dart';
 import 'metadata_artwork_cache.dart';
@@ -1011,13 +1013,25 @@ class MetadataRefreshJobs {
     }
     final source = archive ? 'driveLocalArchive' : 'driveHeader';
     final MetadataRomIdentifier? raw;
-    if (archive) {
-      raw = await _readArchiveIdentifier!(artifact, request.platformId, cancel);
-    } else {
-      final bytes = await _readRomHeader!(artifact, request.platformId, cancel);
-      raw = bytes == null
-          ? null
-          : MetadataRomIdentifier.fromChdDvdHeader(bytes, artifact.displayName);
+    try {
+      if (archive) {
+        raw = await _readArchiveIdentifier!(artifact, request.platformId, cancel);
+      } else {
+        final bytes = await _readRomHeader!(artifact, request.platformId, cancel);
+        raw = bytes == null
+            ? null
+            : MetadataRomIdentifier.fromChdDvdHeader(bytes, artifact.displayName);
+      }
+    } catch (error) {
+      // Drive reads drain before reporting cancellation. Translate only that
+      // typed outcome for this job's signal, not errors racing with Pause.
+      if (cancel.isCancelled &&
+          (error is DriveApiException && error.issue == DriveApiIssue.cancelled ||
+              error is DriveTransferException &&
+                  error.issue == DriveTransferIssue.cancelled)) {
+        throw const _RefreshCommitCancelled();
+      }
+      rethrow;
     }
     if (cancel.isCancelled) throw const _RefreshCommitCancelled();
     if (raw == null) return null;

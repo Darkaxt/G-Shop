@@ -977,6 +977,16 @@ Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
 
+Current S7 control fix (2026-10-07): a normal Pause while identifying an archive
+exposed a typed Drive cancellation escaping as an operation failure. Translate
+only signalled typed cancellation at the job's identifier boundary; retain read
+draining, pending/current bindings and real errors. Regression-first checks cover
+both archive/header reads, join/resume and error races. The preserving debug
+update and ordinary same-job Resume/Pause/Resume are now verified on the Thor:
+job 76 retains 44,204 items, pauses without an operation error and advances again.
+This closes the control slice, not full fresh coverage or migration. S7 remains
+the sole ACTIVE stage; CACHE-01 stays assigned to S11.
+
 Verified S7 recovery slice (2026-10-07): the explicit SNES `.sfc`/`.smc`
 single-member 7z profile uses the existing bounded decoder, immutable mapping,
 metadata publication and Snes9x handoff. Rejection/profile isolation and normal

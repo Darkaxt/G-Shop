@@ -1,5 +1,30 @@
 # S7 live metadata and Thor migration
 
+## Metadata identifier Pause contract — 2026-10-07
+
+The normal local-archive read exposed typed Drive cancellation escaping as an
+operation error after the job had durably paused. Regression-first remediation
+translates only a typed cancellation paired with the owning job's actual signal;
+it retains resource joining, pending/current item bindings and genuine errors.
+Archive/header API and transfer cases, signal/error races, same-job resume and
+affected runtime/controller checks pass serially; scoped analysis and shared-gate
+debug assembly pass. This is an existing META-06/UI-02 control contract, not a
+matching-policy change or permission to recreate saved work.
+
+The preserving native update retains the signer/configuration. Normal reconnect,
+same-job progress -> clean Pause -> same-job Resume are observed on Thor. A bounded
+READONLY aggregate confirms job 76 retains exactly 44,204 members and the durable
+Paused state; no database reader remains when Resume advances again. The temporary
+diagnostic JAR is absent, and both displays are OFF/Asleep. Exact host/native
+evidence boundaries, counters, APK/configuration hashes and build profile are in
+IMPLEMENTATION_STATUS.md. Native timing does not independently prove which read
+was cancelled; the exact typed branch is covered by the reproducible host tests.
+
+This control slice is verified. S7 remains the sole ACTIVE stage: required full
+fresh coverage, defensible retention, format/current-cloud gates and reviewed
+migration remain unfinished. CACHE-01 Settings and actual automatic rotation are
+still assigned to NOT STARTED S11, not silently implemented during S7.
+
 ## Standalone WUA recovery — 2026-10-07
 
 The existing exact owned-ROM route now hands standalone Wii U WUA to installed

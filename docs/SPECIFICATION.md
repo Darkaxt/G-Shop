@@ -650,6 +650,15 @@ Any additional API access remains subject to authorization/credential rules.
 
 ### META-06 — Persistent bounded scrape jobs and cache
 
+S7 pause detail (2026-10-07): when a Drive header/local-archive identifier read
+reports typed cancellation for the owning job's cancellation signal, join the
+read and finish with the existing durable Paused outcome, not an operation
+failure. Keep the current item pending without publishing raw evidence or
+starting its provider lookup; Resume retains the saved job and completed items.
+Cancellation without that signal and other errors racing with Pause remain
+errors. This normalizes the existing cancellation contract, not provider retry,
+job membership or matching policy.
+
 Store per-item progress and refresh generation; cancellation/relaunch resumes the
 same job without repeating its completed items. Explicit full re-scrape starts a
 new generation. Coalesce duplicate game lookups. Respect provider-reported quota,
