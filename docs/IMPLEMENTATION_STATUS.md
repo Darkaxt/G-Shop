@@ -5,6 +5,34 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Game Boy Color census completed; remaining serial audits started — 2026-10-07
+
+- The existing Game Boy Color audit completed and every file record reconciles
+  with its terminal counts/bytes: 823 cached byte matches, three size mismatches,
+  seven ROMs without an exact-name candidate and one non-ROM file. All 834
+  observations remain preserve/removalAuthorized=false. Actual SD format counts
+  are 830 .7z archives, three .gbc files and one .txt; the selector covers every
+  observed ROM format in that directory. No full metadata/ranking/recovery
+  acceptance follows from these cached byte matches.
+- A bounded ten-file sample from Master System's 228 exact-name misses was
+  streamed through device-side MD5 and compared against the complete scoped
+  published cache. All ten were stable, but none had an identical size/digest
+  under another name. This does not prove the remaining 218 files differ or
+  rule out equivalent raw ROM members in differently compressed containers.
+  It does not justify changing matching rules or inventing a counterpart.
+- One sequential audit command now covers NES, GBA, SNES, Mega Drive, SG-1000,
+  Virtual Boy and FDS, using inspected configured SD roots and explicit formats.
+  It starts no second audit client, overwrites no journal and stops on a failed
+  command or unsafe/missing terminal result. Only NES is currently executing;
+  later members are queued, not verified. The live Python process was observed
+  at approximately 21.9 MiB working set. Private journals stay outside Git.
+- The same saved ScreenScraper job 76 remains running (requested=618 at this
+  checkpoint), with partial outcomes only. Both displays are verified committed
+  OFF. No Gradle/build, app update, ROM/save/BIOS removal, source/config change,
+  cloud write, FolderSync operation or release occurred. S7 is sole ACTIVE;
+  metadata coverage, reliable retention, live restore/revalidation and reviewed
+  migration remain unfinished. S8-S10 remain NOT STARTED.
+
 ### S7 bounded census reader and two additional SD comparisons — 2026-10-07
 
 - The actual Game Boy projection rejected the former 2,000-row/900,000-byte

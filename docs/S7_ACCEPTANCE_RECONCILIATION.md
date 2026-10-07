@@ -1,5 +1,21 @@
 # S7 live metadata and Thor migration
 
+## Third console comparison verified; census continues — 2026-10-07
+
+Game Boy Color's completed private journal has 823 cached byte matches, three
+size mismatches, seven exact-name misses and one preserved non-ROM file. Every
+record and byte aggregate was independently reconciled. All paths remain
+preserve with no removal authority. The actual .7z/.gbc formats were included;
+neither missing counterparts nor different containers are guessed equivalent.
+A ten-file Master System miss cohort had no renamed identical-byte match; this
+small result does not establish whole-console differences or raw-member identity.
+
+The remaining small-console census is executing serially (NES currently, then
+GBA/SNES/Mega Drive/SG-1000/Virtual Boy/FDS), not complete. Metadata job 76 is
+still live. Exact current cloud identity/readability, supported restore routes,
+canonical score/retention and reviewed execution-time migration remain S7 gates.
+S7 stays sole ACTIVE, later stages NOT STARTED; both displays are verified OFF.
+
 ## Larger-console census now verified through bounded reads — 2026-10-07
 
 The old fixed projection correctly rejected Game Boy's larger catalogue. The
