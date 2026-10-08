@@ -5,6 +5,21 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 combined native assembly — 2026-10-09
+
+The current S7 worktree, including mapping-selection and Wii/Wii U policy fixes,
+passes gated native assembly and APK signature verification. Request 434 confirms
+gate acquisition and completion: two workers/no parallel projects, 3 GiB Gradle,
+assessed Kotlin in-process, one configured 512 MiB test fork (not executed by
+assembly), and independently verified depth-one native pools. No memory failure
+or budget increase occurred. See `S7_NATIVE_BUILD_434.md` for artifact, actual
+scope, warnings and profile evidence.
+
+The APK is not installed while the existing process 1335 advances root refresh;
+5,889 committed pages were observed, with both screens OFF. Native editor/policy
+verification, complete fresh metadata, defensible retention/current-cloud checks
+and reviewed migration remain unfinished. S7 alone is ACTIVE; S8-S11 NOT STARTED.
+
 ### S7 Wii/Wii U ranking-scope reconciliation — 2026-10-09
 
 S7 remains ACTIVE; S8-S11 remain NOT STARTED. The assessed IGDB community basis

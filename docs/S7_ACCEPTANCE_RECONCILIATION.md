@@ -1,5 +1,19 @@
 # S7 live metadata and Thor migration
 
+## Combined native artifact — 2026-10-09
+
+Request 434 completes actual current-worktree debug assembly, with the shared
+gate acquired, effective low-memory profile verified and unchanged APK signer.
+Independent current Ninja inspection verifies depth-one native compile/link
+pools. No memory failure or budget increase occurred; JVM tests were configured,
+not executed by assembly. Exact scope/artifact/profile: `S7_NATIVE_BUILD_434.md`.
+
+This does not satisfy native mapping/policy acceptance. The built APK has not
+replaced the advancing Thor process; root generation 2 reached 5,889 committed
+pages without interruption, with both displays OFF. Same-job continuity and all
+remaining fresh coverage/retention/cloud/migration gates remain required in sole
+ACTIVE S7. S8-S11 remain NOT STARTED; no owner ROM was adopted or removed.
+
 ## Wii/Wii U reception and cached ranking — 2026-10-09
 
 META-05/META-07 scope gap: existing Wii RVZ/Wii U WUA restore proof did not
