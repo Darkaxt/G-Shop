@@ -1,5 +1,14 @@
 # S7 live metadata and Thor migration
 
+## Explicit source-mapping selections — 2026-10-09
+
+The editor's alias auto-selection defect is corrected and host-verified through
+the real configuration writer, with gated debug assembly and unchanged signer.
+Native verification/configuration remains unfinished while PID 1335 advances
+the existing root refresh and job 76. The new APK is not installed; no interruption
+or account change was performed. Evidence and remaining checks:
+`S7_DRIVE_MAPPING_SELECTION.md`. S7 remains the sole ACTIVE stage.
+
 ## DSi provider alias and saved-job continuity — 2026-10-08
 
 The live authenticated platform list explicitly names DSi under ScreenScraper

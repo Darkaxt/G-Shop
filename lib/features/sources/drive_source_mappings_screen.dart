@@ -34,6 +34,7 @@ class _DriveSourceMappingsScreenState
   List<DriveFile>? _folders;
   final Map<String, String?> _selectedBySystem = {};
   final Map<String, String> _persistedBySystem = {};
+  final Map<String, DriveFile> _suggestedBySystem = {};
   bool _busy = false;
   String? _error;
 
@@ -69,8 +70,10 @@ class _DriveSourceMappingsScreenState
         }
       }
       for (final entry in suggestions.entries) {
-        if (entry.value.length == 1 && _selectedBySystem[entry.key] == null) {
-          _selectedBySystem[entry.key] = entry.value.single.id;
+        if (entry.value.length == 1) {
+          // Aliases help the user choose; opening this editor must not enable
+          // an unmapped console or resurrect a deliberately cleared mapping.
+          _suggestedBySystem[entry.key] = entry.value.single;
         }
       }
       if (!mounted) return;
@@ -185,6 +188,7 @@ class _DriveSourceMappingsScreenState
         .where((system) => system.id == systemId)
         .firstOrNull;
     final selected = _selectedBySystem[systemId];
+    final suggested = _suggestedBySystem[systemId];
     final selectedFolder =
         folders.where((folder) => folder.id == selected).firstOrNull;
     final selectedIsObserved = selectedFolder != null;
@@ -220,6 +224,14 @@ class _DriveSourceMappingsScreenState
               const Icon(Icons.arrow_drop_down),
             ]),
           ),
+          if (selected == null && suggested != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('Suggested: ${suggested.name}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white60)),
+            ),
         ],
       ),
     );

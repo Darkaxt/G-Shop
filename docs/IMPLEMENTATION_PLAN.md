@@ -994,6 +994,13 @@ private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
 
+Current DRIVE-02 mapping remediation (2026-10-09): preserve selected and empty
+source mappings when reopening the editor. Display unique observed aliases as
+passive suggestions; only explicit selection enables a console. Verify the real
+configuration write preserves other mappings on unchanged save and DSi addition,
+then verify the normal native editor before configuring the DSi collection.
+Do not restart the live catalogue refresh or rewrite saved job 76's membership.
+
 Current console browsing requirement (2026-10-08, UI-02): add direct console
 tabs, remembered console selection and a first-entry console dashboard replacing
 the unbounded All games grid. Use cached counts and known source/managed-local

@@ -244,6 +244,11 @@ backup-write boundary; it does not expand the ROM source's permissions.
 ### DRIVE-02 — Folder selection and paginated catalogue
 
 Provide a native-app folder-selection flow and explicit per-console mappings.
+Opening the mapping editor preserves existing assignments and empty selections.
+Unique observed folder aliases are passive suggestions, not selected mappings;
+saving one explicitly chosen console must not enable other suggested consoles.
+Verify unchanged save, explicit addition, clear/cancel and preservation of other
+sources' mappings through the normal configuration write path.
 Enumerate the selected personal My Drive subtree using IDs and pagination; allow
 nested folders. Do not traverse the whole account or read file bodies for indexing.
 Persist a refresh checkpoint and publish a new catalogue snapshot only after a

@@ -5,6 +5,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 explicit mapping selection — 2026-10-09
+
+The editor no longer selects unique folder aliases automatically. Regression-first
+widget/save-path checks, scoped analysis and gated debug assembly pass; only
+explicit choices add mappings. The new APK is not installed while the existing
+root refresh and saved scrape are advancing. Native editor verification and DSi
+configuration remain required. See `S7_DRIVE_MAPPING_SELECTION.md` for exact
+evidence/profile qualifications. S7 alone remains ACTIVE; S8-S11 NOT STARTED.
+
 ### S7 DSi provider alias — 2026-10-08
 
 - S7 remains ACTIVE; S8-S11 remain NOT STARTED. The live authenticated platform
