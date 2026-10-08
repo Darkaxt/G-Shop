@@ -150,6 +150,54 @@ ScreenScraperProvider _provider(_Wire wire, {bool configured = true}) =>
         clock: () => DateTime.utc(2026, 9, 8));
 
 void main() {
+  test('DSi uses verified provider alias without changing app identity',
+      () async {
+    final wire = _Wire({
+      'response': {'jeu': _game(system: '15')}
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    final request = _request(platform: 'dsi');
+    final captured = jsonEncode(request.toJson());
+    final result = await provider.lookup(request);
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(wire.requests.single.queryParameters['systemeid'], '15');
+    expect(result.record!.platformId, 'dsi');
+    expect(result.record!.gameId, request.gameId);
+    expect(result.record!.editionId, request.editionId);
+    expect(jsonEncode(request.toJson()), captured);
+    expect(result.officialRomEvidence, isNull);
+  });
+
+  test('DSi alias still rejects another provider system', () async {
+    final provider = _provider(_Wire({
+      'response': {'jeu': _game(system: '17')}
+    }));
+    addTearDown(provider.close);
+    final result = await provider.lookup(_request(platform: 'dsi'));
+    expect(result.status, MetadataLookupStatus.unmatched);
+    expect(result.record, isNull);
+  });
+
+  test('DSi title discovery does not classify unknown editions', () async {
+    final game = _game(system: '15')..['notgame'] = 'false';
+    final wire = _Wire({
+      'response': {
+        'jeux': [game]
+      }
+    });
+    final provider = _provider(wire);
+    addTearDown(provider.close);
+    final request = _request(
+        platform: 'dsi', verifiedProviderGameId: null, region: 'us', tags: {});
+    final result = await provider.lookup(request);
+    expect(result.status, MetadataLookupStatus.needsReview);
+    expect(wire.requests.single.queryParameters['systemeid'], '15');
+    expect(result.record, isNull);
+    expect(result.officialRomEvidence, isNull);
+    expect(result.candidates.single.titleMatched, isTrue);
+  });
+
   test('NDS catalogue numbers are not part of provider title discovery',
       () async {
     for (final prefix in ['6280', 'z491']) {

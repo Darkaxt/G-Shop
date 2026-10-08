@@ -1,5 +1,22 @@
 # S7 live metadata and Thor migration
 
+## DSi provider alias and saved-job continuity — 2026-10-08
+
+The live authenticated platform list explicitly names DSi under ScreenScraper
+platform 15. The adapter now uses that alias while retaining separate R-Shop
+identities and every classification/matching gate. Regression-first provider
+checks and two actual reviewable candidate lookups pass. Gated build 432 and
+signer-preserving native installation are verified, including effective memory
+profile, depth-one native pools and unchanged protected data. Normal Resume
+advances the same job 76 without a chooser. See `S7_DSI_PLATFORM_VERIFICATION.md`.
+Normal DSi mapping/scoped coverage, root publication/current-cloud checks,
+defensible retention and migration remain unfinished; S7 alone is ACTIVE.
+
+Consumed query-cost diagnostics were transactionally removed under review
+`e4b1516b81be4621b7589e53459e2d55`: five exact local members / 25,672 bytes and
+two identity-rechecked device jars, with absence verified and no errors.
+Verification evidence, source, private migration census and owner files remain.
+
 ## Availability lifecycle checkpoint — 2026-10-08
 
 CORE-02's existing exact identity is now retained through source-less local cache

@@ -1146,6 +1146,11 @@ META-01/META-03 identification enabling work, not all S7 acceptance; it adds no
 restoration/removal support and does not authorize speculative NES/SNES expansion.
 
 - Run the fresh full metadata pass and record real coverage/match/rating results.
+  ScreenScraper's live verified DSi alias is now provider-supported, but the
+  normal DSi cloud/local mapping and scoped pass are still S7 work. Preserve
+  existing mappings and DSi's distinct identity. Do not expand saved job 76 or
+  infer archive restoration/removal eligibility from metadata support.
+
   The saved 44,204-item ScreenScraper job 76 predates the subsequently verified
   Wii mapping. Complete a scoped Wii pass at a safe normal provider boundary;
   do not recreate or silently expand job 76. Reconcile the SD inventory's actual

@@ -60,6 +60,47 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
+  test('live DSi provider alias preserves reviewable DSi identity', () async {
+    final api = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(api.close);
+    const titles = ['Art Style - AQUIA', 'Art Style - BASE 10'];
+    for (var n = 0; n < titles.length; n++) {
+      final request = MetadataLookupRequest(
+          gameId: 'dsi-discovery-$n',
+          editionId: 'dsi-discovery-edition-$n',
+          platformId: 'dsi',
+          title: titles[n],
+          region: 'us',
+          refreshGeneration: 1);
+      final captured = jsonEncode(request.toJson());
+      final result = await api.lookup(request);
+      expect(
+          result.status,
+          anyOf(MetadataLookupStatus.needsReview,
+              MetadataLookupStatus.ambiguous));
+      expect(result.candidates, isNotEmpty);
+      expect(result.candidates.every((c) => c.platformId == 'dsi'), isTrue);
+      expect(result.record, isNull);
+      expect(result.officialRomEvidence, isNull);
+      expect(jsonEncode(request.toJson()), captured);
+      stdout.writeln('DSI_DISCOVERY ${jsonEncode({
+            'sample': n,
+            'status': result.status.name,
+            'candidates': result.candidates.length,
+            'titleMatched': result.candidates.any((c) => c.titleMatched),
+            'published': result.record != null
+          })}');
+    }
+  },
+      skip: developer.isConfigured &&
+              user.isConfigured &&
+              Platform.environment['RSHOP_DSI_DISCOVERY_CAPTURE'] == 'true'
+          ? false
+          : 'Explicit DSi discovery capture and credentials required.',
+      timeout: Timeout.none);
+
   test('live NDS numbered catalogue titles discover reviewable candidates',
       () async {
     final api = ScreenScraperProvider(

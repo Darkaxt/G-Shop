@@ -5,6 +5,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 DSi provider alias — 2026-10-08
+
+- S7 remains ACTIVE; S8-S11 remain NOT STARTED. The live authenticated platform
+  catalogue explicitly aliases DSi to ScreenScraper platform 15. The adapter
+  now preserves distinct R-Shop DSi identities while using that provider ID.
+  Regression-first checks, two real reviewable candidate lookups and scoped
+  analysis pass; unknown editions are not classified or scored by this alias.
+- Shared-gate request 432 completed with gate acquired, two workers/no parallel
+  projects/3 GiB Gradle, assessed Kotlin in-process, one configured 512 MiB JVM
+  test fork and verified depth-one native pools. No memory failure occurred.
+  Signer-preserving update matches the verified APK, retains immediate protected
+  storage/configuration and all 49 save/configuration baselines. Normal Resume
+  advances the same job 76 to 13,437 requests without a chooser.
+- DSi normal folder mapping/scoped metadata coverage, current root publication,
+  full metadata/defensible retention and reviewed migration remain S7 work.
+  See `S7_DSI_PLATFORM_VERIFICATION.md`; no restore/removal eligibility is implied.
+
 ### S7 availability lifecycle fixes — host verified, 2026-10-08
 
 - The full objective is not complete: S0–S6 remain COMPLETE, S7 is the sole

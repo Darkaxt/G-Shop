@@ -491,6 +491,14 @@ APK are confidential; distribution policy must be resolved before release.
 Acceptance: authenticated live lookup with the fork's legitimate API access;
 offline fixture contract tests, bad credentials and unsupported-platform behavior.
 
+S7 platform detail (2026-10-08): the authenticated `systemesListe.php` response
+explicitly lists Nintendo DSi/NDSi/DSi as common names for provider platform 15.
+Map R-Shop `dsi` requests to that verified provider ID while retaining distinct
+DSi game/edition/platform identities, source mappings and saved requests. Do not
+infer a DSi-to-NDS collection merge, official classification, reliable score,
+archive restoration or SD removal eligibility from the provider alias. All
+existing wrong-platform, edition, ambiguity and migration checks still apply.
+
 ### META-03 — Evidence-based matching
 
 Prefer verified provider IDs or compatible known ROM identifiers; otherwise use

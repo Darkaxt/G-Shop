@@ -34,8 +34,9 @@ class ScreenScraperProvider
     'support-3D'
   };
 
-  /// Explicit app-system mappings. DSi has no distinct verified mapping here;
-  /// narrower variants (e.g. WonderSwan Color) need a specific assignment in S4.
+  /// Explicit app-system mappings. The authenticated systemesListe.php response
+  /// on 2026-10-08 lists DSi as a common name for provider platform 15. This
+  /// provider alias does not merge the app's distinct DS and DSi identities.
   /// Unsupported systems are never inferred from filenames or provider parents.
   static const platformIds = <String, int>{
     'nes': 3,
@@ -49,6 +50,7 @@ class ScreenScraperProvider
     'gbc': 10,
     'gba': 12,
     'nds': 15,
+    'dsi': 15,
     'virtualboy': 11,
     'fds': 106,
     'n3ds': 17,
