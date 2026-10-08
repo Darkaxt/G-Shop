@@ -1,4 +1,6 @@
 {
+  "metadata_credentials": "Credenciales",
+  "metadata_scraping": "Recopilar metadatos",
   "metadata_latestGame": "Último juego procesado",
   "metadata_unverifiedCandidate": "Candidato sin verificar",
   "metadata_dailyQuota": "Cuota diaria de la API",
@@ -79,7 +81,7 @@
   "metadata_pending": "Pendientes",
   "metadata_completeNote": "Completar el recorrido no significa que todos los juegos tengan metadatos o puntuaciones fiables.",
   "metadata_controlsError": "Falló la operación de metadatos. Se conservan el progreso y las acciones de ROM. Comprueba el acceso o reanuda el trabajo.",
-  "metadata_configureAccess": "Configura la cuenta y el acceso de aplicación abajo y reanuda. La cuenta estándar de ScreenScraper no necesita convertirse en cuenta de desarrollador.",
+  "metadata_configureAccess": "Abre Credenciales de este proveedor, configura la cuenta y el acceso de aplicación y reanuda el trabajo guardado. La cuenta estándar de ScreenScraper no necesita convertirse en cuenta de desarrollador.",
   "metadata_quotaWait": "Se aplica la cuota o cadencia del proveedor. Reanuda cuando el acceso lo permita; se conservan los elementos completados.",
   "metadata_offlineWait": "Proveedor no disponible. Comprueba la conexión y reanuda el trabajo.",
   "metadata_invalidInput": "Completa los campos obligatorios. Deja vacíos los campos de aplicación para conservar el acceso existente.",

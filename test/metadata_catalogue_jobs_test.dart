@@ -1379,28 +1379,41 @@ void main() {
 
   test('removed or changed catalogue objects cannot finish an old lookup',
       () async {
-    for (final duringLookup in [false, true]) {
-      await db.delete('games');
-      final id = await cache('snes', 'Game.zip', artifact: remote('file'));
-      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
-      final provider = _ReviewProvider();
-      Future<void> change() async => db.update(
-          'games',
-          {
-            'remote_artifact':
-                jsonEncode(remote('file', checksum: 'b').toJson())
-          },
-          where: 'id = ?',
-          whereArgs: [id]);
-      if (duringLookup) {
-        provider.beforeResult = change;
-      } else {
-        await change();
+    for (final removed in [false, true]) {
+      for (final duringLookup in [false, true]) {
+        await db.delete('games');
+        final id = await cache('snes', 'Game.zip', artifact: remote('file'));
+        final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+        final captured = (await items(job.id)).single;
+        final provider = _ReviewProvider();
+        Future<void> change() async {
+          if (removed) {
+            await db.delete('games', where: 'id = ?', whereArgs: [id]);
+            return;
+          }
+          await db.update(
+              'games',
+              {
+                'remote_artifact':
+                    jsonEncode(remote('file', checksum: 'b').toJson())
+              },
+              where: 'id = ?',
+              whereArgs: [id]);
+        }
+
+        if (duringLookup) {
+          provider.beforeResult = change;
+        } else {
+          await change();
+        }
+        final result = await jobs.run(job.id, provider);
+        expect(result.counts, {'identityChanged': 1});
+        expect(provider.calls, duringLookup ? 1 : 0);
+        expect(await jobs.reviewItems(job.id), isEmpty);
+        final retained = (await items(job.id)).single;
+        expect(retained['edition_id'], captured['edition_id']);
+        expect(retained['request_json'], captured['request_json']);
       }
-      final result = await jobs.run(job.id, provider);
-      expect(result.counts, {'identityChanged': 1});
-      expect(provider.calls, duringLookup ? 1 : 0);
-      expect(await jobs.reviewItems(job.id), isEmpty);
     }
   });
 

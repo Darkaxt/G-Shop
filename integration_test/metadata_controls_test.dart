@@ -90,6 +90,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(MetadataSettingsScreen), findsOneWidget);
     expect(provider.calls, isEmpty);
+    await tester.tap(find.byKey(const ValueKey('metadata-credentials')));
+    await tester.pumpAndSettle();
     await tester.enterText(
         find.byKey(const ValueKey('metadata-username')), 'synthetic-user');
     await tester.enterText(
@@ -104,6 +106,8 @@ void main() {
     expect((await ss.readUser())!.username, 'synthetic-user');
     expect(find.text('synthetic-secret'), findsNothing);
     expect(provider.calls, isEmpty);
+    await tester.tap(find.byKey(const ValueKey('metadata-open-scraping')));
+    await tester.pumpAndSettle();
     final refresh = find.byKey(const ValueKey('metadata-refresh'));
     await tester.ensureVisible(refresh);
     await tester.pumpAndSettle();

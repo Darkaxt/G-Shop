@@ -5,6 +5,106 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 navigated metadata settings — verified, 2026-10-08
+
+- Replaced the single long form with persistent left-hand ScreenScraper, IGDB,
+  shared-storage and ES-DE sections. Provider overview opens a secure credential
+  editor or its scraping workspace; the workspace retains scope, saved jobs,
+  pause/resume/retry, coverage, preview and quota reporting. All six supported
+  languages include the new navigation labels. No provider credentials are
+  prepopulated into the editor or exported.
+- Focused widget checks pass for touch/controller navigation, initial section
+  focus, modal/workspace Back, invalid/save/cancel credential editing, saved-job
+  selection, running-job preservation across section changes, compact layout
+  and larger text. Updated layout goldens pass normal comparison. Exact-edition
+  detail checks pass at landscape and portrait sizes. Scoped analysis reports
+  no issues. The updated instrumentation navigation is analyzed but not executed
+  as an instrumentation suite; real normal-app checks below are separate proof.
+- First normal native build exposed missing initial controller focus despite
+  working touch navigation. A failing initial-focus regression preceded the fix.
+  Final normal Thor build proves Down/A selects IGDB without touching the menu,
+  Up/A returns to ScreenScraper, B closes the credential dialog, and B returns
+  from scraping to the overview. Shared storage and ES-DE have separate pages.
+  Native evidence: `D:/Temp/rshop-metadata-menu-20261008/final-overview.png`.
+- Signer-preserving `install -r` succeeds for the unchanged debug package/version.
+  Final APK SHA-256:
+  `85e99333188a565cbaeb9aa8f0c8d6d3103e27aff343339f42774ded3bc7f4b1`.
+  Before normal Resume, a bounded READONLY audit confirms all 44,204 job-76
+  members and the same ordered capture/request/outcome digest recorded below.
+  Full configuration digest is unchanged after navigation and normal default
+  Google-account reconnection; no source Save or mapping change was performed.
+  The audit helper exits and its exact device scratch JAR is removed.
+- First Resume correctly paused on Drive interactionRequired instead of
+  claiming progress. Normal Connect with the existing default account succeeds;
+  the same job then advances from requested=5,939/pending=38,283 to
+  requested=5,947/pending=38,275, Running. The live quota reports 19,950 of 20,000
+  attempts remaining at this observation; this is not an unlimited-quota claim.
+  Both physical displays are confirmed committed OFF and power state Asleep.
+  Running-workspace evidence: `D:/Temp/rshop-metadata-menu-20261008/final-running.png`.
+- Final debug build ticket 376 acquires `Local\Darka.AndroidGradleBuildGate`.
+  Observed workers=2, parallel=false, Gradle heap=3,221,225,472 bytes; Kotlin
+  2.2.20 is in-process and shares that heap. Required metaspace/code-cache JVM
+  arguments are retained. Test tasks configure one fork/512 MiB, but assembly
+  does not execute them. App JNI compile/link pools are depth one; dependency
+  native concurrency is not independently verified. No memory failure or budget
+  increase. Build log:
+  `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/803aa0b399f4446bbe58081db4f2c095.log`.
+- Verification discipline: an overlapping host-test launch was mistakenly
+  attempted while a previous golden run was alive; Flutter rejected it on the
+  locked native SQLite library before tests started. Subsequent workloads were
+  launched only after the prior process exited. Final focused tests and both
+  normal native builds exited successfully; no memory-exhaustion event occurred.
+  Superseded golden failure images were reviewed and transactionally removed;
+  accepted goldens and native evidence are retained. No owner files were deleted.
+- This closes only the settings-navigation slice. Readable library captions,
+  one stable local/cloud identity and availability icons remain current S7 work,
+  alongside fresh metadata coverage and migration gates. S7 remains sole ACTIVE;
+  S8-S11 remain NOT STARTED. No release, SD migration or legacy-sync change.
+
+### S7 patch-resource game eligibility — verified, 2026-10-08
+
+- A fixed READONLY helper at a joined normal Pause traces 66 Mega Drive
+  invalid-response items to 32-byte palette `.bin` files in Patches/source-code
+  descendants and two SNES items to tiny HINTS ZIPs under Patches. The remaining
+  failed translated NES ROM is a genuine game and is not excluded.
+- DriveProvider now resolves published folder ancestry after all pages and
+  excludes descendant Patches resources only from the mapped game projection.
+  The raw source snapshot remains intact. Real SQLite regression-first tests
+  cover paging, numeric ROMs, T-Eng, slash-containing folder labels and explicit
+  mappings inside the resource tree. The affected provider checks and analysis
+  pass. The saved-job regression also verifies deletion before/during lookup:
+  membership/request stay intact, status becomes identityChanged, and a removed
+  object is not queried. No full suite or bulk ROM download was run.
+- Preserving debug update retains the existing package/signing identity. APK
+  SHA-256 is `14ced62caead499af38012f8624dc6fe3b9fd427532a571d0bbea67ec5f0297d`.
+  Normal startup reconciliation finishes. The Mega Drive cache changes from
+  2,860 to 1,010 file rows; all 66 palette items and both SNES hint items are
+  absent, while the genuine NES translation remains. Cache rows include local
+  and remote copies; 1,010 is NOT a canonical game count.
+- Before/after, saved job 76 has exactly 44,204 captured items and identical
+  ordered edition/request/status SHA-256
+  `7e4171ffe008d7281c679fac9982ab14eb09d6355a4b974519064a5694975d03`.
+  Full configuration SHA-256 remains
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  The bounded helper exits and device scratch is removed before normal Resume.
+- Gradle ticket 374 acquires Local\Darka.AndroidGradleBuildGate and the debug
+  build succeeds. Observed workers=2, parallel=false, heap=3,221,225,472 bytes;
+  Kotlin 2.2.20 uses the project's in-process setting. Test tasks are configured
+  for one fork/512 MiB but were not executed by assembly. App JNI uses a shared
+  depth-one compile/link pool; the supervisor does not verify every dependency's
+  native concurrency. No memory failure or budget increase. Log:
+  `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/68f5a0a1f1214814a740d92e3c2e7516.log`.
+  The first gated attempt failed because an unquoted PowerShell target argument
+  was split into a `.dart` task, not because of memory; it exited before retry.
+- This fixes catalogue eligibility only. The native view separately exposes
+  duplicated local/Drive entries and 7–9 logical-pixel unselected titles. The
+  user now requires one stable game identity with local-first/cloud-fallback
+  availability and an SD/cloud cover icon, not two selectable copies. That is
+  current S7 integration work; do not claim it fixed by this resource patch.
+  Full fresh metadata, defensible retention and reviewed migration remain
+  unfinished. S7 alone stays ACTIVE; no owner ROM/cloud/save/BIOS or legacy sync
+  was modified and no release occurred.
+
 ### S7 Wii RVZ native recovery — verified, 2026-10-08
 
 - Used the unchanged installed debug APK, independently rechecked SHA-256

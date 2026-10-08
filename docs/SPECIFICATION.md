@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 13, 2026-10-07.
+Authoritative specification, revision 14, 2026-10-08.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -174,6 +174,22 @@ Unknown platforms and ambiguous matches must be visible, not silently guessed.
 Acceptance: fixtures cover Nintendo/Sony/Sega/Microsoft folder aliases, duplicate
 names, two regions, two discs, a translation and a same-base hack. Only systems
 actually supported by the app become active; unsupported mappings are reported.
+
+S7 catalogue eligibility detail (2026-10-08): a normally mapped console's
+descendant `Patches` folder declares patch resources, not playable game entries.
+The live collection exposed 32-byte palette `.bin` files in patch source trees
+being counted and scraped as Mega Drive games. Exclude that resource subtree
+from the console's game projection using actual published folder IDs/ancestry,
+not display-path splitting, numeric-title rejection or a global `.bin` ban.
+Keep the complete published Drive snapshot and all cloud/local files unchanged.
+The explicitly selected mapping folder is the boundary: selecting a folder
+inside such a subtree deliberately establishes a new scope; an ancestor outside
+that mapping must not silently exclude it. Ordinary Hacks/T-Eng folders and
+genuine numeric ROM filenames remain eligible. A folder with a slash in its
+Drive name is not two folders. Saved metadata jobs retain their captured members,
+requests and outcomes; later normal cache reconciliation does not rewrite them.
+Verify real SQLite provider traversal, nested/paged resource trees, explicit
+mapping boundaries and normal native refresh without ROM-body requests/deletion.
 
 ### CORE-03 — Compatible migrations
 
@@ -856,6 +872,27 @@ replacement by a resolved cover, and no extra requests or badge/title collisions
 in the shared Library, console and shelf card callers on the Thor.
 
 ### UI-02 — Metadata controls and details
+
+S7 navigation refinement (2026-10-08, user-authorized): replace the metadata
+settings' single long scrolling form with persistent left-hand section navigation.
+ScreenScraper and IGDB each have a focused provider page with a Credentials
+button opening a secure editor dialog and a Scraping button opening its focused
+workspace (console/game scope, saved jobs, refresh/pause/resume/retry, coverage,
+latest-game preview and quota). Shared storage and ES-DE publication have their
+own sections. Switching sections must not change provider credentials, recreate
+a saved job or stop an active worker. Back closes the editor/workspace before
+leaving settings. Preserve exact-game scope, controller/touch access, error and
+reconnect actions, localization and compact-screen usability. Verify these
+paths in focused widget checks and normal Thor UI without changing owner data.
+
+S7 library refinement (2026-10-08, user-authorized): improve the tiny game-title
+labels and present an exact local/cloud game as one stable selectable identity,
+not duplicate cards or selectable local/cloud variants. Prefer its local file
+when present and its cloud source when absent; retain metadata and favorites
+across availability changes. Show a truthful SD-card/cloud availability icon
+on the cover. Filename similarity alone cannot establish exact equivalence,
+installation ownership or permission to remove an unmanaged file. This is
+required unfinished S7 integration, not a later-stage deferral.
 
 Add provider setup, refresh progress and re-scrape controls to existing settings
 and game details, with accessible/localized labels. Keep the common detail model

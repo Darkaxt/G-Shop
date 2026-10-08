@@ -60,6 +60,79 @@ class _Files implements DriveCatalogueApi {
       ]);
 }
 
+class _PatchFiles implements DriveCatalogueApi {
+  final List<DriveFile> files = [
+    DriveFile(
+        id: 'folder',
+        name: 'ROMs',
+        mimeType: DriveFile.folderMime,
+        parents: ['my-drive']),
+    DriveFile(
+        id: 'patches',
+        name: 'Patches',
+        mimeType: DriveFile.folderMime,
+        parents: ['folder']),
+    DriveFile(
+        id: 'source',
+        name: 'Source Code',
+        mimeType: DriveFile.folderMime,
+        parents: ['patches']),
+    DriveFile(
+        id: 'palettes',
+        name: 'Palettes',
+        mimeType: DriveFile.folderMime,
+        parents: ['source']),
+    DriveFile(
+        id: 'translations',
+        name: 'T-Eng',
+        mimeType: DriveFile.folderMime,
+        parents: ['folder']),
+    DriveFile(
+        id: 'slash',
+        name: 'Archive/Patches',
+        mimeType: DriveFile.folderMime,
+        parents: ['folder']),
+    for (final parent in ['folder', 'palettes', 'translations', 'slash'])
+      DriveFile(
+          id: 'rom-$parent',
+          name: '74.bin',
+          mimeType: 'application/octet-stream',
+          parents: [parent],
+          sizeBytes: parent == 'palettes' ? 32 : 1048576,
+          version: '1'),
+    // Exercise complete parent discovery over more than one provider page.
+    for (var i = 0; i < 501; i++)
+      DriveFile(
+          id: 'padding-$i',
+          name: 'Readme-$i.txt',
+          mimeType: 'text/plain',
+          parents: ['folder'],
+          sizeBytes: 32,
+          version: '1'),
+  ];
+
+  @override
+  Future<DriveFile> getFile(String id, {CancelToken? cancelToken}) async =>
+      files.singleWhere((file) => file.id == id);
+
+  @override
+  Future<List<DriveFile>> getFolderBatch(List<String> ids,
+          {CancelToken? cancelToken}) async =>
+      [for (final id in ids) await getFile(id)];
+
+  @override
+  Future<DriveFilePage> listChildren(String parentId,
+          {String? pageToken,
+          bool foldersOnly = false,
+          CancelToken? cancelToken}) async =>
+      DriveFilePage(
+          files: files
+              .where((file) =>
+                  file.parents.contains(parentId) &&
+                  (!foldersOnly || file.isFolder))
+              .toList());
+}
+
 void main() {
   late Database db;
   late DriveRuntime runtime;
@@ -149,6 +222,38 @@ void main() {
     final folders = await runtime.folders(const Source(
         id: 's', name: 'Cloud', type: SourceType.drive, drive: drive));
     expect(folders.map((e) => e.id), ['folder']);
+  });
+
+  test(
+      'mapped game projection excludes patch resources by real folder ancestry',
+      () async {
+    await runtime.catalogue.refresh(
+        sourceId: 's',
+        accountId: 'a',
+        rootFolderId: 'folder',
+        api: _PatchFiles());
+    const megaDrive = SystemConfig(
+        id: 'megadrive',
+        name: 'Mega Drive',
+        targetFolder: 'megadrive',
+        providers: [config]);
+    final games =
+        await DriveProvider(config, runtime: runtime).fetchGames(megaDrive);
+    expect(games.map((game) => game.remoteArtifact!.id.providerFileId).toSet(),
+        {'rom-folder', 'rom-translations', 'rom-slash'});
+    // The source snapshot is not purged and remains usable for explicit mappings.
+    final patchEntries = await runtime.catalogue.entries(
+        sourceId: 's',
+        accountId: 'a',
+        rootFolderId: 'folder',
+        folderId: 'patches');
+    expect(
+        patchEntries.any((entry) => entry.file.id == 'rom-palettes'), isTrue);
+    final explicit =
+        await DriveProvider(config.copyWith(path: 'source'), runtime: runtime)
+            .fetchGames(megaDrive);
+    expect(explicit.map((game) => game.remoteArtifact!.id.providerFileId),
+        ['rom-palettes']);
   });
 
   test(

@@ -9,6 +9,12 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get metadata_credentials => 'Credenciais';
+
+  @override
+  String get metadata_scraping => 'Recolha de metadados';
+
+  @override
   String get metadata_latestGame => 'Último jogo processado';
 
   @override
@@ -279,7 +285,7 @@ class LPt extends L {
 
   @override
   String get metadata_configureAccess =>
-      'Configure a conta e o acesso de aplicação abaixo e retome. A conta padrão do ScreenScraper não precisa de se tornar uma conta de programador.';
+      'Abra as credenciais deste fornecedor, configure a conta e o acesso de aplicação e retome a tarefa guardada. A conta padrão do ScreenScraper não precisa de se tornar uma conta de programador.';
 
   @override
   String get metadata_quotaWait =>

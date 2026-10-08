@@ -59,6 +59,8 @@ class DriveProvider implements SourceProvider {
         folderId: mapped,
         generation: generation);
     final result = <GameItem>[];
+    final folderParents = <String, String>{};
+    final patchResourceFolders = <String>{};
     var offset = 0;
     while (true) {
       final page = await runtime.catalogue.entries(
@@ -70,9 +72,16 @@ class DriveProvider implements SourceProvider {
           offset: offset,
           limit: 500);
       for (final entry in page) {
+        if (entry.file.isFolder) {
+          folderParents[entry.file.id] = entry.file.parents.single;
+          if (entry.file.name.trim().toLowerCase() == 'patches') {
+            patchResourceFolders.add(entry.file.id);
+          }
+          continue;
+        }
         if (!entry.file.isSupportedBinary ||
-            !extensions.any(
-                (ext) => entry.file.name.toLowerCase().endsWith(ext))) {
+            !extensions
+                .any((ext) => entry.file.name.toLowerCase().endsWith(ext))) {
           continue;
         }
         final artifact = entry.file.artifact(
@@ -91,6 +100,26 @@ class DriveProvider implements SourceProvider {
       if (page.length < 500) break;
       offset += page.length;
     }
+    // The complete published tree is retained for source browsing and explicit
+    // mappings. Only this console's game projection excludes declared patch
+    // resources: source palettes and other .bin/.md files are not ROM entries.
+    // Resolve real parent IDs after all pages, never split a Drive display path
+    // (individual folder names may themselves contain '/'). The selected mapping
+    // is the scope boundary, so ancestors outside it cannot exclude its files.
+    result.removeWhere((game) {
+      var parent = game.remoteArtifact!.parentId;
+      final visited = <String>{};
+      while (parent != mapped) {
+        if (parent == null ||
+            !visited.add(parent) ||
+            !folderParents.containsKey(parent)) {
+          throw const DriveCatalogueException('snapshotChanged');
+        }
+        if (patchResourceFolders.contains(parent)) return true;
+        parent = folderParents[parent];
+      }
+      return false;
+    });
     return result;
   }
 

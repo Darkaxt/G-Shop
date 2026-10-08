@@ -9,6 +9,12 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get metadata_credentials => '認証情報';
+
+  @override
+  String get metadata_scraping => 'メタデータ取得';
+
+  @override
   String get metadata_latestGame => '最後に処理したゲーム';
 
   @override
@@ -269,7 +275,7 @@ class LJa extends L {
 
   @override
   String get metadata_configureAccess =>
-      '下でアカウントとアプリ認証を設定して再開してください。ScreenScraperの通常アカウントを開発者アカウントに変更する必要はありません。';
+      'このプロバイダーの認証情報を開き、アカウントとアプリ認証を設定して保存済みジョブを再開してください。ScreenScraperの通常アカウントを開発者アカウントに変更する必要はありません。';
 
   @override
   String get metadata_quotaWait =>

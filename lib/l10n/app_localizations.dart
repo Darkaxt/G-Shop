@@ -105,6 +105,18 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @metadata_credentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials'**
+  String get metadata_credentials;
+
+  /// No description provided for @metadata_scraping.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping'**
+  String get metadata_scraping;
+
   /// No description provided for @metadata_latestGame.
   ///
   /// In en, this message translates to:
@@ -588,7 +600,7 @@ abstract class L {
   /// No description provided for @metadata_configureAccess.
   ///
   /// In en, this message translates to:
-  /// **'Configure account/application access below, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.'**
+  /// **'Open this provider\'s Credentials to configure account/application access, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.'**
   String get metadata_configureAccess;
 
   /// No description provided for @metadata_quotaWait.

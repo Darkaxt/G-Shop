@@ -1,4 +1,6 @@
 {
+  "metadata_credentials": "Zugangsdaten",
+  "metadata_scraping": "Metadaten abrufen",
   "metadata_latestGame": "Zuletzt verarbeitetes Spiel",
   "metadata_unverifiedCandidate": "Ungeprüfter Kandidat",
   "metadata_dailyQuota": "Tägliches API-Kontingent",
@@ -79,7 +81,7 @@
   "metadata_pending": "Ausstehend",
   "metadata_completeNote": "Ein abgeschlossener Durchlauf bedeutet nicht, dass jedes Spiel Metadaten oder eine verlässliche Bewertung hat.",
   "metadata_controlsError": "Metadatenaktion fehlgeschlagen. Fortschritt und ROM-Aktionen bleiben erhalten. Zugang prüfen oder Auftrag fortsetzen.",
-  "metadata_configureAccess": "Konto-/Anwendungszugang unten einrichten, dann fortsetzen. Ein ScreenScraper-Standardkonto muss kein Entwicklerkonto werden.",
+  "metadata_configureAccess": "Öffne die Zugangsdaten dieses Anbieters, richte den Konto-/Anwendungszugang ein und setze den gespeicherten Auftrag fort. Ein ScreenScraper-Standardkonto muss kein Entwicklerkonto werden.",
   "metadata_quotaWait": "Anbieterlimit oder Abfrageabstand gilt. Fortsetzen, sobald der Zugang es erlaubt; abgeschlossene Einträge bleiben erhalten.",
   "metadata_offlineWait": "Anbieter nicht verfügbar. Verbindung prüfen und Auftrag fortsetzen.",
   "metadata_invalidInput": "Alle Pflichtfelder ausfüllen. Anwendungsfelder leer lassen, um vorhandenen Zugang zu behalten.",

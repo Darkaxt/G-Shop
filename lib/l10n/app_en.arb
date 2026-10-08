@@ -1,4 +1,6 @@
 {
+  "metadata_credentials": "Credentials",
+  "metadata_scraping": "Scraping",
   "metadata_latestGame": "Latest processed game",
   "metadata_unverifiedCandidate": "Unverified candidate",
   "metadata_dailyQuota": "Daily API quota",
@@ -80,7 +82,7 @@
   "metadata_pending": "Pending",
   "metadata_completeNote": "Completed traversal does not mean every game has metadata or a reliable rating.",
   "metadata_controlsError": "Metadata operation failed. Saved progress and ROM actions remain available. Check access or resume the saved job.",
-  "metadata_configureAccess": "Configure account/application access below, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.",
+  "metadata_configureAccess": "Open this provider's Credentials to configure account/application access, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.",
   "metadata_quotaWait": "Provider quota or cadence applies. Resume when access permits; completed items are retained.",
   "metadata_offlineWait": "Provider unavailable. Check connectivity and resume the saved job.",
   "metadata_invalidInput": "Complete all required fields. Leave application fields blank to keep existing access.",

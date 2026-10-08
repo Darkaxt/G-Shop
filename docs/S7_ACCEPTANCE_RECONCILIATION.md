@@ -1,5 +1,40 @@
 # S7 live metadata and Thor migration
 
+## Navigated metadata settings — 2026-10-08
+
+UI-02's settings-navigation slice is implemented and verified: persistent left
+sections replace the long single form; provider credentials are edited in a
+secure dialog and scraping has its own workspace. Focused widget/detail checks,
+normal golden comparison and scoped analysis pass. The final signer-preserving
+Thor update verifies initial D-pad/A provider selection, dialog/workspace Back
+and separate storage/ES-DE pages. The complete configuration and immutable
+44,204-member saved capture remain unchanged before normal Resume. Exact APK,
+gate/resource profile, native evidence and verification qualifications are in
+IMPLEMENTATION_STATUS.md. No credential, source mapping or owner file was changed.
+
+This is not S7 closure. Readable library titles, stable single local/cloud game
+identity and SD/cloud indicators remain required current-stage work, as do full
+fresh coverage and the remaining retention/recovery/migration gates. S7 remains
+the sole ACTIVE stage, with S8-S11 NOT STARTED.
+
+## Patch-resource eligibility / saved-capture preservation — 2026-10-08
+
+The reproduced palette/HINTS resource defect is corrected at the Drive console
+projection boundary, using complete published folder ancestry rather than numeric
+title rejection or display-path parsing. Regression-first SQLite provider checks,
+saved-job deletion guards, scoped analysis, gated debug assembly and normal
+native reconciliation pass. All 68 captured resources leave the game cache;
+the genuine translated NES ROM remains. The raw Drive snapshot and cloud/local
+files are unchanged. Saved job 76 retains all 44,204 members and an identical
+ordered request/status digest, and the complete configuration digest matches.
+Exact build/device evidence and qualifications are in IMPLEMENTATION_STATUS.md.
+
+This does not fix the newly observed local/cloud duplicate cards, tiny captions,
+full fresh metadata coverage or migration gates. The user requires one stable
+game identity with local-first/cloud-fallback availability and SD/cloud indicators;
+that remains current S7 work, not a later-stage deferral. S7 is the sole ACTIVE
+stage; S8-S11 remain NOT STARTED and no SD removal is authorized by this proof.
+
 ## Wii RVZ native recovery — 2026-10-08
 
 The unchanged installed APK and existing exact owned Dolphin route now have real

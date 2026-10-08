@@ -292,6 +292,8 @@ void defineMetadataDetailScreenChecks({
               'priority=${container.read(overlayPriorityProvider)}');
       await tester.tap(find.text('Game metadata'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('metadata-open-scraping')));
+      await tester.pumpAndSettle();
       expect(find.text('Selected game: Game'), findsOneWidget);
       expect(find.byKey(const ValueKey('metadata-scope')), findsNothing);
       await checkpoint?.call('detail-exact-game-controls', tester);
@@ -319,6 +321,8 @@ void defineMetadataDetailScreenChecks({
       }
       await tester.pumpAndSettle();
       expect(controls.state.report!.counts, {'unmatched': 1});
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox.shrink());

@@ -9,6 +9,12 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get metadata_credentials => 'Zugangsdaten';
+
+  @override
+  String get metadata_scraping => 'Metadaten abrufen';
+
+  @override
   String get metadata_latestGame => 'Zuletzt verarbeitetes Spiel';
 
   @override
@@ -277,7 +283,7 @@ class LDe extends L {
 
   @override
   String get metadata_configureAccess =>
-      'Konto-/Anwendungszugang unten einrichten, dann fortsetzen. Ein ScreenScraper-Standardkonto muss kein Entwicklerkonto werden.';
+      'Öffne die Zugangsdaten dieses Anbieters, richte den Konto-/Anwendungszugang ein und setze den gespeicherten Auftrag fort. Ein ScreenScraper-Standardkonto muss kein Entwicklerkonto werden.';
 
   @override
   String get metadata_quotaWait =>

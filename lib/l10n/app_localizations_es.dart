@@ -9,6 +9,12 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get metadata_credentials => 'Credenciales';
+
+  @override
+  String get metadata_scraping => 'Recopilar metadatos';
+
+  @override
   String get metadata_latestGame => 'Último juego procesado';
 
   @override
@@ -280,7 +286,7 @@ class LEs extends L {
 
   @override
   String get metadata_configureAccess =>
-      'Configura la cuenta y el acceso de aplicación abajo y reanuda. La cuenta estándar de ScreenScraper no necesita convertirse en cuenta de desarrollador.';
+      'Abre Credenciales de este proveedor, configura la cuenta y el acceso de aplicación y reanuda el trabajo guardado. La cuenta estándar de ScreenScraper no necesita convertirse en cuenta de desarrollador.';
 
   @override
   String get metadata_quotaWait =>

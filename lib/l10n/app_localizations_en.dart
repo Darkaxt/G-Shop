@@ -9,6 +9,12 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get metadata_credentials => 'Credentials';
+
+  @override
+  String get metadata_scraping => 'Scraping';
+
+  @override
   String get metadata_latestGame => 'Latest processed game';
 
   @override
@@ -276,7 +282,7 @@ class LEn extends L {
 
   @override
   String get metadata_configureAccess =>
-      'Configure account/application access below, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.';
+      'Open this provider\'s Credentials to configure account/application access, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.';
 
   @override
   String get metadata_quotaWait =>

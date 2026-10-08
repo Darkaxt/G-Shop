@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 13.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 14.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
@@ -983,6 +983,33 @@ S8-S10 are still required before overall completion. Public evidence must not co
 private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
+
+Current authorized UI integration (2026-10-08, UI-01/UI-02/CORE-02): replace
+metadata's long form with left section navigation, provider overview pages,
+credential dialogs and dedicated scraping workspaces; preserve all storage,
+ES-DE, exact-game, saved-job and worker behavior. Verify focused touch/controller,
+compact layout and native paths. This bounded settings slice now passes focused
+checks, analysis, gated debug assembly and normal Thor touch/controller proof.
+Saved capture/configuration are unchanged and the same job resumes with advancing
+counters after normal default-account reconnect; both screens are OFF. Exact
+evidence and qualifications are recorded in the status ledger. This is not S7
+closure. The user's one stable local/cloud game identity,
+availability icon and readable card titles remain required S7 work after this
+bounded settings refactor. Do not open another ACTIVE stage or silently treat
+these requirements as future backlog.
+
+Current catalogue-eligibility remediation (2026-10-08, CORE-02/META-01/03):
+the fixed READONLY joined-pause audit traces 66 Mega Drive invalid responses to
+32-byte `.bin` palette resources below a real Patches/source-code tree. Exclude
+the declared descendant Patches subtree from automatic console game membership
+using published folder IDs, retaining the raw Drive snapshot and explicit mapping
+boundary. Preserve numeric ROMs, ordinary modified releases and immutable saved
+job membership/outcomes. Regression-first real SQLite provider verification and
+ordinary native cache refresh pass. All 68 captured palette/hint-resource rows
+are absent from the reconciled game cache; the genuine translated NES ROM stays.
+The saved 44,204 members/requests/outcomes and full configuration hashes match
+before/after the preserving debug update. This closes only the resource boundary;
+S7 remains ACTIVE and no SD removal follows.
 
 Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
 Current scope reconciliation and private-evidence boundaries are recorded in

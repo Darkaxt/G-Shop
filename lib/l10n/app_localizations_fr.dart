@@ -9,6 +9,12 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get metadata_credentials => 'Identifiants';
+
+  @override
+  String get metadata_scraping => 'Collecte des métadonnées';
+
+  @override
   String get metadata_latestGame => 'Dernier jeu traité';
 
   @override
@@ -279,7 +285,7 @@ class LFr extends L {
 
   @override
   String get metadata_configureAccess =>
-      'Configurez le compte et l\'accès applicatif ci-dessous, puis reprenez. Le compte ScreenScraper standard n\'a pas besoin de devenir un compte développeur.';
+      'Ouvrez les identifiants de ce fournisseur, configurez le compte et l\'accès applicatif, puis reprenez la tâche enregistrée. Le compte ScreenScraper standard n\'a pas besoin de devenir un compte développeur.';
 
   @override
   String get metadata_quotaWait =>
