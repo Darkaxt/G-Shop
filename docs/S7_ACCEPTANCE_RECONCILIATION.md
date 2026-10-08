@@ -1,5 +1,49 @@
 # S7 live metadata and Thor migration
 
+## Current ranking observation and PS1 identification boundary — 2026-10-09
+
+A sequential READONLY observation used the existing bounded retention helper,
+not a database export or new scrape. Its device jar matches the retained host
+SHA-256 `6a72a452b5d1e5de3dbccde071d3dec3780437917d63fd1f2517e7863125fa6c`.
+The helper opens the fixed database READONLY, uses a 128 MiB VM and emits at most
+128 members / 1 MiB. Only the following aggregates were retained in this report:
+
+| Console | Projected canonical groups | Ranked groups | Physical members |
+| --- | ---: | ---: | ---: |
+| PS1 | 372 | 0 | 372 |
+| PSP | 334 | 35 | 334 |
+| PS2 | 217 | 59 | 222 |
+| N64 | 1,527 | 55 | 1,527 |
+| GameCube | 203 | 0 | 203 |
+| Game Gear | 546 | 0 | 546 |
+
+All six observed scopes have zero unbound artifacts, but the global dirty queues
+are nonempty: 1,709–1,711 edition rows and fifteen artifact rows during these
+separate reads. These are observational cached counts, not an atomic snapshot,
+fresh normal-query results, complete ranking coverage or deletion authority.
+Normal Library projection refresh must precede the next retention review; do not
+clear dirty rows through a diagnostic or interpret the global counts as per-console
+defects. Every response reports `removalAuthorized=false`.
+
+Existing completed PSP/PS2/N64/Game Gear/GameCube aggregate passes are recorded
+below. Do not repeat them solely because this read-only projection is incomplete;
+new passes need the current normal identity/provider boundary, not a test-count
+target. PS1's zero eligible groups has a distinct identification limitation:
+`MetadataRefreshJobs._bindRomIdentifier` does not accept `psx`, and the current
+CHD parser deliberately requires DVD metadata and 2,048-byte units. It must not
+reinterpret CD headers as original ISO hashes. The LoLSuite conversion path was
+also inspected: it records archive member paths/sizes but does not retain their
+raw MD5/SHA-1 as an existing provenance source. No raw identifier can be imported
+from those absent facts. This explains a missing automatic identity route, not
+every PS1 provider outcome or a newly approved CD decoder. Resolve identity
+coverage through the existing META-03 evidence rules; preserve unresolved games
+and the current CD-header rejection until an exact supported route is verified.
+
+S7 remains the sole ACTIVE stage. No metadata requests, projection writes,
+ownership changes, ROM/save operations, APK installation or account change were
+performed by this audit. The existing root refresh and saved job 76 continue;
+S8-S11 remain NOT STARTED.
+
 ## Nested local metadata lookup — 2026-10-09
 
 The root-only identifier lookup misses actual nested local archives. A bounded

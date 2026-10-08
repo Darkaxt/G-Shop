@@ -1001,6 +1001,16 @@ Do not repeat the completed `.cci`/`.wua` census: its terminal independent
 reconciliation is recorded in S7_ACCEPTANCE_RECONCILIATION.md. The `.cci`
 exact-name miss and all unresolved formats remain preserved, not removal-ready.
 
+Current ranking observation (2026-10-09): the bounded READONLY native query
+confirms existing partial PSP/PS2/N64 ranks and zero eligible PS1/GameCube/Game Gear
+groups, with nonempty global projection-dirty queues. After the joined native
+update, use normal Library projection refresh before retention review. Do not
+clear dirty rows diagnostically or repeat completed aggregate passes merely to
+reproduce those counts. PS1 currently has no automatic CD-CHD raw identifier
+route; the DVD-only header must remain rejected for CDs. Resolve the actual
+META-03 identity-evidence boundary, not the symptom with another title-only
+scrape. Evidence and limitations are in S7_ACCEPTANCE_RECONCILIATION.md.
+
 | Remaining acceptance work | Current evidence / next required result |
 | --- | --- |
 | Stable current root publication | Generation 2 is progressing in owner PID 1335; 7,983 pages observed. Join its actual completion before replacing the app. Do not reset the generation. |
