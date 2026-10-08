@@ -42,6 +42,7 @@ import '../../widgets/quick_menu.dart';
 import '../../widgets/selection_aware_item.dart';
 import 'shelf_edit_screen.dart';
 import 'widgets/library_entry.dart';
+import 'widgets/library_dashboard.dart';
 import 'widgets/library_tabs.dart';
 import 'widgets/reorderable_card_wrapper.dart';
 import 'widgets/shelf_picker_dialog.dart';
@@ -62,6 +63,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     with ConsoleScreenMixin, SearchableScreenMixin {
   static const _fixedTabCount = 3;
   int _selectedTab = 0; // 0=All, 1=Installed, 2=Favorites, 3+=Shelves
+  String? _selectedConsole;
+  bool _globalDiscoveryRequested = false;
+  bool _consoleNavigation = false;
+  int _dashboardColumns = 1;
+  List<LibraryConsoleSummary> _consoleSummaries = const [];
+  bool get _isDashboard =>
+      _selectedConsole == null &&
+      _selectedTab == 0 &&
+      _searchQuery.isEmpty &&
+      !_globalDiscoveryRequested;
+  int get _visibleCount =>
+      _isDashboard ? _consoleSummaries.length : _filteredGames.length;
+  Iterable<LibraryEntry> get _scopedGames => _selectedConsole == null
+      ? _allGames
+      : _allGames.where((g) => g.systemSlug == _selectedConsole);
+  Set<String> get _rankingPlatforms => _selectedConsole == null
+      ? _filters.selectedPlatforms
+      : {_selectedConsole!};
   LibrarySortMode _sortMode = LibrarySortMode.alphabetical;
   List<CustomShelf> _shelves = [];
 
@@ -92,6 +111,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   ProviderSubscription? _catalogueSubscription;
   Future<void>? _dataWork;
   bool _reloadData = false;
+  bool _loadedOnce = false;
   ActiveFilters _filters = const ActiveFilters();
   bool _isFiltering = false;
   bool _queryingDiscovery = false;
@@ -107,12 +127,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Map<String, String> _discoveryGroups = const {};
   String? _focusedKey, _focusedGroup;
 
-  String get _filterContext => _isShelfTab
+  String get _baseFilterContext => _isShelfTab
       ? 'library:shelf:${_activeShelf?.id}'
       : 'library:${['all', 'installed', 'favorites'][_selectedTab]}';
+  String get _filterContext => _selectedConsole == null
+      ? _baseFilterContext
+      : '$_baseFilterContext:console:$_selectedConsole';
 
   void _restoreFilters() {
-    final saved = ref.read(storageServiceProvider).getFilters(_filterContext);
+    final storage = ref.read(storageServiceProvider);
+    final saved = storage.getFilters(_filterContext);
     try {
       _filters = saved == null
           ? const ActiveFilters()
@@ -125,6 +149,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   void _changeFilters(ActiveFilters value) {
     _filters = value;
+    _globalDiscoveryRequested = value.isNotEmpty;
     final key = _filterContext;
     final encoded = jsonEncode(value.toJson());
     final storage = ref.read(storageServiceProvider);
@@ -139,6 +164,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   void _openFilter() {
     closeQuickMenu();
     setState(() => _isFiltering = true);
+    if (_isDashboard && _filters.isNotEmpty) {
+      _globalDiscoveryRequested = true;
+      _applyFilters();
+    }
     _genreWork ??= _loadGenres();
   }
 
@@ -165,7 +194,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Widget _buildFilter() {
     final l = L.of(context);
-    final platforms = _allGames.map((g) => g.systemSlug).toSet().toList()
+    final platforms = _scopedGames.map((g) => g.systemSlug).toSet().toList()
       ..sort();
     final labels = {
       for (final slug in platforms)
@@ -175,9 +204,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 ?.name ??
             slug
     };
-    final scope = _filters.selectedPlatforms.isEmpty
+    final scope = _rankingPlatforms.isEmpty
         ? l.filter_allScope
-        : '${l.filter_scope}: ${_filters.selectedPlatforms.map((s) => labels[s] ?? s).join(', ')}\n${l.filter_oneLimit}';
+        : '${l.filter_scope}: ${_rankingPlatforms.map((s) => labels[s] ?? s).join(', ')}\n${l.filter_oneLimit}';
     final coverage = _discovery;
     final status = _queryingDiscovery
         ? l.filter_querying
@@ -208,7 +237,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             discoveryFilters: _filters,
             onDiscoveryChanged: _changeFilters,
             availableGenres: _availableGenres,
-            availablePlatforms: labels,
+            availablePlatforms: _selectedConsole == null ? labels : const {},
             discoveryScope: scope,
             discoveryStatus: status));
   }
@@ -331,12 +360,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _columns = ref.read(gridColumnsProvider('library'));
     _debouncer = ref.read(inputDebouncerProvider);
     _shelves = ref.read(customShelvesProvider);
+    final savedConsole = ref.read(storageServiceProvider).getLibraryConsole();
+    _selectedConsole =
+        savedConsole == null || savedConsole.isEmpty ? null : savedConsole;
     _restoreFilters();
 
     _focusManager = FocusSyncManager(
       scrollController: _scrollController,
       getCrossAxisCount: () => _columns,
-      getItemCount: () => _filteredGames.length,
+      getItemCount: () => _visibleCount,
       getGridRatio: () => 1.0,
       onSelectionChanged: (index) => _selectedIndexNotifier.value = index,
       scrollSuppression: _scrollSuppression,
@@ -497,16 +529,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     setState(() {
       _allGames = entries;
+      if (_selectedConsole != null &&
+          !entries.any((g) => g.systemSlug == _selectedConsole)) {
+        _selectedConsole = null;
+        _restoreFilters();
+      }
       _favoriteIds = migratedFavorites;
       _raMatches = raMatches;
       _isLoading = false;
     });
 
+    final initialLoad = !_loadedOnce;
+    _loadedOnce = true;
     _applyFilters();
 
-    // Restore saved index
+    // Route entry restores focus once. Metadata/catalogue reloads retain the
+    // current game, not the index captured when a previous route was closed.
     final saved = getSavedFocusState();
-    if (!_queryingDiscovery &&
+    if (initialLoad &&
+        !_queryingDiscovery &&
         _filteredGames.isNotEmpty &&
         saved?.selectedIndex != null &&
         saved!.selectedIndex! > 0) {
@@ -517,12 +558,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       });
     }
 
-    if (widget.openSearch) {
+    if (initialLoad && widget.openSearch) {
       openSearch();
     }
   }
 
   void _applyFilters() {
+    _consoleSummaries = LibraryConsoleSummary.fromEntries(_allGames,
+        isInstalled: _isGameInstalled,
+        favorites: _favoriteIds,
+        installation: _installationState);
     if (!_queryingDiscovery && _currentIndex < _filteredGames.length) {
       final entry = _filteredGames[_currentIndex];
       _focusedKey = coverRatingKey(entry.systemSlug, entry.selectionKey);
@@ -539,7 +584,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       isManualSort = resolved.isManualSort;
       shelfSortMode = resolved.shelfSortMode;
     } else {
-      games = List<LibraryEntry>.from(_allGames);
+      games = List<LibraryEntry>.from(_scopedGames);
       // Tab filter
       switch (_selectedTab) {
         case 1: // Installed
@@ -552,6 +597,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               .where((g) => _favoriteIds.contains(g.selectionKey))
               .toList();
       }
+    }
+
+    if (_selectedConsole != null) {
+      games = games.where((g) => g.systemSlug == _selectedConsole).toList();
+    }
+    if (_isDashboard) {
+      _discoveryVariants = const {};
+      _discoveryGroups = const {};
+      _discovery = null;
+      _discoveryError = null;
+      _queryingDiscovery = false;
+      _publishGames([]);
+      return;
     }
 
     if (_filters.favoritesOnly) {
@@ -628,15 +686,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       });
       if (identityIndex >= 0) {
         _currentIndex = identityIndex;
-      } else if (_currentIndex >= _filteredGames.length) {
-        _currentIndex = _filteredGames.isEmpty ? 0 : _filteredGames.length - 1;
+      } else if (_currentIndex >= _visibleCount) {
+        _currentIndex = _visibleCount == 0 ? 0 : _visibleCount - 1;
       }
     });
   }
 
   Future<void> _runDiscovery() async {
     try {
-      while (mounted && _filters.hasMetadataFilters) {
+      while (mounted && _filters.hasMetadataFilters && !_isDashboard) {
         final generation = _discoveryGeneration;
         final filters = _filters;
         final entries = _discoveryEntries;
@@ -646,7 +704,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           final result =
               await LibraryQuery(ref.read(libraryDbProvider).database).discover(
                   filter: LibraryQueryFilter(
-                      platformIds: filters.selectedPlatforms,
+                      platformIds: _rankingPlatforms,
                       tags: filters.selectedTags,
                       genres: filters.selectedGenres,
                       top: filters.top,
@@ -745,7 +803,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _updateItemKeys() {
-    final count = _filteredGames.length;
+    final count = _visibleCount;
     if (_itemKeys.length == count) return;
     _itemKeys.clear();
     for (int i = 0; i < count; i++) {
@@ -847,8 +905,60 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   // --- Grid Navigation ---
 
+  void _selectConsole(String? slug) {
+    if (_reorderState != ReorderState.none) return;
+    _debouncer.stopHold();
+    setState(() {
+      _selectedConsole = slug;
+      _globalDiscoveryRequested = false;
+      if (slug == null) _selectedTab = 0;
+      _currentIndex = 0;
+      _focusedKey = _focusedGroup = null;
+    });
+    final storage = ref.read(storageServiceProvider);
+    _filterSave = _filterSave
+        .then((_) => storage.setLibraryConsole(slug))
+        .catchError((Object e) {
+      if (mounted) setState(() => _discoveryError = getUserFriendlyError(e));
+    });
+    _restoreFilters();
+    _applyFilters();
+    _scrollToTop();
+    requestScreenFocus();
+  }
+
   void _navigateGrid(GridDirection direction) {
-    if (_filteredGames.isEmpty) return;
+    final columns = _isDashboard ? _dashboardColumns : _columns;
+    if (_consoleNavigation) {
+      final slugs = [null, ..._consoleSummaries.map((s) => s.slug)];
+      final index = slugs.indexOf(_selectedConsole);
+      if (direction == GridDirection.left || direction == GridDirection.right) {
+        final next = (index + (direction == GridDirection.left ? -1 : 1))
+            .clamp(0, slugs.length - 1);
+        _selectConsole(slugs[next]);
+      } else if (direction == GridDirection.down) {
+        setState(() => _consoleNavigation = false);
+      }
+      return;
+    }
+    if (direction == GridDirection.up && _currentIndex < columns) {
+      _debouncer.stopHold();
+      setState(() => _consoleNavigation = true);
+      return;
+    }
+    if (_visibleCount == 0) return;
+    if (_isDashboard) {
+      final delta = switch (direction) {
+        GridDirection.up => -columns,
+        GridDirection.down => columns,
+        GridDirection.left => -1,
+        GridDirection.right => 1,
+      };
+      setState(() =>
+          _currentIndex = (_currentIndex + delta).clamp(0, _visibleCount - 1));
+      _scrollToSelected();
+      return;
+    }
 
     if (_reorderState == ReorderState.grabbed) {
       _reorderMove(direction);
@@ -865,6 +975,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _scrollToSelected({bool instant = false}) {
+    if (_isDashboard) {
+      final target = _itemKeys[_currentIndex]?.currentContext;
+      if (target != null) {
+        Scrollable.ensureVisible(target,
+            alignment: 0.3,
+            duration:
+                instant ? Duration.zero : const Duration(milliseconds: 200),
+            curve: Curves.easeOut);
+      }
+      return;
+    }
     _focusManager.scrollToSelectedWithFallback(
       itemKey: _itemKeys[_focusManager.selectedIndex],
       crossAxisCount: _columns,
@@ -973,6 +1094,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _handleConfirm() {
+    if (_consoleNavigation) {
+      setState(() => _consoleNavigation = false);
+      return;
+    }
+    if (_isDashboard) {
+      if (_currentIndex < _consoleSummaries.length) {
+        _selectConsole(_consoleSummaries[_currentIndex].slug);
+      }
+      return;
+    }
     if (_reorderState == ReorderState.selecting) {
       _grabItem();
       return;
@@ -1000,6 +1131,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     }
     if (isSearchActive) {
       handleSearchBack();
+    } else if (_consoleNavigation) {
+      setState(() => _consoleNavigation = false);
+    } else if (_selectedConsole != null || _globalDiscoveryRequested) {
+      _selectConsole(null);
     } else {
       Navigator.pop(context);
     }
@@ -1335,6 +1470,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           onSelect: _removeCurrentGameFromShelf,
         ),
       if (shelf != null &&
+          _selectedConsole == null &&
           shelf.sortMode == ShelfSortMode.manual &&
           _filters.isEmpty &&
           _searchQuery.isEmpty &&
@@ -1425,14 +1561,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     return seen.values.toList();
   }
 
-  int get _allCount => _allGames.length;
+  int get _allCount => _scopedGames.length;
 
   int get _installedCount => _deduplicateInstalled(
-        _allGames.where((g) => _isGameInstalled(g)).toList(),
+        _scopedGames.where((g) => _isGameInstalled(g)).toList(),
       ).length;
 
   int get _favoritesCount =>
-      _allGames.where((g) => _favoriteIds.contains(g.selectionKey)).length;
+      _scopedGames.where((g) => _favoriteIds.contains(g.selectionKey)).length;
 
   // --- Build ---
 
@@ -1447,11 +1583,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _ratings = ratings == null || ratings.isLoading || ratings.hasError
         ? const {}
         : ratings.asData?.value ?? const {};
-    final baseTopPadding = rs.safeAreaTop + (rs.isSmall ? 72 : 96);
-    final searchExtraPadding =
-        isSearchActive ? (rs.isSmall ? 16.0 : 20.0) : 0.0;
-    final topPadding = baseTopPadding + searchExtraPadding;
-
     return buildWithActions(
       PopScope(
         canPop: false,
@@ -1462,13 +1593,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           backgroundColor: Colors.black,
           body: Stack(
             children: [
-              // Grid content (behind header)
-              Padding(
-                padding: EdgeInsets.only(top: topPadding),
-                child: _buildContent(rs),
-              ),
-              // Header (over grid, with gradient fade)
-              _buildHeader(rs),
+              Column(children: [
+                _buildHeader(rs),
+                Expanded(child: _buildContent(rs)),
+              ]),
               // Search bar
               if (isSearchActive) _buildSearchBar(),
               // HUD
@@ -1508,96 +1636,116 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         ),
     ];
 
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Color.fromRGBO(0, 0, 0, 0.9),
-              Color.fromRGBO(0, 0, 0, 0.6),
-              Colors.transparent,
-            ],
-            stops: [0.0, 0.5, 0.8, 1.0],
-          ),
+    return Container(
+      key: const ValueKey('library-header'),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black,
+            Color.fromRGBO(0, 0, 0, 0.9),
+            Color.fromRGBO(0, 0, 0, 0.6),
+            Colors.transparent,
+          ],
+          stops: [0.0, 0.5, 0.8, 1.0],
         ),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: rs.isSmall ? 16.0 : 24.0,
-              vertical: rs.isSmall ? 8.0 : 12.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      l.library_title,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: rs.isSmall ? 16.0 : 24.0,
+            vertical: rs.isSmall ? 8.0 : 12.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    l.library_title,
+                    style: TextStyle(
+                      fontSize: rs.isSmall ? 18 : 22,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                      onPressed: _openFilter,
+                      icon: const Icon(Icons.filter_alt_rounded),
+                      label: Text(_filters.isEmpty
+                          ? l.filter_title
+                          : l.filter_activeCount(_filters.activeCount))),
+                  // Sort indicator
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _isShelfTab
+                          ? switch (_activeShelf?.sortMode ??
+                              ShelfSortMode.alphabetical) {
+                              ShelfSortMode.alphabetical =>
+                                l.library_sortIndicatorAZ,
+                              ShelfSortMode.bySystem =>
+                                l.library_sortIndicatorBySystem,
+                              ShelfSortMode.manual =>
+                                l.library_sortIndicatorManual,
+                            }
+                          : _sortMode == LibrarySortMode.alphabetical
+                              ? l.library_sortIndicatorAZ
+                              : l.library_sortIndicatorBySystem,
                       style: TextStyle(
-                        fontSize: rs.isSmall ? 18 : 22,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 4,
+                        fontSize: rs.isSmall ? 9 : 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[400],
+                        letterSpacing: 1,
                       ),
                     ),
-                    const Spacer(),
-                    TextButton.icon(
-                        onPressed: _openFilter,
-                        icon: const Icon(Icons.filter_alt_rounded),
-                        label: Text(_filters.isEmpty
-                            ? l.filter_title
-                            : l.filter_activeCount(_filters.activeCount))),
-                    // Sort indicator
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        _isShelfTab
-                            ? switch (_activeShelf?.sortMode ??
-                                ShelfSortMode.alphabetical) {
-                                ShelfSortMode.alphabetical =>
-                                  l.library_sortIndicatorAZ,
-                                ShelfSortMode.bySystem =>
-                                  l.library_sortIndicatorBySystem,
-                                ShelfSortMode.manual =>
-                                  l.library_sortIndicatorManual,
-                              }
-                            : _sortMode == LibrarySortMode.alphabetical
-                                ? l.library_sortIndicatorAZ
-                                : l.library_sortIndicatorBySystem,
-                        style: TextStyle(
-                          fontSize: rs.isSmall ? 9 : 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[400],
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: rs.isSmall ? 6 : 10),
-                LibraryTabs(
-                  selectedTab: _selectedTab,
-                  tabs: tabs,
-                  accentColor: Colors.cyanAccent,
-                  onTap: _selectTab,
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              SizedBox(height: rs.isSmall ? 6 : 10),
+              LibraryTabs(
+                key: const ValueKey('library-console-tabs'),
+                selectedTab: _selectedConsole == null
+                    ? 0
+                    : _consoleSummaries
+                            .indexWhere((s) => s.slug == _selectedConsole) +
+                        1,
+                focused: _consoleNavigation,
+                tabs: [
+                  LibraryTab(
+                      label: l.library_dashboard,
+                      count: _consoleSummaries.length),
+                  for (final summary in _consoleSummaries)
+                    LibraryTab(
+                        label: _systemShortLabel(summary.slug),
+                        count: summary.entries)
+                ],
+                onTap: (index) {
+                  _consoleNavigation = false;
+                  _selectConsole(
+                      index == 0 ? null : _consoleSummaries[index - 1].slug);
+                },
+              ),
+              const SizedBox(height: 8),
+              LibraryTabs(
+                selectedTab: _selectedTab,
+                tabs: tabs,
+                accentColor: Colors.cyanAccent,
+                onTap: _selectTab,
+              ),
+            ],
           ),
         ),
       ),
@@ -1605,7 +1753,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   int _shelfGameCount(CustomShelf shelf) {
-    final allGameRecords = _allGames
+    final allGameRecords = _scopedGames
         .map((g) => (
               filename: g.selectionKey,
               displayName: g.displayName,
@@ -1617,6 +1765,73 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Widget _buildSearchBar() {
     return buildSearchWidget(searchQuery: _searchQuery);
+  }
+
+  Widget _buildDashboard(Responsive rs) {
+    final l = L.of(context);
+    return LayoutBuilder(builder: (context, constraints) {
+      _dashboardColumns = constraints.maxWidth >= 1300
+          ? 3
+          : constraints.maxWidth >= 700
+              ? 2
+              : 1;
+      return Column(key: const ValueKey('library-dashboard'), children: [
+        Padding(
+            padding:
+                EdgeInsets.symmetric(horizontal: rs.spacing.lg, vertical: 8),
+            child: Tooltip(
+                message: l.library_dashboardNote,
+                child: Text(l.library_dashboardNote,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        const TextStyle(color: Colors.white60, fontSize: 12)))),
+        Expanded(
+            child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: EdgeInsets.fromLTRB(rs.spacing.lg, 8, rs.spacing.lg, 100),
+          // Only one tile per available console, not one per ROM. Natural row
+          // height accommodates localization/text scaling; every mounted tile
+          // has an exact scroll target for controller navigation.
+          child: Column(children: [
+            for (var start = 0;
+                start < _consoleSummaries.length;
+                start += _dashboardColumns)
+              Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: IntrinsicHeight(
+                      child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var column = 0;
+                          column < _dashboardColumns;
+                          column++) ...[
+                        if (column > 0) const SizedBox(width: 16),
+                        Expanded(
+                            child: start + column >= _consoleSummaries.length
+                                ? const SizedBox()
+                                : KeyedSubtree(
+                                    key: _itemKeys[start + column],
+                                    child: LibraryConsoleCard(
+                                        key: ValueKey(
+                                            'console-summary-${_consoleSummaries[start + column].slug}'),
+                                        summary:
+                                            _consoleSummaries[start + column],
+                                        selected: !_consoleNavigation &&
+                                            _currentIndex == start + column,
+                                        onTap: () {
+                                          _consoleNavigation = false;
+                                          _selectConsole(
+                                              _consoleSummaries[start + column]
+                                                  .slug);
+                                        }))),
+                      ]
+                    ],
+                  ))),
+          ]),
+        )),
+      ]);
+    });
   }
 
   Widget _buildContent(Responsive rs) {
@@ -1632,6 +1847,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         TextButton(
             onPressed: _applyFilters, child: Text(L.of(context).common_retry)),
       ]));
+    }
+
+    if (_isDashboard && _consoleSummaries.isNotEmpty) {
+      return _buildDashboard(rs);
     }
 
     if (_filteredGames.isEmpty) {
@@ -1776,6 +1995,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   memCacheWidth: optimalCacheWidth,
                   scrollSuppression: _scrollSuppression,
                   isInstalled: isInstalled,
+                  isRemoteAvailable: variants.any((g) => g.hasDownloadSource),
                   isSelected: isSelected,
                   isFavorite: isFavorite,
                   raAchievementCount: raMatch?.achievementCount,
@@ -1814,6 +2034,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       ? null
                       : () {
                           if (_isShelfTab &&
+                              _selectedConsole == null &&
                               _activeShelf?.sortMode == ShelfSortMode.manual) {
                             _currentIndex = index;
                             _enterReorderMode();
@@ -1861,8 +2082,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     }
 
     return ConsoleHud(
-      a: HudAction(l.common_select, onTap: _openSelectedGame),
-      b: HudAction(l.common_back, onTap: () => Navigator.pop(context)),
+      a: HudAction(l.common_select, onTap: _handleConfirm),
+      b: HudAction(l.common_back, onTap: _handleBack),
       start: HudAction(l.common_menu, onTap: toggleQuickMenu),
     );
   }

@@ -149,6 +149,7 @@ void main() {
     expect(state.bySystem['psx'], {'Neighbor.chd'});
     expect(state.all, {'Neighbor.chd'});
     expect(state.exactBySystem['psx'], isEmpty);
+    expect(state.managedBytesBySystem['psx'], 0);
   });
 
   test('verified installation is exact per-system evidence, never a filename',
@@ -159,6 +160,7 @@ void main() {
     expect(state.all, isEmpty);
     expect(state.hasExactArtifact('psx', record.artifact), isTrue);
     expect(state.hasExactArtifact('nes', record.artifact), isFalse);
+    expect(state.managedBytesBySystem['psx'], 5);
     final renamed = RemoteArtifact.fromJson({
       ...record.artifact.toJson(),
       'displayName': 'Renamed.chd',
@@ -192,5 +194,6 @@ void main() {
     final after = await container.read(installedFilesProvider.future);
     expect(after.hasExactArtifact('psx', record.artifact), isFalse);
     expect(after.all, isEmpty);
+    expect(after.managedBytesBySystem['psx'], 0);
   });
 }

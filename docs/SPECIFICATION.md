@@ -885,6 +885,23 @@ leaving settings. Preserve exact-game scope, controller/touch access, error and
 reconnect actions, localization and compact-screen usability. Verify these
 paths in focused widget checks and normal Thor UI without changing owner data.
 
+S7 console browsing refinement (2026-10-08, user-authorized): the Library must
+provide direct console tabs instead of treating the entire multi-console archive
+as its default browsing grid. The global view is a console dashboard, not an
+unbounded All games grid: show cached per-console catalogue-entry counts,
+installed/downloadable/favorite counts and known source/managed-local storage.
+Distinguish unknown size coverage from zero and source size from local disk use;
+do not infer canonical game counts from filenames or initiate network/ROM scans
+for metrics. Selecting a dashboard console opens its games. First entry opens
+the dashboard; subsequent entry restores the last available console or dashboard.
+Explicit cross-console search/filtered shortlists remain available. Installed, Favorites, shelves,
+search and metadata filters operate within the selected console. Console scope
+is applied before Top ranking, not as a post-Top filter with missing results.
+Remember the selected scope across reopening; preserve existing filter and shelf
+state, keep every available console reachable by touch and controller, and avoid
+header/card overlap at compact and large sizes. Verify scope, persistence,
+ranking intersections and normal Thor navigation without modifying ROMs.
+
 S7 library refinement (2026-10-08, user-authorized): improve the tiny game-title
 labels and present an exact local/cloud game as one stable selectable identity,
 not duplicate cards or selectable local/cloud variants. Prefer its local file

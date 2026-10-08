@@ -16,6 +16,7 @@ class BaseGameCard extends StatelessWidget {
   final List<String> coverUrls;
   final String? cachedUrl;
   final bool isInstalled;
+  final bool isRemoteAvailable;
   final bool isSelected;
   final Color accentColor;
   final VoidCallback onTap;
@@ -71,6 +72,7 @@ class BaseGameCard extends StatelessWidget {
     required this.coverUrls,
     required this.cachedUrl,
     required this.isInstalled,
+    this.isRemoteAvailable = false,
     required this.isSelected,
     this.isFavorite = false,
     required this.accentColor,
@@ -103,8 +105,7 @@ class BaseGameCard extends StatelessWidget {
     final rs = context.rs;
     final selectedScale = rs.isSmall ? 1.08 : 1.1;
     final borderSelected = rs.isSmall ? 2.0 : 3.0;
-    final titleFontSize =
-        isSelected ? (rs.isSmall ? 9.0 : 11.0) : (rs.isSmall ? 7.0 : 9.0);
+    final titleFontSize = rs.isSmall ? 12.0 : 14.0;
     final variantFontSize = rs.isSmall ? 6.0 : 8.0;
     final padding = rs.isSmall ? 4.0 : 6.0;
     final borderRadius = rs.isSmall ? 8.0 : 10.0;
@@ -182,6 +183,8 @@ class BaseGameCard extends StatelessWidget {
                                     ),
                                     child: Text(
                                       systemLabel!.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: rs.isSmall ? 5.0 : 6.0,
                                         fontWeight: FontWeight.w700,
@@ -190,16 +193,23 @@ class BaseGameCard extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                if (isInstalled) ...[
+                                if (raAchievementCount != null &&
+                                    raAchievementCount! > 0 &&
+                                    raMatchType != RaMatchType.none) ...[
                                   if (systemLabel != null)
                                     SizedBox(height: rs.isSmall ? 2.0 : 3.0),
-                                  _InstalledBadge(isSmall: rs.isSmall),
+                                  _RaBadge(
+                                    count: raAchievementCount!,
+                                    matchType: raMatchType,
+                                    isMastered: isMastered,
+                                    isSmall: rs.isSmall,
+                                  ),
                                 ],
                               ],
                             ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               if (isFavorite)
                                 Container(
@@ -214,17 +224,11 @@ class BaseGameCard extends StatelessWidget {
                                     color: Colors.redAccent,
                                   ),
                                 ),
-                              if (raAchievementCount != null &&
-                                  raAchievementCount! > 0 &&
-                                  raMatchType != RaMatchType.none) ...[
-                                if (isFavorite)
-                                  SizedBox(height: rs.isSmall ? 2.0 : 3.0),
-                                _RaBadge(
-                                  count: raAchievementCount!,
-                                  matchType: raMatchType,
-                                  isMastered: isMastered,
-                                  isSmall: rs.isSmall,
-                                ),
+                              if (isInstalled || isRemoteAvailable) ...[
+                                SizedBox(width: rs.isSmall ? 2.0 : 3.0),
+                                _AvailabilityBadge(
+                                    installed: isInstalled,
+                                    isSmall: rs.isSmall),
                               ],
                             ],
                           ),
@@ -516,56 +520,37 @@ class _CoverRating extends StatelessWidget {
   }
 }
 
-class _InstalledBadge extends StatelessWidget {
+class _AvailabilityBadge extends StatelessWidget {
+  final bool installed;
   final bool isSmall;
-  const _InstalledBadge({required this.isSmall});
+  const _AvailabilityBadge({required this.installed, required this.isSmall});
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = isSmall ? 10.0 : 13.0;
-    final fontSize = isSmall ? 6.0 : 7.5;
-    final hPad = isSmall ? 4.0 : 5.0;
-    final vPad = isSmall ? 2.0 : 3.0;
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-      decoration: BoxDecoration(
-        color: const Color(0xCC0A3A0A),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: Colors.greenAccent.withValues(alpha: 0.5),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.greenAccent.withValues(alpha: 0.25),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_circle,
-            size: iconSize,
-            color: Colors.greenAccent,
-          ),
-          SizedBox(width: isSmall ? 2 : 3),
-          Flexible(
-              child: Text(
-            L.of(context).common_installed,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w700,
-              color: Colors.greenAccent,
-              letterSpacing: 0.5,
-              height: 1.0,
+    final label = installed
+        ? L.of(context).common_installed
+        : L.of(context).gameCard_cloudAvailable;
+    final color = installed ? Colors.greenAccent : Colors.white;
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        key: const ValueKey('cover-availability'),
+        container: true,
+        label: label,
+        child: Container(
+          padding: EdgeInsets.all(isSmall ? 2 : 3),
+          decoration: BoxDecoration(
+            color: const Color(0xDD151515),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: color.withValues(alpha: 0.5),
+              width: 1,
             ),
-          )),
-        ],
+          ),
+          child: Icon(installed ? Icons.sd_card : Icons.cloud_download_outlined,
+              size: isSmall ? 14 : 18, color: color),
+        ),
       ),
     );
   }

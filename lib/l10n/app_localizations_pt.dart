@@ -2063,6 +2063,33 @@ class LPt extends L {
   String get pairing_addServer => 'Adicionar servidor';
 
   @override
+  String get gameCard_cloudAvailable => 'Disponível para download';
+
+  @override
+  String get library_dashboard => 'Painel';
+
+  @override
+  String get library_catalogueEntries => 'Entradas do catálogo';
+
+  @override
+  String get library_sourceStorage => 'Tamanho de origem conhecido';
+
+  @override
+  String get library_managedStorage => 'Arquivos locais gerenciados';
+
+  @override
+  String get library_sizeUnknown => 'Desconhecido';
+
+  @override
+  String library_unknownSizes(int count) {
+    return '$count tamanhos de origem desconhecidos';
+  }
+
+  @override
+  String get library_dashboardNote =>
+      'Entradas em cache, não jogos únicos. Tamanhos de origem não são uso do SD; bytes locais gerenciados excluem arquivos não gerenciados, saves e BIOS.';
+
+  @override
   String get service_notificationTitle => 'R-Shop';
 
   @override

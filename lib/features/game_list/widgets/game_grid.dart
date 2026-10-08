@@ -319,6 +319,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
               cachedUrl,
           variantCount: variants.length,
           isInstalled: isInstalled,
+          isRemoteAvailable: variants.any((g) => g.hasDownloadSource),
           isSelected: isSelected,
           isFavorite: isFavorite,
           accentColor: widget.system.accentColor,

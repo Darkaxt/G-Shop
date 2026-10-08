@@ -18,6 +18,7 @@ class LibraryTabs extends StatefulWidget {
   final List<LibraryTab> tabs;
   final Color accentColor;
   final ValueChanged<int>? onTap;
+  final bool focused;
 
   const LibraryTabs({
     super.key,
@@ -25,6 +26,7 @@ class LibraryTabs extends StatefulWidget {
     required this.tabs,
     this.accentColor = Colors.cyanAccent,
     this.onTap,
+    this.focused = false,
   });
 
   @override
@@ -102,79 +104,86 @@ class _LibraryTabsState extends State<LibraryTabs> {
             key: _tabKeys[i],
             padding:
                 EdgeInsets.only(right: i < widget.tabs.length - 1 ? 2.0 : 0.0),
-            child: GestureDetector(
-              onTap: widget.onTap != null ? () => widget.onTap!(i) : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: EdgeInsets.symmetric(
-                  horizontal: hPadding,
-                  vertical: vPadding,
-                ),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? widget.accentColor.withValues(alpha: 0.2)
-                      : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isActive
-                        ? widget.accentColor.withValues(alpha: 0.5)
-                        : Colors.white.withValues(alpha: 0.08),
-                    width: 1,
+            child: Semantics(
+                button: true,
+                selected: isActive,
+                label: '${tab.label}, ${tab.count}',
+                child: GestureDetector(
+                  onTap: widget.onTap != null ? () => widget.onTap!(i) : null,
+                  child: AnimatedContainer(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    duration: const Duration(milliseconds: 150),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: hPadding,
+                      vertical: vPadding,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? widget.accentColor.withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isActive && widget.focused
+                            ? Colors.white
+                            : isActive
+                                ? widget.accentColor.withValues(alpha: 0.5)
+                                : Colors.white.withValues(alpha: 0.08),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (tab.isCustomShelf)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(
+                              Icons.collections_bookmark_rounded,
+                              size: fontSize,
+                              color: isActive
+                                  ? widget.accentColor
+                                  : Colors.grey[500],
+                            ),
+                          ),
+                        Text(
+                          tab.label.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight:
+                                isActive ? FontWeight.w700 : FontWeight.w500,
+                            color: isActive
+                                ? widget.accentColor
+                                : Colors.grey[500],
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? widget.accentColor.withValues(alpha: 0.3)
+                                : Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${tab.count}',
+                            style: TextStyle(
+                              fontSize: countFontSize,
+                              fontWeight: FontWeight.w600,
+                              color: isActive
+                                  ? widget.accentColor
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (tab.isCustomShelf)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Icon(
-                          Icons.collections_bookmark_rounded,
-                          size: fontSize,
-                          color: isActive
-                              ? widget.accentColor
-                              : Colors.grey[500],
-                        ),
-                      ),
-                    Text(
-                      tab.label.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: fontSize,
-                        fontWeight:
-                            isActive ? FontWeight.w700 : FontWeight.w500,
-                        color: isActive
-                            ? widget.accentColor
-                            : Colors.grey[500],
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? widget.accentColor.withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${tab.count}',
-                        style: TextStyle(
-                          fontSize: countFontSize,
-                          fontWeight: FontWeight.w600,
-                          color: isActive
-                              ? widget.accentColor
-                              : Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                )),
           );
         }),
       ),

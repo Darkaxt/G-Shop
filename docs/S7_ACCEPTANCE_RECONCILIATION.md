@@ -1,5 +1,24 @@
 # S7 live metadata and Thor migration
 
+## Console dashboard and readable covers — 2026-10-08
+
+UI-02's console/dashboard refinement is implemented and verified. The global
+landing page summarizes cached consoles instead of rendering the whole ROM
+collection. Console-scoped search, shelves, Installed/Favorites and pre-ranking
+Top-N scope pass focused checks; controller/touch console opening and Dashboard
+Back behavior pass in the normal Thor app. Source sizes and exact managed local
+bytes are separate, unknown coverage is explicit, and counts are catalogue
+entries rather than fabricated canonical-game totals. All supported locales pass
+narrow/large-text checks. Readable captions and SD/cloud cover badges pass shared
+card tests and normal native inspection. Build/device identities and qualifications
+are recorded in IMPLEMENTATION_STATUS.md; complete configuration is preserved.
+
+This does not close S7 or resolve its local/cloud duplicate identity requirement.
+Fresh collection coverage, recovery and reviewed migration remain required. The
+existing metadata job remains paused; a new full capture-digest audit and scrape
+advancement are not claimed by this UI checkpoint. S7 is sole ACTIVE; S8-S11 are
+NOT STARTED. No owner files, FolderSync or scheduled save-sync tasks were changed.
+
 ## Navigated metadata settings — 2026-10-08
 
 UI-02's settings-navigation slice is implemented and verified: persistent left

@@ -21,15 +21,21 @@ class InstalledFilesState {
   /// Verified managed files are never filename evidence for another game.
   final Map<String, List<RemoteArtifact>> exactBySystem;
 
+  /// Bytes of verified manifest-owned files, including bundle dependencies.
+  /// This is not whole-volume usage; unmanaged files have no cached size here.
+  final Map<String, int> managedBytesBySystem;
+
   const InstalledFilesState({
     this.bySystem = const {},
     this.all = const {},
     this.exactBySystem = const {},
+    this.managedBytesBySystem = const {},
   });
 
   bool hasExactArtifact(String systemId, RemoteArtifact artifact) =>
       exactBySystem[systemId]?.any((installed) =>
-          InstallationSnapshot.sameContent(installed, artifact)) ?? false;
+          InstallationSnapshot.sameContent(installed, artifact)) ??
+      false;
 }
 
 /// Central index of all installed ROM files, scanned on an isolate.
@@ -40,6 +46,7 @@ final installedFilesProvider = FutureProvider<InstalledFilesState>((ref) async {
   final candidates = await compute(_scanAllSystems, config);
   final bySystem = <String, Set<String>>{};
   final exactBySystem = <String, List<RemoteArtifact>>{};
+  final managedBytesBySystem = <String, int>{};
   final all = <String>{};
   final index = InstallationIndex.application();
   for (final sysConfig in config.systems) {
@@ -48,14 +55,31 @@ final installedFilesProvider = FutureProvider<InstalledFilesState>((ref) async {
     // Read journal truth after enumeration so newly published files cannot use
     // an exclusion snapshot captured before their public create/rename.
     final snapshot = await index.scan(sysConfig.targetFolder);
-    final filenames = paths.where(snapshot.allowsLegacy).map(p.basename).toSet();
+    final filenames =
+        paths.where(snapshot.allowsLegacy).map(p.basename).toSet();
     bySystem[sysConfig.id] = filenames;
     all.addAll(filenames);
     exactBySystem[sysConfig.id] = snapshot.installed.values
-        .map((installation) => installation.artifact).toList();
+        .map((installation) => installation.artifact)
+        .toList();
+    final files = <String, int>{};
+    for (final installation in snapshot.installed.values) {
+      for (final member in [installation, ...installation.dependencies]) {
+        // Bundled members can also occur in the index. Count each owned path
+        // once, never a source estimate or an uncommitted publication.
+        files[p.normalize(
+                p.join(member.destinationRoot, member.relativePath))] =
+            member.sizeBytes;
+      }
+    }
+    managedBytesBySystem[sysConfig.id] =
+        files.values.fold(0, (sum, bytes) => sum + bytes);
   }
-  return InstalledFilesState(bySystem: bySystem, all: all,
-      exactBySystem: exactBySystem);
+  return InstalledFilesState(
+      bySystem: bySystem,
+      all: all,
+      exactBySystem: exactBySystem,
+      managedBytesBySystem: managedBytesBySystem);
 });
 
 Map<String, Set<String>> _scanAllSystems(AppConfig config) {
@@ -94,7 +118,9 @@ Map<String, Set<String>> _scanAllSystems(AppConfig config) {
           filenames.add(entity.path);
         }
       }
-    } catch (e) { debugPrint('InstalledFiles: listSync failed: $e'); }
+    } catch (e) {
+      debugPrint('InstalledFiles: listSync failed: $e');
+    }
     bySystem[sysConfig.id] = filenames;
   }
 
@@ -111,6 +137,8 @@ bool _directoryContainsRom(Directory dir, Set<String> validExts) {
         return true;
       }
     }
-  } catch (e) { debugPrint('InstalledFiles: subfolder scan failed: $e'); }
+  } catch (e) {
+    debugPrint('InstalledFiles: subfolder scan failed: $e');
+  }
   return false;
 }

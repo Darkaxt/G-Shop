@@ -5,6 +5,57 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 console dashboard and readable library cards — verified, 2026-10-08
+
+- The global Library landing view is now a console dashboard instead of an
+  unbounded ROM grid. Direct console tabs scope browsing, Installed, Favorites,
+  shelves, search and metadata ranking; platform scope is applied before Top-N.
+  Explicit global search/filtered shortlists remain available. Last console and
+  per-console filters persist without inheriting conflicting global filters.
+- Each console summarizes cached catalogue entries, installed entries,
+  downloadable entries, favorites, known source bytes and verified managed local
+  bytes. Unknown source sizes remain explicit. These are not canonical game
+  counts or whole-SD usage: unmanaged files, saves and BIOS are excluded from
+  managed bytes. Existing Installed-tab deduplication can produce a smaller
+  browsing count than the dashboard's installed catalogue-entry count; stable
+  single local/cloud identity remains unfinished S7 work, not claimed fixed.
+- Shared covers have readable captions and local-first SD/cloud indicators.
+  Header layout participates in normal flow rather than overlapping the cards.
+  Metadata reload preserves current search/focus instead of replaying the index
+  saved on an earlier route visit. Dashboard rows size naturally for larger text.
+- Focused SQLite/widget checks pass for cached/unknown storage accounting,
+  console-first Top-N, default dashboard, persistent scope, search/reload,
+  Installed/Favorites/shelves, controller navigation and resolved covers. All six
+  locales pass narrow large-text dashboard checks. Shared cover layout/rating
+  golden and media-fallback checks pass on unchanged card code. Scoped analysis
+  and whitespace checks pass. No full-suite run was needed for this bounded slice.
+- Normal Thor checks prove the default dashboard with 25 cached consoles, touch
+  opening a console, D-pad Up/Right/A switching FDS to Game & Watch, scoped ROM
+  cards and Back returning to the dashboard. Storage metrics remain accessible
+  by scrolling. Native captures are retained privately under
+  `D:/Temp/rshop-library-card-20261008/`; no catalogue payload is committed.
+- Gated normal debug assembly ticket 379 exited zero. The shared mutex launcher
+  retained the gate through completion; observed workers=2, parallel=false and
+  Gradle heap=3,221,225,472 bytes, with required metaspace/code-cache arguments
+  retained. Kotlin 2.2.20 uses in-process compilation, sharing that heap. Test
+  configuration reports one fork/512 MiB (assembly does not execute tests).
+  App JNI pools remain depth one; dependency-native concurrency is not verified.
+  No memory failure or budget increase occurred. Log:
+  `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/2f538809c80244fa9be6f9e667a5bc20.log`.
+- APK SHA-256 is
+  `99071143d131a0311868714bf9af802c15ad01304e93f8ec5ff45e9505da3986`;
+  package/version remain `com.darkaxt.rshop.debug`, 1.7.0/12. Signer digest
+  `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`
+  is unchanged, and preserving `install -r` succeeds. Full configuration digest
+  remains unchanged after navigation. The saved metadata job was already paused
+  before this update; no new capture, mapping Save or resumed scrape is claimed.
+  The prior external read-only audit helper was killed twice after the earlier
+  card update; it was not retried here and no new full capture-digest proof is
+  claimed. Both physical displays are confirmed committed OFF, power Asleep.
+- This closes only the bounded dashboard/card/navigation slice. S7 is still sole
+  ACTIVE; single game identity, fresh coverage and migration gates remain open.
+  No owner ROM/save/BIOS removal, legacy-sync change or external release occurred.
+
 ### S7 navigated metadata settings — verified, 2026-10-08
 
 - Replaced the single long form with persistent left-hand ScreenScraper, IGDB,

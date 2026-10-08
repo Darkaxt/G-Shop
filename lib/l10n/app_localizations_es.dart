@@ -2065,6 +2065,33 @@ class LEs extends L {
   String get pairing_addServer => 'Añadir servidor';
 
   @override
+  String get gameCard_cloudAvailable => 'Disponible para descargar';
+
+  @override
+  String get library_dashboard => 'Resumen';
+
+  @override
+  String get library_catalogueEntries => 'Entradas del catálogo';
+
+  @override
+  String get library_sourceStorage => 'Tamaño de origen conocido';
+
+  @override
+  String get library_managedStorage => 'Archivos locales gestionados';
+
+  @override
+  String get library_sizeUnknown => 'Desconocido';
+
+  @override
+  String library_unknownSizes(int count) {
+    return '$count tamaños de origen desconocidos';
+  }
+
+  @override
+  String get library_dashboardNote =>
+      'Entradas en caché, no juegos únicos. El tamaño de origen no es el uso de la SD; los bytes locales gestionados excluyen archivos ajenos, partidas y BIOS.';
+
+  @override
   String get service_notificationTitle => 'R-Shop';
 
   @override

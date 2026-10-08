@@ -2063,6 +2063,33 @@ class LDe extends L {
   String get pairing_addServer => 'Server hinzufügen';
 
   @override
+  String get gameCard_cloudAvailable => 'Zum Herunterladen verfügbar';
+
+  @override
+  String get library_dashboard => 'Übersicht';
+
+  @override
+  String get library_catalogueEntries => 'Katalogeinträge';
+
+  @override
+  String get library_sourceStorage => 'Bekannte Quellgröße';
+
+  @override
+  String get library_managedStorage => 'Verwaltete lokale Dateien';
+
+  @override
+  String get library_sizeUnknown => 'Unbekannt';
+
+  @override
+  String library_unknownSizes(int count) {
+    return '$count unbekannte Quellgrößen';
+  }
+
+  @override
+  String get library_dashboardNote =>
+      'Zwischengespeicherte Einträge, keine eindeutigen Spiele. Quellgrößen sind keine SD-Belegung; lokale Bytes schließen fremde Dateien, Spielstände und BIOS aus.';
+
+  @override
   String get service_notificationTitle => 'R-Shop';
 
   @override

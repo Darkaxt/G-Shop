@@ -7,8 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/library/library_screen.dart';
+import 'package:retro_eshop/features/library/widgets/library_tabs.dart';
+import 'package:retro_eshop/features/library/widgets/library_dashboard.dart';
 import 'package:retro_eshop/features/game_list/widgets/filter_overlay.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
+import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/custom_shelf.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
@@ -68,7 +71,8 @@ void defineLibraryDiscoveryChecks({
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
       systemSlug TEXT, displayName TEXT, filename TEXT, url TEXT,
-      artifact_key TEXT, remote_artifact TEXT, is_folder INTEGER DEFAULT 0)''');
+      artifact_key TEXT, remote_artifact TEXT, provider_config TEXT,
+      is_folder INTEGER DEFAULT 0)''');
     await LibraryQuery.install(db);
     final store = LibraryStore(Future.value(db));
     final editions = <int, String>{};
@@ -81,7 +85,13 @@ void defineLibraryDiscoveryChecks({
         'systemSlug': platform,
         'displayName': title,
         'filename': '$title.7z',
-        'url': 'https://example.invalid/$i'
+        'url': 'https://example.invalid/$i',
+        if (i != 12)
+          'provider_config': jsonEncode(const ProviderConfig(
+                  type: ProviderType.web,
+                  priority: 1,
+                  url: 'https://example.invalid/')
+              .toJsonWithoutAuth()),
       });
       final id = (await db.transaction((txn) =>
               LibraryStore.catalogueEditions(txn, cacheRowId: i).toList()))
@@ -142,6 +152,8 @@ void defineLibraryDiscoveryChecks({
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
     await storage.init();
+    await storage.setFavoritesVersion(2);
+    await storage.setFavorites(['Game 02.7z', 'Game 09.7z']);
     await storage.setCustomShelves([
       CustomShelf(
           id: 'manual',
@@ -155,15 +167,26 @@ void defineLibraryDiscoveryChecks({
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
       installedFilesProvider
-          .overrideWith((ref) async => const InstalledFilesState()),
+          .overrideWith((ref) async => const InstalledFilesState(
+                bySystem: {
+                  'ps2': {'Game 02.7z'},
+                  'psx': {'Game 09.7z'}
+                },
+                all: {'Game 02.7z', 'Game 09.7z'},
+              )),
       deviceMemoryProvider.overrideWithValue(
           const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
       sourcesProvider
           .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
     ]);
     addTearDown(container.dispose);
-    Widget app() => UncontrolledProviderScope(
-        container: container, child: createTestApp(const LibraryScreen()));
+    Widget app({double textScale = 1}) => UncontrolledProviderScope(
+        container: container,
+        child: createTestApp(Builder(
+            builder: (context) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: TextScaler.linear(textScale)),
+                child: const LibraryScreen()))));
     List<String> cards() => tester
         .widgetList<BaseGameCard>(find.byType(BaseGameCard))
         .map((c) => c.displayName)
@@ -210,6 +233,9 @@ void defineLibraryDiscoveryChecks({
       void capture() {
         for (final card
             in tester.widgetList<BaseGameCard>(find.byType(BaseGameCard))) {
+          expect(card.isRemoteAvailable, card.displayName != 'Game 12',
+              reason: 'Library and shelf badges must use the entry source, '
+                  'not assume every cached game is downloadable');
           expect(card.systemId, anyOf('psx', 'ps2'));
           expect(mediaFallbackAsset(card.systemId),
               endsWith('/systematic/${card.systemId}.png'));
@@ -254,7 +280,115 @@ void defineLibraryDiscoveryChecks({
     await tester.pumpAndSettle();
     await container.read(cachedCoverRatingsProvider('').future);
     await tester.pumpAndSettle();
-    await expectCards(firstGames(12));
+    expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
+    expect(find.byType(BaseGameCard), findsNothing);
+    expect(find.byKey(const ValueKey('console-summary-psx')), findsOneWidget);
+    expect(find.byKey(const ValueKey('console-summary-ps2')), findsOneWidget);
+    final summaries =
+        tester.widgetList<LibraryConsoleCard>(find.byType(LibraryConsoleCard));
+    expect(summaries.map((c) => c.summary.entries), [6, 6]);
+    expect(summaries.map((c) => c.summary.unknownSourceSizes), [6, 5]);
+    expect(summaries.map((c) => c.summary.installed), [1, 1]);
+    expect(summaries.map((c) => c.summary.favorites), [1, 1]);
+    expect(
+        tester.getTopLeft(find.byKey(const ValueKey('library-dashboard'))).dy,
+        greaterThanOrEqualTo(tester
+            .getBottomLeft(find.byKey(const ValueKey('library-header')))
+            .dy));
+    if (factory == null) {
+      for (final size in [const Size(640, 360), const Size(1280, 720)]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(app(textScale: 1.3));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+      tester.view.physicalSize = const Size(1920, 1080);
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+    }
+    // A console's Top includes its sixth game, not only the five left after a
+    // collection-wide Top 10. Selecting the dashboard never opens the ROM dump.
+    await tester.tap(find.byKey(const ValueKey('console-summary-ps2')));
+    await tester.pumpAndSettle();
+    final evenGames = [
+      for (var i = 2; i <= 12; i += 2) 'Game ${i.toString().padLeft(2, '0')}'
+    ];
+    await expectCards(evenGames);
+    expect(storage.getLibraryConsole(), 'ps2');
+    await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
+    await tester.pumpAndSettle();
+    await tapFilter('discovery-top-10');
+    await expectCards(evenGames);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await expectCards(evenGames);
+    await tester.tap(find.text('INSTALLED').first);
+    await tester.pumpAndSettle();
+    await expectCards(['Game 02']);
+    await tester.tap(find.text('FAVORITES').first);
+    await tester.pumpAndSettle();
+    await expectCards(['Game 02']);
+    await tester.tap(find.text('ALL').first);
+    await tester.pumpAndSettle();
+    await expectCards(evenGames);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonY);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Game 04');
+    await tester.pumpAndSettle();
+    await expectCards(['Game 04']);
+    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.pumpAndSettle();
+    await expectCards(['Game 04']);
+    // The existing SearchOverlay uses the first B to leave text entry and the
+    // second B to close search; console navigation must preserve that control.
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonB);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonB);
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing,
+        reason: 'B closes console-scoped search');
+    await tester.tap(find.text('MANUAL').first);
+    await tester.pumpAndSettle();
+    await expectCards(['Game 12']);
+    await tester.tap(find.text('ALL').first);
+    await tester.pumpAndSettle();
+    // Up enters console navigation; Left selects PS1, then Dashboard. A/Down
+    // returns to content, preserving L2/R2's existing status-tab behavior.
+    tester
+        .widgetList<BaseGameCard>(find.byType(BaseGameCard))
+        .first
+        .onTapSelect!();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<LibraryTabs>(
+                find.byKey(const ValueKey('library-console-tabs')))
+            .focused,
+        isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    expect(storage.getLibraryConsole(), 'psx');
+    await expectCards([
+      for (var i = 1; i <= 11; i += 2) 'Game ${i.toString().padLeft(2, '0')}'
+    ]);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<LibraryTabs>(
+                find.byKey(const ValueKey('library-console-tabs')))
+            .focused,
+        isFalse);
     await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
     await tester.pumpAndSettle();
     expect(find.textContaining('one collection-wide limit'), findsOneWidget);
@@ -357,10 +491,13 @@ void defineLibraryDiscoveryChecks({
     expect(await db.query('library_query_views'), isEmpty);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await expectCards(['Game 01']);
-    await checkpoint?.call('library-restored-filters', tester);
+    expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
+    // Existing global filters remain saved, but reopening the global view is
+    // a dashboard until the user explicitly opens their filtered shortlist.
     await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
     await tester.pumpAndSettle();
+    await expectCards(['Game 01']);
+    await checkpoint?.call('library-restored-filters', tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
     await tester.pumpAndSettle();
     // Unrated catalogue members stay browsable but never acquire a fabricated
@@ -370,7 +507,7 @@ void defineLibraryDiscoveryChecks({
         {...last.toJson(), 'refreshGeneration': 4, 'ratings': <Object>[]}));
     container.read(gameDbChangedProvider.notifier).state++;
     await tester.pumpAndSettle();
-    await expectCards(firstGames(12));
+    expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
     await tapFilter('discovery-top-25');
     await expectCards(firstGames(11));
     for (var i = 1; i <= 11; i++) {
@@ -384,7 +521,18 @@ void defineLibraryDiscoveryChecks({
     await checkpoint?.call('library-unrated-top-empty', tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
     await tester.pumpAndSettle();
-    await expectCards(firstGames(12));
+    expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PS2').first);
+    await tester.pumpAndSettle();
+    // Console filters are independently remembered: clear its saved Top and
+    // verify unrated games remain browsable without invented scores.
+    await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
+    await tester.pumpAndSettle();
+    await expectCards(evenGames);
     await checkpoint?.call('library-unrated-browsable', tester);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();

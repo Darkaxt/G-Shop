@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,12 +67,14 @@ class ResolvedCoverChecks {
         .query('games', where: 'displayName = ?', whereArgs: ['Game 01']);
     expect(rows, hasLength(1));
     final row = rows.single;
-    final url = 'https://example.invalid/$view-resolved-cover.png';
+    // Fresh metadata artwork is a durable local file, not a legacy HTTP cover
+    // pointer. Exercise that normal path without a network/cache-manager task.
+    final file = File('${root.path}/$view-resolved-cover.png');
+    final url = Uri.file(file.path).toString();
     final bytes = await rootBundle.load('assets/icon.png');
     await tester.runAsync(() async {
-      await GameCoverCacheManager.instance.putFile(url,
-          bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
-          fileExtension: 'png');
+      await file.writeAsBytes(
+          bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes));
       final columns = await db.rawQuery('PRAGMA table_info(games)');
       if (!columns.any((c) => c['name'] == 'cover_url')) {
         // The minimal Library fixture omits unrelated historical columns.
@@ -83,32 +84,30 @@ class ResolvedCoverChecks {
           await db.update('games', {'cover_url': url},
               where: 'id = ?', whereArgs: [row['id']]),
           1);
-    });
-    await tester.runAsync(() async {
-      if (view == 'console') {
-        // Normal console startup reads its persisted cover pointer. Re-open the
-        // same synthetic app scope, not a stand-in card or injected controller.
-        final app = tester.widget<UncontrolledProviderScope>(
-            find.byType(UncontrolledProviderScope).first);
-        await tester.pumpWidget(const SizedBox());
-        await tester.pumpAndSettle();
-        await tester.pumpWidget(app);
-      } else {
-        container.read(gameDbChangedProvider.notifier).state++;
-      }
-      await tester.pumpAndSettle();
-      expect(card().cachedUrl, url);
-      final provider = CachedNetworkImageProvider(url,
-          cacheManager: GameCoverCacheManager.instance);
-      final context = tester.element(inside(SmartCoverImage));
-      // OctoImage decodes its resized key; its imageBuilder passes the original
-      // provider to the real rendered Image. Join both actual decode streams.
+      // Decode native file IO before mounting its pointer in the fake clock.
+      // Match Image.file's normalized path and resized cache key exactly.
       await precacheImage(
-          ResizeImage.resizeIfNeeded(card().memCacheWidth, null, provider),
-          context);
-      await precacheImage(provider, context);
+          ResizeImage.resizeIfNeeded(before.memCacheWidth, null,
+              FileImage(File.fromUri(Uri.parse(url)))),
+          tester.element(inside(SmartCoverImage)),
+          onError: (error, stack) => fail('Cover decode failed: $error'));
     });
+    // Keep application rebuilds/queries in the widget test's fake-async zone.
+    // Only real filesystem IO and native image decoding belong in runAsync;
+    // starting DB readers there strands their continuations after it returns.
+    if (view == 'console') {
+      // Normal console startup reads its persisted cover pointer. Re-open the
+      // same synthetic app scope, not a stand-in card or injected controller.
+      final app = tester.widget<UncontrolledProviderScope>(
+          find.byType(UncontrolledProviderScope).first);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(app);
+    } else {
+      container.read(gameDbChangedProvider.notifier).state++;
+    }
     await tester.pumpAndSettle();
+    expect(card().cachedUrl, url);
     expect(inside(MediaCoverFallback), findsNothing);
     final images = tester.widgetList<RawImage>(inside(RawImage));
     expect(images.any((image) => image.image != null), isTrue,
@@ -125,12 +124,23 @@ class ResolvedCoverChecks {
     await capture();
     if (view != 'console') {
       // Return the shared normal-screen fixture to its original cover state.
-      await db.update('games', {'cover_url': row['cover_url']},
-          where: 'id = ?', whereArgs: [row['id']]);
+      // Cache reads and SQLite writes use real asynchronous IO. Join the
+      // restoration outside the widget test's fake clock, just like seeding.
+      await tester.runAsync(() async {
+        await db.update('games', {'cover_url': row['cover_url']},
+            where: 'id = ?', whereArgs: [row['id']]);
+      });
       container.read(gameDbChangedProvider.notifier).state++;
       await tester.pumpAndSettle();
       expect(inside(MediaCoverFallback), findsOneWidget);
     }
+    // Reopening the normal screen also looks up missing legacy covers. The
+    // cache package owns a maintenance timer which dispose() does not cancel.
+    // Exercise its configured maintenance interval in the test clock; this is
+    // not a wait for app/query/image readiness (all are asserted above).
+    await tester
+        .pump(GameCoverCacheManager.instance.store.cleanupRunMinInterval);
+    await tester.pumpAndSettle();
   }
 }
 

@@ -3838,6 +3838,54 @@ abstract class L {
   /// **'Add server'**
   String get pairing_addServer;
 
+  /// No description provided for @gameCard_cloudAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available to download'**
+  String get gameCard_cloudAvailable;
+
+  /// No description provided for @library_dashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get library_dashboard;
+
+  /// No description provided for @library_catalogueEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogue entries'**
+  String get library_catalogueEntries;
+
+  /// No description provided for @library_sourceStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Known source size'**
+  String get library_sourceStorage;
+
+  /// No description provided for @library_managedStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Managed local files'**
+  String get library_managedStorage;
+
+  /// No description provided for @library_sizeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get library_sizeUnknown;
+
+  /// No description provided for @library_unknownSizes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} source sizes unknown'**
+  String library_unknownSizes(int count);
+
+  /// No description provided for @library_dashboardNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached catalogue entries, not unique games. Source sizes are not SD usage; managed local bytes exclude unmanaged files, saves and BIOS.'**
+  String get library_dashboardNote;
+
   /// No description provided for @service_notificationTitle.
   ///
   /// In en, this message translates to:

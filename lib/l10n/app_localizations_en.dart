@@ -2049,6 +2049,33 @@ class LEn extends L {
   String get pairing_addServer => 'Add server';
 
   @override
+  String get gameCard_cloudAvailable => 'Available to download';
+
+  @override
+  String get library_dashboard => 'Dashboard';
+
+  @override
+  String get library_catalogueEntries => 'Catalogue entries';
+
+  @override
+  String get library_sourceStorage => 'Known source size';
+
+  @override
+  String get library_managedStorage => 'Managed local files';
+
+  @override
+  String get library_sizeUnknown => 'Unknown';
+
+  @override
+  String library_unknownSizes(int count) {
+    return '$count source sizes unknown';
+  }
+
+  @override
+  String get library_dashboardNote =>
+      'Cached catalogue entries, not unique games. Source sizes are not SD usage; managed local bytes exclude unmanaged files, saves and BIOS.';
+
+  @override
   String get service_notificationTitle => 'R-Shop';
 
   @override

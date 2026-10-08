@@ -271,6 +271,8 @@ void defineConsoleDiscoveryChecks({
             tester.widgetList<BaseGameCard>(find.byType(BaseGameCard));
         for (final card in cards) {
           expect(card.systemId, 'psx');
+          expect(card.isRemoteAvailable, isTrue,
+              reason: 'Drive catalogue games expose their download source');
           expect(card.overallRating, isNotNull, reason: card.displayName);
           seen.add(card.displayName);
         }

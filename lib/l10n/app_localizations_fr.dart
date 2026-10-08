@@ -2065,6 +2065,33 @@ class LFr extends L {
   String get pairing_addServer => 'Ajouter le serveur';
 
   @override
+  String get gameCard_cloudAvailable => 'Disponible au téléchargement';
+
+  @override
+  String get library_dashboard => 'Tableau de bord';
+
+  @override
+  String get library_catalogueEntries => 'Entrées du catalogue';
+
+  @override
+  String get library_sourceStorage => 'Taille source connue';
+
+  @override
+  String get library_managedStorage => 'Fichiers locaux gérés';
+
+  @override
+  String get library_sizeUnknown => 'Inconnue';
+
+  @override
+  String library_unknownSizes(int count) {
+    return '$count tailles source inconnues';
+  }
+
+  @override
+  String get library_dashboardNote =>
+      'Entrées en cache, pas des jeux uniques. Les tailles source ne sont pas l’espace SD ; les octets gérés excluent les fichiers non gérés, sauvegardes et BIOS.';
+
+  @override
   String get service_notificationTitle => 'R-Shop';
 
   @override

@@ -173,7 +173,8 @@ class StorageService {
     try {
       return SoundSettings.fromJson(jsonDecode(json) as Map<String, dynamic>);
     } catch (e) {
-      debugPrint('StorageService: sound settings parse failed, using defaults: $e');
+      debugPrint(
+          'StorageService: sound settings parse failed, using defaults: $e');
       return const SoundSettings();
     }
   }
@@ -263,8 +264,8 @@ class StorageService {
 
   Future<void> setLastSyncTime(String systemId, DateTime time) async {
     _ensureInitialized();
-    await _prefs!.setString(
-        '$_lastSyncPrefix$systemId', time.toIso8601String());
+    await _prefs!
+        .setString('$_lastSyncPrefix$systemId', time.toIso8601String());
   }
 
   // --- Download Queue Persistence ---
@@ -289,6 +290,18 @@ class StorageService {
   }
 
   // --- Filter Persistence ---
+
+  String? getLibraryConsole() {
+    _ensureInitialized();
+    return _prefs!.getString('library_console');
+  }
+
+  Future<void> setLibraryConsole(String? slug) async {
+    _ensureInitialized();
+    if (!await _prefs!.setString('library_console', slug ?? '')) {
+      throw StateError('Library console selection could not be persisted');
+    }
+  }
 
   String? getFilters(String systemId) {
     _ensureInitialized();

@@ -37,6 +37,16 @@ database. Continue that immutable job, then close the remaining coverage,
 retention and migration criteria without recreating the snapshot.
 S7 is ACTIVE; S8-S11 remain NOT STARTED.
 
+Verified S7 dashboard/card slice (2026-10-08): global Library now lands on cached
+per-console metrics; direct console tabs scope browsing and Top-N before ranking.
+Focused persistence/search/shelf/controller/localized-layout and cover tests pass,
+and normal Thor checks prove dashboard opening, scoped cards, controller console
+switching and Back. Readable captions and SD/cloud badges are verified. Counts
+are explicitly catalogue entries, not canonical unique games; stable local/cloud
+identity is still unfinished S7 work. Exact managed local bytes exclude unmanaged
+storage. Configuration is unchanged; saved scraping is paused, not claimed resumed.
+The status/reconciliation ledger contains current APK and gated build evidence.
+
 Verified S7 Wii RVZ checkpoint (2026-10-08): normal exact owned Drive download,
 committed publication, online startup, cold offline profile-screen boot, normal
 removal and identical re-download/restored boot pass on the Thor using the
@@ -983,6 +993,15 @@ S8-S10 are still required before overall completion. Public evidence must not co
 private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
+
+Current console browsing requirement (2026-10-08, UI-02): add direct console
+tabs, remembered console selection and a first-entry console dashboard replacing
+the unbounded All games grid. Use cached counts and known source/managed-local
+bytes, explicitly labelling unknown coverage and noncanonical entry counts;
+selecting a console opens its games. Preserve explicit global search/shortlists. Apply
+that scope consistently to availability/favorites/shelves/search and before Top
+ranking, preserving existing controls. Focused behavior and normal Thor proof
+are required. This is unfinished current S7 work, not another ACTIVE stage.
 
 Current authorized UI integration (2026-10-08, UI-01/UI-02/CORE-02): replace
 metadata's long form with left section navigation, provider overview pages,

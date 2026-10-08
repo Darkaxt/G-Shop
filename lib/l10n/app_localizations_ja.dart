@@ -1997,6 +1997,33 @@ class LJa extends L {
   String get pairing_addServer => 'サーバーを追加';
 
   @override
+  String get gameCard_cloudAvailable => 'ダウンロード可能';
+
+  @override
+  String get library_dashboard => 'ダッシュボード';
+
+  @override
+  String get library_catalogueEntries => 'カタログ項目';
+
+  @override
+  String get library_sourceStorage => '既知の配信元サイズ';
+
+  @override
+  String get library_managedStorage => '管理対象のローカルファイル';
+
+  @override
+  String get library_sizeUnknown => '不明';
+
+  @override
+  String library_unknownSizes(int count) {
+    return 'サイズ不明の配信元: $count';
+  }
+
+  @override
+  String get library_dashboardNote =>
+      'キャッシュ内の項目数で、重複を除いたゲーム数ではありません。配信元サイズはSD使用量ではなく、管理対象のバイト数には管理外ファイル、セーブ、BIOSは含まれません。';
+
+  @override
   String get service_notificationTitle => 'R-Shop';
 
   @override

@@ -29,6 +29,8 @@ void defineCoverCardLayoutChecks({
       Locale locale = const Locale('en'),
       double textScale = 1,
       bool footer = true,
+      bool installed = true,
+      bool remoteAvailable = false,
       DownloadStatus? download,
       RaMatchType achievement = RaMatchType.hashVerified,
       bool mastered = false}) async {
@@ -56,7 +58,8 @@ void defineCoverCardLayoutChecks({
                 systemId: 'n64',
                 coverUrls: const [],
                 cachedUrl: null,
-                isInstalled: true,
+                isInstalled: installed,
+                isRemoteAvailable: remoteAvailable,
                 isSelected: selected,
                 isFavorite: true,
                 systemLabel: 'N64',
@@ -142,8 +145,62 @@ void defineCoverCardLayoutChecks({
     }
     expect(find.byIcon(Icons.favorite), findsOneWidget);
     expect(find.text('N64'), findsOneWidget);
+    expect(
+        tester
+            .renderObject<RenderParagraph>(find.text('N64'))
+            .didExceedMaxLines,
+        isFalse,
+        reason:
+            'Availability and favorite icons must leave the platform legible');
     expect(find.text('99'), findsOneWidget);
   }
+
+  testWidgets('readable captions and truthful local/cloud cover availability',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    for (final compact in [true, false]) {
+      for (final selected in [true, false]) {
+        await open(tester, compact: compact, selected: selected);
+        expect(tester.widget<Text>(find.text(_title)).style!.fontSize,
+            greaterThanOrEqualTo(compact ? 12 : 14));
+        final local = find.byKey(const ValueKey('cover-availability'));
+        expect(find.descendant(of: local, matching: find.byIcon(Icons.sd_card)),
+            findsOneWidget);
+        expect(find.bySemanticsLabel('INSTALLED'), findsOneWidget);
+        checkGeometry(tester, footer: true);
+
+        await open(tester,
+            compact: compact,
+            selected: selected,
+            installed: false,
+            remoteAvailable: true);
+        expect(find.byIcon(Icons.cloud_download_outlined), findsOneWidget);
+        expect(find.byIcon(Icons.sd_card), findsNothing);
+        expect(find.bySemanticsLabel('Available to download'), findsOneWidget);
+        checkGeometry(tester, footer: true);
+
+        await open(tester,
+            compact: compact,
+            selected: selected,
+            installed: true,
+            remoteAvailable: true);
+        expect(find.byIcon(Icons.sd_card), findsOneWidget);
+        expect(find.byIcon(Icons.cloud_download_outlined), findsNothing,
+            reason: 'Local availability takes precedence over its cloud copy');
+        await open(tester,
+            compact: compact,
+            selected: selected,
+            installed: false,
+            remoteAvailable: false);
+        expect(find.byKey(const ValueKey('cover-availability')), findsNothing,
+            reason:
+                'A missing local entry without a source is not a cloud game');
+        expect(tester.takeException(), isNull);
+      }
+    }
+    semantics.dispose();
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('source indicators never overlap title or provider footer',
       (tester) async {
@@ -170,7 +227,7 @@ void defineCoverCardLayoutChecks({
             compact: compact, selected: true, locale: locale, textScale: 1.3);
         checkGeometry(tester, footer: true);
         final l = L.of(tester.element(find.byType(BaseGameCard)));
-        expect(find.text(l.common_installed), findsOneWidget);
+        expect(find.byIcon(Icons.sd_card), findsOneWidget);
         expect(find.textContaining(l.metadata_staleScore), findsOneWidget);
         expect(find.textContaining(l.metadata_originalGame), findsOneWidget);
       }
