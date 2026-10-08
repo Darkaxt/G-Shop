@@ -213,6 +213,15 @@ on a real API token rejection. Concurrent rejection of an older token must not
 retire a newer successful grant. Do not persist credentials, add timer-based token
 leases, bypass consent or silently select another account.
 
+Cold process restart and signer-preserving app updates must restore authorization
+for the previously explicitly selected Android account without opening account
+selection. Persist only its private account ID/email reference, scoped to the
+OAuth client, not authentication/authorization tokens. Use account-bound native
+authorization with prompting disabled; a missing reference, revoked consent or
+account mismatch requires explicit connection. Explicit sign-out/revocation clears
+the reference so restart cannot resurrect the disconnected selection. This
+clarifies DRIVE-01 session continuity, not permission to persist bearer tokens.
+
 Use native Android Google authorization behind a Flutter adapter and Drive API
 v3. Support account selection, sign-out/revocation, token renewal and an explicit
 reauthorization state. Do not persist bearer tokens in catalogues, exported config

@@ -1,7 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart'
+    show
+        GoogleSignInPlatform,
+        AuthorizationRequestDetails,
+        ClientAuthorizationTokensForScopesParameters;
 
 import 'drive_authorization.dart';
 
@@ -13,15 +21,25 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
   final GoogleSignIn _google;
   final String serverClientId;
   final HttpClientAdapter? _revocationAdapter;
+  final FlutterSecureStorage _storage;
   Future<void>? _initialization;
   GoogleSignInAccount? _account;
+  ({String id, String email})? _accountReference;
+  bool _restorationAttempted = false;
   String? _lastAccessToken;
+
+  String get _accountReferenceKey =>
+      'drive_account_reference_v1:${Uri.encodeComponent(serverClientId)}';
 
   GoogleDriveSignIn(
       {required this.serverClientId,
       GoogleSignIn? google,
+      FlutterSecureStorage? storage,
       HttpClientAdapter? revocationAdapter})
       : _google = google ?? GoogleSignIn.instance,
+        _storage = storage ??
+            const FlutterSecureStorage(
+                aOptions: AndroidOptions(encryptedSharedPreferences: true)),
         _revocationAdapter = revocationAdapter;
 
   Future<void> _initialize() {
@@ -63,18 +81,42 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
       _native(() async {
         if (interactive) {
           _account = null;
+          _accountReference = null;
+          _restorationAttempted = true;
           _lastAccessToken = null;
+          await _storage.delete(key: _accountReferenceKey);
           _account = await _google.authenticate();
+          _accountReference = (id: _account!.id, email: _account!.email);
+        } else if (_accountReference == null &&
+            !_restorationAttempted &&
+            defaultTargetPlatform == TargetPlatform.android) {
+          final saved = await _storage.read(key: _accountReferenceKey);
+          if (saved != null) {
+            final decoded = jsonDecode(saved) as Map<String, dynamic>;
+            final id = decoded['id'];
+            final email = decoded['email'];
+            if (decoded.length != 2 ||
+                id is! String ||
+                id.trim().isEmpty ||
+                email is! String ||
+                email.trim().isEmpty) {
+              throw const DriveAuthorizationException(
+                  DriveAuthorizationIssue.interactionRequired);
+            }
+            _accountReference = (id: id, email: email);
+          }
+          _restorationAttempted = true;
         }
-        // Android lightweight authentication may show an account sheet. Only
-        // reuse an explicitly connected account for background requests; after
-        // process restart, the UI must offer Connect instead of showing consent
-        // from a queue worker. Scope/token renewal itself remains noninteractive.
-        return _account?.id;
+        // The reference is not a credential or a usable grant. On Android the
+        // existing native authorization API can obtain a token for that exact
+        // account without Credential Manager (whose lightweight flow can show
+        // a chooser). The coordinator checks the source's expected ID before
+        // any token request. Native consent is still required if access is gone.
+        return _accountReference?.id;
       });
 
-  GoogleSignInAccount _boundAccount(String accountId) {
-    final account = _account;
+  ({String id, String email}) _boundAccount(String accountId) {
+    final account = _accountReference;
     if (account == null || account.id != accountId) {
       throw const DriveAuthorizationException(
           DriveAuthorizationIssue.accountMismatch);
@@ -91,12 +133,38 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
           throw const DriveAuthorizationException(
               DriveAuthorizationIssue.setupRequired);
         }
-        final client = _boundAccount(accountId).authorizationClient;
-        final existing = await client.authorizationForScopes(scopes);
-        if (existing != null) return _lastAccessToken = existing.accessToken;
-        if (!interactive) return null;
-        return _lastAccessToken =
-            (await client.authorizeScopes(scopes)).accessToken;
+        final account = _boundAccount(accountId);
+        String? token;
+        final liveAccount = _account;
+        if (liveAccount != null) {
+          final client = liveAccount.authorizationClient;
+          token = (await client.authorizationForScopes(scopes))?.accessToken;
+          if (token == null && interactive) {
+            token = (await client.authorizeScopes(scopes)).accessToken;
+          }
+        } else {
+          // The endorsed Android platform implementation uses AuthorizationClient
+          // with setAccount(email). With prompting disabled it returns null for
+          // a resolution and never starts its PendingIntent/account chooser.
+          token = (await GoogleSignInPlatform.instance
+                  .clientAuthorizationTokensForScopes(
+                      ClientAuthorizationTokensForScopesParameters(
+                          request: AuthorizationRequestDetails(
+                              scopes: scopes,
+                              userId: account.id,
+                              email: account.email,
+                              promptIfUnauthorized: false))))
+              ?.accessToken;
+        }
+        if (token == null || token.isEmpty) return null;
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          // Store only the explicit account selection, never access/ID/refresh
+          // tokens. A restored reference cannot itself authorize a request.
+          await _storage.write(
+              key: _accountReferenceKey,
+              value: jsonEncode({'id': account.id, 'email': account.email}));
+        }
+        return _lastAccessToken = token;
       });
 
   Future<void> _revokeAtGoogle(String token) async {
@@ -127,7 +195,7 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
   @override
   Future<void> clearRejectedToken(String accountId, String token) =>
       _native(() async {
-        final client = _boundAccount(accountId).authorizationClient;
+        _boundAccount(accountId);
         // microG's identity service omits the clear-token feature, causing the
         // modern SDK to await feature resolution instead of dispatching the call.
         // Select its supported native cache operation BEFORE making that call.
@@ -138,12 +206,13 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
                 true) {
           return;
         }
-        await client.clearAuthorizationToken(accessToken: token);
+        await _google.authorizationClient
+            .clearAuthorizationToken(accessToken: token);
       });
 
   @override
   Future<void> signOut({required bool revoke}) => _native(() async {
-        if (revoke && (_account == null || _lastAccessToken == null)) {
+        if (revoke && (_accountReference == null || _lastAccessToken == null)) {
           // Without a restored credential, a cold start cannot confirm that
           // the app's actual remote grant was revoked.
           throw const DriveAuthorizationException(
@@ -156,11 +225,15 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
           // Keep the bound credential on server failure so an explicit retry
           // remains possible. The coordinator already invalidated late grants.
           await _revokeAtGoogle(_lastAccessToken!);
+          await _storage.delete(key: _accountReferenceKey);
           await _google.disconnect();
         } else {
+          await _storage.delete(key: _accountReferenceKey);
           await _google.signOut();
         }
         _account = null;
+        _accountReference = null;
+        _restorationAttempted = true;
         _lastAccessToken = null;
       });
 }
