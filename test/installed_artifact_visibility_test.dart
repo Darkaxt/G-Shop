@@ -15,12 +15,14 @@ import 'package:retro_eshop/features/game_detail/game_detail_controller.dart';
 import 'package:retro_eshop/services/download_queue_manager.dart';
 import 'package:retro_eshop/services/rom_manager.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:retro_eshop/utils/game_merge_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Database db;
   late TransferJournal journal;
+  late Directory sandbox;
   late Directory root;
   late _Storage storage;
   late InstallationIndex index;
@@ -36,12 +38,13 @@ void main() {
     journal = TransferJournal(Future.value(db));
     storage = _Storage();
     index = InstallationIndex(journal, storage: storage);
-    root = Directory.systemTemp.createTempSync('installation-visibility-');
+    sandbox = Directory.systemTemp.createTempSync('installation-visibility-');
+    root = Directory(p.join(sandbox.path, 'roms'))..createSync();
   });
   tearDown(() async {
     DatabaseService.resetForTesting();
     await db.close();
-    root.deleteSync(recursive: true);
+    sandbox.deleteSync(recursive: true);
   });
 
   Future<TransferRecord> publication() async {
@@ -275,6 +278,32 @@ void main() {
     await controller.checkInstallationStatus();
     expect(controller.state.installedStatus, {0: true, 1: false});
     controller.dispose();
+  });
+
+  test('bulk scan retains the exact owned leaf below a mapped containing root',
+      () async {
+    final record = await complete();
+    final mappedRoot = root.parent.path;
+    final remote = game.copyWith(remoteArtifact: record.artifact);
+    // Generic enumeration finds the containing directory, which correctly
+    // cannot be exposed as a legacy game around an owned leaf. Both scan paths
+    // must nevertheless retain that leaf's exact identity from the journal.
+    for (final scan in [
+      RomManager.scanLocalGames,
+      RomManager.scanLocalGamesIsolate,
+    ]) {
+      final games = await scan(system, mappedRoot, installations: index);
+      final owned = games.where((g) => g.remoteArtifact != null).toList();
+      expect(owned, hasLength(1));
+      expect(owned.single.selectionKey, remote.selectionKey);
+      expect(games.any((g) => g.filename == p.basename(root.path)), isFalse);
+      final merged = GameMergeHelper.merge([remote], owned, system);
+      expect(merged, hasLength(1));
+      expect(merged.single.selectionKey, remote.selectionKey);
+      expect(await RomManager.resolveInstalledPath(
+          merged.single, system, mappedRoot, installations: index),
+          p.join(root.path, game.filename));
+    }
   });
 
   test(

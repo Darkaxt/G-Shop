@@ -5,6 +5,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 availability lifecycle fixes — host verified, 2026-10-08
+
+- The full objective is not complete: S0–S6 remain COMPLETE, S7 is the sole
+  ACTIVE stage, and S8–S11 remain NOT STARTED. Required single-identity integration,
+  completed fresh coverage and reviewed migration remain ordinary unfinished S7
+  work; neither this patch nor the dashboard closes those criteria.
+- Normal same-job Resume initially failed with a typed Drive authorization
+  exception. Sources reported `interactionRequired`. Reconnected the already
+  authorized default account through its normal chooser without saving/changing
+  source folders. Job 76 then advanced from 6,131 to 6,135 lookups, pending
+  38,078 to 38,074. Full configuration SHA-256 remains
+  `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
+  Power reports Asleep and both physical displays committed OFF while the worker
+  continues. This proves resumption, not completion of the collection pass.
+- Traced local/cloud source loss to the exact-object cache upsert used by remote
+  failure fallback. A source-less local observation now leaves an existing
+  sourced exact row unchanged, retaining its newer cloud version/rename, source,
+  artwork and stable selection key. A real SQLite regression failed on lost
+  download availability before the fix; it now verifies byte-for-byte cache and
+  immutable refresh-item preservation, no query invalidation, later remote
+  enrichment and subsequent authoritative remote updates.
+- Traced missing owned leaves to a difference between ordinary and bulk local
+  scans: the ordinary path supplemented journal-verified leaves hidden below a
+  protected containing directory; the bulk path did not. Both now use the same
+  existing supplement. The bounded regression failed for the bulk path before
+  the fix and now verifies one exact merged identity and offline path resolution
+  from either scanner. Unmanaged namesakes are not automatically merged/adopted.
+- Focused database, installation visibility, ROM path, merge, exact-runtime and
+  console-controller checks pass; scoped Dart analysis and whitespace checks
+  pass. One test workload ran at a time. A first reproduction was stopped after
+  identifying that its fixture would enumerate the host Temp parent; only that
+  invocation's confirmed process tree was stopped. The corrected fixture uses
+  an isolated parent. Its identified interrupted five-byte fixture and empty
+  directory were reviewed and removed through cleanup transaction
+  `736dfdb91fa20cdc133526fada07ea79`; absence was checked. No surviving test worker
+  or full-suite run is claimed.
+- These are host-verified source changes only. No new Gradle invocation, APK
+  installation, device ROM/save/BIOS removal, ownership adoption, legacy-sync
+  change or release occurred for this patch. Native deployment and wider
+  single-identity/migration acceptance remain open in S7.
+
 ### S7 console dashboard and readable library cards — verified, 2026-10-08
 
 - The global Library landing view is now a console dashboard instead of an

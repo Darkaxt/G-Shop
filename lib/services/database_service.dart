@@ -472,6 +472,12 @@ class DatabaseService {
       // IS NOT keeps nullable fields in the same atomic SQLite write boundary.
       final batch = txn.batch();
       for (final game in games) {
+        // A verified local scan establishes residency, not catalogue authority.
+        // In particular the offline fallback must not erase a cached source,
+        // revert a Drive rename, or replace newer cloud content with the local
+        // manifest's older version. InstallationIndex owns availability truth.
+        final localExactObservation = game.remoteArtifact != null &&
+            game.providerConfig == null && game.url.isEmpty;
         final conflictTarget = game.remoteArtifact == null
             ? '(systemSlug, filename) WHERE artifact_key IS NULL'
             : '(systemSlug, artifact_key) WHERE artifact_key IS NOT NULL';
@@ -489,7 +495,8 @@ class DatabaseService {
             is_folder = excluded.is_folder,
             alternative_sources = excluded.alternative_sources,
             remote_artifact = excluded.remote_artifact
-          WHERE filename IS NOT excluded.filename
+          WHERE ${localExactObservation ? 'provider_config IS NULL AND' : ''} (
+               filename IS NOT excluded.filename
             OR displayName IS NOT excluded.displayName
             OR url IS NOT excluded.url
             OR region IS NOT excluded.region
@@ -498,7 +505,7 @@ class DatabaseService {
             OR has_thumbnail IS NOT MAX(has_thumbnail, excluded.has_thumbnail)
             OR is_folder IS NOT excluded.is_folder
             OR alternative_sources IS NOT excluded.alternative_sources
-            OR remote_artifact IS NOT excluded.remote_artifact
+            OR remote_artifact IS NOT excluded.remote_artifact)
         ''', [
           systemSlug,
           game.filename,

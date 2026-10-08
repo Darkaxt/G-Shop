@@ -85,6 +85,66 @@ void main() {
 
   // ─── Schema ─────────────────────────────────────────────
 
+  test('local fallback cannot erase or roll back a cached exact cloud source',
+      () async {
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await LibraryQuery.install(db);
+    final local = exactGame('cloud-file');
+    final cloud = exactGame('cloud-file', name: 'Renamed.nes').copyWith(
+        providerConfig: const ProviderConfig(
+            type: ProviderType.drive, priority: 1, sourceId: 'source'),
+        remoteArtifact: RemoteArtifact.fromJson({
+          ...local.remoteArtifact!.toJson(),
+          'displayName': 'Renamed.nes',
+          'displayPath': 'nes/Renamed.nes',
+          'version': 'v2',
+          'providerChecksums': {'md5': 'different-current-digest'}
+        }),
+        cachedCoverUrl: 'https://example.invalid/cover');
+    await service.saveGames('nes', [cloud]);
+    final query = LibraryQuery(Future.value(db));
+    await query.page(filter: LibraryQueryFilter());
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    await jobs.createFromCatalogue(providerId: 'screenscraper');
+    final captured = await db.query('metadata_refresh_items');
+    final before = await db.query('games');
+
+    // LibrarySyncService takes this path after a remote refresh fails. Local
+    // residency is separately verified by InstallationIndex; it must not replace
+    // the catalogue's newer content/version or remove the download source.
+    await service.saveGames('nes', [local]);
+    final restored = (await service.getGames('nes')).single;
+    expect(restored.hasDownloadSource, isTrue);
+    expect(restored.selectionKey, cloud.selectionKey);
+    expect(await db.query('games'), before);
+    expect(await db.query('metadata_refresh_items'), captured);
+    expect(await db.query('library_query_cache_dirty'), isEmpty);
+  });
+
+  test('exact local discovery can be enriched and refreshed by its cloud source',
+      () async {
+    final local = exactGame('cloud-file');
+    await service.saveGames('nes', [local]);
+    final id = (await db.query('games')).single['id'];
+    final cloud = exactGame('cloud-file', name: 'Renamed.nes').copyWith(
+        providerConfig: const ProviderConfig(
+            type: ProviderType.drive, priority: 1, sourceId: 'source'));
+    await service.saveGames('nes', [cloud]);
+    expect((await service.getGames('nes')).single.hasDownloadSource, isTrue);
+    expect((await db.query('games')).single['id'], id);
+    await service.saveGames('nes', [local]);
+    await service.saveGames(
+        'nes', [exactGame('cloud-file', name: 'Latest.nes').copyWith(
+          providerConfig: cloud.providerConfig,
+        )]);
+    final games = await service.getGames('nes');
+    expect(games, hasLength(1));
+    expect(games.single.filename, 'Latest.nes');
+    expect(games.single.hasDownloadSource, isTrue);
+    expect(games.single.selectionKey, local.selectionKey);
+  });
+
   test('unchanged normal catalogue sync does not invalidate collection queries',
       () async {
     await LibrarySchema.install(db);

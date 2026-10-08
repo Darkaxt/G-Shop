@@ -1,5 +1,21 @@
 # S7 live metadata and Thor migration
 
+## Availability lifecycle checkpoint — 2026-10-08
+
+CORE-02's existing exact identity is now retained through source-less local cache
+fallback without erasing a sourced cloud row or rolling back its newer content.
+Ordinary and bulk scans retain journal-verified leaves below containing roots
+through the same merge path. Regression-first SQLite/scan checks, affected exact
+identity/controller checks, scoped analysis and whitespace checks pass. This is
+host verification only; the normal installed APK is unchanged by this patch.
+No unmanaged namesake equivalence, adoption or deletion is inferred.
+
+Normal default-account reconnection resolved `interactionRequired`; the existing
+job 76 resumes with advancing counters and unchanged configuration. Both screens
+are OFF. Fresh-pass completion, wider single-identity integration and migration
+remain unfinished acceptance criteria in the sole ACTIVE S7. S8–S11 remain NOT
+STARTED. See the current status checkpoint for exact evidence and limitations.
+
 ## Console dashboard and readable covers — 2026-10-08
 
 UI-02's console/dashboard refinement is implemented and verified. The global

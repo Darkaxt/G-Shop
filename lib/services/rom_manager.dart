@@ -131,23 +131,7 @@ class RomManager {
       );
       final index = await (installations ?? InstallationIndex.application())
           .scan(targetFolder);
-      final filtered = index.filterLocal(games, targetFolder);
-      final existing =
-          filtered.map((game) => game.remoteArtifact?.id.key).toSet();
-      for (final installation in index.installed.values) {
-        if (existing.add(installation.artifact.id.key)) {
-          filtered.add(GameItem(
-              filename: p.relative(
-                  p.join(
-                      installation.destinationRoot, installation.relativePath),
-                  from: targetFolder),
-              displayName:
-                  GameItem.cleanDisplayName(installation.artifact.displayName),
-              url: '',
-              remoteArtifact: installation.artifact));
-        }
-      }
-      return filtered;
+      return _localGamesWithInstallations(games, index, targetFolder);
     } on FileSystemException catch (e) {
       debugPrint('RomManager: cannot scan $targetFolder: $e');
       return [];
@@ -437,11 +421,32 @@ class RomManager {
         multiFileExtensions: system.multiFileExtensions,
       ),
     );
-    if (games.isEmpty) return games;
     // Read durable evidence after the asynchronous enumeration, never before.
     final index = await (installations ?? InstallationIndex.application())
         .scan(targetFolder);
-    return index.filterLocal(games, targetFolder);
+    return _localGamesWithInstallations(games, index, targetFolder);
+  }
+
+  // Both entry points must retain exact committed leaves, including leaves
+  // hidden inside a directory which is unsafe to expose as a legacy game.
+  // Generic enumeration alone is not the installation inventory.
+  static List<GameItem> _localGamesWithInstallations(List<GameItem> games,
+      InstallationSnapshot index, String targetFolder) {
+    final filtered = index.filterLocal(games, targetFolder);
+    final existing = filtered.map((game) => game.remoteArtifact?.id.key).toSet();
+    for (final installation in index.installed.values) {
+      if (existing.add(installation.artifact.id.key)) {
+        filtered.add(GameItem(
+            filename: p.relative(
+                p.join(installation.destinationRoot, installation.relativePath),
+                from: targetFolder),
+            displayName:
+                GameItem.cleanDisplayName(installation.artifact.displayName),
+            url: '',
+            remoteArtifact: installation.artifact));
+      }
+    }
+    return filtered;
   }
 
   /// Shared 2-pass scan logic used by both main-thread and isolate scanners.

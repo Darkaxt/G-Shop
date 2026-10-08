@@ -911,6 +911,14 @@ on the cover. Filename similarity alone cannot establish exact equivalence,
 installation ownership or permission to remove an unmanaged file. This is
 required unfinished S7 integration, not a later-stage deferral.
 
+S7 availability lifecycle detail (2026-10-08): a source-less local scan observes
+residency; it must not overwrite an existing exact object's cached cloud source,
+rename or content version during an offline refresh fallback. Both ordinary and
+bulk local enumeration must retain verified committed leaves below a mapped
+containing root without exposing their enclosing directory as a legacy game.
+These observations do not establish equivalence for unmanaged namesakes or
+authorize adoption/removal. Preserve saved refresh requests and identity keys.
+
 Add provider setup, refresh progress and re-scrape controls to existing settings
 and game details, with accessible/localized labels. Keep the common detail model
 and expose provenance, original scale, available vote count, match correction and
