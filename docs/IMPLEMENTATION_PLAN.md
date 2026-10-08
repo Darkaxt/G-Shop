@@ -994,6 +994,25 @@ private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
 
+Current closure checkpoint (2026-10-09): exact nested local archive lookup and
+byte-observation integration are committed as `14eb35b`. Focused archive/boundary
+checks and debug assembly 435 pass; normal device verification is still required.
+Do not repeat the completed `.cci`/`.wua` census: its terminal independent
+reconciliation is recorded in S7_ACCEPTANCE_RECONCILIATION.md. The `.cci`
+exact-name miss and all unresolved formats remain preserved, not removal-ready.
+
+| Remaining acceptance work | Current evidence / next required result |
+| --- | --- |
+| Stable current root publication | Generation 2 is progressing in owner PID 1335; 7,983 pages observed. Join its actual completion before replacing the app. Do not reset the generation. |
+| Normal native mapping/policy/nested-reader integration | Build 435 is verified but uninstalled. At the joined boundary, preserve signing/configuration/protected data, verify the normal editor and explicit DSi addition, cached Wii/Wii U policy, and ordinary nested identification. |
+| Fresh collection metadata | Same saved ScreenScraper job 76 is running: 14,264 requested, 29,529 pending at the observation. Finish its immutable capture, then required scoped Wii/DSi and aggregate-score work through normal provider controls. No terminal outcome rewrites or replacement capture. |
+| Defensible per-console retained games | Use current canonical identities and supported overall scores; incomplete rankings preserve unresolved games and do not grant deletion. Full provider traversal alone is not a defensible Top-25. |
+| Reviewed migration | Revalidate exact local/cloud bytes and applicable tested restore routes, review the private keep/remove/preserve manifest and journal exact eligible removals; verify retained games, free space, restore and save safety. |
+
+This is the sole ACTIVE stage. S8-S11 remain NOT STARTED; these outstanding S7
+criteria are not later-stage deferrals. Existing format-recovery evidence remains
+applicable only to its documented formats and unchanged relevant conditions.
+
 Current reception-scope reconciliation (2026-10-09): Wii RVZ and Wii U WUA
 restore workflows are verified. The existing serial public IGDB benchmark and
 independent original-platform reception assessment now support the existing
