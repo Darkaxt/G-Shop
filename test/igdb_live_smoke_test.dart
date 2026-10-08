@@ -247,6 +247,18 @@ void main() {
       ('snes', "Super Ghouls'n Ghosts", {'official'}),
       ('snes', 'Shaq-Fu', {'official'}),
       ('snes', 'Super James Pond', {'official'}),
+      // Public reception fixtures for S7 recovery scopes. Capture/review alone
+      // cannot approve production ranking, library identity or SD removal.
+      ('wii', 'Super Mario Galaxy', {'official'}),
+      ('wii', 'The Legend of Zelda: Skyward Sword', {'official'}),
+      ('wii', 'Wii Sports', {'official'}),
+      ('wii', 'Red Steel', {'official'}),
+      ('wii', 'Ninjabread Man', {'official'}),
+      ('wiiu', 'Super Mario 3D World', {'official'}),
+      ('wiiu', 'Mario Kart 8', {'official'}),
+      ('wiiu', 'Xenoblade Chronicles X', {'official'}),
+      ('wiiu', "Devil's Third", {'official'}),
+      ('wiiu', 'Sonic Boom: Rise of Lyric', {'official'}),
       ('snes', 'Chrono Trigger: Crimson Echoes', {'Hack'}),
       ('gba', 'Pokémon Unbound', {'Hack'}),
     ];

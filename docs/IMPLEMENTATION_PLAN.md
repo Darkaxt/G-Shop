@@ -994,6 +994,16 @@ private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
 
+Current reception-scope reconciliation (2026-10-09): Wii RVZ and Wii U WUA
+restore workflows are verified. The existing serial public IGDB benchmark and
+independent original-platform reception assessment now support the existing
+community basis for these scopes. Regression-first boundaries, cached policy
+re-projection, public-provider/offline-query evidence and scoped analysis pass;
+native integration remains required. Preserve the twenty-known-vote floor,
+identity/ownership, freshness, provisional coverage and removal gates. Do not
+interrupt the running root refresh/saved scrape or treat public matches as
+library identity. See SCORE_RECEPTION_ASSESSMENT.md; S7 alone remains ACTIVE.
+
 Current DRIVE-02 mapping remediation (2026-10-09): preserve selected and empty
 source mappings when reopening the editor. Display unique observed aliases as
 passive suggestions; only explicit selection enables a console. Verify the real

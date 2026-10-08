@@ -48,7 +48,7 @@ class AssessedOverallScoreBasis {
 }
 
 /// META-05's recorded assessment, extended in S7 for N64/PSP (2026-10-05)
-/// and GB/GBC/NES/SNES (2026-10-07).
+/// and GB/GBC/NES/SNES (2026-10-07), Wii/Wii U (2026-10-09).
 /// Use the provider's actual game-level
 /// community average, not its one-critic-sensitive blended total. This is a
 /// confidence floor, not a confidence interval or a platform-specific critic
@@ -71,7 +71,9 @@ final productionOverallScoreBases =
         'gb',
         'gbc',
         'nes',
-        'snes'
+        'snes',
+        'wii',
+        'wiiu'
       },
       minimumVoteCount: 20,
       assessmentReference:

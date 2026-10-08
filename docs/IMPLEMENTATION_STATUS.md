@@ -5,6 +5,26 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 Wii/Wii U ranking-scope reconciliation — 2026-10-09
+
+S7 remains ACTIVE; S8-S11 remain NOT STARTED. The assessed IGDB community basis
+now includes Wii/Wii U, with unchanged twenty-known-vote, exact identity,
+ownership, freshness and provisional-coverage gates. The public benchmark and
+independent original-platform evidence are recorded in
+`SCORE_RECEPTION_ASSESSMENT.md`, including material numerical disagreement and
+excluded sparse-vote records. Regression-first support boundaries, cached-policy
+SQLite ranking/retention and scoped Dart analysis pass. The real serial provider
+capture ranks eight of ten public releases through the offline production query;
+it does not classify private games or establish whole-collection retention.
+
+Native integration remains unfinished. No Gradle command or APK installation
+was performed for this change. The existing Thor process 1335 remains live;
+read-only inspection observes root generation 2 advancing to 5,405 committed
+pages and saved job 76 Running at 13,919 requests. Configuration hash is unchanged
+and both displays are OFF. Full fresh coverage, native mapping/policy checks,
+defensible retained sets and reviewed exact migration remain S7 requirements;
+no ROM removal, ownership adoption or later-stage implementation occurred.
+
 ### S7 explicit mapping selection — 2026-10-09
 
 The editor no longer selects unique folder aliases automatically. Regression-first

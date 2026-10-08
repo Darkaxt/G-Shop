@@ -4,6 +4,93 @@ Authority: SPECIFICATION.md, META-05. Initial assessment owner: S4 (closed).
 The collection-scope extension below belongs to ACTIVE S7. Current stage state
 is in IMPLEMENTATION_STATUS.md. Source assessment is not whole-stage closure.
 
+## Wii/Wii U collection-scope assessment — 2026-10-09
+
+The existing opt-in serial public IGDB persistent-worker benchmark captured ten
+original Wii/Wii U releases at 22:26:47–22:26:52 UTC on 2026-10-08. All ten
+literal offered titles/platform-checked identities were explicitly reviewed in
+the public fixture. Original Skyward Sword, Mario Kart 8 and Xenoblade Chronicles
+X records were used, not HD/Deluxe/Definitive editions, bundles, DLC or projects.
+This is not a production title-only classification rule or a private-library
+identity correction. No ROM body, artwork, device job or private library was
+read or changed. The first offline query correctly ranked zero because these
+scopes were not yet assessed; receiving scores does not itself approve them.
+
+| Platform / original release | IGDB ID | Community / votes | Support |
+| --- | ---: | ---: | --- |
+| Wii / Super Mario Galaxy | 1077 | 88.71 / 1,303 | Supported |
+| Wii / The Legend of Zelda: Skyward Sword | 534 | 81.89 / 399 | Supported |
+| Wii / Wii Sports | 2181 | 75.20 / 441 | Supported |
+| Wii / Red Steel | 2258 | 56.70 / 31 | Supported; modest sample |
+| Wii / Ninjabread Man | 5077 | 65.19 / 5 | Too few votes |
+| Wii U / Super Mario 3D World | 2180 | 84.34 / 435 | Supported |
+| Wii U / Mario Kart 8 | 2350 | 86.56 / 675 | Supported |
+| Wii U / Xenoblade Chronicles X | 2366 | 80.90 / 76 | Supported |
+| Wii U / Devil's Third | 7395 | 64.99 / 6 | Too few votes |
+| Wii U / Sonic Boom: Rise of Lyric | 5322 | 15.90 / 33 | Supported low band; material numerical disagreement |
+
+Independent original-platform Nintendo Life community evidence was inspected
+on 2026-10-09 (local date):
+[Galaxy](https://www.nintendolife.com/games/wii/super_mario_galaxy) 9.1/10 from
+2,621 users;
+[Skyward Sword](https://www.nintendolife.com/games/wii/legend_of_zelda_skyward_sword)
+8.4 from 1,115;
+[Wii Sports](https://www.nintendolife.com/games/wii/wii_sports) 8.2 from 846; and
+[Red Steel](https://www.nintendolife.com/games/wii/red_steel) 6.6 from 122. The
+high-to-middle ordering agrees, not identical values or voting populations.
+[Ninjabread Man](https://www.nintendolife.com/games/wii/ninjabread_man) is 3.4
+from twelve users (its editorial review is 2/10). IGDB's five-vote 65.19 is
+inconsistent with that low reception; the unchanged vote floor excludes it.
+No other provider's votes are borrowed to rescue that score.
+
+For Wii U,
+[3D World](https://www.nintendolife.com/games/wiiu/super_mario_3d_world) is 8.5
+from 2,344 users;
+[Mario Kart 8](https://www.nintendolife.com/games/wiiu/mario_kart_8) 8.8 from
+1,250; and
+[Xenoblade X](https://www.nintendolife.com/games/wiiu/xenoblade_chronicles_x)
+8.5 from 748. These support the high band, not an identical ordering of the two
+nearby Mario games. [Devil's Third](https://www.nintendolife.com/games/wiiu/devils_third)
+is 6.8 from 49, but agreement cannot qualify IGDB's six-vote record.
+
+[Sonic Boom](https://www.nintendolife.com/games/wiiu/sonic_boom_rise_of_lyric)
+is 3.5 from 326 users;
+[Metacritic's original Wii U page](https://www.metacritic.com/game/sonic-boom-rise-of-lyric/)
+reports users 3.7/10 from 790 and critics 32/100 from 28. IGDB's community
+15.90 from 33 is substantially lower, while its separately returned critics
+37.5 from four and blended total 26.70 from 37 are distinct measures. All
+independent measures place this release in the low band; the discrepancy does
+not reverse its relationship to the supported high/middle examples. This
+resolves the source-selection question in favor of the already assessed,
+explicitly labelled IGDB-user basis, not numerical interchangeability with
+other communities. No evidence explains individual voting behavior, proves
+fine-grained consensus ranks or makes the twenty-vote floor a confidence
+interval. Preserve the real score/count and this limitation, rather than
+switching to critics/total, blending, adjusting this title or inventing votes.
+
+Decision: extend the existing game-level IGDB community basis to `wii` and
+`wiiu`. The S4 representative assessment remains the foundation; this checks
+two current recovery/collection scopes without inventing a new estimator.
+Scale, deterministic precedence, twenty-known-user-vote minimum, current exact
+identity, score ownership, freshness, grouping and provisional coverage rules
+are unchanged. Unknown/modified editions do not become official; a game-level
+record is not a console-specific critic aggregate. The benchmark includes a
+sports release to assess the provider, not to revise archival/device Top rules.
+Game Gear and other unassessed scopes remain unapproved. This is not defensible
+whole-collection retention, current-cloud proof or SD-removal authority.
+
+Verification: the support-boundary regression first failed for Wii with twenty
+votes before the policy extension. The affected effective-score and real SQLite
+query checks now pass, including cached policy re-projection without rescraping,
+nineteen-vote rejection, unresolved-game preservation and provisional retention.
+Scoped Dart analysis and diff checks pass. A second serial public-provider
+capture at 22:29:54–22:29:59 UTC on 2026-10-08 matched the same ten releases;
+after closing its network adapter, the production offline query ranked eight,
+excluded both sparse-vote records and reported provisional coverage. No other
+provider score was substituted. Native integration is pending: the installed
+app still runs its existing root refresh and saved metadata job 76, and no build
+or device installation was performed for this policy change.
+
 ## NES/SNES collection-scope assessment — 2026-10-07
 
 The existing serial public persistent-worker benchmark captured ten original

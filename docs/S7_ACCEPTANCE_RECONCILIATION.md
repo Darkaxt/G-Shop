@@ -1,5 +1,26 @@
 # S7 live metadata and Thor migration
 
+## Wii/Wii U reception and cached ranking — 2026-10-09
+
+META-05/META-07 scope gap: existing Wii RVZ/Wii U WUA restore proof did not
+approve a ranking basis. The serial public benchmark and independent reception
+assessment now support extending the existing IGDB community basis to both
+scopes, without changing vote support, score precedence, identity or removal
+rules. The disagreement/coverage limitations are explicit in
+`SCORE_RECEPTION_ASSESSMENT.md`. Regression-first boundary checks and real SQLite
+cached-policy refresh/retention pass, as does scoped Dart analysis. A second real
+provider capture preserves the same source facts and ranks eight supported
+public releases offline; two sparse-vote records remain unranked/provisional.
+
+Native policy/editor integration is still required, not a tracked deferral or
+stage closure. No Gradle build or APK update was performed for this policy.
+Read-only live inspection confirms process 1335, advancing root generation 2
+(5,405 committed pages) and saved ScreenScraper job 76 Running (13,919 requests),
+with unchanged configuration hash. Both displays remain OFF. Full fresh metadata
+coverage, defensible per-console retained identities, current-cloud checks and
+reviewed exact SD migration remain unsatisfied S7 acceptance criteria. S7 is the
+sole ACTIVE stage; S8-S11 remain NOT STARTED. No owner file was removed/adopted.
+
 ## Explicit source-mapping selections — 2026-10-09
 
 The editor's alias auto-selection defect is corrected and host-verified through

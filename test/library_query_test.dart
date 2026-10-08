@@ -930,13 +930,17 @@ void main() {
     expect(revised.items, isEmpty);
   });
 
-  test('NES SNES policy refresh ranks cached records without rescraping',
+  test('S7 assessed scope refresh ranks cached records without rescraping',
       () async {
     for (final (n, platform, votes) in [
       (1, 'nes', 20),
       (2, 'nes', 19),
       (3, 'snes', 20),
       (4, 'snes', 19),
+      (5, 'wii', 20),
+      (6, 'wii', 19),
+      (7, 'wiiu', 20),
+      (8, 'wiiu', 19),
     ]) {
       final id = await seed(n, platform: platform, score: 99);
       final cached = (await store.metadata(id, 'igdb'))!;
@@ -964,7 +968,8 @@ void main() {
         kind: basis.kind,
         scaleMinimum: basis.scaleMinimum,
         scaleMaximum: basis.scaleMaximum,
-        platformIds: basis.platformIds.difference({'nes', 'snes'}),
+        platformIds:
+            basis.platformIds.difference({'nes', 'snes', 'wii', 'wiiu'}),
         minimumVoteCount: basis.minimumVoteCount,
         assessmentReference: basis.assessmentReference);
     final before = await query.page(
@@ -972,16 +977,17 @@ void main() {
     expect(before.rankedGames, 0);
     expect(before.items, isEmpty);
     final after = await query.page(filter: LibraryQueryFilter(top: 25));
-    expect(after.collectionGames, 4);
-    expect(after.rankedGames, 2);
+    expect(after.collectionGames, 8);
+    expect(after.rankedGames, 4);
     expect(after.provisional, isTrue);
-    expect(after.items.map((item) => item.platformId).toSet(), {'nes', 'snes'});
+    expect(after.items.map((item) => item.platformId).toSet(),
+        {'nes', 'snes', 'wii', 'wiiu'});
     for (final item in after.items) {
       expect(item.score!.rating.normalizedValue, 80);
       expect(item.score!.rating.kind, RatingKind.communityAggregate);
       expect(item.score!.rating.voteCount, 20);
     }
-    for (final platform in ['nes', 'snes']) {
+    for (final platform in ['nes', 'snes', 'wii', 'wiiu']) {
       final retained = await query.retentionPage(platformId: platform);
       expect(retained.provisional, isTrue);
       expect(

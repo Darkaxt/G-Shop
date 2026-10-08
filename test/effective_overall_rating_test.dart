@@ -293,8 +293,8 @@ void main() {
           MetadataRecord.fromJson(
               {...unsupported.toJson(), 'platformId': 'saturn'})
         ],
-            identity:
-                GameIdentity.fromJson({...game.toJson(), 'platformId': 'saturn'}),
+            identity: GameIdentity.fromJson(
+                {...game.toJson(), 'platformId': 'saturn'}),
             assessed: productionOverallScoreBases),
         isNull);
   });
@@ -318,9 +318,17 @@ void main() {
     expect(stale.rankingEligible, isFalse);
   });
 
-  test('S7 assessed consoles retain the community support boundary',
-      () {
-    for (final platform in ['n64', 'psp', 'gb', 'gbc', 'nes', 'snes']) {
+  test('S7 assessed consoles retain the community support boundary', () {
+    for (final platform in [
+      'n64',
+      'psp',
+      'gb',
+      'gbc',
+      'nes',
+      'snes',
+      'wii',
+      'wiiu'
+    ]) {
       final scopedGame =
           GameIdentity.fromJson({...game.toJson(), 'platformId': platform});
       for (final votes in [null, 10, 19, 20]) {
