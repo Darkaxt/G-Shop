@@ -475,9 +475,13 @@ class DriveCatalogue {
       CROSS JOIN descendants d
       CROSS JOIN drive_catalogue_entries e INDEXED BY drive_catalogue_parent ON e.parent_id=d.file_id
       WHERE s.scope=? AND e.scope=s.scope AND e.generation=COALESCE(?,s.active)
+        AND e.is_folder=1
     ), page(file_id) AS (
-      SELECT file_id FROM descendants WHERE file_id!=?
-      ORDER BY file_id LIMIT ? OFFSET ?
+      SELECT e.file_id FROM drive_catalogue_state s
+      CROSS JOIN descendants d
+      CROSS JOIN drive_catalogue_entries e INDEXED BY drive_catalogue_parent ON e.parent_id=d.file_id
+      WHERE s.scope=? AND e.scope=s.scope AND e.generation=COALESCE(?,s.active)
+      ORDER BY e.file_id LIMIT ? OFFSET ?
     ) SELECT e.record_json, e.display_path FROM drive_catalogue_state s
       CROSS JOIN page d
       CROSS JOIN drive_catalogue_entries e ON d.file_id=e.file_id
@@ -488,7 +492,8 @@ class DriveCatalogue {
         folderId,
         scope,
         generation,
-        folderId,
+        scope,
+        generation,
         limit,
         offset,
         scope,

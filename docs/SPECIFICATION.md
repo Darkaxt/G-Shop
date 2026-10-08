@@ -277,6 +277,13 @@ generation checks, supported-root validation, ordering and page boundaries. This
 also applies to the existing source exclusion report and folder-mapping reads;
 it does not infer membership across sources or unpublished generations.
 
+Expand only actual folder rows in that recursive walk. Select the bounded,
+ordered child-entry page from those folders, including nested folders and binary
+files in the same existing order. ROM leaves cannot have children and must not
+inflate recursive expansion work. Verify the actual production CTE's expansion
+count on a dense multi-folder fixture, alongside returned pages and query plans;
+this optimization must not change membership or introduce a latency timeout.
+
 First scope: ordinary binary files in a selected personal My Drive subtree.
 Shared Drives, Workspace document export and shortcut traversal are not supported
 initially; surface them explicitly instead of following them outside the root.

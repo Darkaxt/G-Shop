@@ -191,6 +191,38 @@ void main() {
     expect(nextPage.map((entry) => entry.file.id), ['nested']);
   });
 
+  test('subfolder recursion expands folders, not every ROM leaf', () async {
+    api.nodes['console'] = folder('console', 'root-id');
+    api.pages['root-id:'] = DriveFilePage(files: [api.nodes['console']!]);
+    final children = <DriveFile>[];
+    for (var i = 0; i < 8; i++) {
+      final id = 'folder-$i';
+      api.nodes[id] = folder(id, 'console');
+      children.add(api.nodes[id]!);
+      api.pages['$id:'] = DriveFilePage(files: [
+        for (var j = 0; j < 256; j++) rom('rom-$i-$j', id),
+      ]);
+    }
+    api.pages['console:'] = DriveFilePage(files: children);
+    await refresh();
+    final trace = _QueryTraceDatabase(db);
+    final page = await DriveCatalogue(Future.value(trace)).entries(
+        sourceId: 'source', accountId: 'account', rootFolderId: 'root-id',
+        folderId: 'console', generation: 1, limit: 3, offset: 8);
+    expect(page.map((entry) => entry.file.id),
+        ['rom-0-0', 'rom-0-1', 'rom-0-10']);
+
+    // Execute the actual production recursive CTE independently of its bounded
+    // payload page. The expansion budget is the nine folders, not 2,048 leaves
+    // that cannot have children. This is a work-count contract, not a deadline.
+    final recursive = trace.statements.single.split('), page(').first;
+    final scope = DriveCatalogue.scopeKey('source', 'account', 'root-id');
+    final expanded = await db.rawQuery(
+        '$recursive) SELECT COUNT(*) AS expanded FROM descendants',
+        [scope, 1, 'console', scope, 1]);
+    expect(expanded.single['expanded'], 9);
+  });
+
   test('root indexed page still requires its supported root record', () async {
     api.pages['root-id:'] = DriveFilePage(files: [rom('game', 'root-id')]);
     await refresh();
