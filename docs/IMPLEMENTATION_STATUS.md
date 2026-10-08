@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 nested identifier location gap — 2026-10-09
+
+S7 remains ACTIVE; S8-S11 remain NOT STARTED. Bounded read-only native observation
+found fourteen sampled review entries with an exact nested local file and no
+root-level copy. The metadata reader previously checked only the root leaf.
+Regression-first correction now permits one exact ancestor-ID-derived nested
+lookup after root absence, retaining full checksum/raw-member/live-boundary
+checks and no ownership/download/removal side effects. Focused runtime/boundary
+checks and scoped analysis pass; details and limitations are recorded in
+`S7_NESTED_METADATA_IDENTIFICATION.md`.
+
+Shared-gate request 435 completed debug assembly and unchanged-signer APK
+verification. Observed profile: two workers, no parallel projects, 3 GiB Gradle,
+assessed Kotlin in-process, one configured 512 MiB test fork (not executed),
+independently verified depth-one native pools, no memory failure. The final
+output's gate-acquired field was truncated; the evidence document records this
+qualification rather than inferring it from the queue ticket. The APK has not
+been installed; normal Thor verification remains pending. Read-only inspection
+confirms root refresh advanced to 7,630 committed pages with the device asleep.
+The existing app/root refresh and saved job 76 remain intact; terminal requests
+are not rewritten. Consumed diagnostic helpers were identity-checked and removed
+with no ROM/save changes or cleanup residuals. Complete
+fresh coverage, defensible retention and reviewed SD migration are still required.
+
 ### S7 combined native assembly — 2026-10-09
 
 The current S7 worktree, including mapping-selection and Wii/Wii U policy fixes,

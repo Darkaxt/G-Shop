@@ -118,6 +118,8 @@ class _Transport implements HttpClientAdapter {
   final int size;
   final String name;
   String version = '1';
+  String fileParent = 'folder';
+  final extraFolders = <String, Map<String, Object?>>{};
   Future<ResponseBody> Function(RequestOptions, Future<void>?)? mediaResponse;
   _Transport({this.size = 5, this.name = 'fixture.chd'});
   final requests = <RequestOptions>[];
@@ -139,7 +141,7 @@ class _Transport implements HttpClientAdapter {
       'id': 'file',
       'name': name,
       'mimeType': 'application/octet-stream',
-      'parents': ['folder'],
+      'parents': [fileParent],
       'size': '$size',
       'version': version,
       'md5Checksum': _md5,
@@ -174,9 +176,9 @@ class _Transport implements HttpClientAdapter {
         ? {
             'files': [file]
           }
-        : options.path.endsWith('/folder')
+        : extraFolders[options.path.split('/').last] ?? (options.path.endsWith('/folder')
             ? folder
-            : file;
+            : file);
     return ResponseBody.fromString(jsonEncode(response), 200, headers: {
       'content-type': ['application/json']
     });
@@ -190,7 +192,14 @@ class _Transport implements HttpClientAdapter {
 
 class _NativeStorage {
   Map<String, Object?> archiveObservation = {
-    'container': {'sizeBytes': 5, 'md5': _md5},
+    'container': {'sizeBytes': 5, 'md5': _md5, 'sha256': 'd' * 64},
+    'localIdentity': {
+      'device': '1',
+      'inode': '42',
+      'size': 5,
+      'modifiedSeconds': 100,
+      'modifiedNanos': 0,
+    },
     'raw': {
       'kind': 'rawRom',
       'filename': 'Game.z64',
@@ -202,6 +211,9 @@ class _NativeStorage {
   };
   Future<void> Function()? onArchiveRead;
   String archivePlatform = 'n64';
+  String archiveName = 'fixture.7z';
+  String archiveRoot = '/roms';
+  String? rootArchiveFailure;
   final channel = const MethodChannel('runtime-fixture-storage');
   final bytes = <int>[];
   final writeStarted = Completer<void>();
@@ -245,8 +257,11 @@ class _NativeStorage {
     final args = Map<String, dynamic>.from(call.arguments as Map);
     switch (call.method) {
       case 'ownedReadArchiveIdentifier':
-        expect(args['destinationRoot'], '/roms');
-        expect(args['relativePath'], 'fixture.7z');
+        if (rootArchiveFailure != null && args['destinationRoot'] == '/roms') {
+          throw PlatformException(code: rootArchiveFailure!);
+        }
+        expect(args['destinationRoot'], archiveRoot);
+        expect(args['relativePath'], archiveName);
         expect(args['platformId'], archivePlatform);
         await onArchiveRead?.call();
         return archiveObservation;
@@ -458,6 +473,7 @@ class _TransferFixture {
       bool reserve = true}) async {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     final fixture = _TransferFixture._(db, size, name);
+    fixture.native.archiveName = name;
     await TransferJournalSchema.install(db);
     await DriveCatalogueSchema.install(db);
     fixture.journal = createJournal?.call(Future.value(db)) ??
@@ -1013,7 +1029,130 @@ void main() {
     expect(await fixture.db.query('installed_artifacts'), isEmpty);
     expect(await fixture.db.query('transfer_target_owners'), isEmpty);
     expect(fixture.native.stagePresent, isFalse);
+    final saved = await fixture.journal.latestByteObservation(
+        artifactId: _artifact(name: 'fixture.7z').id,
+        destinationRoot: '/roms',
+        relativePath: 'fixture.7z');
+    expect(saved, isNotNull);
+    expect(saved!.artifact.toJson(), _artifact(name: 'fixture.7z').toJson());
+    expect(saved.localIdentity.fileId, '42');
+    expect(saved.checksums, {'md5': _md5, 'sha256': 'd' * 64});
   });
+  for (final scenario in ['nested', 'unsafe', 'mismatch', 'changed', 'root', 'blocked', 'shadowMismatch']) {
+    test('metadata archive mapped nested path: $scenario', () async {
+      final fixture = await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+      final name = scenario == 'unsafe' ? '../Japan' : 'Japan';
+      final folders = <String, Map<String, Object?>>{
+        'console': {
+          'id': 'console', 'name': 'Console',
+          'mimeType': 'application/vnd.google-apps.folder', 'parents': ['folder'],
+        },
+        'nested': {
+          'id': 'nested', 'name': name,
+          'mimeType': 'application/vnd.google-apps.folder', 'parents': ['console'],
+        },
+      };
+      final scope = DriveCatalogue.scopeKey('source', 'account', 'folder');
+      for (final folder in folders.entries) {
+        await fixture.db.insert('drive_catalogue_entries', {
+          'scope': scope, 'generation': 1, 'file_id': folder.key,
+          'parent_id': (folder.value['parents'] as List).single,
+          'display_path': 'ignored-display-path', 'is_folder': 1,
+          'record_json': jsonEncode(folder.value),
+        });
+      }
+      final fileRow = (await fixture.db.query('drive_catalogue_entries',
+          where: 'scope=? AND generation=1 AND file_id=?', whereArgs: [scope, 'file'])).single;
+      final file = jsonDecode(fileRow['record_json'] as String) as Map<String, dynamic>;
+      file['parents'] = ['nested'];
+      await fixture.db.update('drive_catalogue_entries',
+          {'parent_id': 'nested', 'record_json': jsonEncode(file)},
+          where: 'scope=? AND generation=1 AND file_id=?', whereArgs: [scope, 'file']);
+      fixture.metadata.extraFolders.addAll(folders);
+      fixture.metadata.fileParent = 'nested';
+      fixture.native.rootArchiveFailure = scenario == 'blocked' ? 'access_denied'
+          : {'root', 'shadowMismatch'}.contains(scenario) ? null : 'not_found';
+      fixture.native.archiveRoot = {'root', 'shadowMismatch'}.contains(scenario)
+          ? '/roms' : '/roms/Japan';
+      if ({'mismatch', 'shadowMismatch'}.contains(scenario)) {
+        fixture.native.archiveObservation['container'] = {
+          'sizeBytes': 5, 'md5': 'a' * 32, 'sha256': 'd' * 64,
+        };
+      }
+      if (scenario == 'changed') {
+        fixture.native.onArchiveRead = () async { fixture.metadata.version = '2'; };
+      }
+      final selected = ProviderConfig.fromJson({..._transferConfig.toJson(), 'path': 'console'});
+      final artifact = RemoteArtifact.fromJson({
+        ..._artifact(name: 'fixture.7z').toJson(), 'parentId': 'nested',
+        // Never derive a local path from an untrusted display path.
+        'displayPath': '../../outside/fixture.7z',
+      });
+      final read = fixture.runtime().readMetadataArchive(config: selected,
+          artifact: artifact, platformId: 'n64', destinationRoot: '/roms',
+          cancellation: CancelToken());
+      if (scenario == 'changed') {
+        await expectLater(read, throwsA(isA<DriveTransferException>().having(
+            (e) => e.issue, 'issue', DriveTransferIssue.sourceChanged)));
+      } else {
+        expect(await read, {'nested', 'root'}.contains(scenario) ? isNotNull : isNull);
+      }
+      expect(fixture.native.calls, List.filled(
+          {'unsafe', 'root', 'blocked', 'shadowMismatch'}.contains(scenario) ? 1 : 2,
+          'ownedReadArchiveIdentifier'));
+      expect(fixture.media.requests, isEmpty);
+      expect(await fixture.db.query('transfer_records'), isEmpty);
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(await fixture.db.query('transfer_target_owners'), isEmpty);
+      expect(fixture.native.stagePresent, isFalse);
+      expect(await fixture.journal.latestByteObservation(artifactId: artifact.id,
+          destinationRoot: '/roms/Japan', relativePath: 'fixture.7z'),
+          scenario == 'nested' ? isNotNull : isNull);
+      expect(await fixture.journal.latestByteObservation(artifactId: artifact.id,
+          destinationRoot: '/roms', relativePath: 'fixture.7z'),
+          scenario == 'root' ? isNotNull : isNull);
+    });
+  }
+  for (final fail in [false, true]) {
+    test('metadata archive joins byte evidence persistence: failure=$fail',
+        () async {
+      late _HeldObservationJournal held;
+      final fixture = await _TransferFixture.create(
+          name: 'fixture.7z',
+          reserve: false,
+          createJournal: (db) =>
+              held = _HeldObservationJournal(db, fail: fail));
+      final runtime = fixture.runtime();
+      final read = runtime.readMetadataArchive(
+          config: _transferConfig,
+          artifact: _artifact(name: 'fixture.7z'),
+          platformId: 'n64',
+          destinationRoot: '/roms',
+          cancellation: CancelToken());
+      final failed = expectLater(
+          read,
+          fail
+              ? throwsStateError
+              : throwsA(isA<DriveTransferException>().having(
+                  (e) => e.issue, 'issue', DriveTransferIssue.cancelled)));
+      await held.entered.future;
+      expect(await fixture.db.query('migration_byte_observations'), isEmpty);
+      final disconnect = runtime.disconnect();
+      await fixture.driver.signedOut.future;
+      fixture.driver.finishSignOut.complete();
+      expect(fixture.metadata.closed, isFalse);
+      held.release.complete();
+      await failed;
+      await disconnect;
+      expect(fixture.metadata.closed, isTrue);
+      expect(await fixture.db.query('migration_byte_observations'),
+          hasLength(fail ? 0 : 1));
+      expect(await fixture.db.query('transfer_records'), isEmpty);
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(await fixture.db.query('transfer_target_owners'), isEmpty);
+      expect(fixture.media.requests, isEmpty);
+    });
+  }
   for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes']) {
     test('$platform ZIP is not silently promoted to the 7z metadata profile',
         () async {
@@ -1096,6 +1235,7 @@ void main() {
             cancellation: CancelToken()),
         isNull);
     expect(fixture.media.requests, isEmpty);
+    expect(await fixture.db.query('migration_byte_observations'), isEmpty);
   });
   test('metadata archive changed cloud binding rejects after local observation',
       () async {
@@ -1114,6 +1254,7 @@ void main() {
         throwsA(isA<DriveTransferException>().having(
             (e) => e.issue, 'issue', DriveTransferIssue.sourceChanged)));
     expect(fixture.media.requests, isEmpty);
+    expect(await fixture.db.query('migration_byte_observations'), isEmpty);
   });
   test('disconnect cancels and joins native metadata archive observation',
       () async {

@@ -602,6 +602,17 @@ with the job request; changed bytes retire it, while manual/modified/ambiguous
 editions remain protected. This identifies bytes, not reception or migration
 authority, and does not turn container digests into raw-ROM digests.
 
+S7 nested local identification detail (2026-10-09): root-level archive copies
+retain priority. If that exact leaf is absent, the same metadata-only reader may
+check one exact nested parent beneath the configured console target, derived from
+the artifact's validated cached ancestor IDs/names up to the selected Drive
+folder ID. Never derive local paths from display paths, search other SD folders,
+follow links or accept unsafe path components. Inaccessible, changed, unsupported
+or checksum-mismatched root files do not permit an alternate lookup. Retain all
+complete-container, raw-member, current-cloud and atomic job-binding checks;
+journal the actual inspected parent/leaf without granting installation ownership
+or removal authority. Existing saved job membership/completed outcomes stay intact.
+
 S7 Game Boy archive identification detail (2026-10-07): extend that same
 read-only, exact-local-leaf workflow to explicitly mapped Game Boy/Game Boy Color
 7z artifacts already present on the SD card. Reuse the bounded single-member

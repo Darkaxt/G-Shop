@@ -88,7 +88,9 @@ void main() {
 
   test('only exact file and observed ancestors through selected root are read',
       () async {
-    await boundary().revalidate(cancellation: CancelToken());
+    final lineage = await boundary().revalidate(cancellation: CancelToken());
+    expect(lineage.map((folder) => folder.id), ['nested', 'mapped', 'root-id']);
+    expect(() => lineage.clear(), throwsUnsupportedError);
     expect(api.reads, unorderedEquals(['file', 'nested', 'mapped', 'root-id']));
     expect(api.reads, isNot(contains('my-drive')));
   });

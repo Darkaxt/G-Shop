@@ -719,7 +719,9 @@ class DriveRuntime {
     }
   }
 
-  /// Metadata only: no media request, staging, extraction or ownership change.
+  /// No media request, staging, extraction or ownership change. A complete
+  /// checksum-matched local container also records historical byte equivalence;
+  /// raw member hashes alone never establish local/cloud identity.
   Future<MetadataRomIdentifier?> readMetadataArchive(
       {required ProviderConfig config,
       required RemoteArtifact artifact,
@@ -762,28 +764,52 @@ class DriveRuntime {
           artifact: artifact,
           catalogue: catalogue,
           api: apiFor(config.drive!));
-      await boundary.revalidate(cancellation: cancellation);
-      Map<String, Object?> observation;
+      final ancestors = await boundary.revalidate(cancellation: cancellation);
+      final nestedParents = ancestors
+          .takeWhile((folder) => folder.id != config.path)
+          .map((folder) => folder.name)
+          .toList()
+          .reversed
+          .toList();
+      // Root-level copies retain priority. Only an absent root leaf permits a
+      // second exact lookup, anchored to the configured folder ID's validated
+      // lineage. Do not search the SD card or trust artifact.displayPath.
+      final roots = [
+        destinationRoot,
+        if (nestedParents.isNotEmpty &&
+            nestedParents.every((part) => part.isNotEmpty &&
+                part != '.' && part != '..' &&
+                !RegExp(r'[\\/\x00-\x1f\x7f<>:"|?*]').hasMatch(part)))
+          p.posix.joinAll([destinationRoot, ...nestedParents]),
+      ];
+      Map<String, Object?>? observation;
+      var localRoot = destinationRoot;
       // Absent/unsupported local files are ordinary title-discovery outcomes;
       // do not request cloud ROM bodies to compensate for missing local bytes.
-      try {
-        observation = await _storage.readArchiveIdentifier(
-            destinationRoot: destinationRoot,
-            relativePath: name,
-            platformId: platformId);
-      } on OwnedStorageException catch (error) {
-        if ({
-          'not_found',
-          'access_denied',
-          'unsupported_archive',
-          'unsupported',
-          'changed',
-          'invalid_arguments'
-        }.contains(error.code)) {
-          return null;
+      for (final root in roots) {
+        checkCancellation();
+        try {
+          observation = await _storage.readArchiveIdentifier(
+              destinationRoot: root,
+              relativePath: name,
+              platformId: platformId);
+          localRoot = root;
+          break;
+        } on OwnedStorageException catch (error) {
+          if (error.code == 'not_found') continue;
+          if ({
+            'access_denied',
+            'unsupported_archive',
+            'unsupported',
+            'changed',
+            'invalid_arguments'
+          }.contains(error.code)) {
+            return null;
+          }
+          rethrow;
         }
-        rethrow;
       }
+      if (observation == null) return null;
       checkCancellation();
       final container =
           (observation['container'] as Map).cast<String, Object?>();
@@ -823,6 +849,21 @@ class DriveRuntime {
         throw const DriveTransferException(DriveTransferIssue.invalidResponse);
       }
       await boundary.revalidate(cancellation: cancellation);
+      checkCancellation();
+      final localEvidence = DriveLocalCloudObservation(
+          artifact: artifact,
+          destinationRoot: localRoot,
+          relativePath: name,
+          localIdentity:
+              OwnedStorage.decodeIdentity(observation['localIdentity']),
+          sizeBytes: artifact.sizeBytes!,
+          checksums: {
+            for (final algorithm in const ['md5', 'sha1', 'sha256'])
+              if (container[algorithm] case final String digest)
+                algorithm: digest,
+          },
+          observedAt: DateTime.now().toUtc());
+      await journal.saveByteObservation(localEvidence);
       checkCancellation();
       return raw;
     }();

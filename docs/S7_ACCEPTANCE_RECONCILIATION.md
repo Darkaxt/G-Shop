@@ -1,5 +1,22 @@
 # S7 live metadata and Thor migration
 
+## Nested local metadata lookup — 2026-10-09
+
+The root-only identifier lookup misses actual nested local archives. A bounded
+READONLY native sample establishes fourteen exact nested paths without root
+copies, not a whole-collection identity claim. The correction checks only one
+safe, validated ancestor-ID-derived parent after root absence, preserving
+container/raw/current-cloud proof and no ownership or remote ROM-body request.
+Regression-first runtime/boundary checks and scoped analysis pass. Gated request
+435 completed native assembly with observed low-memory profile and verified
+unchanged signer; its final gate-acquired field was truncated, as documented in
+the evidence record. The artifact remains uninstalled while root refresh advances
+to 7,630 committed pages. Normal owner workflow verification remains pending;
+existing saved job 76
+membership/terminal outcomes are preserved. Full fresh coverage, trustworthy
+Top-25 retention and reviewed migration remain open in sole ACTIVE S7.
+See `S7_NESTED_METADATA_IDENTIFICATION.md`; S8-S11 remain NOT STARTED.
+
 ## Combined native artifact — 2026-10-09
 
 Request 434 completes actual current-worktree debug assembly, with the shared

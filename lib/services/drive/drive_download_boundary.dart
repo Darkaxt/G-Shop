@@ -19,7 +19,9 @@ class DriveDownloadBoundary {
       required this.catalogue,
       required this.api});
 
-  Future<void> revalidate({required CancelToken cancellation}) async {
+  /// Returns the validated cached lineage, nearest parent first. Callers may
+  /// use its names as local lookup hints, never as byte-equivalence evidence.
+  Future<List<DriveFile>> revalidate({required CancelToken cancellation}) async {
     void checkCancellation() {
       if (cancellation.isCancelled) {
         throw const DriveTransferException(DriveTransferIssue.cancelled);
@@ -100,6 +102,7 @@ class DriveDownloadBoundary {
               rootFolderId: drive.rootFolderId)) {
         throw const DriveTransferException(DriveTransferIssue.sourceChanged);
       }
+      return List.unmodifiable(ancestors);
     } on DriveCatalogueException {
       throw const DriveTransferException(DriveTransferIssue.sourceChanged);
     }
