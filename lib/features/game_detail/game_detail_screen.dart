@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import '../settings/metadata_settings_screen.dart';
+import '../settings/save_backup_settings_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -543,7 +544,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           'Companion app cannot be launched. Change it or open without companion.',
         'companion_display_unavailable' =>
           'Two unambiguous displays are unavailable. Open without companion.',
-        'companion_display_denied' || 'companion_launch_denied' =>
+        'companion_display_denied' ||
+        'companion_launch_denied' =>
           'Android rejected companion display placement. Open without companion.',
         'emulator_launch_denied_after_companion' =>
           'Companion was opened, but Android rejected the emulator launch.',
@@ -592,6 +594,24 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.raMatchKey];
     return [
+      if (editionId != null &&
+          {'gba', 'psp'}.contains(widget.system.id) &&
+          variant.remoteArtifact != null)
+        QuickMenuItem(
+            label: L.of(context).saveBackup_title,
+            icon: Icons.backup_outlined,
+            onSelect: () {
+              closeQuickMenu();
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => SaveBackupSettingsScreen(
+                          editionId: editionId,
+                          game: variant,
+                          system: widget.system,
+                          targetFolder: widget.targetFolder,
+                          gameTitle: variant.displayName)));
+            }),
       if (!variant.isFolder &&
           variant.remoteArtifact != null &&
           variant.providerConfig?.type == ProviderType.drive)

@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 14, 2026-10-08.
+Authoritative specification, revision 16, 2026-10-09.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -935,6 +935,13 @@ in the shared Library, console and shelf card callers on the Thor.
 
 ### UI-02 — Metadata controls and details
 
+Settings presentation rule reaffirmed on 2026-10-09: new settings work must not
+recreate a single long scrolling form. Keep persistent left-hand section
+navigation with independently scrollable focused content, following the metadata
+settings pattern. This applies to SAVE-01 and subsequent CACHE-01 controls as
+they are implemented; it does not open another ACTIVE stage. Preserve operation
+state when changing sections and keep inactive controls out of focus traversal.
+
 S7 navigation refinement (2026-10-08, user-authorized): replace the metadata
 settings' single long scrolling form with persistent left-hand section navigation.
 ScreenScraper and IGDB each have a focused provider page with a Credentials
@@ -1237,8 +1244,27 @@ or permit their existing acceptance criteria to be weakened.
 
 ### SAVE-01 — Save and save-state backup without ROM mirroring
 
-Add backup sync to R-Shop's normal settings and game/emulator workflow. At stage
-entry, audit the emulators installed on the Thor and their supported save-memory
+Acceptance scope revised by the user on 2026-10-09: a restored save must be
+published at the location the configured emulator expects. Verify the destination
+binding and completed file write; gameplay, in-emulator save loading and deep
+save-content inspection are not acceptance gates. The user will report later
+emulator-use issues. This replaces the former emulator-load proof requirement,
+not the backup/write boundaries, preservation or overwrite safeguards below.
+The user's accompanying condition explicitly retains conflict handling and its
+verification: divergent local/cloud generations must preserve both versions and
+require an explicit resolution choice. Never silently overwrite the remote
+generation or select a winner solely by timestamp. Skipping deep save-content
+checks does not waive conflict, last-good recovery or overwrite-safety checks.
+
+Add backup sync to R-Shop's normal settings and game/emulator workflow. As new
+controls are added, keep settings in persistent left-hand
+section navigation rather than one long scrolling form (user instruction,
+2026-10-09). Separate backup-area setup, game backup, restore/conflicts and
+status. Only the selected section's controls are visible/focusable; section
+changes preserve the selected save, confirmation and running operation. Reuse
+the metadata settings' responsive/controller navigation pattern. Verify narrow
+and handheld layouts, touch/controller section changes and operation continuity.
+At stage entry, audit the emulators installed on the Thor and their supported save-memory
 and save-state locations, formats and permission routes. Provide a visible
 per-emulator coverage matrix and explicit user-selected path mappings; do not
 claim RetroArch-only coverage is sufficient. Start with a real RetroArch plus
@@ -1291,9 +1317,9 @@ backups when a ROM/source is removed or the app is uninstalled. Retained version
 must be independently discoverable after reconnect/reinstall. Version pruning is
 not authorized by this scope; do not add unlimited polling or a general sync engine.
 
-Acceptance: native Thor backup/download/digest verification and successful
-emulator-load restoration of actual save data for RetroArch and a standalone
-emulator, followed by the installed-emulator coverage audit. Demonstrate save
+Acceptance: native Thor backup/download/digest verification and completed
+restoration at the configured emulator's expected save location for RetroArch
+and a standalone emulator, followed by the installed-emulator coverage audit. Demonstrate save
 versus state compatibility, multiple ROM/edition isolation, changed files/groups,
 conflicts, offline/relaunch/cancellation/revocation and lost/regranted storage.
 Prove last-good recovery after interrupted publication and reconnect/reinstall
@@ -1305,7 +1331,7 @@ exact identity by its `sync-retrobat-saves.ps1` action. Join any active old sync
 operation safely before handover; do not terminate an in-progress write blindly.
 Uninstall only that package, stop/disable only that task, and verify package
 absence, task disabled/not running and a subsequent working R-Shop save backup
-and emulator-load restore. Preserve existing save files/cloud backup data and
+and restore to the expected save location. Preserve existing save files/cloud backup data and
 the laptop script; unrelated apps/tasks remain unchanged. Record evidence and
 switch both displays off before S1-S10 reconciliation. S11 remains required for
 overall completion. If exact target

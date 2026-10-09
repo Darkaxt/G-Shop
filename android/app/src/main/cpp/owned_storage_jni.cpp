@@ -180,6 +180,15 @@ Java_com_retro_rshop_OwnedStorageNative_retirePrivateFile(JNIEnv* env, jobject, 
 }
 
 extern "C" JNIEXPORT jlongArray JNICALL
+Java_com_retro_rshop_OwnedStorageNative_replaceReviewedSave(JNIEnv* env, jobject, jint dir,
+    jstring stage, jstring target, jlongArray staged, jlongArray current) {
+    return guarded<jlongArray>(env, nullptr, [&] {
+        return identityArray(env, owned::replaceReviewedSave(dir, utf8(env, stage), utf8(env, target),
+            identityValue(env, staged), identityValue(env, current)));
+    });
+}
+
+extern "C" JNIEXPORT jlongArray JNICALL
 Java_com_retro_rshop_OwnedStorageNative_quarantineIntoPrivate(JNIEnv* env, jobject, jint fromDir, jstring from,
                                                               jint privateDir, jstring to, jlongArray expected) {
     return guarded<jlongArray>(env, nullptr, [&] {

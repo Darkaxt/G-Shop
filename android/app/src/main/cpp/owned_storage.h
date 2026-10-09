@@ -31,6 +31,12 @@ void sync(int fd);
 // replace an existing destination and does not flush either parent directory.
 // Missing renameat2 support reports ENOTSUP; cross-volume moves report EXDEV.
 void renameNoReplace(int fromDir, const std::string& from, int toDir, const std::string& to);
+// Save restore ONLY: caller has durable rollback bytes and explicit replacement
+// choice, plus verified emulator writer quiescence. Same pinned parent; checks
+// both complete identities. Atomic namespace mutation is never retried. This
+// does not lock an external emulator or authorize arbitrary ROM overwrites.
+Identity replaceReviewedSave(int dir, const std::string& stage, const std::string& target,
+                             const Identity& staged, const Identity& current);
 // Only for a destination namespace held EXCLUSIVELY by the app and proved
 // PRIVATE by the Android boundary. Never use this for public publication.
 // Rejects a changed source and any existing destination. Uses ordinary rename

@@ -1,0 +1,43 @@
+package com.retro.rshop
+
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import org.junit.Assert.*
+import org.junit.Test
+
+class SaveCaptureStorageTest {
+    @Test fun restoreJournalsBindTheExactEmulatorFormatAndExpectedDirectory() {
+        val slot = "ULUS10001_1.00_0.ppst"
+        val psp = "/storage/emulated/0/PSP/PPSSPP_STATE"
+        val mgba = "/storage/emulated/0/RetroArch/saves/mGBA"
+        assertTrue(SaveCaptureService.validRestoreBinding(slot, 32L * 1024 * 1024, "ppsspp-slot-v1", psp))
+        assertTrue(SaveCaptureService.validRestoreBinding("Game.srm", 4, "mgba-battery", mgba))
+        for ((name, format, root) in listOf(
+            Triple(slot, "mgba-battery", mgba), Triple("Game.srm", "ppsspp-slot-v1", psp),
+            Triple(slot, "ppsspp-slot-v1", mgba), Triple("Game.srm", "mgba-battery", psp),
+            Triple(slot, "unknown", psp), Triple(slot, "ppsspp-slot-v1", "$psp/.."))) {
+            assertFalse(SaveCaptureService.validRestoreBinding(name, 4, format, root))
+        }
+        assertFalse(SaveCaptureService.validRestoreBinding(slot, 0, "ppsspp-slot-v1", psp))
+        assertFalse(SaveCaptureService.validRestoreBinding(slot, PpssppSaveBoundary.MAX_STATE_BYTES + 1,
+            "ppsspp-slot-v1", psp))
+    }
+    @Test fun normalizesTheFrameworkParentBeforeCheckingItsOwnChildren() {
+        val directory = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-capture-root-").toFile()
+        val filesDir = File(directory, "files")
+        assertTrue(filesDir.mkdir())
+        try {
+            // Android's framework path can have a different canonical parent.
+            // A lexical alias reproduces the same equality failure without a link.
+            val frameworkPath = File(directory, "files/../files")
+            val root = SaveCaptureService.stagingRoot(frameworkPath)
+            assertEquals(File(filesDir.canonicalFile, "save-captures"), root)
+            val capture = File(root, "94c67873045b25304ec9cf75defd656e")
+            assertEquals(capture.absoluteFile, capture.canonicalFile)
+        } finally {
+            assertTrue(filesDir.delete())
+            assertTrue(directory.delete())
+        }
+    }
+}

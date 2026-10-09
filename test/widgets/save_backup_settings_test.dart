@@ -17,6 +17,7 @@ import 'package:retro_eshop/services/sources_notifier.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
 import 'package:retro_eshop/services/saves/save_backup_setup.dart';
+import 'package:retro_eshop/services/saves/save_capture.dart';
 import '../helpers/pump_helpers.dart';
 
 class _Driver implements DriveAuthorizationDriver {
@@ -91,6 +92,89 @@ class _Sources extends SourcesNotifier {
 }
 
 void main() {
+  testWidgets(
+      'PPSSPP mapping requires a selected slot and edition confirmation',
+      (tester) async {
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return ['ULUS10041_1.00_0.ppst'];
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final mapped = <String>[];
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: PpssppSaveMappingPanel(
+                title: 'Reviewed PSP edition',
+                capture: SaveCapture(),
+                chooseDirectory: () async =>
+                    '/storage/emulated/0/PSP/PPSSPP_STATE',
+                onMapped: (directory, slot) async =>
+                    mapped.add('$directory/$slot'))))));
+    await tester.tap(find.byKey(const ValueKey('ppsspp-map-folder')));
+    await tester.pumpAndSettle();
+    expect(calls.single.method, 'ppssppNames');
+    final save = find.byKey(const ValueKey('ppsspp-map-save'));
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    await tester.tap(find.byKey(const ValueKey('ppsspp-map-slot')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ULUS10041_1.00_0.ppst').last);
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    await tester.tap(find.byKey(const ValueKey('ppsspp-map-confirm')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(
+        mapped, ['/storage/emulated/0/PSP/PPSSPP_STATE/ULUS10041_1.00_0.ppst']);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('save settings has persistent independent left-hand sections',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final sources = _Sources();
+    await sources.ready;
+    sources.publish('account');
+    await tester.pumpWidget(ProviderScope(overrides: [
+      sourcesProvider.overrideWith((_) => sources),
+    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpAndSettle();
+    final navigation = find.byKey(const ValueKey('save-backup-navigation'));
+    expect(navigation.hitTestable(), findsOneWidget);
+    final area = find.byKey(const ValueKey('save-nav-area'));
+    final status = find.byKey(const ValueKey('save-nav-status'));
+    expect(tester.getRect(area).right,
+        lessThan(tester.getRect(find.byType(SaveBackupSetupPanel)).left));
+    await tester.tap(status);
+    await tester.pumpAndSettle();
+    expect(find.byType(SaveBackupSetupPanel), findsNothing);
+    expect(find.textContaining('No game selected'), findsOneWidget);
+    // Portrait and enlarged text keep navigation beside independently scrolling
+    // content rather than turning the sections into another long page.
+    tester.view.physicalSize = const Size(480, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.4;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    await tester.tap(area);
+    await tester.pumpAndSettle();
+    expect(navigation.hitTestable(), findsOneWidget);
+    expect(find.byType(SaveBackupSetupPanel), findsOneWidget);
+    // Touch selection establishes the same single focus target used by D-pad.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(find.byType(SaveBackupSetupPanel), findsNothing);
+    expect(find.byKey(const ValueKey('save-content-backup')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('same source account change retires the old backup setup',
       (tester) async {
     SharedPreferences.setMockInitialValues({

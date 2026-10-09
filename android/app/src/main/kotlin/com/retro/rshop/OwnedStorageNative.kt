@@ -14,6 +14,9 @@ internal object OwnedStorageNative {
     external fun truncate(fd: Int, size: Long)
     external fun sync(fd: Int)
     external fun renameNoReplace(fromDir: Int, from: String, toDir: Int, to: String)
+    /** Explicit save-only restore, after a sealed rollback and writer boundary. */
+    external fun replaceReviewedSave(dir: Int, stage: String, target: String,
+                                     staged: LongArray, current: LongArray): LongArray
     /** Destination must be the app-exclusive private staging namespace. */
     external fun quarantineIntoPrivate(fromDir: Int, from: String, privateDir: Int, to: String, expected: LongArray): LongArray
     /** App-exclusive private stage entries only; never public installation paths. */

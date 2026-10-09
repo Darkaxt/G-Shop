@@ -1,0 +1,916 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:sqflite/sqflite.dart';
+
+import '../../models/save_backup_manifest.dart';
+import '../../models/library_identity.dart';
+import '../drive/drive_authorization.dart';
+import '../library_store.dart';
+import 'drive_save_backup_area.dart';
+import 'drive_save_backup_generation.dart';
+import 'save_capture.dart';
+
+/// The first native save workflow. SQLite commits the exact selection/capture
+/// intent before native IO and immutable reserved objects before remote writes.
+/// Interrupted publication reuses the sealed capture and the same cloud IDs.
+/// This is explicit user work, not yet SAVE-01's background workflow.
+class SaveBackupGameJob extends ChangeNotifier {
+  static final _running = <String, Future<void>>{};
+  final Future<Database> database;
+  final SaveCapture capture;
+  final DriveSaveBackupAreaApi areas;
+  final DriveSaveBackupGenerationApi generations;
+  final String clientId, accountId, areaId, editionId;
+  final RemoteArtifactId artifactId;
+  final Future<String> Function() resolveSaveName;
+  // Explicitly reviewed mapping, never inferred from a game title. One slot is
+  // one state stream; another directory/slot must have a separate durable job.
+  final String? ppssppDirectory, ppssppSlot;
+  Map<String, dynamic>? _record;
+  Future<void>? _operation;
+  CancelToken? _cancellation;
+  String? _captureId, _issue;
+  bool _disposed = false;
+  String phase = 'idle';
+
+  SaveBackupGameJob(
+      {required this.database,
+      required this.capture,
+      required this.areas,
+      required this.generations,
+      required this.clientId,
+      required this.accountId,
+      required this.areaId,
+      required this.editionId,
+      required this.artifactId,
+      required this.resolveSaveName,
+      this.ppssppDirectory,
+      this.ppssppSlot}) {
+    if ([clientId, accountId, areaId, editionId].any((s) => s.trim().isEmpty) ||
+        areas.accountId != accountId ||
+        generations.accountId != accountId) {
+      throw ArgumentError('Invalid save job binding');
+    }
+    if ((ppssppDirectory == null) != (ppssppSlot == null) ||
+        (isPpsspp &&
+            (!SaveCapture.validPpssppDirectory(ppssppDirectory!) ||
+                !SaveCapture.validPpssppName(ppssppSlot!)))) {
+      throw ArgumentError('Invalid PPSSPP mapping');
+    }
+  }
+
+  bool get isPpsspp => ppssppDirectory != null;
+  String get _platform => isPpsspp ? 'psp' : 'gba';
+  String get _emulator =>
+      isPpsspp ? 'org.ppsspp.ppsspp' : 'com.retroarch.aarch64';
+  String get _core => isPpsspp ? 'ppsspp' : 'mgba';
+  String get _format => isPpsspp ? 'ppsspp-slot-v1' : 'libretro-mgba-sram-v1';
+  SaveBackupKind get _kind =>
+      isPpsspp ? SaveBackupKind.state : SaveBackupKind.save;
+  bool _validName(String name) => isPpsspp
+      ? name == ppssppSlot && SaveCapture.validPpssppName(name)
+      : SaveCapture.validName(name);
+  bool _bindingMatches(SaveBackupBinding binding) =>
+      binding.accountId == accountId &&
+      binding.platformId == _platform &&
+      binding.editions.length == 1 &&
+      binding.editions.single.editionId == editionId &&
+      binding.emulatorPackage == _emulator &&
+      binding.coreId == _core &&
+      binding.kind == _kind &&
+      binding.formatId == _format &&
+      (!isPpsspp || {'v1.20.4', '1.20.4'}.contains(binding.emulatorVersion));
+
+  String get _key => sha256
+      .convert(utf8.encode(jsonEncode([
+        clientId,
+        accountId,
+        areaId,
+        editionId,
+        if (isPpsspp) ...[_format, ppssppDirectory, ppssppSlot] else
+          'mgba-battery'
+      ])))
+      .toString();
+  bool get busy => _operation != null;
+
+  Future<String> _reviewName({String? gameId}) async {
+    final store = LibraryStore(database);
+    final edition = await store.edition(editionId);
+    final game = edition == null ? null : await store.game(edition.gameId);
+    if (game?.platformId != _platform ||
+        (gameId != null && edition?.gameId != gameId) ||
+        !edition!.members.any((member) => member.artifactId == artifactId)) {
+      throw PlatformException(code: 'source_changed');
+    }
+    final name = await resolveSaveName();
+    if (!_validName(name)) {
+      throw PlatformException(code: 'source_changed');
+    }
+    return name;
+  }
+
+  Future<List<String>> reviewedNames() async => [await _reviewName()];
+
+  Future<void> _requireName(String name, {String? gameId}) async {
+    if (await _reviewName(gameId: gameId) != name) {
+      throw PlatformException(code: 'source_changed');
+    }
+  }
+
+  String? get issue => _issue;
+  String? get pendingName =>
+      _record?['state'] == 'pending' ? (_record?['name'] as String?) : null;
+  List<SaveBackupManifest> get conflicts =>
+      List.unmodifiable(((_record?['conflictHeads'] as List?) ?? const []).map(
+          (raw) => SaveBackupManifest.decode(utf8.encode(jsonEncode(raw)))));
+  bool get restorePending =>
+      _record?['selectedCloudRestore'] != null ||
+      ['restore', 'rollback'].any((key) =>
+          _record?[key] != null &&
+          (_record![key] as Map)['state'] != 'complete');
+  bool get rollbackAvailable =>
+      _record?['selectedCloudRestore'] == null &&
+      _record?['restore'] != null &&
+      (_record!['restore'] as Map)['state'] == 'complete' &&
+      (_record?['rollback'] as Map?)?['state'] != 'complete';
+  SaveBackupManifest? get lastVerified {
+    final raw = _record?['lastVerified'];
+    return raw == null
+        ? null
+        : SaveBackupManifest.decode(utf8.encode(jsonEncode(raw)));
+  }
+
+  bool get rollbackPending =>
+      _record?['rollback'] != null &&
+      (_record!['rollback'] as Map)['state'] != 'complete';
+
+  void _changed() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void _check(CancelToken cancellation) {
+    if (_disposed || cancellation.isCancelled) {
+      throw const SaveBackupGenerationException(
+          SaveBackupGenerationIssue.cancelled);
+    }
+  }
+
+  Future<void> _schema(Database db) async {
+    await db.execute('''CREATE TABLE IF NOT EXISTS
+      save_backup_game_jobs(job_key TEXT PRIMARY KEY, record_json TEXT NOT NULL)''');
+    await db
+        .execute('''CREATE TABLE IF NOT EXISTS save_backup_conflict_captures(
+      job_key TEXT NOT NULL, generation_id TEXT NOT NULL, record_json TEXT NOT NULL,
+      PRIMARY KEY(job_key, generation_id))''');
+  }
+
+  Future<void> load() async {
+    final db = await database;
+    await _schema(db);
+    final rows = await db.query('save_backup_game_jobs',
+        where: 'job_key = ?', whereArgs: [_key], limit: 1);
+    if (rows.isNotEmpty) {
+      final raw = rows.single['record_json'] as String;
+      if (raw.length > 3 * SaveBackupManifest.maxEncodedBytes) {
+        throw const FormatException('Invalid save job');
+      }
+      final record = jsonDecode(raw) as Map<String, dynamic>;
+      if (record['key'] != _key ||
+          record['schema'] != 1 ||
+          !{'pending', 'complete'}.contains(record['state']) ||
+          !RegExp(r'^[a-f0-9]{32}$').hasMatch(record['captureId'] as String) ||
+          !_validName(record['name'] as String)) {
+        throw const FormatException('Invalid save job');
+      }
+      for (final rawManifest in [
+        record['generation'],
+        record['lastVerified'],
+        ...((record['conflictHeads'] as List?) ?? const [])
+      ]) {
+        if (rawManifest == null) continue;
+        final manifest =
+            SaveBackupManifest.decode(utf8.encode(jsonEncode(rawManifest)));
+        if (!_bindingMatches(manifest.binding)) {
+          throw const FormatException('Changed save job binding');
+        }
+        _contents(manifest);
+      }
+      for (final operationKey in ['restore', 'rollback']) {
+        final restore = record[operationKey];
+        if (restore != null) {
+          if (restore is! Map<String, dynamic> ||
+              !RegExp(r'^[a-f0-9]{32}$').hasMatch(restore['id'] as String) ||
+              !RegExp(r'^[a-f0-9]{32}$')
+                  .hasMatch(restore['rollbackId'] as String) ||
+              restore['id'] == restore['rollbackId'] ||
+              !{'capture', 'download', 'ready', 'complete'}
+                  .contains(restore['state']) ||
+              !_validName(restore['name'] as String)) {
+            throw const FormatException('Invalid restore intent');
+          }
+          final manifest = SaveBackupManifest.decode(
+              utf8.encode(jsonEncode(restore['manifest'])));
+          if (manifest.generationId != restore['generationId'] ||
+              !_bindingMatches(manifest.binding) ||
+              manifest.members.length != 1 ||
+              !_validName(manifest.members.single.relativePath)) {
+            throw const FormatException('Changed restore binding');
+          }
+          if (operationKey == 'rollback' &&
+              (record['restore'] is! Map ||
+                  restore['sourceCaptureId'] !=
+                      record['restore']['rollbackId'] ||
+                  record['restore']['state'] != 'complete')) {
+            throw const FormatException('Changed rollback association');
+          }
+        }
+      }
+      if (record['selectedCloudRestore'] != null &&
+          (record['state'] != 'complete' ||
+              record['selectedCloudRestore'] !=
+                  record['lastVerified']?['generationId'])) {
+        throw const FormatException('Changed cloud restore choice');
+      }
+      _record = record;
+    }
+    _changed();
+  }
+
+  Future<void> _persist(Map<String, dynamic> record) async {
+    final db = await database;
+    final encoded = jsonEncode(record);
+    if (encoded.length > 3 * SaveBackupManifest.maxEncodedBytes) {
+      throw const FormatException('Save job exceeds durable record limit');
+    }
+    await db.insert(
+        'save_backup_game_jobs', {'job_key': _key, 'record_json': encoded},
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    _record = record;
+  }
+
+  Future<void> backup(String name) => _backup(name);
+
+  Future<void> keepLocalConflict(Set<String> reviewedHeads) {
+    final name = pendingName;
+    if (name == null || conflicts.isEmpty || busy) return Future.value();
+    return _backup(name, reviewedHeads: Set.unmodifiable(reviewedHeads));
+  }
+
+  Future<void> restoreConflict(
+      String generationId, Set<String> reviewedHeads) async {
+    final name = pendingName;
+    if (name == null || conflicts.isEmpty || busy) return;
+    await _backup(name,
+        reviewedHeads: Set.unmodifiable(reviewedHeads), useCloud: generationId);
+    if (_issue == null &&
+        phase == 'cloud_selected' &&
+        lastVerified?.generationId == generationId) {
+      await _restore();
+    }
+  }
+
+  /// Heads are determined by ancestry, never creation dates. Unknown parents do
+  /// not authorize discarding a branch. Reject cycles rather than hiding them.
+  List<SaveBackupManifest> _heads(List<SaveBackupManifest> all) {
+    final byId = {for (final item in all) item.generationId: item};
+    if (byId.length != all.length) {
+      throw const FormatException('Duplicate generation');
+    }
+    final visiting = <String>{}, visited = <String>{};
+    void visit(String id) {
+      if (visited.contains(id) || !byId.containsKey(id)) return;
+      if (!visiting.add(id)) {
+        throw const FormatException('Cyclic save ancestry');
+      }
+      for (final parent in byId[id]!.parentGenerationIds) {
+        visit(parent);
+      }
+      visiting.remove(id);
+      visited.add(id);
+    }
+
+    for (final id in byId.keys) {
+      visit(id);
+    }
+    final parents = all.expand((item) => item.parentGenerationIds).toSet();
+    return all.where((item) => !parents.contains(item.generationId)).toList()
+      ..sort((a, b) => a.generationId.compareTo(b.generationId));
+  }
+
+  Future<void> _retainConflict(Map<String, dynamic> record) async {
+    final db = await database;
+    await db.insert(
+        'save_backup_conflict_captures',
+        {
+          'job_key': _key,
+          'generation_id': record['generation']['generationId'],
+          'record_json': jsonEncode(record),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Future<List<SaveBackupManifest>> _cloudHeads(
+      SaveBackupManifest manifest, CancelToken cancellation) async {
+    final compatible = await generations.discoverGenerations(
+        areaId: areaId, target: manifest.binding, cancellation: cancellation);
+    // PPSSPP slots are independent state streams within one game/edition.
+    // Transport compatibility covers emulator/format; exact member selection
+    // supplies slot identity without borrowing ancestry from another slot.
+    return _heads(isPpsspp
+        ? compatible
+            .where((item) =>
+                item.members.length == 1 &&
+                item.members.single.relativePath == ppssppSlot)
+            .toList()
+        : compatible);
+  }
+
+  /// This reviewed format is one SRAM and an optional same-stem RTC. Transport
+  /// manifests retain exact source filenames; reinstall-specific names must not
+  /// make identical logical save bytes diverge. Do not generalize this to other
+  /// formats, whose directory/member names may carry actual game-save meaning.
+  String _contents(SaveBackupManifest manifest) {
+    if (isPpsspp) {
+      if (!_bindingMatches(manifest.binding) ||
+          manifest.members.length != 1 ||
+          !_validName(manifest.members.single.relativePath)) {
+        throw const FormatException('Invalid PPSSPP slot group');
+      }
+      final member = manifest.members.single;
+      return jsonEncode([member.relativePath, member.sizeBytes, member.sha256]);
+    }
+    final sram =
+        manifest.members.where((m) => m.relativePath.endsWith('.srm')).toList();
+    if (manifest.binding.formatId != 'libretro-mgba-sram-v1' ||
+        sram.length != 1 ||
+        !SaveCapture.validName(sram.single.relativePath) ||
+        manifest.members.length > 2) {
+      throw const FormatException('Invalid mGBA save group');
+    }
+    final name = sram.single.relativePath;
+    final rtcName = '${name.substring(0, name.length - 4)}.rtc';
+    final roles = <List<Object>>[
+      ['sram', sram.single.sizeBytes, sram.single.sha256],
+    ];
+    for (final member in manifest.members) {
+      if (member == sram.single) continue;
+      if (member.relativePath != rtcName) {
+        throw const FormatException('Unrelated mGBA save member');
+      }
+      roles.add(['rtc', member.sizeBytes, member.sha256]);
+    }
+    return jsonEncode(roles);
+  }
+
+  Future<void> _backup(String name,
+      {Set<String>? reviewedHeads, String? useCloud}) {
+    if (_disposed) return Future.value();
+    if (_operation case final pending?) return pending;
+    if (_running[_key] case final pending?) return pending;
+    final cancellation = CancelToken();
+    _cancellation = cancellation;
+    final operation = Future<void>.microtask(() async {
+      try {
+        _issue = null;
+        await load();
+        _check(cancellation);
+        if (restorePending) {
+          _issue = 'pending_restore';
+          return;
+        }
+        if (!_validName(name)) {
+          throw const FormatException('Invalid save selection');
+        }
+        await _requireName(name);
+        _check(cancellation);
+        final store = LibraryStore(database);
+        final edition = await store.edition(editionId);
+        final game = edition == null ? null : await store.game(edition.gameId);
+        if (edition == null || game?.platformId != _platform) {
+          throw const FormatException('Unresolved save edition');
+        }
+        var record = _record;
+        if (record?['state'] == 'pending' && record?['name'] != name) {
+          _issue = 'pending_selection_changed';
+          return;
+        }
+        if (record == null || record['state'] == 'complete') {
+          final id = List.generate(16, (_) => Random.secure().nextInt(256))
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join();
+          record = {
+            'schema': 1,
+            'key': _key,
+            'state': 'pending',
+            'name': name,
+            'captureId': id,
+            'lastVerified': record?['lastVerified'],
+            // Only explicitly resolved heads may join the next generation's
+            // ancestry. A later, unreviewed cloud branch still needs a choice.
+            'parentGenerationIds': {
+              if (lastVerified != null) lastVerified!.generationId,
+              ...((record?['resolvedHeadIds'] as List?) ?? const [])
+                  .cast<String>()
+            }.toList(),
+            'generation': null,
+            'captures': null,
+            'restore': record?['restore'],
+            'rollback': record?['rollback']
+          };
+          await _persist(record);
+        }
+        _captureId = record['captureId'] as String;
+        _check(cancellation);
+        if (record['generation'] == null) {
+          phase = 'capture';
+          _changed();
+          final group = isPpsspp
+              ? await capture.capturePpsspp(
+                  captureId: _captureId!,
+                  directory: ppssppDirectory!,
+                  name: name)
+              : await capture.captureRetroArch(
+                  captureId: _captureId!, name: name);
+          _check(cancellation);
+          phase = 'reserve';
+          _changed();
+          final generationId =
+              await areas.reserveAreaId(cancellation: cancellation);
+          final members = <SaveBackupMember>[];
+          final files = <String, String>{};
+          for (final file in group.files) {
+            _check(cancellation);
+            final id = await areas.reserveAreaId(cancellation: cancellation);
+            members.add(SaveBackupMember(
+                relativePath: file.name,
+                cloudFileId: id,
+                sizeBytes: file.size,
+                sha256: file.sha256));
+            files[id] = file.file.path;
+          }
+          final manifest = SaveBackupManifest(
+              generationId: generationId,
+              binding: SaveBackupBinding(
+                  accountId: accountId,
+                  deviceId: group.deviceId,
+                  emulatorPackage: _emulator,
+                  emulatorVersion: group.emulatorVersion,
+                  coreId: _core,
+                  coreVersion: 'unreported',
+                  platformId: _platform,
+                  editions: [
+                    SaveBackupEdition(gameId: game!.id, editionId: editionId)
+                  ],
+                  kind: _kind,
+                  formatId: _format),
+              parentGenerationIds:
+                  (record['parentGenerationIds'] as List?)?.cast<String>() ??
+                      [if (lastVerified != null) lastVerified!.generationId],
+              createdAt: DateTime.now().toUtc(),
+              members: members);
+          record = {
+            ...record,
+            'generation': jsonDecode(utf8.decode(manifest.encode())),
+            'captures': files
+          };
+          await _persist(record);
+        }
+        _check(cancellation);
+        var manifest = SaveBackupManifest.decode(
+            utf8.encode(jsonEncode(record['generation'])));
+        if (manifest.binding.editions.single.gameId != game!.id) {
+          throw const FormatException('Changed game binding');
+        }
+        var paths = (record['captures'] as Map).cast<String, String>();
+        if (paths.keys
+                .toSet()
+                .difference(manifest.members.map((m) => m.cloudFileId).toSet())
+                .isNotEmpty ||
+            paths.length != manifest.members.length) {
+          throw const FormatException('Invalid captured group');
+        }
+        phase = 'cloud_review';
+        _changed();
+        final heads = await _cloudHeads(manifest, cancellation);
+        _check(cancellation);
+        final headIds = heads.map((item) => item.generationId).toSet();
+        final localContents = _contents(manifest);
+        final needsChoice = heads.any((item) =>
+            item.generationId != manifest.generationId &&
+            !manifest.parentGenerationIds.contains(item.generationId) &&
+            _contents(item) != localContents);
+        if (reviewedHeads != null &&
+            (!setEquals(headIds, reviewedHeads) || conflicts.isEmpty)) {
+          await _persist({
+            ...record,
+            'conflictHeads':
+                heads.map((h) => jsonDecode(utf8.decode(h.encode()))).toList()
+          });
+          _issue = 'conflict_changed';
+          return;
+        }
+        if (needsChoice && reviewedHeads == null) {
+          await _persist({
+            ...record,
+            'conflictHeads':
+                heads.map((h) => jsonDecode(utf8.decode(h.encode()))).toList()
+          });
+          _issue = 'save_conflict';
+          return;
+        }
+        if (reviewedHeads != null) {
+          await _retainConflict(record);
+          if (useCloud != null) {
+            final chosen =
+                heads.where((h) => h.generationId == useCloud).single;
+            if (chosen.members.length != 1) {
+              _issue = 'related_group_unfinished';
+              return;
+            }
+            // A private rollback is not independently recoverable after
+            // reinstall. Publish the sealed local branch, with its durable
+            // reserved IDs and verified readback, before selecting a cloud
+            // version that can replace it. Never rewrite the remote branch.
+            phase = 'upload';
+            _changed();
+            await _requireName(name, gameId: game.id);
+            _check(cancellation);
+            await generations.publish(
+                areaId: areaId,
+                generation: manifest,
+                captures: paths.map((key, value) => MapEntry(key, File(value))),
+                cancellation: cancellation);
+            _check(cancellation);
+            final preservedHeads = await _cloudHeads(manifest, cancellation);
+            _check(cancellation);
+            // Our newly preserved branch is expected. Any other head change
+            // invalidates the reviewed choice; keep both versions and ask again.
+            final preservedIds =
+                preservedHeads.map((h) => h.generationId).toSet();
+            if (!setEquals(preservedIds.difference({manifest.generationId}),
+                headIds.difference({manifest.generationId}))) {
+              await _persist({
+                ...record,
+                'conflictHeads': preservedHeads
+                    .map((h) => jsonDecode(utf8.decode(h.encode())))
+                    .toList()
+              });
+              _issue = 'conflict_changed';
+              return;
+            }
+            await _persist({
+              ...record,
+              'state': 'complete',
+              'lastVerified': jsonDecode(utf8.decode(chosen.encode())),
+              'selectedCloudRestore': chosen.generationId,
+              'resolvedHeadIds': preservedIds.toList(),
+              'conflictHeads': null
+            });
+            phase = 'cloud_selected';
+            return;
+          }
+          // Never alter a possibly published manifest after a lost response.
+          // Explicit resolution creates a new child of every reviewed branch.
+          final generationId =
+              await areas.reserveAreaId(cancellation: cancellation);
+          final members = <SaveBackupMember>[];
+          final newPaths = <String, String>{};
+          for (final member in manifest.members) {
+            final id = await areas.reserveAreaId(cancellation: cancellation);
+            members.add(SaveBackupMember(
+                relativePath: member.relativePath,
+                cloudFileId: id,
+                sizeBytes: member.sizeBytes,
+                sha256: member.sha256));
+            newPaths[id] = paths[member.cloudFileId]!;
+          }
+          manifest = SaveBackupManifest(
+              generationId: generationId,
+              binding: manifest.binding,
+              parentGenerationIds:
+                  {...manifest.parentGenerationIds, ...headIds}.toList(),
+              createdAt: DateTime.now().toUtc(),
+              members: members);
+          paths = newPaths;
+          record = {
+            ...record,
+            'generation': jsonDecode(utf8.decode(manifest.encode())),
+            'captures': paths,
+            'conflictHeads': null
+          };
+          await _persist(record);
+        }
+        phase = 'upload';
+        _changed();
+        await _requireName(name, gameId: game.id);
+        _check(cancellation);
+        await generations.publish(
+            areaId: areaId,
+            generation: manifest,
+            captures: paths.map((key, value) => MapEntry(key, File(value))),
+            cancellation: cancellation);
+        _check(cancellation);
+        // Another installation can publish between review and commit. Immutable
+        // writes preserve both sides; report that branch instead of a false win.
+        final after = await _cloudHeads(manifest, cancellation);
+        if (after.any((h) =>
+            h.generationId != manifest.generationId &&
+            !manifest.parentGenerationIds.contains(h.generationId) &&
+            _contents(h) != localContents)) {
+          await _persist({
+            ...record,
+            'conflictHeads':
+                after.map((h) => jsonDecode(utf8.decode(h.encode()))).toList()
+          });
+          _issue = 'save_conflict';
+          return;
+        }
+        await _persist({
+          ...record,
+          'state': 'complete',
+          'lastVerified': record['generation'],
+          'conflictHeads': null
+        });
+        phase = 'verified';
+      } on PlatformException catch (error) {
+        _issue = const {
+          'close_content_required',
+          'storage_permission',
+          'runtime_unreviewed',
+          'source_changed',
+          'cancelled',
+          'capture_busy',
+          'invalid_save_size',
+          'emulator_missing',
+          'changed_capture'
+        }.contains(error.code)
+            ? error.code
+            : 'capture_unavailable';
+      } on DriveAuthorizationException catch (error) {
+        _issue = 'authorization_${error.issue.name}';
+      } on SaveBackupGenerationException catch (error) {
+        _issue = error.issue.name;
+      } on SaveBackupAreaException catch (error) {
+        _issue = error.issue.name;
+      } catch (_) {
+        _issue = cancellation.isCancelled ? 'cancelled' : 'backup_unavailable';
+      } finally {
+        _running.remove(_key);
+        _operation = null;
+        _cancellation = null;
+        _captureId = null;
+        _changed();
+      }
+    });
+    _running[_key] = operation;
+    _operation = operation;
+    _changed();
+    return operation;
+  }
+
+  /// Explicit replacement choice is collected by the UI, never by timestamps.
+  /// A rollback capture and stable IDs are durably retained before downloading.
+  Future<void> restoreLatest() {
+    return _restore();
+  }
+
+  Future<void> rollbackLast() => _restore(rollback: true);
+
+  Future<void> _restore({bool rollback = false}) {
+    if (_disposed) return Future.value();
+    if (_operation case final pending?) return pending;
+    if (_running[_key] case final pending?) return pending;
+    final cancellation = CancelToken();
+    _cancellation = cancellation;
+    final operation = Future<void>.microtask(() async {
+      try {
+        _issue = null;
+        await load();
+        _check(cancellation);
+        var record = _record;
+        if (record == null || lastVerified == null) {
+          _issue = 'no_verified_backup';
+          return;
+        }
+        if (record['state'] == 'pending') {
+          _issue = 'pending_backup';
+          return;
+        }
+        if ((!rollback &&
+                (record['rollback'] as Map?)?['state'] != null &&
+                record['rollback']['state'] != 'complete') ||
+            (rollback && !rollbackAvailable)) {
+          _issue = rollback ? 'no_retained_rollback' : 'pending_rollback';
+          return;
+        }
+        final store = LibraryStore(database);
+        final edition = await store.edition(editionId);
+        final game = edition == null ? null : await store.game(edition.gameId);
+        if (edition == null || game?.platformId != _platform) {
+          throw const FormatException('Unresolved restore edition');
+        }
+        final operationKey = rollback ? 'rollback' : 'restore';
+        final currentName = await _reviewName();
+        _check(cancellation);
+        Map<String, dynamic>? restore =
+            (record[operationKey] as Map?)?.cast<String, dynamic>();
+        if (restore == null || restore['state'] == 'complete') {
+          final manifest = rollback
+              ? SaveBackupManifest.decode(
+                  utf8.encode(jsonEncode(record['restore']['manifest'])))
+              : lastVerified!;
+          if (manifest.binding.editions.single.gameId != game!.id) {
+            throw const FormatException('Changed restore game');
+          }
+          if (manifest.members.length != 1 ||
+              !_validName(manifest.members.single.relativePath)) {
+            _issue = 'related_group_unfinished';
+            return;
+          }
+          String newId() =>
+              List.generate(16, (_) => Random.secure().nextInt(256))
+                  .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                  .join();
+          restore = {
+            'id': newId(),
+            'rollbackId': newId(),
+            'generationId': manifest.generationId,
+            'name': rollback ? record['restore']['name'] : currentName,
+            'manifest': jsonDecode(utf8.decode(manifest.encode())),
+            'state': 'capture'
+          };
+          if (rollback) {
+            restore['sourceCaptureId'] = record['restore']['rollbackId'];
+          }
+          record = {
+            ...record,
+            operationKey: restore,
+            if (!rollback) 'selectedCloudRestore': null,
+            if (!rollback) 'rollback': null
+          };
+          await _persist(record);
+        }
+        final selected = SaveBackupManifest.decode(
+            utf8.encode(jsonEncode(restore['manifest'])));
+        if (selected.binding.editions.single.gameId != game!.id) {
+          throw const FormatException('Changed restore game');
+        }
+        final restoreId = restore['id'] as String;
+        final rollbackId = restore['rollbackId'] as String;
+        final name = restore['name'] as String;
+        await _requireName(name,
+            gameId: selected.binding.editions.single.gameId);
+        _check(cancellation);
+        if (restore['state'] == 'capture') {
+          phase = 'rollback_capture';
+          _captureId = rollbackId;
+          _changed();
+          final local = isPpsspp
+              ? await capture.capturePpsspp(
+                  captureId: rollbackId,
+                  directory: ppssppDirectory!,
+                  name: name)
+              : await capture.captureRetroArch(
+                  captureId: rollbackId, name: name);
+          _check(cancellation);
+          if (local.files.length != 1 || local.files.single.name != name) {
+            _issue = 'related_group_unfinished';
+            return;
+          }
+          restore = {...restore, 'state': 'download'};
+          record = {...record, operationKey: restore};
+          await _persist(record);
+        }
+        _check(cancellation);
+        phase = rollback ? 'rollback_verify' : 'restore_download';
+        _captureId = restoreId;
+        _changed();
+        final cloud = rollback
+            ? selected
+            : await generations.loadGeneration(
+                areaId: areaId,
+                generationId: selected.generationId,
+                target: selected.binding,
+                cancellation: cancellation);
+        if (utf8.decode(cloud.encode()) != utf8.decode(selected.encode())) {
+          throw const SaveBackupGenerationException(
+              SaveBackupGenerationIssue.invalidBinding);
+        }
+        _check(cancellation);
+        if (restore['state'] == 'download') {
+          CapturedSaveFile? retained;
+          if (rollback) {
+            _captureId = restore['sourceCaptureId'] as String;
+            final group = isPpsspp
+                ? await capture.capturePpsspp(
+                    captureId: _captureId!,
+                    directory: ppssppDirectory!,
+                    name: name)
+                : await capture.captureRetroArch(
+                    captureId: _captureId!, name: name);
+            _check(cancellation);
+            if (group.files.length != 1 || group.files.single.name != name) {
+              throw const FormatException('Changed retained rollback group');
+            }
+            retained = group.files.single;
+            _captureId = restoreId;
+          }
+          final member = cloud.members.single;
+          await capture.stageRestore(
+              restoreId: restoreId,
+              name: name,
+              size: retained?.size ?? member.sizeBytes,
+              sha256: retained?.sha256 ?? member.sha256,
+              ppssppDirectory: ppssppDirectory,
+              bytes: retained != null
+                  ? retained.file.openRead().map((chunk) {
+                      _check(cancellation);
+                      return Uint8List.fromList(chunk);
+                    })
+                  : generations.memberBytes(
+                      areaId: areaId,
+                      generation: cloud,
+                      memberId: member.cloudFileId,
+                      cancellation: cancellation));
+          _check(cancellation);
+          restore = {...restore, 'state': 'ready'};
+          record = {...record, operationKey: restore};
+          await _persist(record);
+        }
+        _check(cancellation);
+        phase = 'restore_publish';
+        _changed();
+        await _requireName(name,
+            gameId: selected.binding.editions.single.gameId);
+        _check(cancellation);
+        await capture.publishRestore(
+            restoreId: restoreId, rollbackCaptureId: rollbackId);
+        // Native acknowledges only after the atomic commit and durable receipt.
+        // Cancellation after that receipt must not discard the completed result.
+        await _persist({
+          ...record,
+          operationKey: {...restore, 'state': 'complete'}
+        });
+        phase = rollback ? 'rolled_back' : 'restored';
+      } on PlatformException catch (error) {
+        _issue = const {
+          'close_content_required',
+          'stop_ppsspp_required',
+          'storage_permission',
+          'runtime_unreviewed',
+          'source_changed',
+          'cancelled',
+          'capture_busy',
+          'invalid_save_size',
+          'emulator_missing',
+          'changed_capture',
+          'related_group_unfinished',
+          'restore_stage_conflict'
+        }.contains(error.code)
+            ? error.code
+            : 'restore_unavailable';
+      } on DriveAuthorizationException catch (error) {
+        _issue = 'authorization_${error.issue.name}';
+      } on SaveBackupGenerationException catch (error) {
+        _issue = error.issue.name;
+      } on SaveBackupAreaException catch (error) {
+        _issue = error.issue.name;
+      } catch (_) {
+        _issue = cancellation.isCancelled ? 'cancelled' : 'restore_unavailable';
+      } finally {
+        _running.remove(_key);
+        _operation = null;
+        _cancellation = null;
+        _captureId = null;
+        _changed();
+      }
+    });
+    _running[_key] = operation;
+    _operation = operation;
+    _changed();
+    return operation;
+  }
+
+  Future<void> cancelAndJoin() async {
+    _cancellation?.cancel();
+    final id = _captureId;
+    try {
+      if (id != null) await capture.cancel(id);
+    } finally {
+      await _operation;
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    // The screen joins before closing its owned API adapters.
+    super.dispose();
+  }
+}

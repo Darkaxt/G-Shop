@@ -4,13 +4,346 @@ Authority: SAVE-01 in SPECIFICATION.md. S10 is the sole ACTIVE stage; setup and
 inventory do not satisfy SAVE-01 as a whole. S7 remains parked BLOCKED
 on its independent reception/retention evidence. S11 is NOT STARTED.
 
+Current acceptance revision, authorized by the user on 2026-10-09: verify that
+restored bytes are written at the configured emulator's expected save location.
+Skip gameplay, in-emulator save-load and deep save-content checks. Historical
+dated checkpoints below retain their original observations but their outstanding
+emulator-load gates are superseded by specification revision 15. The current
+RetroArch-target publication receipt satisfies that narrow location/write check;
+it does not close coverage or other unfinished S10 implementation. The standalone
+PPSSPP destination/write and rollback checks below now pass as well.
+
+## Standalone restore and rollback verified — 2026-10-09
+
+Normal selected-game Save backups -> Restore & conflicts resumed the retained
+Patapon fixture. The first attempt preserved its pending intent and local bytes
+on `authorization_unavailable`: Android reported a hotel captive portal and
+microG logged `NoRouteToHostException`. After the same network became VALIDATED,
+explicit Resume obtained the existing account grant without account selection,
+downloaded/verified the cloud bytes, and reached `stop_ppsspp_required`.
+The slot and PPSSPP configuration hashes were still unchanged. No account reset,
+timer retry, duplicate backup or emulator termination was added to recover this.
+
+The normal PPSSPP App info button opened Android settings. With the fixture
+already exited to PPSSPP's menu, explicit Force stop/OK set `stopped=true` and
+the package process was absent. Returning without reopening PPSSPP and confirming
+Resume completed restore at the reviewed Memory Stick slot. Native restore
+`35c71799a9b2d0c63e48780041896b44` has a durable `published` receipt, bound to
+`ppsspp-slot-v1` and the explicitly mapped source. Its staged inode 423763 became
+the destination. The 5,557,226-byte destination, sealed cloud member and retained
+rollback `afd7295466b606cbb73e12979bf83ca7` all independently hash to
+`ef64997dfb2f43e04d1c9b86416b98ab61b71c189f7c37026de7ce2db735cc53`.
+Identical fixture content is not claimed as a changed gameplay save; the inode
+and publication receipt establish the completed replacement, not just a no-op hash.
+
+Explicit Restore retained local save, with its own confirmation, then completed
+through receipt `2568c0d6d449e3c1b257ef43638c0b88`, destination inode 463104 and
+the same expected length/digest. Its replaced local generation is separately
+retained in capture `8b30a51055bd1ebd3da910ee73ee6663`. Normal Status reported both
+completed actions. Leaving/reopening Save backups retained the verified backup
+without a pending-restore prompt or new sign-in. PPSSPP configuration SHA256
+remained `17e268f3f0626d414f01b3ae2864f37686543a47698bd3edc9fa814a9170111b`;
+no ROM, battery save, thumbnail or cloud original was selected for replacement.
+
+Fresh focused host checks cover capture/staging, job persistence, PPSSPP conflict
+preservation-before-restore, generic conflict ancestry/failures, settings section
+isolation and exact owned-launch save review. Scoped analysis and diff checks pass.
+The native binding/runtime tests and APK assembly passed through gate ticket 534
+(`c7b8f3838f5a46e8b2c2af9180fc7359`), gate acquired and completion verified:
+workers=2, parallel=false, Gradle heap=3 GiB, preserved 1 GiB metaspace/256 MiB
+code cache, assessed Kotlin 2.2.20 in-process, one 512 MiB fail-fast test fork.
+The unchanged native compile/link pool is depth one per ABI; no host-wide native
+cap is claimed. No memory failure or budget increase. Build log basename
+`90805e7756314625a35cf6ea27d67608.log`. Candidate and independent installed APK
+SHA256 match `0e82accd4772fe8d99e0b133675a6a16e4c54b99636fd9dafb77429407964438`;
+the existing signer and all three observed protected-preference digests matched
+after preserving install. No subsequent production change invalidates this build.
+
+The current native `owned_storage.cpp` and its filesystem contract were also
+compiled once with NDK 28.2, C++17, warnings-as-errors and a static C++ runtime,
+then executed in a new exclusive `/data/local/tmp` fixture on the Thor. The
+reviewed-save replacement contract passes: changed current/staged identities
+are rejected, successful replacement retains the staged inode/bytes, and the
+rollback bytes remain intact. Existing traversal/link/no-replace/quarantine
+contracts also pass. Its individually tracked fixture self-cleans; the exact
+device binary was removed and both paths are absent. The disposable host binary
+is reclaimed through the reviewed task-owned cleanup ticket, not a cache purge.
+
+The exact temporary UI XML was removed. Both physical screens report committed
+OFF and wakefulness Asleep. S10 remains ACTIVE: live divergent-conflict evidence,
+remaining installed-emulator routes, background/fault/reinstall work and the
+conditional legacy-sync handover are not closed by this two-emulator slice.
+S7 remains BLOCKED, S11 NOT STARTED; no required deferral or waiver is introduced.
+
+## Cloud conflict workflow — 2026-10-09, host verification
+
+### PPSSPP restore boundary — implementation and native verification
+
+The Thor's shared PPSSPP_STATE filesystem rejected `renameat2(RENAME_EXCHANGE)`
+with EINVAL in an exclusive two-file capability fixture. The fixture was removed;
+no existing slot was touched. Do not use atomic exchange or infer writer completion
+from a paused activity, low CPU, a delay or a UsageStats lifecycle event.
+
+Restore now uses the existing sealed local rollback, streamed cloud verification,
+same-parent staged replacement and durable publication receipt. The native restore
+journal binds the exact `ppsspp-slot-v1` format and explicitly selected state root;
+legacy mGBA journals retain only their original fixed mGBA route. Replay cannot
+retarget the same restore ID to another root or format. One exact mapped state slot
+is restored; JPEG thumbnails, undo/temp files and SAVEDATA are not silently selected.
+
+Before public staging and again before replacement, require Android's documented
+ApplicationInfo.FLAG_STOPPED for the reviewed PPSSPP package/version. The Restore
+section opens Android App info; the user exits the game safely, uses Force stop,
+then returns without reopening PPSSPP until restore completes. This is explicit
+user-mediated restore preparation, not an automatic emulator termination or a
+capture prerequisite. Capture continues to pin/verify completed state files without
+killing the emulator. R-Shop never sends a kill/force-stop command. Preserve the
+rollback and pending restore on a failed precondition, so normal Resume can continue.
+A lost post-rename acknowledgement reconciles the staged identity and receipt
+without rewriting the slot. This retains the original SAVE-01 publication and
+conflict criteria. Native compilation and the real destination/write checks are
+verified above; this does not assert universal exclusion of arbitrary external
+writers or authorize restarting PPSSPP during restore.
+
+Primary references: [Android stopped-package flag](https://developer.android.com/reference/android/content/pm/ApplicationInfo#FLAG_STOPPED),
+[PPSSPP 1.20.4 slot publication](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/SaveState.cpp).
+
+### Standalone PPSSPP backup — real Drive, 2026-10-09
+
+The installed PPSSPP package `org.ppsspp.ppsspp`, v1.20.4, was still at its
+first-run Memory Stick setup. Through its normal SAF picker, create/select
+`/storage/emulated/0/PSP`; no existing save directory was moved or overwritten.
+Launch the existing Patapon CHD using PPSSPP's official shortcut extra. Without
+gameplay, use initially blank slot five at the title screen, then Exit to menu.
+The newly published file is
+`/storage/emulated/0/PSP/PPSSPP_STATE/UCUS98711_1.00_4.ppst`, 5,557,226 bytes,
+SHA256 `ef64997dfb2f43e04d1c9b86416b98ab61b71c189f7c37026de7ce2db735cc53`.
+PPSSPP also created its normal JPEG thumbnail; no battery save was created.
+Keep this defined restore fixture and the intentional Memory Stick configuration.
+
+The normal selected-game R-Shop Save backups workflow selected that directory
+with its own folder picker, selected the exact slot, confirmed the edition
+binding, and invoked Back up reviewed save. Status reached Verified backup at
+2026-10-09 22:01:12.549938, one file, after the real immutable Drive transport's
+upload/readback checks. No account chooser, re-consent or debug-injected upload
+was used. Native sealed capture `e2a49e43312054dbb7c21649e150c80e` records the
+same filename, size, digest, `ppsspp-slot-v1` format, v1.20.4 runtime and selected
+root; its captured `member-0` digest independently matches the original state.
+The cloud generation ID was not independently extracted, so none is asserted.
+This historical checkpoint established standalone backup only. The subsequent
+restore/rollback verification above supersedes its then-disabled restore state;
+conflicts and the remaining SAVE-01 criteria are still separately tracked.
+
+A subsequent read-only UI inspection still shows persistent Backup area / Back
+up save / Restore & conflicts / Status navigation with only Status content in
+the workspace. Fresh focused save-settings checks pass. The exact temporary
+`/data/local/tmp/rshop-s10-ppsspp-ui.xml` was removed; both physical display
+devices report OFF / committedState OFF and wakefulness Asleep. No Gradle build
+was launched for this check. Legacy device/laptop sync is unchanged.
+
+### Navigated save settings — specification revision 16
+
+The user's no-long-roll settings requirement now applies explicitly to save
+management and subsequent settings additions. Save management uses the metadata
+screen's persistent responsive left navigation: Backup area, Back up save,
+Restore & conflicts, Status. Only the selected section renders its controls.
+The same game panel/state survives section changes, including a visit to Backup
+area; source/account changes still retire the old binding. Section navigation
+does not restart or cancel jobs. A fixed running/cancel strip remains available
+when setup or capture is running, and completed/error status is directly linked
+outside the scrolling content. Navigation resets only the content scroll, not
+the selection or operation. Controller navigation has one focus target per
+section, with no hidden controls in traversal.
+
+Fresh focused widget/job verification passes: narrow portrait at enlarged text,
+left/content separation, touch and Down/A navigation, retained selected file and
+confirmation through every section, running-capture continuity without duplicate
+capture/upload, and separate restore/conflict confirmation paths. Scoped Dart
+analysis and diff checks pass. Native inspection of build 520 exposed that touch
+section selection did not transfer focus to its single controller target. A
+focused regression reproduced this without programmatically assigning focus;
+explicit section-owned focus nodes correct the handoff. The updated check passes.
+
+Gated build 521 (`37f4b4eb35954156b5c9635eec191cf0`) completed successfully,
+with gate acquisition and confirmed exit: actual workers=2, parallel=false,
+Gradle heap=3 GiB (1 GiB metaspace/256 MiB code cache preserved), assessed Kotlin
+2.2.20 in-process. Test tasks configured one 512 MiB fail-fast fork; assembly
+did not run them. Unchanged native compile/link pool is depth one; no global
+native cap is claimed. No memory failure or budget increase. Private log basename
+`ee50394a78224bab84036a0b7d62e3e5.log`. Candidate and independent installed APK
+SHA256 `3d8c1f799917f1fcd0b75a16abb4392e6c134f415d1a0521d2c2452c6fd68b22`,
+same signing certificate as ticket 515. Preserving installation succeeded and
+all observed preferences/save/configuration hashes matched immediately afterward.
+Normal Thor Settings -> Save backups shows the persistent four-section menu;
+touching Status then D-pad Up/A selects Restore & conflicts and removes setup
+controls from that workspace. The normal selected-game Save backups route also
+shows separate Restore and Status pages, with the recorded verified backup
+recognized without sign-in. Choosing its exact reviewed file and confirmation,
+visiting Restore, Status and Backup area, then returning to Back up save retains
+both selection and checked confirmation. Native screenshots were visually
+reviewed. No backup/restore/cloud write was initiated for this UI check. All
+observed save and emulator-configuration hashes remained unchanged. Both physical
+displays are OFF. This checkpoint does not close S10's remaining acceptance criteria.
+
+Menu recheck on the currently installed preserving candidate (gate 527),
+2026-10-09 21:47 +02:00: normal Settings -> Save backups still shows the four
+left-hand sections. Touch Status, then D-pad Up/A selects Restore & conflicts;
+backup-area controls are absent from that workspace. Normal Game metadata still
+shows its left-hand ScreenScraper / IGDB / shared metadata / ES-DE sections and
+the focused ScreenScraper Credentials and Scraping actions. No settings, saves
+or cloud objects were changed. The temporary device UI dump was removed and
+both physical display devices report state OFF / committedState OFF.
+Fresh save-settings widget checks and the focused game-job file pass, including
+selection/confirmation retention and running-capture continuity. A separately
+filtered run of the continuity test failed loading GoogleFonts Outfit-Bold over
+the test HTTP boundary; the complete focused file passes. This is a remaining
+test-fixture isolation issue, not evidence of a production navigation failure;
+do not cite that filtered run as passing or claim all S10 acceptance is complete.
+No Gradle command was launched for this recheck.
+
+### Current preservation correction
+
+The private-capture limitation in the earlier checkpoint below is now corrected
+in source. Before accepting a cloud choice, publish the sealed local generation
+using its already durable reserved IDs through the existing verified immutable
+publication API. Do not start cloud download/local replacement if preservation
+fails. Re-enumerate current heads after publication: discount only our expected
+preserved branch, and reject any other change until the user reviews it again.
+Keep the chosen cloud objects unchanged. Persist the resolved head set with the
+cloud restore choice; the next backup incorporates those explicitly acknowledged
+heads into ancestry rather than rediscovering the retained losing branch as an
+unexplained conflict. Subsequent unreviewed branches still require a choice.
+
+Test-first regressions reproduced missing preservation, restore despite failed
+preservation, missing concurrent-change rejection and repeated-conflict behavior.
+Fresh focused job checks pass for these behaviors, same-reserved-ID resume,
+independently discoverable retained local manifests, unchanged remote objects,
+and recovery of a pending capture created before the ancestry field existed.
+Scoped Dart analysis and diff checks pass. Gated Android assembly 519 now
+contains this correction and completed successfully; live conflict verification
+is still required. No full-stage completion or independently reinstalled UI
+recovery is claimed by the transport fixture.
+
+Ticket 519 (`20f81640360e4788a6baa539b3771703`) acquired the shared gate and
+completed with verified supervision/exit zero. Actual profile: two workers,
+parallel=false, Gradle heap=3 GiB, preserved 1 GiB metaspace/256 MiB code cache,
+Kotlin 2.2.20 in-process. Configured tests use one 512 MiB fail-fast fork; assembly
+ran no tests. Unchanged native CMake compile/link pool depth is one; no global
+native-cap claim. No memory failure/budget increase. Private log basename:
+`9be102375c754751aa845c721e19a6e8.log`. Preserving installation succeeded; candidate
+and independent installed APK SHA256:
+`b4efb8a421fea8c219a0654507673b223f2c6aa99906ef589aab040df7b69784`.
+Certificate SHA256 remains the one recorded for ticket 515 below.
+
+All observed save/configuration/preferences hashes matched immediately after
+installation. Normal UI backup then completed at 20:37:14 on 2026-10-09 with real
+Drive publication/readback, without another consent/account prompt. This exercises
+the new pending-record ancestry path, not a divergent cloud choice. After this
+normal runtime work, all fourteen save hashes, global/core/remap configuration,
+shared preferences and secure wrapping-key preferences still match. Encrypted
+secure-storage file bytes changed during authenticated runtime work; no claim of
+unchanged token ciphertext is made. No owner fixture bytes were changed for
+conflict seeding. A read-only VM inspection could locate the job, but source
+evaluation was unavailable without a compilation service, so no debug mutation
+or synthetic second client was performed. Its temporary port forwarding was
+removed. Both physical displays were confirmed OFF; the expendable screenshot
+was removed through an exact reviewed cleanup ticket. Legacy sync is unchanged.
+
+### Corrected filename build 515 — real normal backup/restore
+
+Gated ticket 515 (`e61769afe49e4af4aa15f2b281ababa0`) completed successfully:
+workers=2, parallel=false, observed Gradle heap=3 GiB, preserved 1 GiB metaspace
+and 256 MiB code cache. Kotlin 2.2.20 was assessed and ran in-process. Test tasks
+were configured one 512 MiB fail-fast fork; assembly ran no tests. The unchanged
+native CMake compile/link pool remains depth one; generic supervisor output does
+not prove a host-wide native concurrency cap. No memory failure/budget increase.
+Private log basename: `b30ba4aedaa840658d4ac814667bf4f7.log`.
+
+Preserving `adb install -r` succeeded. Candidate/independent installed APK SHA256:
+`864c1fa75daedb7baed7e37b3afc0d1bdfc18e287d2784f6ba44d36aa141b5b9`.
+Observed signing certificate SHA256:
+`06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
+Immediately after installation, secure preferences, shared preferences, fourteen
+observed mGBA save hashes, RetroArch global/core configuration and actual
+`config/remaps/mGBA/mGBA.rmp` matched the pre-install observations. Normal UI
+navigation afterwards can change view preferences; no claim of unchanged view
+preferences after that navigation is made.
+
+The normal Aero agent-fixture backup published/read back one 512-byte SRAM
+generation at 20:10:58 on 2026-10-09, capture
+`35ffdd3bd9f8fff45379bfd04322e5aa`. Normal explicit cloud restore completed with
+native `published` receipt `afd57651c12e0130010243431c0ddcd3` and rollback capture
+`bfd7c90aead9e85270219ab613d8d763`. Expected current-installation mGBA target:
+`6b693de3f9759ed6c83983a0b19b0032b0320fae3c273e5bf3262a72c4d8196a%2FAero%20the%20Acro-Bat%20(Europe).srm`.
+Capture/restored SHA256:
+`610c7c8507fb95205ea7e5172031dbe176fd0fe3f51b6ee6568edbeda4ee3fc7`.
+No gameplay/deep save checks were performed or required. Legacy device/laptop
+sync configuration was left intact, and both physical displays were confirmed
+OFF. This normal real-Drive workflow predates the preservation correction above;
+it does not constitute live conflict or whole-S10 acceptance.
+
+### Earlier checkpoint
+
+The per-game backup previously consulted only its locally stored last-verified
+generation. Immutable uploads preserved old objects, but did not discover a
+newer branch from another installation. A focused regression reproduced that
+missing conflict stop before implementation.
+
+The backup transport now enumerates every page of app-owned generation objects
+inside the verified backup area, validates ownership, manifest digest and exact
+restore compatibility, and rejects incomplete discovery. Payload-only objects
+are not publications. The job derives current branches from recorded ancestry,
+not clocks, and checks before and after publication. A concurrent publication
+leaves both immutable branches intact and records a conflict instead of claiming
+that the local side won.
+
+Normal UI offers explicitly confirmed captured-local or selected-cloud choices,
+with Cancel focused by default. Captured-local resolution creates new reserved
+objects descending from all reviewed branches; it never rewrites an existing
+manifest or payload. Cloud resolution retains the local capture in the durable
+conflict archive, then uses the existing rollback-preserving restore path. A
+changed set of cloud branches invalidates the displayed choice. The selected
+cloud restore is durable even if recording its first native restore intent fails;
+backup remains blocked until that restore is resumed. Retained local conflict
+captures are app-private at this checkpoint, not claimed as cloud copies.
+
+Fresh focused host checks pass for paginated/cross-device discovery, incomplete
+listing rejection, pre-publication conflict stop, both explicit choices,
+unchanged prior cloud objects, changed-choice rejection, concurrent publication,
+durable restore-choice recovery and confirmation/cancel UI. Existing transport
+and manifest safety checks also pass. Scoped Dart analysis reports no issues;
+`git diff --check` passes. This is host verification, not live conflict acceptance
+or completion of SAVE-01. Android assembly request 512
+(`61c2617b4d4144a19743039b426907f3`) remains supervised in the shared build queue;
+no gate acquisition or native verification is claimed yet. Legacy sync remains
+untouched and both Thor displays were confirmed OFF before the update.
+
+Subsequent current-target audit found two installation-specific Aero filenames
+with identical SRAM bytes. A focused regression reproduced a false conflict
+when those names differed: the generic manifest digest correctly includes source
+paths, but this format-specific job must compare SRAM/RTC roles independently
+of installation filenames. After build 512 completed, this correction was made
+without changing its in-flight inputs. Fresh job checks now pass for reinstall
+equivalence and RTC divergence as well as the conflict/restore behaviors above;
+scoped analysis is clean. Original transport manifests and digests are unchanged.
+
+Build 512 completed with exit zero, acquired gate and verified supervisor
+completion. Observed workers=2, parallel=false, Gradle heap=3 GiB with preserved
+1 GiB metaspace/256 MiB code cache; Kotlin 2.2.20 remains in-process. Test tasks
+were configured one 512 MiB fail-fast fork but were not executed by assembly.
+Unchanged native compile/link configuration uses the depth-one rshop_native pool.
+No memory failure or budget increase. Private log basename:
+`9d6ca13b5f5842d89775a4a671751f73.log`. That APK predates the filename correction
+and is not the live-test candidate; the corrected assembly is separately queued
+through the same gate. Live conflict acceptance remains unfinished.
+
 ## First real workflow
 
 Prove RetroArch plus a standalone emulator before broadening coverage. On
 2026-10-09, Thor `bfa98654` has shared RetroArch saves/states and a shared Azahar
 user directory containing actual save data. These are candidates, not proof of
-R-Shop access, reviewed edition association, coherent capture or emulator-load
-restore. Use existing exact edition/artifact identities; never infer a save's
+R-Shop access, reviewed edition association, coherent capture or restore to the
+expected location. Use existing exact edition/artifact identities; never infer a save's
 edition solely from its basename or a similarly named catalogue game.
 
 The narrow implementation uses the existing serialized Drive authorization lane.
@@ -77,7 +410,7 @@ Primary route references:
 ## Remaining acceptance / handover
 
 Stable streamed capture and durable
-bounded work; real RetroArch and standalone save-load round trips; remaining
+bounded work; real RetroArch and standalone backup/expected-location restore round trips; remaining
 accessible routes and visible coverage; explicit conflict/restore/rollback;
 fault/relaunch/regrant/reinstall recovery; touch/controller workflow; protected
 ROM/BIOS/settings proof; closure inventory; then exact legacy app/task identity,
@@ -164,10 +497,10 @@ writes. Preallocated IDs identify immutable payloads and their final manifest;
 no update/delete/sharing endpoint or arbitrary upload destination is exposed.
 The resumable session URL is restricted to Google's exact HTTPS upload endpoint.
 Every member requires complete SHA-256 readback plus matching ownership, parent,
-binding, size and unchanged Drive version before manifest publication. Manifest
+binding, size and unchanged binary content revision before manifest publication. Manifest
 read/download similarly checks its exact identity/binding/digest and bounds the
 decoded document to 1 MiB. Member streams target private restore staging only:
-normal EOF is required before their digest/version verification is satisfied.
+normal EOF is required before their digest/content-revision verification is satisfied.
 
 Focused host checks demonstrate corrupt/changed capture rejection, corrupt
 readback and cancellation preventing publication, reserved-ID recovery after a
@@ -201,3 +534,223 @@ can enqueue work. A command receipt, app return, equal timestamps or a silent
 background UDP endpoint must not be treated as proof that all save/state writers
 have stopped. Establish and verify the actual capture/export boundary next;
 do not turn diagnostic read timeouts into backup completion or failure policy.
+
+## First normal capture/job integration — 2026-10-09
+
+The GBA edition's normal game-details menu opens Save backups. The user explicitly
+selects one shared mGBA SRAM file and confirms the exact edition association; a
+same-base RTC is included if present. This is not automatic basename matching.
+The current UI is a narrow slice: localization, broader mappings/coverage,
+background execution and restore are still unfinished SAVE-01 work.
+
+SQLite acknowledges the selection and random capture ID before native IO, then
+the manifest/reserved cloud IDs/private member paths before publication. Explicit
+resume retains those IDs and sealed bytes rather than recapturing/reallocating.
+The last verified manifest is replaced only after the transport completes.
+Host checks cover durable ordering, restart/replay, duplicate work joining,
+cancellation and failed-new-generation preservation. They do not prove native
+restore or independently discoverable reconnect/reinstall recovery.
+
+Native capture uses the investigated RetroArch 1.22.2 writer boundary: exact
+GET_STATUS CONTENTLESS replies before and after streaming the selected group,
+plus no-follow source handles, complete-group identities and RTC membership
+checks. Background UDP silence waits for the actual reply and remains explicitly
+cancellable. Normal Open RetroArch services the queued requests; the user returns
+to R-Shop afterward. Seal publication occurs last, after file fsync. Existing
+sealed bytes are rehashed on replay. No emulator termination or source writes.
+
+Real capture initially failed because the framework files-directory spelling and
+its canonical path differed. A bounded regression reproduced that rejection;
+normalizing only the trusted framework parent fixes it while retaining descendant
+alias rejection. Shared-gate request 488
+(`c7a4bbcde98b410dabeed974605bdab0`) completed exit 0. Gate acquired;
+observed workers=2, parallel=false, Gradle heap=3 GiB, Kotlin 2.2.20 in-process,
+preserved 1 GiB metaspace/256 MiB code cache, one executed 512 MiB test fork with
+fail-fast. Current app Ninja compile/link pools are depth one. No memory failure
+or budget increase. Retained private build log basename:
+`363ad53d0e2d4e02bab56eaa3fdbb74d.log`.
+
+Installed APK SHA-256
+`e80e4318dc80adb7ac98ce3e7d89fcc067e76f3ffe7478b1d682db417327fcb7`
+matches the build independently, with the unchanged signer. Immediate protected
+settings/preferences and thirteen mGBA save digests match across replacement.
+RetroArch's first Close Content observation was premature (confirmation still
+open); it was completed normally and actual No Core verified before replay.
+The resulting sealed 512-byte capture matches the original source SHA-256.
+The subsequent real cloud publication stops at `digestMismatch`. Reserved IDs
+and captured bytes remain pending for deterministic recovery; do not count this
+as verified upload, complete backup or successful restore. Redacted debug-only
+readback diagnostics in request 492 distinguish content/length from version
+change without logging credentials, object IDs, account data or save contents.
+
+Three task screenshots (437,227 bytes) were removed by reviewed exact cleanup
+transaction `d6ceecba0f42f45cbc0554592ca28318`; exact device copies are absent.
+Preservation journals and pending capture are retained. Both screens OFF/Asleep
+at the checkpoint. Resume the owner's same paused metadata job after the next
+update. No legacy sync change, cloud deletion or source mutation is authorized
+by this enabling checkpoint; all remaining SAVE-01 criteria above still apply.
+
+## Real cloud publication and content revision correction — 2026-10-09
+
+Request 492's installed diagnostic identified `version_changed` after complete
+length and SHA-256 had passed. Drive's general version includes metadata changes;
+it is not a binary-content revision. Expanded diagnostics in request 494 did not
+reproduce that intermittent rejection: normal Resume published the retained
+generation, then a fresh explicitly reviewed capture also completed full cloud
+readback and manifest publication. No particular metadata field was identified
+as the cause of the earlier live version change. Do not claim that view-time
+changes were observed causing that live failure.
+
+The transport now requires a nonempty valid `headRevisionId` and compares it
+before/after readback, while retaining complete byte length/SHA-256 and all
+ownership, private-parent, account/binding and properties checks. A regression
+first reproduced rejection of metadata-only changes and acceptance of a missing
+content revision. The correction accepts the former and rejects the latter;
+changed content revision and corrupt bytes still reject publication. Focused
+transport/capture/job checks and scoped analysis passed. Request 496
+(`906749fd47334adc840c9feb282a95e9`) completed exit 0 through the acquired
+shared gate. Observed workers=2, parallel=false, Gradle heap=3 GiB, Kotlin
+2.2.20 in-process with preserved metaspace/code-cache settings; configured test
+forks=1/512 MiB (assembly did not execute JVM tests), app native pool depth=1.
+No memory failure or budget increase. Build log basename:
+`8fc63ca5936d4556bc271e00ae536a20.log`. No duplicate build was launched.
+
+The two successful normal cloud generations were verified with diagnostic APK
+SHA-256 `fcfad1c64ca11f98b5acc921066952f6860c3a3e36c39bbbe4a53569a12b2ca8`.
+Its unchanged signer and independently installed bytes were checked. Immediate
+protected preferences/configuration and thirteen mGBA save digests matched
+across replacement. Cloud publication is verified for this narrow real save;
+native restore/emulator-load acceptance has not passed.
+
+The corrected request-496 APK was independently installed/hash/signature checked:
+SHA-256 `08db33cf8c71aa4a62fe2cd659d1935858d6618d4fb1d1a7bfc02dd9fc0fda1b`.
+Immediate four protected settings/preferences and thirteen mGBA save digests
+matched across preserving replacement. A fresh normal backup completed capture,
+full cloud readback and publication at 16:50:19.781623 local time. The exact Europe
+ROM downloaded through R-Shop's on-demand flow for the forthcoming restore/load
+check; it was not launched. Same metadata job 76 resumed and advanced from 21,754
+to 21,769 lookups without sign-in. Both actual/committed displays were then OFF.
+This proves the content-revision correction at the real API boundary, not restore.
+
+Primary content-revision semantics:
+[Drive File resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files).
+
+## Next narrow restore boundary
+
+Restore must use the real verified cloud manifest and streamed member readback,
+not the capture's local copy as a substitute for downloading. Keep the exact
+account/edition/emulator/core/format binding and reviewed destination name. Stage
+only beneath a native-created private restore operation; reject publication
+until normal EOF, native digest/length and fsync have passed. Persist the intent
+and preserve the current local bytes plus identity as a named rollback generation
+before any destination replacement. Require the same verified CONTENTLESS writer
+boundary immediately before local publication; active content must reject, not
+be killed. An explicit cloud-versus-local choice must acknowledge divergent
+digests rather than choose by timestamp.
+
+Prove the existing one-SRAM/no-RTC case first with atomic file replacement and a
+durable publication receipt. Interrupted acknowledgement must reconcile the
+recorded old/new identities and digests; an unexpected destination is a preserved
+conflict, never an overwrite retry. A separate explicit rollback action must
+verify its retained generation and preserve the replaced bytes in turn. This
+narrow path must reject coupled RTC groups before mutation until coherent
+multi-member restoration is implemented and verified. That restriction is
+unfinished SAVE-01 work, not an unsupported classification or waiver. Continue
+to the standalone emulator and full coverage only after the narrow real
+backup/download/restore/emulator-load path works.
+
+## Native restore/rollback evidence and launch association — 2026-10-09
+
+Request 501 completed exit zero with the shared gate acquired, workers=2,
+parallel=false, Gradle heap=3 GiB and Kotlin 2.2.20 in-process. One executed JVM
+test fork used 512 MiB; current native compile/link pool depth was one. No
+memory-related failure or budget increase. Private log basename:
+`9c646245cd8448ad9bfaed7d0c9f97a6.log`. Independently installed APK SHA-256
+`ad4bc0c5338ef63141eebd18099c7efee4385e8cc69ec80bc2f0e9d9aa469e70`, unchanged
+signer, and immediate protected configuration/preferences plus thirteen save
+digests verified the preserving replacement.
+
+Normal cloud restore and explicit retained-local rollback both completed actual
+JNI/FUSE atomic publication, with durable published receipts and matching 512-byte
+SHA-256 `610c7c8507fb95205ea7e5172031dbe176fd0fe3f51b6ee6568edbeda4ee3fc7`.
+All thirteen preceding mGBA save digests remained identical. Cloud restore used
+real downloaded bytes; rollback retained the replaced generation separately.
+This proves the narrow publication pipeline, not emulator-load acceptance.
+
+The subsequent live load check exposed a real association gap: the explicitly
+selected older Aero Europe save and the current managed installation have
+different document IDs. RetroArch derives the save basename from that encoded
+document ID, creating a different SRAM file on the current launch. Do not count
+matching display names or a byte-pipeline receipt as proof of the game's save
+consumption. Save-to-current-launch binding and persistence across reinstallation
+remain required ordinary S10 implementation work.
+
+Also, normal Close Content followed by the same Android ROM/core intent leaves
+RetroArch at No Core. Pinned v1.22.2 RetroActivityFuture.onNewIntent updates the
+intent without reloading when both extras are unchanged. Normal user Quit and a
+cold R-Shop Open boots the game; this is diagnostic evidence, not authorization
+to force-kill RetroArch or a finished relaunch fix. Preserve actual saves and use
+meaningful in-game save data for the remaining load/restore proof. Legacy sync
+remains untouched; no acceptance criterion is weakened or deferred.
+
+## Current-launch save binding — 2026-10-09
+
+The first regression reproduced the defect: an unrelated `Other.srm` was accepted
+and uploaded under the selected edition. The normal game workflow now passes
+its exact artifact, console and destination root into the save job. A read-only
+native review shares launch's installed/local-copy ownership preflight and
+`openCommitted` archive validation, returning the encoded SAF document leaf with
+the pinned SRAM extension. It starts no activity and grants no new permissions.
+Only this target is offered for review; the old all-save directory picker is
+not used for the automatic route. Explicit custom mapping remains unfinished
+SAVE-01 work, not an implicit override of exact association.
+
+Before capture/upload and restore/publication, the job revalidates edition
+membership, game identity and the current launch target. A changed installation
+or reassigned edition rejects the operation while preserving pending evidence.
+For a new explicit cloud restore, immutable cloud member names describe the
+source; the durable restore intent separately records the current installation's
+destination. A resumed restore cannot silently adopt a different destination.
+Retained-local rollback remains bound to the original reviewed destination.
+
+Focused host checks cover unrelated selection, exact launch preflight, current
+reinstallation destinations, pending retarget rejection, capture-time changes,
+edition reassignment and existing explicit restore/rollback UI. Scoped Dart
+analysis and whitespace checks pass. Gated request 506 completed exit zero:
+gate acquired, workers=2, parallel=false, Gradle heap=3 GiB, Kotlin 2.2.20
+in-process; one executed 512 MiB test fork and current native pool depth one.
+No memory failure/budget increase. Private log basename
+`5b7acad5ed1e405bab765c1e0576ab26.log`. Focused native encoded-leaf and capture
+checks passed. Preserving install-replace succeeded; installed APK SHA-256
+`d58e0d5086ee69c6f697a006eb6a67096b7d94eb3af8b8705f38f9f02be6d657`,
+unchanged signer. Immediate configuration, three protected preferences and all
+fourteen mGBA save hashes matched before/after replacement. Live target review
+and meaningful emulator-load restoration are not claimed by this checkpoint.
+
+## Current-target publication and fixture correction — 2026-10-09
+
+Normal cloud restore now has a freshly inspected native `published` receipt for
+the current Aero Europe installation, with 512 bytes and SHA-256
+`610c7c8507fb95205ea7e5172031dbe176fd0fe3f51b6ee6568edbeda4ee3fc7`.
+The ordinary UI reported successful restore and retained-local rollback. This
+closes the current-target publication check, not SAVE-01 emulator-load acceptance:
+these bytes are still the default blank save.
+
+Manual gameplay is not required for that acceptance check. Use a disposable,
+format-valid save fixture or a copy of existing authentic save data, preserve its
+original, pass the copy through the normal backup/cloud-download/restore path,
+and observe the emulator consuming the expected saved data. A successful ROM
+launch alone does not distinguish a consumed save from an ignored destination;
+arbitrary mock bytes prove only transport and rejection handling. The owner's
+2026-10-09 clarification explicitly favors fixtures over generating progress by
+playing a game. Do not spend further time generating Aero progress manually.
+
+The Aero input probes did not establish usable gameplay input. A temporary
+Port-1 device selection was returned to its original Virtual selection before
+Close Content; global configuration, mGBA override and remap SHA-256 values
+remained identical. This is test-harness evidence, not a production input fix.
+The attempted normal Minish Cap USA download failed with `storage_collision`
+against an existing local title; no existing archive was overwritten. No save
+fixture was copied or modified during this investigation. That failed transfer
+is retained for diagnosis rather than retried or bypassed blindly. S10 remains
+ACTIVE, with standalone restoration and all other SAVE-01 criteria unfinished.

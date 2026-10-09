@@ -268,6 +268,25 @@ void renameNoReplace(int fromDir, const std::string& from, int toDir, const std:
     // The caller must fsync both pinned parents before reporting durability.
 }
 
+Identity replaceReviewedSave(int dir, const std::string& stage, const std::string& target,
+                             const Identity& staged, const Identity& current) {
+    basename(stage);
+    basename(target);
+    if (stage == target) fail(EINVAL);
+    auto matches = [](const Identity& a, const Identity& b) {
+        return a.device == b.device && a.inode == b.inode && a.size == b.size &&
+            a.modifiedSeconds == b.modifiedSeconds && a.modifiedNanos == b.modifiedNanos;
+    };
+    if (!matches(entryIdentity(dir, stage), staged) ||
+        !matches(entryIdentity(dir, target), current)) fail(ESTALE);
+    // The save-specific caller has already sealed a rollback copy and verified
+    // writer quiescence. Unlike ROM publication, explicit restore replaces an
+    // existing reviewed save. renameat gives an atomic old-or-new file entry,
+    // including on Android FUSE; never unlink the target or retry the mutation.
+    if (::renameat(dir, stage.c_str(), dir, target.c_str()) < 0) fail(errno);
+    return entryIdentity(dir, target);
+}
+
 Identity quarantineIntoPrivate(int fromDir, const std::string& from, int privateDir,
                                const std::string& to, const Identity& expected) {
     basename(from);

@@ -89,6 +89,34 @@ void main() {
     await expectLater(launcher.open(game, system, '/owned'), throwsStateError);
     expect(calls, isEmpty);
   });
+  test('save review shares exact GBA grant preflight without launching',
+      () async {
+    final gba = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gba');
+    final archive = exactGame('gba-save', name: 'Game.7z');
+    final installed = InstalledArtifact.fromJson({
+      ...manifest.toJson(),
+      'artifact': archive.remoteArtifact!.toJson(),
+      'relativePath': archive.filename
+    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return 'installed-one%2FGame.srm';
+    });
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => installed), channel: channel);
+    expect(await launcher.reviewRetroArchGbaSave(archive, gba, '/owned'),
+        'installed-one%2FGame.srm');
+    expect(calls.single.method, 'reviewOwnedRetroArchGameBoyAdvanceSave');
+    expect(calls.single.arguments,
+        {'installationId': installed.id, 'filename': archive.filename});
+    final missing = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => throw StateError('not installed')),
+        channel: channel);
+    await expectLater(missing.reviewRetroArchGbaSave(archive, gba, '/owned'),
+        throwsStateError);
+    expect(calls, hasLength(1));
+  });
   test('repeated activation joins the same handoff instead of opening twice',
       () async {
     final gate = Completer<InstalledArtifact>();

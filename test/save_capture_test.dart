@@ -1,0 +1,251 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:retro_eshop/services/saves/save_capture.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  const channel = MethodChannel('com.retro.rshop/save_capture');
+  final calls = <MethodCall>[];
+  late Map<String, Object> response;
+  setUp(() {
+    calls.clear();
+    response = {
+      'captureId': 'a' * 32,
+      'deviceId': 'device',
+      'emulatorVersion': '1.22.2_GIT',
+      'files': [
+        {
+          'name': 'Game.srm',
+          'path': '/private/save-captures/${'a' * 32}/member-0',
+          'size': 4,
+          'sha256': 'b' * 64
+        }
+      ]
+    };
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return response;
+    });
+  });
+  tearDown(() => TestDefaultBinaryMessengerBinding
+      .instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, null));
+
+  test('capture requests only an explicitly selected mGBA battery group',
+      () async {
+    final captured = await SaveCapture()
+        .captureRetroArch(captureId: 'a' * 32, name: 'Game.srm');
+    expect(calls.single.method, 'captureRetroArch');
+    expect(calls.single.arguments, {'captureId': 'a' * 32, 'name': 'Game.srm'});
+    expect(captured.files.single.name, 'Game.srm');
+    expect(captured.deviceId, 'device');
+  });
+
+  test('PPSSPP captures one explicitly mapped completed state slot', () async {
+    const directory = '/storage/emulated/0/Games/PSP/PPSSPP_STATE';
+    const name = 'ULUS10001_1.00_0.ppst';
+    response['emulatorVersion'] = 'v1.20.4';
+    (response['files'] as List).single['name'] = name;
+    // States can exceed the battery-save bound; transport stays streamed.
+    (response['files'] as List).single['size'] = 32 * 1024 * 1024;
+    final captured = await SaveCapture()
+        .capturePpsspp(captureId: 'a' * 32, directory: directory, name: name);
+    expect(calls.single.method, 'capturePpsspp');
+    expect(calls.single.arguments,
+        {'captureId': 'a' * 32, 'directory': directory, 'name': name});
+    expect(captured.files.single.name, name);
+    expect(captured.emulatorVersion, 'v1.20.4');
+  });
+
+  test('PPSSPP lists only the explicitly selected state directory', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return ['ULUS10041_1.00_0.ppst'];
+    });
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    expect(
+        await SaveCapture().ppssppNames(directory), ['ULUS10041_1.00_0.ppst']);
+    expect(calls.single.method, 'ppssppNames');
+    expect(calls.single.arguments, {'directory': directory});
+    await expectLater(SaveCapture().ppssppNames('/storage/emulated/0'),
+        throwsFormatException);
+    expect(calls, hasLength(1));
+  });
+
+  test('PPSSPP rejects temporary slots and unmapped roots before native IO',
+      () async {
+    for (final name in ['Game.ppst', 'ULUS10001_1.00_0.ppst.tmp', 'Game.iso']) {
+      await expectLater(
+          SaveCapture().capturePpsspp(
+              captureId: 'a' * 32,
+              directory: '/storage/emulated/0/PSP/PPSSPP_STATE',
+              name: name),
+          throwsFormatException);
+    }
+    for (final directory in [
+      '/storage/emulated/0',
+      '/storage/emulated/0/Android/data/org.ppsspp.ppsspp/PPSSPP_STATE',
+      '/storage/emulated/0/PSP/../PPSSPP_STATE'
+    ]) {
+      await expectLater(
+          SaveCapture().capturePpsspp(
+              captureId: 'a' * 32,
+              directory: directory,
+              name: 'ULUS10001_1.00_0.ppst'),
+          throwsFormatException);
+    }
+    expect(calls, isEmpty);
+  });
+
+  test('PPSSPP cannot substitute a second slot or battery-save member',
+      () async {
+    response['emulatorVersion'] = 'v1.20.4';
+    (response['files'] as List).single['name'] = 'ULUS10001_1.00_0.ppst';
+    (response['files'] as List).add({
+      'name': 'Game.srm',
+      'path': '/private/other',
+      'size': 4,
+      'sha256': 'b' * 64
+    });
+    await expectLater(
+        SaveCapture().capturePpsspp(
+            captureId: 'a' * 32,
+            directory: '/storage/emulated/0/PSP/PPSSPP_STATE',
+            name: 'ULUS10001_1.00_0.ppst'),
+        throwsFormatException);
+  });
+
+  test(
+      'rejects escaping names and unsupported state/ROM files before native IO',
+      () async {
+    for (final name in [
+      '../Game.srm',
+      'Game.state',
+      'Game.gba',
+      'Game.srm/other'
+    ]) {
+      await expectLater(
+          SaveCapture().captureRetroArch(captureId: 'a' * 32, name: name),
+          throwsFormatException);
+    }
+    expect(calls, isEmpty);
+  });
+
+  test('native response cannot substitute another capture or save group',
+      () async {
+    response['captureId'] = 'c' * 32;
+    await expectLater(
+        SaveCapture().captureRetroArch(captureId: 'a' * 32, name: 'Game.srm'),
+        throwsFormatException);
+    response['captureId'] = 'a' * 32;
+    (response['files'] as List).add({
+      'name': 'Other.srm',
+      'path': '/private/other',
+      'size': 4,
+      'sha256': 'b' * 64
+    });
+    await expectLater(
+        SaveCapture().captureRetroArch(captureId: 'a' * 32, name: 'Game.srm'),
+        throwsFormatException);
+  });
+
+  test('restore seals only after normal verified stream completion', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'appendRestore') {
+        final args = call.arguments as Map;
+        return (args['offset'] as int) + (args['bytes'] as Uint8List).length;
+      }
+      return null;
+    });
+    await SaveCapture().stageRestore(
+        restoreId: 'a' * 32,
+        name: 'Game.srm',
+        size: 4,
+        sha256: 'b' * 64,
+        bytes: Stream.value(Uint8List.fromList([1, 2, 3, 4])));
+    expect(calls.map((c) => c.method),
+        ['beginRestore', 'appendRestore', 'sealRestore']);
+    expect((calls[1].arguments as Map)['offset'], 0);
+  });
+
+  test('a full-length download followed by verification failure cannot seal',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return call.method == 'appendRestore' ? 4 : null;
+    });
+    Stream<Uint8List> rejectedReadback() async* {
+      yield Uint8List.fromList([1, 2, 3, 4]);
+      throw StateError('cloud verification rejected');
+    }
+
+    await expectLater(
+        SaveCapture().stageRestore(
+            restoreId: 'a' * 32,
+            name: 'Game.srm',
+            size: 4,
+            sha256: 'b' * 64,
+            bytes: rejectedReadback()),
+        throwsStateError);
+    expect(calls.map((c) => c.method), ['beginRestore', 'appendRestore']);
+  });
+
+  test('PPSSPP restore seals with the explicit mapped directory and slot',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'appendRestore') {
+        final args = call.arguments as Map;
+        return (args['offset'] as int) + (args['bytes'] as Uint8List).length;
+      }
+      return null;
+    });
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    const name = 'ULUS10001_1.00_0.ppst';
+    await SaveCapture().stageRestore(
+        restoreId: 'a' * 32,
+        name: name,
+        ppssppDirectory: directory,
+        size: 4,
+        sha256: 'b' * 64,
+        bytes: Stream.value(Uint8List.fromList([1, 2, 3, 4])));
+    expect((calls.first.arguments as Map)['ppssppDirectory'], directory);
+    expect((calls.first.arguments as Map)['name'], name);
+    expect(calls.last.method, 'sealRestore');
+    calls.clear();
+    for (final (slot, root) in [
+      (name, '/storage/emulated/0/RetroArch/saves/mGBA'),
+      ('Game.srm', directory),
+      (name, null),
+    ]) {
+      await expectLater(
+          SaveCapture().stageRestore(
+              restoreId: 'a' * 32,
+              name: slot,
+              ppssppDirectory: root,
+              size: 4,
+              sha256: 'b' * 64,
+              bytes: const Stream.empty()),
+          throwsFormatException);
+    }
+    expect(calls, isEmpty);
+  });
+
+  test('restore rejects escaping destinations before native staging', () async {
+    await expectLater(
+        SaveCapture().stageRestore(
+            restoreId: 'a' * 32,
+            name: '../Game.srm',
+            size: 4,
+            sha256: 'b' * 64,
+            bytes: const Stream.empty()),
+        throwsFormatException);
+    expect(calls, isEmpty);
+  });
+}

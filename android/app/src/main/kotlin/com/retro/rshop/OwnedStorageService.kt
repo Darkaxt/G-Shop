@@ -54,7 +54,8 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "launchOwnedRetroArchSnes" ||
                         call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                         call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2" ||
-                        call.method == "launchOwnedCemu") {
+                        call.method == "launchOwnedCemu" || call.method == "reviewOwnedRetroArchGameBoyAdvanceSave") {
+                        val reviewSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
                         val gameGear = call.method == "launchOwnedRetroArchGameGear"
                         val segaPlatform = when (call.method) {
                             "launchOwnedRetroArchMegaDrive" -> "megadrive"
@@ -64,7 +65,7 @@ internal class OwnedStorageService(private val context: Context) {
                         }
                         val gameBoy = call.method == "launchOwnedRetroArchGameBoy"
                         val gameBoyColor = call.method == "launchOwnedRetroArchGameBoyColor"
-                        val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance"
+                        val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance" || reviewSave
                         val nes = call.method == "launchOwnedRetroArchNes"
                         val snes = call.method == "launchOwnedRetroArchSnes"
                         val handheld = gameBoy || gameBoyColor || gameBoyAdvance
@@ -102,6 +103,12 @@ internal class OwnedStorageService(private val context: Context) {
                             requiredArchivePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else null,
                             requiredStandaloneChd = psx || psp || ps2,
                             requiredStandaloneWua = wiiu).use { }
+                        if (reviewSave) {
+                            val name = RetroArchSaveBoundary.archiveSaveName(
+                                uri.encodedPath!!.substringAfterLast('/'))
+                            main.post { result.success(name) }
+                            return@execute
+                        }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)

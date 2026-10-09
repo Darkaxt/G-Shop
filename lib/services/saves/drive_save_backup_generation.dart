@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../models/save_backup_manifest.dart';
 import '../drive/drive_authorization.dart';
@@ -37,7 +38,7 @@ class SaveBackupGenerationException implements Exception {
 class DriveSaveBackupGenerationApi {
   static const _fields =
       'id,mimeType,parents,ownedByMe,isAppAuthorized,trashed,'
-      'shared,driveId,appProperties,size,version';
+      'shared,driveId,appProperties,size,headRevisionId';
   final DriveAuthorization authorization;
   final String accountId;
   final HttpClientAdapter _transport;
@@ -53,12 +54,95 @@ class DriveSaveBackupGenerationApi {
       : _transport = transport ?? IOHttpClientAdapter();
 
   Future<SaveBackupManifest> loadGeneration(
+          {required String areaId,
+          required String generationId,
+          required SaveBackupBinding target,
+          CancelToken? cancellation}) =>
+      _loadGeneration(
+          areaId: areaId,
+          generationId: generationId,
+          target: target,
+          cancellation: cancellation);
+
+  /// Discover immutable publication objects, not payloads or a clock-selected
+  /// "latest" pointer. Read every page and verify ownership and manifest bytes.
+  /// Battery saves can originate on another device; compatibility decides scope.
+  Future<List<SaveBackupManifest>> discoverGenerations(
       {required String areaId,
-      required String generationId,
       required SaveBackupBinding target,
       CancelToken? cancellation}) async {
+    if (target.accountId != accountId ||
+        !RegExp(r'^[A-Za-z0-9_-]{1,256}$').hasMatch(areaId)) {
+      throw const SaveBackupGenerationException(
+          SaveBackupGenerationIssue.invalidBinding);
+    }
+    await _areas.verifyArea(areaId, cancellation: cancellation);
+    final result = <SaveBackupManifest>[];
+    final ids = <String>{};
+    final pages = <String>{};
+    String? page;
+    do {
+      final response = await _send(
+          Uri.https('www.googleapis.com', '/drive/v3/files', {
+            'q': "'$areaId' in parents and trashed = false and "
+                "appProperties has { key='rshopSaveBackup' and value='1' } and "
+                "appProperties has { key='kind' and value='generation' }",
+            'spaces': 'drive',
+            'pageSize': '100',
+            'fields': 'nextPageToken,incompleteSearch,files(id)',
+            if (page != null) 'pageToken': page,
+          }),
+          'GET',
+          cancellation: cancellation);
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in response!.stream) {
+        _check(cancellation);
+        if (bytes.length + chunk.length >
+            DriveSaveBackupAreaApi.maxMetadataBytes) {
+          throw const SaveBackupGenerationException(
+              SaveBackupGenerationIssue.invalidResponse);
+        }
+        bytes.add(chunk);
+      }
+      final data = jsonDecode(utf8.decode(bytes.takeBytes()));
+      if (data is! Map<String, dynamic> ||
+          data['incompleteSearch'] == true ||
+          data['files'] is! List) {
+        throw const SaveBackupGenerationException(
+            SaveBackupGenerationIssue.invalidResponse);
+      }
+      for (final item in data['files'] as List) {
+        if (item is! Map ||
+            item['id'] is! String ||
+            !ids.add(item['id'] as String)) {
+          throw const SaveBackupGenerationException(
+              SaveBackupGenerationIssue.invalidResponse);
+        }
+        final manifest = await _loadGeneration(
+            areaId: areaId,
+            generationId: item['id'] as String,
+            cancellation: cancellation);
+        if (manifest.binding.restoreIssue(target) == null) result.add(manifest);
+      }
+      final next = data['nextPageToken'];
+      if (next != null &&
+          (next is! String || next.isEmpty || !pages.add(next))) {
+        throw const SaveBackupGenerationException(
+            SaveBackupGenerationIssue.invalidResponse);
+      }
+      page = next as String?;
+    } while (page != null);
+    _check(cancellation);
+    return List.unmodifiable(result);
+  }
+
+  Future<SaveBackupManifest> _loadGeneration(
+      {required String areaId,
+      required String generationId,
+      SaveBackupBinding? target,
+      CancelToken? cancellation}) async {
     try {
-      if (target.accountId != accountId ||
+      if ((target != null && target.accountId != accountId) ||
           !RegExp(r'^[A-Za-z0-9_-]{1,256}$').hasMatch(generationId)) {
         throw const SaveBackupGenerationException(
             SaveBackupGenerationIssue.invalidBinding);
@@ -98,7 +182,8 @@ class DriveSaveBackupGenerationApi {
       }
       final result = SaveBackupManifest.decode(bytes.takeBytes());
       if (result.generationId != generationId ||
-          result.binding.restoreIssue(target) != null ||
+          result.binding.accountId != accountId ||
+          (target != null && result.binding.restoreIssue(target) != null) ||
           expected['binding'] !=
               sha256.convert(utf8.encode(result.binding.key)).toString()) {
         throw const SaveBackupGenerationException(
@@ -117,7 +202,7 @@ class DriveSaveBackupGenerationApi {
   }
 
   /// Stream into a private restore stage only. Bytes are NOT trusted until normal
-  /// EOF: digest, complete length and unchanged cloud version are checked before
+  /// EOF: digest, complete length and unchanged content revision are checked before
   /// the stream completes. Cancellation/early unsubscribe cannot authorize local
   /// publication. Destination grants/atomic group rollback belong to native restore.
   Stream<Uint8List> memberBytes(
@@ -337,6 +422,10 @@ class DriveSaveBackupGenerationApi {
         _check(cancellation);
         count += chunk.length;
         if (count > size) {
+          if (kDebugMode) {
+            debugPrint(
+                'RShopSaveReadback: excess_length expected=$size observed=$count');
+          }
           throw const SaveBackupGenerationException(
               SaveBackupGenerationIssue.digestMismatch);
         }
@@ -352,12 +441,21 @@ class DriveSaveBackupGenerationApi {
     }
     _check(cancellation);
     if (count != size || result.value.toString() != properties['sha256']) {
+      if (kDebugMode) {
+        debugPrint(
+            'RShopSaveReadback: content_check expected=$size observed=$count '
+            'digest_equal=${result.value.toString() == properties['sha256']}');
+      }
       throw const SaveBackupGenerationException(
           SaveBackupGenerationIssue.digestMismatch);
     }
     final after = await _metadata(id, cancellation);
     _requireObject(after, id, areaId, size, properties);
-    if (after!['version'] != current!['version']) {
+    // Drive's general version includes invisible metadata changes. The binary
+    // head revision identifies content, so metadata-only changes cannot make a
+    // fully hashed read look corrupt. Ownership/binding are rechecked above.
+    if (after!['headRevisionId'] != current!['headRevisionId']) {
+      if (kDebugMode) debugPrint('RShopSaveReadback: content_revision_changed');
       throw const SaveBackupGenerationException(
           SaveBackupGenerationIssue.digestMismatch);
     }
@@ -381,8 +479,9 @@ class DriveSaveBackupGenerationApi {
         markers is! Map ||
         properties.entries.any((e) => markers[e.key] != e.value) ||
         data['size'] != '$size' ||
-        data['version'] is! String ||
-        (data['version'] as String).isEmpty) {
+        data['headRevisionId'] is! String ||
+        !RegExp(r'^[A-Za-z0-9_-]{1,256}$')
+            .hasMatch(data['headRevisionId'] as String)) {
       throw const SaveBackupGenerationException(
           SaveBackupGenerationIssue.unownedObject);
     }

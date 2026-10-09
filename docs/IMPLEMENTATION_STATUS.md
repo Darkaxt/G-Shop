@@ -52,10 +52,122 @@ S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
 
 ### S10 entry — emulator-aware save backup, 2026-10-09
 
+Current standalone restore checkpoint, 2026-10-09: normal Thor Save backups
+resumed the retained Patapon state, verified/downloaded its real Drive backup and
+published it at the configured PPSSPP slot. A prior network outage and then an
+open-emulator precondition preserved the pending intent/local bytes. Explicit
+Android App info preparation and Resume completed publication, with matching
+length/digests and a native receipt identifying the new destination inode.
+Explicit local rollback also completed, preserving the replaced generation.
+Normal menu reopen retained the verified backup without new sign-in. PPSSPP
+settings are unchanged. Focused PSP conflict-preservation and other changed-path
+checks pass; scoped analysis is clean. Gated build 534 and its preserving install
+are verified, with two workers, no parallelism, 3 GiB Gradle heap, assessed Kotlin
+in-process and one 512 MiB test fork; no memory failure or budget increase.
+`S10_SAVE_BACKUP_DESIGN.md` records exact build/file/receipt evidence. Temporary
+UI XML removed; both displays are committed OFF and device is Asleep.
+This supersedes the disabled-restore state in the historical checkpoint below,
+not the remaining requirements: wider installed-route coverage, background/fault/
+reinstall behavior, live divergent-conflict proof and conditional sync handover
+remain unfinished. S10 alone is ACTIVE; no legacy tool/task was changed.
+
+Standalone backup checkpoint, 2026-10-09 22:01 +02:00: PPSSPP v1.20.4's
+normal Memory Stick picker configured a new shared PSP directory without moving
+existing data. Its initially blank slot five produced a Patapon title-screen
+state, without gameplay. R-Shop's normal folder picker, exact slot selection and
+edition confirmation then published a real Drive backup with verified readback,
+without another account/consent prompt. The native sealed capture and original
+5,557,226-byte state have identical SHA256 digests. This verifies standalone
+backup only: PPSSPP restore remains unimplemented/disabled, not COMPLETE.
+`S10_SAVE_BACKUP_DESIGN.md` records the exact fixture and evidence. The fixture
+is retained for required restore verification; existing sync tools are unchanged.
+The current installed menu still shows four independent left-hand sections;
+fresh focused save-settings checks pass. The temporary UI dump was removed and
+both physical display devices subsequently report OFF / committedState OFF,
+with device wakefulness Asleep. S10 remains the sole ACTIVE stage.
+
+User-authorized scope revision 2026-10-09 (specification revision 15): restoration
+acceptance ends at the configured emulator's expected save location and completed
+file write. Gameplay, in-emulator loading and deep save-content inspection are
+no longer requirements or blockers. Historical checkpoints below describe the
+then-current criteria; they do not reinstate these removed checks. No required
+deferral is created. Remaining S10 feature, coverage and safety work is unchanged.
+The user explicitly retained local/cloud conflict handling: preserve divergent
+versions and require an explicit choice rather than silently overwriting remote
+saves. Conflict verification remains required before S10 can be COMPLETE.
+
+Current save-menu checkpoint, 2026-10-09 (specification revision 16): save
+management now follows persistent left-hand Backup area / Back up save /
+Restore & conflicts / Status navigation, not one long scroll. Focused verification
+covers narrow/enlarged text, touch-to-controller focus, section isolation and
+retained mapping/confirmation/running capture. Gated build 521 is installed;
+normal Thor setup and selected-game routes verify section separation and retained
+selection/confirmation, without backup/restore writes. Saves and emulator settings
+remain unchanged; both screens are OFF. New settings, including S11's later
+controls, must retain this presentation rule. S10 remains the sole ACTIVE stage;
+no other stage is started or declared complete by this UI correction.
+
+Current conflict checkpoint, 2026-10-09: the per-game workflow now
+publishes the sealed local conflict generation through the existing immutable,
+readback-verified Drive transport before a selected cloud version may replace
+it. Publication failure preserves the pending choice and last-good generation;
+another cloud change during preservation requires a fresh explicit choice.
+The next backup records the reviewed resolution in its ancestry, so the retained
+losing branch is not falsely presented as a new conflict. Unreviewed branches
+still require a choice. Focused job regressions pass, including older pending
+record recovery. Scoped analysis and diff checks pass. Gated assembly 519 of
+this correction completed and its preserving Thor installation was independently
+hash/signature checked. Normal native backup completed against real Drive at
+20:37 with verified readback and no sign-in prompt. The divergent-branch ordering
+remains host-verified, not yet live conflict acceptance.
+
+Build 515 completed through the shared gate and was installed preserving app
+data. The installed APK digest independently matched the candidate; protected
+preferences, fourteen observed mGBA saves and RetroArch configuration/remap
+hashes matched immediately after installation. Normal real-Drive Aero fixture
+backup and restore then completed with a native published receipt at the
+expected current mGBA path. Both displays are OFF. This verifies the normal
+backup/restore path, not the subsequent conflict-preservation correction or
+full S10 acceptance. Standalone, installed-route coverage, background work,
+independent recovery and legacy-sync handover remain unfinished. S10 remains
+the sole ACTIVE stage; no required deferral or scope change is introduced.
+
+Earlier conflict implementation checkpoint, 2026-10-09: the per-game workflow now
+discovers compatible immutable cloud generations and surfaces divergent branches
+for explicit local/cloud choice. Focused host checks verify preservation of old
+cloud objects, concurrent publication, changed-choice rejection, confirmation/
+cancel and durable recovery between cloud selection and restore intent. Scoped
+Dart analysis is clean. Live conflict verification remains unfinished; gated
+Android assembly request 512 is queued and supervised, not a completed build.
+Local conflict captures are retained privately; independent cloud recovery of
+those local captures is not claimed. No stage status or acceptance scope changes.
+The subsequent installation-rename regression reproduced a false conflict for
+identical SRAM bytes. After gated build 512 completed, format-specific SRAM/RTC
+role comparison corrected it. Fresh focused job checks and scoped analysis pass,
+including RTC divergence. Transport manifests/digests remain unchanged. A new
+gated assembly of that correction is required before live testing; no in-flight
+build inputs were changed. S10 remains ACTIVE with its other work unfinished.
+
+Current narrow checkpoint (2026-10-09, request 506): the current-launch save
+association defect is implemented and focused host/native verification passes.
+The automatic save review shares the exact native ROM launch preflight; an
+unrelated or stale installation save cannot be uploaded under the selected
+edition. Explicit cloud restore separates immutable source filenames from the
+current installation's destination, with durable resume/rollback target guards.
+The gated preserving Thor update succeeded and independently installed APK,
+signer, configuration, protected preferences and fourteen mGBA save hashes were
+verified. Subsequent normal current-target cloud restore has a freshly inspected
+native published receipt and successful UI result. The current-target path/write
+check is verified for this narrow RetroArch SRAM route. Blank save contents do
+not block the revised acceptance. Standalone and remaining installed routes,
+background work, custom mappings and remaining SAVE-01 behavior are unfinished.
+`S10_SAVE_BACKUP_DESIGN.md` records the focused evidence and unchanged scope.
+No stage is closed, no deferral is added, and legacy sync is untouched.
+
 S10 is ACTIVE, beginning with the current installed-package and legitimate
 save/state-path audit. Its first required real slice is RetroArch plus one
 standalone emulator, with separately consented backup-only Drive writes and
-verified emulator-load restore. None of those acceptance criteria is satisfied
+verified restore to the expected save location. None of those acceptance criteria is satisfied
 by the inventory alone. S7 stays BLOCKED and its reception/retention work is
 unchanged; the derived S10 dependency is corrected because explicit save-group
 backup does not consume the unproved Top-25 set. No later-stage work is opened.
@@ -98,6 +210,119 @@ coverage and legacy-sync handover remain unfinished. None is reclassified as a
 deferral or silently waived. Exact evidence/limitations are recorded in
 `S10_SAVE_BACKUP_DESIGN.md`. No Thor data or external sync configuration changed;
 S7 remains BLOCKED and S11 NOT STARTED.
+
+### S10 verified narrow cloud publication — 2026-10-09
+
+S10 remains the sole ACTIVE stage. Diagnostic request 492 isolated a general
+Drive-version change after byte length and SHA-256 passed. With request 494,
+normal Resume published the retained generation and a fresh reviewed capture
+also completed cloud readback and manifest publication. The earlier rejection
+was intermittent; its particular metadata change was not identified live.
+The corrected transport uses mandatory binary `headRevisionId`, retains every
+digest/ownership/binding check, and passes regression-first metadata-only,
+missing/changed revision and corrupt-byte checks. The original gated request 496
+completed exit zero, with acquired gate and verified low-memory profile. Its
+preserving Thor update passed independent APK/signature and protected-file checks;
+a fresh normal backup completed full cloud readback/publication at 16:50 local.
+Same job 76 resumed and advanced without sign-in; both displays were OFF afterward.
+The earlier live-wait checkpoint is superseded, not a request to rebuild.
+
+This proves one real RetroArch save capture/cloud backup, not native restore or
+SAVE-01 completion. Restore/emulator-load, standalone and remaining installed
+routes, coherent related groups, background work, conflict/recovery, coverage UI
+and conditional legacy-sync handover remain required unfinished S10 work. S7
+stays BLOCKED, S11 NOT STARTED, and no tracked deferral is added. See
+`S10_SAVE_BACKUP_DESIGN.md` for exact evidence and the next restore boundary.
+
+### S10 restore/rollback integration — 2026-10-09
+
+S10 is still the sole ACTIVE stage. The former empty restore controller now
+persists cloud-generation, restore and rollback identities before native work,
+captures the current local SRAM first, downloads through the real cloud API,
+and requires normal verified EOF/native sealing before publication. Explicit
+UI confirmations distinguish cloud replacement from restoring the retained
+local capture; the latter preserves the replaced save in a new capture.
+Resume retains operation IDs and sealed rollback bytes, and a pending restore
+prevents a new backup from replacing its recovery intent. Retargeted editions
+reject before capture/download; timestamps never authorize replacement.
+
+Focused regression-first job/adapter/widget checks pass, including failed final
+stream verification, replay and explicit rollback. The C++ filesystem replacement
+contract passed on Linux; this is not Android FUSE/JNI or emulator-load evidence.
+Native acknowledgement ordering now releases the worker before replying so a
+subsequent streamed chunk cannot race its predecessor's active flag. Required
+gated Android request 501 completed exit zero through the retained supervisor,
+with acquired gate and verified low-memory profile. The preserving installation
+matches APK SHA-256 `ad4bc0c5338ef63141eebd18099c7efee4385e8cc69ec80bc2f0e9d9aa469e70`
+and the unchanged signer; protected preferences/configuration and thirteen mGBA
+save digests match across replacement. Normal cloud restore and retained-local
+rollback both reached native `published` receipts with matching 512-byte SHA-256;
+the thirteen saves also matched before/after those operations.
+
+Emulator-load acceptance has not passed. Live checking exposed that the selected
+older save uses a different installation document ID from the current ROM launch,
+which creates another save filename. Same-ROM relaunch after normal Close Content
+also remains at No Core: the pinned RetroArch Android onNewIntent route does not
+reload identical ROM/core extras. A normal user Quit then cold launch boots the
+game, but this diagnostic workaround is not a completed product correction.
+Save/launch binding and actual emulator consumption remain unfinished S10 work;
+coherent RTC groups, standalone
+and full installed-route coverage, background work, recovery cases and conditional
+handover remain ordinary unfinished S10 work. No new deferral or waiver, and no
+legacy-sync change. S7 remains BLOCKED; S11 remains NOT STARTED.
+
+### S10 first native capture investigation — 2026-10-09
+
+S10 remains the sole ACTIVE stage. The normal GBA game-details Save backups
+entry now supports explicit save-file selection and edition confirmation. SQLite
+retains the exact capture intent before native IO and immutable generation IDs
+before upload. Focused host checks cover restart/replay and publication failures;
+they do not establish a working native backup or restore.
+
+The preserving Thor installation matches diagnostic APK SHA-256
+`d7c815df98ad550246479b11fdc113d678bb1ee422c54178988f2062c82b6e59`.
+Live capture correctly rejected active RetroArch content. After normal Close
+Content, replay failed before UDP or copying: redacted native diagnostics identify
+SaveCaptureService's canonical-versus-absolute private-directory comparison at
+line 172. The existing exact capture directory is an ordinary private directory;
+the framework parent alias is not normalized. A focused regression now targets
+normalizing that trusted parent while retaining descendant alias rejection.
+No save upload/restore acceptance has passed. The selected source digest remains
+unchanged, and the pending capture intent is retained for deterministic replay.
+
+Actual coherent capture/upload, verified emulator-load restore, standalone and
+remaining installed routes, background work, conflicts/recovery, and the
+conditional legacy-sync handover remain unfinished S10 work. FolderSync and the
+laptop task are unchanged. No tracked deferral is added; S7 stays BLOCKED and
+S11 NOT STARTED.
+
+### S10 coherent native capture and cloud readback investigation — 2026-10-09
+
+S10 remains the sole ACTIVE stage. The private capture root now normalizes the
+framework-owned parent before checking its descendants. The bounded native path
+regression failed before this correction and passed afterward. Gated request 488
+completed successfully; its preserving installation independently matches APK
+SHA-256 `e80e4318dc80adb7ac98ce3e7d89fcc067e76f3ffe7478b1d682db417327fcb7`.
+Immediate configuration/secure-preference digests and all thirteen observed mGBA
+save digests match across replacement.
+
+The earlier Close Content observation was premature: RetroArch was still at its
+confirmation. The normal action was subsequently completed and the actual No
+Core screen verified. Normal R-Shop replay then produced a sealed 512-byte Aero
+save capture with the same SHA-256 as the original source. Capture did not alter
+the source. The durable generation IDs and sealed bytes are retained after the
+real cloud path reports `digestMismatch`; no verified cloud backup or restore is
+claimed. Request 492 builds redacted readback diagnostics to distinguish byte
+length/content failure from cloud-version change before a production correction.
+
+The reviewed three diagnostic screenshots (437,227 bytes) and their exact device
+copies are removed and verified absent; preservation journals and the pending
+private capture remain. Both physical displays were observed Asleep/OFF. The
+metadata owner's normally paused job 76 still needs normal Resume after the next
+preserving update. Native restore/emulator load, the standalone slice, installed
+route coverage, background work, recovery/conflicts and conditional legacy-sync
+handover remain unfinished S10 acceptance. FolderSync and the laptop task are
+unchanged; S7 stays BLOCKED, S11 NOT STARTED, with no new tracked deferral.
 
 ### S7 preserving update 451 and selection durability — 2026-10-09
 

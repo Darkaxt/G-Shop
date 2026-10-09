@@ -291,6 +291,30 @@ void privateQuarantineContract(Fixture& f, int root) {
     fails([&] { owned::retirePrivateFile(privateDir.value, "owned", moved); }, ESTALE);
     check(owned::read(quarantined.value, 0, 4) == std::vector<uint8_t>({61, 62, 63, 64}), "changed quarantine was deleted");
 }
+
+void saveReplacementContract(Fixture& f, int root) {
+    Fd old(owned::openFile(root, "save-old", true, true)); f.track("save-old");
+    Fd stage(owned::openFile(root, "save-stage", true, true)); f.track("save-stage");
+    Fd rollback(owned::openFile(root, "save-rollback", true, true)); f.track("save-rollback");
+    owned::write(old.value, 0, {1, 2, 3});
+    owned::write(rollback.value, 0, {1, 2, 3}); owned::sync(rollback.value);
+    owned::write(stage.value, 0, {4, 5, 6});
+    owned::sync(stage.value);
+    const auto oldIdentity = owned::identity(old.value);
+    const auto stagedIdentity = owned::identity(stage.value);
+    auto changed = oldIdentity;
+    changed.size++;
+    fails([&] { owned::replaceReviewedSave(root, "save-stage", "save-old", stagedIdentity, changed); }, ESTALE);
+    check(owned::read(old.value, 0, 3) == std::vector<uint8_t>({1, 2, 3}), "changed save overwritten");
+    changed = stagedIdentity;
+    changed.inode++;
+    fails([&] { owned::replaceReviewedSave(root, "save-stage", "save-old", changed, oldIdentity); }, ESTALE);
+    const auto placed = owned::replaceReviewedSave(root, "save-stage", "save-old", stagedIdentity, oldIdentity);
+    check(placed.inode == stagedIdentity.inode, "replacement did not retain staged inode");
+    Fd current(owned::openFile(root, "save-old", false, false));
+    check(owned::read(current.value, 0, 3) == std::vector<uint8_t>({4, 5, 6}), "replacement bytes wrong");
+    check(owned::read(rollback.value, 0, 3) == std::vector<uint8_t>({1, 2, 3}), "rollback bytes lost");
+}
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -314,6 +338,8 @@ int main(int argc, char** argv) {
         privateRetirementContract(fixture, root.value);
         std::cout << "PHASE private quarantine" << std::endl;
         privateQuarantineContract(fixture, root.value);
+        std::cout << "PHASE reviewed save replacement" << std::endl;
+        saveReplacementContract(fixture, root.value);
         std::cout << "PASS owned storage filesystem contract\n";
         return 0;
     } catch (const std::exception& error) {

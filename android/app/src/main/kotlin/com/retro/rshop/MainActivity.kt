@@ -31,6 +31,7 @@ class MainActivity : FlutterActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val smbService = SmbService()
     private var ownedStorage: OwnedStorageService? = null
+    private var saveCapture: SaveCaptureService? = null
 
     private var progressSink: EventChannel.EventSink? = null
     private var smbProgressSink: EventChannel.EventSink? = null
@@ -70,6 +71,12 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            "com.retro.rshop/save_capture").setMethodCallHandler { call, result ->
+            val service = saveCapture ?: SaveCaptureService(this).also { saveCapture = it }
+            service.handle(call, result)
+        }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "com.retro.rshop/companions").setMethodCallHandler { call, result ->
@@ -239,6 +246,7 @@ class MainActivity : FlutterActivity() {
                 call.method == "launchOwnedRetroArchNes" ||
                 call.method == "launchOwnedRetroArchSnes" ||
                 call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
+                call.method == "reviewOwnedRetroArchGameBoyAdvanceSave" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
                 call.method == "launchOwnedNetherSX2" || call.method == "launchOwnedCemu") {
                 val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }
@@ -277,6 +285,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        saveCapture?.shutdown()
         ownedStorage?.shutdown()
         extractorPool.shutdown()
         smbService.shutdown()

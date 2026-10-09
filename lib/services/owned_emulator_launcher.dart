@@ -47,8 +47,8 @@ class OwnedEmulatorLauncher {
     return operation;
   }
 
-  Future<void> _open(GameItem game, SystemModel system, String root,
-      String? companionComponent) async {
+  Future<Map<String, Object>> _grant(
+      GameItem game, SystemModel system, String root) async {
     Map<String, Object> grant;
     try {
       final installed = await romManager.requireInstalledArtifact(game, root);
@@ -65,6 +65,29 @@ class OwnedEmulatorLauncher {
         'filename': copy.observation.relativePath
       };
     }
+    return grant;
+  }
+
+  /// Uses the very same validated native URI as launch, without opening an
+  /// activity. RetroArch names SAF saves from its encoded document leaf, not
+  /// the display title or the archive member's basename.
+  Future<String> reviewRetroArchGbaSave(
+      GameItem game, SystemModel system, String root) async {
+    if (system.id != 'gba' || !supports(game, system)) {
+      throw UnsupportedError('No reviewed save route for this format');
+    }
+    final grant = await _grant(game, system, root);
+    final name = await channel.invokeMethod<String>(
+        'reviewOwnedRetroArchGameBoyAdvanceSave', grant);
+    if (name == null || name.isEmpty) {
+      throw StateError('No validated launch save target');
+    }
+    return name;
+  }
+
+  Future<void> _open(GameItem game, SystemModel system, String root,
+      String? companionComponent) async {
+    final grant = await _grant(game, system, root);
     if (companionComponent != null) {
       grant['companionComponent'] = companionComponent;
     }

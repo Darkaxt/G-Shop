@@ -39,7 +39,9 @@ class _Drive implements HttpClientAdapter {
   String? corruptRead, loseResponse, foreignLocation;
   CancelToken? cancelDuringRead;
   bool changeVersionOnRead = false;
+  bool changeViewMetadataOnRead = false;
   int largestChunk = 0;
+  final listPages = <Map<String, dynamic>>[];
 
   @override
   Future<ResponseBody> fetch(RequestOptions request, Stream<Uint8List>? body,
@@ -48,6 +50,11 @@ class _Drive implements HttpClientAdapter {
     expect(request.uri.origin, 'https://www.googleapis.com');
     expect(request.followRedirects, isFalse);
     expect(request.headers['Authorization'], 'Bearer private-token');
+    if (request.method == 'GET' && request.uri.path == '/drive/v3/files') {
+      expect(request.uri.queryParameters['q'], contains("'area' in parents"));
+      expect(request.uri.queryParameters['q'], contains("value='generation'"));
+      return _json(listPages.removeAt(0));
+    }
     if (request.method == 'POST') {
       expect(request.uri.path, '/upload/drive/v3/files');
       expect(request.uri.queryParameters['uploadType'], 'resumable');
@@ -80,6 +87,8 @@ class _Drive implements HttpClientAdapter {
       bytes[id] = value;
       metadata[id]!['size'] = value.length.toString();
       metadata[id]!['version'] = '1';
+      metadata[id]!['headRevisionId'] = 'revision-1';
+      metadata[id]!['md5Checksum'] = md5.convert(value).toString();
       committed.add(id);
       if (id == 'generation-a') {
         expect(verified, containsAll(['member-a', 'member-b']));
@@ -105,7 +114,14 @@ class _Drive implements HttpClientAdapter {
     if (!bytes.containsKey(id)) return _json({}, 404);
     if (request.uri.queryParameters['alt'] == 'media') {
       verified.add(id);
-      if (changeVersionOnRead) metadata[id]!['version'] = 'changed';
+      if (changeVersionOnRead) {
+        metadata[id]!['version'] = 'changed';
+        metadata[id]!['headRevisionId'] = 'revision-changed';
+      }
+      if (changeViewMetadataOnRead) {
+        metadata[id]!['version'] = 'viewed';
+        metadata[id]!['viewedByMeTime'] = '2026-10-09T14:00:00Z';
+      }
       final value = id == corruptRead ? [1, 2, 3] : bytes[id]!;
       return ResponseBody(Stream<Uint8List>.multi((controller) {
         controller.add(Uint8List.fromList(value));
@@ -197,6 +213,33 @@ void main() {
     expect(
         drive.requests.every((r) => ['GET', 'POST', 'PUT'].contains(r.method)),
         isTrue);
+  });
+
+  test('discovers complete generations across pages and origin devices',
+      () async {
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    drive.listPages.addAll([
+      {'files': [], 'nextPageToken': 'next'},
+      {
+        'files': [
+          {'id': generation.generationId}
+        ]
+      }
+    ]);
+    final target = SaveBackupBinding.fromJson(
+        {...generation.binding.toJson(), 'deviceId': 'another-device'});
+    final discovered =
+        await api.discoverGenerations(areaId: 'area', target: target);
+    expect(discovered.single.generationId, generation.generationId);
+    expect(drive.listPages, isEmpty);
+  });
+
+  test('incomplete listing cannot authorize a conflict-free upload', () async {
+    drive.listPages.add({'files': [], 'incompleteSearch': true});
+    await expectLater(
+        api.discoverGenerations(areaId: 'area', target: generation.binding),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.committed, isEmpty);
   });
 
   test('changed capture and corrupt readback never publish a generation',
@@ -352,11 +395,36 @@ void main() {
     expect(recovered.contentDigest, generation.contentDigest);
   });
 
-  test('a cloud version change during readback prevents publication', () async {
+  test('a content revision change during readback prevents publication',
+      () async {
     drive.changeVersionOnRead = true;
     await expectLater(
         api.publish(areaId: 'area', generation: generation, captures: files),
         throwsA(isA<SaveBackupGenerationException>()));
     expect(drive.bytes.containsKey('generation-a'), isFalse);
+  });
+
+  test('view metadata changes do not invalidate verified binary content',
+      () async {
+    drive.changeViewMetadataOnRead = true;
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    expect(drive.committed, ['member-b', 'member-a', 'generation-a']);
+    final restored = await api.loadGeneration(
+        areaId: 'area',
+        generationId: 'generation-a',
+        target: generation.binding);
+    expect(restored.contentDigest, generation.contentDigest);
+  });
+
+  test('missing content revision cannot authorize a verified generation',
+      () async {
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    drive.metadata['generation-a']!.remove('headRevisionId');
+    await expectLater(
+        api.loadGeneration(
+            areaId: 'area',
+            generationId: 'generation-a',
+            target: generation.binding),
+        throwsA(isA<SaveBackupGenerationException>()));
   });
 }

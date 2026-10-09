@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 14.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 16.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current scheduling (2026-10-09): S0-S6 and S8-S9 COMPLETE; S7 BLOCKED on external Game Gear
@@ -1569,7 +1569,20 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 ## S10 — Emulator-aware save-backup sync
 
 Status: ACTIVE.
+Latest vertical-slice evidence, 2026-10-09: native RetroArch expected-location
+restore and standalone PPSSPP backup/cloud restore/local rollback are verified.
+The PSP route preserves pending state on network/writer preconditions and retains
+the replaced generation; its configuration remains unchanged. Focused conflict
+preservation checks pass. This does not close remaining coverage, background,
+recovery, live conflict or conditional legacy-sync handover acceptance. See the
+current ledger and S10_SAVE_BACKUP_DESIGN.md, not historical disabled-restore notes.
 Requirements: SAVE-01; recheck CORE-01/02/03, DRIVE-01/06 and QA-01/02/03/04.
+User scope revision 2026-10-09: verify completed restoration at the configured
+emulator's expected save location. Do not gate S10 on gameplay, in-emulator save
+loading or deep save-content inspection. These checks are removed requirements,
+not required deferrals; retain the specified data-preservation safeguards.
+The user's accompanying condition keeps divergent local/cloud conflict handling
+and its focused verification mandatory; never silently overwrite remote saves.
 Depends on: verified S1-S6 identity/storage/authentication boundaries and completed
 S8-S9. S7 remains parked BLOCKED, not ACTIVE. Its unresolved reception/retention
 set is not an input to explicit save-group backup and restore. This corrects the
@@ -1585,7 +1598,7 @@ S7 and S11. No concurrent implementation of S7-S9 is opened.
   route. Report saves/states separately and substantiate each inaccessible route;
   do not classify uninvestigated routes as unsupported. Refresh at stage closure.
 - Prove the narrow real workflow first: explicit backup setup/consent -> stable
-  RetroArch save -> dedicated Drive backup -> verified restore -> emulator load.
+  RetroArch save -> dedicated Drive backup -> verified restore at the expected save location.
   Repeat for a standalone emulator before expanding coverage to the remaining
   accessible installed-emulator routes and explicitly mapped custom paths.
 - Add game/edition/emulator-bound save-group identities and persistent bounded
@@ -1599,22 +1612,26 @@ S7 and S11. No concurrent implementation of S7-S9 is opened.
   cancellation/relaunch/offline/quota/revocation and storage loss/regrant.
   Restore atomically with a defined rollback; preserve divergent saves and offer
   explicit conflict resolution, never deletion propagation or timestamp-only wins.
-- Verify normal controller/touch setup, coverage/status and restore, actual save
-  loading, and discovery after reconnect/expendable reinstall. Preserve real
+- Verify normal controller/touch setup, coverage/status and restore at the
+  expected save location through persistent left-hand sections: backup area,
+  game backup, restore/conflicts and status, never a single long settings roll.
+  Verify narrow/handheld layouts, section isolation and preserved mapping/job
+  state across touch/controller section changes (specification revision 16).
+  Verify discovery after reconnect/expendable reinstall. Preserve real
   saves/settings and switch both displays off.
 - After SAVE-01 replacement verification, identify the exact old device sync
   package and laptop task invoking `sync-retrobat-saves.ps1`. Safely join any
   active old sync operation, uninstall only the identified package and
   stop/disable only that task. Preserve saves/cloud backups, the laptop script
   and unrelated apps/tasks. Verify package absence, task disabled/not running,
-  and a subsequent R-Shop backup/restore/emulator-load round trip. Do not guess
+  and a subsequent R-Shop backup/restore-to-expected-location round trip. Do not guess
   the package from the user's provisional "Drive Sync" name.
 - Reconcile delivered S1-S10 requirements, resolve their required blockers/deferrals,
   run appropriate verification and commit. S11 remains required before overall
   completion. No release is authorized.
 
 Evidence: inspected installed-emulator coverage matrix, native consent/scope and
-write-boundary proof, real RetroArch/standalone backup-and-load restore, durable
+write-boundary proof, real RetroArch/standalone backup and restore to expected locations, durable
 generation/digest/identity/conflict and fault/restart contracts, UI/device proof,
 unchanged ROM archive and preserved save/cloud data, exact-target legacy sync
 handover evidence and successful post-handover backup/restore. This closes S10,
@@ -1750,5 +1767,5 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |
 | COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
-| SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and emulator-load restore; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
+| SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and restore to expected emulator locations; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
 | CACHE-01 | S11 | Persisted Settings duration/queue/order/budget and unified/per-console scope; protected sample/pins; actual automatic expiry/capacity rotation through exact owned/cloud-verified removal and identical usable restore |
