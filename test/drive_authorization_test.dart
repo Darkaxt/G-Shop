@@ -38,6 +38,74 @@ class FakeDriveAuthorizationDriver implements DriveAuthorizationDriver {
 }
 
 void main() {
+  test('backup consent requests only drive.file without account reselection',
+      () async {
+    final driver = FakeDriveAuthorizationDriver();
+    final auth = DriveAuthorization(driver);
+    final grant =
+        await auth.requestBackupConsent(expectedAccountId: 'account-a');
+    expect(grant.accountId, 'account-a');
+    expect(grant.toString(), isNot(contains('private-access-token')));
+    expect(driver.calls, [
+      'authenticate:false',
+      'authorize:account-a:https://www.googleapis.com/auth/drive.file:true',
+    ]);
+  });
+
+  test('ROM and backup grants cannot satisfy each other', () async {
+    final driver = FakeDriveAuthorizationDriver()..token = 'rom-token';
+    final auth = DriveAuthorization(driver);
+    await auth.acquire(expectedAccountId: 'account-a');
+    driver.token = 'backup-token';
+    await auth.requestBackupConsent(expectedAccountId: 'account-a');
+    expect((await auth.acquire(expectedAccountId: 'account-a')).accessToken,
+        'rom-token');
+    expect(
+        (await auth.acquireBackup(expectedAccountId: 'account-a')).accessToken,
+        'backup-token');
+    expect(driver.calls.where((c) => c.startsWith('authorize:')), hasLength(2));
+  });
+
+  test('silent backup never opens consent or accepts another account',
+      () async {
+    final driver = FakeDriveAuthorizationDriver()..token = null;
+    final auth = DriveAuthorization(driver);
+    await expectLater(auth.acquireBackup(expectedAccountId: 'account-a'),
+        throwsA(isA<DriveAuthorizationException>()));
+    expect(driver.calls.last,
+        'authorize:account-a:https://www.googleapis.com/auth/drive.file:false');
+    driver.account = 'account-b';
+    driver.calls.clear();
+    await expectLater(
+        auth.requestBackupConsent(expectedAccountId: 'account-a'),
+        throwsA(isA<DriveAuthorizationException>().having(
+            (e) => e.issue, 'issue', DriveAuthorizationIssue.accountMismatch)));
+    expect(driver.calls, ['authenticate:false']);
+  });
+
+  test('signout cancels pending backup consent before it can publish a grant',
+      () async {
+    final driver = FakeDriveAuthorizationDriver()
+      ..pendingToken = Completer<String?>();
+    final auth = DriveAuthorization(driver);
+    final pending = auth.requestBackupConsent(expectedAccountId: 'account-a');
+    final rejected = expectLater(
+        pending,
+        throwsA(isA<DriveAuthorizationException>().having(
+            (e) => e.issue, 'issue', DriveAuthorizationIssue.cancelled)));
+    await driver.tokenStarted.future;
+    final signingOut = auth.signOut();
+    driver.pendingToken!.complete('late-backup-token');
+    await rejected;
+    await signingOut;
+    driver.account = 'account-a';
+    driver.pendingToken = null;
+    driver.token = 'new-backup-token';
+    expect(
+        (await auth.acquireBackup(expectedAccountId: 'account-a')).accessToken,
+        'new-backup-token');
+  });
+
   test(
       'account-bound requests reuse an in-memory grant without native reauthorization',
       () async {

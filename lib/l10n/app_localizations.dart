@@ -105,6 +105,66 @@ abstract class L {
     Locale('pt')
   ];
 
+  /// No description provided for @saveBackup_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Save backups'**
+  String get saveBackup_title;
+
+  /// No description provided for @saveBackup_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up emulator saves, not ROMs'**
+  String get saveBackup_subtitle;
+
+  /// No description provided for @saveBackup_help.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a separate private Drive backup area. This requests access only to app-created backup files; ROM sources remain read-only. No saves are uploaded until you explicitly map them.'**
+  String get saveBackup_help;
+
+  /// No description provided for @saveBackup_authorize.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize backup area'**
+  String get saveBackup_authorize;
+
+  /// No description provided for @saveBackup_ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Private backup area prepared'**
+  String get saveBackup_ready;
+
+  /// No description provided for @saveBackup_notMapped.
+  ///
+  /// In en, this message translates to:
+  /// **'No save groups mapped yet. Preparing the area does not back up your games.'**
+  String get saveBackup_notMapped;
+
+  /// No description provided for @saveBackup_verify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify backup area'**
+  String get saveBackup_verify;
+
+  /// No description provided for @saveBackup_problem.
+  ///
+  /// In en, this message translates to:
+  /// **'Setup needs attention: {code}'**
+  String saveBackup_problem(String code);
+
+  /// No description provided for @saveBackup_noDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Google Drive source first to select its connected account.'**
+  String get saveBackup_noDrive;
+
+  /// No description provided for @saveBackup_preparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing private backup area…'**
+  String get saveBackup_preparing;
+
   /// No description provided for @metadata_credentials.
   ///
   /// In en, this message translates to:

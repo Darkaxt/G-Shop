@@ -157,6 +157,41 @@ void main() {
     expect(platform.requests.single.scopes, [DriveAuthorization.readOnlyScope]);
   });
 
+  test('backup scope consent uses the bound account after cold restoration',
+      () async {
+    await auth.acquire(interactive: true);
+    platform.requests.clear();
+    platform.granted = false;
+    final restarted =
+        DriveAuthorization(GoogleDriveSignIn(serverClientId: 'test-client-id'));
+    final grant =
+        await restarted.requestBackupConsent(expectedAccountId: 'account-a');
+    expect(grant.accountId, 'account-a');
+    expect(platform.requests.single.scopes,
+        ['https://www.googleapis.com/auth/drive.file']);
+    expect(platform.requests.single.email, 'test@example.invalid');
+    expect(platform.requests.single.promptIfUnauthorized, isTrue);
+    expect(platform.interactiveSignIns, 1);
+    expect(platform.lightweightSignIns, 0);
+  });
+
+  test('silent restored backup does not prompt when its scope is absent',
+      () async {
+    await auth.acquire(interactive: true);
+    platform.requests.clear();
+    platform.granted = false;
+    final restarted =
+        DriveAuthorization(GoogleDriveSignIn(serverClientId: 'test-client-id'));
+    await expectLater(
+        restarted.acquireBackup(expectedAccountId: 'account-a'),
+        throwsA(isA<DriveAuthorizationException>().having((e) => e.issue,
+            'issue', DriveAuthorizationIssue.interactionRequired)));
+    expect(platform.requests.single.scopes,
+        ['https://www.googleapis.com/auth/drive.file']);
+    expect(platform.requests.single.promptIfUnauthorized, isFalse);
+    expect(platform.interactiveSignIns, 1);
+  });
+
   test('cold restart refuses a source for a different saved account', () async {
     await auth.acquire(interactive: true);
     platform.requests.clear();
@@ -174,8 +209,8 @@ void main() {
   test('restored account renews a rejected token without credential UI',
       () async {
     await auth.acquire(interactive: true);
-    final restarted = DriveAuthorization(
-        GoogleDriveSignIn(serverClientId: 'test-client-id'));
+    final restarted =
+        DriveAuthorization(GoogleDriveSignIn(serverClientId: 'test-client-id'));
     final grant = await restarted.acquire(expectedAccountId: 'account-a');
     platform.requests.clear();
     await restarted.acquire(
@@ -197,8 +232,8 @@ void main() {
     expect(platform.revokeCalled, isTrue);
     expect(revocation.requests, hasLength(1));
     expect(await const FlutterSecureStorage().readAll(), isEmpty);
-    final cold = DriveAuthorization(
-        GoogleDriveSignIn(serverClientId: 'test-client-id'));
+    final cold =
+        DriveAuthorization(GoogleDriveSignIn(serverClientId: 'test-client-id'));
     await expectLater(cold.acquire(expectedAccountId: 'account-a'),
         throwsA(isA<DriveAuthorizationException>()));
     expect(platform.interactiveSignIns, 1);
@@ -254,8 +289,7 @@ void main() {
       () async {
     await auth.acquire(interactive: true);
     final renewed = await auth.acquire(
-        expectedAccountId: 'account-a',
-        rejectedToken: 'private-access-token');
+        expectedAccountId: 'account-a', rejectedToken: 'private-access-token');
     expect(renewed.accessToken, 'private-access-token');
     expect(platform.clientId, 'test-client-id');
     expect(platform.interactiveSignIns, 1);
@@ -292,7 +326,8 @@ void main() {
     });
     await expectLater(
         auth.acquire(
-            expectedAccountId: 'account-a', rejectedToken: 'private-access-token'),
+            expectedAccountId: 'account-a',
+            rejectedToken: 'private-access-token'),
         throwsA(isA<DriveAuthorizationException>().having((e) => e.toString(),
             'sanitized', 'Drive authorization: unavailable')));
     expect(platform.requests.length, before);
@@ -303,8 +338,8 @@ void main() {
     await auth.acquire(interactive: true);
     expect(platform.requests.map((r) => r.promptIfUnauthorized), [false, true]);
     platform.requests.clear();
-    final restarted = DriveAuthorization(
-        GoogleDriveSignIn(serverClientId: 'test-client-id'));
+    final restarted =
+        DriveAuthorization(GoogleDriveSignIn(serverClientId: 'test-client-id'));
     await expectLater(
         restarted.acquire(expectedAccountId: 'account-a'), throwsException);
     expect(platform.requests.map((r) => r.promptIfUnauthorized), [false]);

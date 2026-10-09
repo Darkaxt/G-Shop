@@ -325,18 +325,25 @@ void main() {
 
     testWidgets('renders Hide Empty Consoles toggle', (tester) async {
       await tester.pumpWidget(buildTab());
+      await tester.scrollUntilVisible(find.text('HIDE EMPTY CONSOLES'), 250);
       expect(find.text('HIDE EMPTY CONSOLES'), findsOneWidget);
     });
 
     testWidgets('renders Controller Buttons cycle', (tester) async {
       await tester.pumpWidget(buildTab());
+      await tester.scrollUntilVisible(find.text('CONTROLLER BUTTONS'), 250);
       expect(find.text('CONTROLLER BUTTONS'), findsOneWidget);
       expect(find.text('NIN'), findsOneWidget);
     });
 
     testWidgets('has chevron icons for nav tiles', (tester) async {
       await tester.pumpWidget(buildTab());
-      expect(find.byIcon(Icons.chevron_right), findsNWidgets(3));
+      expect(find.text('Game metadata'), findsOneWidget);
+      expect(find.text('My Sources'), findsOneWidget);
+      expect(find.text('Save backups'), findsOneWidget);
+      expect(find.text('Console Settings'), findsOneWidget);
+      expect(find.text('RetroAchievements'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsNWidgets(5));
     });
   });
 

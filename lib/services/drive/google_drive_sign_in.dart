@@ -129,7 +129,8 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
           {required bool interactive}) =>
       _native(() async {
         if (scopes.length != 1 ||
-            scopes.single != DriveAuthorization.readOnlyScope) {
+            (scopes.single != DriveAuthorization.readOnlyScope &&
+                scopes.single != DriveAuthorization.backupFileScope)) {
           throw const DriveAuthorizationException(
               DriveAuthorizationIssue.setupRequired);
         }
@@ -144,8 +145,9 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
           }
         } else {
           // The endorsed Android platform implementation uses AuthorizationClient
-          // with setAccount(email). With prompting disabled it returns null for
-          // a resolution and never starts its PendingIntent/account chooser.
+          // with setAccount(email). Background authorization never starts a
+          // resolution. Only explicit backup setup may resolve its new scope;
+          // it retains the exact saved account, without credential selection.
           token = (await GoogleSignInPlatform.instance
                   .clientAuthorizationTokensForScopes(
                       ClientAuthorizationTokensForScopesParameters(
@@ -153,7 +155,9 @@ class GoogleDriveSignIn implements DriveAuthorizationDriver {
                               scopes: scopes,
                               userId: account.id,
                               email: account.email,
-                              promptIfUnauthorized: false))))
+                              promptIfUnauthorized: interactive &&
+                                  scopes.single ==
+                                      DriveAuthorization.backupFileScope))))
               ?.accessToken;
         }
         if (token == null || token.isEmpty) return null;

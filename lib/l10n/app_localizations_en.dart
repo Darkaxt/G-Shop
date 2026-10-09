@@ -9,6 +9,41 @@ class LEn extends L {
   LEn([String locale = 'en']) : super(locale);
 
   @override
+  String get saveBackup_title => 'Save backups';
+
+  @override
+  String get saveBackup_subtitle => 'Back up emulator saves, not ROMs';
+
+  @override
+  String get saveBackup_help =>
+      'Use a separate private Drive backup area. This requests access only to app-created backup files; ROM sources remain read-only. No saves are uploaded until you explicitly map them.';
+
+  @override
+  String get saveBackup_authorize => 'Authorize backup area';
+
+  @override
+  String get saveBackup_ready => 'Private backup area prepared';
+
+  @override
+  String get saveBackup_notMapped =>
+      'No save groups mapped yet. Preparing the area does not back up your games.';
+
+  @override
+  String get saveBackup_verify => 'Verify backup area';
+
+  @override
+  String saveBackup_problem(String code) {
+    return 'Setup needs attention: $code';
+  }
+
+  @override
+  String get saveBackup_noDrive =>
+      'Add a Google Drive source first to select its connected account.';
+
+  @override
+  String get saveBackup_preparing => 'Preparing private backup area…';
+
+  @override
   String get metadata_credentials => 'Credentials';
 
   @override

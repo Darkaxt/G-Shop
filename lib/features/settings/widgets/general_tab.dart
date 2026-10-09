@@ -5,6 +5,7 @@ import '../../../providers/app_providers.dart';
 import '../../onboarding/widgets/ra_onboarding_screen.dart';
 import '../config_mode_screen.dart';
 import '../metadata_settings_screen.dart';
+import '../save_backup_settings_screen.dart';
 import '../models/settings_entry.dart';
 import '../sources_screen.dart';
 import 'settings_list_view.dart';
@@ -34,7 +35,8 @@ class SettingsGeneralTab extends ConsumerWidget {
     final localeOverride = ref.watch(localeProvider);
     final localeName = localeOverride == null
         ? l.settings_languageSystem
-        : _localeNames[localeOverride.languageCode] ?? localeOverride.languageCode;
+        : _localeNames[localeOverride.languageCode] ??
+            localeOverride.languageCode;
     final localeShort = localeOverride == null
         ? 'AUTO'
         : localeOverride.languageCode.toUpperCase();
@@ -47,8 +49,10 @@ class SettingsGeneralTab extends ConsumerWidget {
             icon: Icons.auto_stories_outlined,
             title: l.metadata_setupTitle,
             subtitle: l.metadata_setupSubtitle,
-            onSelect: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const MetadataSettingsScreen())),
+            onSelect: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const MetadataSettingsScreen())),
           ),
           SettingsEntry.nav(
             icon: Icons.cloud_outlined,
@@ -56,6 +60,15 @@ class SettingsGeneralTab extends ConsumerWidget {
             subtitle: l.settings_mySourcesSubtitle,
             onSelect: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const SourcesScreen())),
+          ),
+          SettingsEntry.nav(
+            icon: Icons.save_outlined,
+            title: l.saveBackup_title,
+            subtitle: l.saveBackup_subtitle,
+            onSelect: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const SaveBackupSettingsScreen())),
           ),
           SettingsEntry.nav(
             icon: Icons.tune,
@@ -94,7 +107,9 @@ class SettingsGeneralTab extends ConsumerWidget {
           ),
           SettingsEntry.toggle(
             title: l.settings_homeLayout,
-            subtitle: isHomeGrid ? l.settings_homeLayoutGrid : l.settings_homeLayoutCarousel,
+            subtitle: isHomeGrid
+                ? l.settings_homeLayoutGrid
+                : l.settings_homeLayoutCarousel,
             value: isHomeGrid,
             onChanged: () {
               ref.read(feedbackServiceProvider).tick();

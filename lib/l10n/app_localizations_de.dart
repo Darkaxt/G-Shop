@@ -9,6 +9,42 @@ class LDe extends L {
   LDe([String locale = 'de']) : super(locale);
 
   @override
+  String get saveBackup_title => 'Spielstände sichern';
+
+  @override
+  String get saveBackup_subtitle => 'Emulator-Spielstände sichern, keine ROMs';
+
+  @override
+  String get saveBackup_help =>
+      'Ein separater privater Drive-Bereich für Sicherungen. Zugriff wird nur für von der App erstellte Sicherungsdateien angefordert; ROM-Quellen bleiben schreibgeschützt. Ohne ausdrückliche Zuordnung werden keine Spielstände hochgeladen.';
+
+  @override
+  String get saveBackup_authorize => 'Sicherungsbereich autorisieren';
+
+  @override
+  String get saveBackup_ready => 'Privater Sicherungsbereich vorbereitet';
+
+  @override
+  String get saveBackup_notMapped =>
+      'Noch keine Spielstände zugeordnet. Die Vorbereitung des Bereichs sichert keine Spiele.';
+
+  @override
+  String get saveBackup_verify => 'Sicherungsbereich prüfen';
+
+  @override
+  String saveBackup_problem(String code) {
+    return 'Einrichtung erfordert Aufmerksamkeit: $code';
+  }
+
+  @override
+  String get saveBackup_noDrive =>
+      'Zuerst eine Google-Drive-Quelle hinzufügen, um deren verbundenes Konto zu wählen.';
+
+  @override
+  String get saveBackup_preparing =>
+      'Privater Sicherungsbereich wird vorbereitet…';
+
+  @override
   String get metadata_credentials => 'Zugangsdaten';
 
   @override

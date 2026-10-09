@@ -27,6 +27,17 @@ class DriveAuthorizationGrant {
   String toString() => 'DriveAuthorizationGrant(redacted)';
 }
 
+/// Separate credential type for the app-created save-backup area. Possessing a
+/// ROM read grant must never satisfy a backup write operation (or vice versa).
+class DriveBackupGrant {
+  final String accountId;
+  final String accessToken;
+  const DriveBackupGrant._(this.accountId, this.accessToken);
+
+  @override
+  String toString() => 'DriveBackupGrant(redacted)';
+}
+
 abstract interface class DriveAuthorizationDriver {
   Future<String?> authenticate({required bool interactive});
   Future<String?> authorize(String accountId, List<String> scopes,
@@ -39,10 +50,12 @@ abstract interface class DriveAuthorizationDriver {
 /// serialize operations instead of racing account changes with authorization.
 class DriveAuthorization {
   static const readOnlyScope = 'https://www.googleapis.com/auth/drive.readonly';
+  static const backupFileScope = 'https://www.googleapis.com/auth/drive.file';
   final DriveAuthorizationDriver _driver;
   Future<void> _tail = Future<void>.value();
   int _sessionGeneration = 0;
   DriveAuthorizationGrant? _grant;
+  DriveBackupGrant? _backupGrant;
 
   DriveAuthorization(this._driver);
 
@@ -74,7 +87,10 @@ class DriveAuthorization {
     return _serialized(() async {
       try {
         _requireGeneration(generation);
-        if (interactive) _grant = null;
+        if (interactive) {
+          _grant = null;
+          _backupGrant = null;
+        }
         final accountId = await _driver.authenticate(interactive: interactive);
         _requireGeneration(generation);
         if (accountId == null || accountId.isEmpty) {
@@ -118,11 +134,84 @@ class DriveAuthorization {
     });
   }
 
+  /// Explicit save-backup setup, not another account-selection operation.
+  /// Only this entry point may resolve missing drive.file consent. The caller
+  /// persists backup enablement only after successful consent and area setup.
+  Future<DriveBackupGrant> requestBackupConsent(
+          {required String expectedAccountId}) =>
+      _acquireBackup(
+          expectedAccountId: expectedAccountId, requestConsent: true);
+
+  /// Background/restore work for an already enabled, account-bound mapping.
+  /// This operation cannot open account or scope-consent UI.
+  Future<DriveBackupGrant> acquireBackup({
+    required String expectedAccountId,
+    String? rejectedToken,
+  }) =>
+      _acquireBackup(
+          expectedAccountId: expectedAccountId,
+          rejectedToken: rejectedToken,
+          requestConsent: false);
+
+  Future<DriveBackupGrant> _acquireBackup({
+    required String expectedAccountId,
+    required bool requestConsent,
+    String? rejectedToken,
+  }) {
+    if (expectedAccountId.trim().isEmpty) {
+      return Future.error(const DriveAuthorizationException(
+          DriveAuthorizationIssue.interactionRequired));
+    }
+    final generation = _sessionGeneration;
+    return _serialized(() async {
+      try {
+        _requireGeneration(generation);
+        final accountId = await _driver.authenticate(interactive: false);
+        _requireGeneration(generation);
+        if (accountId == null || accountId.isEmpty) {
+          _backupGrant = null;
+          throw const DriveAuthorizationException(
+              DriveAuthorizationIssue.interactionRequired);
+        }
+        if (accountId != expectedAccountId) {
+          _backupGrant = null;
+          throw const DriveAuthorizationException(
+              DriveAuthorizationIssue.accountMismatch);
+        }
+        final current = _backupGrant;
+        if (current?.accountId == accountId &&
+            current!.accessToken != rejectedToken) {
+          return current;
+        }
+        _backupGrant = null;
+        if (rejectedToken != null) {
+          await _driver.clearRejectedToken(accountId, rejectedToken);
+          _requireGeneration(generation);
+        }
+        final token = await _driver.authorize(
+            accountId, const [backupFileScope],
+            interactive: requestConsent);
+        _requireGeneration(generation);
+        if (token == null || token.isEmpty) {
+          throw const DriveAuthorizationException(
+              DriveAuthorizationIssue.interactionRequired);
+        }
+        return _backupGrant = DriveBackupGrant._(accountId, token);
+      } on DriveAuthorizationException {
+        rethrow;
+      } catch (_) {
+        throw const DriveAuthorizationException(
+            DriveAuthorizationIssue.unavailable);
+      }
+    });
+  }
+
   Future<void> signOut({bool revoke = false}) {
     // Invalidate outstanding operations synchronously, then await actual native
     // shutdown. A late consent completion can never publish a usable grant.
     _sessionGeneration++;
     _grant = null;
+    _backupGrant = null;
     return _serialized(() async {
       try {
         await _driver.signOut(revoke: revoke);

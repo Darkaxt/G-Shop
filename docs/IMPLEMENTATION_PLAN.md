@@ -4,7 +4,7 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 14.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current scheduling (2026-10-09): S0-S6 and S8-S9 COMPLETE; S7 BLOCKED on external Game Gear
-reception evidence for MIGRATE-01; S10-S11 NOT STARTED. See the
+reception evidence for MIGRATE-01; S10 sole ACTIVE; S11 NOT STARTED. See the
 current status entry for exact blocker, resolution and dependent work. Older
 dated ACTIVE checkpoints below are historical. No acceptance criterion changes.
 
@@ -1568,9 +1568,14 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 
 ## S10 — Emulator-aware save-backup sync
 
-Status: NOT STARTED.
+Status: ACTIVE.
 Requirements: SAVE-01; recheck CORE-01/02/03, DRIVE-01/06 and QA-01/02/03/04.
-Depends on: S1-S9 acceptance. No concurrent implementation with S7-S9.
+Depends on: verified S1-S6 identity/storage/authentication boundaries and completed
+S8-S9. S7 remains parked BLOCKED, not ACTIVE. Its unresolved reception/retention
+set is not an input to explicit save-group backup and restore. This corrects the
+derived scheduling dependency only; SAVE-01 still requires every installed-route,
+native restore, safety and handover criterion. Final reconciliation still requires
+S7 and S11. No concurrent implementation of S7-S9 is opened.
 
 - Audit actual installed-emulator save/state paths, formats and legitimate
   Android access. Show coverage and unsupported routes; preserve the old device

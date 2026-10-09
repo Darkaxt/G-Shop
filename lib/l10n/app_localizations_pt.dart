@@ -9,6 +9,41 @@ class LPt extends L {
   LPt([String locale = 'pt']) : super(locale);
 
   @override
+  String get saveBackup_title => 'Cópias de partidas';
+
+  @override
+  String get saveBackup_subtitle => 'Guardar partidas dos emuladores, não ROMs';
+
+  @override
+  String get saveBackup_help =>
+      'Use uma área privada separada no Drive. O acesso solicitado limita-se a cópias criadas pelo aplicativo; fontes de ROMs continuam somente leitura. Nenhuma partida é enviada sem associação explícita.';
+
+  @override
+  String get saveBackup_authorize => 'Autorizar área de cópias';
+
+  @override
+  String get saveBackup_ready => 'Área privada de cópias preparada';
+
+  @override
+  String get saveBackup_notMapped =>
+      'Nenhum grupo de partidas associado. Preparar a área não guarda seus jogos.';
+
+  @override
+  String get saveBackup_verify => 'Verificar área de cópias';
+
+  @override
+  String saveBackup_problem(String code) {
+    return 'A configuração requer atenção: $code';
+  }
+
+  @override
+  String get saveBackup_noDrive =>
+      'Adicione primeiro uma fonte Google Drive para selecionar sua conta conectada.';
+
+  @override
+  String get saveBackup_preparing => 'Preparando a área privada de cópias…';
+
+  @override
   String get metadata_credentials => 'Credenciais';
 
   @override

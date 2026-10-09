@@ -9,6 +9,43 @@ class LFr extends L {
   LFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get saveBackup_title => 'Sauvegardes de parties';
+
+  @override
+  String get saveBackup_subtitle =>
+      'Sauvegarder les parties des émulateurs, pas les ROMs';
+
+  @override
+  String get saveBackup_help =>
+      'Utilisez un espace Drive privé distinct. L’accès demandé se limite aux sauvegardes créées par l’application ; les sources de ROMs restent en lecture seule. Aucune partie n’est envoyée sans association explicite.';
+
+  @override
+  String get saveBackup_authorize => 'Autoriser l’espace de sauvegarde';
+
+  @override
+  String get saveBackup_ready => 'Espace privé de sauvegarde préparé';
+
+  @override
+  String get saveBackup_notMapped =>
+      'Aucun groupe de sauvegardes associé. Préparer l’espace ne sauvegarde pas vos jeux.';
+
+  @override
+  String get saveBackup_verify => 'Vérifier l’espace de sauvegarde';
+
+  @override
+  String saveBackup_problem(String code) {
+    return 'La configuration nécessite votre attention : $code';
+  }
+
+  @override
+  String get saveBackup_noDrive =>
+      'Ajoutez d’abord une source Google Drive pour sélectionner son compte connecté.';
+
+  @override
+  String get saveBackup_preparing =>
+      'Préparation de l’espace privé de sauvegarde…';
+
+  @override
   String get metadata_credentials => 'Identifiants';
 
   @override

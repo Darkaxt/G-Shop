@@ -9,6 +9,39 @@ class LJa extends L {
   LJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get saveBackup_title => 'セーブのバックアップ';
+
+  @override
+  String get saveBackup_subtitle => 'ROMではなくエミュレーターのセーブを保護';
+
+  @override
+  String get saveBackup_help =>
+      'Driveの専用非共有領域を使用します。アプリが作成したバックアップファイルへのアクセスだけを要求し、ROMソースは読み取り専用のままです。明示的に関連付けるまでセーブはアップロードされません。';
+
+  @override
+  String get saveBackup_authorize => 'バックアップ領域を承認';
+
+  @override
+  String get saveBackup_ready => '非共有バックアップ領域を準備済み';
+
+  @override
+  String get saveBackup_notMapped => 'セーブグループは未設定です。領域の準備だけではゲームはバックアップされません。';
+
+  @override
+  String get saveBackup_verify => 'バックアップ領域を確認';
+
+  @override
+  String saveBackup_problem(String code) {
+    return '設定の確認が必要です: $code';
+  }
+
+  @override
+  String get saveBackup_noDrive => '接続済みアカウントを選ぶには、先にGoogle Driveソースを追加してください。';
+
+  @override
+  String get saveBackup_preparing => '非共有バックアップ領域を準備中…';
+
+  @override
   String get metadata_credentials => '認証情報';
 
   @override

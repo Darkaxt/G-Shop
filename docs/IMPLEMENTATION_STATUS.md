@@ -7,8 +7,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current execution state — 2026-10-09, S7 retention evidence blocked
 
-S0-S6 and S8-S9 are COMPLETE. S7 is BLOCKED. S10-S11
-are NOT STARTED. This current state
+S0-S6 and S8-S9 are COMPLETE. S7 is BLOCKED. S10 is the sole ACTIVE stage;
+S11 is NOT STARTED. This current state
 supersedes the dated checkpoints below. Overall implementation is not complete.
 
 The external blocker is MIGRATE-01's defensible per-console Top-25 retention
@@ -49,6 +49,40 @@ reviewed mappings, legacy original-media families have explicit evidence/neutral
 rationales, and actual compact/large Thor presentation plus focused decode,
 replacement and layout checks pass. Both screens are OFF; task captures removed.
 S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
+
+### S10 entry — emulator-aware save backup, 2026-10-09
+
+S10 is ACTIVE, beginning with the current installed-package and legitimate
+save/state-path audit. Its first required real slice is RetroArch plus one
+standalone emulator, with separately consented backup-only Drive writes and
+verified emulator-load restore. None of those acceptance criteria is satisfied
+by the inventory alone. S7 stays BLOCKED and its reception/retention work is
+unchanged; the derived S10 dependency is corrected because explicit save-group
+backup does not consume the unproved Top-25 set. No later-stage work is opened.
+FolderSync and the laptop task remain unchanged until the verified SAVE-01
+handover. Installed-route investigation and the narrow workflow are ordinary
+unfinished S10 work, not blockers or tracked deferrals.
+
+### S10 verified backup-area setup — 2026-10-09
+
+S10 remains the sole ACTIVE stage. Normal Settings setup has real Thor consent
+for the separate app-specific `drive.file` backup scope and a verified private
+app-owned area. Explicit account binding, read-only ROM access, durable reserved
+identity, canceled/lost-response recovery and source-change isolation have focused
+verification. A rejected preference-write retry defect was reproduced and fixed;
+no remote creation is allowed until its recovery intent is durably acknowledged.
+Gated assembly 474 and its preserving Thor update pass. The existing backup-area
+reference survives replacement and verifies without sign-in; protected preference
+hashes match immediately after replacement. Existing job 76 was normally paused
+and resumed, and both physical displays are OFF. Exact evidence and qualifications
+are in `S10_SAVE_BACKUP_DESIGN.md`.
+
+No actual save capture/upload/restore is implemented by this setup; those native
+RetroArch/standalone workflows, full installed-emulator route coverage, durable
+background work, conflicts/recovery and conditional legacy-sync handover remain
+required unfinished S10 work. FolderSync and the laptop task are unchanged.
+S7 stays BLOCKED, S11 stays NOT STARTED; no tracked deferral is added and overall
+implementation is not complete.
 
 ### S7 preserving update 451 and selection durability — 2026-10-09
 

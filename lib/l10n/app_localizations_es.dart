@@ -9,6 +9,41 @@ class LEs extends L {
   LEs([String locale = 'es']) : super(locale);
 
   @override
+  String get saveBackup_title => 'Copias de partidas';
+
+  @override
+  String get saveBackup_subtitle => 'Respaldar partidas del emulador, no ROMs';
+
+  @override
+  String get saveBackup_help =>
+      'Usa un área privada de Drive separada. Solo se solicita acceso a copias creadas por la app; las fuentes de ROMs siguen siendo de solo lectura. No se suben partidas hasta que las asignes expresamente.';
+
+  @override
+  String get saveBackup_authorize => 'Autorizar área de copias';
+
+  @override
+  String get saveBackup_ready => 'Área privada de copias preparada';
+
+  @override
+  String get saveBackup_notMapped =>
+      'Aún no hay grupos de partidas asignados. Preparar el área no respalda tus juegos.';
+
+  @override
+  String get saveBackup_verify => 'Verificar área de copias';
+
+  @override
+  String saveBackup_problem(String code) {
+    return 'La configuración requiere atención: $code';
+  }
+
+  @override
+  String get saveBackup_noDrive =>
+      'Añade primero una fuente de Google Drive para seleccionar su cuenta conectada.';
+
+  @override
+  String get saveBackup_preparing => 'Preparando el área privada de copias…';
+
+  @override
   String get metadata_credentials => 'Credenciales';
 
   @override
