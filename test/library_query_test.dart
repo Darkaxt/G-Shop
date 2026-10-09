@@ -34,6 +34,8 @@ class _ProjectionDatabase implements Database {
   final Database inner;
   int batches = 0;
   int standaloneWrites = 0;
+  int catalogueReads = 0;
+  final catalogueQueries = <({String sql, List<Object?> args})>[];
   _ProjectionDatabase(this.inner);
 
   @override
@@ -60,30 +62,39 @@ class _ProjectionTransaction implements Transaction {
 
   @override
   Future<List<Map<String, Object?>>> rawQuery(String sql,
-          [List<Object?>? arguments]) =>
-      inner.rawQuery(sql, arguments);
+      [List<Object?>? arguments]) {
+    if (RegExp(r'\b(?:FROM|JOIN)\s+games\b', caseSensitive: false)
+        .hasMatch(sql)) {
+      observation.catalogueReads++;
+      observation.catalogueQueries
+          .add((sql: sql, args: List.of(arguments ?? const [])));
+    }
+    return inner.rawQuery(sql, arguments);
+  }
 
   @override
   Future<List<Map<String, Object?>>> query(String table,
-          {bool? distinct,
-          List<String>? columns,
-          String? where,
-          List<Object?>? whereArgs,
-          String? groupBy,
-          String? having,
-          String? orderBy,
-          int? limit,
-          int? offset}) =>
-      inner.query(table,
-          distinct: distinct,
-          columns: columns,
-          where: where,
-          whereArgs: whereArgs,
-          groupBy: groupBy,
-          having: having,
-          orderBy: orderBy,
-          limit: limit,
-          offset: offset);
+      {bool? distinct,
+      List<String>? columns,
+      String? where,
+      List<Object?>? whereArgs,
+      String? groupBy,
+      String? having,
+      String? orderBy,
+      int? limit,
+      int? offset}) {
+    if (table == 'games') observation.catalogueReads++;
+    return inner.query(table,
+        distinct: distinct,
+        columns: columns,
+        where: where,
+        whereArgs: whereArgs,
+        groupBy: groupBy,
+        having: having,
+        orderBy: orderBy,
+        limit: limit,
+        offset: offset);
+  }
 
   @override
   Future<int> insert(String table, Map<String, Object?> values,
@@ -250,6 +261,182 @@ void main() {
         reason: '129 editions require two bounded write batches, not 129.');
     expect(observed.standaloneWrites, lessThanOrEqualTo(2),
         reason: 'Only policy invalidation writes cross the bridge separately.');
+    expect(observed.catalogueReads, lessThanOrEqualTo(8),
+        reason:
+            'Exact catalogue checks must use bounded pages, not per-edition reads.');
+  });
+
+  test('batched catalogue bindings preserve exact single-identity rejection',
+      () async {
+    RemoteArtifact remote(int n,
+            {String account = 'account', String version = '1'}) =>
+        RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: 'source',
+                accountId: account,
+                providerFileId: '$n'),
+            displayName: 'Game $n.7z',
+            displayPath: 'Game $n.7z',
+            sizeBytes: 5,
+            version: version);
+    final ids = <String>[];
+    for (var n = 1; n <= 11; n++) {
+      ids.add(await seed(n, artifact: n <= 4 || n == 11 ? null : remote(n)));
+    }
+    await store.putGame(
+        GameIdentity(id: 'explicit', title: 'Explicit', platformId: 'psx'));
+    await store.putEdition(
+        EditionIdentity(id: 'explicit-edition', gameId: 'explicit'));
+    final rows = await db.rawQuery('''SELECT e.edition_id,
+      g.record_json AS game_json, e.record_json AS edition_json
+      FROM library_editions e JOIN library_game_identities g ON g.game_id = e.game_id
+      ORDER BY e.edition_id''');
+    Map<String, Object?> rowFor(String id) =>
+        rows.singleWhere((r) => r['edition_id'] == id);
+    // Capture identities first, then change their current catalogue bindings.
+    await db.delete('games', where: 'id = 2');
+    await db.update('games', {'is_folder': 1}, where: 'id = 3');
+    await db.update('games', {'systemSlug': 'snes'}, where: 'id = 4');
+    await db.update('games',
+        {'remote_artifact': jsonEncode(remote(6, version: '2').toJson())},
+        where: 'id = 6');
+    await db.update('games',
+        {'remote_artifact': jsonEncode(remote(7, account: 'other').toJson())},
+        where: 'id = 7');
+    await db.update('games', {'remote_artifact': null}, where: 'id = 8');
+    await db.update('games', {'artifact_key': 'other-key'}, where: 'id = 9');
+    await db.insert('games', {
+      'id': 20,
+      'systemSlug': 'psx',
+      'displayName': 'Duplicate',
+      'artifact_key': remote(10).id.key,
+      'remote_artifact': jsonEncode(remote(10).toJson())
+    });
+    await db.update('games', {'artifact_key': 'now-an-artifact'},
+        where: 'id = 11');
+    final captured = <Map<String, Object?>>[...rows];
+    final expected = <String, bool>{
+      for (var n = 1; n <= 11; n++) ids[n - 1]: n == 1 || n == 5,
+      'explicit-edition': true
+    };
+    void altered(String id,
+        {List<IdentityEvidence>? gameEvidence,
+        List<IdentityEvidence>? editionEvidence}) {
+      final original = rowFor(ids[4]);
+      final game =
+          GameIdentity.fromJson(jsonDecode(original['game_json'] as String));
+      final edition = EditionIdentity.fromJson(
+          jsonDecode(original['edition_json'] as String));
+      captured.add({
+        'game_json': jsonEncode({
+          ...game.toJson(),
+          if (gameEvidence != null)
+            'evidence': gameEvidence.map((e) => e.toJson()).toList()
+        }),
+        'edition_json': jsonEncode({
+          ...edition.toJson(),
+          'id': id,
+          if (editionEvidence != null)
+            'evidence': editionEvidence.map((e) => e.toJson()).toList()
+        })
+      });
+      expected[id] = false;
+    }
+
+    final game = GameIdentity.fromJson(
+        jsonDecode(rowFor(ids[4])['game_json'] as String));
+    final edition = EditionIdentity.fromJson(
+        jsonDecode(rowFor(ids[4])['edition_json'] as String));
+    altered('multiple-keys', gameEvidence: [
+      ...game.evidence,
+      IdentityEvidence(
+          source: 'catalogue', kind: 'artifactIdentity', value: 'other')
+    ]);
+    altered('multiple-systems', gameEvidence: [
+      ...game.evidence,
+      IdentityEvidence(source: 'catalogue', kind: 'system', value: 'snes')
+    ]);
+    altered('missing-marker',
+        editionEvidence: edition.evidence
+            .where((e) => e.kind != 'artifactContent')
+            .toList());
+    altered('multiple-markers', editionEvidence: [
+      ...edition.evidence,
+      IdentityEvidence(
+          source: 'catalogue', kind: 'artifactContent', value: 'other')
+    ]);
+    altered('invalid-legacy', gameEvidence: [
+      IdentityEvidence(source: 'catalogue', kind: 'system', value: 'psx'),
+      IdentityEvidence(
+          source: 'catalogue',
+          kind: 'artifactIdentity',
+          value: 'legacy-cache-row:invalid')
+    ]);
+    final bindings = await db.transaction((txn) async {
+      final result = await LibraryStore.readCatalogueBindings(txn, captured);
+      for (final row in captured) {
+        final id =
+            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String))
+                .id;
+        expect(result[id]!.current, expected[id], reason: id);
+        expect(result[id]!.current,
+            await LibraryStore.isCurrentCatalogueIdentity(txn, row),
+            reason: id);
+      }
+      return result;
+    });
+    expect(bindings[ids[4]]!.cacheRow, {'id': 5, 'displayName': 'Game 5'});
+    expect(bindings[ids[5]]!.cacheRow, {'id': 6, 'displayName': 'Game 6'},
+        reason:
+            'A changed byte binding retains its display title, not its score.');
+    expect(bindings[ids[9]]!.cacheRow, isNull);
+    expect(bindings['explicit-edition']!.cacheRow, isNull);
+    await expectLater(
+        LibraryStore.readCatalogueBindings(
+            db, List.filled(129, captured.first)),
+        throwsArgumentError);
+    await expectLater(
+        LibraryStore.readCatalogueBindings(
+            db, [captured.first, captured.first]),
+        throwsArgumentError);
+    expect(await LibraryStore.readCatalogueBindings(db, []), isEmpty);
+  });
+
+  test('bounded binding production SQL uses exact legacy and artifact indexes',
+      () async {
+    await db.execute('CREATE UNIQUE INDEX idx_games_system_artifact ON games '
+        '(systemSlug, artifact_key) WHERE artifact_key IS NOT NULL');
+    await seed(1);
+    await seed(2,
+        artifact: RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: 'source',
+                accountId: 'account',
+                providerFileId: 'file'),
+            displayName: 'Game 2.7z',
+            displayPath: 'Game 2.7z',
+            version: '1'));
+    final identities = await db.rawQuery('''SELECT g.record_json AS game_json,
+      e.record_json AS edition_json FROM library_editions e
+      JOIN library_game_identities g ON g.game_id = e.game_id''');
+    final observed = _ProjectionDatabase(db);
+    final bindings = await observed.transaction(
+        (txn) => LibraryStore.readCatalogueBindings(txn, identities));
+    expect(bindings.values.map((b) => b.current), everyElement(isTrue));
+    expect(observed.catalogueReads, 2);
+    final plans = <String>[];
+    for (final request in observed.catalogueQueries) {
+      final rows =
+          await db.rawQuery('EXPLAIN QUERY PLAN ${request.sql}', request.args);
+      plans.add(rows.map((r) => r['detail']).join('\n'));
+    }
+    expect(plans, hasLength(2));
+    expect(plans[0], contains('SEARCH g USING INTEGER PRIMARY KEY'));
+    expect(
+        plans[1], contains('SEARCH g USING INDEX idx_games_system_artifact'));
+    expect(plans.join('\n'), isNot(contains('SCAN g')));
   });
 
   test('failed projection page preserves the previous complete snapshot',

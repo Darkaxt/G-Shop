@@ -514,6 +514,12 @@ class LibraryQuery {
       final records = await db.rawQuery('''SELECT * FROM library_metadata
         WHERE edition_id IN (${List.filled(ids.length, '?').join(',')})
         AND provider_id IN ('screenscraper', 'igdb', 'romm')''', ids);
+      final bindings = await LibraryStore.readCatalogueBindings(
+          db,
+          rows
+              .where((row) =>
+                  row['game_json'] != null && row['edition_json'] != null)
+              .toList());
       // Keep the existing transaction/snapshot and bounded edition page. Send
       // its projection writes over Android's SQLite bridge once, not once per
       // edition/facet. No later read in this page depends on these derived rows.
@@ -547,17 +553,11 @@ class LibraryQuery {
         final legacy = key != null && key.startsWith('legacy-cache-row:')
             ? int.tryParse(key.substring('legacy-cache-row:'.length))
             : null;
-        final cache = key == null || systems.length != 1
-            ? <Map<String, Object?>>[]
-            : await db.query('games',
-                columns: ['id', 'displayName'],
-                where:
-                    'systemSlug = ? AND is_folder = 0 AND ${legacy == null ? 'artifact_key = ?' : 'id = ? AND artifact_key IS NULL'}',
-                whereArgs: [systems.single.value, legacy ?? key],
-                limit: 2);
-        final member = cache.length == 1 &&
+        final binding = bindings[id]!;
+        final cache = binding.cacheRow;
+        final member = cache != null &&
             game.platformId == systems.single.value &&
-            await LibraryStore.isCurrentCatalogueIdentity(db, row);
+            binding.current;
         final score = ratings[id];
         final sourceOrder = score != null && score.rankingEligible
             ? bases.indexWhere((b) =>
@@ -572,9 +572,8 @@ class LibraryQuery {
               'base_game_id': game.baseGameId,
               'group_key': row['group_key'],
               'platform_id': game.platformId ?? '',
-              'title':
-                  cache.length == 1 ? cache.single['displayName'] : game.title,
-              'cache_row_id': cache.length == 1 ? cache.single['id'] : null,
+              'title': cache != null ? cache['displayName'] : game.title,
+              'cache_row_id': cache?['id'],
               'catalogue_key': legacy == null ? key : null,
               'legacy_row_id': legacy,
               'member': member ? 1 : 0,

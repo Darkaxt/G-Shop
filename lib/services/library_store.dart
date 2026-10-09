@@ -949,6 +949,82 @@ class LibraryStore {
         markers.single.value == _artifactContentMarker(artifact);
   }
 
+  /// Resolve one bounded identity page against the same catalogue snapshot.
+  /// Aggregate before returning rows so even ambiguous cache keys cannot grow
+  /// the page. Both joins retain indexed exact system/key (or legacy row) lookup.
+  /// A unique cache row supplies its display title even if its bytes changed;
+  /// only `current` authorizes consumption of bound metadata.
+  static Future<Map<String, ({bool current, Map<String, Object?>? cacheRow})>>
+      readCatalogueBindings(
+          DatabaseExecutor db, List<Map<String, Object?>> identities) async {
+    if (identities.length > 128) {
+      throw ArgumentError('Catalogue binding page exceeds 128 editions');
+    }
+    final result = <String, ({bool current, Map<String, Object?>? cacheRow})>{};
+    final legacy = <Object?>[];
+    final artifacts = <Object?>[];
+    final requested = <String, Map<String, Object?>>{};
+    for (final row in identities) {
+      final game =
+          GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+      final edition =
+          EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+      if (requested.containsKey(edition.id)) {
+        throw ArgumentError('Duplicate catalogue binding edition');
+      }
+      requested[edition.id] = row;
+      final keys = game.evidence.where(
+          (e) => e.source == 'catalogue' && e.kind == 'artifactIdentity');
+      result[edition.id] = (current: keys.isEmpty, cacheRow: null);
+      if (keys.length != 1) continue;
+      final systems = game.evidence
+          .where((e) => e.source == 'catalogue' && e.kind == 'system');
+      if (systems.length != 1) continue;
+      final key = keys.single.value;
+      if (key.startsWith('legacy-cache-row:')) {
+        final id = int.tryParse(key.substring('legacy-cache-row:'.length));
+        if (id != null) legacy.addAll([edition.id, systems.single.value, id]);
+      } else {
+        artifacts.addAll([edition.id, systems.single.value, key]);
+      }
+    }
+    for (final request in [legacy, artifacts]) {
+      if (request.isEmpty) continue;
+      final isLegacy = identical(request, legacy);
+      final values = List.filled(request.length ~/ 3, '(?, ?, ?)').join(',');
+      final rows =
+          await db.rawQuery('''WITH requested(edition_id, system, key) AS
+          (VALUES $values)
+        SELECT r.edition_id, r.key, COUNT(g.id) AS matches,
+          MIN(g.id) AS id, MIN(g.displayName) AS displayName,
+          MIN(g.remote_artifact) AS remote_artifact
+        FROM requested r LEFT JOIN games g ON g.systemSlug = r.system
+          AND g.is_folder = 0 AND ${isLegacy ? 'g.id = r.key AND g.artifact_key IS NULL' : 'g.artifact_key = r.key AND g.artifact_key IS NOT NULL'}
+        GROUP BY r.edition_id''', request);
+      for (final row in rows) {
+        if (row['matches'] != 1) continue;
+        final id = row['edition_id'] as String;
+        var current = isLegacy;
+        if (!isLegacy && row['remote_artifact'] != null) {
+          final artifact = RemoteArtifact.fromJson(
+              jsonDecode(row['remote_artifact'] as String));
+          final edition = EditionIdentity.fromJson(
+              jsonDecode(requested[id]!['edition_json'] as String));
+          final markers = edition.evidence.where(
+              (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
+          current = artifact.id.key == row['key'] &&
+              markers.length == 1 &&
+              markers.single.value == _artifactContentMarker(artifact);
+        }
+        result[id] = (
+          current: current,
+          cacheRow: {'id': row['id'], 'displayName': row['displayName']}
+        );
+      }
+    }
+    return Map.unmodifiable(result);
+  }
+
   Future<void> putMetadata(MetadataRecord record,
       {Transaction? transaction}) async {
     if (!hasConsistentProvenance(record)) {
@@ -1170,9 +1246,10 @@ class LibraryStore {
         }
       }
     }
+    final bindings = await readCatalogueBindings(txn, identities);
     for (final entry in decoded.entries) {
       final identity = entry.value;
-      if (!await isCurrentCatalogueIdentity(txn, identity.row)) continue;
+      if (bindings[entry.key]?.current != true) continue;
       result[entry.key] = selectEffectiveOverallRating(
           game: identity.game,
           edition: identity.edition,
