@@ -212,6 +212,8 @@
   "gameDetail_viewAchievements": "Ver logros",
   "gameDetail_versions": "VERSIONES",
   "gameDetail_download": "DESCARGAR",
+  "gameDetail_open": "ABRIR",
+  "gameDetail_pressAOpen": "Pulsa A para abrir",
   "gameDetail_adding": "AÑADIENDO...",
   "gameDetail_queued": "EN COLA",
   "gameDetail_extracting": "EXTRAYENDO...",

@@ -720,6 +720,8 @@ class DownloadQueueManager extends ChangeNotifier {
     } catch (error) {
       if (_ownsDrive(item.id, attempt)) {
         final auth = error is DriveAuthorizationException;
+        final needsAuthorization = auth &&
+            error.issue != DriveAuthorizationIssue.unavailable;
         final cancelled = attempt.pauseRequested ||
             _closing ||
             (error is DriveTransferException &&
@@ -727,7 +729,7 @@ class DownloadQueueManager extends ChangeNotifier {
         _updateItem(item.id,
             status: cancelled
                 ? DownloadStatus.paused
-                : auth
+                : needsAuthorization
                     ? DownloadStatus.awaitingAuthorization
                     : DownloadStatus.error,
             error: cancelled

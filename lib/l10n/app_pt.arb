@@ -224,6 +224,8 @@
   "gameDetail_viewAchievements": "Ver Conquistas",
   "gameDetail_versions": "VERS\u00d5ES",
   "gameDetail_download": "BAIXAR",
+  "gameDetail_open": "ABRIR",
+  "gameDetail_pressAOpen": "Aperte A para abrir",
   "gameDetail_adding": "ADICIONANDO...",
   "gameDetail_queued": "NA FILA",
   "gameDetail_extracting": "EXTRAINDO...",

@@ -18,8 +18,11 @@ class InstalledFilesState {
   /// Flat union of all filenames across every system.
   final Set<String> all;
 
-  /// Verified managed files are never filename evidence for another game.
+  /// Verified owned or read-only copies, never filename evidence for a namesake.
   final Map<String, List<RemoteArtifact>> exactBySystem;
+
+  /// Current or missing byte-proven paths. Missing is alias evidence only.
+  final Map<String, Map<String, RemoteArtifact>> legacyAliasesBySystem;
 
   /// Bytes of verified manifest-owned files, including bundle dependencies.
   /// This is not whole-volume usage; unmanaged files have no cached size here.
@@ -29,6 +32,7 @@ class InstalledFilesState {
     this.bySystem = const {},
     this.all = const {},
     Map<String, List<RemoteArtifact>> exactBySystem = const {},
+    this.legacyAliasesBySystem = const {},
     this.managedBytesBySystem = const {},
   }) : exactBySystem = Map.unmodifiable({
           for (final entry in exactBySystem.entries)
@@ -61,12 +65,13 @@ final installedFilesProvider = FutureProvider<InstalledFilesState>((ref) async {
   final candidates = await compute(_scanAllSystems, config);
   final bySystem = <String, Set<String>>{};
   final exactBySystem = <String, List<RemoteArtifact>>{};
+  final legacyAliasesBySystem = <String, Map<String, RemoteArtifact>>{};
   final managedBytesBySystem = <String, int>{};
   final all = <String>{};
   final index = InstallationIndex.application();
   for (final sysConfig in config.systems) {
-    final paths = candidates[sysConfig.id];
-    if (paths == null) continue;
+    if (sysConfig.targetFolder.isEmpty) continue;
+    final paths = candidates[sysConfig.id] ?? const <String>{};
     // Read journal truth after enumeration so newly published files cannot use
     // an exclusion snapshot captured before their public create/rename.
     final snapshot = await index.scan(sysConfig.targetFolder);
@@ -74,9 +79,17 @@ final installedFilesProvider = FutureProvider<InstalledFilesState>((ref) async {
         paths.where(snapshot.allowsLegacy).map(p.basename).toSet();
     bySystem[sysConfig.id] = filenames;
     all.addAll(filenames);
-    exactBySystem[sysConfig.id] = snapshot.installed.values
-        .map((installation) => installation.artifact)
-        .toList();
+    exactBySystem[sysConfig.id] = [
+      ...snapshot.installed.values.map((installation) => installation.artifact),
+      ...snapshot.localCopies.values.map((copy) => copy.observation.artifact),
+    ];
+    legacyAliasesBySystem[sysConfig.id] = {
+      for (final entry in snapshot.legacyAliases.entries)
+        p.relative(entry.key, from: sysConfig.targetFolder): entry.value,
+      for (final entry in snapshot.installed.entries)
+        p.relative(entry.key, from: sysConfig.targetFolder):
+            entry.value.artifact,
+    };
     final files = <String, int>{};
     for (final installation in snapshot.installed.values) {
       for (final member in [installation, ...installation.dependencies]) {
@@ -94,6 +107,7 @@ final installedFilesProvider = FutureProvider<InstalledFilesState>((ref) async {
       bySystem: bySystem,
       all: all,
       exactBySystem: exactBySystem,
+      legacyAliasesBySystem: legacyAliasesBySystem,
       managedBytesBySystem: managedBytesBySystem);
 });
 

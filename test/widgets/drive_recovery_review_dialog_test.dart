@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:retro_eshop/core/input/app_intents.dart';
@@ -10,6 +11,7 @@ import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/services/drive/drive_runtime.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/library_query.dart';
+import 'package:retro_eshop/providers/rom_status_providers.dart';
 import 'package:retro_eshop/features/game_detail/widgets/drive_recovery_review_dialog.dart';
 
 class _Runtime extends DriveRuntime {
@@ -69,6 +71,9 @@ class _RetentionQuery extends LibraryQuery {
   }
 }
 
+Widget _testApp({required Widget home}) =>
+    ProviderScope(child: MaterialApp(home: home));
+
 void main() {
   for (final rank in [25, 26]) {
     testWidgets('complete retention review reports rank $rank without deletion',
@@ -97,7 +102,7 @@ void main() {
           rankedGames: 26,
           totalMembers: 26,
           unboundArtifacts: 0));
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(_testApp(
           home: DriveRecoveryReviewDialog(
               config:
                   const ProviderConfig(type: ProviderType.drive, priority: 1),
@@ -147,7 +152,7 @@ void main() {
         rankedGames: 26,
         totalMembers: 27,
         unboundArtifacts: 0));
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(_testApp(
         home: DriveRecoveryReviewDialog(
             config: const ProviderConfig(type: ProviderType.drive, priority: 1),
             artifact: artifact,
@@ -183,7 +188,7 @@ void main() {
         sizeBytes: 5,
         canDownload: true,
         providerChecksums: const {'md5': '7cfdd07889b3295d6a550914ab35e068'});
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(_testApp(
         home: DriveRecoveryReviewDialog(
             config: const ProviderConfig(type: ProviderType.drive, priority: 1),
             artifact: artifact,
@@ -191,6 +196,8 @@ void main() {
             supportedExtensions: {'.rvz'},
             runtime: runtime)));
     await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+        tester.element(find.byType(DriveRecoveryReviewDialog)));
     expect(runtime.adoptionCancellation, isNull);
     expect(runtime.cancellation, isNull);
     expect(find.textContaining('No file is deleted'), findsOneWidget);
@@ -220,10 +227,13 @@ void main() {
     expect(find.text('Existing file adopted.'), findsOneWidget);
     expect(find.text('Verify and adopt'), findsNothing);
     expect(find.textContaining('No file was deleted'), findsOneWidget);
+    expect(container.read(romChangeSignalProvider), 1,
+        reason:
+            'An ownership commit must refresh the shared installation index');
     expect(tester.takeException(), isNull);
   });
   testWidgets(
-      'past observation is labelled historical without starting network work',
+      'historical review stays read-only and new verification refreshes availability',
       (tester) async {
     final runtime = _Runtime();
     final artifact = RemoteArtifact(
@@ -253,7 +263,7 @@ void main() {
           'sha256': 'a' * 64
         },
         observedAt: DateTime.utc(2026, 10, 6));
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(_testApp(
         home: DriveRecoveryReviewDialog(
             config: const ProviderConfig(type: ProviderType.drive, priority: 1),
             artifact: artifact,
@@ -265,6 +275,22 @@ void main() {
     expect(find.text('Current byte match verified.'), findsNothing);
     expect(runtime.savedReads, 1);
     expect(runtime.cancellation, isNull);
+    final container = ProviderScope.containerOf(
+        tester.element(find.byType(DriveRecoveryReviewDialog)));
+    expect(container.read(romChangeSignalProvider), 0,
+        reason:
+            'Reading a historical observation does not change availability');
+    await tester.tap(find.text('Verify bytes'));
+    await tester.pump();
+    expect(container.read(romChangeSignalProvider), 0,
+        reason: 'Do not refresh before the actual verification has drained');
+    runtime.result.complete(runtime.saved!);
+    await tester.pumpAndSettle();
+    expect(find.text('Current byte match verified.'), findsOneWidget);
+    expect(container.read(romChangeSignalProvider), 1,
+        reason: 'A byte-only journal update has no filesystem event; '
+            'it must invalidate the shared installation projection explicitly');
+    expect(runtime.adoptionCancellation, isNull);
   });
   testWidgets('review is explicit and cancel waits for actual operation drain',
       (tester) async {
@@ -278,7 +304,7 @@ void main() {
         displayName: 'fixture.chd',
         displayPath: 'fixture.chd',
         sizeBytes: 5);
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(_testApp(
         home: Builder(
             builder: (context) => TextButton(
                 onPressed: () => showDialog<void>(
@@ -293,6 +319,8 @@ void main() {
                 child: const Text('Review')))));
     await tester.tap(find.text('Review'));
     await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+        tester.element(find.byType(DriveRecoveryReviewDialog)));
     expect(runtime.cancellation, isNull);
     expect(find.textContaining('Does not adopt'), findsOneWidget);
     // The dialog, not the underlying details route, owns controller intents.
@@ -303,11 +331,15 @@ void main() {
     Actions.invoke(tester.element(find.text('Cancel')), const BackIntent());
     await tester.pump();
     expect(runtime.cancellation!.isCancelled, isTrue);
+    expect(container.read(romChangeSignalProvider), 0);
     expect(find.byType(DriveRecoveryReviewDialog), findsOneWidget);
     runtime.result.completeError(
         const DriveTransferException(DriveTransferIssue.cancelled));
     await tester.pumpAndSettle();
     expect(find.byType(DriveRecoveryReviewDialog), findsNothing);
+    expect(container.read(romChangeSignalProvider), 1,
+        reason:
+            'A cancelled operation must drain before refreshing journal truth');
     expect(tester.takeException(), isNull);
   });
 }

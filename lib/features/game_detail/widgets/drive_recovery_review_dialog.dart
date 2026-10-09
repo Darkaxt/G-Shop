@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/input/app_intents.dart';
 
 import '../../../models/config/provider_config.dart';
 import '../../../models/library_identity.dart';
 import '../../../models/transfer_record.dart';
+import '../../../providers/rom_status_providers.dart';
 import '../../../services/drive/drive_authorization.dart';
 import '../../../services/drive/drive_media.dart';
 import '../../../services/drive/drive_runtime.dart';
@@ -16,7 +18,7 @@ import '../../../utils/game_metadata.dart';
 
 /// Byte review is read-only. Adoption is a separate explicit ownership action;
 /// neither operation changes ROM bytes or performs retention/removal.
-class DriveRecoveryReviewDialog extends StatefulWidget {
+class DriveRecoveryReviewDialog extends ConsumerStatefulWidget {
   final ProviderConfig config;
   final RemoteArtifact artifact;
   final String destinationRoot;
@@ -35,11 +37,12 @@ class DriveRecoveryReviewDialog extends StatefulWidget {
       this.runtime});
 
   @override
-  State<DriveRecoveryReviewDialog> createState() =>
+  ConsumerState<DriveRecoveryReviewDialog> createState() =>
       _DriveRecoveryReviewDialogState();
 }
 
-class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
+class _DriveRecoveryReviewDialogState
+    extends ConsumerState<DriveRecoveryReviewDialog> {
   CancelToken? _cancellation;
   bool _running = false, _closeRequested = false;
   DriveLocalCloudObservation? _result;
@@ -175,6 +178,11 @@ class _DriveRecoveryReviewDialogState extends State<DriveRecoveryReviewDialog> {
     }
     // Runtime completion includes awaited native close and transport drain.
     if (!mounted) return;
+    // A byte observation/adoption changes exact availability without touching
+    // the ROM, so neither filesystem nor download watchers see it. Refresh the
+    // existing shared index after the operation drains, including a cancellation
+    // or failure that may have followed a durable journal commit.
+    ref.read(romChangeSignalProvider.notifier).state++;
     setState(() {
       _running = false;
       _cancellation = null;

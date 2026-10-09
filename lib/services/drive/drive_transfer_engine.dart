@@ -285,7 +285,11 @@ class DriveTransferOperation {
           (problem is DriveAuthorizationException &&
               problem.issue == DriveAuthorizationIssue.cancelled &&
               _cancellation.isCancelled);
-      final auth = problem is DriveAuthorizationException;
+      // An unreachable/crashed native authorization service does not establish
+      // that consent was lost. Keep its retryable failure distinct from an
+      // actual account/consent requirement; never prescribe reconnect for it.
+      final auth = problem is DriveAuthorizationException &&
+          problem.issue != DriveAuthorizationIssue.unavailable;
       await _save(record.copyWith(
           lifecycle: paused
               ? TransferLifecycle.paused
@@ -413,6 +417,10 @@ class DriveTransferOperation {
     if (record.archivePlatformId == 'gamegear') {
       _checkCancellation();
       await _session!.validateGameGearZip();
+      _checkCancellation();
+    } else if (const {'megadrive', 'mastersystem', 'sg1000'}.contains(record.archivePlatformId)) {
+      _checkCancellation();
+      await _session!.validateSegaZip(record.archivePlatformId!);
       _checkCancellation();
     } else if (record.archivePlatformId == 'n64') {
       _checkCancellation();

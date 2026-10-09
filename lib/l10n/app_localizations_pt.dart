@@ -716,6 +716,12 @@ class LPt extends L {
   String get gameDetail_download => 'BAIXAR';
 
   @override
+  String get gameDetail_open => 'ABRIR';
+
+  @override
+  String get gameDetail_pressAOpen => 'Aperte A para abrir';
+
+  @override
   String get gameDetail_adding => 'ADICIONANDO...';
 
   @override

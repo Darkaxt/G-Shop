@@ -195,6 +195,13 @@ class _PrimaryActionButton extends StatelessWidget {
     final bool showProgressFill;
 
     switch (state) {
+      case DownloadButtonState.open:
+        bgColor = accentColor.withValues(alpha: isFocused ? 0.25 : 0.15);
+        borderColor = accentColor.withValues(alpha: isFocused ? 0.7 : 0.4);
+        textColor = accentColor.forText;
+        icon = Icons.play_arrow_rounded;
+        label = l.gameDetail_open;
+        showProgressFill = false;
       case DownloadButtonState.download:
         bgColor = accentColor.withValues(alpha: isFocused ? 0.25 : 0.15);
         borderColor = accentColor.withValues(alpha: isFocused ? 0.7 : 0.4);

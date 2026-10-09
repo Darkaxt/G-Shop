@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,8 +44,208 @@ class _Config extends ConfigStorageService {
   Future<AppConfig?> loadConfig() async => AppConfig.empty;
 }
 
+class _MetadataScopeObserver extends ProviderObserver {
+  final covers = <String>[];
+  final ratings = <String>[];
+
+  @override
+  void didAddProvider(
+      ProviderBase provider, Object? value, ProviderContainer container) {
+    if (provider.from == cachedMetadataCoversProvider) {
+      covers.add(provider.argument as String);
+    } else if (provider.from == cachedCoverRatingsProvider) {
+      ratings.add(provider.argument as String);
+    }
+  }
+}
+
 void main() {
   defineLibraryDiscoveryChecks();
+  testWidgets('library load survives selection migration invalidation',
+      (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    sqfliteFfiInit();
+    final db =
+        await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
+      systemSlug TEXT, displayName TEXT, filename TEXT, url TEXT,
+      artifact_key TEXT, remote_artifact TEXT, provider_config TEXT,
+      is_folder INTEGER DEFAULT 0)''');
+    await LibraryQuery.install(db);
+    await db.insert('games', {
+      'id': 1,
+      'systemSlug': 'psx',
+      'displayName': 'Game',
+      'filename': 'Game.chd',
+      'url': ''
+    });
+    SharedPreferences.setMockInitialValues(
+        {'favorites_version': 1, 'secure_auth_migrated': true});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final firstMigration = Completer<void>();
+    var migrations = 0;
+    final container = ProviderContainer(overrides: [
+      libraryDbProvider.overrideWithValue(_Database(db)),
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
+      installedFilesProvider
+          .overrideWith((ref) async => InstalledFilesState()),
+      selectionContinuityProvider.overrideWith((ref) async {
+        ref.watch(gameDbChangedProvider);
+        migrations++;
+        if (migrations == 1) await firstMigration.future;
+      }),
+      deviceMemoryProvider.overrideWithValue(
+          const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
+      sourcesProvider
+          .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
+    ]);
+    addTearDown(container.dispose);
+    addTearDown(() {
+      if (!firstMigration.isCompleted) firstMigration.complete();
+    });
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container, child: createTestApp(const LibraryScreen())));
+    while (migrations == 0) {
+      await tester.pump();
+    }
+    // Catalogue publication can invalidate the in-flight migration. Completing
+    // its old operation cannot resolve the provider's cancelled subscription.
+    container.read(gameDbChangedProvider.notifier).state++;
+    firstMigration.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(migrations, 2,
+        reason: 'The Library must keep its awaited migration subscribed');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('console-summary-psx')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+  testWidgets(
+      'exact copy is one library card across local/cloud changes with favorite and shelf continuity',
+      (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    sqfliteFfiInit();
+    final db =
+        await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
+      systemSlug TEXT, displayName TEXT, filename TEXT, url TEXT,
+      artifact_key TEXT, remote_artifact TEXT, provider_config TEXT,
+      is_folder INTEGER DEFAULT 0)''');
+    await LibraryQuery.install(db);
+    final artifact = RemoteArtifact(
+        id: RemoteArtifactId(
+            providerId: 'drive',
+            sourceId: 'source',
+            accountId: 'account',
+            providerFileId: 'file'),
+        displayName: 'Cloud.7z',
+        displayPath: 'Cloud.7z',
+        version: '1',
+        sizeBytes: 5,
+        providerChecksums: {'md5': 'a' * 32},
+        canDownload: true);
+    await db.insert('games', {
+      'id': 1,
+      'systemSlug': 'psx',
+      'displayName': 'Old',
+      'filename': 'Old.7z',
+      'url': ''
+    });
+    await db.insert('games', {
+      'id': 2,
+      'systemSlug': 'psx',
+      'displayName': 'Cloud',
+      'filename': 'Cloud.7z',
+      'url': '',
+      'artifact_key': artifact.id.key,
+      'remote_artifact': jsonEncode(artifact.toJson()),
+      'provider_config': jsonEncode(
+          const ProviderConfig(type: ProviderType.drive, priority: 0)
+              .toJsonWithoutAuth())
+    });
+    SharedPreferences.setMockInitialValues(
+        {'favorites_version': 1, 'secure_auth_migrated': true});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    await storage.setLibraryConsole('psx');
+    await storage.setFavorites(['Old.7z']);
+    await storage.setCustomShelves([
+      CustomShelf(
+          id: 'manual',
+          name: 'Manual',
+          manualGameIds: ['Old.7z'],
+          sortMode: ShelfSortMode.manual,
+          createdAt: DateTime.utc(2026))
+    ]);
+    var local = true;
+    final container = ProviderContainer(overrides: [
+      libraryDbProvider.overrideWithValue(_Database(db)),
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
+      installedFilesProvider
+          .overrideWith((ref) async => InstalledFilesState(exactBySystem: {
+                'psx': [if (local) artifact]
+              }, legacyAliasesBySystem: {
+                'psx': {'Old.7z': artifact}
+              })),
+      deviceMemoryProvider.overrideWithValue(
+          const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
+      sourcesProvider
+          .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container, child: createTestApp(const LibraryScreen())));
+    await tester.pumpAndSettle();
+    BaseGameCard card() =>
+        tester.widget<BaseGameCard>(find.byType(BaseGameCard));
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    expect(card().displayName, 'Cloud');
+    expect(card().isInstalled, isTrue);
+    expect(storage.getFavorites(), ['artifact:${artifact.id.key}']);
+    expect(storage.getCustomShelves().single.manualGameIds,
+        ['artifact:${artifact.id.key}']);
+    local = false;
+    container.invalidate(installedFilesProvider);
+    await tester.pumpAndSettle();
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    expect(card().isInstalled, isFalse);
+    expect(card().isRemoteAvailable, isTrue);
+    await tester.tap(find.text('FAVORITES').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    await tester.tap(find.text('MANUAL').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    local = true;
+    container.invalidate(installedFilesProvider);
+    await tester.pumpAndSettle();
+    expect(find.byType(BaseGameCard), findsOneWidget);
+    expect(card().isInstalled, isTrue);
+    expect(await db.query('games'), hasLength(2),
+        reason: 'Projection does not rewrite captured cache rows');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 }
 
 /// Reuse the normal Library assertions with Android SQLite and actual display
@@ -162,7 +363,8 @@ void defineLibraryDiscoveryChecks({
           sortMode: ShelfSortMode.manual,
           createdAt: at)
     ]);
-    final container = ProviderContainer(overrides: [
+    final metadataScopes = _MetadataScopeObserver();
+    final container = ProviderContainer(observers: [metadataScopes], overrides: [
       libraryDbProvider.overrideWithValue(_Database(db)),
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
@@ -278,9 +480,11 @@ void defineLibraryDiscoveryChecks({
 
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await container.read(cachedCoverRatingsProvider('').future);
-    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('library-dashboard')), findsOneWidget);
+    expect(metadataScopes.covers, isEmpty,
+        reason: 'Dashboard metrics do not consume any game artwork');
+    expect(metadataScopes.ratings, isEmpty,
+        reason: 'Dashboard metrics do not need collection-wide game scores');
     expect(find.byType(BaseGameCard), findsNothing);
     expect(find.byKey(const ValueKey('console-summary-psx')), findsOneWidget);
     expect(find.byKey(const ValueKey('console-summary-ps2')), findsOneWidget);
@@ -311,6 +515,9 @@ void defineLibraryDiscoveryChecks({
     // collection-wide Top 10. Selecting the dashboard never opens the ROM dump.
     await tester.tap(find.byKey(const ValueKey('console-summary-ps2')));
     await tester.pumpAndSettle();
+    expect(metadataScopes.covers, ['ps2'],
+        reason: 'Console browsing must not hash every console cover');
+    expect(metadataScopes.ratings, ['ps2']);
     final evenGames = [
       for (var i = 2; i <= 12; i += 2) 'Game ${i.toString().padLeft(2, '0')}'
     ];

@@ -9,6 +9,8 @@ class CustomShelvesNotifier extends StateNotifier<List<CustomShelf>> {
 
   CustomShelvesNotifier(this._storage) : super(_storage.getCustomShelves());
 
+  void reloadSelections() => state = _storage.getCustomShelves();
+
   void addShelf(CustomShelf shelf) {
     state = [...state, shelf];
     _persist();
@@ -35,7 +37,8 @@ class CustomShelvesNotifier extends StateNotifier<List<CustomShelf>> {
             manualGameIds: s.manualGameIds.contains(filename)
                 ? s.manualGameIds
                 : [...s.manualGameIds, filename],
-            excludedGameIds: s.excludedGameIds.where((f) => f != filename).toList(),
+            excludedGameIds:
+                s.excludedGameIds.where((f) => f != filename).toList(),
           )
         else
           s,
@@ -64,8 +67,7 @@ class CustomShelvesNotifier extends StateNotifier<List<CustomShelf>> {
       for (final s in state)
         if (s.id == shelfId)
           s.copyWith(
-            manualGameIds:
-                s.manualGameIds.where((f) => f != filename).toList(),
+            manualGameIds: s.manualGameIds.where((f) => f != filename).toList(),
           )
         else
           s,

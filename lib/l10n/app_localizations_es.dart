@@ -719,6 +719,12 @@ class LEs extends L {
   String get gameDetail_download => 'DESCARGAR';
 
   @override
+  String get gameDetail_open => 'ABRIR';
+
+  @override
+  String get gameDetail_pressAOpen => 'Pulsa A para abrir';
+
+  @override
   String get gameDetail_adding => 'AÑADIENDO...';
 
   @override

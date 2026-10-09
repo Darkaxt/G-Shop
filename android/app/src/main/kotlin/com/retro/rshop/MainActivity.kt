@@ -220,8 +220,10 @@ class MainActivity : FlutterActivity() {
         }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method.startsWith("owned") || call.method == "launchOwnedDolphin" ||
+            if (call.method.startsWith("owned") || call.method == "localCopyInspect" || call.method == "launchOwnedDolphin" ||
                 call.method == "launchOwnedRetroArchGameGear" || call.method == "launchOwnedRetroArchN64" ||
+                call.method == "launchOwnedRetroArchMegaDrive" || call.method == "launchOwnedRetroArchMasterSystem" ||
+                call.method == "launchOwnedRetroArchSG1000" ||
                 call.method == "launchOwnedRetroArchGameBoy" ||
                 call.method == "launchOwnedRetroArchNes" ||
                 call.method == "launchOwnedRetroArchSnes" ||

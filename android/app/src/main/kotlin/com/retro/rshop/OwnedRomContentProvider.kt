@@ -64,6 +64,18 @@ class OwnedRomContentProvider : ContentProvider() {
             return result
         }
 
+        /** Historical byte evidence grants only a currently revalidated leaf.
+         * This namespace never creates or substitutes installation ownership. */
+        fun localCopyUri(context: Context, observationId: Long, platform: String,
+            filename: String, document: Boolean): Uri {
+            val id = "copy:$observationId:$platform"
+            val result = if (document) gameGearUri(context, id, filename)
+                else Uri.Builder().scheme("content").authority("${context.packageName}.owned-roms")
+                    .appendPath("copy").appendPath(id).appendPath(filename.substringAfterLast('/')).build()
+            OwnedRomGrantPath.parse(result.pathSegments)
+            return result
+        }
+
         private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null,
             requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
             requiredStandaloneWua: Boolean = false): JSONObject {
@@ -73,6 +85,15 @@ class OwnedRomContentProvider : ContentProvider() {
             val db = SQLiteDatabase.openDatabase(context.getDatabasePath("rshop.db").path,
                 null, SQLiteDatabase.OPEN_READONLY)
             try {
+                if (grant.observationId != null) {
+                    if (bundleOwner != null ||
+                        (requiredArchivePlatform != null && requiredArchivePlatform != grant.platform) ||
+                        (requiredStandaloneChd && grant.platform !in setOf("psx", "psp", "ps2")) ||
+                        (requiredStandaloneWua && grant.platform != "wiiu")) {
+                        throw FileNotFoundException("Local copy mapping changed")
+                    }
+                    return observedCopy(db, grant)
+                }
                 db.rawQuery("""SELECT i.record_json, t.record_json, i.transfer_id,
                     i.destination_root, i.relative_path, t.bundle_owner FROM installed_artifacts i
                     JOIN transfer_target_owners o ON o.installation_id=i.installation_id
@@ -113,7 +134,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     val members = transfer.optJSONArray("bundleMembers") ?: JSONArray()
                     val filename = grant.filename.lowercase(Locale.ROOT)
                     val platform = transfer.optString("archivePlatformId")
-                    val supportedArchive = (platform == "gamegear" && filename.endsWith(".zip")) ||
+                    val supportedArchive = (platform in setOf("gamegear", "megadrive", "mastersystem", "sg1000") && filename.endsWith(".zip")) ||
                         (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
                         (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
                     val standaloneChd = OwnedRomGrantPath.standaloneChd(filename, platform,
@@ -160,6 +181,101 @@ class OwnedRomContentProvider : ContentProvider() {
                     return result
                 }
             } finally { db.close() }
+        }
+
+        private fun observedCopy(db: SQLiteDatabase, grant: OwnedRomGrantPath): JSONObject {
+            val id = grant.observationId ?: throw FileNotFoundException("Invalid copy grant")
+            val saved: JSONObject
+            val key: String
+            val root: String
+            val relative: String
+            db.rawQuery("""SELECT artifact_key, destination_root, relative_path,
+                CASE WHEN length(CAST(record_json AS BLOB))<=16384 THEN record_json END
+                FROM migration_byte_observations WHERE observation_id=?""", arrayOf(id.toString())).use {
+                if (!it.moveToFirst() || it.isNull(3)) throw FileNotFoundException("Copy unavailable")
+                key = it.getString(0); root = it.getString(1); relative = it.getString(2)
+                saved = JSONObject(it.getString(3))
+            }
+            val artifact = saved.getJSONObject("artifact")
+            val identity = saved.getJSONObject("localIdentity")
+            val size = saved.getLong("sizeBytes")
+            val tuple = JSONArray(key)
+            val remoteId = artifact.getJSONObject("id")
+            if (saved.getInt("schema") != 1 || saved.getString("destinationRoot") != root ||
+                saved.getString("relativePath") != relative || relative != grant.filename ||
+                relative != artifact.getString("displayName") || !root.startsWith('/') || root == "/" ||
+                root.contains('\\') || root.contains('\u0000') ||
+                root.split('/').drop(1).any { it.isEmpty() || it == "." || it == ".." } ||
+                relative.contains('\\') || relative.contains('/') || relative.any { it.isISOControl() } ||
+                size < 0 || size != artifact.getLong("sizeBytes") || size != identity.getLong("sizeBytes") ||
+                artifact.getString("version").isEmpty() || !artifact.getBoolean("canDownload") ||
+                tuple.length() != 4 || tuple.getString(0) != "drive" || remoteId.getString("providerId") != "drive" ||
+                tuple.getString(1) != remoteId.getString("sourceId") ||
+                tuple.getString(2) != remoteId.getString("accountId") || tuple.getString(2).isEmpty() ||
+                tuple.getString(3) != remoteId.getString("providerFileId")) {
+                throw FileNotFoundException("Copy evidence changed")
+            }
+            val digests = saved.getJSONObject("checksums")
+            val expected = artifact.getJSONObject("providerChecksums")
+            val lengths = mapOf("md5" to 32, "sha1" to 40, "sha256" to 64)
+            if (!digests.has("sha256") || digests.keys().asSequence().any {
+                    val length = lengths[it]
+                    length == null || !Regex("[0-9a-f]{$length}").matches(digests.getString(it))
+                } || expected.keys().asSequence().none { lengths.containsKey(it) } ||
+                expected.keys().asSequence().filter { lengths.containsKey(it) }.any {
+                    val value = expected.getString(it).lowercase(Locale.ROOT)
+                    !Regex("[0-9a-f]{${lengths[it]}}").matches(value) || digests.optString(it) != value
+                }) throw FileNotFoundException("Copy bytes unverified")
+
+            // Latest evidence for every identity at this path is bounded before decoding.
+            // Another matching identity or malformed evidence cannot select an arbitrary ROM.
+            var matching = 0
+            var current = false
+            db.rawQuery("""SELECT o.observation_id, CASE WHEN length(CAST(o.record_json AS BLOB))<=16384
+                THEN o.record_json END FROM migration_byte_observations o
+                WHERE o.destination_root=? AND o.relative_path=? AND NOT EXISTS (
+                    SELECT 1 FROM migration_byte_observations n WHERE n.artifact_key=o.artifact_key
+                    AND n.destination_root=o.destination_root AND n.relative_path=o.relative_path
+                    AND n.observation_id>o.observation_id)""", arrayOf(root, relative)).use {
+                while (it.moveToNext()) {
+                    if (it.isNull(1)) throw FileNotFoundException("Copy evidence unavailable")
+                    val other = JSONObject(it.getString(1))
+                    if (sameJson(other.getJSONObject("localIdentity"), identity)) matching++
+                    if (it.getLong(0) == id) current = true
+                }
+            }
+            if (!current || matching != 1) throw FileNotFoundException("Copy evidence superseded or ambiguous")
+            val path = "$root/$relative"
+            db.rawQuery("SELECT destination_root, relative_path FROM transfer_target_owners", null).use {
+                while (it.moveToNext()) {
+                    val owned = "${it.getString(0)}/${it.getString(1)}"
+                    if (owned == path || owned.startsWith("$path/") || path.startsWith("$owned/")) {
+                        throw FileNotFoundException("Copy is reserved by an installation")
+                    }
+                }
+            }
+            db.rawQuery("""SELECT CASE WHEN length(CAST(remote_artifact AS BLOB))<=16384
+                THEN remote_artifact END FROM games WHERE artifact_key=? AND systemSlug=? LIMIT 2""",
+                arrayOf(key, grant.platform)).use {
+                if (!it.moveToFirst() || it.isNull(0)) throw FileNotFoundException("Copy catalogue unavailable")
+                val remote = JSONObject(it.getString(0))
+                if (!sameJson(remote.getJSONObject("id"), remoteId) || remote.optString("version") != artifact.getString("version") ||
+                    remote.getLong("sizeBytes") != size || !sameJson(remote.getJSONObject("providerChecksums"), expected) ||
+                    it.moveToNext()) throw FileNotFoundException("Copy catalogue changed")
+            }
+            val filename = relative.lowercase(Locale.ROOT)
+            val platform = grant.platform
+            val archive = (platform in setOf("gamegear", "megadrive", "mastersystem", "sg1000") && filename.endsWith(".zip")) ||
+                (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
+                (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
+            val supported = archive ||
+                (platform in setOf("psx", "psp", "ps2") && filename.endsWith(".chd")) ||
+                (platform == "wiiu" && filename.endsWith(".wua")) ||
+                (platform in setOf("gc", "wii") && listOf(".rvz", ".iso", ".gcm", ".wbfs").any(filename::endsWith))
+            if (!supported) throw FileNotFoundException("Unsupported copy format")
+            return JSONObject().put("id", grant.installationId).put("destinationRoot", root)
+                .put("relativePath", relative).put("sizeBytes", size).put("fileIdentity", identity)
+                .put("_validatedArchivePlatformId", if (archive) platform else "")
         }
 
         // Match the Dart InstallationIndex contract without depending on JSON
@@ -209,6 +325,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 if (platform.isNotEmpty()) {
                     val path = "/proc/self/fd/$file"
                     if (platform == "gamegear") OwnedGameGearZip.validate(path)
+                    else if (platform in setOf("megadrive", "mastersystem", "sg1000")) OwnedGameGearZip.validate(path, platform)
                     else if (relative.lowercase(Locale.ROOT).endsWith(".7z")) OwnedN64SevenZip.validate(path, platform)
                     else OwnedGameGearZip.validateN64(path)
                     if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
@@ -227,7 +344,8 @@ class OwnedRomContentProvider : ContentProvider() {
                     throw FileNotFoundException("Installation path changed")
                 }
                 // Recheck durable ownership after opening the pinned object.
-                if (manifest(context, uri, bundleOwner, requiredArchivePlatform, requiredStandaloneChd).toString() != saved.toString()) {
+                if (!sameJson(manifest(context, uri, bundleOwner, requiredArchivePlatform,
+                        requiredStandaloneChd, requiredStandaloneWua), saved)) {
                     throw FileNotFoundException("Installation ownership changed")
                 }
                 val result = ParcelFileDescriptor.adoptFd(file)

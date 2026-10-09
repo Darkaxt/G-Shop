@@ -21,7 +21,7 @@ import 'transfer_journal.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 37;
+  static const int _dbVersion = 38;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -376,6 +376,9 @@ class DatabaseService {
     if (oldVersion < 37) {
       await DriveCatalogueSchema.installPendingWorkIndex(db);
     }
+    if (oldVersion < 38) {
+      await TransferJournalSchema.installByteObservationRootIndex(db);
+    }
   }
 
   /// Additive migration: old row IDs and all filename-based references survive.
@@ -477,7 +480,8 @@ class DatabaseService {
         // revert a Drive rename, or replace newer cloud content with the local
         // manifest's older version. InstallationIndex owns availability truth.
         final localExactObservation = game.remoteArtifact != null &&
-            game.providerConfig == null && game.url.isEmpty;
+            game.providerConfig == null &&
+            game.url.isEmpty;
         final conflictTarget = game.remoteArtifact == null
             ? '(systemSlug, filename) WHERE artifact_key IS NULL'
             : '(systemSlug, artifact_key) WHERE artifact_key IS NOT NULL';

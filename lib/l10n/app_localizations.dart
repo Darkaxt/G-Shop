@@ -1378,6 +1378,18 @@ abstract class L {
   /// **'DOWNLOAD'**
   String get gameDetail_download;
 
+  /// No description provided for @gameDetail_open.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN'**
+  String get gameDetail_open;
+
+  /// No description provided for @gameDetail_pressAOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Press A to open'**
+  String get gameDetail_pressAOpen;
+
   /// No description provided for @gameDetail_adding.
   ///
   /// In en, this message translates to:

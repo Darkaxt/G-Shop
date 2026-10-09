@@ -10,7 +10,8 @@ import 'download_providers.dart';
 import 'game_providers.dart';
 
 /// Monotonic counter that bumps whenever ROM installation state may have
-/// changed (download completed, ROM deleted, filesystem change detected).
+/// changed (download completed, ROM deleted, filesystem change detected,
+/// or exact local/cloud evidence recorded without changing ROM bytes).
 /// Screens `ref.listenManual` on this to refresh their installed-status caches.
 final romChangeSignalProvider = StateProvider<int>((ref) => 0);
 

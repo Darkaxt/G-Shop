@@ -6,18 +6,24 @@ import java.util.Locale;
 
 /** Decodes only one committed installation leaf, never a public directory tree. */
 final class OwnedRomGrantPath {
+    private static final java.util.Set<String> COPY_PLATFORMS = new java.util.HashSet<>(java.util.Arrays.asList(
+        "gamegear", "megadrive", "mastersystem", "sg1000", "n64", "gb", "gbc", "gba", "nes", "snes", "psx", "psp", "ps2", "wiiu", "gc", "wii"));
     final String installationId;
     final String filename;
     final boolean document;
+    final Long observationId;
+    final String platform;
 
-    private OwnedRomGrantPath(String id, String name, boolean document) {
+    private OwnedRomGrantPath(String id, String name, boolean document,
+            Long observationId, String platform) {
         installationId = id; filename = name; this.document = document;
+        this.observationId = observationId; this.platform = platform;
     }
 
     static OwnedRomGrantPath parse(List<String> segments) throws FileNotFoundException {
         String id, name;
         boolean document;
-        if (segments.size() == 3 && segments.get(0).equals("installation")) {
+        if (segments.size() == 3 && (segments.get(0).equals("installation") || segments.get(0).equals("copy"))) {
             id = segments.get(1); name = segments.get(2); document = false;
         } else if (segments.size() == 4 && segments.get(0).equals("tree") &&
                 segments.get(2).equals("document")) {
@@ -27,8 +33,20 @@ final class OwnedRomGrantPath {
             name = segments.get(3).substring(prefix.length()); document = true;
         } else throw invalid();
         if (!leaf(id) || !leaf(name) || (document && name.indexOf('#') >= 0)) throw invalid();
-        return new OwnedRomGrantPath(id, name, document);
+        Long observationId = null;
+        String platform = null;
+        if (id.startsWith("copy:")) {
+            String[] parts = id.split(":", -1);
+            if (parts.length != 3 || !parts[1].matches("[1-9][0-9]*") ||
+                    !COPY_PLATFORMS.contains(parts[2]) ||
+                    (!document && !segments.get(0).equals("copy"))) throw invalid();
+            try { observationId = Long.parseLong(parts[1]); }
+            catch (NumberFormatException error) { throw invalid(); }
+            platform = parts[2];
+        } else if (!document && segments.get(0).equals("copy")) throw invalid();
+        return new OwnedRomGrantPath(id, name, document, observationId, platform);
     }
+
 
     private static boolean leaf(String value) {
         if (value.isEmpty() || value.equals(".") || value.equals("..") ||

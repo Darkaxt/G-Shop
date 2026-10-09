@@ -5,6 +5,89 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 preserving update 451 and selection durability — 2026-10-09
+
+S7 alone remains ACTIVE; S8-S11 are NOT STARTED. The rejected legacy-selection
+and migration-version writes now retain retryable input and require durable
+acknowledgment. Focused host verification and native grant/ZIP tests pass;
+assembly 451 passes and its preserving installation independently matches the
+built APK. Configuration, nine private preferences, published root and paused
+saved jobs survive unchanged. Normal Resume advances the same job 76 from
+19,284 to 19,364 without sign-in. Exact build/profile/artifact and scoped
+146-file preservation evidence is in `S7_ACCEPTANCE_RECONCILIATION.md`.
+Shared PPSSPP/private-save coverage remains unproved, not a passing full safety
+gate. Full fresh traversal, required scoped/provider passes, defensible retention
+and reviewed exact migration remain current S7 work.
+
+### S7 Library availability ANR investigation — 2026-10-09
+
+S7 alone remains ACTIVE. Android terminated update-436 process 7116 with an
+input-dispatch ANR on sleep/focus loss, not an OOM. Its persisted `running` job
+status was not a live metadata worker. The process was relaunched normally only
+after confirmed termination; immutable job 76 is not recaptured or rewritten.
+Fresh VM sampling of ordinary Library entry traces the main-isolate hotspot to
+`InstalledFilesState.hasExactArtifact`: every collection item scans the entire
+console's exact-installation list, repeatedly encoding IDs during content checks.
+The regression failed on 1,311,232 ID-key reads for a bounded
+512-installed/1,536-item fixture. The indexed-snapshot correction passes focused
+identity/provider/dashboard/discovery checks and gated native assembly 442.
+Preserving installation and normal Library/sleep/wake verification pass: the same
+process 19724 and immutable job 76 advance from 18,620 to 18,744 lookups without
+sign-in. Both Thor displays are OFF. Evidence and qualifications are in
+`S7_LIBRARY_AVAILABILITY_INDEX.md`; indefinite unattended reliability and complete
+save-safety are not claimed. Full fresh coverage, required scoped/provider work,
+defensible retention and reviewed exact migration remain S7 acceptance work.
+
+### S7 ranking read batching and published root — 2026-10-09
+
+S7 alone is ACTIVE; S8-S11 are NOT STARTED. Root generation 2 is published
+(active=2, pending=null). Preserving APK update 436 matches the built artifact
+and retained immediate configuration/private-storage/saved-job state. Normal
+Resume continues immutable job 76 without sign-in: 18,543 -> 18,548 requests,
+701 rated / 25,016 pending. Normal Library's existing PSP shortlist completes
+with 35/334 ranked, 25 matching, Provisional after the bounded catalogue-read
+correction. Host regression/identity/index/resource verification and native
+assembly/profile evidence are in `S7_RANKING_CATALOGUE_READS.md`.
+
+The protected-file journals have identical 146-file digest/size sets, but their
+comparison remains nonpassing because emulator config captures were unstable
+and shared PPSSPP was unavailable. This is not full saved-data safety proof.
+Both screens are OFF. Full fresh metadata, required scoped/provider passes,
+defensible canonical retention/current-cloud checks and reviewed exact migration
+remain S7 work; no ROM removal or external save-sync change occurred.
+
+### S7 native policy and nested execution — 2026-10-09
+
+S7 alone is ACTIVE. The installed policy projection completed through normal
+Library filtering. Wii/Wii U Best-25 reports truthful zero eligible results and
+provisional coverage; two ordinary nested GBA raw-ROM bindings are verified
+against their exact persisted container observations. Original filters and
+configuration are preserved, and both displays are OFF. Evidence and limits:
+`S7_NATIVE_POLICY_AND_NESTED_PROOF.md`.
+
+The same live root observer reports 21,857 committed pages in pending generation
+2. Saved job 76 remains Running at 16,571 requested / 27,099 pending, no blocked
+status. Full publication/scraping, required scoped passes, defensible retention
+and reviewed exact migration remain unfinished; S8-S11 are NOT STARTED.
+
+### S7 preserving update and native DSi mapping — 2026-10-09
+
+S7 alone is ACTIVE; S8-S11 are NOT STARTED. APK 435 is now installed with unchanged
+signer and immediate configuration/encrypted/protected-file preservation. The
+normal editor's unchanged save preserved every existing mapping/system and all
+seven ordered sources. Explicit DSi selection added only that system; its normal
+Android folder picker then changed only its target to existing DSiWare. No ROM
+was moved, adopted or removed.
+
+Normal Refresh/Resume retained catalogue generation 2 and immutable metadata job
+76 without account selection. The retained observer confirms 20,639 committed
+pages in the replacement process; job 76 is Running at 16,321 requested / 27,359
+pending, no blocked status. Publication and fresh coverage are not finished.
+Native cached policy/nested identification, defensible canonical retention,
+current-cloud proof and reviewed migration remain S7 work. See
+`S7_NATIVE_UPDATE_435.md`; this supersedes older not-installed checkpoints, not
+their acceptance criteria. Both screens are OFF after verification.
+
 ### S7 nested identifier location gap — 2026-10-09
 
 S7 remains ACTIVE; S8-S11 remain NOT STARTED. Bounded read-only native observation
@@ -89,6 +172,524 @@ evidence/profile qualifications. S7 alone remains ACTIVE; S8-S11 NOT STARTED.
 - DSi normal folder mapping/scoped metadata coverage, current root publication,
   full metadata/defensible retention and reviewed migration remain S7 work.
   See `S7_DSI_PLATFORM_VERIFICATION.md`; no restore/removal eligibility is implied.
+
+### S7 build 431 continuation — 2026-10-08
+
+- S7 remains ACTIVE; S8-S11 remain NOT STARTED. The folder-only recursive
+  traversal regression passes the actual SQL work-count and membership checks.
+  Gated native assembly completed with two workers/no parallelism/3 GiB Gradle,
+  assessed Kotlin in-process, one configured 512 MiB test fork (not executed),
+  depth-one native pools and no memory-related failure or budget increase.
+- Signer-preserving installation matches the verified APK and preserves the
+  immediate pre-update configuration and protected storage. Normal shared
+  metadata recovery completes, and Resume advances the same job 76 from 13,093
+  to 13,099 requested lookups without sign-in or replacement capture. Normal
+  Library loads its dashboard and console tabs. Read-only native query isolation
+  verifies indexed 500-row pages at 43 ms (DS), 141 ms (NES) and 10 ms (SG-1000).
+  Cold startup remains slow across other work; no total-latency fix is claimed.
+  All 49 protected hashes and the original ROM digest match after verification.
+  Full fresh coverage, defensible retention and migration stay
+  open. Exact evidence and build-output qualifications are in the S7 ledger.
+
+### S7 build 428 unmanaged local-first proof — 2026-10-08
+
+- S7 remains ACTIVE; S8-S11 remain NOT STARTED. Build 428's normal Library now
+  shows one installed SG-1000 Bank Panic card. The original unmanaged file has
+  OPEN but no DELETE action. Fresh normal byte verification confirms current
+  Drive version 3 and identical complete container bytes, without adoption.
+- Normal OPEN launches that exact observation-bound ZIP through RetroArch's
+  Genesis Plus GX core; the animated title screen was visually inspected.
+  Its sibling raw-ROM probe is denied. Returning retains the single card;
+  original ROM and all 49 save/state/configuration baselines match. The two
+  disposable captures were transactionally removed with no residuals.
+- This is actual single-card/local-first evidence, not a claimed native
+  disappearance/restoration or deliberate two-to-one invalidation test.
+  Notification sequencing/cancellation is covered by the focused regression.
+  Cold loading eventually completes but remains slow. Full metadata coverage,
+  defensible per-console retention, remaining format/current-cloud checks and
+  reviewed migration still prevent S7 closure. See the acceptance ledger for
+  build/profile, artifact preservation and exact native evidence.
+
+### S7 build 423, restored connectivity and SG-1000 closure — 2026-10-08
+
+- S7 remains the sole ACTIVE stage. The SG-1000 normal online/cold-offline/
+  reviewed-removal/identical-usable-restore cycle passed. The original target and
+  full configuration digest are restored; the original ROM and all 49 recorded
+  save/state/emulator-config digests match. The isolated copy, empty directory
+  and private captures are removed. See `S7_SEGA_RECOVERY.md`.
+- The hotel captive portal, not lost Google consent, blocked Google HTTPS while
+  Android still reported validated Wi-Fi. Normal portal authorization restored
+  HTTP 204 connectivity and a successful Google HTTPS response. Normal queue
+  Resume completed the already queued restore without an account chooser.
+- A separate queue defect classified temporary native authorization-service
+  unavailability as awaiting authorization. Regression-first focused engine and
+  queue checks now distinguish retryable service failure from actual required
+  consent/account setup; scoped analysis passes. The saved reference is preserved.
+  The deliberate outage classification is host-verified, not claimed reproduced
+  on the updated device after connectivity recovery.
+- Ticket 423 (`6426f4306add44bb81fede39254ea2dd`) completed exit 0, with the shared
+  mutex acquired and observed workers=2, parallel=false, Gradle heap=3 GiB and
+  assessed Kotlin in-process compilation. JVM tests were configured as one
+  512 MiB fork but not executed by assembly. Fresh inspection of the included
+  Ninja rules verifies depth-one pools for all 281 compile/link rules across
+  11 ABI files. No memory failure or budget increase occurred. Private build log:
+  `%LOCALAPPDATA%/Tools/gradle-build-gate/logs/6a5c7b1994444e009817b3a81c584708.log`.
+- The signer-preserving update installed APK SHA-256
+  `fb39a628601b97e61d09ea658fefaeccd968cd95c864be7ea09b650a23eaa15c`;
+  installed base.apk matches. Immediately pre/post installation configuration
+  and both protected-storage digests match. Normal UI confirmed job 76 Paused
+  at 12,720 requested / 31,154 pending / 383 rated before updating. Normal Resume
+  on the updated process advanced it to 12,725 requested / 31,149 pending without
+  sign-in or replacement capture. It is Running, not a completed full pass.
+- Full fresh coverage, defensible Top-25 retention, remaining local-first and
+  recovery evidence, current cloud checks and reviewed migration remain required.
+  S8-S11 remain NOT STARTED. No bulk owner-ROM removal or release occurred.
+
+### S7 build 421 and SG-1000 recovery checkpoint — 2026-10-08
+
+- Ticket 421 completed exit 0 through the shared gate. Observed workers=2,
+  parallel=false and Gradle maximum heap=3 GiB; Kotlin uses the assessed
+  in-process strategy. One 512 MiB JVM test fork was configured, not executed by
+  assembly. All 281 inspected native compile/link rules across 11 active ABI
+  files use depth-one pools. No memory failure or budget increase occurred.
+- The signer-preserving owner update installed APK SHA-256
+  `8da796da39d7fd93f6c67b5242f8967ec0fd52536f7470fb9288483950574bfc`.
+  Installed base.apk matches; the immediately pre-update configuration and both
+  protected-storage digests are unchanged. Normal UI confirmed saved metadata
+  job 76 Paused at 12,720 requested / 31,154 pending / 383 rated before updating.
+- On the new normal owner process, Library progressed from initial zero/loading
+  to Dashboard 25, All 44,685 and Installed 2,855. SG-1000 shows one Bank Panic
+  card with its installed marker. This verifies normal startup/navigation on the
+  updated APK; controlled in-flight invalidation is covered by the regression,
+  not falsely claimed as a deliberately triggered native event.
+- Normal DOWNLOAD published Bank Panic's 21,280-byte ZIP into the isolated
+  SG-1000 target, with SHA-256 matching the original. Normal OPEN on build 421
+  launched Genesis Plus GX and the actual animated title screen was inspected.
+  The exact ZIP grant succeeded; the sibling `.sg` probe was denied. Cold-offline
+  launch, reviewed removal, identical usable restore and normal target restoration
+  remain in progress; the original ROM folder has not been altered.
+- microG separately crashes in its authorization request with
+  `NoRouteToHostException: Host unreachable`; the hotel Wi-Fi remains reported
+  VALIDATED but a diagnostic Google-host ping receives a packet-filter response.
+  No Google data, account or credentials were reset. Laptop tethering creation
+  fails with HRESULT 0x83120001 and the hotspot service is disabled; no system
+  service configuration was changed. Cached browsing still populated normally.
+- S7 alone remains ACTIVE. Full fresh metadata, defensible retention, remaining
+  recovery/local-first evidence and reviewed migration are unfinished. S8-S11
+  remain NOT STARTED; no owner ROM removal, release or later-stage work occurred.
+
+### Current S7 startup lifecycle diagnosis — 2026-10-08
+
+- S7 remains the sole ACTIVE stage. Ticket 415 terminated with an invocation
+  error (`Task '.dart' not found`), not a memory failure. Correctly quoting the
+  complete `-Ptarget=lib/main.dart` argument allowed ticket 416 to finish with
+  exit 0, gate acquired and profile verified: workers=2, parallel=false, Gradle
+  heap=3 GiB, Kotlin in-process, one configured 512 MiB test fork (not executed
+  by assembly). Every inspected app/SoLoud/JNI native compile/link rule uses a
+  depth-one pool. No budget increase or memory failure occurred.
+- Signer-preserving installation of APK SHA-256
+  `de4bfb3e3ba310f8d443b32b1f16fc29b767c1577caaba6f6d879526f9b7dbdb`
+  preserved configuration and both protected storage digests. Normal Pause
+  joined saved metadata job 76 at 12,692 requested / 31,181 pending / 382 rated.
+  It was Paused before installation, not replaced. SG-1000's empty isolated recovery destination
+  is configured; no SG-1000 ROM was downloaded or removed yet. Restore the normal
+  target after completing its recovery proof.
+- The new process still leaves Library at Dashboard/All/Installed zero. SQLite
+  initially consumed 216,125 ms across startup work, including repeated cached
+  subtree queries, then became idle. Read-only VM inspection identifies the
+  permanent wait: `_loadDataOnce` awaits selectionContinuityProvider.future;
+  that provider is invalidated, unmounted and pending with no active listener.
+  InstalledFilesState already contains data. Riverpod's refresh scheduler only
+  rebuilds listened providers; the discarded operation cannot complete the
+  pending provider future. This is distinct from the earlier unproven ANR cause
+  and from SQL latency; no speculative catalogue query rewrite was made.
+- A deterministic widget regression reproduced one migration instead of the
+  required rebuilt migration after catalogue invalidation. The screen now keeps
+  a lifecycle-bound subscription while awaiting selection migration and closes
+  it on disposal. That regression and the affected Library discovery/local-cloud
+  continuity checks and scoped analysis pass. Native verification of this
+  correction awaits shared-gate ticket 421 (`f1c09db5563d460684546fc57915d1d8`),
+  retained command session 19661; do not claim gate acquisition, an effective
+  profile or the startup defect fixed on the device before actual results.
+- While that request waits, normal Resume advanced the same saved job from
+  12,692 to 12,699 requested / 31,174 pending / 383 rated without a chooser.
+  It is Running. Join normal Pause before installing the next APK. The old
+  diagnostic UI wait was explicitly interrupted after identifying the lifecycle
+  hang, its exact capture removed and absence verified, and both screens are OFF.
+- Full fresh metadata coverage, defensible Top-25 retention, local-first native
+  proof, SG-1000 recovery and reviewed migration remain required. S8-S11 are NOT
+  STARTED. No bulk removal, release or later-stage implementation occurred.
+
+### Current S7 Master System and scoped library reads — 2026-10-08
+
+- Master System normal online/cold-offline/remove/identical usable restore passed.
+  Original destination/full config are restored; the original ROM and 49 recorded
+  save/state/emulator-config checksums match. Exact task copy, empty destination
+  and private captures are removed. See `S7_SEGA_RECOVERY.md`.
+- The earlier Android input-focus ANR is not declared fixed. Its previous process
+  exited; a new launch reproduces slow loading but not that ANR. CPU samples
+  identify shared recovery and collection-wide artwork hashing. Dashboard metrics
+  do not need either game cover or score consumption; console browsing must use
+  that console. A failing widget regression first reproduced the global read.
+  The minimal consumer correction and existing focused Library discovery checks
+  now pass, with scoped analysis clean. Native proof is pending ticket 415 /
+  session 40791 through the shared gate; acquisition/profile are not yet claimed.
+- S7 remains the sole ACTIVE stage. Normal Resume continued metadata job 76
+  without a chooser: 12,531 -> 12,542 lookups / 31,333 pending, 374 rated. It is
+  Running while the build waits; join normal Pause before installing. SG-1000
+  recovery, exact local-first integration, full fresh
+  coverage, defensible Top-25 retention and reviewed migration remain required.
+  S8-S11 remain NOT STARTED; no bulk removal or release occurred.
+
+### S7 Mega Drive normal recovery cycle — 2026-10-08
+
+- S7 alone remains ACTIVE. Normal Drive DOWNLOAD -> owned RetroArch Genesis Plus
+  GX online boot -> cold offline boot without any active network -> reviewed
+  removal -> identical re-download -> actual title-menu boot passed on the Thor
+  for one explicitly mapped single-member `.md` ZIP. This is format-specific
+  recovery evidence, not trustworthy ranking or permission for bulk removal.
+- The test installation was removed through normal reviewed DELETE. Its empty
+  isolated folder is absent and the normal Mega Drive destination is restored.
+  Full R-Shop config, the original ROM, all 47 recorded RetroArch save/state
+  files and both RetroArch configs match their pre-test checksums. Wi-Fi is back
+  online; no cloud object, owner ROM, BIOS or emulator setting changed.
+- The saved scrape was observed Paused at 12,287 requests. Normal Resume advanced
+  the same job 76 to 12,289 / 31,599 pending without a chooser or fresh snapshot.
+  The earlier pause cause is not established; full coverage remains unfinished.
+- The mislabeled Sega launch menu is corrected in source after a failing focused
+  regression. Affected host wiring/handoff checks, scoped analysis and whitespace
+  checks pass. Build 408 / session 68644 completed with the shared gate acquired:
+  two workers, no project parallelism, 3 GiB Gradle heap and Kotlin in-process.
+  One 512 MiB test fork was configured, not executed by assembly; active native
+  compile/link rules use depth-one pools. No memory failure or budget increase.
+  Installed APK matches the built artifact and retains the existing signer,
+  configuration and protected storage. Normal Resume advanced the same job from
+  12,359 to 12,361 requests / 31,525 pending without sign-in. Normal supported
+  Master System owned-copy menu inspection now verifies “Open in RetroArch”,
+  and actual online Genesis Plus GX boot is visually inspected. Its cold-offline
+  / identical-restore cycle and restoration of the isolated target remain open.
+- See `S7_SEGA_RECOVERY.md`. Master System/SG-1000 recovery, local-first proof,
+  full metadata, defensible retention and reviewed migration remain required.
+  S8-S11 remain NOT STARTED; no bulk SD migration or release occurred.
+
+### S7 native build and cold-start authorization correction — 2026-10-08
+
+- S7 remains the sole ACTIVE stage; S0-S6 are COMPLETE and S8-S11 are NOT
+  STARTED. The queued-build statements in the checkpoints below are historical.
+- Tickets 389 and 391 completed successfully through the shared build gate:
+  normal debug APK and native instrumentation APK respectively. Both observed
+  two workers, no project parallelism and 3 GiB Gradle heaps, Kotlin in-process;
+  test tasks were configured for one 512 MiB fork, not executed by assembly.
+  Generated Ninja rules for app/SoLoud/JNI place each C/C++ compile/link command
+  in a depth-one pool. No memory failure or heap increase was reported.
+- Signer-preserving installation of the normal APK succeeded and installed
+  base.apk SHA-256 matched `a1473562ff7625845fd3b9bc4a259382f42d4800a7e58617c87cc0f85ba9c85a`.
+  Config and both protected secure-storage file digests were unchanged by that
+  update. Native OwnedRomInstrumentation returned PASS, including read-only
+  observed-copy/provider proof for RVZ and the three observed Sega ZIP formats.
+  This does not replace normal emulator/download/offline/recovery acceptance.
+- Normal Resume of saved metadata job 76 on that APK encountered
+  `DriveAuthorizationException` before live source validation. The adapter's
+  noninteractive authentication returns its in-memory account only; process
+  replacement empties that account and deterministically requires a chooser.
+  This is an app lifecycle defect, not evidence of lost saved configuration or
+  Google token expiration. Ordinary default-account connection succeeded;
+  returning without saving preserved the complete config hash.
+- Regression-first cold restart reproduced absent persistence and wrong-account
+  classification. The correction saves only the explicit private account ID/email
+  reference, scoped to the OAuth client, after successful authorization. It uses
+  the installed endorsed Android platform API's account-bound scope request with
+  prompting disabled; neither interactive nor lightweight sign-in is called on
+  restoration. Tokens remain ephemeral. Sign-out clears the reference; revoked
+  scopes, missing reference and account mismatch stay fail-closed.
+- Focused adapter/coordinator checks and scoped analysis pass. Older adapter
+  renewal assertions supplied a different token than the current cached grant;
+  corrected cases now exercise rejection of the actual grant. Missing-consent
+  checks use a cold adapter rather than invalidating an otherwise usable cached
+  grant by fiat. No stale-rejection/coalescing production contract was weakened.
+- Ticket 400 / session 12898 completed with exit 0, gate acquired and effective
+  profile verified. Signer-preserving owner installation independently matches
+  `134b657aae6b07a52c4bf2d1ef34c17c1794cd70ed6f5a46421dd055eb80eefb`.
+  Fresh app/SoLoud/JNI generated Ninja rules, including the current pub-cache
+  roots, verify depth-one pools on every C/C++ compile/link command. No memory
+  failure or budget increase occurred; one 512 MiB JVM test fork is configured,
+  not executed by assembly. Kotlin remains in-process under Gradle's 3 GiB heap.
+- One ordinary default-account connection seeded the account reference absent
+  from the old version. After joined Pause, force-stop confirmed no owner process;
+  the new PID resumed the same job without a chooser, advancing 12,194 -> 12,199
+  requests. A second joined Pause followed by install-replace of the same APK
+  preserved config and both protected storage digests exactly. Its new process
+  resumed without sign-in and advanced 12,204 -> 12,209 requests, pending=31,682,
+  rated=357, provider quota=11,130/20,000. This verifies process and APK replacement
+  continuity, not full collection completion or future arbitrary migrations.
+- Source configuration hash remains unchanged; no account/mapping save, ROM
+  mutation, sign-out/revocation of the owner's grant, new snapshot or retry pass
+  was performed. Adapter/coordinator checks and analysis pass, including restored
+  renewal/revocation fixtures. Exact UI captures were identity-rechecked, removed
+  and verified absent; both screens are actual/committed OFF with power Asleep.
+  Full saved-job coverage, defensible retention, normal format recovery and
+  reviewed migration remain open. No later stage, final commit or release.
+
+### S7 source-change interruption correction — 2026-10-08 evening
+
+- S7 remains the sole ACTIVE stage; S0-S6 are COMPLETE and S8-S11 are NOT
+  STARTED. This checkpoint supersedes the earlier running-metadata observation.
+- Normal UI found the same Entire collection job Paused at 12,171 requests,
+  371 matched, 4,518 review, 987 ambiguous, 6,202 unmatched, 406
+  failed/unsupported, 356 rated and 31,720 pending. Normal Resume once reproduced
+  the failure immediately without advancing or replacing the captured cohort.
+- Sanitized debug diagnostics identify `DriveTransferException` at
+  `DriveVerification.requireCurrent`, through the live
+  `DriveDownloadBoundary.revalidate` call in `readMetadataArchive`. The binary no
+  longer satisfies the captured source boundary; the exact differing field is
+  not established. The job propagated that item-specific failure and paused the
+  whole collection. No storage mutation or provider retry can repair that old
+  captured identity.
+- Regression-first archive and CHD-header cases reproduced the same exception.
+  The worker now commits only that uncancelled item's existing `identityChanged`
+  outcome, without a provider lookup, raw binding, classification or generation
+  change, and continues independent captured items. Cancellation racing with a
+  different failure, access errors, malformed observations and storage failures
+  remain distinct; no broad exception swallowing or title fallback was added.
+- The affected catalogue-job test file passes, including preserved pause/drain,
+  error and identity/restart contracts. This is host verification, not native
+  deployment proof: the installed older APK still pauses on that source. Leave
+  its saved job intact for resumption after the pending build/update; do not
+  repeat Resume against unchanged code or create another collection snapshot.
+- Ticket 389 / session 99133 and its event-driven observer remain live with no
+  reported gate acquisition/build result. Requested low-memory settings are not
+  verified effective settings. No second build or interruption was introduced.
+- Task UI dumps were hash-rechecked, removed and verified absent. Both physical
+  screens are subsequently confirmed OFF with the Thor Asleep. Full scrape,
+  current native integration/recovery, retention and reviewed migration remain
+  required before S7 can close.
+
+### S7 saved metadata continuation — 2026-10-08
+
+- The normal Entire collection workspace showed Paused with an operation-failed
+  notice: 8,876 requested, 247 matched, 3,129 review, 713 ambiguous, 4,696
+  unmatched, 241 failed/unsupported, 238 rated and 35,178 pending. Those terminal
+  counts plus pending still total the existing 44,204 captured members.
+- Pressed its one observed enabled Resume saved job control once. The controller
+  resumes the selected report ID; no Refresh, Retry, provider/account/mapping
+  change, new job or database write through an audit tool was performed.
+- Fresh normal UI then reports Running, 8,891 requested, 247 matched, 3,136
+  review, 714 ambiguous, 4,703 unmatched, 241 failed/unsupported, 238 rated and
+  35,163 pending. Provider-reported remaining attempts are 15,800/20,000. This
+  verifies resumed traversal, not its completion or a diagnosed/fixed cause of
+  the earlier operation failure. No per-game curation or ROM action occurred.
+- Ticket 389's original session 99133 remains confirmed live without new build
+  output. No replacement or competing build was launched. S7 remains ACTIVE;
+  native proof, full coverage, retention/recovery and migration remain required.
+- The exact task-created UI dumps were hash-rechecked and removed; absence was
+  verified. Screens were put to sleep after each inspection; verify physical
+  OFF state after the final transition rather than treating Dozing as OFF.
+
+### Current S7 execution correction — 2026-10-08
+
+- S7 is ACTIVE, the sole ACTIVE stage. S0-S6 remain COMPLETE; S8-S11 remain
+  NOT STARTED. The preceding blocked classification below is superseded: normal
+  queued Gradle waiting does not itself justify stopping implementation.
+- On user-directed continuation, session 81299 is unknown and its supervising
+  process 78196 is absent. Queue ticket 387 still records that dead identity;
+  no build result or gate/profile proof is available. A single replacement must
+  use the normal shared gate's proven-exit reclamation, never manual queue edits
+  or interruption of GameNative. Retain and wait on the replacement tool handle.
+- Replacement request is registered as ticket 389
+  (`cb93641c7393463b88de479c50f0e922`), live tool session 99133. The launcher
+  explicitly reports `queued`. Gate acquisition/effective profile are not yet
+  observed. Requested settings remain two workers, no parallel projects, 3 GiB
+  Gradle with Kotlin in-process; no memory failure has been reported.
+- All unfinished native, full-pass, retention/recovery and actual migration
+  criteria remain required. No acceptance criteria or later-stage dependencies
+  have changed; this correction does not claim implementation completion.
+
+### Current S7 blocker — 2026-10-08
+
+- S0-S6 are COMPLETE. S7 is BLOCKED and parked; no stage is ACTIVE.
+  S8-S11 remain NOT STARTED. Earlier ACTIVE checkpoints below are historical.
+- Blocked criterion: current native single-card/local-first/provider and Sega ZIP
+  build plus normal Thor recovery proof. The retained build request 81299 remains
+  live without gate/profile/build output. Fresh exact-process inspection still
+  finds the preceding GameNative supervisor, wrapper, daemon and test executor.
+  Its inspected coroutine wait does not establish an idle or completed build.
+- This external build exclusion condition has repeated across three consecutive
+  continuation turns. No further safe independent current-stage implementation
+  is identified. Resolution requires confirmed preceding-build completion/idle,
+  then completion of the same retained build and required native/device checks.
+  No competing build, interruption, timeout or profile claim was introduced.
+- Full metadata-pass completion, defensible per-console retention, readable cloud
+  recovery and reviewed SD migration remain unfinished. These are not waived or
+  reassigned. S7 and dependent S8-S11 cannot be declared complete. The overall
+  objective is retained, not cancelled; no final commit or release is claimed.
+
+### S7 native verification wait — 2026-10-08
+
+- The same request 81299 is freshly confirmed live with no gate/profile/build
+  output. Process identities bind the preceding GameNative wrapper, supervisor,
+  daemon and test executor to its existing gated build. A read-only JVM thread
+  dump shows its Robolectric test worker waiting on the SDK main thread, which
+  is inside a coroutine `runBlocking` call in `CanonicalMutationRepositoryTest`.
+  This is current outstanding test activity, not proof of an idle daemon or
+  authority to stop it. No competing Gradle invocation, timeout, configuration
+  change or interruption was introduced.
+- Current S7 native local-first/provider and Sega ZIP device verification still
+  depends on completion of that existing build and then request 81299. Full
+  fresh collection coverage, retention and reviewed migration also remain open.
+  This is a verified wait, not a closed acceptance criterion or a new stage.
+  S7 alone remains ACTIVE; S8–S11 remain NOT STARTED. No new device operation,
+  owner-data mutation, commit or release occurred in this wait checkpoint.
+
+### S7 observed Sega ZIP integration — host verified, native pending, 2026-10-08
+
+- S7 alone remains ACTIVE. The current SD folders and one read-only archive
+  listing per console confirm Mega Drive `.md`, Master System `.sms` and SG-1000
+  `.sg` members. These observed ZIP profiles now reuse the existing bounded
+  single-member validator, immutable transfer mapping, publication/recovery,
+  explicit adoption, offline revalidation and exact RetroArch leaf routes.
+  The installed Genesis Plus GX route is selected without settings/core changes;
+  this does not admit 32X, generic ZIPs or unknown member formats.
+- The normal metadata worker can bind these local raw hashes only after current
+  complete-container equivalence. It preserves unknown/modified classification,
+  records separate read-only byte evidence and makes no compensating ROM-body
+  request. Focused regressions first failed on missing mapping, skipped metadata
+  evidence and unsupported grant platforms. Current affected host checks pass
+  for the runtime/queue, lost-receipt recovery, offline reuse, console handoff and
+  metadata restart boundaries. A fixture-only hardcoded 7z name was corrected;
+  the existing handheld adoption inputs remain unchanged. Scoped analysis and
+  whitespace checks pass; bounded Java validator/grant tests pass at 256 MiB.
+- Native dispatch, pinned-descriptor validation and owned/read-only provider
+  admission are connected. The synthetic provider fixture now covers the three
+  ZIPs as well as RVZ, but it has NOT been compiled/executed. Normal Thor
+  online/offline/identical-restore proof remains required before migration.
+  Request 81299 is still live without build/gate/profile output; no replacement
+  or concurrent Gradle request was launched. Requested workers/heaps are not
+  claimed effective, and no memory-related failure was observed.
+- Normal Thor UI freshly reports the existing Entire collection job Running:
+  requested 7,385, matched 200, review 2,536, ambiguous 575, unmatched 3,985,
+  failed/unsupported 148, rated 194, pending 36,760. Provider-reported quota is
+  17,890/20,000 remaining. This proves continued traversal, not full coverage or
+  reliable Top-25 selection. No job, source configuration, account, ROM or ownership was changed.
+  The exact task-created UI dump is absent, and both physical displays are
+  confirmed committed/actual OFF with power Asleep after inspection.
+- Cleanup transactions `a00133cd5128da39e1b76c1d8636bb45` and
+  `2aab85b3b5d0538ceed9afe2a4dcfd4a` removed only the expendable compiler outputs
+  and their empty task-created root. Exact root absence is verified; permanent
+  test/source/evidence files remain. The compiler outputs are reproducible.
+- S7 native single-card/local-first proof, completed fresh coverage, defensible
+  retention, current cloud/format recovery and actual reviewed migration remain
+  unfinished. S8–S11 remain NOT STARTED; no final commit, release or SD migration
+  completion is claimed.
+
+### S7 joined-pause matching audit — 2026-10-08
+
+- The normal Pause control joined job 76 before the fixed READONLY audit opened
+  SQLite. The audit inspected 7,147 terminal outcomes from the existing 44,204
+  captured members, with bounded records/candidate samples and a 128 MiB process
+  heap. It did not change requests, outcomes, identities or ownership. Normal
+  Resume continued the same job: requested 7,105 to 7,107; pending 37,057 to
+  37,055. These are observed cohort counters, not completed collection coverage.
+- The unresolved cohort is dominated by unclassified title-only requests. For
+  example, NES has 562 review and 131 ambiguous outcomes, with only 12 captured
+  raw identifiers; PSP has 17 review outcomes alongside 16 matched releases.
+  Exact-title candidates without an official-edition classification are correctly
+  reviewable under META-03/04. Do not relabel them official, borrow a base score,
+  or bypass regional/edition evidence to fill Top-25 lists. This audit establishes
+  the evidence limitation, not a new production matching defect.
+- The 66 captured Mega Drive resource failures remain in immutable saved-job
+  history while the corresponding non-game cache rows are absent. They are not
+  new failures of the already verified subtree exclusion. Required native
+  local-first proof, completed fresh coverage, defensible retention and actual
+  reviewed migration remain open; S7 alone is ACTIVE, S8–S11 NOT STARTED.
+- Request 81299 remains a confirmed-live tool session without new build output.
+  Read-only process inspection identifies another project's live wrapper/client
+  and worker; it is not authority to interrupt them or launch concurrently. Gate
+  acquisition and effective R-Shop build profile remain unconfirmed, with no
+  reported memory failure. The same request is retained, not restarted.
+- Both Thor physical displays are freshly confirmed committed/actual OFF and
+  power Asleep. Exact task-created device probe/dump files were removed. Cleanup
+  transaction `d696d27de4ed9df3b0a869bc344fa584` removed the two expendable host
+  compiler outputs and empty output directory (12,346 bytes); absence is checked.
+  Audit source and the sanitized evidence above remain; owner data is unchanged.
+
+### S7 action eligibility and live scrape check — 2026-10-08
+
+- Read-only local-copy availability no longer advertises the ownership-only
+  Share path. Touch, controller focus and the handler use the same eligibility;
+  Open remains available without adoption/removal rights. Focused detail/layout
+  and real installation-journal checks pass, including owned sharing, missing
+  variants and legacy sharing. Scoped detail analysis and whitespace checks pass.
+- Current URI-parser source compiles and its focused JUnit checks pass with
+  256 MiB compiler/test heaps. This is not Kotlin/APK/native-provider verification.
+  The same request 81299 / ticket 387 is live with no gate/profile/build output.
+- Normal Thor UI reports the existing Entire collection job running: requested
+  7,046, matched 190, needs review 2,400, ambiguous 536, unmatched 3,832,
+  failed/unsupported 127, rated 184, pending 37,119. No new job, mapping or account
+  change occurred. Both physical displays are subsequently confirmed OFF/Asleep.
+- Three expendable compiler classes and their empty output directories were
+  reviewed/removed by cleanup transaction `5eb7881c07712a281059386d787032e6`;
+  the exact directory is absent. The task-created device UI dump was also removed.
+  No ROM, save, setting, ownership or release change occurred. S7 remains ACTIVE;
+  native local-first proof, full scrape, rankings and reviewed migration remain
+  unfinished. S8–S11 remain NOT STARTED.
+
+### S7 single-card and local-first integration — host verified, native pending, 2026-10-08
+
+- S7 is the sole ACTIVE stage; S8–S11 remain NOT STARTED. The normal Library host
+  workflow now keeps one sourced card, artwork, favorite and manual-shelf order
+  through exact-copy presence, disappearance and restoration. Raw catalogue rows
+  and saved refresh membership are preserved. Changed versions, unlinked console
+  namesakes and other providers remain distinct.
+- Selection migration uses one acknowledged persistent favorites/shelves/receipt
+  document and a serialized write sequence. Host checks verify rejected-write
+  readback/retry, concurrent toggles, restart persistence, explicit unfavorites
+  and another console's same-name selection. Observations never add managed bytes
+  or installation/removal ownership. The normal and bulk local scan supplement
+  now includes verified read-only leaves beneath a containing mapped root.
+- Regression-first checks exposed the missing activity route for `localCopyInspect`
+  and the launcher's ownership-only requirement. Both are connected. Supported
+  exact local copies now select Open, with localized labels; removal is separate
+  and still requires a reviewed owned manifest. The native content provider uses
+  a distinct observation/platform leaf namespace, current catalogue/evidence and
+  reservation checks, pinned file identity and read-only grants. A synthetic native
+  provider fixture is prepared but NOT executed or claimed passing.
+- The affected serial host run passed: metadata-read evidence, observations,
+  ownership/visibility, handoff wiring, installed projection, selection migration,
+  console controller, normal Library presence cycle, Open action and normal detail
+  layouts. Native URI parser tests passed separately after their new namespace
+  regression failed. No full suite or simultaneous test workers were used.
+- Native request 81299 / ticket 387 remains live, with no acquisition/profile/build
+  completion output observed. No second Gradle request was launched. Gate acquisition,
+  effective workers/heaps/native settings, native compile and device behavior are
+  unconfirmed for this patch; no memory-related failure is reported by that request.
+  No APK was installed or device used in this continuation. Earlier OFF/Asleep proof
+  is historical, not a fresh screen observation. No owner files or sync policy changed.
+- This does not close S7: native single-card/local-first proof, full fresh coverage,
+  defensible Top-25 sets, current cloud/restore gates and reviewed migration remain
+  required. No commit, release or SD cleanup completion is claimed.
+
+### S7 exact unmanaged-copy evidence — host verified, native build pending, 2026-10-08
+
+- S7 remains the sole ACTIVE stage; S8–S11 remain NOT STARTED. The normal
+  metadata archive read previously discarded its complete-container equivalence
+  and native file identity. It now saves those together in the existing bounded
+  historical byte-observation journal after native read closure and current
+  Drive binding revalidation. It makes no additional ROM-body request and does
+  not create a transfer, installation, target owner or removal intent.
+- The regression failed on missing persisted evidence before implementation.
+  The complete directly affected Drive runtime test file passes, including
+  cancellation/disconnect joining a held journal write, journal failure, cloud
+  version change, container mismatch and mapped archive profiles. Scoped Dart
+  analysis and whitespace checks pass. One test workload ran at a time.
+- Native debug assembly is requested through the shared build-gate launcher,
+  live tool session 81299 / FIFO ticket 387. The last observed state is queued;
+  gate acquisition, effective resource profile and build completion are NOT yet
+  claimed. Retain and wait on that same session; do not relaunch the build.
+- This is an enabling boundary, not delivered single-card/local-first behavior.
+  Current read-only local-copy validation, cache/selection/favorite continuity
+  and native emulator handoff remain required S7 integration. No new APK was
+  installed, no owner files changed and no stage closed. The Thor app remains
+  alive; both physical displays are confirmed OFF and power Asleep.
 
 ### S7 availability lifecycle fixes — host verified, 2026-10-08
 

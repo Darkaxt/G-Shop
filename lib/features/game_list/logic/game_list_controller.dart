@@ -169,6 +169,7 @@ class GameListController extends ChangeNotifier {
 
   Set<String>? _pendingInstalledFilenames;
   List<RemoteArtifact> _installedArtifacts = const [];
+  Map<String, RemoteArtifact> _localAliases = const {};
 
   GameListController({
     required this.system,
@@ -176,6 +177,7 @@ class GameListController extends ChangeNotifier {
     required this.systemConfig,
     Set<String>? installedFilenames,
     List<RemoteArtifact> installedArtifacts = const [],
+    Map<String, RemoteArtifact> localAliases = const {},
     UnifiedGameService? unifiedService,
     DatabaseService? databaseService,
     StorageService? storage,
@@ -186,6 +188,7 @@ class GameListController extends ChangeNotifier {
         _prepareMetadata = prepareMetadata {
     _pendingInstalledFilenames = installedFilenames;
     _installedArtifacts = installedArtifacts;
+    _localAliases = localAliases;
     loadGames();
   }
 
@@ -311,7 +314,8 @@ class GameListController extends ChangeNotifier {
 
   void _groupGames() {
     final groupedGames = <String, List<GameItem>>{};
-    for (final game in _state.allGames) {
+    for (final game in GameMergeHelper.coalesceVerifiedCopies(
+        _state.allGames, _localAliases)) {
       groupedGames.putIfAbsent(game.groupKey, () => []).add(game);
     }
     final allGroups = groupedGames.keys.toList()
@@ -386,7 +390,7 @@ class GameListController extends ChangeNotifier {
   void _resolveInstalledStatus() {
     if (_pendingInstalledFilenames != null) {
       applyInstalledFilenames(_pendingInstalledFilenames!,
-          installedArtifacts: _installedArtifacts);
+          installedArtifacts: _installedArtifacts, localAliases: _localAliases);
     } else {
       _state = _state.copyWith(isLoading: false);
       notifyListeners();
@@ -623,9 +627,14 @@ class GameListController extends ChangeNotifier {
 
   /// Fast path: apply pre-scanned filenames from the central index.
   void applyInstalledFilenames(Set<String> installedFilenames,
-      {List<RemoteArtifact> installedArtifacts = const []}) {
+      {List<RemoteArtifact> installedArtifacts = const [],
+      Map<String, RemoteArtifact> localAliases = const {}}) {
     _pendingInstalledFilenames = installedFilenames;
     _installedArtifacts = installedArtifacts;
+    _localAliases = localAliases;
+    // Reproject raw cached rows so changed/unbound local entries can reappear.
+    // Do not rewrite immutable scrape membership merely to hide a duplicate.
+    _groupGames();
     final installedCache = <String, bool>{};
     for (final entry in _state.groupedGames.entries) {
       installedCache[entry.key] =
@@ -636,11 +645,7 @@ class GameListController extends ChangeNotifier {
           _isAnyVariantInSet(entry.value, installedFilenames);
     }
     _state = _state.copyWith(installedCache: installedCache, isLoading: false);
-    if (_state.activeFilters.localOnly) {
-      _applyFilters();
-    } else {
-      notifyListeners();
-    }
+    _applyFilters();
   }
 
   bool _isAnyVariantInSet(List<GameItem> variants, Set<String> filenames) {

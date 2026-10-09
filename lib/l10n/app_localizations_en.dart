@@ -713,6 +713,12 @@ class LEn extends L {
   String get gameDetail_download => 'DOWNLOAD';
 
   @override
+  String get gameDetail_open => 'OPEN';
+
+  @override
+  String get gameDetail_pressAOpen => 'Press A to open';
+
+  @override
   String get gameDetail_adding => 'ADDING...';
 
   @override

@@ -199,6 +199,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       installedFilenames: installedData?.bySystem[widget.system.id],
       installedArtifacts:
           installedData?.exactBySystem[widget.system.id] ?? const [],
+      localAliases:
+          installedData?.legacyAliasesBySystem[widget.system.id] ?? const {},
       storage: ref.read(storageServiceProvider),
       prepareMetadata: () async {
         if (!mounted) return;
@@ -232,6 +234,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
             data.bySystem[widget.system.id] ?? {},
             installedArtifacts:
                 data.exactBySystem[widget.system.id] ?? const [],
+            localAliases:
+                data.legacyAliasesBySystem[widget.system.id] ?? const {},
           );
         }
       });
@@ -631,6 +635,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(selectionContinuityProvider);
     final rs = context.rs;
     final state = _controller.state;
     final baseTopPadding = rs.safeAreaTop + (rs.isSmall ? 60 : 80);

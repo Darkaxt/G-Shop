@@ -717,6 +717,12 @@ class LFr extends L {
   String get gameDetail_download => 'TÉLÉCHARGER';
 
   @override
+  String get gameDetail_open => 'OUVRIR';
+
+  @override
+  String get gameDetail_pressAOpen => 'Appuie sur A pour ouvrir';
+
+  @override
   String get gameDetail_adding => 'AJOUT...';
 
   @override

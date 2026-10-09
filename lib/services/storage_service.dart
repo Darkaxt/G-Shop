@@ -27,6 +27,9 @@ class StorageService {
   static const _homeLayoutKey = 'home_layout';
   static const _favoritesVersionKey = 'favorites_version';
   static const _customShelvesKey = 'custom_shelves';
+  static const _selectionsKey = 'exact_selections_v1';
+  Future<void> _selectionWrite = Future.value();
+  bool _selectionPersistenceUncertain = false;
   static const _secureAuthMigratedKey = 'secure_auth_migrated';
   static const _allowNonLanHttpKey = 'allow_non_lan_http';
   static const _raUsernameKey = 'ra_username';
@@ -373,28 +376,139 @@ class StorageService {
 
   Future<void> setFavoritesVersion(int version) async {
     _ensureInitialized();
-    await _prefs!.setInt(_favoritesVersionKey, version);
+    try {
+      if (!await _prefs!.setInt(_favoritesVersionKey, version)) {
+        throw StateError(
+            'Favorites migration version was not durably acknowledged');
+      }
+    } catch (_) {
+      // SharedPreferences updates its in-memory cache before the platform
+      // acknowledges persistence. Do not let rejection masquerade as migration.
+      await _prefs!.reload();
+      rethrow;
+    }
   }
 
   List<String> getFavorites() {
     _ensureInitialized();
+    final selections = _readSelections();
+    if (selections != null) {
+      return (selections['favorites'] as List).cast<String>().toList();
+    }
     return _prefs!.getStringList(_favoritesKey) ?? [];
   }
 
-  Future<void> setFavorites(List<String> favorites) async {
-    _ensureInitialized();
-    await _prefs!.setStringList(_favoritesKey, favorites);
+  Future<void> setFavorites(List<String> favorites) {
+    final captured = List<String>.of(favorites);
+    return _writeSelections((settings) => settings['favorites'] = captured);
   }
 
-  Future<void> toggleFavorite(String gameId) async {
-    _ensureInitialized();
-    final favorites = getFavorites();
-    if (favorites.contains(gameId)) {
-      favorites.remove(gameId);
-    } else {
-      favorites.add(gameId);
+  Future<void> toggleFavorite(String gameId) => _writeSelections((settings) {
+        final favorites =
+            (settings['favorites'] as List).cast<String>().toList();
+        if (favorites.contains(gameId)) {
+          favorites.remove(gameId);
+        } else {
+          favorites.add(gameId);
+        }
+        settings['favorites'] = favorites;
+      });
+
+  Map<String, dynamic>? _readSelections() {
+    if (_selectionPersistenceUncertain) {
+      throw StateError('Selection settings require durable readback');
     }
-    await _prefs!.setStringList(_favoritesKey, favorites);
+    final encoded = _prefs!.getString(_selectionsKey);
+    if (encoded == null) return null;
+    final result = (jsonDecode(encoded) as Map).cast<String, dynamic>();
+    if (result['schema'] != 1 ||
+        result['favorites'] is! List ||
+        result['shelves'] is! List ||
+        result['migratedAliases'] is! List) {
+      throw const FormatException('Invalid exact selection settings');
+    }
+    return result;
+  }
+
+  // Favorites, shelves and migration receipts share one acknowledged preference
+  // write. Serializing their read/modify/write avoids lost concurrent toggles.
+  Future<void> _writeSelections(void Function(Map<String, dynamic>) update) {
+    _ensureInitialized();
+    final work = _selectionWrite.then((_) async {
+      if (_selectionPersistenceUncertain) {
+        await _prefs!.reload();
+        _selectionPersistenceUncertain = false;
+      }
+      final settings = _readSelections() ??
+          {
+            'schema': 1,
+            'favorites': getFavorites(),
+            'shelves': getCustomShelves().map((s) => s.toJson()).toList(),
+            'migratedAliases': <String>[],
+          };
+      final before = jsonEncode(settings);
+      update(settings);
+      final encoded = jsonEncode(settings);
+      if (before == encoded) return;
+      try {
+        if (!await _prefs!.setString(_selectionsKey, encoded)) {
+          throw StateError('Selection settings were not durably acknowledged');
+        }
+      } catch (_) {
+        _selectionPersistenceUncertain = true;
+        await _prefs!.reload();
+        _selectionPersistenceUncertain = false;
+        rethrow;
+      }
+    });
+    _selectionWrite =
+        work.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return work;
+  }
+
+  /// Caller supplies only exact, currently bound aliases, across the complete
+  /// cached collection. Receipts prevent an old shared filename favorite from
+  /// re-favoriting a cloud identity after an explicit unfavorite.
+  Future<void> migrateExactSelections(Map<String, Map<String, String>> aliases,
+      {required Set<String> remainingLegacyKeys}) {
+    final captured = {
+      for (final system in aliases.entries)
+        system.key: Map<String, String>.of(system.value)
+    };
+    final remaining = Set<String>.of(remainingLegacyKeys);
+    return _writeSelections((settings) {
+      final receipts =
+          (settings['migratedAliases'] as List).cast<String>().toSet();
+      final pending = <String, Set<String>>{};
+      final known = <String>{};
+      for (final system in captured.entries) {
+        for (final alias in system.value.entries) {
+          if (!alias.value.startsWith('artifact:')) {
+            throw ArgumentError('An exact selection key is required');
+          }
+          known.add(alias.key);
+          if (receipts.add(jsonEncode([system.key, alias.key, alias.value]))) {
+            pending.putIfAbsent(alias.key, () => {}).add(alias.value);
+          }
+        }
+      }
+      List<String> migrate(List<dynamic> keys) => <String>{
+            for (final key in keys.cast<String>()) ...[
+              if (!known.contains(key) || remaining.contains(key)) key,
+              ...?pending[key],
+            ],
+          }.toList();
+      settings['favorites'] = migrate(settings['favorites'] as List);
+      settings['shelves'] = [
+        for (final raw in settings['shelves'] as List)
+          {
+            ...(raw as Map).cast<String, dynamic>(),
+            'manualGameIds': migrate(raw['manualGameIds'] as List? ?? []),
+            'excludedGameIds': migrate(raw['excludedGameIds'] as List? ?? [])
+          },
+      ];
+      settings['migratedAliases'] = receipts.toList();
+    });
   }
 
   bool isFavorite(String gameId) {
@@ -463,6 +577,12 @@ class StorageService {
 
   List<CustomShelf> getCustomShelves() {
     _ensureInitialized();
+    final selections = _readSelections();
+    if (selections != null) {
+      return (selections['shelves'] as List)
+          .map((e) => CustomShelf.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+    }
     final json = _prefs!.getString(_customShelvesKey);
     if (json == null) return [];
     try {
@@ -476,12 +596,9 @@ class StorageService {
     }
   }
 
-  Future<void> setCustomShelves(List<CustomShelf> shelves) async {
-    _ensureInitialized();
-    await _prefs!.setString(
-      _customShelvesKey,
-      jsonEncode(shelves.map((s) => s.toJson()).toList()),
-    );
+  Future<void> setCustomShelves(List<CustomShelf> shelves) {
+    final captured = shelves.map((s) => s.toJson()).toList();
+    return _writeSelections((settings) => settings['shelves'] = captured);
   }
 
   // --- Non-LAN HTTP ---

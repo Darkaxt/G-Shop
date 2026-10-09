@@ -11,10 +11,21 @@ import 'installation_index.dart';
 import 'installation_paths.dart';
 import 'owned_installation_removal.dart';
 import 'owned_storage.dart';
+import 'transfer_journal.dart';
 
 class RomManager {
   final InstallationIndex? installations;
   RomManager({this.installations});
+
+  Future<JournaledByteObservation> requireLocalCopy(
+      GameItem game, String root) async {
+    final artifact = game.remoteArtifact;
+    if (artifact == null) throw const OwnedStorageException('changed');
+    final copy = await (installations ?? InstallationIndex.application())
+        .resolveLocalCopy(artifact, root);
+    if (copy == null) throw const OwnedStorageException('changed');
+    return copy;
+  }
 
   /// Resolve the exact committed manifest for a local consumer, without
   /// source/network access or filename adoption. Does not authorize neighbors.
@@ -430,20 +441,33 @@ class RomManager {
   // Both entry points must retain exact committed leaves, including leaves
   // hidden inside a directory which is unsafe to expose as a legacy game.
   // Generic enumeration alone is not the installation inventory.
-  static List<GameItem> _localGamesWithInstallations(List<GameItem> games,
-      InstallationSnapshot index, String targetFolder) {
+  static List<GameItem> _localGamesWithInstallations(
+      List<GameItem> games, InstallationSnapshot index, String targetFolder) {
     final filtered = index.filterLocal(games, targetFolder);
-    final existing = filtered.map((game) => game.remoteArtifact?.id.key).toSet();
-    for (final installation in index.installed.values) {
-      if (existing.add(installation.artifact.id.key)) {
+    final existing =
+        filtered.map((game) => game.remoteArtifact?.id.key).toSet();
+    final leaves = [
+      for (final installation in index.installed.values)
+        (
+          artifact: installation.artifact,
+          root: installation.destinationRoot,
+          relative: installation.relativePath
+        ),
+      for (final copy in index.localCopies.values)
+        (
+          artifact: copy.observation.artifact,
+          root: copy.observation.destinationRoot,
+          relative: copy.observation.relativePath
+        ),
+    ];
+    for (final leaf in leaves) {
+      if (existing.add(leaf.artifact.id.key)) {
         filtered.add(GameItem(
-            filename: p.relative(
-                p.join(installation.destinationRoot, installation.relativePath),
+            filename: p.relative(p.join(leaf.root, leaf.relative),
                 from: targetFolder),
-            displayName:
-                GameItem.cleanDisplayName(installation.artifact.displayName),
+            displayName: GameItem.cleanDisplayName(leaf.artifact.displayName),
             url: '',
-            remoteArtifact: installation.artifact));
+            remoteArtifact: leaf.artifact));
       }
     }
     return filtered;

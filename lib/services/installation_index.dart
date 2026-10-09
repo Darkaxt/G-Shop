@@ -68,7 +68,88 @@ class InstallationIndex {
         }
       }
     }
-    return InstallationSnapshot._(targets, published, installed);
+    final observed = verifyInstalled
+        ? await _observedCopies(scope, excluded: targets)
+        : (aliases: <String, JournaledByteObservation>{}, current: <String>{});
+    final copies = <String, JournaledByteObservation>{};
+    final aliases = <String, RemoteArtifact>{};
+    for (final entry in observed.aliases.entries) {
+      aliases[entry.key] = entry.value.observation.artifact;
+      // _observedCopies retains missing paths as historical aliases only.
+      if (observed.current.contains(entry.key)) copies[entry.key] = entry.value;
+    }
+    return InstallationSnapshot._(
+        targets, published, installed, copies, aliases);
+  }
+
+  Future<({Map<String, JournaledByteObservation> aliases, Set<String> current})>
+      _observedCopies(String root,
+          {Set<String>? excluded, String? artifactKey}) async {
+    final reserved = excluded ?? <String>{};
+    if (excluded == null) {
+      await for (final target in journal.reservedTargets()) {
+        final path = _path(p.join(target.root, target.relativePath));
+        if (installationPathsOverlap(root, path)) reserved.add(path);
+      }
+    }
+    final claims = InstallationPathClaims(reserved);
+    final candidates = <String, List<JournaledByteObservation>>{};
+    for (final recordedRoot in await journal.byteObservationRoots()) {
+      if (!installationPathsOverlap(root, recordedRoot)) continue;
+      final selectedPaths = <String>{};
+      if (artifactKey != null) {
+        await for (final saved in journal.byteObservationsInRoot(recordedRoot,
+            artifactKey: artifactKey)) {
+          selectedPaths.add(saved.observation.relativePath);
+        }
+      }
+      final streams = artifactKey == null
+          ? [journal.byteObservationsInRoot(recordedRoot)]
+          : [
+              for (final path in selectedPaths)
+                journal.byteObservationsInRoot(recordedRoot, relativePath: path)
+            ];
+      for (final stream in streams) {
+        await for (final saved in stream) {
+          final observation = saved.observation;
+          final path = _path(p.join(recordedRoot, observation.relativePath));
+          if (!installationPathsOverlap(root, path) || claims.overlaps(path)) {
+            continue;
+          }
+          if (await journal.targetOwner(
+                  destinationRoot: recordedRoot,
+                  relativePath: observation.relativePath) !=
+              null) {
+            continue;
+          }
+          candidates.putIfAbsent(path, () => []).add(saved);
+        }
+      }
+    }
+    final result = <String, JournaledByteObservation>{};
+    final current = <String>{};
+    for (final entry in candidates.entries) {
+      final matching = <JournaledByteObservation>[];
+      var present = false;
+      for (final saved in entry.value) {
+        final observation = saved.observation;
+        try {
+          final actual = await storage.inspectExisting(
+              destinationRoot: observation.destinationRoot,
+              relativePath: observation.relativePath);
+          if (actual == null || actual.matches(observation.localIdentity)) {
+            matching.add(saved);
+            present = actual != null;
+          }
+        } on OwnedStorageException {
+          // Inaccessible or redirected is not evidence of a usable or absent copy.
+        }
+      }
+      if (matching.length != 1) continue;
+      result[entry.key] = matching.single;
+      if (present) current.add(entry.key);
+    }
+    return (aliases: result, current: current);
   }
 
   /// A consumer request checks only matching artifact manifests. It never stats
@@ -99,6 +180,25 @@ class InstallationIndex {
         }
       }
     }
+    final copy = await resolveLocalCopy(artifact, root);
+    return copy == null
+        ? null
+        : _path(p.join(
+            copy.observation.destinationRoot, copy.observation.relativePath));
+  }
+
+  /// Current read-only evidence, never an installed/removable manifest.
+  Future<JournaledByteObservation?> resolveLocalCopy(
+      RemoteArtifact artifact, String root) async {
+    final observations =
+        await _observedCopies(root, artifactKey: artifact.id.key);
+    for (final entry in observations.aliases.entries) {
+      if (observations.current.contains(entry.key) &&
+          InstallationSnapshot.sameContent(
+              entry.value.observation.artifact, artifact)) {
+        return entry.value;
+      }
+    }
     return null;
   }
 
@@ -106,8 +206,10 @@ class InstallationIndex {
       TransferRecord record, InstalledArtifact? manifest,
       {String? bundleOwner}) async {
     const equality = DeepCollectionEquality();
-    if (['.zip', '.7z', '.rar'].any(record.relativePath.toLowerCase().endsWith) &&
-        !TransferRecord.supportsArchiveMapping(record.relativePath, record.archivePlatformId)) {
+    if (['.zip', '.7z', '.rar']
+            .any(record.relativePath.toLowerCase().endsWith) &&
+        !TransferRecord.supportsArchiveMapping(
+            record.relativePath, record.archivePlatformId)) {
       throw const OwnedStorageException('unsupported_archive');
     }
     if (record.lifecycle != TransferLifecycle.completed ||
@@ -161,22 +263,38 @@ class InstallationIndex {
 class InstallationSnapshot {
   final InstallationPathClaims _targets;
   final InstallationPathClaims _published;
+  final InstallationPathClaims _copies;
   final Map<String, List<MapEntry<String, InstalledArtifact>>> _byArtifact;
   final Map<String, List<MapEntry<String, InstalledArtifact>>> _byFoldedPath;
   final Map<String, InstalledArtifact> installed;
-  InstallationSnapshot._(Set<String> targets, Set<String> published,
-      Map<String, InstalledArtifact> installed)
+
+  /// Current verified read-only copies, deliberately NOT installed ownership.
+  final Map<String, JournaledByteObservation> localCopies;
+
+  /// Stable cache identities for matching or missing historical copies only.
+  /// A changed/inaccessible local path cannot supply an alias.
+  final Map<String, RemoteArtifact> legacyAliases;
+  InstallationSnapshot._(
+      Set<String> targets,
+      Set<String> published,
+      Map<String, InstalledArtifact> installed,
+      Map<String, JournaledByteObservation> localCopies,
+      Map<String, RemoteArtifact> legacyAliases)
       : _targets = InstallationPathClaims(targets),
         _published = InstallationPathClaims(published),
+        _copies = InstallationPathClaims(localCopies.keys),
         _byArtifact =
             groupBy(installed.entries, (entry) => entry.value.artifact.id.key),
         _byFoldedPath =
             groupBy(installed.entries, (entry) => entry.key.toLowerCase()),
-        installed = Map.unmodifiable(installed);
+        installed = Map.unmodifiable(installed),
+        localCopies = Map.unmodifiable(localCopies),
+        legacyAliases = Map.unmodifiable(legacyAliases);
 
   /// Managed paths never fall back to filename identity. A folder enclosing a
   /// managed member is not safe for legacy recursive sharing/removal either.
-  bool allowsLegacy(String path) => !_published.overlaps(path);
+  bool allowsLegacy(String path) =>
+      !_published.overlaps(path) && !_copies.overlaps(path);
   bool protects(String path) => _targets.overlaps(path);
 
   InstalledArtifact? atPath(String path) {
@@ -199,6 +317,11 @@ class InstallationSnapshot {
         const <MapEntry<String, InstalledArtifact>>[]) {
       if (sameContent(entry.value.artifact, artifact)) return entry.key;
     }
+    for (final entry in localCopies.entries) {
+      if (sameContent(entry.value.observation.artifact, artifact)) {
+        return entry.key;
+      }
+    }
     return null;
   }
 
@@ -215,6 +338,9 @@ class InstallationSnapshot {
         for (final game in games)
           if (atPath(p.join(root, game.filename)) case final manifest?)
             game.copyWith(remoteArtifact: manifest.artifact)
+          else if (localCopies[_path(p.join(root, game.filename))]
+              case final copy?)
+            game.copyWith(remoteArtifact: copy.observation.artifact)
           else if (allowsLegacy(p.join(root, game.filename)))
             game,
       ];

@@ -699,6 +699,12 @@ class LJa extends L {
   String get gameDetail_download => 'ダウンロード';
 
   @override
+  String get gameDetail_open => '開く';
+
+  @override
+  String get gameDetail_pressAOpen => 'Aで開く';
+
+  @override
   String get gameDetail_adding => '追加中...';
 
   @override

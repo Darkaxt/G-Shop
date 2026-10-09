@@ -12,7 +12,8 @@ import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-/** Validates one emulator-ready GG member without extraction or whole-ROM buffers.
+/** Validates one explicitly mapped Sega cartridge or N64 ZIP member without
+ * extraction or whole-ROM buffers.
  * Production callers pass only their already-pinned /proc/self/fd descriptor.
  * ZIP record layout: PKWARE APPNOTE 6.3.10, sections 4.3.7-4.3.16.
  */
@@ -22,14 +23,24 @@ final class OwnedGameGearZip {
     private static final int BUFFER = 65536;
 
     static java.util.Map<String, Object> validate(String descriptorPath) throws IOException {
-        return validate(descriptorPath, false);
+        return validate(descriptorPath, "gamegear");
     }
 
     static java.util.Map<String, Object> validateN64(String descriptorPath) throws IOException {
-        return validate(descriptorPath, true);
+        return validate(descriptorPath, "n64");
     }
 
-    private static java.util.Map<String, Object> validate(String descriptorPath, boolean n64) throws IOException {
+    static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
+        String extension;
+        switch (platform) {
+            case "gamegear": extension = ".gg"; break;
+            case "megadrive": extension = ".md"; break;
+            case "mastersystem": extension = ".sms"; break;
+            case "sg1000": extension = ".sg"; break;
+            case "n64": extension = null; break;
+            default: throw invalid();
+        }
+        boolean n64 = "n64".equals(platform);
         long limit = n64 ? OwnedN64SevenZip.ROM_LIMIT : MAX_MEMBER_BYTES;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
@@ -68,7 +79,7 @@ final class OwnedGameGearZip {
                         .onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
                         .decode(ByteBuffer.wrap(name)).toString();
             } catch (CharacterCodingException error) { throw invalid(); }
-            require((n64 ? OwnedN64SevenZip.safeName(decoded) : decoded.toLowerCase(Locale.ROOT).endsWith(".gg")) &&
+            require((n64 ? OwnedN64SevenZip.safeName(decoded) : decoded.toLowerCase(Locale.ROOT).endsWith(extension)) &&
                     !decoded.startsWith(".") && decoded.chars().noneMatch(c ->
                             c < 32 || c == 127 || c == '/' || c == '\\' || c == ':'));
             extras(central, 46 + nameLength, extraLength);

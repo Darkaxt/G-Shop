@@ -194,6 +194,7 @@ class _Native {
     final s = sessions[a['session']] ?? fail('closed');
     switch (call.method) {
       case 'ownedValidateGameGearZip':
+      case 'ownedValidateSegaZip':
       case 'ownedValidateN64SevenZip':
       case 'ownedValidateGameBoySevenZip':
       case 'ownedValidateGameBoyColorSevenZip':
@@ -337,14 +338,20 @@ void main() {
     expect(native.files['/roms/fixture.zip']!.bytes, payload);
     expect(result.archivePlatformId, 'gamegear');
   });
-  for (final (platform, extension) in [('n64', '7z'), ('n64', 'zip'), ('gb', '7z'), ('gbc', '7z'), ('gba', '7z')]) {
+  for (final (platform, extension) in [('n64', '7z'), ('n64', 'zip'), ('gb', '7z'), ('gbc', '7z'), ('gba', '7z'), ('megadrive', 'zip'), ('mastersystem', 'zip'), ('sg1000', 'zip')]) {
     test('$platform $extension validates before publication, recovery and offline reuse', () async {
       final name = 'fixture.$extension';
-      final method = platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
+      final method = const {'megadrive', 'mastersystem', 'sg1000'}.contains(platform) ? 'ownedValidateSegaZip' :
+          platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
           platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' :
           platform == 'gba' ? 'ownedValidateGameBoyAdvanceSevenZip' :
           extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
       await queue(source: artifact(name: name), name: name, archivePlatformId: platform);
+      native.before = (call) async {
+        if (call.method == 'ownedValidateSegaZip') {
+          expect((call.arguments as Map)['platformId'], platform);
+        }
+      };
       native.after = (call) async { if (call.method == 'ownedPublish') throw StateError('lost receipt'); };
       expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
       expect(native.methods.indexOf(method), lessThan(native.methods.indexOf('ownedPublish')));
@@ -1677,5 +1684,21 @@ void main() {
     expect(result.lifecycle, TransferLifecycle.awaitingAuthorization);
     expect(await installed(), isNull);
     expect(requests, isEmpty);
+  });
+  test('unavailable authorization service fails without requiring reconnection',
+      () async {
+    await queue();
+    revalidate = (_) async {
+      throw const DriveAuthorizationException(
+          DriveAuthorizationIssue.unavailable);
+    };
+    final result = await engine().start('transfer').result;
+    expect(result.lifecycle, TransferLifecycle.failed);
+    expect(result.errorCode, 'authorization_unavailable');
+    expect(await installed(), isNull);
+    expect(requests, isEmpty);
+    revalidate = (_) async {};
+    expect((await engine().start('transfer').result).lifecycle,
+        TransferLifecycle.completed);
   });
 }

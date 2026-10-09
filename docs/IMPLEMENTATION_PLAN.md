@@ -19,7 +19,136 @@ assigned to that named later stage: none of S7's one-time migration acceptance
 criteria depends on automatic ongoing rotation. Its final verification remains
 mandatory before overall completion; it must not open concurrent work in S7.
 
-Current S7 checkpoint (2026-10-07): root generation 1 is published, with no pending
+Current S7 checkpoint (2026-10-09, build 451): the selection-durability fixes,
+focused host checks, native grant/ZIP tests and subsequent debug assembly pass.
+Preserving installation independently matches the built APK, retaining config,
+nine private preferences, root and saved jobs. Normal Resume advances the same
+job 76 from 19,284 to 19,364 without sign-in. The 146 observed protected files
+match, but absent shared PPSSPP/private-save coverage remains a qualification,
+not full saved-data safety. Finish fresh traversal, required scoped/provider
+passes, defensible retention and reviewed migration. S7 alone is ACTIVE;
+S8-S11 remain NOT STARTED. See S7_ACCEPTANCE_RECONCILIATION.md.
+
+Earlier S7 checkpoint (2026-10-09, build 436): root generation 2 has published
+(active=2, pending=null). The preserving installed update matches the built APK;
+normal Resume advances immutable job 76 to 18,548 requests / 25,016 pending / 701
+rated without sign-in. Normal PSP Best-25 filtering completes after the bounded
+catalogue-read correction, retaining 35/334 ranked / 25 matching / Provisional.
+Protected-file digest sets match but unstable config captures/unreadable PPSSPP
+do not pass a full saved-data gate. See S7_RANKING_CATALOGUE_READS.md. Finish
+fresh coverage/scoped passes, defensible retention/current-cloud checks and
+reviewed journaled migration. S7 alone is ACTIVE; S8-S11 NOT STARTED.
+
+Earlier S7 checkpoint (2026-10-08, build 431): preserving update and normal shared
+recovery pass; the same saved job 76 resumes from 13,093 to 13,099 lookups without
+sign-in or recapture. Normal Library reaches its dashboard/console tabs. The
+folder-only recursive work-count contract and native indexed-query check pass:
+500-row DS/NES/SG-1000 pages take 43/141/10 ms. Cold startup remains slow across
+other work; do not claim whole-startup closure from this query correction. Continue full
+fresh coverage, defensible retention, remaining format/current-cloud gates and
+reviewed migration. S7 alone is ACTIVE; S8-S11 remain NOT STARTED.
+
+Earlier S7 checkpoint (2026-10-08, build 428): normal Library presents one installed
+card for the original byte-verified unmanaged SG-1000 ZIP. Fresh Verify bytes,
+OPEN through the exact observation-bound RetroArch URI and actual animated title
+screen are verified without adoption/removal; returning retains the single card.
+Original ROM and all 49 save/state/configuration hashes match. The notification
+regression is host-tested; no deliberate native disappearance or two-to-one
+transition is claimed. Continue the existing full metadata pass, defensible
+retention, remaining recovery/current-cloud gates and reviewed migration. Cold
+loading remains slow. S7 alone is ACTIVE; S8-S11 remain NOT STARTED.
+
+Earlier S7 checkpoint (2026-10-08, build 423): SG-1000's normal online/cold-offline/
+removal/identical usable restore cycle passed. Its original target/full config,
+original ROM and save/state/emulator-config baselines are restored/unchanged;
+all expendable test artifacts are removed. Hotel portal authorization restored
+Google connectivity without resetting an account. Retryable service failures are
+now distinguished from real consent requirements in the queue, with focused host
+regressions. Build 423 passed through the shared gate and installed preserving
+signer/configuration/protected storage. Normal Resume continued job 76 from
+12,720 to 12,725 requests / 31,149 pending without a chooser. Continue that saved
+full pass and the required local-first, recovery, defensible retention/current
+cloud and reviewed migration gates. S7 alone is ACTIVE; S8-S11 are NOT STARTED.
+
+Earlier S7 checkpoint (2026-10-08, build 421): the queued build completed through
+the shared gate with the low-memory profile verified and no memory failure.
+Signer-preserving installation matches the built APK and preserved the immediate
+pre-update config/protected-storage digests. Normal UI confirmed job 76 Paused at
+12,720 requested / 31,154 pending / 383 rated. The new Library populated Dashboard
+25 / All 44,685 / Installed 2,855; SG-1000 shows one installed Bank Panic card.
+Normal SG-1000 ZIP download/checksum and actual emulator title-screen boot pass.
+Finish its cold-offline/removal/identical-restore cycle and restore the original
+target, then resume the same metadata job. microG's separate unreachable-host
+crash and hotel packet filtering are recorded in the status ledger; credentials
+were not reset. S7 alone remains ACTIVE; all remaining acceptance gates stay open.
+
+Historical S7 checkpoint (2026-10-08, startup lifecycle correction): build 415
+terminated on an unquoted target-property invocation error; corrected build 416
+passed through the shared gate with the required resource profile and installed
+with the same signer/config/protected storage. Saved job 76 was paused for that
+update, then normal Resume advanced to 12,699 requested / 31,174 pending / 383
+rated without sign-in. It is Running; join Pause before the next installation.
+SG-1000's empty isolated target is prepared,
+not yet recovery-verified. Native Library loading remains incomplete: read-only
+VM evidence identifies an invalidated, unlistened selection-migration provider
+whose future remains pending after SQLite is idle. The deterministic regression
+fails before a lifecycle-bound screen subscription and passes afterward, with
+affected discovery/continuity checks and scoped analysis preserved. Shared-gate
+ticket 421 / retained session 19661 is waiting for its native build. Next verify
+this correction on the Thor, then finish SG-1000 recovery and continue the same
+metadata job. SQL
+startup latency is separate evidence, not permission for speculative rewrites.
+Full coverage, defensible retention, exact local-first proof and reviewed migration
+still prevent S7 closure. S8-S11 remain NOT STARTED.
+
+Historical S7 checkpoint (2026-10-08, after Master System recovery): the `.sms` ZIP
+normal online/cold-offline/identical-restore cycle passed. The owned test copy,
+empty test destination and private captures are removed; full original config,
+original ROM and all 49 recorded save/state/emulator-config checksums match.
+SG-1000 recovery, fresh coverage, defensible retention and reviewed migration
+remain required. The prior library process produced an input-focus ANR; its
+exact cause is not established. A new launch's CPU profile identifies unnecessary
+collection-wide artwork consumption. Regression-first checks now verify no game
+artwork/score reads on the dashboard and console-scoped reads while browsing,
+with existing ranking/filter/shelf behavior preserved. Scoped analysis passes.
+Native verification is pending the single shared-gate request 415 / session
+40791; do not claim gate acquisition or an installed fix before its result.
+Normal Resume continued saved job 76 without a chooser: 12,531 -> 12,542
+lookups / 31,333 pending, 374 rated. It is Running while request 415 waits;
+join normal Pause before installation. S7 remains the sole ACTIVE stage;
+S8-S11 remain NOT STARTED.
+
+Current S7 recovery checkpoint (2026-10-08 evening): the normal Mega Drive `.md`
+ZIP online/cold-offline/removal/identical-usable-restore cycle passed on the Thor.
+The isolated test is removed, the normal destination/full config are restored,
+and original ROM/save/state/emulator-config checksums are unchanged. Same saved
+metadata job 76 resumed without sign-in and advanced to 12,289 lookups / 31,599
+pending. Build 408 / session 68644 completed with the shared gate acquired and
+the low-memory profile verified; the signer-preserving owner update matches the
+built APK and preserves configuration/protected storage. Normal Resume on that
+update advanced the same job from 12,359 to 12,361 lookups / 31,525 pending with
+no sign-in. The Sega launch-label correction is now verified in the installed
+normal Master System owned-copy menu, with actual online Genesis Plus GX boot.
+The cold-offline/restore portions of that console's cycle remain pending. See
+`S7_SEGA_RECOVERY.md`. Other required format/local-first, metadata, retention and
+migration acceptance remain open in sole ACTIVE S7; S8-S11 remain NOT STARTED.
+
+Earlier S7 checkpoint (2026-10-08 evening): normal/native instrumentation builds
+389/391 passed and the normal owner update preserved configuration and protected
+storage. Native read-only provider proof passed, including observed Sega ZIP/RVZ
+copies. Normal saved-job traversal has progressed past the captured source-change
+failure with the installed worker correction. DRIVE-01 cold-start continuity was
+incorrectly disabled by the account adapter; its focused correction passes host
+checks, and build ticket 400 plus normal Thor cold-process/same-APK replacement
+checks pass without credential/account UI after one initial explicit connection
+seeds the reference the old version did not retain. The same saved job 76 is
+running with advancing counters, not a new collection snapshot. Full coverage, normal
+format/local-first recovery, defensible Top-25 retention and reviewed migration
+remain required. S7 alone is ACTIVE; S8-S11 remain NOT STARTED. See the status and
+acceptance ledgers for current evidence; older queued-build checkpoints below are
+historical, not current blockers.
+
+Earlier S7 checkpoint (2026-10-07): root generation 1 is published, with no pending
 generation. Historical unpublished-root checkpoints below are superseded by the
 fresh status/reconciliation evidence. Normal mapping Save added 32 exact observed
 top-level console mappings while preserving all seven source objects and the six
@@ -994,6 +1123,29 @@ private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
 
+Current internal remediation (2026-10-09): update-436 process 7116 ended with
+an Android input-dispatch ANR after sleep. Persisted job-76 `running` is not live
+progress. Normal Library profiling traces repeated per-item linear scans of the
+console installation list; the regression-first exact-identity index now passes
+focused host checks. Gated assembly 442 and preserving installation now pass;
+normal Library/sleep/wake delivers focus loss without recurrence in the observed
+same-process workflow, and job 76 advances 18,620 -> 18,744 without sign-in.
+Published generation and immutable saved capture are preserved. Evidence and
+limits: S7_LIBRARY_AVAILABILITY_INDEX.md. Full fresh metadata and migration remain
+current-stage work, not an external blocker or later-stage deferral.
+
+Update sequencing correction (2026-10-09): publication is still required for
+S7 closure, but is not a prerequisite to a preserving APK replacement. The
+existing catalogue commits entries and cursors atomically and resumes its pending
+generation with `restart=false`; the earlier native generation-1 update/resume
+evidence confirms this boundary. After focused checkpoint verification, join
+normal Pause for saved metadata job 76, record the immediate source/protected
+storage and pending-generation baseline, and install verified APK 435 preserving
+the signer and app data. Verify the same pending generation/cursor inventory and
+saved job before normal Refresh/Resume; never reset or recapture either job.
+This supersedes the publication-before-update scheduling instruction below,
+not publication, metadata, ranking, recovery or migration acceptance criteria.
+
 Current closure checkpoint (2026-10-09): exact nested local archive lookup and
 byte-observation integration are committed as `14eb35b`. Focused archive/boundary
 checks and debug assembly 435 pass; normal device verification is still required.
@@ -1010,12 +1162,14 @@ reproduce those counts. PS1 currently has no automatic CD-CHD raw identifier
 route; the DVD-only header must remain rejected for CDs. Resolve the actual
 META-03 identity-evidence boundary, not the symptom with another title-only
 scrape. Evidence and limitations are in S7_ACCEPTANCE_RECONCILIATION.md.
+Preserve the provisional-retention guard: incomplete identity resolution can
+merge canonical groups, so a current rank above 25 is not a fixed-set proof.
 
 | Remaining acceptance work | Current evidence / next required result |
 | --- | --- |
-| Stable current root publication | Generation 2 is progressing in owner PID 1335; 7,983 pages observed. Join its actual completion before replacing the app. Do not reset the generation. |
-| Normal native mapping/policy/nested-reader integration | Build 435 is verified but uninstalled. At the joined boundary, preserve signing/configuration/protected data, verify the normal editor and explicit DSi addition, cached Wii/Wii U policy, and ordinary nested identification. |
-| Fresh collection metadata | Same saved ScreenScraper job 76 is running: 14,264 requested, 29,529 pending at the observation. Finish its immutable capture, then required scoped Wii/DSi and aggregate-score work through normal provider controls. No terminal outcome rewrites or replacement capture. |
+| Stable current root publication | COMPLETE: generation 2 is published, active=2/pending=null/next=3. Preserving update 436 retains it; no reset traversal. |
+| Normal native mapping/policy/nested-reader integration | APK 435 preservation and explicit DSi mapping pass. Normal Wii/Wii U Best-25 reports truthful zero/provisional coverage after the completed policy rebuild; two ordinary nested GBA raw bindings match exact container observations. This execution check passes, not full coverage or removal authority. See S7_NATIVE_POLICY_AND_NESTED_PROOF.md. |
+| Fresh collection metadata | Same immutable ScreenScraper job 76 resumed without sign-in after provider unavailability: 18,548 requested / 25,016 pending / 701 rated. Finish its capture, then required scoped Wii/DSi and aggregate-score work through normal provider controls. No terminal outcome rewrites or replacement capture. |
 | Defensible per-console retained games | Use current canonical identities and supported overall scores; incomplete rankings preserve unresolved games and do not grant deletion. Full provider traversal alone is not a defensible Top-25. |
 | Reviewed migration | Revalidate exact local/cloud bytes and applicable tested restore routes, review the private keep/remove/preserve manifest and journal exact eligible removals; verify retained games, free space, restore and save safety. |
 
@@ -1076,9 +1230,35 @@ The saved 44,204 members/requests/outcomes and full configuration hashes match
 before/after the preserving debug update. This closes only the resource boundary;
 S7 remains ACTIVE and no SD removal follows.
 
-Status: ACTIVE (2026-10-05), the sole ACTIVE stage after S6 closure `ea63586`.
+Status: ACTIVE (2026-10-08), the sole ACTIVE stage. The user corrected the
+previous classification: ordinary Gradle FIFO/mutex waiting is ongoing execution,
+not a reason to park the implementation or stop waiting. S0-S6 remain COMPLETE;
+S8-S11 remain NOT STARTED with their existing acceptance dependencies.
+
+The original request 81299 / ticket 387 previously waited behind GameNative.
+On resumption its tool session is unknown and supervising PID 78196 is confirmed
+absent; the queue still records its old exact identity. No completion or gate
+acquisition result is available. Submit one replacement through the normal gate,
+letting that helper reclaim the proven-dead ticket; do not edit the queue, kill
+another build, steal a turn or claim the original request is still supervised.
+Wait on the new retained handle through native process/queue events. Current
+native single-card/local-first/provider and Sega ZIP proof, full fresh coverage,
+defensible retention, cloud recovery and reviewed migration remain unfinished.
 Current scope reconciliation and private-evidence boundaries are recorded in
 `S7_ACCEPTANCE_RECONCILIATION.md`.
+
+Single-identity integration route (2026-10-08): retain complete-container
+equivalence and post-read native identity from the normal metadata archive read
+in the existing historical observation journal, without claiming ownership.
+Current copy validation, shared card projection and atomic selection/favorite
+continuity have host verification. Normal Library host checks retain one card
+through disappearance/restoration without changing the source cache or ownership.
+The exact read-only emulator grant and Open primary action are implemented;
+native compile/provider/emulator proof remains required, not delivered by host
+checks. Keep owned removal strictly manifest-based. Verify one normal Thor
+linked card/local-first workflow before expanding the proof population.
+This is required S7 work, not a tracked deferral
+or a replacement for full fresh coverage and migration acceptance.
 
 Verified S7 GC RVZ recovery (2026-10-07): Dolphin's launcher finishes before
 emulation reads the URI, invalidating the intent-owned read grant. Retain the
@@ -1196,7 +1376,6 @@ restoration/removal support and does not authorize speculative NES/SNES expansio
   normal DSi cloud/local mapping and scoped pass are still S7 work. Preserve
   existing mappings and DSi's distinct identity. Do not expand saved job 76 or
   infer archive restoration/removal eligibility from metadata support.
-
   The saved 44,204-item ScreenScraper job 76 predates the subsequently verified
   Wii mapping. Complete a scoped Wii pass at a safe normal provider boundary;
   do not recreate or silently expand job 76. Reconcile the SD inventory's actual

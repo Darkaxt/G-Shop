@@ -35,7 +35,8 @@ class OwnedRomInstrumentation : Instrumentation() {
             } else {
                 exercise()
                 BundleProviderProof.exercise(targetContext)
-                report.putString("result", "PASS owned read, write denial, identity/ownership/publication/removal rejection; bundle ready/member grant/missing/member removal/ownership/stage/graph rejection")
+                ObservedCopyProviderProof.exercise(targetContext)
+                report.putString("result", "PASS owned read, write denial, identity/ownership/publication/removal rejection; bundle ready/member grant/missing/member removal/ownership/stage/graph rejection; exact observed copy read, write/mapping/version/reservation/identity/missing/superseded rejection without ownership")
             }
             finish(Activity.RESULT_OK, report)
         } catch (error: Throwable) {

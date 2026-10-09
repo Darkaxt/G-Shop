@@ -805,6 +805,37 @@ void main() {
     });
   }
 
+  for (final (platform, extension) in [('megadrive', 'md'), ('mastersystem', 'sms'), ('sg1000', 'sg')]) {
+    test('$platform normal jobs persist local Sega ZIP evidence across restart', () async {
+      final artifact = RemoteArtifact.fromJson({...remote('archive').toJson(),
+        'displayName': 'Game (USA).zip', 'displayPath': 'Game (USA).zip', 'canDownload': true});
+      await cache(platform, artifact.displayName, artifact: artifact);
+      var reads = 0;
+      final raw = MetadataRomIdentifier(kind: RomIdentifierKind.rawRom,
+          filename: 'Game.$extension', sizeBytes: 8192, md5: 'b' * 32, sha1: 'c' * 40);
+      jobs = MetadataRefreshJobs(Future.value(db), readArchiveIdentifier: (source, mapped, cancel) async {
+        expect(mapped, platform);
+        expect(source.toJson(), artifact.toJson());
+        reads++;
+        return raw;
+      });
+      final provider = _ReviewProvider();
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      await jobs.run(job.id, provider);
+      expect(provider.requests.single.romIdentifier?.toJson(), raw.toJson());
+      expect(reads, 1);
+      final edition = (await store.edition((await items(job.id)).single['edition_id'] as String))!;
+      expect(edition.tags, isEmpty, reason: 'Raw evidence cannot manufacture official classification');
+      expect(edition.evidence.singleWhere((e) => e.kind == 'rawRomIdentifier').source, 'driveLocalArchive');
+      final restarted = MetadataRefreshJobs(Future.value(db), readArchiveIdentifier: (_, __, ___) async {
+        fail('Unchanged raw evidence must survive restart');
+      });
+      final next = await restarted.createFromCatalogue(providerId: 'screenscraper');
+      await restarted.run(next.id, provider);
+      expect(provider.requests.last.romIdentifier?.toJson(), raw.toJson());
+    });
+  }
+
   test('archive changed during identification cannot publish raw evidence',
       () async {
     final artifact = RemoteArtifact.fromJson({
@@ -871,6 +902,72 @@ void main() {
     expect(report.state, 'paused'); expect(report.counts, {'pending': 1}); expect(provider.calls, 0);
     expect(jsonDecode((await items(job.id)).single['request_json'] as String)['romIdentifier'], isNull);
   });
+
+  for (final archive in [true, false]) {
+    test('changed Drive ${archive ? 'archive' : 'header'} source does not stall the saved collection', () async {
+      String? changedFile;
+      final reads = <String>[];
+      Future<void> identify(RemoteArtifact artifact) async {
+        reads.add(artifact.id.providerFileId);
+        if (artifact.id.providerFileId == changedFile) {
+          throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+        }
+      }
+      jobs = MetadataRefreshJobs(Future.value(db),
+          readArchiveIdentifier: (artifact, _, __) async {
+            await identify(artifact);
+            return null;
+          },
+          readRomHeader: (artifact, _, __) async {
+            await identify(artifact);
+            return null;
+          });
+      for (final name in ['First', 'Second']) {
+        final filename = '$name.${archive ? '7z' : 'chd'}';
+        final artifact = RemoteArtifact.fromJson({
+          ...remote(name).toJson(),
+          'displayName': filename,
+          'displayPath': filename,
+          'sizeBytes': 1024,
+          'canDownload': true,
+        });
+        await cache(archive ? 'n64' : 'psp', filename, artifact: artifact);
+      }
+      final job = await jobs.createFromCatalogue(providerId: 'screenscraper');
+      final captured = await items(job.id);
+      final changedEditionId = captured.first['edition_id'] as String;
+      final changedEdition = (await store.edition(changedEditionId))!;
+      changedFile = changedEdition.members.single.artifactId.providerFileId;
+      final provider = _ReviewProvider();
+
+      final result = await jobs.run(job.id, provider);
+
+      expect(result.state, 'completed');
+      expect(result.counts, {'identityChanged': 1, 'needsReview': 1});
+      expect(result.requested, 1);
+      expect(result.rated, 0);
+      expect(reads, hasLength(2));
+      expect(reads.toSet(), {'First', 'Second'});
+      expect(provider.requests.single.editionId, isNot(changedEditionId));
+      expect(provider.requests.single.romIdentifier, isNull);
+      final completed = await items(job.id);
+      expect(completed.first, {...captured.first, 'status': 'identityChanged'});
+      expect((await store.edition(changedEditionId))!.toJson(),
+          changedEdition.toJson(),
+          reason: 'Reject stale source evidence without rebinding or classifying it');
+      expect((await db.query('metadata_refresh_jobs')), hasLength(1));
+
+      final restarted = MetadataRefreshJobs(Future.value(db),
+          readArchiveIdentifier: (_, __, ___) async {
+            fail('Terminal captured items must not be re-read after restart');
+          }, readRomHeader: (_, __, ___) async {
+            fail('Terminal captured items must not be re-read after restart');
+          });
+      expect((await restarted.run(job.id, provider)).counts, result.counts);
+      expect(provider.calls, 1);
+      expect((await db.query('metadata_refresh_jobs')), hasLength(1));
+    });
+  }
 
   for (final archive in [true, false]) {
     for (final transfer in [false, true]) {
@@ -948,6 +1045,13 @@ void main() {
       if (cancelOwner &&
           (error is DriveApiException && error.issue == DriveApiIssue.cancelled ||
               error is DriveTransferException && error.issue == DriveTransferIssue.cancelled)) {
+        continue;
+      }
+      // The collection-continuation regressions above cover an uncancelled
+      // source change. A different failure racing with Pause must still escape.
+      if (!cancelOwner &&
+          error is DriveTransferException &&
+          error.issue == DriveTransferIssue.sourceChanged) {
         continue;
       }
       test('identifier read preserves ${error.runtimeType}:$error '

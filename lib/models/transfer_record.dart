@@ -83,7 +83,7 @@ class TransferPublication {
 class TransferRecord {
   static bool supportsArchiveMapping(String path, String? platform) {
     final lower = path.toLowerCase();
-    return (platform == 'gamegear' && lower.endsWith('.zip')) ||
+    return (const {'gamegear', 'megadrive', 'mastersystem', 'sg1000'}.contains(platform) && lower.endsWith('.zip')) ||
         (const {'gb', 'gbc', 'gba', 'nes', 'snes'}.contains(platform) && lower.endsWith('.7z')) ||
         (platform == 'n64' && (lower.endsWith('.7z') || lower.endsWith('.zip')));
   }

@@ -170,6 +170,7 @@ final homeGridColumnsProvider =
 class FavoriteGamesNotifier extends StateNotifier<List<String>> {
   final StorageService _storage;
   Set<String>? _pendingMigrationNames;
+  Future<void>? _migrationWork;
 
   FavoriteGamesNotifier(this._storage) : super(_storage.getFavorites()) {
     if (_storage.getFavoritesVersion() == 0 && state.isNotEmpty) {
@@ -178,11 +179,22 @@ class FavoriteGamesNotifier extends StateNotifier<List<String>> {
   }
 
   /// Maps old displayName-based favorites to filenames. Idempotent.
-  void migrateIfNeeded(List<GameItem> allGames) {
-    final pending = _pendingMigrationNames;
-    if (pending == null) return;
-    _pendingMigrationNames = null;
+  Future<void> migrateIfNeeded(List<GameItem> allGames) =>
+      _migrationWork ??= _migrateLegacyFavorites(allGames).then<void>((_) {},
+          onError: (Object error, StackTrace stack) {
+        // A rejected write must not poison the next normal recovery attempt.
+        _migrationWork = null;
+        Error.throwWithStackTrace(error, stack);
+      });
 
+  Future<void> _migrateLegacyFavorites(List<GameItem> allGames) async {
+    final pending = _pendingMigrationNames;
+    if (pending == null) {
+      if (_storage.getFavoritesVersion() == 0) {
+        await _storage.setFavoritesVersion(1);
+      }
+      return;
+    }
     // Build displayName → filenames map
     final nameToFilenames = <String, List<String>>{};
     for (final game in allGames) {
@@ -193,22 +205,33 @@ class FavoriteGamesNotifier extends StateNotifier<List<String>> {
     }
 
     final migrated = <String>{};
+    final currentKeys = allGames.map((game) => game.selectionKey).toSet();
     for (final oldName in pending) {
       final filenames = nameToFilenames[oldName];
-      if (filenames != null) {
+      if (currentKeys.contains(oldName) || filenames == null) {
+        // Keep exact keys and unresolved historical selections; a missing
+        // catalogue member is not authorization to discard user preferences.
+        migrated.add(oldName);
+      } else {
         migrated.addAll(filenames);
       }
     }
 
-    _storage.setFavorites(migrated.toList());
-    _storage.setFavoritesVersion(1);
+    await _storage.setFavorites(migrated.toList());
+    await _storage.setFavoritesVersion(1);
+    _pendingMigrationNames = null;
     state = migrated.toList();
   }
 
-  void toggleFavorite(String filename) {
-    _storage.toggleFavorite(filename);
-    state = _storage.getFavorites();
+  Future<void> toggleFavorite(String filename) async {
+    state = state.contains(filename)
+        ? state.where((key) => key != filename).toList()
+        : [...state, filename];
+    await _storage.toggleFavorite(filename);
+    if (mounted) state = _storage.getFavorites();
   }
+
+  void reloadSelections() => state = _storage.getFavorites();
 
   bool isFavorite(String filename) {
     return state.contains(filename);

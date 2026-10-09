@@ -6,6 +6,26 @@ import 'package:flutter_test/flutter_test.dart';
 // Dolphin 2606 finishes MainActivity before EmulationActivity opens the ROM, so
 // an intent-owned grant alone has already been revoked at the read boundary.
 void main() {
+  test('Sega cartridge launch menus name RetroArch rather than Dolphin', () {
+    final source = File('lib/features/game_detail/game_detail_screen.dart')
+        .readAsStringSync();
+    final retroArchMenu = RegExp(
+      r"label: const \{([^}]+)\}\.contains\(widget\.system\.id\)\s*\? 'Open in RetroArch'",
+    ).firstMatch(source);
+    expect(retroArchMenu, isNotNull);
+    final consoles = RegExp(r"'([^']+)'")
+        .allMatches(retroArchMenu!.group(1)!)
+        .map((match) => match.group(1)!)
+        .toSet();
+    expect(consoles, containsAll(['megadrive', 'mastersystem', 'sg1000']));
+    expect(consoles.intersection({'gc', 'wii', 'psp', 'ps2', 'wiiu'}), isEmpty);
+  });
+  test('read-only local inspection reaches the native storage dispatcher', () {
+    final source =
+        File('android/app/src/main/kotlin/com/retro/rshop/MainActivity.kt')
+            .readAsStringSync();
+    expect(source, contains('call.method == "localCopyInspect"'));
+  });
   test('Dolphin exact read grant survives its launcher activity finishing', () {
     final source = File(
       'android/app/src/main/kotlin/com/retro/rshop/OwnedStorageService.kt',

@@ -63,7 +63,12 @@ class TransferJournalSchema {
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_migration_byte_target
       ON migration_byte_observations(artifact_key, destination_root,
         relative_path, observation_id DESC)''');
+    await installByteObservationRootIndex(db);
   }
+
+  static Future<void> installByteObservationRootIndex(DatabaseExecutor db) =>
+      db.execute('''CREATE INDEX IF NOT EXISTS idx_migration_byte_root
+        ON migration_byte_observations(destination_root, observation_id)''');
 
   static Future<void> installReplacements(DatabaseExecutor db) async {
     await db.execute('''CREATE TABLE IF NOT EXISTS transfer_replacements (
@@ -103,6 +108,13 @@ class TransferJournalSchema {
   }
 }
 
+/// A journal identity for historical byte evidence, never an installation ID.
+class JournaledByteObservation {
+  final int id;
+  final DriveLocalCloudObservation observation;
+  const JournaledByteObservation(this.id, this.observation);
+}
+
 /// Durable state only: this class performs no filesystem operations and never
 /// infers publication or completion from a filename's existence.
 class TransferJournal {
@@ -122,35 +134,50 @@ class TransferJournal {
   }) async {
     final identity = observation.localIdentity;
     final installation = InstalledArtifact(
-        id: 'installation-$id', transferId: id, artifact: observation.artifact,
+        id: 'installation-$id',
+        transferId: id,
+        artifact: observation.artifact,
         destinationRoot: observation.destinationRoot,
-        relativePath: observation.relativePath, sizeBytes: observation.sizeBytes,
-        verifiedChecksums: observation.checksums, fileIdentity: identity);
+        relativePath: observation.relativePath,
+        sizeBytes: observation.sizeBytes,
+        verifiedChecksums: observation.checksums,
+        fileIdentity: identity);
     final record = TransferRecord(
-        id: id, artifact: observation.artifact,
+        id: id,
+        artifact: observation.artifact,
         destinationRoot: observation.destinationRoot,
-        relativePath: observation.relativePath, stagePath: stagePath,
+        relativePath: observation.relativePath,
+        stagePath: stagePath,
         archivePlatformId: archivePlatformId,
         durableOffset: observation.sizeBytes,
-        lifecycle: TransferLifecycle.completed, stageRetired: true,
+        lifecycle: TransferLifecycle.completed,
+        stageRetired: true,
         verifiedChecksums: observation.checksums,
-        publication: TransferPublication(method: PublicationMethod.adopt,
-            sourceIdentity: identity, destinationIdentity: identity,
+        publication: TransferPublication(
+            method: PublicationMethod.adopt,
+            sourceIdentity: identity,
+            destinationIdentity: identity,
             confirmed: true));
     _requireMatchingInstallation(record, installation);
     final db = await _database;
     return db.transaction((txn) async {
       checkCancellation();
       if (await _transfer(txn, id) != null ||
-          await _targetOwner(txn, record.destinationRoot, record.relativePath) != null ||
-          (await txn.query('installed_artifacts', columns: ['installation_id'],
-              where: 'destination_root = ? AND relative_path = ?',
-              whereArgs: [record.destinationRoot, record.relativePath], limit: 1)).isNotEmpty) {
+          await _targetOwner(
+                  txn, record.destinationRoot, record.relativePath) !=
+              null ||
+          (await txn.query('installed_artifacts',
+                  columns: ['installation_id'],
+                  where: 'destination_root = ? AND relative_path = ?',
+                  whereArgs: [record.destinationRoot, record.relativePath],
+                  limit: 1))
+              .isNotEmpty) {
         throw StateError('Adoption target already has an owner');
       }
       await txn.insert('transfer_records', _transferValues(record));
       await txn.insert('installed_artifacts', {
-        'installation_id': installation.id, 'transfer_id': id,
+        'installation_id': installation.id,
+        'transfer_id': id,
         'destination_root': record.destinationRoot,
         'relative_path': record.relativePath,
         'record_json': jsonEncode(installation.toJson()),
@@ -158,7 +185,8 @@ class TransferJournal {
       await txn.insert('transfer_target_owners', {
         'destination_root': record.destinationRoot,
         'relative_path': record.relativePath,
-        'transfer_id': id, 'installation_id': installation.id,
+        'transfer_id': id,
+        'installation_id': installation.id,
       });
       // Same commit linearization contract as ordinary installation completion.
       checkCancellation();
@@ -210,6 +238,97 @@ class TransferJournal {
       throw const FormatException('Byte observation binding changed');
     }
     return saved;
+  }
+
+  Future<List<String>> byteObservationRoots() async =>
+      (await (await _database).rawQuery(
+              'SELECT DISTINCT destination_root FROM migration_byte_observations'))
+          .map((row) => row['destination_root'] as String)
+          .toList();
+
+  /// Minimal ownership-path projection, without decoding transfer payloads or
+  /// statting unrelated ROMs. The composite primary key bounds each bridge page.
+  Stream<({String root, String relativePath})> reservedTargets() async* {
+    final db = await _database;
+    String? afterRoot, afterPath;
+    while (true) {
+      final rows = await db.rawQuery('''SELECT destination_root, relative_path
+          FROM transfer_target_owners
+          ${afterRoot == null ? '' : 'WHERE destination_root > ? OR (destination_root = ? AND relative_path > ?)'}
+          ORDER BY destination_root, relative_path LIMIT 128''', [
+        if (afterRoot != null) ...[afterRoot, afterRoot, afterPath],
+      ]);
+      if (rows.isEmpty) return;
+      for (final row in rows) {
+        afterRoot = row['destination_root'] as String;
+        afterPath = row['relative_path'] as String;
+        yield (root: afterRoot, relativePath: afterPath);
+      }
+      if (rows.length < 128) return;
+    }
+  }
+
+  /// Latest evidence per exact artifact/path, keyset-paged over a fixed capture.
+  /// Payloads are bounded before crossing the SQLite bridge. Invalid evidence
+  /// cannot authorize a copy; it never affects independently owned installations.
+  Stream<JournaledByteObservation> byteObservationsInRoot(String root,
+      {String? artifactKey, String? relativePath, int batchSize = 128}) async* {
+    if (batchSize < 1 || batchSize > 128) {
+      throw ArgumentError('Invalid page size');
+    }
+    final db = await _database;
+    final upper = (await db.rawQuery(
+            'SELECT MAX(observation_id) AS id FROM migration_byte_observations '
+            'WHERE destination_root = ?',
+            [root]))
+        .single['id'] as int?;
+    if (upper == null) return;
+    var after = 0;
+    while (true) {
+      final rows = await db.rawQuery('''SELECT o.observation_id, o.artifact_key,
+          o.relative_path, CASE WHEN length(CAST(o.record_json AS BLOB)) <= 16384
+            THEN o.record_json END AS record_json
+          FROM migration_byte_observations o
+          WHERE o.destination_root = ? AND o.observation_id > ? AND o.observation_id <= ?
+            ${artifactKey == null ? '' : 'AND o.artifact_key = ?'}
+            ${relativePath == null ? '' : 'AND o.relative_path = ?'}
+            AND NOT EXISTS (SELECT 1 FROM migration_byte_observations newer
+              WHERE newer.artifact_key = o.artifact_key
+                AND newer.destination_root = o.destination_root
+                AND newer.relative_path = o.relative_path
+                AND newer.observation_id > o.observation_id AND newer.observation_id <= ?)
+          ORDER BY o.observation_id LIMIT ?''', [
+        root,
+        after,
+        upper,
+        if (artifactKey != null) artifactKey,
+        if (relativePath != null) relativePath,
+        upper,
+        batchSize,
+      ]);
+      if (rows.isEmpty) return;
+      for (final row in rows) {
+        after = row['observation_id'] as int;
+        if (row['record_json'] == null) continue;
+        try {
+          final saved = DriveLocalCloudObservation.fromJson(
+              (jsonDecode(row['record_json'] as String) as Map)
+                  .cast<String, dynamic>());
+          if (saved.artifact.id.key != row['artifact_key'] ||
+              saved.destinationRoot != root ||
+              saved.relativePath != row['relative_path']) {
+            continue;
+          }
+          yield JournaledByteObservation(after, saved);
+        } on FormatException {
+          continue;
+        } on ArgumentError {
+          continue;
+        } on TypeError {
+          continue;
+        }
+      }
+    }
   }
 
   Future<OwnedRemovalRecord> beginRemoval(

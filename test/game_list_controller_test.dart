@@ -175,6 +175,7 @@ Future<void> waitUntilLoaded(GameListController controller) {
       completion.complete();
     }
   }
+
   controller.addListener(onStateChanged);
   onStateChanged();
   return completion.future;
@@ -218,8 +219,34 @@ Future<({
 // ---------------------------------------------------------------------------
 
 void main() {
+  test(
+      'verified local/cloud projection is one console selection and reverses for changed bytes',
+      () async {
+    final remote = exactGame('file').copyWith(
+        providerConfig:
+            const ProviderConfig(type: ProviderType.drive, priority: 0));
+    final local = _game('Old.7z', displayName: 'Old');
+    final setup =
+        await createController(games: [local, remote], installedFilenames: {});
+    addTearDown(setup.controller.dispose);
+    final controller = setup.controller;
+    final artifact = remote.remoteArtifact!;
+    controller.applyInstalledFilenames({},
+        installedArtifacts: [artifact], localAliases: {'Old.7z': artifact});
+    expect(controller.state.allGroups, [remote.groupKey]);
+    expect(controller.state.groupedGames[remote.groupKey], [remote]);
+    expect(controller.state.installedCache[remote.groupKey], isTrue);
+    expect(controller.state.allGames, hasLength(2));
+    controller.applyInstalledFilenames({}, localAliases: {'Old.7z': artifact});
+    expect(controller.state.allGroups, [remote.groupKey]);
+    expect(controller.state.installedCache[remote.groupKey], isFalse);
+    controller.applyInstalledFilenames({}, localAliases: {});
+    expect(controller.state.allGroups, hasLength(2));
+  });
   for (final useCache in [false, true]) {
-    test('${useCache ? 'background' : 'foreground'} save notification waits for committed Drive snapshot', () async {
+    test(
+        '${useCache ? 'background' : 'foreground'} save notification waits for committed Drive snapshot',
+        () async {
       LibrarySyncService.clearFreshness();
       final db = ControlledCommitDatabaseService()
         ..hasCacheResult = useCache

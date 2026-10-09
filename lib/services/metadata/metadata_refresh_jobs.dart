@@ -964,12 +964,12 @@ class MetadataRefreshJobs {
       MetadataLookupRequest request,
       Map<String, Object?> identity,
       CancelToken cancel) async {
-    final archive = {'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes'}
+    final archive = {'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes', 'megadrive', 'mastersystem', 'sg1000'}
         .contains(request.platformId);
     if ((archive ? _readArchiveIdentifier == null : _readRomHeader == null) ||
         request.romIdentifier != null ||
         request.verifiedProviderGameId != null ||
-        !{'psp', 'ps2', 'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes'}
+        !{'psp', 'ps2', 'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes', 'megadrive', 'mastersystem', 'sg1000'}
             .contains(request.platformId)) {
       return null;
     }
@@ -1004,7 +1004,7 @@ class MetadataRefreshJobs {
         artifact.canDownload != true ||
         (artifact.sizeBytes ?? 0) < (archive ? 1 : 140) ||
         !(archive
-            ? {'n64', 'gamegear'}.contains(request.platformId) &&
+            ? {'n64', 'gamegear', 'megadrive', 'mastersystem', 'sg1000'}.contains(request.platformId) &&
                     artifact.displayName.toLowerCase().endsWith('.zip') ||
                 {'n64', 'gb', 'gbc', 'gba', 'nes', 'snes'}
                         .contains(request.platformId) &&
@@ -1035,6 +1035,27 @@ class MetadataRefreshJobs {
               error is DriveTransferException &&
                   error.issue == DriveTransferIssue.cancelled)) {
         throw const _RefreshCommitCancelled();
+      }
+      if (!cancel.isCancelled &&
+          error is DriveTransferException &&
+          error.issue == DriveTransferIssue.sourceChanged) {
+        // A live Drive boundary rejected this captured artifact. Do not bind its
+        // bytes or search against stale identity; finish only this item so other
+        // independent captured entries can continue without recreating the job.
+        return db.transaction((txn) async {
+          if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+          await txn.update(
+              'metadata_refresh_items', {'status': 'identityChanged'},
+              where: 'job_id = ? AND edition_id = ? AND status = ?',
+              whereArgs: [jobId, edition.id, 'pending']);
+          final changed = (await txn.query('metadata_refresh_items',
+                  where: 'job_id = ? AND edition_id = ?',
+                  whereArgs: [jobId, edition.id],
+                  limit: 1))
+              .single;
+          if (cancel.isCancelled) throw const _RefreshCommitCancelled();
+          return changed;
+        });
       }
       rethrow;
     }

@@ -463,6 +463,15 @@ class DriveRuntime {
     if (ext == '.zip' && mapped.length == 1 && mapped.contains('.gg')) {
       return 'gamegear';
     }
+    if (ext == '.zip' && mapped.length == 4 && mapped.containsAll(const {'.md', '.gen', '.bin', '.smd'})) {
+      return 'megadrive';
+    }
+    if (ext == '.zip' && mapped.length == 1 && mapped.contains('.sms')) {
+      return 'mastersystem';
+    }
+    if (ext == '.zip' && mapped.length == 2 && mapped.containsAll(const {'.sg', '.sc'})) {
+      return 'sg1000';
+    }
     if (ext == '.7z' && mapped.length == 1 && mapped.contains('.gb')) {
       return 'gb';
     }
@@ -616,6 +625,8 @@ class DriveRuntime {
         if (archivePlatformId != null) {
           if (archivePlatformId == 'gamegear') {
             await session.validateGameGearZip();
+          } else if (const {'megadrive', 'mastersystem', 'sg1000'}.contains(archivePlatformId)) {
+            await session.validateSegaZip(archivePlatformId);
           } else if (archivePlatformId == 'nes') {
             await session.validateNesSevenZip();
           } else if (archivePlatformId == 'snes') {
@@ -733,7 +744,7 @@ class DriveRuntime {
     final name = artifact.displayName;
     final extension = p.extension(name).toLowerCase();
     if (!(platformId == 'n64' && {'.7z', '.zip'}.contains(extension) ||
-            platformId == 'gamegear' && extension == '.zip' ||
+            {'gamegear', 'megadrive', 'mastersystem', 'sg1000'}.contains(platformId) && extension == '.zip' ||
             {'gb', 'gbc', 'gba', 'nes', 'snes'}.contains(platformId) && extension == '.7z') ||
         name.contains(RegExp(r'[/\\:\x00-\x1f\x7f]')) ||
         name.startsWith('.') ||
@@ -741,7 +752,7 @@ class DriveRuntime {
         artifact.sizeBytes! >
             (platformId == 'gba'
                         ? 32
-                        : {'gb', 'gbc', 'nes', 'snes'}.contains(platformId)
+                        : {'gb', 'gbc', 'nes', 'snes', 'gamegear', 'megadrive', 'mastersystem', 'sg1000'}.contains(platformId)
                             ? 16
                             : 128) *
                     1024 *
@@ -827,6 +838,9 @@ class DriveRuntime {
         'gba' => {'.gba'},
         'nes' => {'.nes'},
         'snes' => {'.sfc', '.smc'},
+        'megadrive' => {'.md'},
+        'mastersystem' => {'.sms'},
+        'sg1000' => {'.sg'},
         _ => {'.gg'},
       };
       if (raw.kind != RomIdentifierKind.rawRom ||
@@ -892,6 +906,8 @@ class DriveRuntime {
       try {
         if (record.archivePlatformId == 'gamegear') {
           await session.validateGameGearZip();
+        } else if (const {'megadrive', 'mastersystem', 'sg1000'}.contains(record.archivePlatformId)) {
+          await session.validateSegaZip(record.archivePlatformId!);
         } else if (record.archivePlatformId == 'nes') {
           await session.validateNesSevenZip();
         } else if (record.archivePlatformId == 'snes') {

@@ -31,6 +31,7 @@ import '../../utils/friendly_error.dart';
 import '../../services/input_debouncer.dart';
 import '../../services/thumbnail_service.dart';
 import '../../utils/game_metadata.dart';
+import '../../utils/game_merge_helper.dart';
 import '../../utils/image_helper.dart';
 import '../game_detail/game_detail_screen.dart';
 import '../game_list/logic/filter_state.dart';
@@ -76,8 +77,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   int get _visibleCount =>
       _isDashboard ? _consoleSummaries.length : _filteredGames.length;
   Iterable<LibraryEntry> get _scopedGames => _selectedConsole == null
-      ? _allGames
-      : _allGames.where((g) => g.systemSlug == _selectedConsole);
+      ? _visibleGames
+      : _visibleGames.where((g) => g.systemSlug == _selectedConsole);
   Set<String> get _rankingPlatforms => _selectedConsole == null
       ? _filters.selectedPlatforms
       : {_selectedConsole!};
@@ -109,6 +110,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   ProviderSubscription? _installedFilesSubscription;
   ProviderSubscription? _metadataSubscription;
   ProviderSubscription? _catalogueSubscription;
+  ProviderSubscription? _selectionSubscription;
   Future<void>? _dataWork;
   bool _reloadData = false;
   bool _loadedOnce = false;
@@ -244,6 +246,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   // Raw data from DB
   List<LibraryEntry> _allGames = [];
+  List<LibraryEntry> _visibleGames = [];
   InstalledFilesState _installationState = InstalledFilesState();
   Set<String> get _installedFiles => _installationState.all;
   Set<String> _favoriteIds = {};
@@ -377,6 +380,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     initSearch();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // A read of .future is not a subscription. Keep migration live while this
+      // screen awaits it so catalogue/installation invalidation rebuilds the
+      // provider and completes the pending future instead of stranding loading.
+      _selectionSubscription =
+          ref.listenManual(selectionContinuityProvider, (_, __) {});
       _loadData();
       _installedFilesSubscription =
           ref.listenManual(installedFilesProvider, (prev, next) {
@@ -384,7 +392,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         final data = next.value;
         if (data != null && !identical(data, _installationState)) {
           _installationState = data;
-          _applyFilters();
+          unawaited(_loadData());
         }
       });
       _metadataSubscription = ref.listenManual(gameDbChangedProvider, (_, __) {
@@ -408,6 +416,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _installedFilesSubscription?.close();
     _metadataSubscription?.close();
     _catalogueSubscription?.close();
+    _selectionSubscription?.close();
     _discoveryGeneration++;
     _debouncer.stopHold();
     _focusManager.dispose();
@@ -510,7 +519,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               remoteArtifact: e.remoteArtifact,
             ))
         .toList();
-    ref.read(favoriteGamesProvider.notifier).migrateIfNeeded(allGameItems);
+    await ref
+        .read(favoriteGamesProvider.notifier)
+        .migrateIfNeeded(allGameItems);
+    await ref.read(selectionContinuityProvider.future);
+    if (!mounted) return;
+    _shelves = ref.read(customShelvesProvider);
     final migratedFavorites = ref.read(favoriteGamesProvider).toSet();
 
     // Load RA matches for all systems represented in the library
@@ -564,7 +578,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _applyFilters() {
-    _consoleSummaries = LibraryConsoleSummary.fromEntries(_allGames,
+    final bySystem = <String, Map<GameItem, LibraryEntry>>{};
+    for (final entry in _allGames) {
+      final item = GameItem(
+          filename: entry.filename,
+          displayName: entry.displayName,
+          url: entry.url,
+          providerConfig: entry.providerConfig,
+          remoteArtifact: entry.remoteArtifact);
+      bySystem.putIfAbsent(entry.systemSlug, () => {})[item] = entry;
+    }
+    _visibleGames = [
+      for (final system in bySystem.entries)
+        for (final item in GameMergeHelper.coalesceVerifiedCopies(
+            system.value.keys.toList(),
+            _installationState.legacyAliasesBySystem[system.key] ?? const {}))
+          system.value[item]!,
+    ];
+    _consoleSummaries = LibraryConsoleSummary.fromEntries(_visibleGames,
         isInstalled: _isGameInstalled,
         favorites: _favoriteIds,
         installation: _installationState);
@@ -775,7 +806,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
 
-    final allGameRecords = _allGames
+    final allGameRecords = _visibleGames
         .map((g) => (
               filename: g.selectionKey,
               displayName: g.displayName,
@@ -785,7 +816,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     final filenames = shelf.resolveFilenames(allGameRecords);
     final lookup = <String, LibraryEntry>{};
-    for (final g in _allGames) {
+    for (final g in _visibleGames) {
       lookup[g.selectionKey] = g;
     }
 
@@ -1273,7 +1304,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // --- Shelf Management ---
 
   Future<void> _createShelf() async {
-    final allGameRecords = _allGames
+    final allGameRecords = _visibleGames
         .map((g) => (
               filename: g.selectionKey,
               displayName: g.displayName,
@@ -1300,7 +1331,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Future<void> _editShelf() async {
     final shelf = _activeShelf;
     if (shelf == null) return;
-    final allGameRecords = _allGames
+    final allGameRecords = _visibleGames
         .map((g) => (
               filename: g.selectionKey,
               displayName: g.displayName,
@@ -1576,10 +1607,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Widget build(BuildContext context) {
     final rs = context.rs;
     _showRatings = ref.watch(ratingOverlaysProvider);
-    _metadataCovers =
-        ref.watch(cachedMetadataCoversProvider('')).asData?.value ?? const {};
-    final ratings =
-        _showRatings ? ref.watch(cachedCoverRatingsProvider('')) : null;
+    // Dashboard metrics have no game artwork or score consumers. Console pages
+    // consume only their scope; an explicit global shortlist still uses ''.
+    final metadataScope = _selectedConsole ?? '';
+    _metadataCovers = _isDashboard
+        ? const {}
+        : ref.watch(cachedMetadataCoversProvider(metadataScope)).asData?.value ??
+            const {};
+    final ratings = _showRatings && !_isDashboard
+        ? ref.watch(cachedCoverRatingsProvider(metadataScope))
+        : null;
     _ratings = ratings == null || ratings.isLoading || ratings.hasError
         ? const {}
         : ratings.asData?.value ?? const {};

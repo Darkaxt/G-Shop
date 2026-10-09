@@ -224,6 +224,8 @@
   "gameDetail_viewAchievements": "\u5b9f\u7e3e\u3092\u898b\u308b",
   "gameDetail_versions": "\u30d0\u30fc\u30b8\u30e7\u30f3",
   "gameDetail_download": "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9",
+  "gameDetail_open": "開く",
+  "gameDetail_pressAOpen": "Aで開く",
   "gameDetail_adding": "\u8ffd\u52a0\u4e2d...",
   "gameDetail_queued": "待機中",
   "gameDetail_extracting": "展開中...",

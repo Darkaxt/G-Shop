@@ -717,6 +717,12 @@ class LDe extends L {
   String get gameDetail_download => 'DOWNLOAD';
 
   @override
+  String get gameDetail_open => 'ÖFFNEN';
+
+  @override
+  String get gameDetail_pressAOpen => 'A drücken zum Öffnen';
+
+  @override
   String get gameDetail_adding => 'WIRD HINZUGEFÜGT...';
 
   @override

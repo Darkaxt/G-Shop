@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/config/system_config.dart';
 import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/local_cloud_byte_observation.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/providers/game_providers.dart';
 import 'package:retro_eshop/providers/installed_files_provider.dart';
@@ -59,8 +60,10 @@ void main() {
     observed = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      expect(call.method, 'ownedInspect');
-      expect((call.arguments as Map)['published'], isTrue);
+      expect(call.method, anyOf('ownedInspect', 'localCopyInspect'));
+      if (call.method == 'ownedInspect') {
+        expect((call.arguments as Map)['published'], isTrue);
+      }
       return observed == null ? null : OwnedStorage.nativeIdentity(observed!);
     });
   });
@@ -195,5 +198,60 @@ void main() {
     expect(after.hasExactArtifact('psx', record.artifact), isFalse);
     expect(after.all, isEmpty);
     expect(after.managedBytesBySystem['psx'], 0);
+  });
+
+  test(
+      'read-only copies supply exact availability and durable cache aliases, not owned bytes',
+      () async {
+    final artifact = RemoteArtifact(
+        id: RemoteArtifactId(
+            providerId: 'drive',
+            sourceId: 'source',
+            accountId: 'account',
+            providerFileId: 'observed'),
+        parentId: 'folder',
+        displayName: filename,
+        displayPath: filename,
+        version: 'v1',
+        sizeBytes: 5,
+        providerChecksums: {'md5': hashes['md5']!},
+        canDownload: true);
+    observed = NativeFileIdentity(
+        volumeId: '1',
+        fileId: '42',
+        sizeBytes: 5,
+        modifiedAt: DateTime.utc(2026, 10, 8));
+    // The native namespace is Android-only. Use a channel fixture rather than
+    // weakening observation validation to accept a Windows path.
+    container.dispose();
+    container = ProviderContainer(overrides: [
+      bootstrappedConfigProvider
+          .overrideWith((ref) async => AppConfig(systems: [
+                SystemConfig(
+                    id: 'psx',
+                    name: 'PlayStation',
+                    targetFolder: '/roms/psx',
+                    providers: [])
+              ]))
+    ]);
+    await journal.saveByteObservation(DriveLocalCloudObservation(
+        artifact: artifact,
+        destinationRoot: '/roms/psx',
+        relativePath: filename,
+        localIdentity: observed!,
+        sizeBytes: 5,
+        checksums: hashes,
+        observedAt: DateTime.utc(2026, 10, 8)));
+    final before = await container.read(installedFilesProvider.future);
+    expect(before.hasExactArtifact('psx', artifact), isTrue);
+    expect(before.bySystem['psx'], isEmpty);
+    expect(before.managedBytesBySystem['psx'], 0);
+    expect(before.legacyAliasesBySystem['psx']?[filename]?.id, artifact.id);
+    observed = null;
+    container.invalidate(installedFilesProvider);
+    final missing = await container.read(installedFilesProvider.future);
+    expect(missing.hasExactArtifact('psx', artifact), isFalse);
+    expect(missing.legacyAliasesBySystem['psx']?[filename]?.id, artifact.id);
+    expect(await db.query('installed_artifacts'), isEmpty);
   });
 }

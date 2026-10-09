@@ -150,6 +150,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       queueManager: queueManager,
       onAddedToQueue: _fireAddToQueueAnimation,
     );
+    _controller!.onOpenLocal = _openOwnedRom;
     _controller!.addListener(_onControllerChanged);
 
     _romChangeSubscription =
@@ -352,7 +353,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (controller == null) return;
     if (controller.state.isOverlayOpen || controller.state.isSharing) return;
 
-    if (!controller.state.isVariantInstalled) {
+    if (!controller.canShareSelected) {
       showConsoleNotification(context,
           message: L.of(context).gameDetail_gameNotInstalled);
       ref.read(feedbackServiceProvider).cancel();
@@ -547,31 +548,63 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.raMatchKey];
     return [
-      if (!variant.isFolder && variant.remoteArtifact != null &&
+      if (!variant.isFolder &&
+          variant.remoteArtifact != null &&
           variant.providerConfig?.type == ProviderType.drive)
-        QuickMenuItem(label: 'Check local/cloud bytes',
+        QuickMenuItem(
+            label: 'Check local/cloud bytes',
             icon: Icons.fact_check_outlined,
             onSelect: () async {
               closeQuickMenu();
-              await showDialog<void>(context: context, barrierDismissible: false,
+              await showDialog<void>(
+                  context: context,
+                  barrierDismissible: false,
                   builder: (_) => DriveRecoveryReviewDialog(
                       platformId: widget.system.id,
                       config: variant.providerConfig!,
                       artifact: variant.remoteArtifact!,
-                      supportedExtensions: widget.system.romExtensions.where((extension) =>
-                          !(widget.system.multiFileExtensions ?? const []).contains(extension)).toSet(),
+                      supportedExtensions: widget.system.romExtensions
+                          .where((extension) =>
+                              !(widget.system.multiFileExtensions ?? const [])
+                                  .contains(extension))
+                          .toSet(),
                       destinationRoot: widget.targetFolder));
               if (mounted) await controller.checkInstallationStatus();
             }),
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(
-            label: const {'gamegear', 'n64', 'gb', 'gbc', 'gba', 'nes', 'snes', 'psx'}.contains(widget.system.id) ? 'Open in RetroArch' :
-                widget.system.id == 'psp' ? 'Open in PPSSPP' :
-                widget.system.id == 'ps2' ? 'Open in NetherSX2' :
-                widget.system.id == 'wiiu' ? 'Open in Cemu' : 'Open in Dolphin',
+            label: const {
+              'gamegear',
+              'megadrive',
+              'mastersystem',
+              'sg1000',
+              'n64',
+              'gb',
+              'gbc',
+              'gba',
+              'nes',
+              'snes',
+              'psx'
+            }.contains(widget.system.id)
+                ? 'Open in RetroArch'
+                : widget.system.id == 'psp'
+                    ? 'Open in PPSSPP'
+                    : widget.system.id == 'ps2'
+                        ? 'Open in NetherSX2'
+                        : widget.system.id == 'wiiu'
+                            ? 'Open in Cemu'
+                            : 'Open in Dolphin',
             icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
+      if (controller.state.isVariantInstalled && controller.canRemoveSelected)
+        QuickMenuItem(
+            label: L.of(context).gameDetail_delete,
+            icon: Icons.delete_outline_rounded,
+            onSelect: () async {
+              closeQuickMenu();
+              await controller.showDeleteDialog();
+            }),
       QuickMenuItem(
         label: isFavorite
             ? L.of(context).common_unfavorite
@@ -799,7 +832,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
 
     // Clamp horizontal indices
     final hasShelves = ref.watch(customShelvesProvider).isNotEmpty;
-    final isShareable = state.isVariantInstalled && !state.isSharing;
+    final isShareable = controller.canShareSelected;
     final disabledButtons = <int>{
       if (!isShareable) 1, // Share button index
       if (!hasShelves) 2, // Collection button index
@@ -937,7 +970,11 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                   onDelete: (index) {
                     controller.selectVariant(index);
                     controller.closeVariantPicker();
-                    controller.showDeleteDialog();
+                    if (controller.canOpenSelected) {
+                      _openOwnedRom();
+                    } else if (controller.canRemoveSelected) {
+                      controller.showDeleteDialog();
+                    }
                   },
                   onClose: () {
                     controller.closeVariantPicker();
@@ -1423,6 +1460,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     // For single-ROM: check the selected variant.
     // For multi-ROM: check all variants, pick the most "active" one.
     if (baseState == DownloadButtonState.download ||
+        baseState == DownloadButtonState.open ||
         baseState == DownloadButtonState.delete) {
       final variantsToCheck =
           isMultiRom ? widget.variants : [controller.selectedVariant];
@@ -1480,7 +1518,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         .contains(controller.selectedVariant.selectionKey);
 
     final hasShelves = ref.watch(customShelvesProvider).isNotEmpty;
-    final shareEnabled = state.isVariantInstalled && !state.isSharing;
+    final shareEnabled = controller.canShareSelected;
 
     return ActionButtonsRow.iconsOnly(
       accentColor: widget.system.textAccentColor,
@@ -1509,14 +1547,21 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           state.installedStatus.length == widget.variants.length &&
               state.installedStatus.values.every((v) => v);
       if (allInstalled) return DownloadButtonState.installed;
-      final hasActionableVariant = widget.variants.asMap().entries.any((entry) =>
-          state.installedStatus[entry.key] == true ||
-          (!widget.isLocalOnly && entry.value.hasDownloadSource));
+      final hasActionableVariant = widget.variants.asMap().entries.any(
+          (entry) =>
+              state.installedStatus[entry.key] == true ||
+              (!widget.isLocalOnly && entry.value.hasDownloadSource));
       return hasActionableVariant
           ? DownloadButtonState.download
           : DownloadButtonState.unavailable;
     }
-    if (state.isVariantInstalled) return DownloadButtonState.delete;
+    if (state.isVariantInstalled) {
+      return _controller!.canOpenSelected
+          ? DownloadButtonState.open
+          : _controller!.canRemoveSelected
+              ? DownloadButtonState.delete
+              : DownloadButtonState.unavailable;
+    }
     return !widget.isLocalOnly &&
             widget.variants[state.selectedIndex].hasDownloadSource
         ? DownloadButtonState.download
@@ -1527,7 +1572,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final l = L.of(context);
     if (state.isAddingToQueue) return '';
     if (isMultiRom) return l.gameDetail_pressAPickVersion;
-    if (state.isVariantInstalled) return l.gameDetail_pressAManage;
+    if (state.isVariantInstalled) {
+      return _controller!.canOpenSelected
+          ? l.gameDetail_pressAOpen
+          : _controller!.canRemoveSelected
+              ? l.gameDetail_pressAManage
+              : '';
+    }
     if (widget.isLocalOnly ||
         !widget.variants[state.selectedIndex].hasDownloadSource) {
       return '';

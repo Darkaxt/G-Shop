@@ -149,48 +149,77 @@ class OwnedStorage {
     return result == null ? null : decodeIdentity(result);
   }
 
+  /// Read-only identity of an existing public file. No stage, transfer intent or
+  /// ownership is required or created. Missing files return null; inaccessible
+  /// or redirected paths remain explicit failures, not evidence of absence.
+  Future<NativeFileIdentity?> inspectExisting(
+      {required String destinationRoot, required String relativePath}) async {
+    final result = await _invoke('localCopyInspect', {
+      'destinationRoot': destinationRoot,
+      'relativePath': relativePath,
+    });
+    return result == null ? null : decodeIdentity(result);
+  }
+
   /// Durable removal intent must precede the move. Only native-validated app
   /// staging is a destination. Compare the returned post-move identity before
   /// verifying/deleting; an already-open external writer is not locked out.
-  Future<NativeFileIdentity> quarantine({required String destinationRoot,
-      required String relativePath, required String stagePath,
-      required NativeFileIdentity expectedIdentity}) async => decodeIdentity(
-        await _invoke('ownedQuarantine', {
-          'destinationRoot': destinationRoot, 'relativePath': relativePath,
-          'stagePath': stagePath, 'expectedIdentity': nativeIdentity(expectedIdentity),
-        }));
+  Future<NativeFileIdentity> quarantine(
+          {required String destinationRoot,
+          required String relativePath,
+          required String stagePath,
+          required NativeFileIdentity expectedIdentity}) async =>
+      decodeIdentity(await _invoke('ownedQuarantine', {
+        'destinationRoot': destinationRoot,
+        'relativePath': relativePath,
+        'stagePath': stagePath,
+        'expectedIdentity': nativeIdentity(expectedIdentity),
+      }));
 
-  Future<OwnedStorageSession> openQuarantine({required String destinationRoot,
-      required String relativePath, required String stagePath,
+  Future<OwnedStorageSession> openQuarantine(
+      {required String destinationRoot,
+      required String relativePath,
+      required String stagePath,
       required NativeFileIdentity expectedIdentity}) async {
     final value = await _invoke('ownedOpen', {
-      'destinationRoot': destinationRoot, 'relativePath': relativePath,
-      'stagePath': stagePath, 'mode': 'quarantine',
+      'destinationRoot': destinationRoot,
+      'relativePath': relativePath,
+      'stagePath': stagePath,
+      'mode': 'quarantine',
       'durableOffset': expectedIdentity.sizeBytes,
       'expectedIdentity': nativeIdentity(expectedIdentity),
     });
     final map = (value as Map).cast<String, Object?>();
-    return OwnedStorageSession._(this, map['session'] as String,
-        decodeIdentity(map['identity']), false, readOnly: true);
+    return OwnedStorageSession._(
+        this, map['session'] as String, decodeIdentity(map['identity']), false,
+        readOnly: true);
   }
 
   /// Requires durable deletion intent and verified, closed quarantine. Never
   /// unlinks a public ROM. Absence is replayable only under that prior intent.
-  Future<void> retireQuarantine({required String destinationRoot,
-      required String relativePath, required String stagePath,
+  Future<void> retireQuarantine(
+      {required String destinationRoot,
+      required String relativePath,
+      required String stagePath,
       required NativeFileIdentity expectedIdentity}) async {
     await _invoke('ownedRetireQuarantine', {
-      'destinationRoot': destinationRoot, 'relativePath': relativePath,
-      'stagePath': stagePath, 'expectedIdentity': nativeIdentity(expectedIdentity),
+      'destinationRoot': destinationRoot,
+      'relativePath': relativePath,
+      'stagePath': stagePath,
+      'expectedIdentity': nativeIdentity(expectedIdentity),
     });
   }
 
-  Future<void> restoreQuarantine({required String destinationRoot,
-      required String relativePath, required String stagePath,
+  Future<void> restoreQuarantine(
+      {required String destinationRoot,
+      required String relativePath,
+      required String stagePath,
       required NativeFileIdentity expectedIdentity}) async {
     await _invoke('ownedRestoreQuarantine', {
-      'destinationRoot': destinationRoot, 'relativePath': relativePath,
-      'stagePath': stagePath, 'expectedIdentity': nativeIdentity(expectedIdentity),
+      'destinationRoot': destinationRoot,
+      'relativePath': relativePath,
+      'stagePath': stagePath,
+      'expectedIdentity': nativeIdentity(expectedIdentity),
     });
   }
 
@@ -301,6 +330,14 @@ class OwnedStorageSession {
   Future<void> validateGameGearZip() async {
     _requireOpen();
     await _storage._invoke('ownedValidateGameGearZip', {'session': id});
+  }
+
+  Future<void> validateSegaZip(String platform) async {
+    _requireOpen();
+    if (!const {'megadrive', 'mastersystem', 'sg1000'}.contains(platform)) {
+      throw const OwnedStorageException('unsupported_archive');
+    }
+    await _storage._invoke('ownedValidateSegaZip', {'session': id, 'platformId': platform});
   }
 
   Future<void> validateN64Archive(String filename) async {

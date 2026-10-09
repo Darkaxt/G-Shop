@@ -224,6 +224,8 @@
   "gameDetail_viewAchievements": "Achievements ansehen",
   "gameDetail_versions": "VERSIONEN",
   "gameDetail_download": "DOWNLOAD",
+  "gameDetail_open": "ÖFFNEN",
+  "gameDetail_pressAOpen": "A drücken zum Öffnen",
   "gameDetail_adding": "WIRD HINZUGEFÜGT...",
   "gameDetail_queued": "WARTESCHLANGE",
   "gameDetail_extracting": "ENTPACKEN...",

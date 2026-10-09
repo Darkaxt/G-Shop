@@ -11,6 +11,59 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedGameGearZipTest {
+    @Test public void observedSegaZipProfilesReturnTheExactSingleMember() throws Exception {
+        String[][] profiles = {{"megadrive", "Game.md"}, {"mastersystem", "Game.sms"}, {"sg1000", "Game.sg"}};
+        for (String[] profile : profiles) {
+            for (boolean stored : new boolean[]{true, false}) {
+                java.util.Map<?, ?> identity = validateMapping(archive(stored, profile[1]), profile[0]);
+                assertEquals(profile[1], identity.get("filename"));
+                assertEquals(512L * 1024, identity.get("sizeBytes"));
+                assertEquals(40, ((String) identity.get("sha1")).length());
+            }
+        }
+    }
+
+    @Test public void segaZipProfilesRejectOtherConsolesAndUnsafeContainers() throws Exception {
+        String[][] profiles = {{"megadrive", "Game.md"}, {"mastersystem", "Game.sms"}, {"sg1000", "Game.sg"}};
+        for (String[] profile : profiles) {
+            for (String[] other : profiles) {
+                if (!profile[0].equals(other[0])) rejectMapping(archive(false, other[1]), profile[0]);
+            }
+            rejectMapping(archive(false, "Game.gg"), profile[0]);
+            rejectMapping(archive(false, "../" + profile[1]), profile[0]);
+            rejectMapping(archive(false, profile[1], "Other" + profile[1]), profile[0]);
+            byte[] corrupt = archive(true, profile[1]); corrupt[100] ^= 1;
+            rejectMapping(corrupt, profile[0]);
+        }
+        rejectMapping(archive(false, "Game.md"), "sega32x");
+        rejectMapping(archive(false, "Game.md"), "unknown");
+    }
+
+    private java.util.Map<?, ?> validateMapping(byte[] bytes, String platform) throws Exception {
+        File file = File.createTempFile("rshop-sega-", ".zip");
+        try {
+            Files.write(file.toPath(), bytes);
+            final java.lang.reflect.Method method;
+            try { method = OwnedGameGearZip.class.getDeclaredMethod("validate", String.class, String.class); }
+            catch (NoSuchMethodException error) {
+                throw new AssertionError("An explicit console-bound ZIP validation route is required", error);
+            }
+            try {
+                java.util.Map<?, ?> identity = (java.util.Map<?, ?>) method.invoke(null, file.getPath(), platform);
+                assertArrayEquals(bytes, Files.readAllBytes(file.toPath()));
+                return identity;
+            } catch (java.lang.reflect.InvocationTargetException error) {
+                if (error.getCause() instanceof java.io.IOException) throw (java.io.IOException) error.getCause();
+                throw error;
+            }
+        } finally { assertTrue(file.delete()); }
+    }
+
+    private void rejectMapping(byte[] bytes, String platform) throws Exception {
+        try { validateMapping(bytes, platform); fail("Wrong-console or unsafe ZIP was accepted"); }
+        catch (java.io.IOException expected) { }
+    }
+
     @Test public void validatedZipReturnsActualRawMemberIdentity() throws Exception {
         byte[] bytes = archive(false, "Game.gg");
         File file = File.createTempFile("rshop-gg-identity-", ".zip");

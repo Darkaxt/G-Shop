@@ -71,6 +71,31 @@ void main() {
           romManager: _Roms(installed: installed),
           isLocalOnly: localOnly);
 
+  test('an installed exact copy opens instead of attempting unowned removal',
+      () async {
+    final queue = _Queue();
+    final remote = GameItem(
+        filename: 'Game.7z',
+        displayName: 'Game',
+        url: '',
+        providerConfig: drive,
+        remoteArtifact: artifact());
+    final detail = controller(queue, [remote], installed: true);
+    addTearDown(detail.dispose);
+    var opens = 0;
+    detail.onOpenLocal = () async {
+      opens++;
+    };
+    await detail.checkInstallationStatus();
+    expect(detail.canOpenSelected, isTrue);
+    expect(detail.canRemoveSelected, isFalse);
+    expect(detail.canShareSelected, isFalse);
+    await detail.performAction();
+    expect(opens, 1);
+    expect(detail.state.showDeleteDialog, isFalse);
+    expect(queue.access, 0);
+  });
+
   test('a missing local ROM in a remote-enabled console never enters the queue',
       () async {
     final queue = _Queue();
@@ -108,6 +133,11 @@ void main() {
     await detail.checkInstallationStatus();
     await detail.performAction();
     expect(detail.state.showDeleteDialog, isTrue);
+    expect(detail.canShareSelected, isTrue);
+    detail.setSharing(true);
+    expect(detail.canShareSelected, isFalse);
+    detail.setSharing(false);
+    expect(detail.canShareSelected, isTrue);
     expect(queue.access, 0);
   });
 

@@ -32,8 +32,13 @@ class _Driver implements DriveAuthorizationDriver {
   final finishSignOut = Completer<void>();
   bool? revoked;
   int grants = 0;
+  DriveAuthorizationIssue? authenticationIssue;
   @override
-  Future<String?> authenticate({required bool interactive}) async => 'account';
+  Future<String?> authenticate({required bool interactive}) async {
+    final issue = authenticationIssue;
+    if (issue != null) throw DriveAuthorizationException(issue);
+    return 'account';
+  }
   @override
   Future<String?> authorize(String accountId, List<String> scopes,
       {required bool interactive}) async {
@@ -301,6 +306,7 @@ class _NativeStorage {
       case 'ownedCheckpoint':
         return identity;
       case 'ownedValidateGameGearZip':
+      case 'ownedValidateSegaZip':
       case 'ownedValidateGameBoySevenZip':
       case 'ownedValidateGameBoyColorSevenZip':
       case 'ownedValidateGameBoyAdvanceSevenZip':
@@ -679,6 +685,50 @@ void main() {
     expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.gg'}), isFalse);
   });
 
+  for (final (platform, member, extensions) in [
+    ('megadrive', 'md', {'.md', '.gen', '.bin', '.smd'}),
+    ('mastersystem', 'sms', {'.sms'}),
+    ('sg1000', 'sg', {'.sg', '.sc'}),
+  ]) {
+    test('$platform Sega ZIP mapping is explicit and console-bound', () {
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', extensions), isTrue);
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', extensions), isFalse);
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.zip', {...extensions, '.gg'}), isFalse);
+      expect(TransferRecord.supportsArchiveMapping('Game.zip', platform), isTrue);
+      expect(TransferRecord.supportsArchiveMapping('Game.7z', platform), isFalse);
+    });
+    test('$platform local Sega ZIP metadata preserves raw identity without a download', () async {
+      final fixture = await _TransferFixture.create(name: 'fixture.zip', reserve: false);
+      fixture.native.archivePlatform = platform;
+      fixture.native.archiveObservation['raw'] = {
+        ...((fixture.native.archiveObservation['raw'] as Map).cast<String, Object?>()),
+        'filename': 'fixture.$member',
+      };
+      final raw = await fixture.runtime().readMetadataArchive(
+          config: _transferConfig, artifact: _artifact(name: 'fixture.zip'),
+          platformId: platform, destinationRoot: '/roms', cancellation: CancelToken());
+      expect(raw, isNotNull);
+      expect(raw!.filename, 'fixture.$member');
+      expect(raw.sha1, 'c' * 40);
+      expect(fixture.native.calls, ['ownedReadArchiveIdentifier']);
+      expect(await fixture.db.query('migration_byte_observations'), hasLength(1));
+      expect(await fixture.db.query('installed_artifacts'), isEmpty);
+      expect(await fixture.db.query('transfer_records'), isEmpty);
+      expect(fixture.media.requests, isEmpty);
+      expect(fixture.native.stagePresent, isFalse);
+    });
+    test('$platform local Sega ZIP metadata rejects another console member', () async {
+      final fixture = await _TransferFixture.create(name: 'fixture.zip', reserve: false);
+      fixture.native.archivePlatform = platform;
+      await expectLater(fixture.runtime().readMetadataArchive(
+          config: _transferConfig, artifact: _artifact(name: 'fixture.zip'),
+          platformId: platform, destinationRoot: '/roms', cancellation: CancelToken()),
+          throwsA(isA<DriveTransferException>().having((e) => e.issue, 'issue', DriveTransferIssue.invalidResponse)));
+      expect(await fixture.db.query('migration_byte_observations'), isEmpty);
+      expect(fixture.media.requests, isEmpty);
+    });
+  }
+
   for (final invalid in [false, true]) {
     test('Game Gear ZIP adoption ${invalid ? 'rejects invalid layout' : 'preserves exact bytes and validates handoff'}', () async {
       final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.zip');
@@ -729,28 +779,29 @@ void main() {
     fixture.driver.finishSignOut.complete();
     await runtime.disconnect();
   });
-  for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes']) {
+  for (final platform in ['gb', 'gbc', 'gba', 'nes', 'snes', 'megadrive', 'mastersystem', 'sg1000']) {
    for (final invalid in [false, true]) {
-    test('normal $platform 7z queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}', () async {
-      final method = platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
+    final extension = const {'megadrive', 'mastersystem', 'sg1000'}.contains(platform) ? 'zip' : '7z';
+    test('normal $platform $extension queue ${invalid ? 'rejects invalid layout before publication' : 'publishes immutable mapping and revalidates offline'}', () async {
+      final method = extension == 'zip' ? 'ownedValidateSegaZip' : platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
           platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' :
           platform == 'nes' ? 'ownedValidateNesSevenZip' :
           platform == 'snes' ? 'ownedValidateSnesSevenZip' : 'ownedValidateGameBoyAdvanceSevenZip';
-      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
+      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.$extension');
       fixture.native.invalidArchive = invalid;
       final runtime = fixture.runtime();
       final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
       final gb = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
       final terminal = _queueTerminal(queue);
-      queue.addToQueue(GameItem(filename: 'fixture.7z', displayName: 'Fixture',
+      queue.addToQueue(GameItem(filename: 'fixture.$extension', displayName: 'Fixture',
           url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
-          remoteArtifact: _artifact(name: 'fixture.7z')), gb, '/roms');
+          remoteArtifact: _artifact(name: 'fixture.$extension')), gb, '/roms');
       final item = await terminal;
       expect(item.status, invalid ? DownloadStatus.error : DownloadStatus.completed, reason: item.error);
       final record = (await fixture.journal.transfer(item.transferId!))!;
       expect(record.archivePlatformId, platform);
       expect(TransferRecord.fromJson(record.toJson()).archivePlatformId, platform);
-      expect(record.relativePath, 'fixture.7z');
+      expect(record.relativePath, 'fixture.$extension');
       if (invalid) {
         expect(fixture.native.calls, isNot(contains('ownedPublish')));
         expect(await fixture.db.query('installed_artifacts'), isEmpty);
@@ -793,15 +844,21 @@ void main() {
     ('gba', 'ownedValidateGameBoyAdvanceSevenZip'),
     ('nes', 'ownedValidateNesSevenZip'),
     ('snes', 'ownedValidateSnesSevenZip'),
+    ('megadrive', 'ownedValidateSegaZip'),
+    ('mastersystem', 'ownedValidateSegaZip'),
+    ('sg1000', 'ownedValidateSegaZip'),
   ]) {
-    test('$platform 7z adoption retains its exact mapping and revalidates before reuse', () async {
-      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.7z');
+    final extension = method == 'ownedValidateSegaZip' ? 'zip' : '7z';
+    test('$platform $extension adoption retains its exact mapping and revalidates before reuse', () async {
+      final fixture = await _TransferFixture.create(reserve: false, name: 'fixture.$extension');
       fixture.native.bytes.addAll([1, 2, 3, 4, 5]);
       fixture.native.published = true;
       final runtime = fixture.runtime();
       final installed = await runtime.adoptLocalCloudBytes(config: _transferConfig,
-          artifact: _artifact(name: 'fixture.7z'), destinationRoot: '/roms', relativePath: 'fixture.7z',
-          supportedExtensions: platform == 'snes' ? {'.sfc', '.smc'} : {'.$platform'}, cancellation: CancelToken());
+          artifact: _artifact(name: 'fixture.$extension'), destinationRoot: '/roms', relativePath: 'fixture.$extension',
+          supportedExtensions: method == 'ownedValidateSegaZip'
+              ? SystemModel.supportedSystems.singleWhere((s) => s.id == platform).romExtensions.toSet()
+              : platform == 'snes' ? {'.sfc', '.smc'} : {'.$platform'}, cancellation: CancelToken());
       final record = (await fixture.journal.transfer(installed.transferId))!;
       expect(record.archivePlatformId, platform);
       await runtime.requireInstalledTransfer(record);
@@ -1978,6 +2035,23 @@ void main() {
     expect(fixture.media.requests, isEmpty);
     await queue.close();
     queue.dispose();
+  });
+
+  test('queue authorization outage does not ask the user to reconnect',
+      () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    fixture.driver.authenticationIssue = DriveAuthorizationIssue.unavailable;
+    final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(),
+        driveRuntime: fixture.runtime());
+    final terminal = _queueTerminal(queue);
+    queue.addToQueue(_game(), _system, '/roms');
+    final result = await terminal;
+    await queue.close();
+    queue.dispose();
+    expect(result.status, DownloadStatus.error);
+    expect(result.error, 'authorization_unavailable');
+    expect(fixture.media.requests, isEmpty);
+    expect(fixture.native.calls, ['ownedPrepare']);
   });
 
   test(

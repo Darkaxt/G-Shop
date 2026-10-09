@@ -222,6 +222,12 @@ account mismatch requires explicit connection. Explicit sign-out/revocation clea
 the reference so restart cannot resurrect the disconnected selection. This
 clarifies DRIVE-01 session continuity, not permission to persist bearer tokens.
 
+Authorization-service/network unavailability is not evidence of missing consent.
+Preserve the saved account reference and report a retryable service failure,
+not "Reconnect in Sources". Only an actual interaction/setup/account-selection
+requirement enters the authorization-needed queue state. Do not hide outages
+by clearing credentials, initiating consent automatically or adding timed retries.
+
 Use native Android Google authorization behind a Flutter adapter and Drive API
 v3. Support account selection, sign-out/revocation, token renewal and an explicit
 reauthorization state. Do not persist bearer tokens in catalogues, exported config
@@ -401,6 +407,22 @@ mandatory at every open. Other emulator URI routes remain unchanged.
 Adoption does not delete anything or waive MIGRATE-01's ranking, format-restore,
 save/sync and execution-time revalidation gates. Reuse the existing verified owned
 installation/removal path rather than introducing an alternate deletion engine.
+
+S7 observed Sega ZIP recovery detail (2026-10-08): the existing SD inventory also
+contains Mega Drive, Master System and SG-1000 single-cartridge ZIPs. Current
+read-only directory checks and one native listing per console confirm `.md`,
+`.sms` and `.sg` members respectively. Extend the existing bounded ZIP validator,
+exact transfer/publication, separate read-only observation and RetroArch grant
+route for these explicit platform/member pairs, retaining its single-member,
+path/CRC/size/layout checks and work budgets. Reuse the installed Genesis Plus GX
+core without changing its settings, installing a core or treating 32X as supported
+by that core. A ZIP suffix alone never supplies the console mapping. Raw-member
+identifiers may serve fresh metadata matching only after the complete local
+container matches the current Drive artifact; they never prove cloud-container
+equivalence or grant ownership. Verify normal online/offline/identical-restore
+workflows on the Thor before claiming these format gates satisfied. Bundles,
+unknown members, current cloud readability, retention and removal gates remain
+unchanged. This is required MIGRATE-01 format integration within S7, not S8 work.
 
 S7 N64 archive recovery detail (2026-10-06): explicitly mapped standalone N64
 7z/ZIP files may retain their exact archive bytes and filename when validation
@@ -958,6 +980,26 @@ bulk local enumeration must retain verified committed leaves below a mapped
 containing root without exposing their enclosing directory as a legacy game.
 These observations do not establish equivalence for unmanaged namesakes or
 authorize adoption/removal. Preserve saved refresh requests and identity keys.
+
+Exact unmanaged-copy evidence may reuse a normal metadata archive read only
+when it verifies the complete container against the current Drive object's
+trusted checksums and size, revalidates that object's account/source/version
+binding, and returns the unchanged native file identity after read closure.
+Persist that historical evidence separately from raw-member metadata and owned
+installations. No extra ROM-body request is needed for this comparison. Raw-ROM
+hashes, a filename match or an old observation alone cannot authorize current
+availability, emulator grants, adoption or removal; current local identity and
+artifact binding must be checked at the relevant consumer boundary.
+
+S7 consumer detail: an exact read-only copy uses a distinct observation-bound
+leaf URI within the existing content provider, never a fabricated installation.
+Recheck the bounded latest byte evidence, current cached artifact/platform,
+ownership reservations and pinned native object before handoff and every external
+open. Reject changed, missing, superseded or ambiguous evidence. Grant read-only
+access to the exact leaf only; the normal primary action opens a supported local
+copy. Owned removal remains a separate freshly reviewed action. Persist favorite
+and manual-shelf identity migration atomically and retain explicit unfavorites
+through reload; do not rewrite immutable catalogue/refresh membership.
 
 Add provider setup, refresh progress and re-scrape controls to existing settings
 and game details, with accessible/localized labels. Keep the common detail model

@@ -1,10 +1,57 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/game_item.dart';
+import '../models/library_identity.dart';
+import '../models/config/provider_config.dart';
 import '../models/system_model.dart';
 import '../services/rom_manager.dart';
+import '../services/installation_index.dart';
 
 class GameMergeHelper {
+  /// Read-only projection of proven local paths onto current sourced objects.
+  /// Missing historical copies can retire a stale local cache card, but cannot
+  /// claim residency. Changed/inaccessible paths never enter [observations].
+  static Map<String, String> verifiedSelectionAliases(
+      List<GameItem> games, Map<String, RemoteArtifact> observations) {
+    final sourced = <String, RemoteArtifact>{
+      for (final game in games)
+        if (game.remoteArtifact != null &&
+            game.providerConfig?.type == ProviderType.drive)
+          game.remoteArtifact!.id.key: game.remoteArtifact!,
+    };
+    final otherSources = {
+      for (final game in games)
+        if (game.remoteArtifact == null && game.hasDownloadSource)
+          game.filename,
+    };
+    return {
+      for (final entry in observations.entries)
+        if (!otherSources.contains(entry.key))
+          if (sourced[entry.value.id.key] case final current?)
+            if (InstallationSnapshot.sameContent(entry.value, current))
+              entry.key: 'artifact:${current.id.key}',
+    };
+  }
+
+  static List<GameItem> coalesceVerifiedCopies(
+      List<GameItem> games, Map<String, RemoteArtifact> observations) {
+    final aliases = verifiedSelectionAliases(games, observations);
+    final visible = <String, GameItem>{};
+    for (final game in games) {
+      if (game.remoteArtifact == null &&
+          !game.hasDownloadSource &&
+          aliases.containsKey(game.filename)) {
+        continue;
+      }
+      final previous = visible[game.identityKey];
+      if (previous == null ||
+          (!previous.hasDownloadSource && game.hasDownloadSource)) {
+        visible[game.identityKey] = game;
+      }
+    }
+    return visible.values.toList();
+  }
+
   /// Merges remote provider games with locally-scanned games.
   ///
   /// Remote games win on filename collision (they have URL, cover, provider info).
@@ -40,7 +87,8 @@ class GameMergeHelper {
       byFilename[game.identityKey] = game;
     }
     for (final game in localGames) {
-      if (game.remoteArtifact == null && remoteTargetNames.contains(game.filename)) {
+      if (game.remoteArtifact == null &&
+          remoteTargetNames.contains(game.filename)) {
         debugPrint('GameMergeHelper: skipping local "${game.filename}" '
             '(matches remote archive target)');
         continue;

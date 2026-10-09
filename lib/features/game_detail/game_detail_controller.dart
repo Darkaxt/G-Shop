@@ -10,6 +10,7 @@ import '../../services/installation_index.dart';
 import '../../services/database_service.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/rom_manager.dart';
+import '../../services/owned_emulator_launcher.dart';
 import '../../utils/friendly_error.dart';
 import '../../utils/game_metadata.dart';
 import 'game_detail_state.dart';
@@ -28,6 +29,20 @@ class GameDetailController extends ChangeNotifier {
   bool _disposed = false;
   bool _hasSetInitialFocus = false;
   bool _preparingRemoval = false;
+  int _installationCheck = 0;
+  Set<int> _ownedVariants = {};
+  Future<void> Function()? onOpenLocal;
+  bool get canOpenSelected =>
+      _state.isVariantInstalled &&
+      onOpenLocal != null &&
+      OwnedEmulatorLauncher.supports(selectedVariant, system);
+  bool get canRemoveSelected =>
+      !_requiresVerifiedInstallation(selectedVariant) ||
+      _ownedVariants.contains(_state.selectedIndex);
+  // The existing share path requires an owned exact artifact. Read-only byte
+  // observations permit emulator access, not installation ownership.
+  bool get canShareSelected =>
+      _state.isVariantInstalled && canRemoveSelected && !_state.isSharing;
   int _removalReviewToken = 0;
   InstalledArtifact? _reviewedRemoval;
   String? get removalPreview => _reviewedRemoval == null
@@ -456,10 +471,26 @@ class GameDetailController extends ChangeNotifier {
   }
 
   Future<void> checkInstallationStatus() async {
+    final check = ++_installationCheck;
     // RomManager resolves exact files through committed, native-revalidated
     // manifests; its legacy lookup cannot adopt a managed namesake.
     final status =
         await _romManager.checkMultipleExists(variants, system, targetFolder);
+    final owned = <int>{};
+    for (final entry in status.entries) {
+      if (!entry.value || !_requiresVerifiedInstallation(variants[entry.key])) {
+        continue;
+      }
+      try {
+        await _romManager.requireInstalledArtifact(
+            variants[entry.key], targetFolder);
+        owned.add(entry.key);
+      } catch (_) {
+        // Availability is not ownership. Removal still requires a fresh review.
+      }
+    }
+    if (_disposed || check != _installationCheck) return;
+    _ownedVariants = owned;
     _state = _state.copyWith(installedStatus: status);
     notifyListeners();
   }
@@ -657,8 +688,10 @@ class GameDetailController extends ChangeNotifier {
     if (_state.isOverlayOpen) return;
     if (variants.length > 1) {
       openVariantPicker();
+    } else if (canOpenSelected) {
+      await onOpenLocal!();
     } else if (_state.isVariantInstalled) {
-      await showDeleteDialog();
+      if (canRemoveSelected) await showDeleteDialog();
     } else {
       if (isLocalOnly) return;
       final success = await addToQueue();

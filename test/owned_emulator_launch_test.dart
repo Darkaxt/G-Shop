@@ -86,6 +86,28 @@ void main() {
       expect(OwnedEmulatorLauncher.supports(archive, system), isFalse);
     }
   });
+  for (final (platform, method) in [
+    ('megadrive', 'launchOwnedRetroArchMegaDrive'),
+    ('mastersystem', 'launchOwnedRetroArchMasterSystem'),
+    ('sg1000', 'launchOwnedRetroArchSG1000'),
+  ]) {
+    test('$platform Sega ZIP uses the exact console handoff and retains its archive', () async {
+      final mapped = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
+      final zip = exactGame('$platform-zip', name: 'Game.zip');
+      final installed = InstalledArtifact.fromJson({...manifest.toJson(),
+        'artifact': zip.remoteArtifact!.toJson(), 'relativePath': zip.filename});
+      final launcher = OwnedEmulatorLauncher(romManager: _RomManager(() async => installed), channel: channel);
+      expect(RomManager.getTargetFilename(zip, mapped), zip.filename);
+      expect(OwnedEmulatorLauncher.supports(zip, mapped), isTrue);
+      await launcher.open(zip, mapped, '/owned');
+      expect(calls.single.method, method);
+      expect(calls.single.arguments, {'installationId': installed.id, 'filename': zip.filename});
+      expect(OwnedEmulatorLauncher.supports(exactGame('other', name: 'Game.7z'), mapped), isFalse);
+      final missing = OwnedEmulatorLauncher(romManager: _RomManager(() async => throw StateError('not installed')), channel: channel);
+      await expectLater(missing.open(zip, mapped, '/owned'), throwsStateError);
+      expect(calls, hasLength(1));
+    });
+  }
   test('mapped Game Boy 7z requires ownership and uses the exact RetroArch leaf route', () async {
     final gb = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gb');
     final archive = exactGame('gb-7z', name: 'Game.7z');

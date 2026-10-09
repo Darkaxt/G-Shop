@@ -238,6 +238,8 @@
   "gameDetail_viewAchievements": "View Achievements",
   "gameDetail_versions": "VERSIONS",
   "gameDetail_download": "DOWNLOAD",
+  "gameDetail_open": "OPEN",
+  "gameDetail_pressAOpen": "Press A to open",
   "gameDetail_adding": "ADDING...",
   "gameDetail_queued": "QUEUED",
   "gameDetail_extracting": "EXTRACTING...",

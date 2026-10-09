@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 
 enum DownloadButtonState {
   download,
+  open,
   adding,
   queued,
   downloading,
@@ -41,6 +42,12 @@ class DownloadActionButton extends StatelessWidget {
     final String label;
 
     switch (state) {
+      case DownloadButtonState.open:
+        bgColor = accentColor.withValues(alpha: 0.2);
+        borderColor = accentColor.withValues(alpha: 0.5);
+        textColor = accentColor;
+        icon = Icons.play_arrow_rounded;
+        label = l.gameDetail_open;
       case DownloadButtonState.download:
         bgColor = accentColor.withValues(alpha: 0.2);
         borderColor = accentColor.withValues(alpha: 0.5);
@@ -91,8 +98,7 @@ class DownloadActionButton extends StatelessWidget {
         label = l.gameDetail_unavailable;
     }
 
-    final isDisabled =
-        state == DownloadButtonState.adding ||
+    final isDisabled = state == DownloadButtonState.adding ||
         state == DownloadButtonState.unavailable;
 
     return GestureDetector(

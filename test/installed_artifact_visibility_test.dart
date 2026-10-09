@@ -277,6 +277,9 @@ void main() {
         queueManager: _UnusedQueue());
     await controller.checkInstallationStatus();
     expect(controller.state.installedStatus, {0: true, 1: false});
+    expect(controller.canShareSelected, isTrue);
+    controller.selectVariant(1);
+    expect(controller.canShareSelected, isFalse);
     controller.dispose();
   });
 
