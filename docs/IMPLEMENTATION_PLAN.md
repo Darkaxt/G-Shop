@@ -1569,6 +1569,16 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 ## S10 — Emulator-aware save-backup sync
 
 Status: ACTIVE.
+Game Gear cartridge checkpoint, 2026-10-10: normal reviewed game entry -> closed
+Genesis Plus GX SRAM capture -> verified Drive generation -> expected-location
+restore -> retained-local rollback now has native published receipts and
+independent byte/destination proof. The fixture was expendable and shared storage
+was restored to its original empty state. This does not satisfy remaining
+installed-emulator coverage, coherent groups, automatic work, fault/reinstall,
+live conflict or conditional legacy-sync handover acceptance. See the current
+ledger and S10_SAVE_BACKUP_DESIGN.md; final gated assembly 551, preserving
+installation and actual Thor coverage-label presentation now pass. S10 remains
+the sole ACTIVE stage.
 Latest vertical-slice evidence, 2026-10-09: native RetroArch expected-location
 restore and standalone PPSSPP backup/cloud restore/local rollback are verified.
 The PSP route preserves pending state on network/writer preconditions and retains

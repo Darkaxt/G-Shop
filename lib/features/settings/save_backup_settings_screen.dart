@@ -17,6 +17,7 @@ import '../../models/config/source.dart';
 import '../../models/game_item.dart';
 import '../../models/system_model.dart';
 import '../../models/save_emulator_coverage.dart';
+import '../../models/retroarch_battery_route.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../providers/app_providers.dart';
 import '../../services/drive/drive_runtime.dart';
@@ -236,9 +237,15 @@ class _SaveBackupSettingsScreenState
         artifactId: widget.game!.remoteArtifact!.id,
         ppssppDirectory: ppssppDirectory,
         ppssppSlot: ppssppSlot,
+        retroArchRoute: widget.system?.id == 'gamegear'
+            ? RetroArchBatteryRoute.gameGear
+            : RetroArchBatteryRoute.mgba,
         resolveSaveName: ppssppSlot == null
-            ? () => OwnedEmulatorLauncher().reviewRetroArchGbaSave(
-                widget.game!, widget.system!, widget.targetFolder!)
+            ? () => widget.system?.id == 'gamegear'
+                ? OwnedEmulatorLauncher().reviewRetroArchGameGearSave(
+                    widget.game!, widget.system!, widget.targetFolder!)
+                : OwnedEmulatorLauncher().reviewRetroArchGbaSave(
+                    widget.game!, widget.system!, widget.targetFolder!)
             : () async {
                 final preferences = await SharedPreferences.getInstance();
                 final mapping = jsonDecode(
@@ -845,14 +852,18 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               Text(
                   job.isPpsspp
                       ? 'PPSSPP · published state slot · v1.20.4'
-                      : 'RetroArch · mGBA · battery saves only',
+                      : job.retroArchRoute == RetroArchBatteryRoute.gameGear
+                          ? 'RetroArch · Genesis Plus GX · Game Gear battery saves'
+                          : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (widget.section == SaveBackupSection.backup) ...[
                 const SizedBox(height: 12),
                 Text(
                     job.isPpsspp
                         ? 'Only the explicitly mapped state slot is captured. Its game association is your reviewed mapping, not a title guess. Battery saves, thumbnails, temporary files, ROMs and settings are excluded.'
-                        : 'The save target comes from this exact installation’s validated RetroArch launch. A related RTC file is included when present. ROMs, settings and save states are excluded.',
+                        : job.retroArchRoute == RetroArchBatteryRoute.gameGear
+                            ? 'Only cartridge SRAM from this exact installation’s validated Game Gear launch is captured. CD backup RAM, ROMs, settings and save states are excluded.'
+                            : 'The save target comes from this exact installation’s validated RetroArch launch. A related RTC file is included when present. ROMs, settings and save states are excluded.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 FutureBuilder<List<String>>(

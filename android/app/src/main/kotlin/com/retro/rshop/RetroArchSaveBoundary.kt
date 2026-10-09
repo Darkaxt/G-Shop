@@ -7,9 +7,10 @@ package com.retro.rshop
 internal object RetroArchSaveBoundary {
     // Pinned SAF archive launch: preserve the encoded document ID. Decoding
     // %2F or using the display name would select a different save on disk.
-    fun archiveSaveName(encodedLeaf: String): String {
-        require(encodedLeaf.endsWith(".7z", ignoreCase = true))
-        val name = encodedLeaf.dropLast(3) + ".srm"
+    fun archiveSaveName(encodedLeaf: String, gameGear: Boolean = false): String {
+        val extension = if (gameGear) ".zip" else ".7z"
+        require(encodedLeaf.endsWith(extension, ignoreCase = true))
+        val name = encodedLeaf.dropLast(extension.length) + ".srm"
         require(validName(name))
         return name
     }

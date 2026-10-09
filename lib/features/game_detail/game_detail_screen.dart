@@ -595,7 +595,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final raMatch = raMatches[variant.raMatchKey];
     return [
       if (editionId != null &&
-          {'gba', 'psp'}.contains(widget.system.id) &&
+          {'gba', 'gamegear', 'psp'}.contains(widget.system.id) &&
           variant.remoteArtifact != null)
         QuickMenuItem(
             label: L.of(context).saveBackup_title,

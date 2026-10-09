@@ -40,7 +40,9 @@ void main() {
       _row('org.ppsspp.ppsspp', '1.20.4'),
     ]);
     expect(rows.singleWhere((r) => r.label == 'RetroArch').saves,
-        'Verified · mGBA SRAM only; coupled RTC restore unfinished');
+        'Verified · mGBA and Game Gear cartridge SRAM; coupled RTC restore unfinished');
+    expect(rows.singleWhere((r) => r.label == 'RetroArch').storage,
+        contains('Genesis Plus GX'));
     expect(rows.singleWhere((r) => r.label == 'RetroArch').states,
         startsWith('Unfinished'));
     expect(rows.singleWhere((r) => r.label == 'PPSSPP').states,

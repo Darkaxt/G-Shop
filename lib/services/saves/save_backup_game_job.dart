@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../models/save_backup_manifest.dart';
+import '../../models/retroarch_battery_route.dart';
 import '../../models/library_identity.dart';
 import '../drive/drive_authorization.dart';
 import '../library_store.dart';
@@ -32,6 +33,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   // Explicitly reviewed mapping, never inferred from a game title. One slot is
   // one state stream; another directory/slot must have a separate durable job.
   final String? ppssppDirectory, ppssppSlot;
+  final RetroArchBatteryRoute retroArchRoute;
   Map<String, dynamic>? _record;
   Future<void>? _operation;
   CancelToken? _cancellation;
@@ -51,13 +53,15 @@ class SaveBackupGameJob extends ChangeNotifier {
       required this.artifactId,
       required this.resolveSaveName,
       this.ppssppDirectory,
-      this.ppssppSlot}) {
+      this.ppssppSlot,
+      this.retroArchRoute = RetroArchBatteryRoute.mgba}) {
     if ([clientId, accountId, areaId, editionId].any((s) => s.trim().isEmpty) ||
         areas.accountId != accountId ||
         generations.accountId != accountId) {
       throw ArgumentError('Invalid save job binding');
     }
-    if ((ppssppDirectory == null) != (ppssppSlot == null) ||
+    if ((isPpsspp && retroArchRoute != RetroArchBatteryRoute.mgba) ||
+        (ppssppDirectory == null) != (ppssppSlot == null) ||
         (isPpsspp &&
             (!SaveCapture.validPpssppDirectory(ppssppDirectory!) ||
                 !SaveCapture.validPpssppName(ppssppSlot!)))) {
@@ -66,11 +70,11 @@ class SaveBackupGameJob extends ChangeNotifier {
   }
 
   bool get isPpsspp => ppssppDirectory != null;
-  String get _platform => isPpsspp ? 'psp' : 'gba';
+  String get _platform => isPpsspp ? 'psp' : retroArchRoute.platformId;
   String get _emulator =>
       isPpsspp ? 'org.ppsspp.ppsspp' : 'com.retroarch.aarch64';
-  String get _core => isPpsspp ? 'ppsspp' : 'mgba';
-  String get _format => isPpsspp ? 'ppsspp-slot-v1' : 'libretro-mgba-sram-v1';
+  String get _core => isPpsspp ? 'ppsspp' : retroArchRoute.coreId;
+  String get _format => isPpsspp ? 'ppsspp-slot-v1' : retroArchRoute.formatId;
   SaveBackupKind get _kind =>
       isPpsspp ? SaveBackupKind.state : SaveBackupKind.save;
   bool _validName(String name) => isPpsspp
@@ -94,7 +98,9 @@ class SaveBackupGameJob extends ChangeNotifier {
         areaId,
         editionId,
         if (isPpsspp) ...[_format, ppssppDirectory, ppssppSlot] else
-          'mgba-battery'
+          retroArchRoute == RetroArchBatteryRoute.mgba
+              ? 'mgba-battery'
+              : 'gamegear-battery'
       ])))
       .toString();
   bool get busy => _operation != null;
@@ -347,11 +353,12 @@ class SaveBackupGameJob extends ChangeNotifier {
     }
     final sram =
         manifest.members.where((m) => m.relativePath.endsWith('.srm')).toList();
-    if (manifest.binding.formatId != 'libretro-mgba-sram-v1' ||
+    if (manifest.binding.formatId != _format ||
         sram.length != 1 ||
         !SaveCapture.validName(sram.single.relativePath) ||
-        manifest.members.length > 2) {
-      throw const FormatException('Invalid mGBA save group');
+        manifest.members.length > (retroArchRoute.includesRtc ? 2 : 1) ||
+        manifest.members.any((m) => m.sizeBytes > retroArchRoute.maxBytes)) {
+      throw const FormatException('Invalid cartridge save group');
     }
     final name = sram.single.relativePath;
     final rtcName = '${name.substring(0, name.length - 4)}.rtc';
@@ -360,8 +367,8 @@ class SaveBackupGameJob extends ChangeNotifier {
     ];
     for (final member in manifest.members) {
       if (member == sram.single) continue;
-      if (member.relativePath != rtcName) {
-        throw const FormatException('Unrelated mGBA save member');
+      if (!retroArchRoute.includesRtc || member.relativePath != rtcName) {
+        throw const FormatException('Unrelated cartridge save member');
       }
       roles.add(['rtc', member.sizeBytes, member.sha256]);
     }
@@ -436,7 +443,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                   directory: ppssppDirectory!,
                   name: name)
               : await capture.captureRetroArch(
-                  captureId: _captureId!, name: name);
+                  captureId: _captureId!, name: name, route: retroArchRoute);
           _check(cancellation);
           phase = 'reserve';
           _changed();
@@ -647,6 +654,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           'cancelled',
           'capture_busy',
           'invalid_save_size',
+          'related_group_unfinished',
           'emulator_missing',
           'changed_capture'
         }.contains(error.code)
@@ -777,7 +785,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                   directory: ppssppDirectory!,
                   name: name)
               : await capture.captureRetroArch(
-                  captureId: rollbackId, name: name);
+                  captureId: rollbackId, name: name, route: retroArchRoute);
           _check(cancellation);
           if (local.files.length != 1 || local.files.single.name != name) {
             _issue = 'related_group_unfinished';
@@ -813,7 +821,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                     directory: ppssppDirectory!,
                     name: name)
                 : await capture.captureRetroArch(
-                    captureId: _captureId!, name: name);
+                    captureId: _captureId!, name: name, route: retroArchRoute);
             _check(cancellation);
             if (group.files.length != 1 || group.files.single.name != name) {
               throw const FormatException('Changed retained rollback group');
@@ -828,6 +836,7 @@ class SaveBackupGameJob extends ChangeNotifier {
               size: retained?.size ?? member.sizeBytes,
               sha256: retained?.sha256 ?? member.sha256,
               ppssppDirectory: ppssppDirectory,
+              retroArchRoute: retroArchRoute,
               bytes: retained != null
                   ? retained.file.openRead().map((chunk) {
                       _check(cancellation);

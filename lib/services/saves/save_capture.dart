@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import '../../models/save_emulator_coverage.dart';
+import '../../models/retroarch_battery_route.dart';
 
 class CapturedSaveFile {
   final String name, sha256;
@@ -19,7 +20,7 @@ class CapturedSaveGroup {
       : files = List.unmodifiable(files);
 }
 
-/// Explicit mGBA battery or PPSSPP published-slot capture, not a general
+/// Explicit mGBA/Game Gear battery or PPSSPP published-slot capture, not a general
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
   static const _channel = MethodChannel('com.retro.rshop/save_capture');
@@ -48,17 +49,27 @@ class SaveCapture {
   }
 
   Future<CapturedSaveGroup> captureRetroArch(
-      {required String captureId, required String name}) async {
+      {required String captureId,
+      required String name,
+      RetroArchBatteryRoute route = RetroArchBatteryRoute.mgba}) async {
     if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) || !validName(name)) {
       throw const FormatException('Invalid save selection');
     }
-    final raw = await _channel.invokeMapMethod<String, dynamic>(
-        'captureRetroArch', {'captureId': captureId, 'name': name});
+    final raw =
+        await _channel.invokeMapMethod<String, dynamic>('captureRetroArch', {
+      'captureId': captureId,
+      'name': name,
+      if (route != RetroArchBatteryRoute.mgba)
+        'retroArchRoute': route.platformId
+    });
     return _captured(raw,
         captureId: captureId,
-        allowedNames: {name, '${name.substring(0, name.length - 4)}.rtc'},
+        allowedNames: {
+          name,
+          if (route.includesRtc) '${name.substring(0, name.length - 4)}.rtc'
+        },
         requiredName: name,
-        maxSize: 16 * 1024 * 1024);
+        maxSize: route.maxBytes);
   }
 
   static bool validPpssppName(String name) =>
@@ -175,13 +186,15 @@ class SaveCapture {
       required int size,
       required String sha256,
       String? ppssppDirectory,
+      RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
       required Stream<Uint8List> bytes}) async {
     final ppsspp = ppssppDirectory != null;
     if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
         !(ppsspp ? validPpssppName(name) : validName(name)) ||
         (ppsspp && !validPpssppDirectory(ppssppDirectory)) ||
+        (ppsspp && retroArchRoute != RetroArchBatteryRoute.mgba) ||
         size <= 0 ||
-        size > (ppsspp ? 256 : 16) * 1024 * 1024 ||
+        size > (ppsspp ? 256 * 1024 * 1024 : retroArchRoute.maxBytes) ||
         !RegExp(r'^[a-f0-9]{64}$').hasMatch(sha256)) {
       throw const FormatException('Invalid restore selection');
     }
@@ -191,6 +204,8 @@ class SaveCapture {
       'size': size,
       'sha256': sha256,
       if (ppsspp) 'ppssppDirectory': ppssppDirectory,
+      if (retroArchRoute != RetroArchBatteryRoute.mgba)
+        'retroArchRoute': retroArchRoute.platformId,
     });
     var offset = 0;
     await for (final chunk in bytes) {

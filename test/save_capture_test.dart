@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/services/saves/save_capture.dart';
+import 'package:retro_eshop/models/retroarch_battery_route.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +57,60 @@ void main() {
         {'captureId': 'a' * 32, 'directory': directory, 'name': name});
     expect(captured.files.single.name, name);
     expect(captured.emulatorVersion, 'v1.20.4');
+  });
+
+  test('Game Gear capture binds its route and rejects unrelated RTC members',
+      () async {
+    final group = await SaveCapture().captureRetroArch(
+        captureId: 'a' * 32,
+        name: 'Game.srm',
+        route: RetroArchBatteryRoute.gameGear);
+    expect(group.files.single.name, 'Game.srm');
+    expect(calls.single.arguments, {
+      'captureId': 'a' * 32,
+      'name': 'Game.srm',
+      'retroArchRoute': 'gamegear'
+    });
+    (response['files'] as List).add({
+      'name': 'Game.rtc',
+      'path': '/private/member-1',
+      'size': 4,
+      'sha256': 'c' * 64
+    });
+    await expectLater(
+        SaveCapture().captureRetroArch(
+            captureId: 'a' * 32,
+            name: 'Game.srm',
+            route: RetroArchBatteryRoute.gameGear),
+        throwsFormatException);
+  });
+
+  test('Game Gear restore passes only its reviewed route and SRAM size',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return call.method == 'appendRestore' ? 4 : null;
+    });
+    await SaveCapture().stageRestore(
+        restoreId: 'a' * 32,
+        name: 'Game.srm',
+        size: 4,
+        sha256: 'b' * 64,
+        retroArchRoute: RetroArchBatteryRoute.gameGear,
+        bytes: Stream.value(Uint8List.fromList([1, 2, 3, 4])));
+    expect((calls.first.arguments as Map)['retroArchRoute'], 'gamegear');
+    calls.clear();
+    await expectLater(
+        SaveCapture().stageRestore(
+            restoreId: 'a' * 32,
+            name: 'Game.srm',
+            size: 65537,
+            sha256: 'b' * 64,
+            retroArchRoute: RetroArchBatteryRoute.gameGear,
+            bytes: const Stream.empty()),
+        throwsFormatException);
+    expect(calls, isEmpty);
   });
 
   test('PPSSPP lists only the explicitly selected state directory', () async {

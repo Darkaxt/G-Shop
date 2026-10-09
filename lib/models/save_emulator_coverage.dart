@@ -85,7 +85,7 @@ class SaveEmulatorCoverage {
       ? 'Not applicable · launcher; use the selected emulator'
       : _retroArch
           ? _reviewed
-              ? 'Verified · mGBA SRAM only; coupled RTC restore unfinished'
+              ? 'Verified · mGBA and Game Gear cartridge SRAM; coupled RTC restore unfinished'
               : 'Needs review · installed RetroArch runtime is not verified'
           : _psp
               ? 'Unfinished · SAVEDATA groups not implemented'
@@ -101,7 +101,8 @@ class SaveEmulatorCoverage {
       ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
           'A user grant and save-specific read/write review are still required.'
       : _retroArch
-          ? 'Current route: shared RetroArch/saves/mGBA with exact launch binding. '
+          ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
+              'Game Gear cartridge SRAM with exact launch binding. '
               'Other cores and custom paths are unfinished.'
           : _psp
               ? 'Current route: explicitly selected shared PPSSPP_STATE folder and slot. '

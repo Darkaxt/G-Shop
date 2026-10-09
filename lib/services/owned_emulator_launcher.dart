@@ -85,6 +85,22 @@ class OwnedEmulatorLauncher {
     return name;
   }
 
+  /// Game Gear ZIPs use the same owned-document naming contract, but their
+  /// save review must not accidentally select the GBA/core namespace.
+  Future<String> reviewRetroArchGameGearSave(
+      GameItem game, SystemModel system, String root) async {
+    if (system.id != 'gamegear' || !supports(game, system)) {
+      throw UnsupportedError('No reviewed save route for this format');
+    }
+    final grant = await _grant(game, system, root);
+    final name = await channel.invokeMethod<String>(
+        'reviewOwnedRetroArchGameGearSave', grant);
+    if (name == null || name.isEmpty) {
+      throw StateError('No validated launch save target');
+    }
+    return name;
+  }
+
   Future<void> _open(GameItem game, SystemModel system, String root,
       String? companionComponent) async {
     final grant = await _grant(game, system, root);

@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RetroArchSaveBoundaryTest {
+    @Test fun gameGearZipReviewRetainsEncodedLeafAndDoesNotAcceptGbaArchives() {
+        assertEquals("copy%3A42%3Agamegear%2FGame.srm",
+            RetroArchSaveBoundary.archiveSaveName("copy%3A42%3Agamegear%2FGame.zip", true))
+        assertThrows(IllegalArgumentException::class.java) {
+            RetroArchSaveBoundary.archiveSaveName("Game.7z", true)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            RetroArchSaveBoundary.archiveSaveName("folder/Game.zip", true)
+        }
+    }
     @Test fun saveTargetRetainsTheExactEncodedLaunchDocumentLeaf() {
         assertEquals("installation%2FAero%20the%20Acro-Bat%20(Europe).srm",
             RetroArchSaveBoundary.archiveSaveName("installation%2FAero%20the%20Acro-Bat%20(Europe).7z"))

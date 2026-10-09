@@ -52,6 +52,25 @@ S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
 
 ### S10 entry — emulator-aware save backup, 2026-10-09
 
+Game Gear cartridge checkpoint, 2026-10-10: the normal game-entry workflow now
+backs up reviewed Genesis Plus GX SRAM to Drive, downloads/verifies it, restores
+it at the exact encoded launch save path and explicitly rolls back to different
+retained local bytes. Independently inspected native `published` receipts and
+destination hashes agree. The disposable shared fixture was removed afterwards;
+the original core save directory is empty again. ROM, emulator configuration and
+prior PSP data hashes are unchanged; no new sign-in, adoption, archive write or
+legacy-sync change occurred. Focused host/native checks, analysis and gated build
+548 passed; preserving installed APK digest/signature were independently checked.
+The final narrow coverage label and explicit related-group rejection status have
+passing host checks. Gated assembly 551 passed; its preserving, same-signer
+installation and independent installed digest match the built artifact. Actual
+Thor Emulators presentation shows the revised Game Gear SRAM label with other
+routes/states still unfinished; the prepared backup area reopened without sign-in.
+Immediate protected preference/security hashes were unchanged. See
+S10_SAVE_BACKUP_DESIGN.md for receipts, profile and mock-fixture qualifications.
+This is one additional verified route, not full installed-emulator coverage or
+S10 closure. The remaining SAVE-01 criteria below remain required.
+
 Coverage checkpoint, 2026-10-09: a separate offline Emulators section now reports
 the known installed emulator/port/frontend versions, save versus state coverage
 and advertised document-picker providers. Unreviewed routes remain unfinished,

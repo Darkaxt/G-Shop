@@ -23,7 +23,7 @@ import java.security.MessageDigest
 import java.util.concurrent.Executors
 
 /** One cancellable capture at a time. No emulator termination, guessed sleeps,
- * storage bypass or automatic source scan. Explicit mGBA SRAM/RTC and published
+ * storage bypass or automatic source scan. Explicit mGBA SRAM/RTC, Game Gear SRAM and published
  * PPSSPP state slots cross into app-private, durably sealed staging. */
 internal class SaveCaptureService(private val activity: Activity) {
     companion object {
@@ -31,10 +31,13 @@ internal class SaveCaptureService(private val activity: Activity) {
         // remain no-follow, canonical-equality checked descendants of this root.
         internal fun stagingRoot(filesDir: File): File = File(filesDir.canonicalFile, "save-captures")
         private const val MGBA_SOURCE = "/storage/emulated/0/RetroArch/saves/mGBA"
+        private const val GAMEGEAR_SOURCE = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         internal fun validRestoreBinding(name: String, size: Long, format: String, source: String): Boolean =
             when (format) {
                 "mgba-battery" -> source == MGBA_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..(16L * 1024 * 1024)
+                "gamegear-battery" -> source == GAMEGEAR_SOURCE && RetroArchSaveBoundary.validName(name) &&
+                    size in 1..65536L
                 "ppsspp-slot-v1" -> PpssppSaveBoundary.validDirectory(source) &&
                     PpssppSaveBoundary.validName(name) && size in 1..PpssppSaveBoundary.MAX_STATE_BYTES
                 else -> false
@@ -60,6 +63,13 @@ internal class SaveCaptureService(private val activity: Activity) {
     private fun hash(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
         .digest(bytes).joinToString("") { "%02x".format(it) }
     private fun same(a: LongArray, b: LongArray) = a.contentEquals(b)
+    private fun batterySource(route: String): String = when (route) {
+        "gba" -> MGBA_SOURCE
+        "gamegear" -> GAMEGEAR_SOURCE
+        else -> throw Failure("invalid_selection")
+    }
+    private fun batteryRoute(call: MethodCall): String =
+        (call.argument<String>("retroArchRoute") ?: "gba").also { batterySource(it) }
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
         try {
@@ -129,7 +139,7 @@ internal class SaveCaptureService(private val activity: Activity) {
                         "retroArchNames" -> names()
                         "ppssppNames" -> ppssppNames(call.argument<String>("directory") ?: "")
                         "captureRetroArch" -> capture(captureId!!,
-                            call.argument<String>("name") ?: "")
+                            call.argument<String>("name") ?: "", retroArchRoute = batteryRoute(call))
                         "capturePpsspp" -> capture(captureId!!,
                             call.argument<String>("name") ?: "",
                             call.argument<String>("directory") ?: "")
@@ -198,7 +208,8 @@ internal class SaveCaptureService(private val activity: Activity) {
     }
 
     private fun captured(directory: File, name: String,
-                         ppssppDirectory: String? = null): Map<String, Any>? {
+                         ppssppDirectory: String? = null,
+                         retroArchRoute: String = "gba"): Map<String, Any>? {
         val seal = File(directory, "capture.json")
         if (!seal.exists()) return null
         if (seal.length() !in 1..16384) throw Failure("invalid_capture")
@@ -208,15 +219,18 @@ internal class SaveCaptureService(private val activity: Activity) {
         }
         // A capture ID cannot be replayed against another directory or format.
         // Older mGBA journals lack these fields and retain their original binding.
-        if (ppssppDirectory != null) {
-            if (record.optString("format") != "ppsspp-slot-v1" ||
-                record.optString("source") != ppssppDirectory) throw Failure("invalid_capture")
-        } else if (record.optString("format", "mgba-battery") != "mgba-battery") {
+        val expectedFormat = if (ppssppDirectory != null) "ppsspp-slot-v1"
+            else if (retroArchRoute == "gamegear") "gamegear-battery" else "mgba-battery"
+        val expectedSource = ppssppDirectory ?: batterySource(retroArchRoute)
+        if (record.optString("format", "mgba-battery") != expectedFormat ||
+            record.optString("source", MGBA_SOURCE) != expectedSource) {
             throw Failure("invalid_capture")
         }
         val members = record.getJSONArray("files")
-        val maxMembers = if (ppssppDirectory == null) 2 else 1
-        val maxSize = if (ppssppDirectory == null) 16L * 1024 * 1024 else PpssppSaveBoundary.MAX_STATE_BYTES
+        val includesRtc = ppssppDirectory == null && retroArchRoute == "gba"
+        val maxMembers = if (includesRtc) 2 else 1
+        val maxSize = if (ppssppDirectory != null) PpssppSaveBoundary.MAX_STATE_BYTES
+            else if (retroArchRoute == "gamegear") 65536L else 16L * 1024 * 1024
         if (members.length() !in 1..maxMembers) throw Failure("invalid_capture")
         val output = mutableListOf<Map<String, Any>>()
         for (i in 0 until members.length()) {
@@ -224,7 +238,7 @@ internal class SaveCaptureService(private val activity: Activity) {
             val item = members.getJSONObject(i)
             val file = File(directory, "member-$i")
             if (item.getString("name") != name &&
-                (ppssppDirectory != null || item.getString("name") != name.dropLast(4) + ".rtc")) {
+                (!includesRtc || item.getString("name") != name.dropLast(4) + ".rtc")) {
                 throw Failure("invalid_capture")
             }
             if (file.canonicalFile != file.absoluteFile || !file.isFile ||
@@ -252,12 +266,13 @@ internal class SaveCaptureService(private val activity: Activity) {
     }
 
     private fun capture(captureId: String, name: String,
-                        ppssppDirectory: String? = null): Map<String, Any> {
+                        ppssppDirectory: String? = null,
+                        retroArchRoute: String = "gba"): Map<String, Any> {
         val ppsspp = ppssppDirectory != null
         if (if (ppsspp) !PpssppSaveBoundary.validName(name) ||
                 !PpssppSaveBoundary.validDirectory(ppssppDirectory!!)
             else !RetroArchSaveBoundary.validName(name)) throw Failure("invalid_selection")
-        val sourceDirectory = ppssppDirectory ?: source
+        val sourceDirectory = ppssppDirectory ?: batterySource(retroArchRoute)
         if (File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_selection")
         val packageName = if (ppsspp) "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
         @Suppress("DEPRECATION")
@@ -274,7 +289,7 @@ internal class SaveCaptureService(private val activity: Activity) {
         val directory = File(root, captureId)
         if (directory.exists() && directory.canonicalFile != directory.absoluteFile) throw Failure("invalid_capture")
         if (!directory.isDirectory && !directory.mkdir()) throw Failure("capture_storage")
-        captured(directory, name, ppssppDirectory)?.let { return it }
+        captured(directory, name, ppssppDirectory, retroArchRoute)?.let { return it }
         // Only these exact private files can be leftovers from this journaled
         // capture ID. An unexpected entry is preserved and blocks replay.
         val leftovers = directory.listFiles() ?: throw Failure("capture_storage")
@@ -300,10 +315,14 @@ internal class SaveCaptureService(private val activity: Activity) {
         try {
             val selected = mutableListOf(name)
             val rtc = name.dropLast(4) + ".rtc"
+            if (!ppsspp && retroArchRoute == "gamegear" && File(sourceDirectory, rtc).exists()) {
+                throw Failure("related_group_unfinished")
+            }
             if (!ppsspp && File(sourceDirectory, rtc).exists()) selected += rtc
             for (member in selected) fds += OwnedStorageNative.openFile(sourceDir, member, false, false)
             val identities = fds.map(OwnedStorageNative::identity)
-            val maxSize = if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES else 16L * 1024 * 1024
+            val maxSize = if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES
+                else if (retroArchRoute == "gamegear") 65536L else 16L * 1024 * 1024
             if (identities.any { it[2] !in 1..maxSize }) throw Failure("invalid_save_size")
             val members = JSONArray()
             for (i in fds.indices) {
@@ -347,13 +366,14 @@ internal class SaveCaptureService(private val activity: Activity) {
             val record = JSONObject().put("captureId", captureId).put("name", name)
                 .put("deviceId", hash(device.toByteArray(Charsets.UTF_8)))
                 .put("emulatorVersion", version).put("files", members)
-                .put("format", if (ppsspp) "ppsspp-slot-v1" else "mgba-battery")
-            if (ppsspp) record.put("source", sourceDirectory)
+                .put("format", if (ppsspp) "ppsspp-slot-v1"
+                    else if (retroArchRoute == "gamegear") "gamegear-battery" else "mgba-battery")
+                .put("source", sourceDirectory)
             val part = File(directory, "capture.json.part")
             FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
             OwnedStorageNative.renameNoReplace(stageDir, part.name, stageDir, "capture.json")
             OwnedStorageNative.sync(stageDir)
-            return captured(directory, name, ppssppDirectory) ?: throw Failure("capture_storage")
+            return captured(directory, name, ppssppDirectory, retroArchRoute) ?: throw Failure("capture_storage")
         } finally {
             fds.forEach(OwnedStorageNative::close)
             OwnedStorageNative.close(stageDir)
@@ -420,8 +440,11 @@ internal class SaveCaptureService(private val activity: Activity) {
         val size = call.argument<Number>("size")?.toLong() ?: 0L
         val digest = call.argument<String>("sha256") ?: ""
         val ppssppDirectory = call.argument<String>("ppssppDirectory")
-        val sourceDirectory = ppssppDirectory ?: source
-        val format = if (ppssppDirectory != null) "ppsspp-slot-v1" else "mgba-battery"
+        val route = batteryRoute(call)
+        if (ppssppDirectory != null && route != "gba") throw Failure("invalid_restore")
+        val sourceDirectory = ppssppDirectory ?: batterySource(route)
+        val format = if (ppssppDirectory != null) "ppsspp-slot-v1"
+            else if (route == "gamegear") "gamegear-battery" else "mgba-battery"
         if (!validRestoreBinding(name, size, format, sourceDirectory) ||
             File(sourceDirectory).canonicalPath != sourceDirectory ||
             !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
@@ -512,7 +535,8 @@ internal class SaveCaptureService(private val activity: Activity) {
         if (File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_restore")
         val rollbackDirectory = File(root, rollbackId)
         if (rollbackDirectory.canonicalFile != rollbackDirectory.absoluteFile) throw Failure("invalid_restore")
-        val rollback = captured(rollbackDirectory, name, sourceDirectory.takeIf { ppsspp })
+        val batteryRoute = if (record.optString("format") == "gamegear-battery") "gamegear" else "gba"
+        val rollback = captured(rollbackDirectory, name, sourceDirectory.takeIf { ppsspp }, batteryRoute)
             ?: throw Failure("invalid_restore")
         @Suppress("UNCHECKED_CAST")
         val oldMembers = rollback["files"] as List<Map<String, Any>>

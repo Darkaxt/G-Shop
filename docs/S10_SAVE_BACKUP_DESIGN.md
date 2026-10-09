@@ -15,6 +15,107 @@ PPSSPP destination/write and rollback checks below now pass as well.
 
 ## Installed-route audit and visible coverage — 2026-10-09
 
+Next accessible route under the same ACTIVE S10: Game Gear cartridge battery
+saves through the already configured RetroArch Genesis Plus GX launch. Reuse the
+existing closed-content capture, immutable generation transport, explicit
+conflicts and one-file atomic restore/rollback. Bind the exact encoded ZIP launch
+leaf, Game Gear platform, Genesis Plus GX core, distinct SRAM format and fixed
+reviewed core save directory. Existing mGBA journals retain their original default
+binding; neither route can replay the other's captures/restores. Unknown routes,
+oversized SRAM and unexpected related files fail before publication. This does
+not claim CD backup RAM, states, custom paths or other consoles are finished.
+
+The inspected [Genesis Plus GX libretro boundary](https://github.com/libretro/Genesis-Plus-GX/blob/master/libretro/libretro.c)
+exposes cartridge SAVE_RAM up to 65,536 bytes, no RTC memory type, and separate
+CD BRAM handling. The installed shared core directory exists and was empty in
+the read-only audit. Acceptance for this slice remains a normal game-entry
+backup/download/restore/rollback at its exact emulator destination with an
+expendable fixture, plus route-isolation regressions. Source inspection alone is
+not native proof; no completed-route label is added before live verification.
+
+### Game Gear cartridge route verified — 2026-10-10
+
+The normal reviewed cloud game entry now reaches the Genesis Plus GX cartridge
+backup route. Its existing local ZIP was checked through the ordinary exact-byte
+review, not adopted, overwritten or redownloaded. That records a read-only copy
+binding and collapses the verified local/cloud entry. The unbound local entry
+correctly offered no edition-bound save action before that review.
+
+The native launch review returned the exact encoded document leaf. A new,
+disposable 50-byte SRAM fixture was placed only at that reviewed save path in
+the previously empty shared core directory. Normal selection, edition
+confirmation, closed-content capture and Drive publication/readback completed.
+Capture `ae5abe6a389d2005edb4c13d6ed9ef87` and the independently hashed fixture
+agree on SHA-256
+`615ee59dcb4a9aa4c9447f9e6f0cd26cd255c4869a30dba3226088db771c0ab5` (A).
+
+The disposable local file was then changed to B, SHA-256
+`f526b1ee6e62bdc97e83b684395803dc5e2b93adab534a5c3566c827a962d41d`.
+Normal explicitly confirmed cloud restore downloaded/verified A, retained B as
+capture `2976105995836566838993e510b7b612`, and published A at the expected core
+save path. Receipt `1b0c3879d6aa9b00ef183c87134a86d0` is `published` with matching
+length/digest, namespace and rollback binding. Independently hashing the shared
+destination confirmed A. Explicit retained-local rollback then published B;
+receipt `7ae7a6ff6fa50f5fffb0f9767fe0d34b` is `published` and preserves replaced
+A in capture `021b78fe94dd952f6dcc4c531eb9f3a1`. The destination independently
+matches B. RetroArch remained contentless; foregrounding it serviced its actual
+command receipts, without killing it or treating a delay as writer completion.
+
+The disposable shared save was removed after hash-verified rollback, returning
+the directory to empty. Retained captures/receipts and the test cloud generation
+remain for recovery evidence; no cloud generation was deleted. These are mock
+transport fixtures, not genuine game progress or an emulator-load claim. The ROM
+archive, RetroArch configuration and prior PSP slot/configuration hashes stayed
+unchanged. An incidental favourite/column change during UI navigation was
+returned to the original zero favourites/four columns. No legacy sync app/task
+was changed. No new sign-in was needed.
+
+Focused capture/job/launcher/settings checks and scoped Dart analysis pass.
+The targeted native binding test ran successfully through gated request 545;
+tests were prepared first but no pre-implementation red result was observed.
+Gated request 548 (`cb46a0b240c84595ba5ac80714712c0f`) then ran the complete
+affected native binding/storage classes plus debug assembly successfully.
+Gate acquired; observed two workers, parallel=false, Gradle heap=3 GiB,
+previously assessed Kotlin 2.2.20 in-process, preserved 1 GiB metaspace/256 MiB
+code cache and one 512 MiB test fork. Native environment budget is two; effective
+native concurrency is not independently established by those markers. No memory
+failure/budget increase. Log: `83e35affcfc34979975beeb48f548be6.log`.
+The same-signer preserving installation and independent installed base.apk hash
+match SHA-256 `0204aea67afcae1d962dfd522f8a4387233bf02f0fc02d615fd587660e6e4f35`.
+All protected preference/security hashes matched immediately after replacement.
+
+The post-proof coverage label now includes only the reviewed Game Gear cartridge
+SRAM route, leaving other cores/states/custom paths unfinished. A focused
+regression also reproduced unexpected related-file rejection being reduced to
+generic `capture_unavailable`; preserving `related_group_unfinished` fixes that
+status while retaining the last verified backup and making no cloud publication.
+The changed checks pass after the correction. Gated assembly 551
+(`125fdaeba8b841b7ad34ea19a5f80024`) completed exit zero with the shared mutex
+acquired and confirmed supervised completion. Observed workers=2, parallel=false,
+Gradle heap=3 GiB, Kotlin in-process with the previously assessed plugin version,
+preserved metaspace/code-cache flags and configured one 512 MiB fail-fast test
+fork (assembly did not execute tests). Native environment budget=2; effective
+native concurrency remains unverified. No memory failure or budget increase.
+Log: `c11742625a6c48d6bc79d019bc2ccc11.log`.
+
+Preserving same-signer installation succeeded. The independent installed APK
+digest equals the built artifact:
+`9da09e8dab3f3db775d9516d3f04028c1c55c5704f6f352532eae8b93fef60dd`.
+All three protected preference/security hashes match immediately before/after
+replacement. Normal Settings -> Save backups reopened the prepared area without
+sign-in; Emulators on the Thor displays the reviewed Game Gear SRAM label, with
+coupled RTC restoration, states and other routes explicitly unfinished. The
+fixed left rail remains visible while only the selected content scrolls. ROM and
+RetroArch configuration hashes still match; the fixture directory is empty.
+The task-owned UI XML was reviewed and removed; both physical displays report
+committed OFF and device wakefulness Asleep. Final focused capture/job/launcher,
+coverage and section-settings checks passed against this unchanged code; the
+affected native XML results were inspected with no failure/error/skip.
+The preceding real capture/restore/rollback proof applies to unchanged route
+logic. S10 remains
+ACTIVE with installed-emulator coverage, coherent related groups, automatic work,
+fault/reinstall/live conflict and conditional handover acceptance still required.
+
 A fresh read-only Thor package audit confirms the 27 known emulator, embedded
 runtime, port and frontend packages represented by the coverage catalogue.
 Save backups now has a separate Emulators section, independent of Drive setup.

@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/save_backup_manifest.dart';
+import 'package:retro_eshop/models/retroarch_battery_route.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
@@ -39,11 +40,13 @@ class _Capture extends SaveCapture {
   final stagedNames = <String>[];
   final stagedDirectories = <String?>[];
   final restored = <({String id, String rollback})>[];
-  String? publicationIssue;
+  String? publicationIssue, captureIssue;
   final started = Completer<void>();
   Completer<void>? held;
   Map<String, CapturedSaveGroup> sealed = {};
   final ppssppSources = <String>[];
+  final batteryRoutes = <RetroArchBatteryRoute>[];
+  final restoreRoutes = <RetroArchBatteryRoute>[];
   int appInfoOpens = 0;
   @override
   Future<void> openPpssppAppInfo() async {
@@ -68,7 +71,11 @@ class _Capture extends SaveCapture {
   Future<List<String>> retroArchNames() async => ['Game.srm'];
   @override
   Future<CapturedSaveGroup> captureRetroArch(
-      {required String captureId, required String name}) async {
+      {required String captureId,
+      required String name,
+      RetroArchBatteryRoute route = RetroArchBatteryRoute.mgba}) async {
+    batteryRoutes.add(route);
+    if (captureIssue != null) throw PlatformException(code: captureIssue!);
     if (sealed[captureId] case final previous?) return previous;
     captures++;
     if (!started.isCompleted) started.complete();
@@ -93,11 +100,13 @@ class _Capture extends SaveCapture {
       required int size,
       required String sha256,
       String? ppssppDirectory,
+      RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
       required Stream<Uint8List> bytes}) async {
     await bytes.drain<void>(); // final transport verification must finish
     staged.add(restoreId);
     stagedNames.add(name);
     stagedDirectories.add(ppssppDirectory);
+    restoreRoutes.add(retroArchRoute);
   }
 
   @override
@@ -292,6 +301,79 @@ void main() {
     generations.close();
     await db.close();
   });
+  test('unimplemented related group preserves last backup without publication',
+      () async {
+    await job.backup(currentName);
+    final verified = job.lastVerified!.generationId;
+    final uploads = generations.uploads;
+    capture.captureIssue = 'related_group_unfinished';
+    await job.backup(currentName);
+    expect(job.issue, 'related_group_unfinished');
+    expect(job.lastVerified!.generationId, verified);
+    expect(generations.uploads, uploads);
+  });
+  test(
+      'Game Gear route persists distinct binding through backup restore and rollback',
+      () async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'gamegear',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    SaveBackupGameJob openGameGear() => SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        retroArchRoute: RetroArchBatteryRoute.gameGear,
+        resolveSaveName: () async => currentName);
+    final gg = openGameGear();
+    await gg.backup(currentName);
+    expect(gg.issue, isNull);
+    final first = gg.lastVerified!;
+    expect(first.binding.platformId, 'gamegear');
+    expect(first.binding.coreId, 'genesis_plus_gx');
+    expect(first.binding.formatId, 'libretro-genesis-plus-gx-sram-v1');
+    expect(first.binding.kind, SaveBackupKind.save);
+    expect(capture.batteryRoutes, [RetroArchBatteryRoute.gameGear]);
+    gg.dispose();
+    final reopened = openGameGear();
+    await reopened.load();
+    expect(reopened.lastVerified!.generationId, first.generationId);
+    await reopened.restoreLatest();
+    expect(reopened.issue, isNull);
+    expect(capture.restoreRoutes, [RetroArchBatteryRoute.gameGear]);
+    final rollbackId = capture.restored.single.rollback;
+    final directory =
+        await Directory('D:/Temp').createTemp('rshop-gg-rollback-');
+    final retained = File('${directory.path}/member');
+    try {
+      await retained.writeAsBytes([1, 2, 3, 4], flush: true);
+      capture.sealed[rollbackId] = CapturedSaveGroup(rollbackId, 'device',
+          '1.22.2_GIT', [CapturedSaveFile(currentName, retained, 4, 'b' * 64)]);
+      await reopened.rollbackLast();
+      expect(reopened.issue, isNull);
+      expect(capture.restoreRoutes,
+          [RetroArchBatteryRoute.gameGear, RetroArchBatteryRoute.gameGear]);
+      expect(
+          capture.batteryRoutes
+              .every((r) => r == RetroArchBatteryRoute.gameGear),
+          isTrue);
+      await job.load();
+      expect(job.lastVerified, isNull,
+          reason: 'mGBA cannot adopt the Game Gear job');
+    } finally {
+      reopened.dispose();
+      if (await retained.exists()) await retained.delete();
+      await directory.delete();
+    }
+  });
+
   test('PPSSPP slot uses reviewed state identity and survives reload',
       () async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(

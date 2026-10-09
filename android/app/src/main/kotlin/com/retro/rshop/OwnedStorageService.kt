@@ -54,9 +54,12 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "launchOwnedRetroArchSnes" ||
                         call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                         call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2" ||
-                        call.method == "launchOwnedCemu" || call.method == "reviewOwnedRetroArchGameBoyAdvanceSave") {
-                        val reviewSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
-                        val gameGear = call.method == "launchOwnedRetroArchGameGear"
+                        call.method == "launchOwnedCemu" || call.method == "reviewOwnedRetroArchGameBoyAdvanceSave" ||
+                        call.method == "reviewOwnedRetroArchGameGearSave") {
+                        val reviewGbaSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
+                        val reviewGameGearSave = call.method == "reviewOwnedRetroArchGameGearSave"
+                        val reviewSave = reviewGbaSave || reviewGameGearSave
+                        val gameGear = call.method == "launchOwnedRetroArchGameGear" || reviewGameGearSave
                         val segaPlatform = when (call.method) {
                             "launchOwnedRetroArchMegaDrive" -> "megadrive"
                             "launchOwnedRetroArchMasterSystem" -> "mastersystem"
@@ -65,7 +68,7 @@ internal class OwnedStorageService(private val context: Context) {
                         }
                         val gameBoy = call.method == "launchOwnedRetroArchGameBoy"
                         val gameBoyColor = call.method == "launchOwnedRetroArchGameBoyColor"
-                        val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance" || reviewSave
+                        val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance" || reviewGbaSave
                         val nes = call.method == "launchOwnedRetroArchNes"
                         val snes = call.method == "launchOwnedRetroArchSnes"
                         val handheld = gameBoy || gameBoyColor || gameBoyAdvance
@@ -105,7 +108,7 @@ internal class OwnedStorageService(private val context: Context) {
                             requiredStandaloneWua = wiiu).use { }
                         if (reviewSave) {
                             val name = RetroArchSaveBoundary.archiveSaveName(
-                                uri.encodedPath!!.substringAfterLast('/'))
+                                uri.encodedPath!!.substringAfterLast('/'), gameGear)
                             main.post { result.success(name) }
                             return@execute
                         }

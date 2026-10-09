@@ -7,6 +7,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun gameGearBatteryRestoreCannotReuseMgbasNamespaceOrStateFormat() {
+        val genesis = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
+        val mgba = "/storage/emulated/0/RetroArch/saves/mGBA"
+        assertTrue(SaveCaptureService.validRestoreBinding("Game.srm", 65536,
+            "gamegear-battery", genesis))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 65537,
+            "gamegear-battery", genesis))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 4,
+            "gamegear-battery", mgba))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 4,
+            "mgba-battery", genesis))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.state", 4,
+            "gamegear-battery", genesis))
+    }
     @Test fun restoreJournalsBindTheExactEmulatorFormatAndExpectedDirectory() {
         val slot = "ULUS10001_1.00_0.ppst"
         val psp = "/storage/emulated/0/PSP/PPSSPP_STATE"
