@@ -47,7 +47,18 @@ No source, identity, catalogue, storage schema or authorization change is needed
   APK verification passes with unchanged signer SHA-256
   `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
 
-## Native verification remains required
+## Native verification — 2026-10-09
+
+The later combined APK 435 is installed with unchanged signer and preserved app
+data. The normal native unchanged save preserved all existing system/mapping
+and ordered source objects. Explicit DSi selection added only `dsi`, increasing
+collection mappings from 33 to 34. Its normal Storage picker then selected the
+existing DSiWare boundary; saving changed only the new system's target field.
+See `S7_NATIVE_UPDATE_435.md` for full configuration comparisons and continuity
+evidence. Passive suggestions did not enable other consoles. This closes the
+native unchanged/addition slice, not S7 or DSi metadata/restore acceptance.
+
+## Historical pre-update checkpoint
 
 This APK has not replaced the running app. The normal collection refresh is
 actually advancing in PID 1335: the fixed read-only observer measured committed
@@ -57,8 +68,7 @@ metadata observation), without replacing its immutable capture. Configuration
 hash remains `eca976db992000116ba56c3dee089955081099952ca4dab2e63be2a53724603d`.
 No sign-out, source change, ROM operation or worker restart was performed.
 
-After a normal worker boundary, install the signer-preserving update, verify the
-normal native editor and add the observed DSi mapping while checking that all
-other mappings remain unchanged. Preserve the existing DSiWare files and saved
-job membership. Full metadata, current publication, defensible retention and
-reviewed migration remain required S7 work; S8-S11 remain NOT STARTED.
+The preserving update and mapping verification above supersede this earlier
+scheduling checkpoint. Full metadata, publication, defensible retention and
+reviewed migration remain S7 work; S8-S11 are NOT STARTED. DSiWare files and
+saved job membership remain preserved.

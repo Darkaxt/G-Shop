@@ -51,10 +51,14 @@ ranking, ownership or removal. Existing platform and evidence checks still apply
 
 ## Still required in S7
 
-DSi is not yet configured in the Thor's normal collection mappings. Establish
-its exact observed cloud folder and existing local DSiWare boundary through
-normal configuration, preserving the other mappings. Complete a scoped fresh
-DSi pass after the existing provider job reaches its normal boundary; never
+The normal native editor now explicitly maps DSi's observed cloud folder, and
+Android's Storage picker targets the existing `Roms/nds/DSiWare` boundary. Full
+configuration comparisons prove that only DSi was added and its target then
+corrected; all existing systems and sources are unchanged. The installed update
+and verification evidence are in `S7_NATIVE_UPDATE_435.md`.
+
+Complete a scoped fresh DSi pass after the existing provider job reaches its
+normal boundary; never
 rewrite or expand job 76's captured membership. Provider support does not prove
 the observed 7z-to-DSi restore route. Existing `.dsi` files remain preserved.
 Current root catalogue generation 1 / pending generation 2 is not proof that a

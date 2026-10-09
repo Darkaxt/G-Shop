@@ -66,7 +66,11 @@ The resulting 225,140,523-byte debug APK has SHA-256
 `4440a5aca0ea44ad0708c0aec1a5505c6addaee8af0bc9904e1abba20c69753b`.
 APK signature verification preserves signer SHA-256
 `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
-This artifact has not been installed; normal Thor verification remains required.
+This artifact is now installed preserving app data; see
+`S7_NATIVE_UPDATE_435.md`. Ordinary nested identification still requires native
+execution evidence; installation alone does not verify that path.
+
+The following is the historical pre-update checkpoint:
 Read-only observation confirms the existing refresh advanced from 7,226 to 7,630
 committed pages, with the device asleep. The existing
 process is not replaced during its advancing rooted refresh. Saved job 76's
