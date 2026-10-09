@@ -7,8 +7,8 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current execution state — 2026-10-09, S7 retention evidence blocked
 
-S0-S6 and S8 are COMPLETE. S7 is BLOCKED. S9-S11 are NOT STARTED. No stage is
-currently ACTIVE between S8 closure and the next stage entry. This current state
+S0-S6 and S8-S9 are COMPLETE. S7 is BLOCKED. S10-S11
+are NOT STARTED. This current state
 supersedes the dated checkpoints below. Overall implementation is not complete.
 
 The external blocker is MIGRATE-01's defensible per-console Top-25 retention
@@ -44,6 +44,11 @@ PPSSPP coverage is not claimed. Test-only associations/captures are cleared,
 unchanged job 76 normally resumed and advanced, and both physical displays are
 OFF. `S8_COMPANION_DESIGN.md` records the criterion-by-criterion evidence,
 build profile and scope qualifications. S8 has no blocker or tracked deferral.
+S9 is reconciled COMPLETE in `S9_MEDIA_COVERAGE.md`: all supported platforms have
+reviewed mappings, legacy original-media families have explicit evidence/neutral
+rationales, and actual compact/large Thor presentation plus focused decode,
+replacement and layout checks pass. Both screens are OFF; task captures removed.
+S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
 
 ### S7 preserving update 451 and selection durability — 2026-10-09
 

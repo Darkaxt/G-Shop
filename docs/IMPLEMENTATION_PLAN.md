@@ -3,9 +3,8 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 14.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Current scheduling (2026-10-09): S0-S6 and S8 COMPLETE; S7 BLOCKED on external Game Gear
-reception evidence for MIGRATE-01; S9-S11 NOT STARTED. No stage is ACTIVE between
-S8 closure and next stage entry. See the
+Current scheduling (2026-10-09): S0-S6 and S8-S9 COMPLETE; S7 BLOCKED on external Game Gear
+reception evidence for MIGRATE-01; S10-S11 NOT STARTED. See the
 current status entry for exact blocker, resolution and dependent work. Older
 dated ACTIVE checkpoints below are historical. No acceptance criterion changes.
 
@@ -1533,10 +1532,12 @@ requires the blocked S7 and the subsequent S9, S10 and S11 work.
 
 ## S9 — Final cartridge and legacy-media visual coverage
 
-Status: NOT STARTED.
+Status: COMPLETE.
 Requirements: ART-01; recheck UI-01 and QA-04.
-Depends on: S1-S8 acceptance. This is the final visual stage, not a second ACTIVE
-stage; the subsequently authorized S10 follows it.
+Depends on: verified S1-S6 cover/identity boundaries and completed S8. S7's
+retained ROM set/deletions are not inputs to the supported-platform media audit.
+S7 remains BLOCKED and required at overall reconciliation; this scheduling
+correction does not weaken ART-01 or MIGRATE-01.
 
 - Inventory the then-supported cartridge consoles and their actual physical
   shapes, plus older game cards, floppy sizes/types and cassette formats.
@@ -1548,12 +1549,22 @@ stage; the subsequently authorized S10 follows it.
 - Verify bundling/decoding/mappings and the normal compact/large cover states,
   cover replacement and badges/focus on the Thor; preserve settings/ROMs and
   switch both displays off after testing.
-- Resolve every ART-01 gap, reconcile S1-S9 requirements, perform applicable
+- Resolve every ART-01 gap, reconcile its S1-S8 integration boundaries while
+  preserving the unresolved S7 ledger, perform applicable
   verification and commit. S10 remains required; no publication is implied.
 
 Evidence: complete format/asset matrix, zero unfilled supported cartridge or
 legacy-format gaps, asset provenance, inspected renders and native behavior,
-S1-S9 reconciliation with zero unresolved required blockers/deferrals.
+ART-01 reconciliation with zero unresolved S9 blockers/deferrals. Overall S1-S11
+closure still requires the blocked S7 and remaining S10-S11.
+
+Closure evidence: `S9_MEDIA_COVERAGE.md` records the complete 66-platform matrix,
+individual raster review, pinned hardware/media sources, focused mapping/decode/
+replacement/layout verification and normal Thor three/eight-column presentation.
+The effective four-column layout is restored, both screens are OFF and exact
+task captures cleaned. Every ART-01 criterion is reconciled; no S9 blocker or
+tracked deferral remains. No new runtime machinery, art, APK or Gradle build was
+needed. The audit contract prevents the reviewed matrix drifting from support.
 
 ## S10 — Emulator-aware save-backup sync
 

@@ -70,6 +70,24 @@ void main() {
     }
   });
 
+  test('S9 reviewed media matrix covers exactly the current platform mapping',
+      () {
+    final audit = File('docs/S9_MEDIA_COVERAGE.md').readAsStringSync();
+    final rows = RegExp(
+            r'^\| `([a-z0-9]+)` \| [^|]+ \| `([a-z0-9]+)\.png` \| [^|]+ \|$',
+            multiLine: true)
+        .allMatches(audit)
+        .toList();
+    expect(rows.length, platformMediaFamilies.length,
+        reason: 'Missing or repeated reviewed platform rows must fail');
+    expect(rows.map((row) => row.group(1)).toSet(),
+        SystemModel.supportedSystems.map((system) => system.id).toSet());
+    for (final row in rows) {
+      expect(row.group(2), platformMediaFamilies[row.group(1)],
+          reason: 'Reviewed original-media asset drift: ${row.group(1)}');
+    }
+  });
+
   test('bundled family is real decodable transparent raster artwork', () async {
     for (final family in platformMediaFamilies.values.toSet()) {
       final data = await rootBundle
@@ -77,13 +95,14 @@ void main() {
       // Use the actual Flutter decoder, including the upstream 16-bit
       // grayscale-alpha PNGs. image 4.3.0's PixelUint16.a incorrectly reports
       // zero for two-channel grayscale-alpha data; the source PNG is valid.
-      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List(
-          data.offsetInBytes, data.lengthInBytes));
+      final codec = await ui.instantiateImageCodec(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
       final image = (await codec.getNextFrame()).image;
       try {
         expect(image.width, 256, reason: family);
         expect(image.height, 256, reason: family);
-        final rgba = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        final rgba =
+            (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
         expect(rgba.getUint8(3), 0, reason: 'Transparent margin: $family');
         var visible = false;
         for (var alpha = 3; alpha < rgba.lengthInBytes; alpha += 4) {
@@ -92,7 +111,8 @@ void main() {
             break;
           }
         }
-        expect(visible, isTrue, reason: 'Not an empty transparent file: $family');
+        expect(visible, isTrue,
+            reason: 'Not an empty transparent file: $family');
       } finally {
         image.dispose();
         codec.dispose();
