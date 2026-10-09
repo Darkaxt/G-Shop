@@ -21,16 +21,20 @@ import java.util.UUID
  * and exact test-owned rows in the existing migrated application database. */
 class OwnedRomInstrumentation : Instrumentation() {
     private var mountProbe = false
+    private var companionProbe = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         mountProbe = arguments?.getString("mountProbe") == "true"
+        companionProbe = arguments?.getString("companionProbe") == "true"
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
         try {
-            if (mountProbe) {
+            if (companionProbe) {
+                report.putString("result", CompanionProof.exercise(targetContext))
+            } else if (mountProbe) {
                 report.putString("result", exerciseMountBoundary())
             } else {
                 exercise()

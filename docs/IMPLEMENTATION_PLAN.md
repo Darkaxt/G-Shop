@@ -3,6 +3,12 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 14.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
+Current scheduling (2026-10-09): S0-S6 and S8 COMPLETE; S7 BLOCKED on external Game Gear
+reception evidence for MIGRATE-01; S9-S11 NOT STARTED. No stage is ACTIVE between
+S8 closure and next stage entry. See the
+current status entry for exact blocker, resolution and dependent work. Older
+dated ACTIVE checkpoints below are historical. No acceptance criterion changes.
+
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do
 not replace the required live evidence. The user selected Top 25 per console as
@@ -1123,6 +1129,11 @@ private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
 
+Status: BLOCKED. The external reliable-retention evidence gap is recorded in
+IMPLEMENTATION_STATUS.md. All unfinished work below remains assigned to S7;
+the ongoing immutable job 76 is neither replaced nor treated as a blocker merely
+because it takes time. No migration completion or removal permission is claimed.
+
 Current internal remediation (2026-10-09): update-436 process 7116 ended with
 an Android input-dispatch ANR after sleep. Persisted job-76 `running` is not live
 progress. Normal Library profiling traces repeated per-item linear scans of the
@@ -1485,10 +1496,16 @@ required before overall completion.
 
 ## S8 — Per-ROM dual-display companion launching
 
-Status: NOT STARTED.
+Status: COMPLETE. All COMPANION-01 acceptance is reconciled in
+`S8_COMPANION_DESIGN.md`, including actual Thor placement and post-refresh
+persistence, scoped save/settings preservation, resumed worker and screens OFF.
+No S8 blocker or tracked deferral remains. Overall completion is not claimed.
 
 Requirements: COMPANION-01; recheck CORE-02, DRIVE-06, QA-02/03/04.
-Depends on: S1-S7 acceptance and the established ordinary emulator handoff.
+Depends on: verified S1-S6 identity/storage boundaries and the established
+ordinary emulator handoff. S7's actual retained set/deletions are not inputs to
+companion launching. S7 remains required at final reconciliation; this corrects
+the derived scheduling dependency without weakening COMPANION-01 or MIGRATE-01.
 
 - Inspect Cocoon Launcher's source/revision/license at stage entry, then verify
   the relevant Android display-launch behavior on the Thor. Do not add a general
@@ -1503,15 +1520,16 @@ Depends on: S1-S7 acceptance and the established ordinary emulator handoff.
   activation without false paired-launch success or duplicate launches.
 - Prove two independently linked ROMs and actual top/bottom placement with
   controller/touch on the Thor, then switch both displays off.
-- Reconcile the revision-5 requirements delivered through S8, including S7
-  migration. ART-01 belongs to the final S9; no S8 criterion is waived. Verify
+- Reconcile COMPANION-01 and its integrated S1-S6 boundaries, preserving the
+  explicit unresolved S7 migration ledger. ART-01 belongs to the final S9;
+  no S8 criterion is waived. Verify
   and commit completed scope. Publication remains separate.
 
 Evidence: persistence/identity and native launch contract tests, Cocoon source and
 license review, actual Thor display-placement/controller proof, failure-path and
-ordinary-launch regression evidence, save/settings preservation and final
-S1-S8 reconciliation with zero unresolved required blockers/deferrals for those
-stages. Overall completion still requires S9, S10 and S11.
+ordinary-launch regression evidence and save/settings preservation. S8 closure
+requires every COMPANION-01 criterion; overall S1-S11 reconciliation still
+requires the blocked S7 and the subsequent S9, S10 and S11 work.
 
 ## S9 — Final cartridge and legacy-media visual coverage
 

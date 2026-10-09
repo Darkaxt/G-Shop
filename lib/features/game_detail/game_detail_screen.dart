@@ -51,6 +51,7 @@ import 'widgets/section_header.dart';
 import 'widgets/summary_section.dart';
 import 'widgets/variant_picker_overlay.dart';
 import 'widgets/drive_recovery_review_dialog.dart';
+import 'widgets/companion_picker_dialog.dart';
 
 class GameDetailScreen extends ConsumerStatefulWidget {
   final GameItem game;
@@ -515,18 +516,57 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     }
   }
 
-  Future<void> _openOwnedRom() async {
+  Future<void> _openOwnedRom({bool withoutCompanion = false}) async {
     final game = _controller?.selectedVariant;
     if (game == null) return;
     try {
-      await _emulatorLauncher.open(game, widget.system, widget.targetFolder);
+      final metadata = withoutCompanion
+          ? null
+          : await ref.read(gameMetadataProvider(
+                  (filename: game.selectionKey, systemSlug: widget.system.id))
+              .future);
+      if (!mounted) return;
+      final editionId = metadata?.editionId;
+      final companion = editionId == null
+          ? null
+          : ref.read(storageServiceProvider).getCompanion(editionId);
+      await _emulatorLauncher.open(game, widget.system, widget.targetFolder,
+          companionComponent: companion);
     } catch (error) {
       if (!mounted) return;
       final code =
           error is PlatformException ? error.code : 'installation_unavailable';
-      showConsoleNotification(context,
-          message: 'Could not open verified ROM: $code');
+      final message = switch (code) {
+        'companion_missing' =>
+          'Companion app is missing. Change it or open without companion.',
+        'companion_unlaunchable' =>
+          'Companion app cannot be launched. Change it or open without companion.',
+        'companion_display_unavailable' =>
+          'Two unambiguous displays are unavailable. Open without companion.',
+        'companion_display_denied' || 'companion_launch_denied' =>
+          'Android rejected companion display placement. Open without companion.',
+        'emulator_launch_denied_after_companion' =>
+          'Companion was opened, but Android rejected the emulator launch.',
+        _ => 'Could not open verified ROM: $code',
+      };
+      showConsoleNotification(context, message: message);
     }
+  }
+
+  Future<void> _chooseCompanion(String editionId) async {
+    closeQuickMenu();
+    const channel = MethodChannel('com.retro.rshop/companions');
+    final apps = channel.invokeListMethod<dynamic>('applications').then(
+        (items) => (items ?? const [])
+            .map((item) => Map<String, String>.from(item as Map))
+            .toList());
+    await showDialog<void>(
+        context: context,
+        builder: (_) => CompanionPickerDialog(
+            storage: ref.read(storageServiceProvider),
+            editionId: editionId,
+            applications: apps));
+    if (mounted) setState(() {});
   }
 
   List<QuickMenuItem?> _buildQuickMenuItems() {
@@ -544,6 +584,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ))
         .valueOrNull;
     final hasDetails = richMetadata?.hasContent ?? false;
+    final editionId = richMetadata?.editionId;
+    final companion = editionId == null
+        ? null
+        : ref.read(storageServiceProvider).getCompanion(editionId);
     final raMatches =
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.raMatchKey];
@@ -597,6 +641,21 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                             : 'Open in Dolphin',
             icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
+      if (controller.state.isVariantInstalled &&
+          companion != null &&
+          OwnedEmulatorLauncher.supports(variant, widget.system))
+        QuickMenuItem(
+            label: 'Open without companion',
+            icon: Icons.play_arrow_outlined,
+            onSelect: () => _openOwnedRom(withoutCompanion: true)),
+      if (editionId != null &&
+          OwnedEmulatorLauncher.supports(variant, widget.system))
+        QuickMenuItem(
+            label: companion == null
+                ? 'Set companion app'
+                : 'Change / clear companion',
+            icon: Icons.splitscreen_outlined,
+            onSelect: () => _chooseCompanion(editionId)),
       if (controller.state.isVariantInstalled && controller.canRemoveSelected)
         QuickMenuItem(
             label: L.of(context).gameDetail_delete,

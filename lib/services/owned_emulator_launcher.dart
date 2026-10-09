@@ -28,7 +28,8 @@ class OwnedEmulatorLauncher {
               game.filename.toLowerCase().endsWith('.wua')) ||
           TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
-  Future<void> open(GameItem game, SystemModel system, String root) {
+  Future<void> open(GameItem game, SystemModel system, String root,
+      {String? companionComponent}) {
     if (!supports(game, system)) {
       return Future.error(
           UnsupportedError('No verified emulator handoff for this format'));
@@ -36,7 +37,7 @@ class OwnedEmulatorLauncher {
     final key = game.selectionKey;
     final current = _opening[key];
     if (current != null) return current;
-    final operation = _open(game, system, root);
+    final operation = _open(game, system, root, companionComponent);
     _opening[key] = operation;
     // Clear after acknowledgement, retaining the original error on the caller.
     operation.then<void>((_) => _opening.remove(key),
@@ -46,7 +47,8 @@ class OwnedEmulatorLauncher {
     return operation;
   }
 
-  Future<void> _open(GameItem game, SystemModel system, String root) async {
+  Future<void> _open(GameItem game, SystemModel system, String root,
+      String? companionComponent) async {
     Map<String, Object> grant;
     try {
       final installed = await romManager.requireInstalledArtifact(game, root);
@@ -63,36 +65,40 @@ class OwnedEmulatorLauncher {
         'filename': copy.observation.relativePath
       };
     }
+    if (companionComponent != null) {
+      grant['companionComponent'] = companionComponent;
+    }
     await channel.invokeMethod<void>(
         system.id == 'gamegear'
             ? 'launchOwnedRetroArchGameGear'
             : system.id == 'megadrive'
                 ? 'launchOwnedRetroArchMegaDrive'
-            : system.id == 'mastersystem'
-                ? 'launchOwnedRetroArchMasterSystem'
-            : system.id == 'sg1000'
-                ? 'launchOwnedRetroArchSG1000'
-            : system.id == 'n64'
-                ? 'launchOwnedRetroArchN64'
-                : system.id == 'nes'
-                    ? 'launchOwnedRetroArchNes'
-                    : system.id == 'snes'
-                        ? 'launchOwnedRetroArchSnes'
-                        : system.id == 'gb'
-                            ? 'launchOwnedRetroArchGameBoy'
-                            : system.id == 'gbc'
-                                ? 'launchOwnedRetroArchGameBoyColor'
-                                : system.id == 'gba'
-                                    ? 'launchOwnedRetroArchGameBoyAdvance'
-                                    : system.id == 'psx'
-                                        ? 'launchOwnedRetroArchPSX'
-                                        : system.id == 'psp'
-                                            ? 'launchOwnedPPSSPP'
-                                            : system.id == 'ps2'
-                                                ? 'launchOwnedNetherSX2'
-                                                : system.id == 'wiiu'
-                                                    ? 'launchOwnedCemu'
-                                                    : 'launchOwnedDolphin',
+                : system.id == 'mastersystem'
+                    ? 'launchOwnedRetroArchMasterSystem'
+                    : system.id == 'sg1000'
+                        ? 'launchOwnedRetroArchSG1000'
+                        : system.id == 'n64'
+                            ? 'launchOwnedRetroArchN64'
+                            : system.id == 'nes'
+                                ? 'launchOwnedRetroArchNes'
+                                : system.id == 'snes'
+                                    ? 'launchOwnedRetroArchSnes'
+                                    : system.id == 'gb'
+                                        ? 'launchOwnedRetroArchGameBoy'
+                                        : system.id == 'gbc'
+                                            ? 'launchOwnedRetroArchGameBoyColor'
+                                            : system.id == 'gba'
+                                                ? 'launchOwnedRetroArchGameBoyAdvance'
+                                                : system.id == 'psx'
+                                                    ? 'launchOwnedRetroArchPSX'
+                                                    : system.id == 'psp'
+                                                        ? 'launchOwnedPPSSPP'
+                                                        : system.id == 'ps2'
+                                                            ? 'launchOwnedNetherSX2'
+                                                            : system.id ==
+                                                                    'wiiu'
+                                                                ? 'launchOwnedCemu'
+                                                                : 'launchOwnedDolphin',
         grant);
   }
 }

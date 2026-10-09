@@ -430,6 +430,39 @@ class StorageService {
     return result;
   }
 
+  /// Companion ownership is an exact edition association, not a title/filename
+  /// preference. Package visibility and current launchability are checked natively.
+  String? getCompanion(String editionId) {
+    _ensureInitialized();
+    if (editionId.trim().isEmpty) {
+      throw ArgumentError('An edition ID is required');
+    }
+    final companions = _readSelections()?['companions'];
+    if (companions == null) return null;
+    return (companions as Map)[editionId] as String?;
+  }
+
+  Future<void> setCompanion(String editionId, String? component) {
+    if (editionId.trim().isEmpty) {
+      throw ArgumentError('An edition ID is required');
+    }
+    if (component != null &&
+        !RegExp(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+/\.?[A-Za-z_$][A-Za-z0-9_.$]*$')
+            .hasMatch(component)) {
+      throw ArgumentError('An Android launcher component is required');
+    }
+    return _writeSelections((settings) {
+      final companions =
+          Map<String, dynamic>.from(settings['companions'] as Map? ?? const {});
+      if (component == null) {
+        companions.remove(editionId);
+      } else {
+        companions[editionId] = component;
+      }
+      settings['companions'] = companions;
+    });
+  }
+
   // Favorites, shelves and migration receipts share one acknowledged preference
   // write. Serializing their read/modify/write avoids lost concurrent toggles.
   Future<void> _writeSelections(void Function(Map<String, dynamic>) update) {

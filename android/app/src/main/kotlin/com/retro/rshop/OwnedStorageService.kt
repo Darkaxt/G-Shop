@@ -136,6 +136,8 @@ internal class OwnedStorageService(private val context: Context) {
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)
                                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                val companion = call.argument<String>("companionComponent")
+                                val pair = companion?.let { CompanionLauncher.prepare(context, it, intent) }
                                 if (!retroArch && !psp && !ps2 && !wiiu) {
                                     // Dolphin finishes MainActivity before its non-exported
                                     // EmulationActivity reads the ROM. An intent-owned grant
@@ -145,9 +147,12 @@ internal class OwnedStorageService(private val context: Context) {
                                     // and the pinned object on every subsequent open.
                                     context.grantUriPermission(app, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                context.startActivity(intent)
+                                if (pair == null) context.startActivity(intent)
+                                else CompanionLauncher.launch(context, pair, intent)
                                 // Activity acceptance is not a claim that the ROM booted.
                                 result.success(null)
+                            } catch (error: CompanionLaunchFailure) {
+                                result.error(error.code, "Companion launch: ${error.code}", null)
                             } catch (_: Failure) {
                                 result.error("emulator_missing", "Required emulator is not installed", null)
                             } catch (_: Exception) {

@@ -5,6 +5,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current execution state — 2026-10-09, S7 retention evidence blocked
+
+S0-S6 and S8 are COMPLETE. S7 is BLOCKED. S9-S11 are NOT STARTED. No stage is
+currently ACTIVE between S8 closure and the next stage entry. This current state
+supersedes the dated checkpoints below. Overall implementation is not complete.
+
+The external blocker is MIGRATE-01's defensible per-console Top-25 retention
+criterion, specifically Game Gear reception coverage. A fresh authenticated,
+read-only IGDB count on 2026-10-09 11:41 +02:00 still returns only 19 platform-35
+records with at least twenty votes, before collection/edition binding. Completed
+Thor job 75 accepts only two currently bound records meeting that floor. The
+existing assessed providers do not supply a defensible whole-collection set;
+an application fix cannot create the missing votes or borrow parent scores.
+Alternative public sources have not established a usable, assessed replacement.
+Resolution requires sufficient current, edition-correct reception evidence from
+a legitimately accessible assessed source, or an explicit user requirement
+change. No score floor, identity rule or migration criterion is changed here.
+
+S7 remains parked, not complete. Its full scrape, scoped/provider passes,
+identity/coverage gaps, exact migration execution and save-safety work remain
+required S7 work, not deferrals into S8. The already-running job 76 is left intact:
+19,603 requested / 23,908 pending / 747 rated in the read-only observation. Its
+continuation is not simultaneous implementation of another stage. No ROM
+removal or external sync change is authorized by this checkpoint.
+
+S8 uses the verified S1-S6 identity/storage/emulator boundaries and does not
+depend technically on S7's retained set or deletions. Its own COMPANION-01
+acceptance is unchanged. Final S1-S11 reconciliation still requires S7 closure;
+return to the earliest blocked stage when the external evidence becomes usable.
+
+Tracked deferrals: none added. Blocker evidence: SCORE_RECEPTION_ASSESSMENT.md
+and the live count above. Every COMPANION-01 criterion is verified, including
+normal paired ROM/app placement, independent choices, touch/controller controls,
+restart and completed catalogue refresh, failure cases and ordinary launch.
+The observed shared saves/settings remain unchanged; pre-existing inaccessible
+PPSSPP coverage is not claimed. Test-only associations/captures are cleared,
+unchanged job 76 normally resumed and advanced, and both physical displays are
+OFF. `S8_COMPANION_DESIGN.md` records the criterion-by-criterion evidence,
+build profile and scope qualifications. S8 has no blocker or tracked deferral.
+
 ### S7 preserving update 451 and selection durability — 2026-10-09
 
 S7 alone remains ACTIVE; S8-S11 are NOT STARTED. The rejected legacy-selection

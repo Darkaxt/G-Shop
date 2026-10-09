@@ -72,6 +72,17 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            "com.retro.rshop/companions").setMethodCallHandler { call, result ->
+            if (call.method != "applications") {
+                result.notImplemented()
+            } else try {
+                result.success(CompanionLauncher.applications(this))
+            } catch (_: Exception) {
+                result.error("companion_apps_unavailable", "Installed app list unavailable", null)
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "com.retro.rshop/drive_authorization").setMethodCallHandler { call, result ->
             if (call.method != "clearTokenIfMicroG") {
                 result.notImplemented()
