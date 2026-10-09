@@ -84,6 +84,21 @@ required unfinished S10 work. FolderSync and the laptop task are unchanged.
 S7 stays BLOCKED, S11 stays NOT STARTED; no tracked deferral is added and overall
 implementation is not complete.
 
+### S10 save-generation transport checkpoint — 2026-10-09
+
+S10 remains the sole ACTIVE stage. The exact bound save-group manifest and
+streamed immutable Drive upload/readback/download path now have focused host
+verification, including failed-new-generation preservation of the last complete
+generation and lost-response recovery using the same reserved IDs. ROM access
+remains read-only; no remote update/delete or generic mirror is introduced.
+This is an enabling boundary, not delivered save backup: native coherent capture,
+durable jobs/mappings, Settings/game/background integration, real RetroArch plus
+standalone backup/restore/emulator-load verification, full installed-route
+coverage and legacy-sync handover remain unfinished. None is reclassified as a
+deferral or silently waived. Exact evidence/limitations are recorded in
+`S10_SAVE_BACKUP_DESIGN.md`. No Thor data or external sync configuration changed;
+S7 remains BLOCKED and S11 NOT STARTED.
+
 ### S7 preserving update 451 and selection durability — 2026-10-09
 
 S7 alone remains ACTIVE; S8-S11 are NOT STARTED. The rejected legacy-selection

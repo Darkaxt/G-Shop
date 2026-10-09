@@ -1,0 +1,362 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:retro_eshop/models/save_backup_manifest.dart';
+import 'package:retro_eshop/services/drive/drive_authorization.dart';
+import 'package:retro_eshop/services/saves/drive_save_backup_generation.dart';
+
+class _Auth implements DriveAuthorizationDriver {
+  final scopes = <List<String>>[];
+  @override
+  Future<String?> authenticate({required bool interactive}) async => 'account';
+  @override
+  Future<String?> authorize(String accountId, List<String> scopes,
+      {required bool interactive}) async {
+    this.scopes.add(scopes);
+    return 'private-token';
+  }
+
+  @override
+  Future<void> clearRejectedToken(String accountId, String token) async {}
+  @override
+  Future<void> signOut({required bool revoke}) async {}
+}
+
+ResponseBody _json(Object value, [int status = 200]) =>
+    ResponseBody.fromString(jsonEncode(value), status);
+
+class _Drive implements HttpClientAdapter {
+  final requests = <RequestOptions>[];
+  final metadata = <String, Map<String, dynamic>>{};
+  final bytes = <String, List<int>>{};
+  final verified = <String>[];
+  final committed = <String>[];
+  String? corruptRead, loseResponse, foreignLocation;
+  CancelToken? cancelDuringRead;
+  bool changeVersionOnRead = false;
+  int largestChunk = 0;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions request, Stream<Uint8List>? body,
+      Future<void>? cancelFuture) async {
+    requests.add(request);
+    expect(request.uri.origin, 'https://www.googleapis.com');
+    expect(request.followRedirects, isFalse);
+    expect(request.headers['Authorization'], 'Bearer private-token');
+    if (request.method == 'POST') {
+      expect(request.uri.path, '/upload/drive/v3/files');
+      expect(request.uri.queryParameters['uploadType'], 'resumable');
+      final data = jsonDecode(utf8
+              .decode(await body!.fold<List<int>>([], (a, b) => a..addAll(b))))
+          as Map<String, dynamic>;
+      final id = data['id'] as String;
+      metadata[id] = {
+        ...data,
+        'ownedByMe': true,
+        'isAppAuthorized': true,
+        'trashed': false,
+        'shared': false
+      };
+      return ResponseBody.fromString('', 200, headers: {
+        'location': [
+          foreignLocation ??
+              'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=$id'
+        ]
+      });
+    }
+    if (request.method == 'PUT') {
+      final id = request.uri.queryParameters['upload_id']!;
+      final value = <int>[];
+      await for (final chunk in body!) {
+        largestChunk =
+            chunk.length > largestChunk ? chunk.length : largestChunk;
+        value.addAll(chunk);
+      }
+      bytes[id] = value;
+      metadata[id]!['size'] = value.length.toString();
+      metadata[id]!['version'] = '1';
+      committed.add(id);
+      if (id == 'generation-a') {
+        expect(verified, containsAll(['member-a', 'member-b']));
+      }
+      if (loseResponse == id) {
+        loseResponse = null;
+        throw StateError('response lost after commit');
+      }
+      return _json(metadata[id]!);
+    }
+    final id = request.uri.path.split('/').last;
+    if (id == 'area') {
+      return _json({
+        'id': id,
+        'mimeType': 'application/vnd.google-apps.folder',
+        'ownedByMe': true,
+        'isAppAuthorized': true,
+        'shared': false,
+        'trashed': false,
+        'appProperties': {'rshopSaveBackup': '1', 'kind': 'area'}
+      });
+    }
+    if (!bytes.containsKey(id)) return _json({}, 404);
+    if (request.uri.queryParameters['alt'] == 'media') {
+      verified.add(id);
+      if (changeVersionOnRead) metadata[id]!['version'] = 'changed';
+      final value = id == corruptRead ? [1, 2, 3] : bytes[id]!;
+      return ResponseBody(Stream<Uint8List>.multi((controller) {
+        controller.add(Uint8List.fromList(value));
+        cancelDuringRead?.cancel();
+        controller.close();
+      }), 200);
+    }
+    return _json(metadata[id]!);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+void main() {
+  late Directory directory;
+  late _Drive drive;
+  late _Auth auth;
+  late DriveSaveBackupGenerationApi api;
+  late SaveBackupManifest generation;
+  late Map<String, File> files;
+  setUp(() async {
+    final preferred = Directory(r'D:\Temp');
+    final temporaryRoot = Platform.isWindows && await preferred.exists()
+        ? preferred
+        : Directory.systemTemp;
+    directory = await temporaryRoot.createTemp('rshop-save-test-');
+    files = {
+      'member-a': File('${directory.path}/one.srm'),
+      'member-b': File('${directory.path}/one.rtc')
+    };
+    await files['member-a']!
+        .writeAsBytes(List.generate(150000, (i) => i % 251));
+    await files['member-b']!.writeAsBytes([1, 2, 3, 4]);
+    generation = SaveBackupManifest(
+        generationId: 'generation-a',
+        binding: SaveBackupBinding(
+            accountId: 'account',
+            deviceId: 'device',
+            emulatorPackage: 'com.retroarch.aarch64',
+            emulatorVersion: '1.22.2',
+            coreId: 'mgba',
+            coreVersion: '0.10.5',
+            platformId: 'gba',
+            editions: [
+              SaveBackupEdition(gameId: 'game-a', editionId: 'edition-a')
+            ],
+            kind: SaveBackupKind.save,
+            formatId: 'gba-save-ram'),
+        parentGenerationIds: [],
+        createdAt: DateTime.utc(2026, 10, 9),
+        members: [
+          for (final entry in files.entries)
+            SaveBackupMember(
+                relativePath: entry.key == 'member-a' ? 'one.srm' : 'one.rtc',
+                cloudFileId: entry.key,
+                sizeBytes: await entry.value.length(),
+                sha256: (await sha256.bind(entry.value.openRead()).first)
+                    .toString())
+        ]);
+    drive = _Drive();
+    auth = _Auth();
+    api = DriveSaveBackupGenerationApi(
+        authorization: DriveAuthorization(auth),
+        accountId: 'account',
+        transport: drive);
+  });
+  tearDown(() async {
+    api.close();
+    // Only exact files generated by this fixture; no recursive/global cleanup.
+    for (final file in files.values) {
+      await file.delete();
+    }
+    await directory.delete();
+  });
+
+  test('streams verified members before publishing the complete manifest',
+      () async {
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    expect(drive.committed, ['member-b', 'member-a', 'generation-a']);
+    expect(drive.largestChunk, lessThanOrEqualTo(65536));
+    expect(
+        auth.scopes.every((s) =>
+            s.length == 1 && s.single == DriveAuthorization.backupFileScope),
+        isTrue);
+    expect(
+        SaveBackupManifest.decode(drive.bytes['generation-a']!).contentDigest,
+        generation.contentDigest);
+    expect(
+        drive.requests.every((r) => ['GET', 'POST', 'PUT'].contains(r.method)),
+        isTrue);
+  });
+
+  test('changed capture and corrupt readback never publish a generation',
+      () async {
+    await files['member-a']!.writeAsBytes([9]);
+    await expectLater(
+        api.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.committed, isEmpty);
+    await files['member-a']!
+        .writeAsBytes(List.generate(150000, (i) => i % 251));
+    drive.corruptRead = 'member-b';
+    await expectLater(
+        api.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.committed, ['member-b']);
+    expect(drive.bytes.containsKey('generation-a'), isFalse);
+  });
+
+  test('ambiguous commit resumes with the same reserved IDs, without rewriting',
+      () async {
+    drive.loseResponse = 'member-a';
+    await expectLater(
+        api.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.committed, ['member-b', 'member-a']);
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    expect(drive.committed, ['member-b', 'member-a', 'generation-a']);
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    expect(drive.committed, ['member-b', 'member-a', 'generation-a']);
+  });
+
+  test('foreign session location cannot receive authorization or payload bytes',
+      () async {
+    drive.foreignLocation = 'https://example.invalid/upload';
+    await expectLater(
+        api.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.requests.any((r) => r.method == 'PUT'), isFalse);
+    expect(drive.committed, isEmpty);
+  });
+
+  test('cancellation during readback preserves an unpublished generation',
+      () async {
+    final cancellation = CancelToken();
+    drive.cancelDuringRead = cancellation;
+    await expectLater(
+        api.publish(
+            areaId: 'area',
+            generation: generation,
+            captures: files,
+            cancellation: cancellation),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.committed, ['member-b']);
+    expect(drive.bytes.containsKey('generation-a'), isFalse);
+  });
+
+  test('foreign account and unexpected capture members fail before networking',
+      () async {
+    final other = DriveSaveBackupGenerationApi(
+        authorization: DriveAuthorization(auth),
+        accountId: 'other',
+        transport: drive);
+    await expectLater(
+        other.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    other.close();
+    await expectLater(
+        api.publish(
+            areaId: 'area',
+            generation: generation,
+            captures: {...files, 'extra': files.values.first}),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.requests, isEmpty);
+  });
+
+  test(
+      'complete cloud generation can be read independently of the local capture',
+      () async {
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    final restored = await api.loadGeneration(
+        areaId: 'area',
+        generationId: 'generation-a',
+        target: generation.binding);
+    expect(restored.contentDigest, generation.contentDigest);
+    final bytes = await api
+        .memberBytes(areaId: 'area', generation: restored, memberId: 'member-a')
+        .fold<List<int>>([], (a, b) => a..addAll(b));
+    expect(sha256.convert(bytes).toString(),
+        restored.members.firstWhere((m) => m.cloudFileId == 'member-a').sha256);
+    drive.corruptRead = 'member-a';
+    await expectLater(
+        api
+            .memberBytes(
+                areaId: 'area', generation: restored, memberId: 'member-a')
+            .drain<void>(),
+        throwsA(isA<SaveBackupGenerationException>()));
+  });
+
+  test('load and read reject foreign objects and never write cloud data',
+      () async {
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    final before = drive.committed.length;
+    drive.metadata['generation-a']!['shared'] = true;
+    await expectLater(
+        api.loadGeneration(
+            areaId: 'area',
+            generationId: 'generation-a',
+            target: generation.binding),
+        throwsA(isA<SaveBackupGenerationException>()));
+    await expectLater(
+        api
+            .memberBytes(
+                areaId: 'area', generation: generation, memberId: 'unlisted-id')
+            .drain<void>(),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.committed.length, before);
+  });
+
+  test('failed newer publication preserves the previous complete generation',
+      () async {
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    final previousBytes = List<int>.of(drive.bytes['generation-a']!);
+    final next = SaveBackupManifest(
+        generationId: 'generation-next',
+        binding: generation.binding,
+        parentGenerationIds: ['generation-a'],
+        createdAt: DateTime.utc(2026, 10, 10),
+        members: [
+          for (final member in generation.members)
+            SaveBackupMember(
+                relativePath: member.relativePath,
+                cloudFileId: '${member.cloudFileId}-next',
+                sizeBytes: member.sizeBytes,
+                sha256: member.sha256)
+        ]);
+    drive.corruptRead = 'member-a-next';
+    await expectLater(
+        api.publish(areaId: 'area', generation: next, captures: {
+          for (final entry in files.entries) '${entry.key}-next': entry.value
+        }),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.bytes['generation-a'], previousBytes);
+    expect(drive.bytes.containsKey('generation-next'), isFalse);
+    expect(
+        drive.requests
+            .every((r) => r.method != 'DELETE' && r.method != 'PATCH'),
+        isTrue);
+    final recovered = await api.loadGeneration(
+        areaId: 'area',
+        generationId: 'generation-a',
+        target: generation.binding);
+    expect(recovered.contentDigest, generation.contentDigest);
+  });
+
+  test('a cloud version change during readback prevents publication', () async {
+    drive.changeVersionOnRead = true;
+    await expectLater(
+        api.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    expect(drive.bytes.containsKey('generation-a'), isFalse);
+  });
+}

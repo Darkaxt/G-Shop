@@ -145,3 +145,59 @@ Next required work is the actual RetroArch/standalone save-group mapping,
 quiescent capture, verified cloud generation and emulator-load restore, followed
 by every accessible installed route and the remaining failure/handover criteria.
 These are unfinished S10 work, not deferrals or acceptance waivers.
+
+## Save-generation transport boundary — 2026-10-09
+
+The first save-group cloud path now has a concrete manifest and streamed
+transport implementation, not yet connected to the normal Settings/game flow.
+`SaveBackupManifest` retains exact account/device/emulator/core/platform and
+reviewed edition associations, separates saves/states, records ancestry, and
+rejects aliased/escaping member paths, duplicate cloud identities and incomplete
+groups. Its content digest excludes timestamps and upload IDs. Explicit restore
+comparison rejects account/edition/format mismatches and incompatible state
+runtimes; it does not authorize an overwrite. The ancestry classifier requires a
+caller-validated base and cannot decide conflicts from timestamps.
+
+`DriveSaveBackupGenerationApi` uses only the separate backup authorization lane.
+It verifies the exact private area and the whole captured group before remote
+writes. Preallocated IDs identify immutable payloads and their final manifest;
+no update/delete/sharing endpoint or arbitrary upload destination is exposed.
+The resumable session URL is restricted to Google's exact HTTPS upload endpoint.
+Every member requires complete SHA-256 readback plus matching ownership, parent,
+binding, size and unchanged Drive version before manifest publication. Manifest
+read/download similarly checks its exact identity/binding/digest and bounds the
+decoded document to 1 MiB. Member streams target private restore staging only:
+normal EOF is required before their digest/version verification is satisfied.
+
+Focused host checks demonstrate corrupt/changed capture rejection, corrupt
+readback and cancellation preventing publication, reserved-ID recovery after a
+lost commit response without rewriting completed objects, foreign URL/object/
+account rejection, independent cloud-generation/member reads, and preservation
+of the previous complete generation when a newer publication fails. A reproduced
+manifest/payload identity collision was rejected at the model boundary. These
+checks use bounded in-memory Drive responses and exact expendable D:\Temp files;
+they are not real Google upload or emulator-load acceptance evidence.
+
+Verification: focused `save_backup_manifest_test.dart`,
+`save_backup_generation_test.dart`, `save_backup_area_test.dart`,
+`save_backup_setup_test.dart`, `drive_authorization_test.dart` and
+`google_drive_sign_in_test.dart` passed in one concurrency-one workload. Scoped
+analysis of the new model/transport/tests and `git diff --check` passed.
+No Gradle build, installation, new
+consent, real-save upload/restore or legacy-sync handover is part of this change.
+
+The durable capture/job controller must persist reserved IDs and immutable
+private captures before calling the transport. Native writer-boundary proof,
+destination grants, coherent local publication/rollback, independently
+discoverable versions, normal UI and background/emulator-return integration
+remain ordinary unfinished S10 work. Do not count these transport checks as a
+completed RetroArch/standalone vertical slice or S10 closure.
+
+Native-route investigation is pinned to the installed RetroArch 1.22.2 baseline:
+[SAVE_FILES implementation](https://github.com/libretro/RetroArch/blob/v1.22.2/command.c#L799)
+replies after CMD_EVENT_SAVE_FILES, whereas
+[state saving](https://github.com/libretro/RetroArch/blob/v1.22.2/tasks/task_save.c#L1313)
+can enqueue work. A command receipt, app return, equal timestamps or a silent
+background UDP endpoint must not be treated as proof that all save/state writers
+have stopped. Establish and verify the actual capture/export boundary next;
+do not turn diagnostic read timeouts into backup completion or failure policy.
