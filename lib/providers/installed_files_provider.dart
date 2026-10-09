@@ -25,15 +25,30 @@ class InstalledFilesState {
   /// This is not whole-volume usage; unmanaged files have no cached size here.
   final Map<String, int> managedBytesBySystem;
 
-  const InstalledFilesState({
+  InstalledFilesState({
     this.bySystem = const {},
     this.all = const {},
-    this.exactBySystem = const {},
+    Map<String, List<RemoteArtifact>> exactBySystem = const {},
     this.managedBytesBySystem = const {},
-  });
+  }) : exactBySystem = Map.unmodifiable({
+          for (final entry in exactBySystem.entries)
+            entry.key: List<RemoteArtifact>.unmodifiable(entry.value),
+        });
+
+  // Build once per immutable installation snapshot, not once per card/header
+  // query. Keep all versions for an object: a matching ID is only a candidate,
+  // never a substitute for the full content check below.
+  late final _exactById = {
+    for (final system in exactBySystem.entries)
+      system.key: <RemoteArtifactId, List<RemoteArtifact>>{},
+  }..forEach((system, byId) {
+      for (final artifact in exactBySystem[system]!) {
+        (byId[artifact.id] ??= []).add(artifact);
+      }
+    });
 
   bool hasExactArtifact(String systemId, RemoteArtifact artifact) =>
-      exactBySystem[systemId]?.any((installed) =>
+      _exactById[systemId]?[artifact.id]?.any((installed) =>
           InstallationSnapshot.sameContent(installed, artifact)) ??
       false;
 }

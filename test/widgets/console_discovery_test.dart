@@ -232,7 +232,7 @@ void defineConsoleDiscoveryChecks({
       libraryDbProvider.overrideWithValue(service),
       bootstrappedConfigProvider.overrideWith((ref) async => appConfig),
       installedFilesProvider
-          .overrideWith((ref) async => const InstalledFilesState()),
+          .overrideWith((ref) async => InstalledFilesState()),
       deviceMemoryProvider.overrideWithValue(
           const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
       sourcesProvider.overrideWith(

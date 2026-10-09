@@ -50,7 +50,7 @@ void main() {
         isInstalled: (e) => e == known,
         favorites: {unknown.selectionKey},
         installation:
-            const InstalledFilesState(managedBytesBySystem: {'psx': 512}));
+            InstalledFilesState(managedBytesBySystem: {'psx': 512}));
     final psx = summaries.firstWhere((s) => s.slug == 'psx');
     expect(psx.entries, 4);
     expect(psx.installed, 1);

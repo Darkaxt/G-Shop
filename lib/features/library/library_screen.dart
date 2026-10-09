@@ -244,7 +244,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   // Raw data from DB
   List<LibraryEntry> _allGames = [];
-  InstalledFilesState _installationState = const InstalledFilesState();
+  InstalledFilesState _installationState = InstalledFilesState();
   Set<String> get _installedFiles => _installationState.all;
   Set<String> _favoriteIds = {};
   // Filtered/sorted view

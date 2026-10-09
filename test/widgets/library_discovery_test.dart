@@ -167,7 +167,7 @@ void defineLibraryDiscoveryChecks({
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
       installedFilesProvider
-          .overrideWith((ref) async => const InstalledFilesState(
+          .overrideWith((ref) async => InstalledFilesState(
                 bySystem: {
                   'ps2': {'Game 02.7z'},
                   'psx': {'Game 09.7z'}
