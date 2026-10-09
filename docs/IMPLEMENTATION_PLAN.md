@@ -1569,6 +1569,13 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 ## S10 — Emulator-aware save-backup sync
 
 Status: ACTIVE.
+
+2026-10-10 checkpoint: real Thor PPSSPP opt-in, app return, unchanged cloud-head
+review, settings reopen and opt-out pass. The enabled lane is application-owned,
+serialized and durable; it does not claim Android scheduled background execution.
+Gated assembly 554, focused job/settings checks and scoped analysis passed.
+Scheduled dispatch and remaining SAVE-01 coverage/integration still belong to
+this ACTIVE stage. Evidence: S10_SAVE_BACKUP_DESIGN.md.
 Game Gear cartridge checkpoint, 2026-10-10: normal reviewed game entry -> closed
 Genesis Plus GX SRAM capture -> verified Drive generation -> expected-location
 restore -> retained-local rollback now has native published receipts and

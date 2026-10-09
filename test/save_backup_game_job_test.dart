@@ -8,6 +8,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:retro_eshop/models/config/source.dart';
+import 'package:retro_eshop/models/config/drive_source_config.dart';
+import 'package:retro_eshop/services/saves/automatic_save_backups.dart';
+import 'package:retro_eshop/services/saves/save_backup_setup.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/save_backup_manifest.dart';
 import 'package:retro_eshop/models/retroarch_battery_route.dart';
@@ -61,6 +66,8 @@ class _Capture extends SaveCapture {
     if (sealed[captureId] case final previous?) return previous;
     captures++;
     ppssppSources.add('$directory/$name');
+    if (!started.isCompleted) started.complete();
+    await held?.future;
     return sealed[captureId] = CapturedSaveGroup(
         captureId, 'device', 'v1.20.4', [
       CapturedSaveFile(name, File('/private/$captureId/member-0'), 4, digest)
@@ -173,6 +180,25 @@ class _UiJob extends SaveBackupGameJob {
   }
 }
 
+class _AutomaticUi extends AutomaticSaveBackups {
+  bool enabled = false;
+  int changes = 0;
+  _AutomaticUi(Database db, SharedPreferences preferences)
+      : super(
+            database: Future.value(db),
+            preferences: preferences,
+            sources: () => []);
+  @override
+  Future<AutomaticSaveStatus> status(AutomaticSaveMapping mapping) async =>
+      AutomaticSaveStatus(enabled: enabled, outcome: 'unchanged');
+  @override
+  Future<void> setEnabled(AutomaticSaveMapping mapping, bool value) async {
+    enabled = value;
+    changes++;
+    notifyListeners();
+  }
+}
+
 class _Generations extends DriveSaveBackupGenerationApi {
   final Database db;
   int uploads = 0;
@@ -181,7 +207,7 @@ class _Generations extends DriveSaveBackupGenerationApi {
   int downloads = 0;
   SaveBackupManifest? uploaded;
   final cloud = <String, SaveBackupManifest>{};
-  void Function()? onPublish;
+  void Function()? onPublish, onDiscover;
   _Generations(DriveAuthorization auth, this.db)
       : super(authorization: auth, accountId: 'account');
   @override
@@ -193,10 +219,13 @@ class _Generations extends DriveSaveBackupGenerationApi {
       cloud[generationId] ?? uploaded!;
   @override
   Future<List<SaveBackupManifest>> discoverGenerations(
-          {required String areaId,
-          required SaveBackupBinding target,
-          CancelToken? cancellation}) async =>
-      cloud.values.toList();
+      {required String areaId,
+      required SaveBackupBinding target,
+      CancelToken? cancellation}) async {
+    onDiscover?.call();
+    return cloud.values.toList();
+  }
+
   @override
   Stream<Uint8List> memberBytes(
       {required String areaId,
@@ -300,6 +329,390 @@ void main() {
     areas.close();
     generations.close();
     await db.close();
+  });
+  testWidgets(
+      'automatic opt-in requires review and status has no hidden controls',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+    final psp = _UiJob(SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: '/storage/emulated/0/PSP/PPSSPP_STATE',
+        ppssppSlot: 'ULUS10041_1.00_0.ppst',
+        resolveSaveName: () async => 'ULUS10041_1.00_0.ppst'));
+    final mapping = AutomaticSaveMapping.fromJob(psp, title: 'Game');
+    Future<void> show({bool allow = false, bool statusOnly = false}) async {
+      await tester.pumpWidget(ProviderScope(
+          child: createTestApp(Scaffold(
+              body: AutomaticSaveBackupPanel(
+                  service: automatic,
+                  mapping: mapping,
+                  allowEnable: allow,
+                  statusOnly: statusOnly)))));
+      await tester.pumpAndSettle();
+    }
+
+    await show();
+    final checkbox = find.byKey(const ValueKey('automatic-save-enable'));
+    expect(tester.widget<CheckboxListTile>(checkbox).onChanged, isNull);
+    await show(allow: true);
+    await tester.tap(checkbox);
+    await tester.pumpAndSettle();
+    expect(automatic.enabled, isTrue);
+    expect(automatic.changes, 1);
+    await show(statusOnly: true);
+    expect(checkbox, findsNothing);
+    expect(find.text('Automatic return checks: enabled'), findsOneWidget);
+    expect(
+        find.text('Last automatic check: unchanged; verified backup retained.'),
+        findsOneWidget);
+    await show();
+    expect(tester.widget<CheckboxListTile>(checkbox).onChanged, isNotNull,
+        reason: 'Opt-out remains available without enabling another save');
+    await tester.tap(checkbox);
+    await tester.pumpAndSettle();
+    expect(automatic.enabled, isFalse);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    automatic.dispose();
+    psp.dispose();
+  });
+  testWidgets(
+      'status explains an unchanged check without claiming another upload',
+      (tester) async {
+    final ui = _UiJob(job)..phase = 'unchanged';
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SaveBackupGamePanel(
+                job: ui, title: 'Game', section: SaveBackupSection.status)))));
+    await tester.pumpAndSettle();
+    expect(
+        find.text(
+            'Save unchanged. The existing verified cloud backup was retained.'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('save-backup-game-run')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    ui.dispose();
+  });
+  Future<
+      ({
+        AutomaticSaveBackups service,
+        AutomaticSaveMapping mapping,
+        SharedPreferences preferences
+      })> automaticFixture() async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'psp',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    const slot = 'ULUS10041_1.00_0.ppst';
+    final psp = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: directory,
+        ppssppSlot: slot,
+        resolveSaveName: () async => slot);
+    final mapping = AutomaticSaveMapping.fromJob(psp, title: 'Game');
+    psp.dispose();
+    SharedPreferences.setMockInitialValues({
+      SaveBackupSetup.storageKey('client', 'account'):
+          jsonEncode({'ready': true, 'areaId': 'area'}),
+      mapping.slotStorageKey:
+          jsonEncode({'directory': directory, 'slot': slot}),
+    });
+    final preferences = await SharedPreferences.getInstance();
+    final service = AutomaticSaveBackups(
+        database: Future.value(db),
+        preferences: preferences,
+        sources: () => [
+              const Source(
+                  id: 'source',
+                  name: 'Drive',
+                  type: SourceType.drive,
+                  drive: DriveSourceConfig(
+                      accountId: 'account',
+                      rootFolderId: 'root',
+                      serverClientId: 'client'))
+            ],
+        createJob: (mapped, resolve) => SaveBackupGameJob(
+            database: Future.value(db),
+            capture: capture,
+            areas: areas,
+            generations: generations,
+            clientId: mapped.clientId,
+            accountId: mapped.accountId,
+            areaId: mapped.areaId,
+            editionId: mapped.editionId,
+            artifactId: mapped.artifactId,
+            ppssppDirectory: mapped.directory,
+            ppssppSlot: mapped.slot,
+            resolveSaveName: resolve));
+    addTearDown(() async {
+      service.dispose();
+      await service.cancelAndJoin();
+    });
+    await service.setEnabled(mapping, true);
+    return (service: service, mapping: mapping, preferences: preferences);
+  }
+
+  test('automatic checks retain conflicts without making a resolution choice',
+      () async {
+    final fixture = await automaticFixture();
+    await fixture.service.checkEnabled();
+    final first = generations.cloud.values.single;
+    final peer = _branch(first, 'peer');
+    generations.cloud[peer.generationId] = peer;
+    capture.digest = 'd' * 64;
+    await fixture.service.checkEnabled();
+    expect(
+        (await fixture.service.status(fixture.mapping)).issue, 'save_conflict');
+    final captures = capture.captures;
+    await fixture.service.checkEnabled();
+    expect(capture.captures, captures,
+        reason: 'No repeated capture while an explicit choice is pending');
+    expect(generations.uploads, 1);
+    expect(generations.cloud.keys.toSet(),
+        {first.generationId, peer.generationId});
+  });
+  test(
+      'automatic offline recovery reuses reserved objects and respects pending restore',
+      () async {
+    final fixture = await automaticFixture();
+    await fixture.service.checkEnabled();
+    final first = generations.cloud.values.single;
+    capture.digest = 'd' * 64;
+    generations.fail = true;
+    await fixture.service.checkEnabled();
+    final reserved = generations.uploaded!.generationId;
+    expect(
+        (await fixture.service.status(fixture.mapping)).issue, 'unavailable');
+    expect(generations.cloud.keys, [first.generationId]);
+    generations.fail = false;
+    await fixture.service.checkEnabled();
+    expect(generations.uploaded!.generationId, reserved);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    final manual = fixture.service.createJob!(
+        fixture.mapping, () async => fixture.mapping.slot);
+    generations.failDownload = true;
+    await manual.restoreLatest();
+    expect(manual.restorePending, isTrue);
+    final uploads = generations.uploads;
+    await fixture.service.checkEnabled();
+    expect((await fixture.service.status(fixture.mapping)).issue,
+        'pending_restore');
+    expect(generations.uploads, uploads);
+    manual.dispose();
+  });
+  test(
+      'disabling automatic capture joins cancellation and persists the opt-out',
+      () async {
+    final fixture = await automaticFixture();
+    capture.held = Completer<void>();
+    final operation = fixture.service.checkEnabled();
+    await capture.started.future;
+    await fixture.service.setEnabled(fixture.mapping, false);
+    await operation;
+    expect((await fixture.service.status(fixture.mapping)).enabled, isFalse);
+    expect(generations.uploads, 0);
+    await fixture.service.checkEnabled();
+    expect(capture.captures, 1);
+  });
+  test('mapping changes while automatic capture runs prevent publication',
+      () async {
+    final fixture = await automaticFixture();
+    capture.held = Completer<void>();
+    final operation = fixture.service.checkEnabled();
+    await capture.started.future;
+    await fixture.preferences.setString(
+        fixture.mapping.slotStorageKey,
+        jsonEncode({
+          'directory': fixture.mapping.directory,
+          'slot': 'ULUS10041_1.00_1.ppst'
+        }));
+    capture.held!.complete();
+    await operation;
+    expect((await fixture.service.status(fixture.mapping)).issue,
+        'source_changed');
+    expect(generations.uploads, 0);
+  });
+  test(
+      'repeated lifecycle events serialize capture and avoid duplicate publication',
+      () async {
+    final fixture = await automaticFixture();
+    capture.held = Completer<void>();
+    final first = fixture.service.checkEnabled();
+    await capture.started.future;
+    final second = fixture.service.checkEnabled();
+    expect(capture.captures, 1);
+    capture.held!.complete();
+    await Future.wait([first, second]);
+    expect(generations.uploads, 1);
+    expect(
+        (await fixture.service.status(fixture.mapping)).outcome, 'unchanged');
+  });
+  test(
+      'unchanged capture retains the sole verified cloud generation after reopen',
+      () async {
+    await job.backup(currentName);
+    final first = job.lastVerified!;
+    await job.backup(currentName);
+    expect(job.issue, isNull);
+    expect(job.phase, 'unchanged');
+    expect(generations.uploads, 1);
+    expect(job.lastVerified!.generationId, first.generationId);
+    expect(job.pendingName, isNull);
+    final reopened = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => currentName);
+    await reopened.load();
+    expect(reopened.lastVerified!.generationId, first.generationId);
+    expect(reopened.pendingName, isNull);
+    reopened.dispose();
+  });
+  test(
+      'automatic mapped slot is opt-in, durable and skips identical publication',
+      () async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'psp',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    const slot = 'ULUS10041_1.00_0.ppst';
+    final psp = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: directory,
+        ppssppSlot: slot,
+        resolveSaveName: () async => slot);
+    addTearDown(psp.dispose);
+    final mapping = AutomaticSaveMapping.fromJob(psp, title: 'Game');
+    SharedPreferences.setMockInitialValues({
+      SaveBackupSetup.storageKey('client', 'account'):
+          jsonEncode({'ready': true, 'areaId': 'area'}),
+      mapping.slotStorageKey:
+          jsonEncode({'directory': directory, 'slot': slot}),
+    });
+    final preferences = await SharedPreferences.getInstance();
+    var sources = [
+      const Source(
+          id: 'source',
+          name: 'Drive',
+          type: SourceType.drive,
+          drive: DriveSourceConfig(
+              accountId: 'account',
+              rootFolderId: 'root',
+              serverClientId: 'client'))
+    ];
+    AutomaticSaveBackups open() => AutomaticSaveBackups(
+        database: Future.value(db),
+        preferences: preferences,
+        sources: () => sources,
+        createJob: (mapped, resolve) => SaveBackupGameJob(
+            database: Future.value(db),
+            capture: capture,
+            areas: areas,
+            generations: generations,
+            clientId: mapped.clientId,
+            accountId: mapped.accountId,
+            areaId: mapped.areaId,
+            editionId: mapped.editionId,
+            artifactId: mapped.artifactId,
+            ppssppDirectory: mapped.directory,
+            ppssppSlot: mapped.slot,
+            resolveSaveName: resolve));
+    final automatic = open();
+    await automatic.checkEnabled();
+    expect(capture.captures, 0,
+        reason: 'Never enable an unmapped game implicitly');
+    await automatic.setEnabled(mapping, true);
+    await automatic.checkEnabled();
+    expect(generations.uploads, 1);
+    expect((await automatic.status(mapping)).outcome, 'verified');
+    final reopened = open();
+    expect((await reopened.status(mapping)).enabled, isTrue);
+    await reopened.checkEnabled();
+    expect(generations.uploads, 1);
+    expect((await reopened.status(mapping)).outcome, 'unchanged');
+    capture.digest = 'd' * 64;
+    await reopened.checkEnabled();
+    expect(generations.uploads, 2);
+    sources = [];
+    await reopened.checkEnabled();
+    expect(generations.uploads, 2);
+    expect((await reopened.status(mapping)).issue, 'source_changed');
+    await reopened.setEnabled(mapping, false);
+    expect((await open().status(mapping)).enabled, isFalse);
+    await reopened.checkEnabled();
+    expect(generations.uploads, 2);
+    automatic.dispose();
+    reopened.dispose();
+  });
+  test(
+      'identical local capture cannot skip a missing verified cloud generation',
+      () async {
+    await job.backup(currentName);
+    final first = job.lastVerified!.generationId;
+    generations.cloud.clear();
+    await job.backup(currentName);
+    expect(job.issue, isNull);
+    expect(job.phase, 'verified');
+    expect(generations.uploads, 2);
+    expect(job.lastVerified!.generationId, isNot(first));
+  });
+  test('unchanged local bytes still surface a divergent cloud head', () async {
+    await job.backup(currentName);
+    final first = job.lastVerified!;
+    final peer = _branch(first, 'changed-peer');
+    generations.cloud[peer.generationId] = peer;
+    await job.backup(currentName);
+    expect(job.issue, 'save_conflict');
+    expect(generations.uploads, 1);
+    expect(job.lastVerified!.generationId, first.generationId);
+    expect(job.conflicts.single.generationId, peer.generationId);
+  });
+  test('unchanged completion rechecks the current launch target after cloud IO',
+      () async {
+    await job.backup(currentName);
+    final first = job.lastVerified!.generationId;
+    generations.onDiscover = () => currentName = 'Moved.srm';
+    await job.backup('Game.srm');
+    expect(job.issue, 'source_changed');
+    expect(job.phase, isNot('unchanged'));
+    expect(job.lastVerified!.generationId, first);
+    expect(job.pendingName, 'Game.srm');
+    expect(generations.uploads, 1);
   });
   test('unimplemented related group preserves last backup without publication',
       () async {
@@ -418,6 +831,7 @@ void main() {
               sizeBytes: 4,
               sha256: 'c' * 64)
         ]);
+    capture.digest = 'd' * 64;
     await psp.backup('ULUS10041_1.00_0.ppst');
     expect(psp.issue, isNull,
         reason: 'A different state slot is not a conflict');
@@ -784,6 +1198,7 @@ void main() {
     await db.update(
         'save_backup_game_jobs', {'record_json': jsonEncode(record)},
         where: 'job_key = ?', whereArgs: [row['job_key']]);
+    capture.digest = 'd' * 64;
     await job.backup('Game.srm');
     expect(job.issue, isNull);
     expect(job.lastVerified!.parentGenerationIds, [base.generationId]);
@@ -823,6 +1238,7 @@ void main() {
     generations.onPublish = () {
       generations.cloud[remote.generationId] = remote;
     };
+    capture.digest = 'd' * 64;
     await job.backup('Game.srm');
     expect(job.issue, 'save_conflict');
     expect(job.lastVerified!.generationId, base.generationId);
@@ -972,6 +1388,7 @@ void main() {
     await job.backup('Game.srm');
     final good = job.lastVerified!;
     generations.fail = true;
+    capture.digest = 'd' * 64;
     await job.backup('Game.srm');
     expect(job.lastVerified?.generationId, good.generationId);
     expect(generations.uploaded?.parentGenerationIds, [good.generationId]);

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,10 +19,12 @@ import '../../models/save_emulator_coverage.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/save_backup_providers.dart';
 import '../../services/drive/drive_runtime.dart';
 import '../../services/saves/drive_save_backup_area.dart';
 import '../../services/saves/save_backup_setup.dart';
 import '../../services/saves/save_backup_game_job.dart';
+import '../../services/saves/automatic_save_backups.dart';
 import '../../services/saves/save_capture.dart';
 import '../../services/saves/drive_save_backup_generation.dart';
 import '../../services/database_service.dart';
@@ -68,6 +69,7 @@ class _SaveBackupSettingsScreenState
   int _generation = 0;
   bool _leaving = false;
   SaveBackupGameJob? _gameJob;
+  AutomaticSaveBackups? _automatic;
   Future<SaveBackupGameJob>? _gameLoading;
   String? _gameBinding;
   int _gameGeneration = 0;
@@ -206,6 +208,7 @@ class _SaveBackupSettingsScreenState
   Future<SaveBackupGameJob> _openGame(
       DriveSourceConfig config, String areaId) async {
     final generation = ++_gameGeneration;
+    _automatic = await ref.read(automaticSaveBackupsProvider.future);
     String? ppssppDirectory, ppssppSlot;
     if (widget.system?.id == 'psp') {
       final preferences = await SharedPreferences.getInstance();
@@ -274,12 +277,8 @@ class _SaveBackupSettingsScreenState
   }
 
   String _ppssppMappingKey(DriveSourceConfig config) =>
-      'save_ppsspp_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
-            config.serverClientId,
-            config.accountId,
-            widget.editionId,
-            widget.game!.remoteArtifact!.id.key
-          ])))}';
+      AutomaticSaveMapping.ppssppMappingKey(config.serverClientId,
+          config.accountId, widget.editionId!, widget.game!.remoteArtifact!.id);
 
   Future<void> _mapPpsspp(
       DriveSourceConfig config, String directory, String slot) async {
@@ -577,7 +576,7 @@ class _SaveBackupSettingsScreenState
                                                                               selected.drive!)
                                                                           : game.data == null
                                                                               ? const LinearProgressIndicator()
-                                                                              : SaveBackupGamePanel(section: _section, job: game.data!, title: widget.gameTitle ?? 'Selected game')),
+                                                                              : SaveBackupGamePanel(section: _section, job: game.data!, automatic: _automatic, title: widget.gameTitle ?? 'Selected game')),
                                                                 if (_gameLoading ==
                                                                         null &&
                                                                     _section !=
@@ -735,12 +734,14 @@ class _SaveBackupSettingsScreenState
 /// The selected source plus optional related RTC is reviewed before capture.
 class SaveBackupGamePanel extends StatefulWidget {
   final SaveBackupGameJob job;
+  final AutomaticSaveBackups? automatic;
   final String title;
   final SaveBackupSection section;
   const SaveBackupGamePanel(
       {super.key,
       required this.job,
       required this.title,
+      this.automatic,
       this.section = SaveBackupSection.backup});
   @override
   State<SaveBackupGamePanel> createState() => _SaveBackupGamePanelState();
@@ -939,6 +940,14 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : 'Resume this backup'))),
                 if (conflicts.isNotEmpty)
                   const Text('Conflict needs review in Restore & conflicts.'),
+                if (job.isPpsspp && widget.automatic != null)
+                  AutomaticSaveBackupPanel(
+                      service: widget.automatic!,
+                      mapping: AutomaticSaveMapping.fromJob(job,
+                          title: widget.title),
+                      allowEnable: !job.busy &&
+                          _confirmed &&
+                          (job.pendingName ?? _name) != null),
               ],
               if (widget.section == SaveBackupSection.restore) ...[
                 if (job.isPpsspp) ...[
@@ -1090,6 +1099,16 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       child: Text(
                           'Verified backup: ${job.lastVerified!.createdAt.toLocal()} · ${job.lastVerified!.members.length} save file(s)',
                           style: const TextStyle(fontSize: 18))),
+                if (job.phase == 'unchanged')
+                  const Text(
+                      'Save unchanged. The existing verified cloud backup was retained.',
+                      style: TextStyle(fontSize: 18)),
+                if (job.isPpsspp && widget.automatic != null)
+                  AutomaticSaveBackupPanel(
+                      service: widget.automatic!,
+                      mapping: AutomaticSaveMapping.fromJob(job,
+                          title: widget.title),
+                      statusOnly: true),
                 if (job.phase == 'restored')
                   Semantics(
                       liveRegion: true,
@@ -1109,6 +1128,133 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                           'Save operation not completed: ${job.issue}. The previous verified cloud generation and retained captures are preserved.',
                           style: const TextStyle(fontSize: 18))),
               ],
+            ]);
+      });
+}
+
+/// Compact opt-in inside the selected game section. No additional settings roll.
+class AutomaticSaveBackupPanel extends StatefulWidget {
+  final AutomaticSaveBackups service;
+  final AutomaticSaveMapping mapping;
+  final bool allowEnable, statusOnly;
+  const AutomaticSaveBackupPanel(
+      {super.key,
+      required this.service,
+      required this.mapping,
+      this.allowEnable = false,
+      this.statusOnly = false});
+  @override
+  State<AutomaticSaveBackupPanel> createState() =>
+      _AutomaticSaveBackupPanelState();
+}
+
+class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
+  late Future<AutomaticSaveStatus> _status;
+  bool _changing = false;
+  String? _issue;
+  @override
+  void initState() {
+    super.initState();
+    _status = widget.service.status(widget.mapping);
+    widget.service.addListener(_changed);
+  }
+
+  @override
+  void didUpdateWidget(AutomaticSaveBackupPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.service != widget.service ||
+        oldWidget.mapping.key != widget.mapping.key) {
+      oldWidget.service.removeListener(_changed);
+      widget.service.addListener(_changed);
+      _status = widget.service.status(widget.mapping);
+    }
+  }
+
+  void _changed() {
+    if (mounted) {
+      setState(() {
+        _status = widget.service.status(widget.mapping);
+      });
+    }
+  }
+
+  Future<void> _set(bool enabled) async {
+    if (_changing) return;
+    setState(() {
+      _changing = true;
+      _issue = null;
+    });
+    try {
+      await widget.service.setEnabled(widget.mapping, enabled);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _issue =
+            'Automatic backup setting could not be saved. Review the source, backup area and slot mapping.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _changing = false;
+          _status = widget.service.status(widget.mapping);
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.service.removeListener(_changed);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<AutomaticSaveStatus>(
+      future: _status,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Text(
+              'Automatic save status unavailable. No backup was enabled.');
+        }
+        final status = snapshot.data;
+        if (status == null) return const LinearProgressIndicator();
+        final canChange = !_changing && (status.enabled || widget.allowEnable);
+        return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!widget.statusOnly)
+                ConsoleFocusable(
+                    focusScale: 1,
+                    onSelect: canChange ? () => _set(!status.enabled) : null,
+                    child: ExcludeFocus(
+                        child: CheckboxListTile(
+                      key: const ValueKey('automatic-save-enable'),
+                      contentPadding: EdgeInsets.zero,
+                      value: status.enabled,
+                      onChanged:
+                          canChange ? (value) => _set(value ?? false) : null,
+                      title: const Text('Check this slot on app return',
+                          style: TextStyle(fontSize: 18)),
+                      subtitle: const Text(
+                          'Opt-in for this reviewed edition only. Checks on R-Shop startup or return; unchanged bytes are not uploaded again. Conflicts require your choice.'),
+                    ))),
+              if (widget.statusOnly) ...[
+                Text(
+                    'Automatic return checks: ${status.enabled ? 'enabled' : 'disabled'}',
+                    style: const TextStyle(fontSize: 18)),
+                if (widget.service.activeMappingKey == widget.mapping.key)
+                  const Text('Checking the mapped save…'),
+                if (status.outcome == 'verified')
+                  const Text('Last automatic check: backup verified.'),
+                if (status.outcome == 'unchanged')
+                  const Text(
+                      'Last automatic check: unchanged; verified backup retained.'),
+                if (status.issue != null)
+                  Semantics(
+                      liveRegion: true,
+                      child: Text(
+                          'Automatic check needs attention: ${status.issue}. Existing backups are preserved.')),
+              ],
+              if (_issue != null) Text(_issue!),
             ]);
       });
 }

@@ -12,6 +12,7 @@ import 'providers/ra_providers.dart';
 import 'providers/library_providers.dart';
 import 'providers/source_health_providers.dart';
 import 'providers/rom_status_providers.dart';
+import 'providers/save_backup_providers.dart';
 import 'features/home/home_view.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'services/crash_log_service.dart';
@@ -144,6 +145,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final configAsync = await ref.read(bootstrappedConfigProvider.future);
+      _checkAutomaticSaveBackups();
       ref
           .read(downloadQueueManagerProvider)
           .restoreQueue(SystemModel.supportedSystems, appConfig: configAsync);
@@ -246,6 +248,18 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
     super.dispose();
   }
 
+  void _checkAutomaticSaveBackups() {
+    if (!mounted) return;
+    unawaited(ref.read(automaticSaveBackupsProvider.future).then((service) async {
+      if (mounted) await service.checkEnabled();
+    }).catchError((Object _, StackTrace __) {
+      // Per-game failures are durable and displayed in save Status. This is
+      // only a local controller/storage failure, never an invitation to sign
+      // in, retry in a loop, or create a replacement backup area.
+      debugPrint('Automatic save check could not start');
+    }));
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -257,6 +271,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
         break;
       case AppLifecycleState.resumed:
         widget.audioManager.resume();
+        _checkAutomaticSaveBackups();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             final currentFocus = FocusManager.instance.primaryFocus;

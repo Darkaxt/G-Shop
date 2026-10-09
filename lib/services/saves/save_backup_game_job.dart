@@ -531,6 +531,28 @@ class SaveBackupGameJob extends ChangeNotifier {
           _issue = 'save_conflict';
           return;
         }
+        final verified = lastVerified;
+        if (reviewedHeads == null &&
+            verified != null &&
+            heads.length == 1 &&
+            heads.single.generationId == verified.generationId &&
+            listEquals(heads.single.encode(), verified.encode()) &&
+            _contents(verified) == localContents) {
+          // A lifecycle check must not manufacture another remote generation.
+          // Current cloud discovery is essential: an absent or divergent head
+          // cannot be replaced by our remembered last-good receipt.
+          await _requireName(name, gameId: game.id);
+          _check(cancellation);
+          await _persist({
+            ...record,
+            'state': 'complete',
+            'generation': record['lastVerified'],
+            'captures': null,
+            'conflictHeads': null
+          });
+          phase = 'unchanged';
+          return;
+        }
         if (reviewedHeads != null) {
           await _retainConflict(record);
           if (useCloud != null) {

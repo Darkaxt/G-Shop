@@ -15,6 +15,75 @@ PPSSPP destination/write and rollback checks below now pass as well.
 
 ## Installed-route audit and visible coverage — 2026-10-09
 
+Current automatic-work slice, 2026-10-10: SAVE-01 requires backing up
+changed saves, not publishing another immutable copy on every lifecycle event.
+The previous job published identical captures repeatedly. The updated job compares
+the freshly captured coherent group's format/roles,
+lengths and digests with the last verified generation, and revalidate current
+cloud heads through the existing account/area-bound transport. Skip publication
+only when that exact verified generation is still the sole head and its contents
+still agree. Missing or changed heads must not be treated as unchanged; divergent
+branches retain existing explicit resolution. Recheck the current edition/launch
+binding before recording unchanged completion. Preserve the durable last-good
+generation and restore/rollback intents. Focused regression tests must reproduce
+the duplicate, verify restart persistence and reject missing/divergent-head
+shortcuts. These focused checks now pass. This remains S10 work, not a new stage
+or Android scheduled-background-support claim.
+
+The first unattended route is the explicitly mapped published PPSSPP slot:
+SQLite stores opt-in per account/client/area/edition/artifact/directory/slot and
+requested/handled event counters. App startup and resume dispatch a single
+application-owned serial lane. Leaving Settings does not own/cancel that lane.
+No timer, recursive scan, automatic restore, conflict choice or extra sign-in is
+introduced. Every pass revalidates the configured source, prepared backup area,
+current explicit slot mapping and edition binding, including after capture.
+The existing sealed-capture/reserved-object journal supplies interrupted upload
+recovery; a failed pass is shown rather than retried in an unbounded loop.
+Persisted conflicts and restore intents remain explicit and block automatic
+publication. Disabling the mapping persists opt-out and joins its active capture.
+Controls remain inside the existing per-game Backup and Status sections, with
+enablement gated by the current reviewed selection and confirmation.
+
+Host verification covers opt-in/reopen/opt-out, unchanged and changed bytes,
+divergent heads, interrupted publication/reserved-object reuse, pending restore,
+mapping change during capture and serialized lifecycle events. A widget check
+caught a Future-returning setState callback; the corrected synchronous callback
+passes the opt-in/status/opt-out regression. Scoped analysis is clean and the
+focused job/settings checks pass. The preserving production debug build, gated
+request 554 (`2372051bfefa4699abf4aee1bdc15105`), completed with the gate acquired
+and completion verified. Observed workers=2, parallel=false and Gradle heap=3 GiB;
+assessed Kotlin 2.2.20 remains in-process. Test configuration is one 512 MiB fork
+(assembly did not execute JVM tests); native environment budget=2 is not proof
+of effective native concurrency. No memory failure or budget increase occurred.
+Log: `105c9a2381094f20a233b5a96db5610c.log`.
+
+The built and independently inspected installed APK agree on SHA-256
+`5c27cde0501c590e4c5e1b1c7e79e0b35eae22a513a5a7c3ff74d0becf56c28c`.
+The established debug signer and immediate protected preference/security hashes
+were preserved. Startup now explicitly awaits SourcesNotifier readiness before
+using its source snapshot; independent bootstrap completion is not proof that
+the notifier has loaded. The existing catalogue refresh completed and the normal
+library became responsive; an earlier lock warning was not evidence of deadlock.
+
+Actual Thor verification used Patapon's already mapped published PPSSPP slot,
+without changing its bytes. Normal Save backups selection/confirmation enabled
+the return check. Leaving R-Shop for Home and returning dispatched the capture
+and real Drive head review. Status completed with `Last automatic check:
+unchanged; verified backup retained`, keeping the original 2026-10-09 verified
+generation. Sealed capture `abc40288bcea95b698c172567946dd6e` contains 5,557,226
+bytes; no new cloud generation was published by that unchanged path. Closing
+and reopening the game backup screen retained both enabled state and outcome.
+Normal opt-out worked after reopening without selecting/confirming again,
+restoring the prior disabled policy. Before/after PSP slot and ppsspp.ini hashes
+match the previously recorded values. No new sign-in, restore, emulator-settings
+change or legacy-sync change occurred. Both actual/committed display states were
+verified OFF afterwards. This proves app-return behavior, not a cold-process
+native startup or Android scheduled-background execution claim.
+Android scheduled background dispatch, other unattended emulator routes and the
+rest of SAVE-01 remain ordinary unfinished S10 work, not tracked deferrals or
+completed acceptance. RetroArch's UDP closed-content wait is not silently attached
+to unattended events, and the old sync applications/tasks remain unchanged.
+
 Next accessible route under the same ACTIVE S10: Game Gear cartridge battery
 saves through the already configured RetroArch Genesis Plus GX launch. Reuse the
 existing closed-content capture, immutable generation transport, explicit

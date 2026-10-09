@@ -52,6 +52,17 @@ S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
 
 ### S10 entry — emulator-aware save backup, 2026-10-09
 
+Automatic return checkpoint, 2026-10-10: explicit per-edition PPSSPP slot opt-in
+now persists independently of the settings screen. Actual Thor Home/return
+capture and real Drive review retained the unchanged verified backup rather than
+publishing another generation. Reopening preserved opt-in/outcome; opt-out without
+reconfirmation restored the previous disabled policy. PSP slot/configuration
+hashes are unchanged and both displays are OFF. Focused checks, scoped analysis
+and gated assembly 554 pass; preserving signer/installed digest and protected
+preferences were inspected. S10 remains ACTIVE: Android scheduled dispatch,
+remaining accessible emulator routes/custom groups and other SAVE-01 acceptance
+remain unfinished. Legacy sync remains untouched. See S10_SAVE_BACKUP_DESIGN.md.
+
 Game Gear cartridge checkpoint, 2026-10-10: the normal game-entry workflow now
 backs up reviewed Genesis Plus GX SRAM to Drive, downloads/verifies it, restores
 it at the exact encoded launch save path and explicitly rolls back to different
