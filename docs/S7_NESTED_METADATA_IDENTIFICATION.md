@@ -67,8 +67,12 @@ The resulting 225,140,523-byte debug APK has SHA-256
 APK signature verification preserves signer SHA-256
 `06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`.
 This artifact is now installed preserving app data; see
-`S7_NATIVE_UPDATE_435.md`. Ordinary nested identification still requires native
-execution evidence; installation alone does not verify that path.
+`S7_NATIVE_UPDATE_435.md`. Subsequent ordinary job-76 execution produced two
+persisted nested GBA raw-ROM bindings after this update, independently joined
+to their exact full-container byte observations by a bounded READONLY diagnostic.
+See `S7_NATIVE_POLICY_AND_NESTED_PROOF.md` for the checks and limitations. This
+verifies the real nested execution path, not full coverage or provider acceptance;
+installation alone was not used as evidence of that path.
 
 The following is the historical pre-update checkpoint:
 Read-only observation confirms the existing refresh advanced from 7,226 to 7,630

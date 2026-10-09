@@ -64,8 +64,9 @@ command was launched for this configuration check. The earlier final output
 truncated its gate-acquired field; this document does not infer a separately
 inspected acquisition flag from the completed ticket.
 
-Native cached Wii/Wii U policy and ordinary nested identification still need
-their own evidence. Complete publication, immutable full metadata traversal,
+Native cached Wii/Wii U policy and ordinary nested identification subsequently
+passed their bounded execution checks; see `S7_NATIVE_POLICY_AND_NESTED_PROOF.md`.
+Complete publication, immutable full metadata traversal,
 required scoped passes, defensible canonical Top-25 retention, current cloud/
 format checks and exact reviewed migration remain S7 work. No release, external
 sync-policy change or SD cleanup occurred. Thor is Asleep and both observed
