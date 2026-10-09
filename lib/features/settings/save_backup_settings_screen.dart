@@ -16,6 +16,7 @@ import '../../models/config/drive_source_config.dart';
 import '../../models/config/source.dart';
 import '../../models/game_item.dart';
 import '../../models/system_model.dart';
+import '../../models/save_emulator_coverage.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../providers/app_providers.dart';
 import '../../services/drive/drive_runtime.dart';
@@ -30,7 +31,8 @@ enum SaveBackupSection {
   area('Backup area', Icons.cloud_outlined),
   backup('Back up save', Icons.backup_outlined),
   restore('Restore & conflicts', Icons.restore),
-  status('Status', Icons.info_outline);
+  status('Status', Icons.info_outline),
+  emulators('Emulators', Icons.sports_esports_outlined);
 
   final String label;
   final IconData icon;
@@ -69,6 +71,7 @@ class _SaveBackupSettingsScreenState
   String? _gameBinding;
   int _gameGeneration = 0;
   SaveBackupSection _section = SaveBackupSection.area;
+  Future<List<SaveEmulatorCoverage>?>? _coverage;
   final _contentScroll = ScrollController();
   final _sectionFocus = {
     for (final section in SaveBackupSection.values)
@@ -85,7 +88,12 @@ class _SaveBackupSettingsScreenState
     void select() {
       _sectionFocus[section]!.requestFocus();
       if (_contentScroll.hasClients) _contentScroll.jumpTo(0);
-      setState(() => _section = section);
+      setState(() {
+        _section = section;
+        if (section == SaveBackupSection.emulators) {
+          _coverage ??= _readCoverage();
+        }
+      });
     }
 
     return Padding(
@@ -413,125 +421,172 @@ class _SaveBackupSettingsScreenState
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
                                         children: [
-                                          if (selected == null)
-                                            Text(l.saveBackup_noDrive)
-                                          else ...[
-                                            if (_section ==
-                                                SaveBackupSection.area) ...[
-                                              DropdownButtonFormField<String>(
-                                                  key: ValueKey(
-                                                      'save-backup-account-$_sourceId'),
-                                                  initialValue: _sourceId,
-                                                  isExpanded: true,
-                                                  decoration: InputDecoration(
-                                                      labelText:
-                                                          l.settings_mySources),
-                                                  items: sources
-                                                      .map((source) =>
-                                                          DropdownMenuItem(
-                                                              value: source.id,
-                                                              child: Text(
-                                                                  source.name)))
-                                                      .toList(),
-                                                  onChanged: _setup?.busy ==
-                                                              true ||
-                                                          _gameJob?.busy == true
-                                                      ? null
-                                                      : (id) {
-                                                          if (id == null ||
-                                                              id == _sourceId) {
-                                                            return;
+                                          ExcludeFocus(
+                                            excluding: _section !=
+                                                SaveBackupSection.emulators,
+                                            child: Visibility(
+                                              visible: _section ==
+                                                  SaveBackupSection.emulators,
+                                              maintainState: true,
+                                              child: _coveragePanel(),
+                                            ),
+                                          ),
+                                          // Keep the exact workspace subtree mounted,
+                                          // including selection/confirmation and pending
+                                          // work. Hidden controls cannot take focus.
+                                          ExcludeFocus(
+                                            key: const ValueKey(
+                                                'save-workspace-focus'),
+                                            excluding: _section ==
+                                                SaveBackupSection.emulators,
+                                            child: Visibility(
+                                              visible: _section !=
+                                                  SaveBackupSection.emulators,
+                                              maintainState: true,
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.stretch,
+                                                children: [
+                                                  if (selected == null)
+                                                    Text(l.saveBackup_noDrive)
+                                                  else ...[
+                                                    if (_section ==
+                                                        SaveBackupSection
+                                                            .area) ...[
+                                                      DropdownButtonFormField<
+                                                              String>(
+                                                          key: ValueKey(
+                                                              'save-backup-account-$_sourceId'),
+                                                          initialValue:
+                                                              _sourceId,
+                                                          isExpanded: true,
+                                                          decoration:
+                                                              InputDecoration(
+                                                                  labelText: l
+                                                                      .settings_mySources),
+                                                          items: sources
+                                                              .map((source) =>
+                                                                  DropdownMenuItem(
+                                                                      value:
+                                                                          source
+                                                                              .id,
+                                                                      child: Text(
+                                                                          source
+                                                                              .name)))
+                                                              .toList(),
+                                                          onChanged: _setup
+                                                                          ?.busy ==
+                                                                      true ||
+                                                                  _gameJob?.busy ==
+                                                                      true
+                                                              ? null
+                                                              : (id) {
+                                                                  if (id ==
+                                                                          null ||
+                                                                      id ==
+                                                                          _sourceId) {
+                                                                    return;
+                                                                  }
+                                                                  setState(() {
+                                                                    _sourceId =
+                                                                        id;
+                                                                  });
+                                                                }),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                    ],
+                                                    FutureBuilder<
+                                                            SaveBackupSetup>(
+                                                        key: ValueKey(_binding),
+                                                        future: _loading,
+                                                        builder: (context,
+                                                            snapshot) {
+                                                          if (snapshot
+                                                              .hasError) {
+                                                            return Text(l
+                                                                .saveBackup_problem(
+                                                                    'setupUnavailable'));
                                                           }
-                                                          setState(() {
-                                                            _sourceId = id;
-                                                          });
-                                                        }),
-                                              const SizedBox(height: 20),
-                                            ],
-                                            FutureBuilder<SaveBackupSetup>(
-                                                key: ValueKey(_binding),
-                                                future: _loading,
-                                                builder: (context, snapshot) {
-                                                  if (snapshot.hasError) {
-                                                    return Text(
-                                                        l.saveBackup_problem(
-                                                            'setupUnavailable'));
-                                                  }
-                                                  final setup = snapshot.data;
-                                                  if (setup == null) {
-                                                    return const LinearProgressIndicator();
-                                                  }
-                                                  final area = setup.ready
-                                                      ? setup.areaId
-                                                      : null;
-                                                  final gameBinding =
-                                                      widget.editionId ==
-                                                                  null ||
-                                                              area == null
-                                                          ? null
-                                                          : jsonEncode([
-                                                              binding,
-                                                              area,
-                                                              widget.editionId
-                                                            ]);
-                                                  if (gameBinding !=
-                                                      _gameBinding) {
-                                                    _closeGame();
-                                                    _gameBinding = gameBinding;
-                                                    if (gameBinding != null) {
-                                                      _gameLoading = _openGame(
-                                                          selected.drive!,
-                                                          area!);
-                                                    }
-                                                  }
-                                                  return Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .stretch,
-                                                      children: [
-                                                        if (_section ==
-                                                            SaveBackupSection
-                                                                .area)
-                                                          SaveBackupSetupPanel(
-                                                              setup: setup,
-                                                              showUnmapped:
-                                                                  _gameLoading ==
-                                                                      null),
-                                                        if (_gameLoading !=
-                                                            null)
-                                                          FutureBuilder<
-                                                                  SaveBackupGameJob>(
-                                                              key: const ValueKey(
-                                                                  'save-game-workspace'),
-                                                              future:
-                                                                  _gameLoading,
-                                                              builder: (context, game) => game
-                                                                      .hasError
-                                                                  ? _mappingIssue(
-                                                                      selected
-                                                                          .drive!)
-                                                                  : game.data ==
+                                                          final setup =
+                                                              snapshot.data;
+                                                          if (setup == null) {
+                                                            return const LinearProgressIndicator();
+                                                          }
+                                                          final area =
+                                                              setup.ready
+                                                                  ? setup.areaId
+                                                                  : null;
+                                                          final gameBinding =
+                                                              widget.editionId ==
+                                                                          null ||
+                                                                      area ==
                                                                           null
-                                                                      ? const LinearProgressIndicator()
-                                                                      : SaveBackupGamePanel(
-                                                                          section:
-                                                                              _section,
-                                                                          job: game
-                                                                              .data!,
-                                                                          title:
-                                                                              widget.gameTitle ?? 'Selected game')),
-                                                        if (_gameLoading ==
-                                                                null &&
-                                                            _section !=
-                                                                SaveBackupSection
-                                                                    .area)
-                                                          Text(widget.editionId ==
-                                                                  null
-                                                              ? 'No game selected. Open a game’s Save backups menu to review its backup, restore and status.'
-                                                              : 'Prepare the backup area first, then return to this section.'),
-                                                      ]);
-                                                }),
-                                          ],
+                                                                  ? null
+                                                                  : jsonEncode([
+                                                                      binding,
+                                                                      area,
+                                                                      widget
+                                                                          .editionId
+                                                                    ]);
+                                                          if (gameBinding !=
+                                                              _gameBinding) {
+                                                            _closeGame();
+                                                            _gameBinding =
+                                                                gameBinding;
+                                                            if (gameBinding !=
+                                                                null) {
+                                                              _gameLoading =
+                                                                  _openGame(
+                                                                      selected
+                                                                          .drive!,
+                                                                      area!);
+                                                            }
+                                                          }
+                                                          return Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .stretch,
+                                                              children: [
+                                                                if (_section ==
+                                                                    SaveBackupSection
+                                                                        .area)
+                                                                  SaveBackupSetupPanel(
+                                                                      setup:
+                                                                          setup,
+                                                                      showUnmapped:
+                                                                          _gameLoading ==
+                                                                              null),
+                                                                if (_gameLoading !=
+                                                                    null)
+                                                                  FutureBuilder<
+                                                                          SaveBackupGameJob>(
+                                                                      key: const ValueKey(
+                                                                          'save-game-workspace'),
+                                                                      future:
+                                                                          _gameLoading,
+                                                                      builder: (context, game) => game
+                                                                              .hasError
+                                                                          ? _mappingIssue(
+                                                                              selected.drive!)
+                                                                          : game.data == null
+                                                                              ? const LinearProgressIndicator()
+                                                                              : SaveBackupGamePanel(section: _section, job: game.data!, title: widget.gameTitle ?? 'Selected game')),
+                                                                if (_gameLoading ==
+                                                                        null &&
+                                                                    _section !=
+                                                                        SaveBackupSection
+                                                                            .area)
+                                                                  Text(widget.editionId ==
+                                                                          null
+                                                                      ? 'No game selected. Open a game’s Save backups menu to review its backup, restore and status.'
+                                                                      : 'Prepare the backup area first, then return to this section.'),
+                                                              ]);
+                                                        }),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                         ]),
                                   )),
                                 ],
@@ -588,6 +643,85 @@ class _SaveBackupSettingsScreenState
                     ]))),
         localFocusScope: true);
   }
+
+  Future<List<SaveEmulatorCoverage>?> _readCoverage() async {
+    try {
+      return await SaveCapture().installedEmulators();
+    } catch (_) {
+      // Observe channel failures immediately, before the next frame attaches
+      // FutureBuilder. Null means failed inventory, never a successful empty one.
+      return null;
+    }
+  }
+
+  Widget _coveragePanel() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+              'Known installed emulators, embedded runtimes and launchers. '
+              'Save and state coverage are separate. Verified applies only to '
+              'the route shown, not every game or format. No folders are scanned.'),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('save-emulators-refresh'),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh installed apps'),
+              onPressed: () => setState(() {
+                _coverage = _readCoverage();
+              }),
+            ),
+          ),
+          FutureBuilder<List<SaveEmulatorCoverage>?>(
+            future: _coverage,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const LinearProgressIndicator();
+              }
+              if (snapshot.hasError || snapshot.data == null) {
+                return const Text('Installed-emulator inventory unavailable. '
+                    'Coverage has not been confirmed; refresh to try again.');
+              }
+              final entries = snapshot.data!;
+              if (entries.isEmpty) {
+                return const Text(
+                    'No known emulator packages visible to R-Shop. '
+                    'This does not prove that no other emulators are installed.');
+              }
+              return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final entry in entries)
+                      Card(
+                        key: ValueKey('save-emulator-${entry.packageName}'),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(entry.label,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                Text(
+                                    '${entry.versionName} · ${entry.packageName}',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall),
+                                const SizedBox(height: 8),
+                                Text('Saves: ${entry.saves}'),
+                                Text('States: ${entry.states}'),
+                                const SizedBox(height: 8),
+                                Text(entry.storage),
+                              ]),
+                        ),
+                      ),
+                  ]);
+            },
+          ),
+        ],
+      );
 }
 
 /// Explicit per-edition mapping. No basename matching or recursive folder scan.

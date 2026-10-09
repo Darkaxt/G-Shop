@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import '../../models/save_emulator_coverage.dart';
+
 class CapturedSaveFile {
   final String name, sha256;
   final File file;
@@ -21,6 +23,12 @@ class CapturedSaveGroup {
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
   static const _channel = MethodChannel('com.retro.rshop/save_capture');
+
+  /// On-demand, read-only package/provider metadata. No file scan or grant.
+  Future<List<SaveEmulatorCoverage>> installedEmulators() async =>
+      SaveEmulatorCoverage.decode(await _channel.invokeListMethod<dynamic>(
+          'installedSaveEmulators',
+          {'packages': SaveEmulatorCoverage.knownPackages.keys.toList()}));
 
   static bool validName(String name) =>
       name.length > 4 &&

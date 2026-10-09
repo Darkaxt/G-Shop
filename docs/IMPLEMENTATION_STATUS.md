@@ -52,6 +52,24 @@ S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
 
 ### S10 entry — emulator-aware save backup, 2026-10-09
 
+Coverage checkpoint, 2026-10-09: a separate offline Emulators section now reports
+the known installed emulator/port/frontend versions, save versus state coverage
+and advertised document-picker providers. Unreviewed routes remain unfinished,
+not unsupported; newer runtimes cannot inherit verified labels. Focused checks
+verify section isolation, preserved workspace state, compact/controller use and
+explicit unavailable results after failed refresh. Corrected gated assembly 542
+completed and its same-signer preserving installation was verified independently
+by installed APK digest. Actual Thor Settings -> Save backups -> Emulators shows
+installed versions and advertised providers; refresh, touch scrolling and D-pad
+Up/Down+A section changes work. Preference/security hashes matched immediately
+after installation; existing catalogue sync later advanced and changed its
+containers. PSP slot/configuration hashes remain unchanged. The old bottom-screen
+Clock test was returned to Home, the task UI dump removed and both screens are
+OFF. See S10_SAVE_BACKUP_DESIGN.md for profile and evidence qualifications. This
+is native coverage presentation, not stage closure or implemented support for
+every listed route. Wider save-route implementation remains required S10 work.
+No legacy sync app/task or save data was changed.
+
 Current standalone restore checkpoint, 2026-10-09: normal Thor Save backups
 resumed the retained Patapon state, verified/downloaded its real Drive backup and
 published it at the configured PPSSPP slot. A prior network outage and then an

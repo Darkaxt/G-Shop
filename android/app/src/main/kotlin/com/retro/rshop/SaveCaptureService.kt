@@ -3,6 +3,7 @@ package com.retro.rshop
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -62,6 +63,33 @@ internal class SaveCaptureService(private val activity: Activity) {
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
         try {
+            if (call.method == "installedSaveEmulators") {
+                // Independent read-only metadata; does not take the file worker,
+                // start another capture, prompt for a grant or inspect save data.
+                val packages = call.argument<List<String>>("packages")
+                    ?: throw Failure("invalid_selection")
+                if (packages.size !in 1..64 || packages.toSet().size != packages.size ||
+                    packages.any { it.length > 255 ||
+                        !it.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")) }) {
+                    throw Failure("invalid_selection")
+                }
+                val rows = packages.mapNotNull { packageName ->
+                    val info = try {
+                        @Suppress("DEPRECATION")
+                        activity.packageManager.getPackageInfo(packageName, PackageManager.GET_PROVIDERS)
+                    } catch (_: PackageManager.NameNotFoundException) { return@mapNotNull null }
+                    val authorities = info.providers.orEmpty().filter {
+                        it.enabled && it.exported && it.grantUriPermissions &&
+                            it.readPermission == "android.permission.MANAGE_DOCUMENTS"
+                    }.flatMap { it.authority.orEmpty().split(';') }
+                        .filter(String::isNotEmpty).distinct().sorted()
+                    mapOf("packageName" to packageName,
+                        "versionName" to (info.versionName ?: "unknown"),
+                        "documentAuthorities" to authorities)
+                }
+                result.success(rows)
+                return
+            }
             if (call.method == "cancel") {
                 val requested = id(call)
                 synchronized(guard) {

@@ -13,6 +13,77 @@ RetroArch-target publication receipt satisfies that narrow location/write check;
 it does not close coverage or other unfinished S10 implementation. The standalone
 PPSSPP destination/write and rollback checks below now pass as well.
 
+## Installed-route audit and visible coverage — 2026-10-09
+
+A fresh read-only Thor package audit confirms the 27 known emulator, embedded
+runtime, port and frontend packages represented by the coverage catalogue.
+Save backups now has a separate Emulators section, independent of Drive setup.
+It requests only installed package/version and advertised DocumentsProvider
+authorities, on entry or explicit refresh. It neither enumerates save files nor
+requests storage grants. Section changes retain the inventory and existing job;
+an inventory error is not rendered as an empty/successful audit.
+
+Coverage distinguishes saves from states. The reviewed RetroArch 1.22.2 mGBA
+SRAM and PPSSPP 1.20.4 slot routes are narrowly identified; coupled RTC restore,
+other cores, SAVEDATA and remaining emulator routes remain unfinished. An
+unreviewed runtime update cannot inherit a verified route label. ES-DE and Cocoon
+are classified as launchers, not independent save owners. Uninvestigated routes
+remain unfinished rather than being falsely classified as unsupported. This is
+the known-package inventory, not a claim to identify every future installed app.
+
+Live package metadata exposes DocumentsProvider components for Dolphin, Cemu,
+KenjiNX and NeoStation. Dolphin 2606 advertises authority
+`org.dolphinemu.dolphinemu.user`; NeoStation advertises
+`com.neogamelab.neostation.documents`. The current upstream
+[Dolphin provider source](https://github.com/dolphin-emu/dolphin/blob/master/Source/Android/app/src/main/java/org/dolphinemu/dolphinemu/features/DocumentProvider.kt)
+exposes user files through an exported, grantable document provider. Its rename
+implementation allocates an unused destination rather than replacing an existing
+entry. Therefore generic SAF rename is not evidence of atomic save replacement.
+This source observation is not a pinned-runtime restore verification or a
+classification that Dolphin is unsupported. Legitimate picker/export routes,
+save-specific grouping and safe publication remain required implementation work.
+
+Focused host checks verify the offline section, retained inventory, separate
+save/state claims, runtime changes, malformed/substituted inventories and
+provider-advertisement versus grant/support semantics. Two additional regressions
+reproduced and corrected workspace unmounting on coverage navigation and an
+immediate channel failure escaping before the next frame attached its listener.
+The workspace now remains mounted with hidden controls excluded from focus;
+failed refresh is an explicit unavailable result, never stale success or an
+empty installed list. Compact/enlarged-text and controller section checks pass.
+
+Gated assembly 539 completed but was not installed because the workspace/error
+corrections postdate that artifact. Corrected assembly 542 completed successfully
+through ticket `a9cdaafa73af453f8b2c388f8192756e`; the original supervisor/session
+was retained through completion. Observed workers=2, parallel=false, Gradle
+heap=3 GiB with preserved 1 GiB metaspace/256 MiB code cache; Kotlin uses the
+previously assessed in-process strategy. Test-task configuration is one 512 MiB
+fork (assembly did not run those tests); native environment budget is two, not
+claimed as independently verified effective concurrency. No memory failure or
+budget increase occurred. Log: `56270adfefc74128b2a355675b1102cc.log`.
+
+The signer matched the established debug identity. Preserving installation
+(`adb install -r`) and independent installed base.apk digest both verified
+SHA-256 `54a561d269a76a051d25c7a8cdec7853f874af63b5bbc911b9ad5a3ef7165285`.
+All three preference/security file hashes matched immediately after installation.
+Normal Settings -> Save backups -> Emulators displayed actual installed Azahar,
+Cemu, Cocoon and Dolphin versions, including the advertised Cemu/Dolphin document
+authorities and the explicit unfinished-route/grant qualifications. Refresh and
+touch scrolling worked. D-pad Up/A selected Status; Down/A returned to Emulators
+with the retained inventory. The compact screen shows the fixed section rail and
+only the selected section, not a combined settings roll.
+
+The pre-existing catalogue synchronization resumed and advanced normally during
+the UI check. Security/preferences containers subsequently changed, so an
+unchanged-container claim is limited to the immediate preserving-install check;
+the secure key-storage hash and PSP slot/configuration hashes remain unchanged.
+No account reset, save mapping/write or storage grant was performed. The leftover
+Clock companion test was returned to Home on the bottom display. The task-owned
+UI dump was removed and both physical displays report committedState OFF with
+wakefulness Asleep. This verifies native coverage presentation, not all listed
+save routes. S10 remains the sole ACTIVE stage, with no acceptance reduction or
+deferral. Legacy sync is unchanged.
+
 ## Standalone restore and rollback verified — 2026-10-09
 
 Normal selected-game Save backups -> Restore & conflicts resumed the retained

@@ -93,6 +93,119 @@ class _Sources extends SourcesNotifier {
 
 void main() {
   testWidgets(
+      'coverage keeps the existing save workspace mounted but unfocusable',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => <Object>[]);
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final sources = _Sources();
+    await sources.ready;
+    sources.publish('account');
+    await tester.pumpWidget(ProviderScope(overrides: [
+      sourcesProvider.overrideWith((_) => sources),
+    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpAndSettle();
+    final workspace = find.byWidgetPredicate(
+        (widget) => widget is FutureBuilder<SaveBackupSetup>,
+        skipOffstage: false);
+    final original = tester.state(workspace);
+    await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
+    await tester.pumpAndSettle();
+    expect(workspace, findsOneWidget);
+    expect(tester.state(workspace), same(original));
+    expect(find.byType(SaveBackupSetupPanel), findsNothing);
+    final exclusion = tester.widget<ExcludeFocus>(find.ancestor(
+        of: workspace,
+        matching: find.byKey(const ValueKey('save-workspace-focus'),
+            skipOffstage: false)));
+    expect(exclusion.excluding, isTrue);
+    await tester.tap(find.byKey(const ValueKey('save-nav-area')));
+    await tester.pumpAndSettle();
+    expect(tester.state(workspace), same(original));
+    expect(find.byType(SaveBackupSetupPanel), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('emulator coverage is a separate offline section without Drive',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    final calls = <MethodCall>[];
+    var failInventory = false;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (failInventory) throw PlatformException(code: 'inventory_unavailable');
+      return [
+        {
+          'packageName': 'org.dolphinemu.dolphinemu',
+          'versionName': '2606',
+          'documentAuthorities': ['org.dolphinemu.dolphinemu.user']
+        },
+        {
+          'packageName': 'org.ppsspp.ppsspp',
+          'versionName': 'v1.20.4',
+          'documentAuthorities': <String>[]
+        }
+      ];
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final sources = _Sources();
+    await sources.ready;
+    sources.publish(null);
+    await tester.pumpWidget(ProviderScope(overrides: [
+      sourcesProvider.overrideWith((_) => sources),
+    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty); // Not a startup scan or a permission prompt.
+    await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
+    await tester.pumpAndSettle();
+    expect(calls.single.method, 'installedSaveEmulators');
+    expect(find.text('Dolphin'), findsOneWidget);
+    expect(find.textContaining('Document picker provider advertised'),
+        findsOneWidget);
+    expect(find.text('States: Verified · reviewed PPSSPP state slot'),
+        findsOneWidget);
+    expect(find.text('Saves: Unfinished · SAVEDATA groups not implemented'),
+        findsOneWidget);
+    expect(find.byType(SaveBackupSetupPanel), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('save-nav-status')));
+    await tester.pumpAndSettle();
+    expect(find.text('Dolphin'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
+    await tester.pumpAndSettle();
+    expect(calls, hasLength(1)); // Section changes do not rescan/restart work.
+    await tester.tap(find.byKey(const ValueKey('save-emulators-refresh')));
+    await tester.pumpAndSettle();
+    expect(calls, hasLength(2));
+    tester.view.physicalSize = const Size(480, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.4;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    expect(find.text('Dolphin'), findsOneWidget);
+    failInventory = true;
+    final refresh = find.byKey(const ValueKey('save-emulators-refresh'));
+    await tester.ensureVisible(refresh);
+    await tester.tap(refresh);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('inventory unavailable'), findsOneWidget);
+    expect(find.text('Dolphin'), findsNothing); // Not stale success or empty.
+    await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('save-content-status')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
       'PPSSPP mapping requires a selected slot and edition confirmation',
       (tester) async {
     const channel = MethodChannel('com.retro.rshop/save_capture');
