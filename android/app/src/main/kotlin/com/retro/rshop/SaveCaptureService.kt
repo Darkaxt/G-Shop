@@ -1,6 +1,7 @@
 package com.retro.rshop
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -25,7 +26,7 @@ import java.util.concurrent.Executors
 /** One cancellable capture at a time. No emulator termination, guessed sleeps,
  * storage bypass or automatic source scan. Explicit mGBA SRAM/RTC, Game Gear SRAM and published
  * PPSSPP state slots cross into app-private, durably sealed staging. */
-internal class SaveCaptureService(private val activity: Activity) {
+internal class SaveCaptureService(private val activity: Context) {
     companion object {
         // Normalize only the framework-owned parent. Capture IDs and members
         // remain no-follow, canonical-equality checked descendants of this root.
@@ -109,6 +110,7 @@ internal class SaveCaptureService(private val activity: Activity) {
                 return
             }
             if (call.method == "openPpssppAppInfo") {
+                if (activity !is Activity) throw Failure("interaction_required")
                 // User-mediated Android settings only. Never stop another app
                 // ourselves or mistake background/paused for writer completion.
                 activity.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -117,6 +119,7 @@ internal class SaveCaptureService(private val activity: Activity) {
                 return
             }
             if (call.method == "openRetroArch" || call.method == "openPpsspp") {
+                if (activity !is Activity) throw Failure("interaction_required")
                 val emulator = if (call.method == "openPpsspp") "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
                 val intent = activity.packageManager.getLaunchIntentForPackage(emulator)
                     ?: throw Failure("emulator_missing")
@@ -650,8 +653,11 @@ internal class SaveCaptureService(private val activity: Activity) {
         return null
     }
 
-    fun shutdown() {
+    fun shutdown(afterClosed: (() -> Unit)? = null) {
         synchronized(guard) { closed = true; cancelled = true; socket?.close() }
+        // Queue the admission release AFTER all accepted file work. Closing a
+        // Dart engine or cancelling a socket alone is not worker completion.
+        if (afterClosed != null) worker.execute { main.post { afterClosed() } }
         worker.shutdown()
     }
 }

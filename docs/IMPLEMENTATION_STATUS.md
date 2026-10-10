@@ -52,6 +52,21 @@ S9 has no blocker or tracked deferral. No S10/S11 acceptance is claimed yet.
 
 ### S10 entry — emulator-aware save backup, 2026-10-09
 
+Scheduled checkpoint, 2026-10-10: the opt-in PPSSPP mapping now dispatches through
+Android's persisted six-hour/network-constrained job, using a headless backup-only
+engine when the UI is absent. Actual screen-off/cold-process checks retained the
+unchanged verified backup; native aggregate receipts confirm one mapping checked,
+no pending work and no errors. Platform-stop injection recorded stopped rather
+than success; the next pass recovered with UI/headless coexistence. Normal
+opt-out removed the Android job and restored the previous disabled policy.
+Protected save/emulator/source configuration digests match; both displays OFF.
+Gated build 557, focused host/native checks and affected analysis pass. Detailed
+profile, APK identity and test qualifications are in S10_SAVE_BACKUP_DESIGN.md.
+S10 remains ACTIVE: direct manual/background contention evidence, journal-aware
+retirement of redundant sealed captures, remaining accessible emulator routes /
+custom groups and the other SAVE-01 acceptance cases remain unfinished. These
+are not tracked deferrals; the legacy save-sync apps/tasks remain untouched.
+
 Automatic return checkpoint, 2026-10-10: explicit per-edition PPSSPP slot opt-in
 now persists independently of the settings screen. Actual Thor Home/return
 capture and real Drive review retained the unchanged verified backup rather than

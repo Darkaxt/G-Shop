@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/database_service.dart';
 import '../services/saves/automatic_save_backups.dart';
+import '../services/saves/save_background_dispatch.dart';
 import 'app_providers.dart';
 
 /// Application owned: leaving Settings must not cancel an enabled return check.
@@ -15,7 +16,10 @@ final automaticSaveBackupsProvider =
   final service = AutomaticSaveBackups(
       database: DatabaseService().database,
       preferences: preferences,
+      refreshConfiguration: preferences.reload,
+      scheduleBackground: SaveBackgroundDispatch.schedule,
       sources: () => ref.read(sourcesProvider).sources);
   ref.onDispose(service.dispose);
+  await SaveBackgroundDispatch.bind(service);
   return service;
 });

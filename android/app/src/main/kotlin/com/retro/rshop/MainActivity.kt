@@ -32,6 +32,8 @@ class MainActivity : FlutterActivity() {
     private val smbService = SmbService()
     private var ownedStorage: OwnedStorageService? = null
     private var saveCapture: SaveCaptureService? = null
+    private val saveOperationOwner = java.util.UUID.randomUUID().toString()
+    private var saveBackgroundChannel: MethodChannel? = null
 
     private var progressSink: EventChannel.EventSink? = null
     private var smbProgressSink: EventChannel.EventSink? = null
@@ -71,6 +73,8 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        SaveOperationChannel.attach(flutterEngine.dartExecutor.binaryMessenger, saveOperationOwner)
+        saveBackgroundChannel = SaveBackgroundChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "com.retro.rshop/save_capture").setMethodCallHandler { call, result ->
@@ -286,7 +290,9 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
-        saveCapture?.shutdown()
+        val captures = saveCapture
+        if (captures != null) captures.shutdown { SaveOperationChannel.detach(saveOperationOwner) }
+        else SaveOperationChannel.detach(saveOperationOwner)
         ownedStorage?.shutdown()
         extractorPool.shutdown()
         smbService.shutdown()
@@ -296,6 +302,7 @@ class MainActivity : FlutterActivity() {
             Log.w(TAG, "Failed to release multicast lock: $e")
         }
         super.onDestroy()
+        SaveBackgroundChannel.detach(saveBackgroundChannel)
     }
 
     private fun sendProgress(extractedBytes: Long, totalBytes: Long) {

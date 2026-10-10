@@ -370,7 +370,7 @@ void main() {
     expect(automatic.changes, 1);
     await show(statusOnly: true);
     expect(checkbox, findsNothing);
-    expect(find.text('Automatic return checks: enabled'), findsOneWidget);
+    expect(find.text('Automatic save checks: enabled'), findsOneWidget);
     expect(
         find.text('Last automatic check: unchanged; verified backup retained.'),
         findsOneWidget);
@@ -407,7 +407,10 @@ void main() {
         AutomaticSaveBackups service,
         AutomaticSaveMapping mapping,
         SharedPreferences preferences
-      })> automaticFixture() async {
+      })> automaticFixture({
+    Future<void> Function(bool)? schedule,
+    Future<void> Function()? refresh,
+  }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
         platformId: 'psp',
@@ -440,6 +443,8 @@ void main() {
     final service = AutomaticSaveBackups(
         database: Future.value(db),
         preferences: preferences,
+        scheduleBackground: schedule,
+        refreshConfiguration: refresh,
         sources: () => [
               const Source(
                   id: 'source',
@@ -470,6 +475,68 @@ void main() {
     await service.setEnabled(mapping, true);
     return (service: service, mapping: mapping, preferences: preferences);
   }
+
+  test('schedule follows persisted opt-in and removes only after opt-out',
+      () async {
+    final scheduled = <bool>[];
+    final fixture = await automaticFixture(schedule: (enabled) async {
+      scheduled.add(enabled);
+    });
+    await fixture.service.reconcileSchedule();
+    expect(scheduled, [true, true]);
+    await fixture.service.setEnabled(fixture.mapping, false);
+    expect(scheduled.last, isFalse);
+    expect((await fixture.service.status(fixture.mapping)).enabled, isFalse);
+  });
+
+  test(
+      'scheduler failure stays visible without blocking manual or return backup',
+      () async {
+    final fixture = await automaticFixture(schedule: (_) async {
+      throw PlatformException(code: 'schedule_unavailable');
+    });
+    expect(fixture.service.backgroundIssue, 'schedule_unavailable');
+    expect((await fixture.service.status(fixture.mapping)).enabled, isTrue);
+    await fixture.service.checkEnabled();
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    expect(generations.uploads, 1);
+  });
+
+  test('background stop joins active capture and cancels already queued events',
+      () async {
+    final fixture = await automaticFixture();
+    capture.held = Completer<void>();
+    final first = fixture.service.checkEnabled();
+    await capture.started.future;
+    final queued = fixture.service.checkEnabled();
+    await fixture.service.cancelAndJoin();
+    await Future.wait([first, queued]);
+    expect(capture.captures, 1);
+    expect(generations.uploads, 0);
+    expect((await fixture.service.status(fixture.mapping)).enabled, isTrue);
+  });
+
+  test('background receipt distinguishes checked mappings from failed backups',
+      () async {
+    final fixture = await automaticFixture();
+    await fixture.service.checkEnabled();
+    expect(await fixture.service.passSummary(), {
+      'enabled': 1,
+      'pending': 0,
+      'verified': 1,
+      'unchanged': 0,
+      'attention': 0
+    });
+    await fixture.service.checkEnabled();
+    expect((await fixture.service.passSummary())['unchanged'], 1);
+    capture.digest = 'd' * 64;
+    generations.fail = true;
+    await fixture.service.checkEnabled();
+    final summary = await fixture.service.passSummary();
+    expect(summary['attention'], 1);
+    expect(summary['verified'], 0);
+    expect(summary['unchanged'], 0);
+  });
 
   test('automatic checks retain conflicts without making a resolution choice',
       () async {

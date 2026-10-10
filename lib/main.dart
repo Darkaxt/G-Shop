@@ -37,6 +37,8 @@ import 'widgets/sync_badge.dart';
 import 'widgets/media_cover_fallback.dart';
 import 'l10n/app_localizations.dart';
 
+export 'services/saves/save_backup_background.dart' show saveBackupBackground;
+
 class NoGlowScrollBehavior extends ScrollBehavior {
   @override
   Widget buildOverscrollIndicator(

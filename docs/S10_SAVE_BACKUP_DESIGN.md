@@ -84,6 +84,88 @@ rest of SAVE-01 remain ordinary unfinished S10 work, not tracked deferrals or
 completed acceptance. RetroArch's UDP closed-content wait is not silently attached
 to unattended events, and the old sync applications/tasks remain unchanged.
 
+### Scheduled-dispatch implementation boundary
+
+Use Android JobScheduler for one persisted, network-constrained periodic job per
+application, installed only while an explicit automatic mapping is enabled. The
+six-hour interval is a backup schedule, not a completion timeout or file-writer
+delay; Android controls actual admission. No polling loop, exact alarm, screen
+wake, automatic consent or foreground download-service takeover. Reconcile the
+job on enable/disable and normal startup.
+
+An existing UI engine receives the job on its existing application-owned lane.
+If no UI engine exists, a dedicated Dart entrypoint loads only current backup
+configuration, the existing SQLite journal and silent authorization, then exits
+after the bounded mapping pass. It must not bootstrap the UI, run catalogue sync
+or recover/pause unrelated metadata jobs. The background database connection
+therefore omits the UI onOpen metadata-recovery hook and rejects an incompatible
+schema rather than migrating it independently.
+
+UI and headless engines share a native, process-owned save-operation admission
+queue: all manual backup/restore and automatic operations take the same gate
+before loading or changing their journal. Engine destruction/cancellation must
+release only its owned admission; no lease expiry or guessed stale owner. Native
+capture runs from application Context, but interactive emulator/settings actions
+remain Activity-only. Job stop requests cancellation and joins it before engine
+teardown; it does not report an unfinished pass as successful. Read current source
+configuration and preferences again at capture/publication checks, not a stale
+headless snapshot. Preserve existing conflict and interrupted-publication rules.
+
+Acceptance for this slice: focused admission/cancellation and scheduler tests;
+real Thor scheduled dispatch with screen off using the existing explicit slot;
+unchanged backup retained; disable removes the schedule; process-cold execution
+and overlapping UI/manual work must be verified before scheduled support is
+claimed. These are current S10 acceptance, not another implementation stage.
+
+Scheduled checkpoint, 2026-10-10: gated build 557, ticket
+`6034b9d4a32544ec86c984d4c18d07ae`, completed successfully with the gate acquired
+and completion verified. Inspected log `d6dd7a71d1f546a980820b0e665987f3.log`
+records workers=2, parallel=false, Gradle heap=3 GiB, preserved 1 GiB metaspace /
+256 MiB code cache and one 512 MiB test fork with fail-fast. Assessed Kotlin
+2.2.20 uses in-process compilation; no separate compiler heap or memory-related
+failure/budget increase. Native environment budget=2 is not universal effective
+concurrency proof; the existing project CMake pool remains depth 1. Native gate
+ownership, exact release, queued cancellation and owner-exit tests pass. Focused
+Dart job/admission/settings checks and affected-file analysis pass.
+
+Built and independently inspected installed APK SHA-256 agree:
+`1823cf4670b585378c32da69fc8883d395799efd616a9a2f164e92ea088e7aa8`.
+The established signer and immediate protected preferences were preserved by the
+update. Later silent authorization can rotate secure storage; the install hash
+comparison is not a claim that auth files never change during use.
+
+Actual Thor JobScheduler inspection verified job 5395266: persisted, six-hour
+periodic, network ANY, with no screen wake. Tests explicitly forced Android job
+admission rather than waiting six hours; they prove its execution path, not an
+elapsed-period observation. A normal app exit followed by removal of its cached
+process (not force-stop) left the job registered; Android started a new process
+for SaveBackupJobService with no R-Shop Activity. Screen-off headless execution
+on build 557 returned the aggregate receipt enabled=1, pending=0, unchanged=1,
+verified=0, attention=0 (finishedAt 1791589817611). Unlike a service completion
+alone, this proves the mapped save was checked and its backup retained.
+
+An explicit platform job-stop injection exercised onStopJob; receipt `stopped`
+(1791589874002) is not backup success. The next forced admission recovered while
+the UI was reopened alongside the headless engine: completed, enabled=1,
+pending=0, unchanged=1, attention=0 (1791589933426). No duplicate cloud generation
+was published. This proves UI/headless coexistence and cancellation/recovery;
+native queue tests prove admission ordering. Direct observed manual-operation
+contention remains required before claiming every overlap acceptance case.
+
+Normal per-game opt-out without reconfirmation removed the registered job
+(`get-job-state`: unknown / could not find). Status shows automatic checks
+disabled and the original verified backup dated 2026-10-09 22:01:12.549938, with
+the unchanged outcome. Before/after PSP slot, ppsspp.ini and both source config
+hashes match. No restore, new consent, legacy sync change or archive write.
+Both actual and committed physical display states were checked OFF afterwards.
+
+Remaining bounded-work defect found during this verification: successful
+unchanged checks retain redundant sealed local captures. Their directories
+accumulate despite no new cloud generation. Journal-aware exact local-stage
+retirement is ordinary unfinished S10 work, not cloud-version pruning or an S11
+deferral. Preserve pending upload, conflict, restore/rollback and last-good
+recovery references; do not blanket-delete the existing capture root.
+
 Next accessible route under the same ACTIVE S10: Game Gear cartridge battery
 saves through the already configured RetroArch Genesis Plus GX launch. Reuse the
 existing closed-content capture, immutable generation transport, explicit

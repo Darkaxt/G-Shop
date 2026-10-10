@@ -31,6 +31,21 @@ class DatabaseService {
     return _initFuture ??= _initDatabase();
   }
 
+  /// A scheduled save pass must not pause/recover a live metadata worker.
+  /// UI bootstrap owns migrations; existing schema is required here.
+  static Future<Database> openSaveBackgroundDatabase() async {
+    final directory = await getDatabasesPath();
+    final path = join(directory, 'rshop.db');
+    if (!await databaseExists(path)) {
+      throw StateError('Background save journal requires normal app startup');
+    }
+    final db = await openDatabase(path);
+    if (await db.getVersion() != _dbVersion) {
+      throw StateError('Background save schema requires normal app startup');
+    }
+    return db;
+  }
+
   @visibleForTesting
   static void resetForTesting() {
     _initFuture = null;

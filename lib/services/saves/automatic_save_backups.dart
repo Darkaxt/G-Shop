@@ -102,25 +102,37 @@ class AutomaticSaveStatus {
 
 /// One process-owned serial lane, with durable opt-in and event requests.
 /// No timers, recursive file scans, automatic restore or conflict choices.
-/// Android background dispatch is a separate required S10 integration.
+/// Android dispatch shares this lane or acquires the native cross-engine gate.
 class AutomaticSaveBackups extends ChangeNotifier {
   final Future<Database> database;
   final SharedPreferences preferences;
   final List<Source> Function() sources;
+  final Future<void> Function()? refreshConfiguration;
+  final Future<void> Function(bool enabled)? scheduleBackground;
   final SaveBackupGameJob Function(
       AutomaticSaveMapping, Future<String> Function())? createJob;
   Future<void>? _operation;
   Future<void> _events = Future.value();
   SaveBackupGameJob? _active;
   String? _activeKey;
+  String? _backgroundIssue;
   bool _disposed = false;
+  int _cancelGeneration = 0;
   AutomaticSaveBackups(
       {required this.database,
       required this.preferences,
       required this.sources,
+      this.refreshConfiguration,
+      this.scheduleBackground,
       this.createJob});
   bool get busy => _operation != null;
   String? get activeMappingKey => _activeKey;
+  String? get backgroundIssue => _backgroundIssue;
+
+  void backgroundUnavailable() {
+    _backgroundIssue = 'schedule_unavailable';
+    _notify();
+  }
 
   Future<Database> _db() async {
     final db = await database;
@@ -150,6 +162,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   Future<void> setEnabled(AutomaticSaveMapping mapping, bool enabled) async {
     final db = await _db();
     if (enabled) {
+      await refreshConfiguration?.call();
       _requireConfiguration(mapping);
       await db.transaction((tx) async {
         final old = await tx.query('automatic_save_backups',
@@ -174,7 +187,38 @@ class AutomaticSaveBackups extends ChangeNotifier {
           where: 'mapping_key = ?', whereArgs: [mapping.key]);
       if (_activeKey == mapping.key) await _active?.cancelAndJoin();
     }
+    await reconcileSchedule();
     _notify();
+  }
+
+  Future<void> reconcileSchedule() async {
+    if (scheduleBackground == null) return;
+    final db = await _db();
+    final enabled = (Sqflite.firstIntValue(await db.rawQuery(
+                'SELECT COUNT(*) FROM automatic_save_backups WHERE enabled = 1')) ??
+            0) >
+        0;
+    try {
+      await scheduleBackground!(enabled);
+      _backgroundIssue = null;
+    } on PlatformException {
+      backgroundUnavailable();
+    } on MissingPluginException {
+      backgroundUnavailable();
+    }
+  }
+
+  /// Aggregate receipt for Android dispatch; identities and save data stay in
+  /// the existing journal. A completed service is not proof of backup success.
+  Future<Map<String, int>> passSummary() async {
+    final db = await _db();
+    final row = (await db.rawQuery('''SELECT COUNT(*) AS enabled,
+      COALESCE(SUM(requested > handled), 0) AS pending,
+      COALESCE(SUM(issue IS NULL AND outcome = 'verified'), 0) AS verified,
+      COALESCE(SUM(issue IS NULL AND outcome = 'unchanged'), 0) AS unchanged,
+      COALESCE(SUM(issue IS NOT NULL), 0) AS attention
+      FROM automatic_save_backups WHERE enabled = 1''')).single;
+    return row.map((key, value) => MapEntry(key, value as int));
   }
 
   void _requireConfiguration(AutomaticSaveMapping mapping) {
@@ -201,6 +245,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   Future<String> _resolve(AutomaticSaveMapping mapping) async {
+    await refreshConfiguration?.call();
     _requireConfiguration(mapping);
     final db = await _db();
     final rows = await db.query('automatic_save_backups',
@@ -239,8 +284,9 @@ class AutomaticSaveBackups extends ChangeNotifier {
   /// A crash leaves requested > handled, while the existing game job retains
   /// its exact sealed capture/reserved remote objects for idempotent resume.
   Future<void> checkEnabled() {
+    final generation = _cancelGeneration;
     final event = _events.then((_) async {
-      if (_disposed) return;
+      if (_disposed || generation != _cancelGeneration) return;
       final db = await _db();
       await db.rawUpdate(
           'UPDATE automatic_save_backups SET requested = requested + 1 WHERE enabled = 1');
@@ -254,7 +300,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
     if (_operation != null) return _operation!;
     final operation = Future<void>.microtask(() async {
       final db = await _db();
-      while (!_disposed) {
+      final generation = _cancelGeneration;
+      while (!_disposed && generation == _cancelGeneration) {
         final rows = await db.query('automatic_save_backups',
             where: 'enabled = 1 AND requested > handled',
             orderBy: 'mapping_key',
@@ -328,13 +375,16 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   Future<void> cancelAndJoin() async {
+    _cancelGeneration++;
     await _active?.cancelAndJoin();
     await _operation;
+    await _events;
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _cancelGeneration++;
     _active?.cancelAndJoin();
     super.dispose();
   }

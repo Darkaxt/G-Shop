@@ -1232,14 +1232,14 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       value: status.enabled,
                       onChanged:
                           canChange ? (value) => _set(value ?? false) : null,
-                      title: const Text('Check this slot on app return',
+                      title: const Text('Automatically back up this slot',
                           style: TextStyle(fontSize: 18)),
                       subtitle: const Text(
-                          'Opt-in for this reviewed edition only. Checks on R-Shop startup or return; unchanged bytes are not uploaded again. Conflicts require your choice.'),
+                          'Opt-in for this reviewed edition only. Checks on startup, app return and Android background scheduling (about every 6 hours with network access). Unchanged bytes are not uploaded again. Conflicts require your choice.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(
-                    'Automatic return checks: ${status.enabled ? 'enabled' : 'disabled'}',
+                    'Automatic save checks: ${status.enabled ? 'enabled' : 'disabled'}',
                     style: const TextStyle(fontSize: 18)),
                 if (widget.service.activeMappingKey == widget.mapping.key)
                   const Text('Checking the mapped save…'),
@@ -1253,6 +1253,9 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       liveRegion: true,
                       child: Text(
                           'Automatic check needs attention: ${status.issue}. Existing backups are preserved.')),
+                if (status.enabled && widget.service.backgroundIssue != null)
+                  const Text(
+                      'Android background scheduling is unavailable. App-return and manual checks remain available.'),
               ],
               if (_issue != null) Text(_issue!),
             ]);

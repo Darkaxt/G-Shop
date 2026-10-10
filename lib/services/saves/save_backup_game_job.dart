@@ -16,6 +16,7 @@ import '../library_store.dart';
 import 'drive_save_backup_area.dart';
 import 'drive_save_backup_generation.dart';
 import 'save_capture.dart';
+import 'save_operation_admission.dart';
 
 /// The first native save workflow. SQLite commits the exact selection/capture
 /// intent before native IO and immutable reserved objects before remote writes.
@@ -30,6 +31,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   final String clientId, accountId, areaId, editionId;
   final RemoteArtifactId artifactId;
   final Future<String> Function() resolveSaveName;
+  final SaveOperationAdmission admission;
   // Explicitly reviewed mapping, never inferred from a game title. One slot is
   // one state stream; another directory/slot must have a separate durable job.
   final String? ppssppDirectory, ppssppSlot;
@@ -52,9 +54,11 @@ class SaveBackupGameJob extends ChangeNotifier {
       required this.editionId,
       required this.artifactId,
       required this.resolveSaveName,
+      SaveOperationAdmission? admission,
       this.ppssppDirectory,
       this.ppssppSlot,
-      this.retroArchRoute = RetroArchBatteryRoute.mgba}) {
+      this.retroArchRoute = RetroArchBatteryRoute.mgba})
+      : admission = admission ?? SaveOperationAdmission() {
     if ([clientId, accountId, areaId, editionId].any((s) => s.trim().isEmpty) ||
         areas.accountId != accountId ||
         generations.accountId != accountId) {
@@ -383,7 +387,10 @@ class SaveBackupGameJob extends ChangeNotifier {
     final cancellation = CancelToken();
     _cancellation = cancellation;
     final operation = Future<void>.microtask(() async {
+      Future<void> Function()? release;
       try {
+        release = await admission.acquire(cancellation);
+        _check(cancellation);
         _issue = null;
         await load();
         _check(cancellation);
@@ -691,11 +698,15 @@ class SaveBackupGameJob extends ChangeNotifier {
       } catch (_) {
         _issue = cancellation.isCancelled ? 'cancelled' : 'backup_unavailable';
       } finally {
-        _running.remove(_key);
-        _operation = null;
-        _cancellation = null;
-        _captureId = null;
-        _changed();
+        try {
+          await release?.call();
+        } finally {
+          _running.remove(_key);
+          _operation = null;
+          _cancellation = null;
+          _captureId = null;
+          _changed();
+        }
       }
     });
     _running[_key] = operation;
@@ -719,7 +730,10 @@ class SaveBackupGameJob extends ChangeNotifier {
     final cancellation = CancelToken();
     _cancellation = cancellation;
     final operation = Future<void>.microtask(() async {
+      Future<void> Function()? release;
       try {
+        release = await admission.acquire(cancellation);
+        _check(cancellation);
         _issue = null;
         await load();
         _check(cancellation);
@@ -915,11 +929,15 @@ class SaveBackupGameJob extends ChangeNotifier {
       } catch (_) {
         _issue = cancellation.isCancelled ? 'cancelled' : 'restore_unavailable';
       } finally {
-        _running.remove(_key);
-        _operation = null;
-        _cancellation = null;
-        _captureId = null;
-        _changed();
+        try {
+          await release?.call();
+        } finally {
+          _running.remove(_key);
+          _operation = null;
+          _cancellation = null;
+          _captureId = null;
+          _changed();
+        }
       }
     });
     _running[_key] = operation;
