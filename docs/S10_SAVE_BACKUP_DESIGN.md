@@ -166,6 +166,70 @@ retirement is ordinary unfinished S10 work, not cloud-version pruning or an S11
 deferral. Preserve pending upload, conflict, restore/rollback and last-good
 recovery references; do not blanket-delete the existing capture root.
 
+Local retirement design: a successful unchanged check or verified upload records
+its now-redundant capture ID in the same durable job update that records completed
+backup status and drops upload-path references. Delete only that exact private
+capture after checking every live job and retained-conflict record for references.
+Never nominate pending uploads or restore/rollback captures. A failed deletion
+retains its durable intent and prevents another capture until recovery; process
+restart resumes the same intent before new backup IO. The native single file
+worker reviews the fixed capture leaf allowlist, rejects links/unexpected entries
+and uses the existing identity-checked private unlink primitive. Missing files
+are idempotent; the exact empty capture directory is removed last. No root scan,
+age purge, arbitrary caller paths, cloud pruning or deletion of historical
+unattributed staging is introduced. Verify repeated unchanged checks stay bounded,
+failure/reopen recovery, pending/conflict/rollback preservation and native exact
+file boundaries before claiming this defect fixed.
+
+Retirement host checkpoint: the regression first reproduced four retained copies
+after one verified plus three unchanged checks. Focused job checks now pass for
+bounded repeated checks, durable cleanup failure/reopen, interrupted upload,
+foreign pending references, retained conflicts and rollback preservation. A
+separate corrupt-journal regression caught retirement without last-good evidence;
+load now rejects that intent before native IO. Native exact-capture review tests
+pass for interrupted deletion, seal-last ordering, unrelated directory retention,
+unexpected files/directories and caller path rejection. These host filesystem
+checks are complemented by the native observations below.
+
+Native retirement checkpoint, 2026-10-10: preserving gated builds 558 and 559
+completed with the shared gate acquired and completion verified. Build 558 ran
+the focused retirement/storage/admission JVM checks; build 559 includes the final
+last-good-journal guard and assembled the current APK. Both used workers=2,
+parallel=false, Gradle heap=3 GiB and assessed Kotlin 2.2.20 in-process. The
+focused JVM run used one 512 MiB fail-fast fork. Native environment budget=2 is
+not universal concurrency proof; the existing project CMake pool is depth 1.
+No memory failure or heap increase occurred. Tickets:
+`34c698e4e01e463ea9e8565565bd994a` / `3acabeb9c01c4c998d1191c6a47d71ab`;
+logs `cc27389c088143e1a9193455477ee1c0.log` /
+`e274d5f947294abf95b1bf6c6b37be83.log`.
+
+Current built/independently inspected installed APK SHA-256:
+`9dc1a929342c984b9c97e6c40ee9b2b1fc3c0280560808436b3e87be6426de66`.
+Signer remains
+`06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`;
+immediate protected preferences survived the preserving update.
+Actual screen-off checks of the existing explicit Patapon/PPSSPP slot completed
+on build 558 (1791591330934), then twice on current build 559
+(1791591408087, 1791591615981). Each aggregate receipt reports enabled=1,
+pending=0, unchanged=1, verified=0, attention=0. The exact original 27-directory
+capture list returned after every pass, rather than growing with unchanged
+checks. The last-good cloud generation was retained. Admission was explicitly
+forced through Android JobScheduler; no elapsed six-hour observation is claimed.
+Historical capture directories were preserved, not swept or pruned. Current
+focused job regressions passed again after the native observations. S10 remains
+ACTIVE; this closes the redundant-new-capture defect, not the full coverage,
+manual/background-contention or remaining SAVE-01 acceptance.
+
+Safe pause checkpoint, 2026-10-10: normal per-game opt-out restored the original
+disabled automatic policy and removed JobScheduler job 5395266. Status retained
+the original verified backup dated 2026-10-09 22:01:12.549938 and the unchanged
+outcome. Independent PSP slot, ppsspp.ini and both source-config digests match
+the protected baseline. Focused current job regressions and affected analysis
+completed successfully; no verification job remains running. Both physical
+display states were verified OFF. The task-owned UI XML capture was removed;
+legacy sync and historical save captures remain untouched. Execution is paused
+at the user's request; S10 is still incomplete.
+
 Next accessible route under the same ACTIVE S10: Game Gear cartridge battery
 saves through the already configured RetroArch Genesis Plus GX launch. Reuse the
 existing closed-content capture, immutable generation transport, explicit

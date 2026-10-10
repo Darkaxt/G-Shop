@@ -198,6 +198,13 @@ class SaveBackupGameJob extends ChangeNotifier {
           !_validName(record['name'] as String)) {
         throw const FormatException('Invalid save job');
       }
+      if (record['retireCaptureId'] != null &&
+          (record['state'] != 'complete' ||
+              record['lastVerified'] == null ||
+              record['captures'] != null ||
+              record['retireCaptureId'] != record['captureId'])) {
+        throw const FormatException('Invalid capture retirement intent');
+      }
       for (final rawManifest in [
         record['generation'],
         record['lastVerified'],
@@ -262,6 +269,67 @@ class SaveBackupGameJob extends ChangeNotifier {
         'save_backup_game_jobs', {'job_key': _key, 'record_json': encoded},
         conflictAlgorithm: ConflictAlgorithm.replace);
     _record = record;
+  }
+
+  bool _referencesCapture(Map<String, dynamic> record, String id,
+      {bool retainedConflict = false}) {
+    if (record['captureId'] == id &&
+        (retainedConflict ||
+            record['state'] != 'complete' ||
+            record['captures'] != null)) {
+      return true;
+    }
+    for (final key in ['restore', 'rollback']) {
+      final operation = record[key];
+      if (operation is Map &&
+          (operation['rollbackId'] == id ||
+              operation['sourceCaptureId'] == id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Runs under native admission. An intent and its completed backup are one
+  /// journal commit; a crash during unlink replays exactly this ID, not a scan.
+  Future<void> _retireCompletedCapture() async {
+    final id = _record?['retireCaptureId'] as String?;
+    if (id == null) return;
+    try {
+      final db = await database;
+      var referenced = false;
+      for (final table in [
+        'save_backup_game_jobs',
+        'save_backup_conflict_captures'
+      ]) {
+        for (var offset = 0;; offset += 100) {
+          final rows = await db.query(table,
+              columns: ['record_json'],
+              orderBy: table == 'save_backup_game_jobs'
+                  ? 'job_key'
+                  : 'job_key, generation_id',
+              limit: 100,
+              offset: offset);
+          for (final row in rows) {
+            final raw = row['record_json'] as String;
+            if (raw.length > 3 * SaveBackupManifest.maxEncodedBytes) {
+              throw const FormatException('Invalid save job');
+            }
+            if (_referencesCapture(jsonDecode(raw) as Map<String, dynamic>, id,
+                retainedConflict: table == 'save_backup_conflict_captures')) {
+              referenced = true;
+            }
+          }
+          if (rows.length < 100) break;
+        }
+      }
+      // A retained conflict/rollback owns its copy. Drop only this redundant
+      // retirement intent, never the other owner's files or journal.
+      if (!referenced) await capture.retireCapture(id);
+      await _persist({..._record!, 'retireCaptureId': null});
+    } catch (_) {
+      throw PlatformException(code: 'capture_cleanup_unavailable');
+    }
   }
 
   Future<void> backup(String name) => _backup(name);
@@ -393,6 +461,8 @@ class SaveBackupGameJob extends ChangeNotifier {
         _check(cancellation);
         _issue = null;
         await load();
+        _check(cancellation);
+        await _retireCompletedCapture();
         _check(cancellation);
         if (restorePending) {
           _issue = 'pending_restore';
@@ -555,9 +625,11 @@ class SaveBackupGameJob extends ChangeNotifier {
             'state': 'complete',
             'generation': record['lastVerified'],
             'captures': null,
+            'retireCaptureId': record['captureId'],
             'conflictHeads': null
           });
           phase = 'unchanged';
+          await _retireCompletedCapture();
           return;
         }
         if (reviewedHeads != null) {
@@ -671,9 +743,12 @@ class SaveBackupGameJob extends ChangeNotifier {
           ...record,
           'state': 'complete',
           'lastVerified': record['generation'],
+          'captures': null,
+          'retireCaptureId': record['captureId'],
           'conflictHeads': null
         });
         phase = 'verified';
+        await _retireCompletedCapture();
       } on PlatformException catch (error) {
         _issue = const {
           'close_content_required',
@@ -681,6 +756,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           'runtime_unreviewed',
           'source_changed',
           'cancelled',
+          'capture_cleanup_unavailable',
           'capture_busy',
           'invalid_save_size',
           'related_group_unfinished',
@@ -736,6 +812,8 @@ class SaveBackupGameJob extends ChangeNotifier {
         _check(cancellation);
         _issue = null;
         await load();
+        _check(cancellation);
+        await _retireCompletedCapture();
         _check(cancellation);
         var record = _record;
         if (record == null || lastVerified == null) {
@@ -907,6 +985,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         _issue = const {
           'close_content_required',
           'stop_ppsspp_required',
+          'capture_cleanup_unavailable',
           'storage_permission',
           'runtime_unreviewed',
           'source_changed',

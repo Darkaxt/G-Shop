@@ -175,6 +175,16 @@ class SaveCapture {
 
   Future<void> cancel(String captureId) =>
       _channel.invokeMethod('cancel', {'captureId': captureId});
+
+  /// Only after a durable journal intent proves this private copy redundant.
+  Future<void> retireCapture(String captureId) async {
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId)) {
+      throw const FormatException('Invalid capture retirement');
+    }
+    await _channel
+        .invokeMethod<void>('retireCapture', {'captureId': captureId});
+  }
+
   Future<void> openRetroArch() => _channel.invokeMethod('openRetroArch');
   Future<void> openPpsspp() => _channel.invokeMethod('openPpsspp');
   Future<void> openPpssppAppInfo() =>

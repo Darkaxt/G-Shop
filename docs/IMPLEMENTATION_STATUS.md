@@ -62,10 +62,31 @@ opt-out removed the Android job and restored the previous disabled policy.
 Protected save/emulator/source configuration digests match; both displays OFF.
 Gated build 557, focused host/native checks and affected analysis pass. Detailed
 profile, APK identity and test qualifications are in S10_SAVE_BACKUP_DESIGN.md.
-S10 remains ACTIVE: direct manual/background contention evidence, journal-aware
-retirement of redundant sealed captures, remaining accessible emulator routes /
+S10 remains ACTIVE: direct manual/background contention evidence,
+remaining accessible emulator routes /
 custom groups and the other SAVE-01 acceptance cases remain unfinished. These
 are not tracked deferrals; the legacy save-sync apps/tasks remain untouched.
+
+Local capture-retirement checkpoint, 2026-10-10: completed/unchanged backups now
+durably nominate only their exact redundant private capture, review all live
+journal/conflict references and retire it through identity-checked native IO.
+Cleanup failure persists its intent and blocks another capture until recovery.
+Pending uploads, retained conflicts and restore/rollback copies are preserved.
+Focused failure/reopen/reference regressions and native exact-boundary checks
+pass. Two screen-off automatic passes on current preserving build 559 report
+unchanged completion with no attention/pending work; the exact original list of
+27 capture directories returns after each pass. Historical stages are untouched.
+Profile, APK identity and qualified native evidence are recorded in
+S10_SAVE_BACKUP_DESIGN.md. This resolves the new redundant-capture accumulation
+defect, not full S10 acceptance. S10 remains the sole ACTIVE stage.
+
+Execution paused at the user's request, 2026-10-10, after verified local capture
+retirement. Original automatic opt-out was restored through the normal UI and
+its Android job is absent. Last-good backup and protected save/config hashes are
+unchanged; both physical screens are OFF. No tests/builds from this checkpoint
+remain running. Resume with S10's direct manual/background contention, remaining
+accessible emulator routes/coherent groups and recovery/handover acceptance.
+This pause does not close S10, waive S7 or start S11.
 
 Automatic return checkpoint, 2026-10-10: explicit per-edition PPSSPP slot opt-in
 now persists independently of the settings screen. Actual Thor Home/return

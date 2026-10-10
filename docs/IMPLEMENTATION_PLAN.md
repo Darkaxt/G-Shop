@@ -1570,6 +1570,16 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 
 Status: ACTIVE.
 
+Latest checkpoint, 2026-10-10: persisted Android scheduled execution and
+journal-aware exact retirement of redundant local captures have native Thor
+evidence. Current build 559 retained the last-good cloud backup across repeated
+screen-off unchanged checks, returning to the original capture directory list.
+Execution is paused at the user's request with the original automatic opt-out
+restored and both displays OFF. S10 remains incomplete: direct manual/background
+contention, remaining accessible routes/groups, fault/reinstall cases and the
+conditional legacy handover remain required. See the current status ledger and
+S10_SAVE_BACKUP_DESIGN.md; dated observations below are historical checkpoints.
+
 2026-10-10 checkpoint: real Thor PPSSPP opt-in, app return, unchanged cloud-head
 review, settings reopen and opt-out pass. The enabled lane is application-owned,
 serialized and durable; it does not claim Android scheduled background execution.

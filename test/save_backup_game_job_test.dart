@@ -53,6 +53,19 @@ class _Capture extends SaveCapture {
   final batteryRoutes = <RetroArchBatteryRoute>[];
   final restoreRoutes = <RetroArchBatteryRoute>[];
   int appInfoOpens = 0;
+  final retired = <String>[];
+  String? retirementIssue;
+  Future<void> Function(String)? beforeRetirement;
+  @override
+  Future<void> retireCapture(String captureId) async {
+    await beforeRetirement?.call(captureId);
+    if (retirementIssue != null) {
+      throw PlatformException(code: retirementIssue!);
+    }
+    retired.add(captureId);
+    sealed.remove(captureId);
+  }
+
   @override
   Future<void> openPpssppAppInfo() async {
     appInfoOpens++;
@@ -487,6 +500,164 @@ void main() {
     await fixture.service.setEnabled(fixture.mapping, false);
     expect(scheduled.last, isFalse);
     expect((await fixture.service.status(fixture.mapping)).enabled, isFalse);
+  });
+
+  test('successful and unchanged checks retire only redundant local captures',
+      () async {
+    final fixture = await automaticFixture();
+    await fixture.service.checkEnabled();
+    await job.load();
+    final verified = job.lastVerified;
+    for (var i = 0; i < 3; i++) {
+      await fixture.service.checkEnabled();
+    }
+    expect(capture.sealed, isEmpty);
+    expect(capture.retired.toSet().length, 4);
+    expect(generations.uploads, 1);
+    await job.load();
+    expect(job.lastVerified?.generationId, verified?.generationId);
+    expect(
+        (await fixture.service.status(fixture.mapping)).outcome, 'unchanged');
+  });
+
+  test('failed retirement is durable and retried before another capture',
+      () async {
+    capture.retirementIssue = 'capture_storage';
+    capture.beforeRetirement = (id) async {
+      final record = jsonDecode((await db.query('save_backup_game_jobs'))
+          .single['record_json'] as String) as Map;
+      expect(record['state'], 'complete');
+      expect(record['retireCaptureId'], id);
+      expect(record['captures'], isNull);
+      expect(record['lastVerified'], isNotNull);
+    };
+    await job.backup('Game.srm');
+    expect(job.issue, 'capture_cleanup_unavailable');
+    expect(capture.captures, 1);
+    final verifiedId = job.lastVerified!.generationId;
+    final reopened = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => currentName);
+    addTearDown(reopened.dispose);
+    await reopened.backup('Game.srm');
+    expect(reopened.issue, 'capture_cleanup_unavailable');
+    expect(capture.captures, 1,
+        reason: 'No more staging while cleanup is pending');
+    capture.retirementIssue = null;
+    await reopened.backup('Game.srm');
+    expect(reopened.issue, isNull);
+    expect(reopened.lastVerified!.generationId, verifiedId);
+    expect(capture.sealed, isEmpty);
+    expect(generations.uploads, 1);
+  });
+
+  test('interrupted upload keeps its capture until verified recovery',
+      () async {
+    generations.fail = true;
+    await job.backup(currentName);
+    final pendingId = capture.sealed.keys.single;
+    expect(capture.retired, isEmpty);
+    expect(job.lastVerified, isNull);
+    generations.fail = false;
+    await job.backup(currentName);
+    expect(job.issue, isNull);
+    expect(capture.captures, 1);
+    expect(capture.retired, [pendingId]);
+    expect(capture.sealed, isEmpty);
+  });
+
+  test('retirement rejects a completed journal without a last-good backup',
+      () async {
+    await job.backup(currentName);
+    final row = (await db.query('save_backup_game_jobs')).single;
+    final record =
+        jsonDecode(row['record_json'] as String) as Map<String, dynamic>;
+    final id = record['captureId'] as String;
+    capture.retired.clear();
+    await db.update(
+        'save_backup_game_jobs',
+        {
+          'record_json': jsonEncode(
+              {...record, 'lastVerified': null, 'retireCaptureId': id})
+        },
+        where: 'job_key = ?',
+        whereArgs: [row['job_key']]);
+    await job.backup(currentName);
+    expect(capture.retired, isEmpty);
+    expect(capture.captures, 1);
+    expect(job.issue, isNotNull);
+  });
+
+  test('another pending job reference prevents exact capture retirement',
+      () async {
+    capture.retirementIssue = 'capture_storage';
+    await job.backup(currentName);
+    final row = (await db.query('save_backup_game_jobs')).single;
+    final record =
+        jsonDecode(row['record_json'] as String) as Map<String, dynamic>;
+    final id = record['captureId'] as String;
+    final foreign = {
+      ...record,
+      'key': 'other-job',
+      'state': 'pending',
+      'captures': {'member': '/private/$id/member-0'},
+      'retireCaptureId': null
+    };
+    await db.insert('save_backup_game_jobs',
+        {'job_key': 'other-job', 'record_json': jsonEncode(foreign)});
+    capture.retirementIssue = null;
+    await job.backup(currentName);
+    expect(job.issue, isNull);
+    expect(capture.sealed.keys, [id]);
+    expect(capture.retired, isNot(contains(id)));
+    expect(
+        (await db.query('save_backup_game_jobs',
+                where: 'job_key = ?', whereArgs: ['other-job']))
+            .single['record_json'],
+        jsonEncode(foreign));
+  });
+
+  test('resolved conflict retains its separately journaled local branch',
+      () async {
+    await job.backup(currentName);
+    final original = job.lastVerified!;
+    generations.cloud['branch'] = _branch(original, 'branch');
+    await job.backup(currentName);
+    final conflictId = capture.sealed.keys.single;
+    expect(job.issue, 'save_conflict');
+    final heads = job.conflicts.map((head) => head.generationId).toSet();
+    await job.keepLocalConflict(heads);
+    expect(job.issue, isNull);
+    expect(job.phase, 'verified');
+    expect(capture.sealed.containsKey(conflictId), isTrue);
+    expect(capture.retired, isNot(contains(conflictId)));
+    expect(await db.query('save_backup_conflict_captures'), hasLength(1));
+    await job.backup(currentName);
+    expect(job.phase, 'unchanged');
+    expect(capture.sealed.keys, [conflictId]);
+  });
+
+  test('retirement never removes a retained restore rollback capture',
+      () async {
+    await job.backup(currentName);
+    capture.digest = 'd' * 64;
+    await job.restoreLatest();
+    final rollbackId = capture.restored.single.rollback;
+    expect(capture.sealed.containsKey(rollbackId), isTrue);
+    capture.digest = 'b' * 64;
+    await job.backup(currentName);
+    expect(job.issue, isNull);
+    expect(capture.sealed.keys, [rollbackId]);
+    expect(capture.retired, isNot(contains(rollbackId)));
+    expect(job.rollbackAvailable, isTrue);
   });
 
   test(

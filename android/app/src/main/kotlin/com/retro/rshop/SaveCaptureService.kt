@@ -146,6 +146,7 @@ internal class SaveCaptureService(private val activity: Context) {
                         "capturePpsspp" -> capture(captureId!!,
                             call.argument<String>("name") ?: "",
                             call.argument<String>("directory") ?: "")
+                        "retireCapture" -> retireCapture(captureId!!)
                         "beginRestore" -> beginRestore(captureId!!, call)
                         "appendRestore" -> appendRestore(captureId!!, call)
                         "sealRestore" -> sealRestore(captureId!!)
@@ -266,6 +267,44 @@ internal class SaveCaptureService(private val activity: Context) {
             output.map { it["name"] }.toSet().size != output.size) throw Failure("invalid_capture")
         return mapOf("captureId" to directory.name, "deviceId" to record.getString("deviceId"),
             "emulatorVersion" to record.getString("emulatorVersion"), "files" to output)
+    }
+
+    private fun retireCapture(id: String): Any? {
+        check()
+        val reviewed = SaveCaptureRetirement.review(root, id)
+        val directory = File(root, id)
+        if (!directory.exists()) {
+            // Complete a prior directory unlink whose parent sync was lost.
+            if (root.exists()) {
+                val parent = OwnedStorageNative.openRoot(root.absolutePath)
+                try { OwnedStorageNative.sync(parent) }
+                finally { OwnedStorageNative.close(parent) }
+            }
+            return null
+        }
+        val stage = OwnedStorageNative.openRoot(directory.absolutePath)
+        try {
+            // Pin/review every member before the first unlink. The existing
+            // native primitive rechecks identity and rejects links/hardlinks.
+            val identities = reviewed.associate { file ->
+                val fd = OwnedStorageNative.openFile(stage, file.name, false, false)
+                try { file.name to OwnedStorageNative.identity(fd) }
+                finally { OwnedStorageNative.close(fd) }
+            }
+            for ((name, identity) in identities) {
+                check()
+                OwnedStorageNative.retirePrivateFile(stage, name, identity)
+            }
+            OwnedStorageNative.sync(stage)
+        } finally { OwnedStorageNative.close(stage) }
+        check()
+        if (directory.canonicalFile != directory.absoluteFile || !directory.delete()) {
+            throw Failure("capture_storage")
+        }
+        val parent = OwnedStorageNative.openRoot(root.absolutePath)
+        try { OwnedStorageNative.sync(parent) }
+        finally { OwnedStorageNative.close(parent) }
+        return null
     }
 
     private fun capture(captureId: String, name: String,
