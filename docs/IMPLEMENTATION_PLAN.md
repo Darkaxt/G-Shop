@@ -1128,8 +1128,9 @@ private inventories or credentials.
 
 ## S7 — Live metadata pass and reviewed Thor migration
 
-Status: BLOCKED. The external reliable-retention evidence gap is recorded in
-IMPLEMENTATION_STATUS.md. All unfinished work below remains assigned to S7;
+Status: ACTIVE. User-directed resumption on 2026-10-10 prioritizes console-isolated
+cleanup; Top 25 is a cap and preserved Game Gear does not block other consoles.
+S10 is held BLOCKED on this explicit sequencing request. All unfinished work below remains assigned to S7;
 the ongoing immutable job 76 is neither replaced nor treated as a blocker merely
 because it takes time. No migration completion or removal permission is claimed.
 
@@ -1568,7 +1569,10 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 
 ## S10 — Emulator-aware save-backup sync
 
-Status: ACTIVE.
+Status: BLOCKED. User-directed execution hold, 2026-10-10: S7 is the sole
+ACTIVE stage during the requested migration/hibernation work. Remaining SAVE-01
+implementation and verification cannot proceed within this scoped hold; resume
+after it is released. This is an external sequencing hold, not a product defect.
 
 Latest checkpoint, 2026-10-10: persisted Android scheduled execution and
 journal-aware exact retirement of redundant local captures have native Thor

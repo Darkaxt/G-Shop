@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 16, 2026-10-09.
+Authoritative specification, revision 17, 2026-10-10.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -1090,6 +1090,16 @@ not count each disc as a game or add uncapped translation/hack/tag bonuses. Fewe
 than 25 games are valid for smaller collections. An incomplete/untrustworthy
 ranking cannot justify deleting unranked games; report and defer that console
 until its retention set is defensible.
+
+User clarification, 2026-10-10: Top 25 is an upper limit, not a quota. A smaller
+reliably scored sample (for example nineteen games) needs no padding, fabricated
+scores or wait for additional votes. Preserve unranked/uncertain games rather
+than treating missing scores as poor reception. Console outcomes are independent:
+an unresolved console must not prevent eligible cleanup of another console.
+Game Gear may be preserved in full because its storage cost is small. Record
+preserved exceptions explicitly; do not use them as a whole-SD blocking gate.
+This clarification does not waive exact cloud recovery, local identity,
+save/settings preservation or the required fresh metadata work.
 
 Inventory exact existing SD ROM paths and prove each removal candidate has an
 identical, complete, readable cloud artifact (stable provider ID/version and

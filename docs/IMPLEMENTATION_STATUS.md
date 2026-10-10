@@ -5,6 +5,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current execution override — 2026-10-10, console-isolated S7 cleanup
+
+The user explicitly resumed S7 and requested laptop hibernation after a safe
+finish. S7 is now the sole ACTIVE stage. S10 is BLOCKED on the user-directed
+execution hold while S7 is prioritized: remaining SAVE-01 work and verification
+cannot proceed during this scoped request; resume it after S7/hibernation is
+released. This is an external sequencing hold, not a claim of a product defect.
+S0-S6/S8-S9 remain COMPLETE; S11 remains NOT STARTED.
+
+Specification revision 17 records the authorized Top-25 cap and console isolation.
+Game Gear reception is no longer a whole-stage/whole-SD blocker. Unrated games
+remain preserved pending an explicit change to that policy. Actual native
+inspection still finds incomplete ranking coverage outside Game Gear. The normal
+ScreenScraper controls resumed immutable job 76 from its existing checkpoint;
+the fresh 02:42 +02:00 observation shows Running, 23,502 lookups and 19,784 pending.
+The provider reports 19,840/20,000 daily attempts remaining. No job membership,
+terminal outcome, score or provider quota was rewritten. Therefore the full
+fresh pass and reviewed migration are unfinished,
+not already satisfied by the policy clarification. Historical blocked-state
+notes below are superseded by this current override, not rewritten as success.
+
+Current S7 acceptance reconciliation:
+
+- Existing format round-trip evidence remains recorded in
+  S7_ACCEPTANCE_RECONCILIATION.md; it is not fresh per-file removal authority.
+- The fresh collection-wide pass is running, not complete. Native retained-query
+  observations find no eligible ranked PS1/GameCube/Wii groups and only partial
+  PS2/PSP coverage. These gaps are not exclusive to Game Gear.
+- No reviewed execution manifest, current per-file cloud/local revalidation,
+  journaled removal or live no-refill activation was performed in this resumption.
+  Their integration/execution and final retained-set/space/restore checks remain
+  ordinary required S7 work, not a tracked deferral to S10/S11.
+- The private protected-data observation completed, but ten entries changed stat
+  metadata while being read. It is not passing preservation evidence, and no
+  content-loss claim follows from those stat changes. No ROMs or saves were removed.
+- No Gradle build was launched. Read-only gate status found an idle reusable
+  daemon and no pending ticket; the mutex was not acquired and no effective new
+  build profile is claimed.
+- Hibernation support is available. Hibernation has not been requested while S7
+  remains unfinished and the cleanup-policy clarification is awaiting the user.
+
 ### Current execution state — 2026-10-09, S7 retention evidence blocked
 
 S0-S6 and S8-S9 are COMPLETE. S7 is BLOCKED. S10 is the sole ACTIVE stage;
