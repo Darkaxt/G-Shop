@@ -1,23 +1,27 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 21.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 23.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Current scheduling (2026-10-11): S0-S6 and S8-S9 COMPLETE; S7 ACTIVE after fresh
-explicit-device ADB inspection confirms the Thor connected; S10 BLOCKED
-on the user-directed sequencing hold; S11 NOT STARTED. The missing-rating preservation
-rule is superseded by revision 19, not an unresolved approval question. Within
-S7: exact-member planning, review labels and focused query/UI/recovery-safety
-verification are satisfied for this policy change. The disconnected-Thor blocker
-is resolved; live inventory, byte revalidation, journaled removal and final
-restore/space proof are recorded in the current status ledger. The owner-directed
-cleanup is verified; remaining fresh metadata and recovery criteria still belong
-to S7. Its current bounded UI-02 copy review covers file comparison, metadata,
-save backups and companion windows: revise user-facing text, verify focused
-widget behavior and inspect the integrated diff before committing. No new
-implementation stage is opened by this review.
-No new implementation stage or tracked deferral is opened. Older dated ACTIVE
-checkpoints below are historical; current specification and status win.
+Current scope correction (2026-10-11): the owner never required exhaustive
+scraping of all ROMs. Saved metadata job 76 and exhaustive scoped/provider passes
+are not S7 or final-completion gates. Fresh metadata capabilities and representative
+live evidence remain required; missing scores remain visible. This supersedes
+contrary historical checkpoints below. SD cleanup/retained-set/space/restore
+verification is already satisfied and must not be repeated for this correction.
+
+S7 closure (2026-10-11): the requested playback controls pass focused host checks
+and normal native rendering/Resume/Pause on preserving update 634. The local-absence
+ordering regression and changed-cloud safety checks pass; integrated assembly and
+scoped analysis pass. Configuration, saved jobs, private preferences and the
+explicit shared protected-file baseline are preserved. Both displays are OFF.
+The completed migration and representative metadata evidence are reconciled in
+S7_ACCEPTANCE_RECONCILIATION.md. No S7 blocker or required deferral remains.
+
+Current scheduling (2026-10-11): S0-S9 COMPLETE; S10 ACTIVE, the sole active
+stage; S11 NOT STARTED. Completing S7 resolves S10's sequencing hold. Resume only
+the remaining SAVE-01 acceptance work; no exhaustive scrape or repeated cleanup.
+Older dated stage statuses below are historical; this current schedule wins.
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do
@@ -1137,13 +1141,14 @@ commands, fixture identifiers, source commit and device/build identity. S7,
 S8-S10 are still required before overall completion. Public evidence must not contain
 private inventories or credentials.
 
-## S7 — Live metadata pass and reviewed Thor migration
+## S7 — Reviewed Thor migration and representative live metadata
 
-Status: ACTIVE. User-directed resumption on 2026-10-10 prioritizes console-isolated
-cleanup; Top 25 is a cap and preserved Game Gear does not block other consoles.
-S10 is held BLOCKED on this explicit sequencing request. All unfinished work below remains assigned to S7;
-the ongoing immutable job 76 is neither replaced nor treated as a blocker merely
-because it takes time. No migration completion or removal permission is claimed.
+Status: COMPLETE (2026-10-11). Revision 23 removes the incorrect exhaustive-
+scraping gate: job 76 is optional and preserved, not required closure work.
+The owner-directed migration, post-cleanup restore, requested UI changes and
+remaining bounded regression correction are verified. The current acceptance
+matrix is in S7_ACCEPTANCE_RECONCILIATION.md; no S7 blocker or required deferral
+remains. Historical checkpoints below are not outstanding acceptance criteria.
 
 Current internal remediation (2026-10-09): update-436 process 7116 ended with
 an Android input-dispatch ANR after sleep. Persisted job-76 `running` is not live
@@ -1193,7 +1198,7 @@ cloud-only planning status. A current rank is never per-file recovery proof.
 | --- | --- |
 | Stable current root publication | COMPLETE: generation 2 is published, active=2/pending=null/next=3. Preserving update 436 retains it; no reset traversal. |
 | Normal native mapping/policy/nested-reader integration | APK 435 preservation and explicit DSi mapping pass. Normal Wii/Wii U Best-25 reports truthful zero/provisional coverage after the completed policy rebuild; two ordinary nested GBA raw bindings match exact container observations. This execution check passes, not full coverage or removal authority. See S7_NATIVE_POLICY_AND_NESTED_PROOF.md. |
-| Fresh collection metadata | Same immutable ScreenScraper job 76 resumed without sign-in after provider unavailability: 18,548 requested / 25,016 pending / 701 rated. Finish its capture, then required scoped Wii/DSi and aggregate-score work through normal provider controls. No terminal outcome rewrites or replacement capture. |
+| Fresh metadata workflow | Representative actual-device fresh requests and saved-job resume are evidenced in the ledger. Full job 76 completion and exhaustive Wii/DSi/provider passes are not required by revision 23; preserve the optional saved job without rewriting outcomes. |
 | Defensible per-console retained games | Keep up to 25 canonical games using valid scores. Unrated exact members may be cloud-only under revision 19; unknown identities stay preserved. Neither full provider traversal nor this planning classification grants per-file deletion. |
 | Reviewed migration | Revalidate exact local/cloud bytes and applicable tested restore routes, review the private keep/remove/preserve manifest and journal exact eligible removals; verify retained games, free space, restore and save safety. |
 
@@ -1584,8 +1589,8 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 
 ## S10 — Emulator-aware save-backup sync
 
-Status: BLOCKED. User-directed execution hold, 2026-10-10: S7 is the sole
-ACTIVE stage during the requested migration/hibernation work. Remaining SAVE-01
+Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
+user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification cannot proceed within this scoped hold; resume
 after it is released. This is an external sequencing hold, not a product defect.
 
@@ -1810,7 +1815,7 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | QA-02 | S6 | Existing-provider regressions and combined live workflow |
 | QA-03 | S1 | Privacy/authorization/signing gates, rechecked at S6 |
 | QA-04 | S6 | Full-spec reconciliation; no unresolved required gaps |
-| MIGRATE-01 | S7 | Fresh live scrape, defensible Top-25 sample, exact cloud-verified removals and Thor restore/space/save proof |
+| MIGRATE-01 | S7 | Representative fresh metadata workflow, existing-score Top-25 cap, reviewed removals and Thor restore/space/save proof; no exhaustive scraping gate |
 | COMPANION-01 | S8 | Per-ROM association persistence/isolation; live ROM-top/APK-bottom launch, failure paths and ordinary-launch/save-safety regressions |
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
 | SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and restore to expected emulator locations; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |

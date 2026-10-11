@@ -19,13 +19,21 @@ class DriveDownloadBoundary {
       required this.catalogue,
       required this.api});
 
-  /// Returns the validated cached lineage, nearest parent first. Callers may
-  /// use its names as local lookup hints, never as byte-equivalence evidence.
-  Future<List<DriveFile>> revalidate({required CancelToken cancellation}) async {
+  void _checkCancellation(CancelToken cancellation) {
+    if (cancellation.isCancelled) {
+      throw const DriveTransferException(DriveTransferIssue.cancelled);
+    }
+  }
+
+  /// Observed names are only local lookup hints, not current cloud evidence.
+  Future<List<DriveFile>> localLookupHints(
+      {required CancelToken cancellation}) async =>
+      (await _observeLineage(cancellation)).ancestors;
+
+  Future<({int generation, List<DriveFile> ancestors})> _observeLineage(
+      CancelToken cancellation) async {
     void checkCancellation() {
-      if (cancellation.isCancelled) {
-        throw const DriveTransferException(DriveTransferIssue.cancelled);
-      }
+      _checkCancellation(cancellation);
     }
 
     checkCancellation();
@@ -79,6 +87,23 @@ class DriveDownloadBoundary {
         throw const DriveTransferException(DriveTransferIssue.invalidSource);
       }
       checkCancellation();
+      return (
+        generation: generation,
+        ancestors: List<DriveFile>.unmodifiable(ancestors)
+      );
+    } on DriveCatalogueException {
+      throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+    }
+  }
+
+  /// Returns the current-cloud-validated lineage, nearest parent first.
+  Future<List<DriveFile>> revalidate({required CancelToken cancellation}) async {
+    final observed = await _observeLineage(cancellation);
+    final ancestors = observed.ancestors;
+    final drive = config.drive!;
+    final verification = DriveVerification(artifact);
+    void checkCancellation() => _checkCancellation(cancellation);
+    try {
       verification.requireCurrent(await api.getFile(artifact.id.providerFileId,
           cancelToken: cancellation));
       // Only fetch previously observed ancestors. Never follow a new live parent
@@ -95,7 +120,7 @@ class DriveDownloadBoundary {
         }
       }
       checkCancellation();
-      if (generation !=
+      if (observed.generation !=
           await catalogue.activeGeneration(
               sourceId: config.sourceId!,
               accountId: drive.accountId,

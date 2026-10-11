@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 21, 2026-10-11.
+Authoritative specification, revision 23, 2026-10-11.
+
+Owner clarification, 2026-10-11: fresh metadata is a supported workflow, not a
+requirement to scrape every ROM in the owner's collection. Neither S7 closure,
+SD cleanup nor overall feature acceptance requires finishing saved job 76 or
+exhaustive console/provider passes. Verify metadata behavior with representative
+fresh requests and focused coverage; leave missing/ambiguous scores truthful.
+Full-library scraping remains an optional user-selectable operation. This
+clarification supersedes contrary exhaustive-scraping gates in older ledgers.
 
 Immediate owner-directed SD cleanup, 2026-10-11: the owner explicitly ordered
 removal of every ROM outside each console's existing Top-25 and confirmed the
@@ -103,8 +111,9 @@ User decisions incorporated:
   the logged-in ScreenScraper account and updating the ignored local environment
   file when credentials are issued. Approval does not itself prove API access.
 - A desktop PC, RomM server, or public Drive sharing link must not be required.
-- Historical scraped metadata is outdated. A complete fresh scrape is required;
-  importing an old `gamelist.xml` is not a substitute.
+- Historical scraped metadata is outdated. Verify fresh metadata gathering;
+  importing an old `gamelist.xml` is not a substitute. Exhaustive scraping of
+  the owner's collection is not required.
 - Reuse sourced review scores and add cover overlays; do not invent a new
   popularity/ranking formula. Include metadata-backed Top-N and content filters
   in the same implementation: the user's overlay suggestion was not an instruction
@@ -494,17 +503,19 @@ plus an actual target-device proof using a user-authorized test artifact.
 
 ## 5. Feature B: independent metadata and cover ratings
 
-### META-01 — Fresh full scraping, not a historical import
+### META-01 — Fresh scoped scraping, not a historical import
 
 Provide fresh full-library, per-system, per-game and failed/unmatched retry jobs.
-The first full pass operates on a stable catalogue generation and fetches current
-provider data for every game identity, including games not installed locally.
+A selected job operates on a stable catalogue generation and fetches current
+provider data for its selected identities, including games not installed locally.
+Full-library jobs are supported but need not be run to exhaustion for delivery.
 Old `gamelist.xml` scores/descriptions must not seed the new trusted baseline or
 let items be skipped. Existing old files remain untouched; no destructive purge
 is needed to create a new metadata generation.
 
-Acceptance: seed a legacy cache, run a fresh job, and prove every eligible identity
-was requested or has an explicit unresolved/setup/error outcome. Report requested,
+Acceptance: seed a legacy cache, run a bounded fresh job, and prove every eligible
+identity in that selected scope was requested or has an explicit
+unresolved/setup/error outcome. Report requested,
 matched, ambiguous, unmatched, failed and rated counts separately. Finished
 traversal does not mean all games have metadata or reliable ratings.
 
@@ -900,7 +911,7 @@ edits. Cover changed remote metadata, interrupted publication, concurrent edits,
 provider outage, storage loss/regrant and database rebuild from durable records.
 Verify reinstall persistence using an expendable test package or isolated
 fixture, never uninstalling the owner's valuable app as a test technique. A
-fresh full scrape remains required by META-01; stale imports cannot satisfy it.
+fresh scoped scrape remains required by META-01; stale imports cannot satisfy it.
 
 ## 6. UI requirements
 
@@ -947,6 +958,16 @@ replacement by a resolved cover, and no extra requests or badge/title collisions
 in the shared Library, console and shelf card callers on the Thor.
 
 ### UI-02 — Metadata controls and details
+
+Scraping controls refinement authorized on 2026-10-11: replace the long action
+button labels in the existing scraping workspace with compact conventional
+playback icons for starting, pausing, resuming and retrying a search. Keep new
+search and saved-search continuation distinct. Retain localized tooltips and
+accessible names, visible disabled/focus states, touch targets of at least
+48 logical pixels and controller activation. Preserve the current callbacks,
+scope, saved job and provider concurrency/quota behavior. Verify focused
+idle/running controls, compact layout and ordinary native UI without creating
+a fresh full-library scrape solely for this visual check. This belongs to S7.
 
 Plain-language review authorized on 2026-10-11: during S7, review the existing
 file-comparison, metadata, save-backup and companion windows. Use familiar words
@@ -1104,8 +1125,9 @@ after META-07 has passed, rather than requiring a second metadata implementation
 
 ### MIGRATE-01 — Fresh metadata and Top-25 offline sample on AYN Thor
 
-After integrated feature verification, perform the fresh collection-wide metadata
-pass and live on-demand round trip on the actual Thor. Keep the best 25 canonical
+After integrated feature verification, demonstrate fresh scoped metadata gathering
+and a live on-demand round trip on the actual Thor. Do not require exhaustive
+collection scraping or completion of a saved metadata job. Keep the best 25 canonical
 games per console as the offline sample, using the same validated overall-score
 and identity rules as META-05/META-07. Preserve required disc/bundle members; do
 not count each disc as a game or add uncapped translation/hack/tag bonuses. Fewer
@@ -1218,7 +1240,8 @@ re-download in an isolated destination. WUD/WUX/RPX, external bundles and other
 formats remain unproved; do not add conversion, keys or emulator configuration
 changes. This resolves existing DRIVE-06/MIGRATE-01 recovery scope, not a new stage.
 
-Acceptance: actual-device fresh scrape coverage, per-console retained Top-25
+Acceptance: representative actual-device fresh metadata evidence, not full-library
+traversal; per-console retained Top-25
 identities, all bundle members, before/after space, saved-data preservation and
 cloud-restore evidence. Blocked/preserved exceptions remain explicit. Completion
 requires no unresolved required migration work; do not call a partial cleanup

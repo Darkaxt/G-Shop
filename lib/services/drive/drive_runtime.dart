@@ -775,7 +775,8 @@ class DriveRuntime {
           artifact: artifact,
           catalogue: catalogue,
           api: apiFor(config.drive!));
-      final ancestors = await boundary.revalidate(cancellation: cancellation);
+      final ancestors =
+          await boundary.localLookupHints(cancellation: cancellation);
       final nestedParents = ancestors
           .takeWhile((folder) => folder.id != config.path)
           .map((folder) => folder.name)
@@ -800,6 +801,11 @@ class DriveRuntime {
       for (final root in roots) {
         checkCancellation();
         try {
+          final present = await _storage.inspectExisting(
+              destinationRoot: root, relativePath: name);
+          if (present == null) continue;
+          checkCancellation();
+          await boundary.revalidate(cancellation: cancellation);
           observation = await _storage.readArchiveIdentifier(
               destinationRoot: root,
               relativePath: name,

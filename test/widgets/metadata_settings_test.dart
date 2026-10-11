@@ -108,6 +108,46 @@ void main() {
         lessThan(tester.getRect(scraping).left));
     await tester.tap(scraping);
     await tester.pumpAndSettle();
+    final transport = {
+      'metadata-refresh': (
+        Icons.play_circle_outline,
+        'Get fresh game information'
+      ),
+      'metadata-pause': (Icons.pause_rounded, 'Pause'),
+      'metadata-resume': (Icons.play_arrow_rounded, 'Resume saved job'),
+      'metadata-retry': (Icons.replay_rounded, 'Retry failed / unmatched'),
+    };
+    final semantics = tester.ensureSemantics();
+    for (final action in transport.entries) {
+      final button = find.byKey(ValueKey(action.key));
+      expect(tester.widget(button), isA<IconButton>(),
+          reason: 'Scraping transport must not use long text buttons');
+      expect(tester.widget<IconButton>(button).tooltip, action.value.$2);
+      expect(tester.getSemantics(button).tooltip, action.value.$2);
+      expect(
+          find.descendant(of: button, matching: find.byIcon(action.value.$1)),
+          findsOneWidget);
+      expect(find.descendant(of: button, matching: find.byType(Text)),
+          findsNothing);
+      expect(tester.getSize(button).width, inInclusiveRange(48, 64));
+      expect(tester.getSize(button).height, inInclusiveRange(48, 64));
+    }
+    semantics.dispose();
+    expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('metadata-pause')))
+            .onPressed,
+        isNull);
+    expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('metadata-resume')))
+            .onPressed,
+        isNotNull);
+    expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('metadata-retry')))
+            .onPressed,
+        isNull);
     final open = find.byKey(const ValueKey('metadata-saved-jobs'));
     await tester.ensureVisible(open);
     await tester.runAsync(() async {
@@ -203,6 +243,7 @@ void main() {
     final signals = (await tester.runAsync(() async => (
           Completer<void>(),
           Completer<MetadataLookupResult>(),
+          Completer<void>(),
         )))!;
     final entered = signals.$1;
     final release = signals.$2;
@@ -210,9 +251,27 @@ void main() {
       if (!entered.isCompleted) entered.complete();
       return release.future;
     };
-    late Future<void> running;
+    final finished = signals.$3;
+    final removeRunListener = controls.addListener((state) {
+      if (entered.isCompleted && !state.busy && !finished.isCompleted) {
+        finished.complete();
+      }
+    }, fireImmediately: false);
+    addTearDown(removeRunListener);
+    final resumeWrapper = find
+        .ancestor(
+            of: find.byKey(const ValueKey('metadata-resume')),
+            matching: find.byType(ConsoleFocusable))
+        .first;
+    tester
+        .widget<Focus>(find
+            .descendant(of: resumeWrapper, matching: find.byType(Focus))
+            .first)
+        .focusNode!
+        .requestFocus();
+    await tester.pump();
     await tester.runAsync(() async {
-      running = controls.resume();
+      await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
       await entered.future;
     });
     await tester.pump();
@@ -226,6 +285,20 @@ void main() {
     await tester.tap(scraping);
     await tester.pump();
     expect(find.byKey(const ValueKey('metadata-pause')), findsOneWidget);
+    expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('metadata-pause')))
+            .onPressed,
+        isNotNull);
+    for (final key in [
+      'metadata-refresh',
+      'metadata-resume',
+      'metadata-retry'
+    ]) {
+      expect(tester.widget<IconButton>(find.byKey(ValueKey(key))).onPressed,
+          isNull,
+          reason: 'Running work must keep other transport actions disabled');
+    }
     expect(controls.state.report!.id, runningId);
     expect(controls.state.busy, isTrue);
     expect(
@@ -235,7 +308,7 @@ void main() {
         isNull);
     release.complete(MetadataLookupResult(
         status: MetadataLookupStatus.unmatched, message: 'Fixture'));
-    await tester.runAsync(() => running);
+    await tester.runAsync(() => finished.future);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

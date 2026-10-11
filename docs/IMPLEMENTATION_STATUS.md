@@ -5,6 +5,148 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S7 COMPLETE; S10 ACTIVE — 2026-10-11
+
+S7 is reconciled against revision 23 in S7_ACCEPTANCE_RECONCILIATION.md. Its
+owner-directed cleanup, retained-set/space/protected-content checks and normal
+post-cleanup restore pass. Fresh scoped provider evidence already exists;
+exhaustive scraping is not required. The optional original job 76 remains paused
+at 27,168 requests, with its saved capture/outcomes preserved.
+
+The requested playback controls now pass both host checks and normal Thor
+rendering/touch Resume/Pause. In Running, Pause is enabled and fresh/resume/retry
+are disabled; after normal joined Pause those guards reverse appropriately.
+Accessible action names are present. Controller activation is verified by the
+focused widget check; native D-pad input is not claimed as separate activation
+proof. The local-absence regression passes on the host, preserving full cloud
+checks for present archives; the installed native storage bridge is unchanged.
+This does not claim diagnosis of the earlier unrecorded Drive HTTP response.
+
+Online assembly 634 completed exit 0 after DNS recovery, without editing shared
+SDK dependencies or pinning a version merely to accommodate the offline cache.
+The shared gate was acquired. Observed profile: two workers, no parallelism,
+3-GiB Gradle heap; Kotlin in-process. Test tasks were configured for one 512-MiB
+fork, fail-fast on, failures not ignored, but assembly did not execute tests.
+The app's inspected ARM64 Ninja compile/link pool has depth one. No memory
+failure or heap increase occurred; this is not a total-host memory guarantee.
+Build log: `0296514162904cd2b750258382441bbe.log` under the local shared-gate logs.
+
+Signer-preserving `adb install -r` succeeded. Installed APK SHA-256 independently
+matches `ed677dc5b0a6aa4a0910fb7c21d52710c97ff631fba123f374d1273ddb5119ef`.
+Immediate configuration, schema/root generation, saved-job objects and every
+private preference digest agree across the update. Scoped shared-file comparison
+also agrees: 159 files / 310,188,490 bytes, stable membership, no unverified scope.
+This remains explicit shared-path evidence, not a claim covering all private saves.
+Private visual evidence is retained outside Git; its digest-checked device-side
+screenshot was removed and absence verified. Both displays' actual and committed
+states are OFF. Final scoped Dart analysis and whitespace checks pass.
+
+No S7 blocker or required deferral remains. S0-S9 are COMPLETE; S10 is now the
+sole ACTIVE stage after resolution of its S7 sequencing hold; S11 NOT STARTED.
+The overall eleven-stage objective is not complete. Older checkpoints below
+are historical and must not restore superseded full-scrape gates or stage states.
+
+### Owner correction: exhaustive scraping is not required — 2026-10-11
+
+Specification revision 23 corrects the agent-created requirement to finish every
+ROM's metadata lookup. The owner explicitly rejects that scope. Job 76's 15,928
+pending lookups, exhaustive Wii/DSi passes and further aggregate-score gathering
+are not S7 blockers, required deferrals or final-delivery gates. Preserve the
+optional saved job and truthful missing-score states; do not resume it merely to
+close S7. Fresh metadata capabilities and representative live checks remain.
+
+The owner-directed SD cleanup and retained-set/space/post-cleanup restore proof
+are verified. The subsequent closure above also verifies the requested controls
+and integrates the local-absence correction; neither requires another full scrape.
+
+Build checkpoint correction: assembly 630 has confirmed exit 1. Its offline
+failure is missing cached version-list metadata for dynamic AndroidX runner
+`1.2+`, not memory exhaustion. The gate was acquired with two workers,
+no parallelism, a 3-GiB Gradle heap and Kotlin in-process. No updated APK from
+625/630 has been installed. Older pending-build/full-scrape notes below are
+historical and do not supersede this current checkpoint.
+
+### Compact scraping playback controls — 2026-10-11
+
+Update after request 625: the gate was acquired and the actual profile verified
+two workers, no parallelism and a 3-GiB Gradle heap. Kotlin is in-process; test
+configuration is one 512-MiB fork, not an executed test workload. Assembly failed
+resolving AndroidX runner dynamic-version metadata because host DNS failed for
+Google/Maven/Flutter repositories. No memory failure or heap increase occurred.
+The completed failed session has been joined; the next focused assembly uses
+the existing dependency cache with `--offline`, not reduced verification.
+
+The separate disposable-copy regression is now corrected and integrated after
+625 exited: mapped cached lineage supplies only local lookup hints; a read-only
+native existence check precedes any cloud revalidation. Absent root/nested files
+return to title discovery without Drive calls. Present files retain full current
+cloud validation before/after raw hash observation, container identity checks,
+root-copy priority and cancellation/persistence joining. Focused runtime/boundary
+checks pass, including changed-cloud rejection, unsafe hints, inaccessible root,
+nested absence, platform separation and no installation/stage/ROM-body requests.
+Three obsolete native-call expectations were corrected and rerun successfully;
+scoped analysis passes. Integrated host/native verification follows below when
+available. This corrects the ordering dependency, not an unrecorded API response.
+
+S7 remains the sole ACTIVE stage. Specification revision 22 assigns this bounded
+UI-02 refinement to S7: the existing fresh-search, pause, resume and retry actions
+use compact playback icons with their existing localized tooltips and accessible
+names. The action callbacks and idle/running guards are unchanged. Saved jobs
+and match review retain their text buttons.
+
+Focused widget verification passes for the icon/tooltip/semantics contract,
+48–64 logical-pixel touch targets, controller activation of the saved resume
+action, idle/running guards, compact layouts, progress feedback and the three
+metadata-detail screen sizes. Scoped analysis and whitespace checks pass. Only
+the affected progress golden changed; no full suite was run. Native update and
+visual verification are pending the already queued gated assembly request 625.
+No completion or native gate/profile evidence is claimed before it returns.
+
+The saved original ScreenScraper job 76 remains blocked on provider
+`unavailable`, at 27,162 requests with 15,934 pending. One read-only account
+probe and the exact next pending lookup both returned valid HTTP 200 responses;
+normal Resume then advanced three requests before blocking again. The historical
+failure's exact transport response is not recorded, so this is not a demonstrated
+root cause or a repaired provider failure. No arbitrary retry or provider behavior
+change was added. Configuration digest and root generation 2 are unchanged.
+The short-lived fixed read-only diagnostic helper was removed from host/device
+after use; its reviewed cleanup removed only its attributed generated files.
+The original full metadata pass and the rest of S7 remain unfinished.
+
+Subsequent normal Resume advances the same job to 27,168 requests / 15,928
+pending, then pauses with an operation error, not a provider-blocked status.
+Confirmed live app PID 11204 emits only the existing sanitized failure type
+`DriveApiException` and application frames: `drive_api.dart:508`,
+`drive_api.dart:190`, `drive_download_boundary.dart:89`, and
+`drive_runtime.dart:778`. The exact Drive issue/HTTP response is not recorded;
+do not call that transport failure repaired. Inspection traces this path to
+`readMetadataArchive` revalidating cloud file/ancestors before observing whether
+the local archive exists. After the authorized SD cleanup, absent local files
+therefore still require unnecessary cloud API calls before title discovery.
+The bounded next remediation is to verify local absence using observed mapped
+lineage before network revalidation, while retaining every current-cloud and
+byte-identity check when a local identifier actually exists. Existing nested,
+changed-cloud and cancellation regressions in `drive_runtime_test.dart` define
+the safety boundary. No production change has been made during queued assembly
+625, so its source snapshot remains stable. Both screens were returned to sleep.
+
+The focused regression `absent metadata archive needs no Drive requests for
+title discovery` now reproduces this ordering defect: it returns no identifier
+but fails its no-network assertion with two actual Drive metadata requests.
+That isolated test process exited 1 and is no longer running. The production
+correction remains pending assembly 625's confirmed completion; no concurrent
+test process or second R-Shop build has been launched.
+
+Later checkpoint: 625 exited unsuccessfully on the DNS failure described above.
+The integrated runtime/boundary files now pass together in the maintained tree,
+and scoped analysis/whitespace checks pass. Focused assembly request 630 is the
+single replacement request, using cached dependencies offline with the same
+gated profile. Native UI verification remains pending its confirmed completion.
+The disposable validation clone was then removed by reviewed cleanup transaction
+`e7aa6f84365a2cf196632ff42ccc079e`: 247,647,259 attributable bytes, no exclusions
+or residual clone. Generated plugin link leaves were removed without touching
+their Pub-cache targets. Both Thor displays remain OFF while the request waits.
+
 ### Plain-language UI review and post-cleanup recovery — 2026-10-11
 
 S7 remains the only ACTIVE stage. Specification revision 21 assigns the owner's

@@ -311,6 +311,21 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
               onPressed: onPressed,
               child: Text(label)));
 
+  Widget _transportButton(
+          String label, String key, IconData icon, VoidCallback? onPressed) =>
+      ConsoleFocusable(
+          onSelect: onPressed,
+          focusScale: 1,
+          child: IconButton.filled(
+              key: ValueKey(key),
+              tooltip: label,
+              style: AppTheme.primaryButtonStyle.copyWith(
+                  fixedSize: const WidgetStatePropertyAll(Size.square(56)),
+                  padding: const WidgetStatePropertyAll(EdgeInsets.all(12))),
+              iconSize: 28,
+              onPressed: onPressed,
+              icon: Icon(icon)));
+
   void _openReview() => Navigator.push(
       context,
       MaterialPageRoute(
@@ -617,18 +632,20 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
         if (widget.cacheRowId == null)
           _button(l.metadata_savedJobs, 'metadata-saved-jobs',
               enabled ? _selectSavedJob : null),
-        _button(
+        _transportButton(
             l.metadata_refresh,
             'metadata-refresh',
+            Icons.play_circle_outline,
             enabled
                 ? () => controls.refresh(
                     systemSlug: _scope, cacheRowId: widget.cacheRowId)
                 : null),
-        _button(l.metadata_pause, 'metadata-pause',
-            state.busy ? controls.pause : null),
-        _button(
+        _transportButton(l.metadata_pause, 'metadata-pause',
+            Icons.pause_rounded, state.busy ? controls.pause : null),
+        _transportButton(
             l.metadata_resume,
             'metadata-resume',
+            Icons.play_arrow_rounded,
             enabled &&
                     report != null &&
                     (report.state != 'completed' ||
@@ -636,9 +653,10 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                             state.artworkReport!.state != 'completed'))
                 ? controls.resume
                 : null),
-        _button(
+        _transportButton(
             l.metadata_retryOutcomes,
             'metadata-retry',
+            Icons.replay_rounded,
             enabled &&
                     report != null &&
                     [

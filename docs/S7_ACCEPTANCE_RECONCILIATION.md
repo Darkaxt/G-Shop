@@ -1,5 +1,38 @@
 # S7 live metadata and Thor migration
 
+## Current acceptance matrix — S7 COMPLETE, 2026-10-11
+
+Authority: SPECIFICATION.md revision 23, including the owner's revision-20 exact
+Top-25 cleanup directive and clarification that exhaustive scraping was never
+required. This matrix supersedes historical outstanding-work lists below.
+
+| Required result | Verified evidence |
+| --- | --- |
+| Fresh metadata, not stale imported baseline | Actual fresh provider jobs and persisted outcomes are recorded below. Current read-only device evidence confirms completed scoped ScreenScraper job 73 and IGDB jobs 72/75, plus preserved pause/resume of job 76. Full-library completion is optional, not a gate. |
+| Existing-score sample capped at 25 per console | Private reviewed keep-list and terminal reconciliation retain 25 N64, 13 PSP and 2 PS2 ROMs; no fabricated padding, unrated refill or uncapped extras. Zero eligible retained games in another scope is allowed by the owner's directive. |
+| Exact reviewed cleanup and no refill | Private completed journals and `top25-cleanup-verified-20261011.json`: 15,718 removed ROM/companion files, 704,092,184,748 bytes. All 27 reviewed console targets have the no-refill guard; archival download profiles are unchanged. No new full cloud-stream proof is inferred. |
+| Retained files, space and protected data | Terminal independent reconciliation: 247 files / 18,774,960,690 bytes; 40 actual retained ROMs, other files preserved. Free space 957,752,320 KiB. Latest preserving update additionally matches all 159 explicitly checked shared save/BIOS/settings files. No universal private-save coverage is claimed. |
+| Normal on-demand recovery after cleanup | Removed Game Boy test archive restored through R-Shop and opened to its RetroArch title screen; independent size/digest checked; removed normally afterward and original keep-list/space reconciled. Earlier documented format-specific recovery evidence remains applicable to unchanged transfer/handoff boundaries. No deep in-emulator save testing is required. |
+| Requested plain-language and playback UI | Wording update 619 and playback update 634 are installed and inspected on Thor. Icons, accessible names, touch Resume/Pause and idle/running guards pass. Focused widget checks cover controller activation, compact layouts and detail views. No fresh full scrape was started for visual verification. |
+| Local-absence metadata regression | Reproduced no-network assertion before correction; focused runtime/boundary checks now pass for absent root/nested files, present-file current-cloud validation, changed identities, unsafe roots and cancellation. Native bridge is unchanged; normal integrated assembly/update passes. This does not claim repair of an unrecorded transport response. |
+| Safe delivery of bounded changes | Shared-gate assembly 634 exit 0, scoped analysis and whitespace checks pass. Installed APK digest matches build; configuration/root/jobs/private preferences preserved. Original metadata job is paused and both displays are actual/committed OFF. |
+
+Blockers: none. Required tracked deferrals: none. S10/S11 remain required under
+their own criteria; S7 closure does not claim the whole project is complete.
+
+## Current scope correction — 2026-10-11
+
+Specification revision 23 records the owner's clarification: scraping every ROM
+was never required. Full saved-job completion and exhaustive console/provider
+passes are not acceptance gates. Representative fresh metadata and resume
+workflows are recorded below; optional job 76 remains preserved without forced
+completion. Missing scores must stay truthful, not delay verified SD cleanup.
+
+The owner-directed cleanup, retained set, space and post-cleanup restore are
+verified, as are the requested bounded controls/correction in the matrix above.
+Earlier contrary requirements and historical stage statuses below are superseded
+by revision 23 and the current acceptance matrix.
+
 ## Owner-directed cleanup and restored small game — 2026-10-11
 
 The revision-20 one-time cleanup and all retained-file/space checks are recorded

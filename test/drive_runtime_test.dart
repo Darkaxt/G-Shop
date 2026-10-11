@@ -219,6 +219,7 @@ class _NativeStorage {
   String archiveName = 'fixture.7z';
   String archiveRoot = '/roms';
   String? rootArchiveFailure;
+  bool nestedArchiveAbsent = false;
   final channel = const MethodChannel('runtime-fixture-storage');
   final bytes = <int>[];
   final writeStarted = Completer<void>();
@@ -261,6 +262,15 @@ class _NativeStorage {
     calls.add(call.method);
     final args = Map<String, dynamic>.from(call.arguments as Map);
     switch (call.method) {
+      case 'localCopyInspect':
+        if (rootArchiveFailure != null && args['destinationRoot'] == '/roms') {
+          if (rootArchiveFailure == 'not_found') return null;
+          throw PlatformException(code: rootArchiveFailure!);
+        }
+        if (nestedArchiveAbsent && args['destinationRoot'] != '/roms') return null;
+        expect(args['destinationRoot'], archiveRoot);
+        expect(args['relativePath'], archiveName);
+        return archiveObservation['localIdentity'];
       case 'ownedReadArchiveIdentifier':
         if (rootArchiveFailure != null && args['destinationRoot'] == '/roms') {
           throw PlatformException(code: rootArchiveFailure!);
@@ -710,7 +720,7 @@ void main() {
       expect(raw, isNotNull);
       expect(raw!.filename, 'fixture.$member');
       expect(raw.sha1, 'c' * 40);
-      expect(fixture.native.calls, ['ownedReadArchiveIdentifier']);
+      expect(fixture.native.calls, ['localCopyInspect', 'ownedReadArchiveIdentifier']);
       expect(await fixture.db.query('migration_byte_observations'), hasLength(1));
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
       expect(await fixture.db.query('transfer_records'), isEmpty);
@@ -1079,7 +1089,7 @@ void main() {
     expect(raw.md5, 'b' * 32);
     expect(raw.sizeBytes, 8192);
     expect(fixture.media.requests, isEmpty);
-    expect(fixture.native.calls, ['ownedReadArchiveIdentifier']);
+    expect(fixture.native.calls, ['localCopyInspect', 'ownedReadArchiveIdentifier']);
     expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
         hasLength(2));
     expect(await fixture.db.query('transfer_records'), isEmpty);
@@ -1095,7 +1105,26 @@ void main() {
     expect(saved.localIdentity.fileId, '42');
     expect(saved.checksums, {'md5': _md5, 'sha256': 'd' * 64});
   });
-  for (final scenario in ['nested', 'unsafe', 'mismatch', 'changed', 'root', 'blocked', 'shadowMismatch']) {
+  test('absent metadata archive needs no Drive requests for title discovery',
+      () async {
+    final fixture =
+        await _TransferFixture.create(name: 'fixture.7z', reserve: false);
+    fixture.native.rootArchiveFailure = 'not_found';
+    final raw = await fixture.runtime().readMetadataArchive(
+        config: _transferConfig,
+        artifact: _artifact(name: 'fixture.7z'),
+        platformId: 'n64',
+        destinationRoot: '/roms',
+        cancellation: CancelToken());
+    expect(raw, isNull);
+    expect(fixture.metadata.requests, isEmpty,
+        reason: 'Missing local bytes must not depend on cloud revalidation');
+    expect(fixture.media.requests, isEmpty);
+    expect(await fixture.db.query('migration_byte_observations'), isEmpty);
+    expect(await fixture.db.query('installed_artifacts'), isEmpty);
+    expect(fixture.native.stagePresent, isFalse);
+  });
+  for (final scenario in ['nested', 'absent', 'unsafe', 'mismatch', 'changed', 'root', 'blocked', 'shadowMismatch']) {
     test('metadata archive mapped nested path: $scenario', () async {
       final fixture = await _TransferFixture.create(name: 'fixture.7z', reserve: false);
       final name = scenario == 'unsafe' ? '../Japan' : 'Japan';
@@ -1131,6 +1160,7 @@ void main() {
           : {'root', 'shadowMismatch'}.contains(scenario) ? null : 'not_found';
       fixture.native.archiveRoot = {'root', 'shadowMismatch'}.contains(scenario)
           ? '/roms' : '/roms/Japan';
+      fixture.native.nestedArchiveAbsent = scenario == 'absent';
       if ({'mismatch', 'shadowMismatch'}.contains(scenario)) {
         fixture.native.archiveObservation['container'] = {
           'sizeBytes': 5, 'md5': 'a' * 32, 'sha256': 'd' * 64,
@@ -1154,9 +1184,15 @@ void main() {
       } else {
         expect(await read, {'nested', 'root'}.contains(scenario) ? isNotNull : isNull);
       }
-      expect(fixture.native.calls, List.filled(
-          {'unsafe', 'root', 'blocked', 'shadowMismatch'}.contains(scenario) ? 1 : 2,
-          'ownedReadArchiveIdentifier'));
+      expect(fixture.native.calls, switch (scenario) {
+        'unsafe' || 'blocked' => ['localCopyInspect'],
+        'absent' => ['localCopyInspect', 'localCopyInspect'],
+        'root' || 'shadowMismatch' => ['localCopyInspect', 'ownedReadArchiveIdentifier'],
+        _ => ['localCopyInspect', 'localCopyInspect', 'ownedReadArchiveIdentifier'],
+      });
+      if ({'unsafe', 'blocked', 'absent'}.contains(scenario)) {
+        expect(fixture.metadata.requests, isEmpty);
+      }
       expect(fixture.media.requests, isEmpty);
       expect(await fixture.db.query('transfer_records'), isEmpty);
       expect(await fixture.db.query('installed_artifacts'), isEmpty);
@@ -1249,7 +1285,7 @@ void main() {
       expect(raw!.filename, member);
       expect(raw.sha1, 'c' * 40);
       expect(raw.md5, 'b' * 32);
-      expect(fixture.native.calls, ['ownedReadArchiveIdentifier']);
+      expect(fixture.native.calls, ['localCopyInspect', 'ownedReadArchiveIdentifier']);
       expect(fixture.metadata.requests.where((r) => r.path.endsWith('/file')),
           hasLength(2));
       expect(fixture.media.requests, isEmpty);

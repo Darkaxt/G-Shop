@@ -300,7 +300,7 @@ void defineMetadataDetailScreenChecks({
       final refresh = find.byKey(const ValueKey('metadata-refresh'));
       await tester.ensureVisible(refresh);
       await tester.pumpAndSettle();
-      expect(tester.widget<FilledButton>(refresh).onPressed, isNotNull);
+      expect(tester.widget<IconButton>(refresh).onPressed, isNotNull);
       final completed = Completer<void>();
       final removeListener = controls.addListener((state) {
         if (!state.busy &&
