@@ -616,7 +616,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           variant.remoteArtifact != null &&
           variant.providerConfig?.type == ProviderType.drive)
         QuickMenuItem(
-            label: 'Check local/cloud bytes',
+            label: 'Compare with Google Drive',
             icon: Icons.fact_check_outlined,
             onSelect: () async {
               closeQuickMenu();

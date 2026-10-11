@@ -75,6 +75,46 @@ Widget _testApp({required Widget home}) =>
     ProviderScope(child: MaterialApp(home: home));
 
 void main() {
+  for (final issue in [
+    DriveTransferIssue.checksumMismatch,
+    DriveTransferIssue.unavailable,
+    DriveTransferIssue.cancelled
+  ]) {
+    testWidgets(
+        'comparison explains $issue without exposing a raw error as the message',
+        (tester) async {
+      final runtime = _Runtime();
+      final artifact = RemoteArtifact(
+          id: RemoteArtifactId(
+              providerId: 'drive',
+              sourceId: 'source',
+              accountId: 'account',
+              providerFileId: 'file'),
+          displayName: 'fixture.chd',
+          displayPath: 'fixture.chd',
+          sizeBytes: 5);
+      await tester.pumpWidget(_testApp(
+          home: DriveRecoveryReviewDialog(
+              config:
+                  const ProviderConfig(type: ProviderType.drive, priority: 1),
+              artifact: artifact,
+              destinationRoot: '/roms',
+              runtime: runtime)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Compare files'));
+      await tester.pump();
+      runtime.result.completeError(DriveTransferException(issue));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Your files have not been changed'),
+          findsOneWidget);
+      expect(find.textContaining('Error code:'), findsNothing);
+      expect(find.text('Add to R-Shop'), findsNothing);
+      await tester.tap(find.text('Technical details'));
+      await tester.pumpAndSettle();
+      expect(find.text('Error code: ${issue.name}'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
   for (final rank in <int?>[25, 26, null]) {
     testWidgets('complete retention review reports rank $rank without deletion',
         (tester) async {
@@ -114,14 +154,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(
           find.text(rank == 25
-              ? 'Keep · canonical rank 25 (Top 25)'
+              ? 'Keep offline · #25 in this console’s Top 25'
               : rank == null
-                  ? 'Outside sample · unrated; cloud recovery required'
-                  : 'Outside sample · canonical rank 26'),
+                  ? 'Not in the offline sample · no reliable rating yet'
+                  : 'Not in the offline sample · ranked #26'),
           findsOneWidget);
-      expect(find.textContaining('Provisional'),
+      expect(find.textContaining('Results may change'),
           rank == null ? findsOneWidget : findsNothing);
-      expect(find.textContaining('Planning only'), findsOneWidget);
+      expect(find.textContaining('does not delete files'), findsOneWidget);
       expect(find.text('Remove'), findsNothing);
       expect(runtime.cancellation, isNull);
       expect(runtime.adoptionCancellation, isNull);
@@ -166,9 +206,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(query.requestedArtifact, same(artifact));
     expect(query.requestedPlatform, 'psx');
-    expect(find.text('Outside sample · canonical rank 26'), findsOneWidget);
-    expect(find.textContaining('26/27 ranked · Provisional'), findsOneWidget);
-    expect(find.textContaining('Planning only'), findsOneWidget);
+    expect(find.text('Not in the offline sample · ranked #26'), findsOneWidget);
+    expect(find.textContaining('26 of 27 games have ranking scores'),
+        findsOneWidget);
+    expect(find.textContaining('Results may change'), findsOneWidget);
+    expect(find.textContaining('does not delete files'), findsOneWidget);
     expect(runtime.cancellation, isNull);
     expect(runtime.adoptionCancellation, isNull);
     expect(find.text('Remove'), findsNothing);
@@ -202,12 +244,13 @@ void main() {
         tester.element(find.byType(DriveRecoveryReviewDialog)));
     expect(runtime.adoptionCancellation, isNull);
     expect(runtime.cancellation, isNull);
-    expect(find.textContaining('No file is deleted'), findsOneWidget);
-    await tester.tap(find.text('Verify and adopt'));
+    expect(find.textContaining('Nothing is deleted'), findsOneWidget);
+    await tester.tap(find.text('Add to R-Shop'));
     await tester.pump();
     expect(runtime.adoptionCancellation, isNotNull);
     expect(runtime.cancellation, isNull);
-    expect(find.text('Existing file adopted.'), findsNothing);
+    expect(
+        find.text('Your existing download was added to R-Shop.'), findsNothing);
     final identity = NativeFileIdentity(
         volumeId: 'volume',
         fileId: 'inode',
@@ -226,9 +269,10 @@ void main() {
         },
         fileIdentity: identity));
     await tester.pumpAndSettle();
-    expect(find.text('Existing file adopted.'), findsOneWidget);
-    expect(find.text('Verify and adopt'), findsNothing);
-    expect(find.textContaining('No file was deleted'), findsOneWidget);
+    expect(find.text('Your existing download was added to R-Shop.'),
+        findsOneWidget);
+    expect(find.text('Add to R-Shop'), findsNothing);
+    expect(find.textContaining('Nothing was deleted'), findsOneWidget);
     expect(container.read(romChangeSignalProvider), 1,
         reason:
             'An ownership commit must refresh the shared installation index');
@@ -272,9 +316,9 @@ void main() {
             destinationRoot: '/roms',
             runtime: runtime)));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Past byte match'), findsOneWidget);
-    expect(find.textContaining('not rechecked now'), findsOneWidget);
-    expect(find.text('Current byte match verified.'), findsNothing);
+    expect(find.textContaining('Last successful comparison'), findsOneWidget);
+    expect(find.textContaining('not been checked again'), findsOneWidget);
+    expect(find.text('Your local copy matches Google Drive.'), findsNothing);
     expect(runtime.savedReads, 1);
     expect(runtime.cancellation, isNull);
     final container = ProviderScope.containerOf(
@@ -282,13 +326,19 @@ void main() {
     expect(container.read(romChangeSignalProvider), 0,
         reason:
             'Reading a historical observation does not change availability');
-    await tester.tap(find.text('Verify bytes'));
+    await tester.tap(find.text('Compare files'));
     await tester.pump();
     expect(container.read(romChangeSignalProvider), 0,
         reason: 'Do not refresh before the actual verification has drained');
     runtime.result.complete(runtime.saved!);
     await tester.pumpAndSettle();
-    expect(find.text('Current byte match verified.'), findsOneWidget);
+    expect(find.text('Your local copy matches Google Drive.'), findsOneWidget);
+    expect(find.textContaining('SHA-256:'), findsNothing,
+        reason:
+            'Hashes belong in collapsed technical details, not the main result');
+    await tester.tap(find.text('Technical details'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('SHA-256:'), findsOneWidget);
     expect(container.read(romChangeSignalProvider), 1,
         reason: 'A byte-only journal update has no filesystem event; '
             'it must invalidate the shared installation projection explicitly');
@@ -324,10 +374,10 @@ void main() {
     final container = ProviderScope.containerOf(
         tester.element(find.byType(DriveRecoveryReviewDialog)));
     expect(runtime.cancellation, isNull);
-    expect(find.textContaining('Does not adopt'), findsOneWidget);
+    expect(find.textContaining('does not save another copy'), findsOneWidget);
     // The dialog, not the underlying details route, owns controller intents.
     Actions.invoke(
-        tester.element(find.text('Verify bytes')), const ConfirmIntent());
+        tester.element(find.text('Compare files')), const ConfirmIntent());
     await tester.pump();
     expect(runtime.cancellation, isNotNull);
     Actions.invoke(tester.element(find.text('Cancel')), const BackIntent());

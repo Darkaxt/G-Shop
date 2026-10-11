@@ -120,31 +120,31 @@ abstract class L {
   /// No description provided for @saveBackup_help.
   ///
   /// In en, this message translates to:
-  /// **'Use a separate private Drive backup area. This requests access only to app-created backup files; ROM sources remain read-only. No saves are uploaded until you explicitly map them.'**
+  /// **'Keep save backups in a separate private area of Google Drive. R-Shop can change only backups it creates, not your cloud ROMs. Choose the saves to back up before anything is uploaded.'**
   String get saveBackup_help;
 
   /// No description provided for @saveBackup_authorize.
   ///
   /// In en, this message translates to:
-  /// **'Authorize backup area'**
+  /// **'Set up Drive backups'**
   String get saveBackup_authorize;
 
   /// No description provided for @saveBackup_ready.
   ///
   /// In en, this message translates to:
-  /// **'Private backup area prepared'**
+  /// **'Drive backups are ready to set up for your games'**
   String get saveBackup_ready;
 
   /// No description provided for @saveBackup_notMapped.
   ///
   /// In en, this message translates to:
-  /// **'No save groups mapped yet. Preparing the area does not back up your games.'**
+  /// **'No saves selected yet. Choose a game\'s save in Back up save to start backing it up.'**
   String get saveBackup_notMapped;
 
   /// No description provided for @saveBackup_verify.
   ///
   /// In en, this message translates to:
-  /// **'Verify backup area'**
+  /// **'Check Drive backup access'**
   String get saveBackup_verify;
 
   /// No description provided for @saveBackup_problem.
@@ -168,13 +168,13 @@ abstract class L {
   /// No description provided for @metadata_credentials.
   ///
   /// In en, this message translates to:
-  /// **'Credentials'**
+  /// **'Account & API keys'**
   String get metadata_credentials;
 
   /// No description provided for @metadata_scraping.
   ///
   /// In en, this message translates to:
-  /// **'Scraping'**
+  /// **'Get game information'**
   String get metadata_scraping;
 
   /// No description provided for @metadata_latestGame.
@@ -186,13 +186,13 @@ abstract class L {
   /// No description provided for @metadata_unverifiedCandidate.
   ///
   /// In en, this message translates to:
-  /// **'Unverified candidate'**
+  /// **'Possible match · needs confirmation'**
   String get metadata_unverifiedCandidate;
 
   /// No description provided for @metadata_dailyQuota.
   ///
   /// In en, this message translates to:
-  /// **'Daily API quota'**
+  /// **'Daily lookup allowance'**
   String get metadata_dailyQuota;
 
   /// No description provided for @metadata_requestsRemaining.
@@ -222,7 +222,7 @@ abstract class L {
   /// No description provided for @metadata_localBudget.
   ///
   /// In en, this message translates to:
-  /// **'Locally reserved remaining budget'**
+  /// **'Lookups available after queued requests'**
   String get metadata_localBudget;
 
   /// No description provided for @metadata_quotaUnknown.
@@ -234,7 +234,7 @@ abstract class L {
   /// No description provided for @metadata_esDe.
   ///
   /// In en, this message translates to:
-  /// **'ES-DE metadata publication'**
+  /// **'Share game information with ES-DE'**
   String get metadata_esDe;
 
   /// No description provided for @metadata_esDeReviewArtwork.
@@ -252,7 +252,7 @@ abstract class L {
   /// No description provided for @metadata_esDeHelp.
   ///
   /// In en, this message translates to:
-  /// **'Map this edition to the configured ROM destination, then select its ES-DE system gamelist folder. Updates are queued by normal refreshes. Close ES-DE and keep it closed during publication. Missing ROMs are not created or made launchable.'**
+  /// **'Link this game to its ROM folder, then choose this console\'s ES-DE gamelist folder. New game information is queued when you refresh. Close ES-DE and keep it closed while updates are saved. Games that are not downloaded will not become playable in ES-DE.'**
   String get metadata_esDeHelp;
 
   /// No description provided for @metadata_esDeMap.
@@ -288,19 +288,19 @@ abstract class L {
   /// No description provided for @metadata_esDePublish.
   ///
   /// In en, this message translates to:
-  /// **'Publish pending metadata'**
+  /// **'Save updates to ES-DE'**
   String get metadata_esDePublish;
 
   /// No description provided for @metadata_esDePublished.
   ///
   /// In en, this message translates to:
-  /// **'Pending metadata published'**
+  /// **'Updates saved to ES-DE'**
   String get metadata_esDePublished;
 
   /// No description provided for @metadata_esDeConflict.
   ///
   /// In en, this message translates to:
-  /// **'Publication paused: review changed paths, identities or manual fields. Pending updates and existing launcher data are preserved.'**
+  /// **'Updates paused because game files or ES-DE information changed. Review the linked folders and any manual edits. Pending updates and existing ES-DE data are kept.'**
   String get metadata_esDeConflict;
 
   /// No description provided for @metadata_esDeNoMapping.
@@ -312,25 +312,25 @@ abstract class L {
   /// No description provided for @metadata_sharedStorage.
   ///
   /// In en, this message translates to:
-  /// **'Persistent shared metadata'**
+  /// **'Shared game-information folder'**
   String get metadata_sharedStorage;
 
   /// No description provided for @metadata_sharedUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Shared metadata storage is unavailable or could not be read. Reconnect storage and choose the same folder again. Cached facts remain usable; refresh and publication require restored access.'**
+  /// **'Your shared game-information folder could not be opened. Reconnect the storage and choose the same folder again. Saved information is still usable; updates and ES-DE sharing need folder access.'**
   String get metadata_sharedUnavailable;
 
   /// No description provided for @metadata_sharedStorageHelp.
   ///
   /// In en, this message translates to:
-  /// **'Choose a shared folder for scraped facts and artwork. Existing cache is copied, not deleted. This data survives uninstall; reconnect your source and reselect the folder to recover matching records. Credentials and installations are not backed up. ES-DE publication is configured separately.'**
+  /// **'Choose a folder to keep game information and artwork outside R-Shop. Existing information is copied, not deleted. It survives uninstall: reconnect your source and choose this folder again to recover it. Account details and downloaded-game records are not backed up here. Set up ES-DE sharing separately.'**
   String get metadata_sharedStorageHelp;
 
   /// No description provided for @metadata_privateStorage.
   ///
   /// In en, this message translates to:
-  /// **'Not selected — current cache is app-private'**
+  /// **'No folder selected — saved inside R-Shop only'**
   String get metadata_privateStorage;
 
   /// No description provided for @metadata_chooseSharedStorage.
@@ -360,37 +360,37 @@ abstract class L {
   /// No description provided for @metadata_reviewChanged.
   ///
   /// In en, this message translates to:
-  /// **'This file or identity changed. These saved candidates cannot be accepted; re-scrape the current edition.'**
+  /// **'This game file changed. Search again before choosing a match.'**
   String get metadata_reviewChanged;
 
   /// No description provided for @metadata_openReview.
   ///
   /// In en, this message translates to:
-  /// **'Review cached matches'**
+  /// **'Review possible matches'**
   String get metadata_openReview;
 
   /// No description provided for @metadata_reviewTitle.
   ///
   /// In en, this message translates to:
-  /// **'Review cached matches'**
+  /// **'Review possible matches'**
   String get metadata_reviewTitle;
 
   /// No description provided for @metadata_reviewInfo.
   ///
   /// In en, this message translates to:
-  /// **'Candidates are identity hints, not verified scores. Select the correct game/project and classify this edition explicitly. Tags may overlap; an official release cannot also be a modification. Confirming saves the correction and rechecks only this game. No ROM is downloaded.'**
+  /// **'Choose the correct game or fan project and its tags. A possible match is not yet a confirmed rating. Tags can be combined, but Official release cannot be combined with modification tags. Saving checks this game again without downloading its ROM.'**
   String get metadata_reviewInfo;
 
   /// No description provided for @metadata_chooseCandidate.
   ///
   /// In en, this message translates to:
-  /// **'Choose game / project identity'**
+  /// **'Choose the matching game or fan project'**
   String get metadata_chooseCandidate;
 
   /// No description provided for @metadata_candidateEvidence.
   ///
   /// In en, this message translates to:
-  /// **'Candidate evidence'**
+  /// **'Why this match was suggested'**
   String get metadata_candidateEvidence;
 
   /// No description provided for @metadata_reviewAccept.
@@ -402,19 +402,19 @@ abstract class L {
   /// No description provided for @metadata_reviewEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No cached review outcomes on this page. Unmatched or pending games are not automatically rated.'**
+  /// **'No possible matches to review on this page. Games without a confirmed match do not receive a guessed rating.'**
   String get metadata_reviewEmpty;
 
   /// No description provided for @metadata_noCandidates.
   ///
   /// In en, this message translates to:
-  /// **'No candidate was returned. Re-scrape after correcting the title/platform or checking provider access; no match will be guessed.'**
+  /// **'No matching game was found. Check its title and console, or the service connection, then search again.'**
   String get metadata_noCandidates;
 
   /// No description provided for @metadata_reviewReload.
   ///
   /// In en, this message translates to:
-  /// **'Reload cached reviews'**
+  /// **'Reload possible matches'**
   String get metadata_reviewReload;
 
   /// No description provided for @metadata_reviewNext.
@@ -432,13 +432,13 @@ abstract class L {
   /// No description provided for @metadata_reviewSaved.
   ///
   /// In en, this message translates to:
-  /// **'Selection saved. Check the refreshed job\'s coverage: a saved match alone is not a verified rating.'**
+  /// **'Your choice was saved. R-Shop will check the match before using its rating.'**
   String get metadata_reviewSaved;
 
   /// No description provided for @metadata_reviewError.
   ///
   /// In en, this message translates to:
-  /// **'Review or recheck could not finish. The identity/candidate may have changed, or provider access may be unavailable. Reload cached reviews or resume the saved job; existing ROM actions remain available.'**
+  /// **'The match could not be checked. The game may have changed or the service may be unavailable. Reload possible matches or resume the search. You can still play and download games.'**
   String get metadata_reviewError;
 
   /// No description provided for @metadata_setupTitle.
@@ -450,7 +450,7 @@ abstract class L {
   /// No description provided for @metadata_setupSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Provider access, fresh scraping and saved progress'**
+  /// **'Accounts, game information and saved progress'**
   String get metadata_setupSubtitle;
 
   /// No description provided for @metadata_provider.
@@ -462,7 +462,7 @@ abstract class L {
   /// No description provided for @metadata_accessInfo.
   ///
   /// In en, this message translates to:
-  /// **'ScreenScraper uses a standard account plus separate application access. IGDB uses a private application pair. Credentials are saved securely on this device, not in exported configuration. Saving is not proof of provider access; refresh checks access. No ROM files are downloaded.'**
+  /// **'ScreenScraper needs your account and app access details. IGDB needs a client ID and secret. These are saved securely on this device and excluded from exported settings. Start a lookup to check the connection. No ROMs are downloaded.'**
   String get metadata_accessInfo;
 
   /// No description provided for @metadata_saved.
@@ -522,7 +522,7 @@ abstract class L {
   /// No description provided for @metadata_refresh.
   ///
   /// In en, this message translates to:
-  /// **'Fresh re-scrape'**
+  /// **'Get fresh game information'**
   String get metadata_refresh;
 
   /// No description provided for @metadata_pause.
@@ -546,7 +546,7 @@ abstract class L {
   /// No description provided for @metadata_savedJobsHelp.
   ///
   /// In en, this message translates to:
-  /// **'Select existing progress. Resume uses this saved job, not the console chosen for a fresh re-scrape. Selection makes no provider requests.'**
+  /// **'Choose an earlier search to continue where it stopped. Resume uses that search\'s games, not the console selected above. Choosing a saved search does not use any lookups.'**
   String get metadata_savedJobsHelp;
 
   /// No description provided for @metadata_noSavedJobs.
@@ -594,13 +594,13 @@ abstract class L {
   /// No description provided for @metadata_jobCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Traversal completed'**
+  /// **'Search finished'**
   String get metadata_jobCompleted;
 
   /// No description provided for @metadata_requested.
   ///
   /// In en, this message translates to:
-  /// **'Requested lookups'**
+  /// **'Lookups made'**
   String get metadata_requested;
 
   /// No description provided for @metadata_matched.
@@ -618,13 +618,13 @@ abstract class L {
   /// No description provided for @metadata_ambiguous.
   ///
   /// In en, this message translates to:
-  /// **'Ambiguous'**
+  /// **'More than one possible match'**
   String get metadata_ambiguous;
 
   /// No description provided for @metadata_unmatched.
   ///
   /// In en, this message translates to:
-  /// **'Unmatched'**
+  /// **'No match found'**
   String get metadata_unmatched;
 
   /// No description provided for @metadata_failed.
@@ -648,7 +648,7 @@ abstract class L {
   /// No description provided for @metadata_completeNote.
   ///
   /// In en, this message translates to:
-  /// **'Completed traversal does not mean every game has metadata or a reliable rating.'**
+  /// **'A finished search does not mean every game has information or a reliable rating.'**
   String get metadata_completeNote;
 
   /// No description provided for @metadata_controlsError.
@@ -660,13 +660,13 @@ abstract class L {
   /// No description provided for @metadata_configureAccess.
   ///
   /// In en, this message translates to:
-  /// **'Open this provider\'s Credentials to configure account/application access, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.'**
+  /// **'Open Account & API keys for this service, check the details, then resume your saved search. Your ScreenScraper user account can remain a standard account.'**
   String get metadata_configureAccess;
 
   /// No description provided for @metadata_quotaWait.
   ///
   /// In en, this message translates to:
-  /// **'Provider quota or cadence applies. Resume when access permits; completed items are retained.'**
+  /// **'The service has limited lookups for now. Resume when access is available again. Completed results are saved.'**
   String get metadata_quotaWait;
 
   /// No description provided for @metadata_offlineWait.
@@ -804,7 +804,7 @@ abstract class L {
   /// No description provided for @filter_provisional.
   ///
   /// In en, this message translates to:
-  /// **'Provisional'**
+  /// **'Ratings incomplete'**
   String get filter_provisional;
 
   /// No description provided for @filter_coverage.
@@ -858,7 +858,7 @@ abstract class L {
   /// No description provided for @metadata_staleScore.
   ///
   /// In en, this message translates to:
-  /// **'Stale score'**
+  /// **'Needs a fresh rating'**
   String get metadata_staleScore;
 
   /// No description provided for @metadata_originalGame.
@@ -876,7 +876,7 @@ abstract class L {
   /// No description provided for @metadata_advisoryScore.
   ///
   /// In en, this message translates to:
-  /// **'Advisory'**
+  /// **'Not used for Top lists'**
   String get metadata_advisoryScore;
 
   /// No description provided for @metadata_gameScore.

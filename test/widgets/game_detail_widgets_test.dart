@@ -99,7 +99,7 @@ void main() {
     expect(find.textContaining('ScreenScraper: 85/100'), findsOneWidget);
     expect(find.textContaining('17 (0–20)'), findsOneWidget);
     expect(find.textContaining('Unknown ratings'), findsOneWidget);
-    expect(find.textContaining('Advisory'), findsOneWidget);
+    expect(find.textContaining('Not used for Top lists'), findsOneWidget);
   });
   group('GameMetadataInfo', () {
     test('hasContent true when summary set', () {

@@ -80,7 +80,7 @@ void main() {
         'com.example.reader/.MainActivity');
     await tester.tap(find.text('Configure'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('No companion · ordinary launch'));
+    await tester.tap(find.text('None · game only'));
     await tester.pumpAndSettle();
     await tester.pump(Duration.zero);
     expect(storage.getCompanion('edition-one'), isNull);
@@ -110,7 +110,8 @@ void main() {
     await tester.tap(find.text('Reader'));
     await tester.pumpAndSettle();
     expect(storage.getCompanion('edition-one'), isNull);
-    expect(find.text('Could not confirm saved companion.'), findsOneWidget);
+    expect(find.text('Could not save your choice. Please try again.'),
+        findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     await tester.pump(Duration.zero);

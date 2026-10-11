@@ -593,15 +593,21 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
       else
         DropdownButtonFormField<String>(
             key: const ValueKey('metadata-scope'),
+            isExpanded: true,
             initialValue: _scope ?? '',
             decoration: InputDecoration(labelText: l.metadata_systemScope),
             items: [
-              DropdownMenuItem(value: '', child: Text(l.metadata_fullScope)),
+              DropdownMenuItem(
+                  value: '',
+                  child: Text(l.metadata_fullScope,
+                      overflow: TextOverflow.ellipsis)),
               for (final system in {
                 ...state.systems,
                 if (_scope != null) _scope!
               })
-                DropdownMenuItem(value: system, child: Text(system))
+                DropdownMenuItem(
+                    value: system,
+                    child: Text(system, overflow: TextOverflow.ellipsis))
             ],
             onChanged: enabled
                 ? (value) => setState(() => _scope = value == '' ? null : value)

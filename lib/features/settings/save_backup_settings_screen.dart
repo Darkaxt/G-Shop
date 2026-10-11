@@ -664,9 +664,9 @@ class _SaveBackupSettingsScreenState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-              'Known installed emulators, embedded runtimes and launchers. '
-              'Save and state coverage are separate. Verified applies only to '
-              'the route shown, not every game or format. No folders are scanned.'),
+              'Backup support for the emulators R-Shop recognizes on this device. '
+              'In-game saves and save states are listed separately. Support may '
+              'depend on the game and storage folder. This list does not scan your files.'),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -686,14 +686,15 @@ class _SaveBackupSettingsScreenState
                 return const LinearProgressIndicator();
               }
               if (snapshot.hasError || snapshot.data == null) {
-                return const Text('Installed-emulator inventory unavailable. '
-                    'Coverage has not been confirmed; refresh to try again.');
+                return const Text(
+                    'The installed emulator list could not be loaded. '
+                    'Choose Refresh installed apps to try again.');
               }
               final entries = snapshot.data!;
               if (entries.isEmpty) {
                 return const Text(
-                    'No known emulator packages visible to R-Shop. '
-                    'This does not prove that no other emulators are installed.');
+                    'R-Shop could not find any emulators it recognizes. '
+                    'Other emulators may still be installed.');
               }
               return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -759,15 +760,15 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
         context: context,
         builder: (context) => AlertDialog(
               title: Text(cloudId == null
-                  ? 'Use captured local save?'
+                  ? 'Use this device’s saved copy?'
                   : 'Use this cloud version?'),
               content: Text(cloudId == null
-                  ? 'Publish the retained local capture as a new version resolving the reviewed branches. '
-                      'Every existing cloud version stays intact. This does not replace the current local file.'
+                  ? 'Upload the saved copy from this device as the version to use. '
+                      'Older cloud backups are kept. The current local save is not replaced.'
                   : 'Restore the selected cloud version to this game’s configured save location. '
-                      'The captured and current local saves are preserved for recovery. '
+                      'Copies of your local saves are kept so you can undo the restore. '
                       'No cloud version is overwritten or deleted. '
-                      '${job.isPpsspp ? 'Exit the game, then use Force stop in PPSSPP App info. Keep PPSSPP closed during restore.' : 'Close the game content first.'}'),
+                      '${job.isPpsspp ? 'Exit the game, then use Force stop in PPSSPP App info. Keep PPSSPP closed during restore.' : 'Close the game in RetroArch first.'}'),
               actions: [
                 TextButton(
                     key: const ValueKey('save-conflict-cancel'),
@@ -779,7 +780,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                     style: AppTheme.primaryButtonStyle,
                     onPressed: () => Navigator.pop(context, true),
                     child: Text(cloudId == null
-                        ? 'Use captured local save'
+                        ? 'Use device copy'
                         : 'Use cloud save')),
               ],
             ));
@@ -796,20 +797,20 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     final writerInstruction = widget.job.isPpsspp
         ? 'Exit the game, then use Force stop in PPSSPP App info. '
             'Keep PPSSPP closed during restore. R-Shop never stops it automatically.'
-        : 'Close the game content in RetroArch before continuing.';
+        : 'Close the game in RetroArch before continuing.';
     final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
               title: Text(rollback
-                  ? 'Restore the retained local save?'
+                  ? 'Undo the last restore?'
                   : 'Replace local save with cloud backup?'),
               content: Text(rollback
-                  ? 'This restores the local save retained before the last cloud restore for ${widget.title}. '
-                      'The current save is preserved separately before replacement. '
+                  ? 'Restore the copy of ${widget.title}’s save kept before the last cloud restore. '
+                      'A copy of the current save will also be kept. '
                       '$writerInstruction ROMs and settings are untouched.'
-                  : 'This replaces the reviewed save for ${widget.title} '
-                      'with its last verified cloud generation, even if the local save differs. '
-                      'The current local save is retained as a rollback capture first. '
+                  : 'Replace ${widget.title}’s selected save with its last checked cloud backup, '
+                      'even if the local save is different. '
+                      'A copy of the current save is kept so you can undo this. '
                       '$writerInstruction '
                       'No other save, ROM or emulator setting is selected.'),
               actions: [
@@ -822,9 +823,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                     key: const ValueKey('save-restore-confirm'),
                     style: AppTheme.primaryButtonStyle,
                     onPressed: () => Navigator.pop(context, true),
-                    child: Text(rollback
-                        ? 'Use retained local save'
-                        : 'Use cloud save')),
+                    child: Text(rollback ? 'Undo restore' : 'Use cloud save')),
               ],
             ));
     if (accepted == true && mounted) {
@@ -861,10 +860,10 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 const SizedBox(height: 12),
                 Text(
                     job.isPpsspp
-                        ? 'Only the explicitly mapped state slot is captured. Its game association is your reviewed mapping, not a title guess. Battery saves, thumbnails, temporary files, ROMs and settings are excluded.'
+                        ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
                         : job.retroArchRoute == RetroArchBatteryRoute.gameGear
-                            ? 'Only cartridge SRAM from this exact installation’s validated Game Gear launch is captured. CD backup RAM, ROMs, settings and save states are excluded.'
-                            : 'The save target comes from this exact installation’s validated RetroArch launch. A related RTC file is included when present. ROMs, settings and save states are excluded.',
+                            ? 'Backs up this Game Gear game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
+                            : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 FutureBuilder<List<String>>(
@@ -872,7 +871,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         return const Text(
-                            'This installation’s save target could not be verified. Check the local game and storage permission.');
+                            'R-Shop could not find this game’s save folder. Check that the game is downloaded and storage access is allowed.');
                       }
                       if (!snapshot.hasData) {
                         return const LinearProgressIndicator();
@@ -886,7 +885,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                           initialValue: selected,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                              labelText: 'Reviewed save file'),
+                              labelText: 'Save file for this game'),
                           items: names
                               .map((name) => DropdownMenuItem(
                                   value: name,
@@ -912,8 +911,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             setState(() => _confirmed = value ?? false)),
                 Text(
                     job.isPpsspp
-                        ? 'PPSSPP publishes a completed slot after closing its temporary writer. Capture rejects a slot that changes while being copied.'
-                        : 'Close the game content in RetroArch first. Capture waits for RetroArch’s confirmation; if it is in the background, switch to it using the button below, then return here. You can cancel the wait.',
+                        ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
+                        : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 ConsoleFocusable(
@@ -936,7 +935,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             ? () => job.backup((job.pendingName ?? _name)!)
                             : null,
                         child: Text(job.pendingName == null
-                            ? 'Back up reviewed save'
+                            ? 'Back up selected save'
                             : 'Resume this backup'))),
                 if (conflicts.isNotEmpty)
                   const Text('Conflict needs review in Restore & conflicts.'),
@@ -968,14 +967,14 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 ],
                 const SizedBox(height: 16),
                 const Text(
-                    'Close the game content before restoring. Current local saves and existing cloud versions are preserved.'),
+                    'Close the game before restoring. Copies of your current saves and older cloud backups are kept.'),
                 if (conflicts.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Semantics(
                       liveRegion: true,
                       child: const Text(
                           'Save conflict: local and cloud versions differ. Both are preserved. '
-                          'Choose a version explicitly; dates do not decide the winner.',
+                          'Choose which one to use; R-Shop will not choose based on the date.',
                           style: TextStyle(fontSize: 18, height: 1.4))),
                   ConsoleFocusable(
                       focusScale: 1,
@@ -984,7 +983,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                           key: const ValueKey('save-conflict-local'),
                           style: AppTheme.primaryButtonStyle,
                           onPressed: job.busy ? null : _resolveConflict,
-                          child: const Text('Use captured local save'))),
+                          child: const Text('Use device copy'))),
                   for (final cloud in conflicts)
                     ConsoleFocusable(
                         focusScale: 1,
@@ -1038,14 +1037,14 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : null,
                         icon: const Icon(Icons.undo),
                         label: Text(job.rollbackPending
-                            ? 'Resume local rollback'
-                            : 'Restore retained local save'),
+                            ? 'Resume undo'
+                            : 'Undo last restore'),
                       )),
                 if (job.lastVerified == null &&
                     conflicts.isEmpty &&
                     !job.rollbackAvailable)
                   const Text(
-                      'No verified backup or retained local save is available yet.'),
+                      'There is no checked cloud backup or saved local copy to restore yet.'),
               ],
               if (widget.section != SaveBackupSection.status || job.busy)
                 ConsoleFocusable(
@@ -1067,17 +1066,18 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 const LinearProgressIndicator(),
                 Text(
                     switch (job.phase) {
-                      'capture' => 'Waiting for closed content / capturing…',
+                      'capture' =>
+                        'Waiting for the game to close, then copying its save…',
                       'cloud_review' =>
                         'Checking cloud versions for conflicts…',
                       'rollback_capture' =>
-                        'Waiting for closed content / preserving local rollback…',
+                        'Waiting for the game to close, then keeping a copy of its current save…',
                       'restore_download' =>
                         'Downloading and verifying cloud save…',
                       'restore_publish' =>
-                        'Waiting for closed content / restoring verified save…',
-                      'rollback_verify' => 'Verifying retained local save…',
-                      _ => 'Uploading and verifying complete generation…',
+                        'Waiting for the game to close, then restoring its save…',
+                      'rollback_verify' => 'Checking the previous local save…',
+                      _ => 'Uploading and checking the backup…',
                     },
                     style: const TextStyle(fontSize: 18)),
                 ConsoleFocusable(
@@ -1113,20 +1113,24 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   Semantics(
                       liveRegion: true,
                       child: const Text(
-                          'Cloud save restored. The previous local save is retained for rollback.',
+                          'Cloud save restored. Your previous local save is kept in case you want to undo this.',
                           style: TextStyle(fontSize: 18))),
                 if (job.phase == 'rolled_back')
                   Semantics(
                       liveRegion: true,
                       child: const Text(
-                          'Retained local save restored. The replaced save is preserved separately.',
+                          'The previous local save was restored. A copy of the replaced save is also kept.',
                           style: TextStyle(fontSize: 18))),
-                if (job.issue != null)
+                if (job.issue != null) ...[
                   Semantics(
                       liveRegion: true,
                       child: Text(
-                          'Save operation not completed: ${job.issue}. The previous verified cloud generation and retained captures are preserved.',
+                          'The save operation could not finish. Your previous cloud backups and saved local copies are kept. Check your connection and save-folder access, then try again.',
                           style: const TextStyle(fontSize: 18))),
+                  ExpansionTile(
+                      title: const Text('Technical details'),
+                      children: [SelectableText('Error code: ${job.issue}')]),
+                ],
               ],
             ]);
       });
@@ -1235,14 +1239,14 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       title: const Text('Automatically back up this slot',
                           style: TextStyle(fontSize: 18)),
                       subtitle: const Text(
-                          'Opt-in for this reviewed edition only. Checks on startup, app return and Android background scheduling (about every 6 hours with network access). Unchanged bytes are not uploaded again. Conflicts require your choice.'),
+                          'Only for this version of the game. Checks when R-Shop opens, when you return to it, and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(
                     'Automatic save checks: ${status.enabled ? 'enabled' : 'disabled'}',
                     style: const TextStyle(fontSize: 18)),
                 if (widget.service.activeMappingKey == widget.mapping.key)
-                  const Text('Checking the mapped save…'),
+                  const Text('Checking the selected save…'),
                 if (status.outcome == 'verified')
                   const Text('Last automatic check: backup verified.'),
                 if (status.outcome == 'unchanged')
@@ -1252,10 +1256,16 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                   Semantics(
                       liveRegion: true,
                       child: Text(
-                          'Automatic check needs attention: ${status.issue}. Existing backups are preserved.')),
+                          'Automatic backup could not finish. Existing backups are kept. Check your connection and save-folder access.')),
+                if (status.issue != null)
+                  ExpansionTile(
+                      title: const Text('Technical details'),
+                      children: [
+                        SelectableText('Error code: ${status.issue}')
+                      ]),
                 if (status.enabled && widget.service.backgroundIssue != null)
                   const Text(
-                      'Android background scheduling is unavailable. App-return and manual checks remain available.'),
+                      'Android could not schedule background backups. Backups can still run when you return to R-Shop or start one yourself.'),
               ],
               if (_issue != null) Text(_issue!),
             ]);
@@ -1336,10 +1346,11 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
       Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(widget.title, style: AppTheme.headlineMedium),
         const SizedBox(height: 12),
-        const Text('Map a PPSSPP state slot', style: TextStyle(fontSize: 20)),
+        const Text('Choose a PPSSPP save state',
+            style: TextStyle(fontSize: 20)),
         const SizedBox(height: 12),
         const Text(
-            'Choose PPSSPP_STATE inside the shared PSP folder configured in PPSSPP. Then explicitly associate one completed slot with this edition. This does not change PPSSPP’s storage settings or start a backup.',
+            'Open PPSSPP_STATE inside the PSP folder you use in PPSSPP, then choose a save-state slot for this game. This does not change PPSSPP’s settings or start a backup.',
             style: TextStyle(fontSize: 18, height: 1.4)),
         const SizedBox(height: 16),
         ConsoleFocusable(
@@ -1355,13 +1366,13 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
           const SizedBox(height: 16),
           if (_names.isEmpty)
             const Text(
-                'No completed retail state slots were found. Create a state in PPSSPP, then choose this folder again.'),
+                'No finished save states were found. Save a state in PPSSPP, then choose this folder again.'),
           DropdownButtonFormField<String>(
               key: const ValueKey('ppsspp-map-slot'),
               initialValue: _slot,
               isExpanded: true,
               decoration: const InputDecoration(
-                  labelText: 'State slot for this edition'),
+                  labelText: 'Save-state slot for this game'),
               items: _names
                   .map((name) => DropdownMenuItem(
                       value: name,
@@ -1390,7 +1401,7 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
                 key: const ValueKey('ppsspp-map-save'),
                 style: AppTheme.primaryButtonStyle,
                 onPressed: !_busy && _confirmed && _slot != null ? _save : null,
-                child: const Text('Use this state mapping'))),
+                child: const Text('Use this save state'))),
         if (_busy) const LinearProgressIndicator(),
         if (_issue != null) Text(_issue!, style: const TextStyle(fontSize: 18)),
       ]);
@@ -1451,7 +1462,22 @@ class SaveBackupSetupPanel extends StatelessWidget {
               if (setup.issue case final issue?) ...[
                 const SizedBox(height: 16),
                 Semantics(
-                    liveRegion: true, child: Text(l.saveBackup_problem(issue))),
+                    liveRegion: true,
+                    child: Text(l.saveBackup_problem(switch (issue) {
+                      'authorization_interactionRequired' ||
+                      'authorization_accountMismatch' =>
+                        'Reconnect your Google account in Sources, then try again.',
+                      'cancelled' ||
+                      'authorization_cancelled' =>
+                        'Setup was cancelled. You can start it again when ready.',
+                      'ambiguousAreas' =>
+                        'More than one backup folder was found. Check the selected Drive account before continuing.',
+                      _ =>
+                        'Check your Google account and internet connection, then try again.',
+                    }))),
+                ExpansionTile(
+                    title: const Text('Technical details'),
+                    children: [SelectableText('Error code: $issue')]),
               ],
             ]);
       });

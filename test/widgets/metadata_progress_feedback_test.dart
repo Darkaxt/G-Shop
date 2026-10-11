@@ -95,7 +95,7 @@ void main() {
             reservedRemaining: 0))));
     expect(find.textContaining('0 / 10000'), findsOneWidget);
     expect(find.textContaining('October 1, 2026'), findsOneWidget);
-    expect(find.textContaining('Locally reserved remaining budget: 0'),
+    expect(find.textContaining('Lookups available after queued requests: 0'),
         findsOneWidget);
     await tester.pumpWidget(panel(report('Partial',
         state: 'completed',
@@ -170,6 +170,8 @@ void main() {
             supportedLocales: L.supportedLocales,
             home: const MetadataSettingsScreen())));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('metadata-open-scraping')));
+    await tester.pumpAndSettle();
     final feedback = find.byKey(const ValueKey('metadata-progress-feedback'));
     expect(feedback, findsOneWidget);
     await tester.ensureVisible(feedback);
@@ -178,7 +180,7 @@ void main() {
     expect(find.text('Candidate title'), findsOneWidget);
     expect(find.text('Already fetched synopsis'), findsOneWidget);
     expect(find.text('Description francaise'), findsNothing);
-    expect(find.text('Unverified candidate'), findsOneWidget);
+    expect(find.text('Possible match · needs confirmation'), findsOneWidget);
     expect(find.textContaining('9925 / 10000'), findsOneWidget);
     expect(find.textContaining('996 / 1000'), findsOneWidget);
     expect(controls.state.report!.rated, 0);
@@ -230,7 +232,7 @@ void main() {
     await tester.runAsync(() => controls.refresh(cacheRowId: 2));
     await tester.pumpAndSettle();
     expect(find.text('Accepted synopsis'), findsOneWidget);
-    expect(find.text('Unverified candidate'), findsNothing);
+    expect(find.text('Possible match · needs confirmation'), findsNothing);
     expect(provider.calls, hasLength(4));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

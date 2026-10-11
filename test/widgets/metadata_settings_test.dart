@@ -290,12 +290,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('metadata-nav-storage')));
     await tester.pumpAndSettle();
-    final message =
-        find.textContaining('Shared metadata storage is unavailable');
+    final message = find.textContaining(
+        'Your shared game-information folder could not be opened');
     await tester.ensureVisible(message);
     await tester.pumpAndSettle();
     expect(message, findsOneWidget);
-    expect(find.textContaining('Cached facts remain usable'), findsOneWidget);
+    expect(find.textContaining('Saved information is still usable'),
+        findsOneWidget);
     final choose = find.byKey(const ValueKey('metadata-shared-storage'));
     await tester.ensureVisible(choose);
     await tester.pumpAndSettle();
@@ -517,14 +518,15 @@ void main() {
         matchesGoldenFile('goldens/metadata_settings_progress.png'));
     await tester.tap(find.byKey(const ValueKey('metadata-nav-storage')));
     await tester.pumpAndSettle();
-    expect(find.text('Not selected — current cache is app-private'),
+    expect(find.text('No folder selected — saved inside R-Shop only'),
         findsOneWidget);
     final choose = find.byKey(const ValueKey('metadata-shared-storage'));
     await tester.ensureVisible(choose);
     await tester.pumpAndSettle();
     expect(choose.hitTestable(), findsOneWidget);
     expect(
-        find.textContaining('Credentials and installations are not backed up'),
+        find.textContaining(
+            'Account details and downloaded-game records are not backed up'),
         findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('metadata-nav-esde')));
     await tester.pumpAndSettle();

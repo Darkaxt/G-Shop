@@ -80,7 +80,7 @@ class _CompanionPickerDialogState extends State<CompanionPickerDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Could not confirm saved companion.';
+          _error = 'Could not save your choice. Please try again.';
         });
       }
     }
@@ -151,14 +151,15 @@ class _CompanionPickerDialogState extends State<CompanionPickerDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                      'This edition only. The ROM opens on the top screen.',
+                      'Choose an app to open on the bottom screen when you play this version of the game on the top screen.',
                       style: TextStyle(color: Colors.white70)),
                   if (unavailable)
-                    const Text('Saved companion is no longer launchable.',
+                    const Text(
+                        'The selected app can no longer be opened. Choose another app or None.',
                         style: TextStyle(color: Colors.amber)),
                   if (_loadFailed)
                     const Text(
-                        'Could not read installed apps. You can still clear the association.',
+                        'Could not load your installed apps. You can still choose None to turn this off.',
                         style: TextStyle(color: Colors.amber)),
                   if (_loading || _saving) const LinearProgressIndicator(),
                   if (_error != null)
@@ -198,9 +199,7 @@ class _CompanionPickerDialogState extends State<CompanionPickerDialog> {
                                         ? Icons.apps_outlined
                                         : Icons.smartphone,
                                     color: Colors.white70),
-                                title: Text(
-                                    app?['label'] ??
-                                        'No companion · ordinary launch',
+                                title: Text(app?['label'] ?? 'None · game only',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style:

@@ -5,6 +5,66 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Plain-language UI review and post-cleanup recovery — 2026-10-11
+
+S7 remains the only ACTIVE stage. Specification revision 21 assigns the owner's
+plain-language request to UI-02 without activating S10/S11. The English
+file-comparison, metadata, save-backup and companion windows now describe actions,
+results and next steps in familiar terms. File hashes and error codes remain
+available in collapsed Technical details. Comparison/adoption, cancellation,
+ownership, backup/restore/conflict and account/storage behavior are unchanged.
+Other existing translations and all localization keys/placeholders are preserved;
+this is not a claim that every language has received the same editorial review.
+
+Focused widget verification covers explicit comparison and adding an existing
+download, saved versus current comparison results, mismatch/unavailable/cancelled
+messages, controller cancellation, companion choice persistence/failure, save
+setup/account switching, metadata navigation, quota reporting and match review.
+Tests that still opened the superseded metadata layout now use its real workspace
+entry. The compact match-review reproduction exposed the console scope dropdown
+overflowing by 23 pixels; constraining the dropdown and its labels fixes that
+specific layout defect. Fresh 480-, 720- and 1280-wide checks pass, as do the
+updated metadata layout goldens and scoped analysis. No full suite was run.
+
+The post-cleanup normal Drive download of one removed small Game Boy title
+completed, and normal Open reached its RetroArch title screen. Its size and MD5
+were checked independently. After closing only the test-launched emulator, the
+test download was removed through R-Shop's ordinary confirmation. The accidental
+favorite toggle was reversed. Fresh read-only reconciliation again matches all
+247 retained tree files, the exact 40-ROM keep-list and every reviewed keep-file
+stat. Free space remains 957,752,320 KiB. Saves, BIOS and metadata are preserved;
+the extra full-cloud comparison attempt is not claimed as new completed evidence.
+Both physical display states are verified OFF after this device check.
+
+Native assembly ticket 617 acquired the shared gate but failed because Windows
+split an unquoted `-Ptarget=lib/main.dart` argument (`Task '.dart' not found`).
+After confirmed completion, corrected ticket 619 acquired the same gate and
+finished successfully. Its observed profile is two workers, no parallelism and
+a 3-GiB Gradle heap; Kotlin remains in-process. Test tasks were configured for
+one 512-MiB fork but were not executed by assembly. No memory failure or heap
+increase occurred. Existing app native compile/link pools remain depth one.
+Plugin/native task-specific limits are not inferred from worker settings alone.
+The signer-preserving debug update was installed without uninstall or data reset;
+its installed APK digest matches
+`a84edfa239a66b4c8d698ad9737315e29d2be829a08f13a46888930c3f8cac13`.
+Configuration, catalogue generation and all private-preference digests match at
+the update boundary. The before/after protected shared-file comparison is equal:
+159 files / 310,188,490 bytes, stable membership, no unverified shared scope.
+This is scoped preservation evidence, not proof of every private/custom save path.
+Normal Thor navigation verifies the new metadata and save-setup labels, the
+comparison popup's readable main text and expandable Technical details, and the
+companion picker explanation/None choice. The dialogs were closed without
+comparison, adoption, download or companion-setting changes. Both physical
+display actual/committed states are OFF. Private screenshots are retained;
+the expendable device-side screenshots were removed.
+The full original metadata pass and other S7 acceptance remain required;
+this verified copy review and restore proof do not close S7 or the overall plan.
+The read-only checkpoint now shows original ScreenScraper job 76 at 27,134
+lookups, 1,126 rated and 15,962 pending, stopped with provider `unavailable`.
+This is progress from the resumed checkpoint, not a finished scrape. Published
+root generation 2 and the full configuration digest remain unchanged. No
+replacement capture or credentials edit was made.
+
 ### Current live resumption — 2026-10-11
 
 S7 is ACTIVE. Fresh explicit-device ADB inspection finds `bfa98654` online;

@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 20, 2026-10-11.
+Authoritative specification, revision 21, 2026-10-11.
 
 Immediate owner-directed SD cleanup, 2026-10-11: the owner explicitly ordered
 removal of every ROM outside each console's existing Top-25 and confirmed the
@@ -947,6 +947,15 @@ replacement by a resolved cover, and no extra requests or badge/title collisions
 in the shared Library, console and shelf card callers on the Thor.
 
 ### UI-02 — Metadata controls and details
+
+Plain-language review authorized on 2026-10-11: during S7, review the existing
+file-comparison, metadata, save-backup and companion windows. Use familiar words
+for actions, results and next steps; keep internal identifiers, hashes and error
+codes in labelled technical details rather than the main message. Explain what
+an action changes and what it preserves without presenting engineering checks as
+user tasks. Preserve operation behavior, safeguards, localization and controller
+access. Verify the revised wording in focused widget checks, including failure,
+cancellation and conflict messages. This copy review does not activate S10 or S11.
 
 Settings presentation rule reaffirmed on 2026-10-09: new settings work must not
 recreate a single long scrolling form. Keep persistent left-hand section

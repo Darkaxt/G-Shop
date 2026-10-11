@@ -1,5 +1,36 @@
 # S7 live metadata and Thor migration
 
+## Owner-directed cleanup and restored small game — 2026-10-11
+
+The revision-20 one-time cleanup and all retained-file/space checks are recorded
+in the current status ledger. After cleanup, one previously removed Game Boy
+archive was downloaded normally from Drive through R-Shop and launched through
+Open in RetroArch to a visible title screen. Its independently checked local
+size/MD5 match the downloaded file. This establishes the small game's normal
+post-cleanup recovery path, not fresh metadata coverage or every format's recovery.
+
+The temporary installation was then removed through normal R-Shop confirmation;
+its accidental favorite change was undone. A fresh read-only reconciliation of
+the original inventory, completed journals and current device tree passes again:
+247 remaining files, exactly the 40 retained ROMs, all keep-file stats unchanged,
+no hidden quarantine and 957,752,320 KiB free. The original protected content is
+preserved. Both physical screens are OFF. Private screenshot evidence is retained
+outside the repository. No new successful full-cloud comparison is claimed.
+
+Revision 21 additionally assigns the user's existing-window language review to
+UI-02 in S7. Host checks pass for the revised comparison, metadata, save-backup
+and companion copy, including explicit actions, failure/cancellation, conflicts,
+controller access and compact layout. Assembly 617 failed on Windows argument
+parsing; after its confirmed exit, corrected shared-gate assembly 619 passed with
+two workers, no parallelism, a 3-GiB Gradle heap and Kotlin in-process. No memory
+failure occurred. The signer-preserving debug update is installed and its APK
+digest matches `a84edfa239a66b4c8d698ad9737315e29d2be829a08f13a46888930c3f8cac13`.
+Configuration/private preferences and protected shared content were preserved.
+Normal native navigation verified metadata/save setup, the comparison popup and
+its expandable details, and the companion picker. No comparison/adoption,
+download or companion change was started. Both screens are verified OFF again.
+This closes the bounded wording review, not the remaining S7 acceptance criteria.
+
 ## PPSSPP protected-location observation — 2026-10-09
 
 Read-only checks distinguish an absent legacy `/storage/emulated/0/PSP` from

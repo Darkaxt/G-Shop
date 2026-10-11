@@ -16,20 +16,21 @@ class LEn extends L {
 
   @override
   String get saveBackup_help =>
-      'Use a separate private Drive backup area. This requests access only to app-created backup files; ROM sources remain read-only. No saves are uploaded until you explicitly map them.';
+      'Keep save backups in a separate private area of Google Drive. R-Shop can change only backups it creates, not your cloud ROMs. Choose the saves to back up before anything is uploaded.';
 
   @override
-  String get saveBackup_authorize => 'Authorize backup area';
+  String get saveBackup_authorize => 'Set up Drive backups';
 
   @override
-  String get saveBackup_ready => 'Private backup area prepared';
+  String get saveBackup_ready =>
+      'Drive backups are ready to set up for your games';
 
   @override
   String get saveBackup_notMapped =>
-      'No save groups mapped yet. Preparing the area does not back up your games.';
+      'No saves selected yet. Choose a game\'s save in Back up save to start backing it up.';
 
   @override
-  String get saveBackup_verify => 'Verify backup area';
+  String get saveBackup_verify => 'Check Drive backup access';
 
   @override
   String saveBackup_problem(String code) {
@@ -44,19 +45,20 @@ class LEn extends L {
   String get saveBackup_preparing => 'Preparing private backup area…';
 
   @override
-  String get metadata_credentials => 'Credentials';
+  String get metadata_credentials => 'Account & API keys';
 
   @override
-  String get metadata_scraping => 'Scraping';
+  String get metadata_scraping => 'Get game information';
 
   @override
   String get metadata_latestGame => 'Latest processed game';
 
   @override
-  String get metadata_unverifiedCandidate => 'Unverified candidate';
+  String get metadata_unverifiedCandidate =>
+      'Possible match · needs confirmation';
 
   @override
-  String get metadata_dailyQuota => 'Daily API quota';
+  String get metadata_dailyQuota => 'Daily lookup allowance';
 
   @override
   String get metadata_requestsRemaining => 'Remaining attempts';
@@ -72,13 +74,13 @@ class LEn extends L {
   String get metadata_quotaObserved => 'Last provider report';
 
   @override
-  String get metadata_localBudget => 'Locally reserved remaining budget';
+  String get metadata_localBudget => 'Lookups available after queued requests';
 
   @override
   String get metadata_quotaUnknown => 'Unknown';
 
   @override
-  String get metadata_esDe => 'ES-DE metadata publication';
+  String get metadata_esDe => 'Share game information with ES-DE';
 
   @override
   String get metadata_esDeReviewArtwork => 'Review and reuse existing artwork';
@@ -89,7 +91,7 @@ class LEn extends L {
 
   @override
   String get metadata_esDeHelp =>
-      'Map this edition to the configured ROM destination, then select its ES-DE system gamelist folder. Updates are queued by normal refreshes. Close ES-DE and keep it closed during publication. Missing ROMs are not created or made launchable.';
+      'Link this game to its ROM folder, then choose this console\'s ES-DE gamelist folder. New game information is queued when you refresh. Close ES-DE and keep it closed while updates are saved. Games that are not downloaded will not become playable in ES-DE.';
 
   @override
   String get metadata_esDeMap => 'Map this edition to ES-DE';
@@ -111,33 +113,33 @@ class LEn extends L {
       'ES-DE is closed and will remain closed during publication';
 
   @override
-  String get metadata_esDePublish => 'Publish pending metadata';
+  String get metadata_esDePublish => 'Save updates to ES-DE';
 
   @override
-  String get metadata_esDePublished => 'Pending metadata published';
+  String get metadata_esDePublished => 'Updates saved to ES-DE';
 
   @override
   String get metadata_esDeConflict =>
-      'Publication paused: review changed paths, identities or manual fields. Pending updates and existing launcher data are preserved.';
+      'Updates paused because game files or ES-DE information changed. Review the linked folders and any manual edits. Pending updates and existing ES-DE data are kept.';
 
   @override
   String get metadata_esDeNoMapping =>
       'Open a freshly matched edition\'s metadata settings to map it. Shared metadata storage is required.';
 
   @override
-  String get metadata_sharedStorage => 'Persistent shared metadata';
+  String get metadata_sharedStorage => 'Shared game-information folder';
 
   @override
   String get metadata_sharedUnavailable =>
-      'Shared metadata storage is unavailable or could not be read. Reconnect storage and choose the same folder again. Cached facts remain usable; refresh and publication require restored access.';
+      'Your shared game-information folder could not be opened. Reconnect the storage and choose the same folder again. Saved information is still usable; updates and ES-DE sharing need folder access.';
 
   @override
   String get metadata_sharedStorageHelp =>
-      'Choose a shared folder for scraped facts and artwork. Existing cache is copied, not deleted. This data survives uninstall; reconnect your source and reselect the folder to recover matching records. Credentials and installations are not backed up. ES-DE publication is configured separately.';
+      'Choose a folder to keep game information and artwork outside R-Shop. Existing information is copied, not deleted. It survives uninstall: reconnect your source and choose this folder again to recover it. Account details and downloaded-game records are not backed up here. Set up ES-DE sharing separately.';
 
   @override
   String get metadata_privateStorage =>
-      'Not selected — current cache is app-private';
+      'No folder selected — saved inside R-Shop only';
 
   @override
   String get metadata_chooseSharedStorage => 'Choose / reconnect shared folder';
@@ -154,37 +156,38 @@ class LEn extends L {
 
   @override
   String get metadata_reviewChanged =>
-      'This file or identity changed. These saved candidates cannot be accepted; re-scrape the current edition.';
+      'This game file changed. Search again before choosing a match.';
 
   @override
-  String get metadata_openReview => 'Review cached matches';
+  String get metadata_openReview => 'Review possible matches';
 
   @override
-  String get metadata_reviewTitle => 'Review cached matches';
+  String get metadata_reviewTitle => 'Review possible matches';
 
   @override
   String get metadata_reviewInfo =>
-      'Candidates are identity hints, not verified scores. Select the correct game/project and classify this edition explicitly. Tags may overlap; an official release cannot also be a modification. Confirming saves the correction and rechecks only this game. No ROM is downloaded.';
+      'Choose the correct game or fan project and its tags. A possible match is not yet a confirmed rating. Tags can be combined, but Official release cannot be combined with modification tags. Saving checks this game again without downloading its ROM.';
 
   @override
-  String get metadata_chooseCandidate => 'Choose game / project identity';
+  String get metadata_chooseCandidate =>
+      'Choose the matching game or fan project';
 
   @override
-  String get metadata_candidateEvidence => 'Candidate evidence';
+  String get metadata_candidateEvidence => 'Why this match was suggested';
 
   @override
   String get metadata_reviewAccept => 'Save match and recheck';
 
   @override
   String get metadata_reviewEmpty =>
-      'No cached review outcomes on this page. Unmatched or pending games are not automatically rated.';
+      'No possible matches to review on this page. Games without a confirmed match do not receive a guessed rating.';
 
   @override
   String get metadata_noCandidates =>
-      'No candidate was returned. Re-scrape after correcting the title/platform or checking provider access; no match will be guessed.';
+      'No matching game was found. Check its title and console, or the service connection, then search again.';
 
   @override
-  String get metadata_reviewReload => 'Reload cached reviews';
+  String get metadata_reviewReload => 'Reload possible matches';
 
   @override
   String get metadata_reviewNext => 'Next page';
@@ -194,25 +197,25 @@ class LEn extends L {
 
   @override
   String get metadata_reviewSaved =>
-      'Selection saved. Check the refreshed job\'s coverage: a saved match alone is not a verified rating.';
+      'Your choice was saved. R-Shop will check the match before using its rating.';
 
   @override
   String get metadata_reviewError =>
-      'Review or recheck could not finish. The identity/candidate may have changed, or provider access may be unavailable. Reload cached reviews or resume the saved job; existing ROM actions remain available.';
+      'The match could not be checked. The game may have changed or the service may be unavailable. Reload possible matches or resume the search. You can still play and download games.';
 
   @override
   String get metadata_setupTitle => 'Game metadata';
 
   @override
   String get metadata_setupSubtitle =>
-      'Provider access, fresh scraping and saved progress';
+      'Accounts, game information and saved progress';
 
   @override
   String get metadata_provider => 'Metadata provider';
 
   @override
   String get metadata_accessInfo =>
-      'ScreenScraper uses a standard account plus separate application access. IGDB uses a private application pair. Credentials are saved securely on this device, not in exported configuration. Saving is not proof of provider access; refresh checks access. No ROM files are downloaded.';
+      'ScreenScraper needs your account and app access details. IGDB needs a client ID and secret. These are saved securely on this device and excluded from exported settings. Start a lookup to check the connection. No ROMs are downloaded.';
 
   @override
   String get metadata_saved => 'Saved on this device';
@@ -242,7 +245,7 @@ class LEn extends L {
   String get metadata_gameScope => 'Selected game';
 
   @override
-  String get metadata_refresh => 'Fresh re-scrape';
+  String get metadata_refresh => 'Get fresh game information';
 
   @override
   String get metadata_pause => 'Pause';
@@ -255,7 +258,7 @@ class LEn extends L {
 
   @override
   String get metadata_savedJobsHelp =>
-      'Select existing progress. Resume uses this saved job, not the console chosen for a fresh re-scrape. Selection makes no provider requests.';
+      'Choose an earlier search to continue where it stopped. Resume uses that search\'s games, not the console selected above. Choosing a saved search does not use any lookups.';
 
   @override
   String get metadata_noSavedJobs => 'No saved jobs on this page.';
@@ -281,10 +284,10 @@ class LEn extends L {
   String get metadata_jobRunning => 'Running';
 
   @override
-  String get metadata_jobCompleted => 'Traversal completed';
+  String get metadata_jobCompleted => 'Search finished';
 
   @override
-  String get metadata_requested => 'Requested lookups';
+  String get metadata_requested => 'Lookups made';
 
   @override
   String get metadata_matched => 'Matched';
@@ -293,10 +296,10 @@ class LEn extends L {
   String get metadata_review => 'Needs review';
 
   @override
-  String get metadata_ambiguous => 'Ambiguous';
+  String get metadata_ambiguous => 'More than one possible match';
 
   @override
-  String get metadata_unmatched => 'Unmatched';
+  String get metadata_unmatched => 'No match found';
 
   @override
   String get metadata_failed => 'Failed / unsupported';
@@ -309,7 +312,7 @@ class LEn extends L {
 
   @override
   String get metadata_completeNote =>
-      'Completed traversal does not mean every game has metadata or a reliable rating.';
+      'A finished search does not mean every game has information or a reliable rating.';
 
   @override
   String get metadata_controlsError =>
@@ -317,11 +320,11 @@ class LEn extends L {
 
   @override
   String get metadata_configureAccess =>
-      'Open this provider\'s Credentials to configure account/application access, then resume the saved job. A standard ScreenScraper account does not need to become a developer account.';
+      'Open Account & API keys for this service, check the details, then resume your saved search. Your ScreenScraper user account can remain a standard account.';
 
   @override
   String get metadata_quotaWait =>
-      'Provider quota or cadence applies. Resume when access permits; completed items are retained.';
+      'The service has limited lookups for now. Resume when access is available again. Completed results are saved.';
 
   @override
   String get metadata_offlineWait =>
@@ -394,7 +397,7 @@ class LEn extends L {
   String get filter_allGames => 'All games';
 
   @override
-  String get filter_provisional => 'Provisional';
+  String get filter_provisional => 'Ratings incomplete';
 
   @override
   String filter_coverage(int ranked, int total, int matches) {
@@ -426,7 +429,7 @@ class LEn extends L {
   String get filter_demo => 'Demo';
 
   @override
-  String get metadata_staleScore => 'Stale score';
+  String get metadata_staleScore => 'Needs a fresh rating';
 
   @override
   String get metadata_originalGame => 'Original game';
@@ -435,7 +438,7 @@ class LEn extends L {
   String get metadata_projectScore => 'Project score';
 
   @override
-  String get metadata_advisoryScore => 'Advisory';
+  String get metadata_advisoryScore => 'Not used for Top lists';
 
   @override
   String get metadata_gameScore => 'Game score';

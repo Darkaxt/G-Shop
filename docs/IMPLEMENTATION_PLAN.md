@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 19.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 21.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current scheduling (2026-10-11): S0-S6 and S8-S9 COMPLETE; S7 ACTIVE after fresh
@@ -10,7 +10,12 @@ rule is superseded by revision 19, not an unresolved approval question. Within
 S7: exact-member planning, review labels and focused query/UI/recovery-safety
 verification are satisfied for this policy change. The disconnected-Thor blocker
 is resolved; live inventory, byte revalidation, journaled removal and final
-restore/space proof remain unfinished current-stage work.
+restore/space proof are recorded in the current status ledger. The owner-directed
+cleanup is verified; remaining fresh metadata and recovery criteria still belong
+to S7. Its current bounded UI-02 copy review covers file comparison, metadata,
+save backups and companion windows: revise user-facing text, verify focused
+widget behavior and inspect the integrated diff before committing. No new
+implementation stage is opened by this review.
 No new implementation stage or tracked deferral is opened. Older dated ACTIVE
 checkpoints below are historical; current specification and status win.
 

@@ -196,7 +196,8 @@ void main() {
     await tester.ensureVisible(refresh);
     await tester.tap(refresh);
     await tester.pumpAndSettle();
-    expect(find.textContaining('inventory unavailable'), findsOneWidget);
+    expect(find.textContaining('emulator list could not be loaded'),
+        findsOneWidget);
     expect(find.text('Dolphin'), findsNothing); // Not stale success or empty.
     await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
@@ -301,10 +302,12 @@ void main() {
       sourcesProvider.overrideWith((_) => sources),
     ], child: createTestApp(const SaveBackupSettingsScreen())));
     await tester.pumpAndSettle();
-    expect(find.text('Private backup area prepared'), findsOneWidget);
+    expect(find.text('Drive backups are ready to set up for your games'),
+        findsOneWidget);
     sources.publish('second-account');
     await tester.pumpAndSettle();
-    expect(find.text('Private backup area prepared'), findsNothing);
+    expect(find.text('Drive backups are ready to set up for your games'),
+        findsNothing);
     expect(find.byKey(const ValueKey('save-backup-authorize')), findsOneWidget);
     final panel =
         tester.widget<SaveBackupSetupPanel>(find.byType(SaveBackupSetupPanel));
@@ -337,8 +340,8 @@ void main() {
     await tester.pumpWidget(ProviderScope(
         child: createTestApp(SaveBackupSetupPanel(setup: setup))));
     await tester.pumpAndSettle();
-    expect(find.textContaining('ROM sources remain read-only'), findsOneWidget);
-    expect(find.textContaining('No save groups mapped yet'), findsOneWidget);
+    expect(find.textContaining('not your cloud ROMs'), findsOneWidget);
+    expect(find.textContaining('No saves selected yet'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('save-backup-authorize')));
     await tester.pump();
     await driver.started.future;

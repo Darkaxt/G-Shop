@@ -107,12 +107,14 @@ void main() {
                       cacheRowId: exactScope ? 1 : null,
                       gameTitle: exactScope ? 'Game 1' : null)))));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('metadata-open-scraping')));
+      await tester.pumpAndSettle();
       final open = find.byKey(const ValueKey('metadata-open-review'));
       await tester.ensureVisible(open);
       await tester.pumpAndSettle();
       await tester.tap(open);
       await tester.pumpAndSettle();
-      expect(find.text('Review cached matches'), findsOneWidget);
+      expect(find.text('Review possible matches'), findsOneWidget);
       expect(find.text(artifact.displayPath), findsOneWidget,
           reason: 'Review must expose the actual folder, disc and patch label, '
               'not just the cleaned title.');

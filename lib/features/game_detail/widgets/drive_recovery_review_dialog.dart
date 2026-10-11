@@ -86,18 +86,41 @@ class _DriveRecoveryReviewDialogState
   String _retentionSummary() {
     final page = _retention;
     if (page == null || page.members.length != 1) {
-      return 'Preserve · exact current retention binding unavailable';
+      return 'Keep for now · this game could not be checked against the Top 25';
     }
     final member = page.members.single;
     return switch (page.disposition(member)) {
       LibraryRetentionDisposition.keep =>
-        'Keep · canonical rank ${member.canonicalRank} (Top 25)',
-      LibraryRetentionDisposition.preserve => 'Preserve · ranking incomplete',
+        'Keep offline · #${member.canonicalRank} in this console’s Top 25',
+      LibraryRetentionDisposition.preserve =>
+        'Keep for now · ratings are still being updated',
       LibraryRetentionDisposition.outsideSample => member.canonicalRank == null
-          ? 'Outside sample · unrated; cloud recovery required'
-          : 'Outside sample · canonical rank ${member.canonicalRank}',
+          ? 'Not in the offline sample · no reliable rating yet'
+          : 'Not in the offline sample · ranked #${member.canonicalRank}',
     };
   }
+
+  String _issueMessage(String issue) => switch (issue) {
+        'cancelled' =>
+          'Comparison cancelled. Your files have not been changed.',
+        'checksumMismatch' =>
+          'The files do not match. Your files have not been changed.',
+        'sourceChanged' =>
+          'The Drive file changed during the check. Refresh your library and try again.',
+        'notFound' =>
+          'The Drive file could not be found. Refresh your library to check its location.',
+        'interactionRequired' ||
+        'accountMismatch' ||
+        'accessDenied' =>
+          'Google Drive access needs attention. Reconnect the source in Settings, then try again.',
+        'quota' => 'Google Drive has limited access for now. Try again later.',
+        'truncated' =>
+          'The complete file could not be read. Check your connection and try again.',
+        'ownership_conflict_or_journal_failure' =>
+          'R-Shop could not safely register this file. Your files have not been changed.',
+        _ =>
+          'The comparison could not finish. Check your connection and storage access, then try again. Your files have not been changed.',
+      };
 
   Future<void> _loadSaved() async {
     DriveLocalCloudObservation? saved;
@@ -230,7 +253,7 @@ class _DriveRecoveryReviewDialogState
             }),
           },
           child: AlertDialog(
-            title: const Text('Check local/cloud bytes'),
+            title: const Text('Compare with Google Drive'),
             content: SizedBox(
                 width: 520,
                 child: SingleChildScrollView(
@@ -238,86 +261,87 @@ class _DriveRecoveryReviewDialogState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                        '${widget.destinationRoot}/${widget.artifact.displayName}'),
+                    Text(widget.artifact.displayName),
                     const SizedBox(height: 12),
-                    const Text('Cached Top-25 retention review'),
+                    const Text('Offline sample · Top 25 per console'),
                     Text(_retentionLoading
-                        ? 'Resolving exact collection binding…'
+                        ? 'Checking this game’s place in your collection…'
                         : _retentionSummary()),
                     if (_retention case final page?)
-                      Text('${page.rankedGames}/${page.collectionGames} ranked'
-                          '${page.provisional ? ' · Provisional' : ''}'),
+                      Text(
+                          '${page.rankedGames} of ${page.collectionGames} games have ranking scores'
+                          '${page.provisional ? ' · Results may change as ratings are added' : ''}'),
                     const Text(
-                        'Planning only. No removal is authorized; cloud, '
-                        'restore, saves, sync and identities must be checked again '
-                        'at execution.'),
+                        'This check does not delete files or choose games to remove.'),
                     if (widget.platformId != null)
                       TextButton(
                           onPressed: _running || _retentionLoading
                               ? null
                               : _loadRetention,
-                          child: const Text('Refresh retention review')),
+                          child: const Text('Refresh Top 25 status')),
                     const SizedBox(height: 12),
                     if (DriveRuntime.supportsStandaloneAdoption(
                             widget.artifact.displayName,
                             widget.supportedExtensions) &&
                         _adopted == null) ...[
                       const Text(
-                          'Verify and adopt repeats the current byte check and '
-                          'records this existing file as a managed R-Shop installation. '
-                          'No file is deleted. Migration still requires ranking, '
-                          'restore and save/sync checks.'),
+                          'Add to R-Shop checks that the files match, then lets '
+                          'R-Shop manage this existing download. Nothing is deleted.'),
                       const SizedBox(height: 12),
                     ],
                     Text(
-                        'Reads the complete cloud file (${GameMetadata.formatFileSize(widget.artifact.sizeBytes ?? 0)}) and streams cryptographic checks. '
-                        'No ROM copy is saved. Does not adopt or delete local files.'),
+                        'Compare files reads the full Drive file (${GameMetadata.formatFileSize(widget.artifact.sizeBytes ?? 0)}) to check that it matches your local copy. '
+                        'It uses internet data but does not save another copy or change your files.'),
                     const SizedBox(height: 12),
                     if (_saved case final saved?
                         when _result == null && !_running) ...[
-                      Text('Past byte match: ${saved.observedAt.toLocal()}\n'
-                          'Source version then: ${saved.artifact.version}\n'
-                          'Local/cloud bytes are not rechecked now. This saved observation '
-                          'does not authorize adoption or removal.'),
+                      Text(
+                          'Last successful comparison: ${saved.observedAt.toLocal()}\n'
+                          'The files have not been checked again since then. '
+                          'Choose Compare files for a new check.'),
                       const SizedBox(height: 12),
                     ],
                     if (_savedReadFailed && _result == null && !_running)
                       const Text(
-                          'Saved observation unavailable. No past verification is claimed.'),
+                          'The previous comparison could not be loaded. You can run a new check.'),
                     if (_running) ...[
                       const LinearProgressIndicator(),
                       const SizedBox(height: 8),
                       Text(_closeRequested
-                          ? 'Cancelling and closing reads…'
+                          ? 'Stopping the comparison…'
                           : _adopting
-                              ? 'Verifying existing file before adoption…'
-                              : 'Comparing full local and current cloud bytes…'),
+                              ? 'Checking the file before adding it to R-Shop…'
+                              : 'Comparing your local copy with Google Drive…'),
                     ],
                     if (_issue != null && !_running)
-                      Text('Not verified: $_issue. Files preserved.'),
+                      Text(_issueMessage(_issue!)),
                     if (_result case final result?) ...[
-                      const Text('Current byte match verified.'),
-                      const Text(
-                          'Byte observation saved privately for restart-safe review.'),
-                      Text('Source version: ${result.artifact.version}\n'
-                          'Observed: ${result.observedAt.toLocal()}\n'
-                          'SHA-256: ${result.checksums['sha256']}'),
+                      const Text('Your local copy matches Google Drive.'),
+                      Text('Checked: ${result.observedAt.toLocal()}'),
                       const SizedBox(height: 8),
                       const Text(
-                          'This observation does not prove a usable emulator restore '
-                          'or authorize removal. Migration must check ranking, saves, '
-                          'sync policy and identities again at execution.'),
+                          'This confirms the files match, not that the game runs in your emulator. Nothing was deleted.'),
                     ],
-                    if (_adopted case final installation?) ...[
-                      const Text('Existing file adopted.'),
-                      Text('Source version: ${installation.artifact.version}\n'
-                          'SHA-256: ${installation.verifiedChecksums['sha256']}'),
+                    if (_adopted != null) ...[
+                      const Text('Your existing download was added to R-Shop.'),
                       const Text(
-                          'No file was deleted. Ownership is recorded privately; '
-                          'future removal revalidates exact local bytes. This is not '
-                          'a completed Top-25 migration or emulator-restore proof.'),
+                          'Nothing was deleted. R-Shop will check this file again before removing it. This does not confirm that the game runs in your emulator.'),
                     ],
+                    ExpansionTile(
+                      title: const Text('Technical details'),
+                      children: [
+                        SelectableText(
+                            '${widget.destinationRoot}/${widget.artifact.displayName}'),
+                        if (_issue != null)
+                          SelectableText('Error code: $_issue'),
+                        if (_result case final result?)
+                          SelectableText(
+                              'Drive version: ${result.artifact.version}\nSHA-256: ${result.checksums['sha256']}'),
+                        if (_adopted case final installation?)
+                          SelectableText(
+                              'Drive version: ${installation.artifact.version}\nSHA-256: ${installation.verifiedChecksums['sha256']}'),
+                      ],
+                    ),
                   ],
                 ))),
             actions: [
@@ -331,12 +355,12 @@ class _DriveRecoveryReviewDialogState
                       widget.artifact.displayName, widget.supportedExtensions))
                 OutlinedButton(
                     onPressed: () => _verify(adopt: true),
-                    child: const Text('Verify and adopt')),
+                    child: const Text('Add to R-Shop')),
               if (!_running && _adopted == null)
                 FilledButton(
                     autofocus: _result == null,
                     onPressed: _verify,
-                    child: const Text('Verify bytes')),
+                    child: const Text('Compare files')),
             ],
           ),
         ),
