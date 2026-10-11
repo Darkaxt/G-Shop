@@ -22,17 +22,21 @@ import java.util.UUID
 class OwnedRomInstrumentation : Instrumentation() {
     private var mountProbe = false
     private var companionProbe = false
+    private var saveRouteProbe = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         mountProbe = arguments?.getString("mountProbe") == "true"
         companionProbe = arguments?.getString("companionProbe") == "true"
+        saveRouteProbe = arguments?.getString("saveRouteProbe") == "true"
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
         try {
-            if (companionProbe) {
+            if (saveRouteProbe) {
+                report.putString("result", SegaSaveRouteProof.exercise(targetContext))
+            } else if (companionProbe) {
                 report.putString("result", CompanionProof.exercise(targetContext))
             } else if (mountProbe) {
                 report.putString("result", exerciseMountBoundary())

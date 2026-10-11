@@ -240,15 +240,14 @@ class _SaveBackupSettingsScreenState
         artifactId: widget.game!.remoteArtifact!.id,
         ppssppDirectory: ppssppDirectory,
         ppssppSlot: ppssppSlot,
-        retroArchRoute: widget.system?.id == 'gamegear'
-            ? RetroArchBatteryRoute.gameGear
-            : RetroArchBatteryRoute.mgba,
+        retroArchRoute: RetroArchBatteryRoute.forPlatform(widget.system?.id) ??
+            RetroArchBatteryRoute.mgba,
         resolveSaveName: ppssppSlot == null
-            ? () => widget.system?.id == 'gamegear'
-                ? OwnedEmulatorLauncher().reviewRetroArchGameGearSave(
-                    widget.game!, widget.system!, widget.targetFolder!)
-                : OwnedEmulatorLauncher().reviewRetroArchGbaSave(
-                    widget.game!, widget.system!, widget.targetFolder!)
+            ? () => OwnedEmulatorLauncher().reviewRetroArchBatterySave(
+                widget.game!,
+                widget.system!,
+                widget.targetFolder!,
+                RetroArchBatteryRoute.forPlatform(widget.system?.id)!)
             : () async {
                 final preferences = await SharedPreferences.getInstance();
                 final mapping = jsonDecode(
@@ -852,8 +851,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               Text(
                   job.isPpsspp
                       ? 'PPSSPP · published state slot · v1.20.4'
-                      : job.retroArchRoute == RetroArchBatteryRoute.gameGear
-                          ? 'RetroArch · Genesis Plus GX · Game Gear battery saves'
+                      : !job.retroArchRoute.includesRtc
+                          ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
                           : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (widget.section == SaveBackupSection.backup) ...[
@@ -861,8 +860,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 Text(
                     job.isPpsspp
                         ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
-                        : job.retroArchRoute == RetroArchBatteryRoute.gameGear
-                            ? 'Backs up this Game Gear game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
+                        : !job.retroArchRoute.includesRtc
+                            ? 'Backs up this ${job.retroArchRoute.label} game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
                             : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),

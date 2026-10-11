@@ -85,6 +85,43 @@ void main() {
         throwsFormatException);
   });
 
+  for (final platform in ['mastersystem', 'megadrive']) {
+    test('$platform capture and restore retain the console route', () async {
+      final route = RetroArchBatteryRoute.values
+          .singleWhere((route) => route.platformId == platform);
+      expect(route.coreId, 'genesis_plus_gx');
+      expect(route.includesRtc, isFalse);
+      await SaveCapture().captureRetroArch(
+          captureId: 'a' * 32, name: 'Game.srm', route: route);
+      expect((calls.single.arguments as Map)['retroArchRoute'], platform);
+      calls.clear();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        return call.method == 'appendRestore' ? 4 : null;
+      });
+      await SaveCapture().stageRestore(
+          restoreId: 'a' * 32,
+          name: 'Game.srm',
+          size: 4,
+          sha256: 'b' * 64,
+          retroArchRoute: route,
+          bytes: Stream.value(Uint8List.fromList([1, 2, 3, 4])));
+      expect((calls.first.arguments as Map)['retroArchRoute'], platform);
+      calls.clear();
+      await expectLater(
+          SaveCapture().stageRestore(
+              restoreId: 'a' * 32,
+              name: 'Game.srm',
+              size: 65537,
+              sha256: 'b' * 64,
+              retroArchRoute: route,
+              bytes: const Stream.empty()),
+          throwsFormatException);
+      expect(calls, isEmpty);
+    });
+  }
+
   test('Game Gear restore passes only its reviewed route and SRAM size',
       () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

@@ -40,7 +40,7 @@ void main() {
       _row('org.ppsspp.ppsspp', '1.20.4'),
     ]);
     expect(rows.singleWhere((r) => r.label == 'RetroArch').saves,
-        'Verified · mGBA and Game Gear cartridge SRAM; coupled RTC restore unfinished');
+        'In-game saves · GBA, Game Gear, Master System and Mega Drive. Clock-data restore is not yet supported.');
     expect(rows.singleWhere((r) => r.label == 'RetroArch').storage,
         contains('Genesis Plus GX'));
     expect(rows.singleWhere((r) => r.label == 'RetroArch').states,

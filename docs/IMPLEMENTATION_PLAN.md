@@ -29,10 +29,10 @@ not replace the required live evidence. The user selected Top 25 per console as
 the final offline sample; S7 applies the reviewed, cloud-verified migration.
 S8 was added by the user on 2026-10-02; it must not open a second active stage.
 S9 was added on 2026-10-04 as the final cartridge/legacy-media visual audit;
-its status is NOT STARTED. It does not open another implementation front in S5.
-S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is NOT
-STARTED; external save-sync mechanisms remain unchanged until S10's verified
-replacement handover, authorized on 2026-10-07. S7 remains the sole ACTIVE stage.
+S8 and S9 are COMPLETE, with evidence in IMPLEMENTATION_STATUS.md.
+S10 was authorized on 2026-10-05 for R-Shop emulator save-backup sync. It is ACTIVE;
+external save-sync mechanisms remain unchanged until S10's verified replacement
+handover, authorized on 2026-10-07. No other implementation stage is active.
 S11 was authorized on 2026-10-07 for configurable managed ROM cache duration,
 rotation queue and unified/per-console scope. Status: NOT STARTED. CACHE-01 is
 assigned to that named later stage: none of S7's one-time migration acceptance
@@ -1591,8 +1591,7 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 
 Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
-implementation and verification cannot proceed within this scoped hold; resume
-after it is released. This is an external sequencing hold, not a product defect.
+implementation and verification now resume within this stage.
 
 Latest checkpoint, 2026-10-10: persisted Android scheduled execution and
 journal-aware exact retirement of redundant local captures have native Thor
@@ -1634,12 +1633,10 @@ loading or deep save-content inspection. These checks are removed requirements,
 not required deferrals; retain the specified data-preservation safeguards.
 The user's accompanying condition keeps divergent local/cloud conflict handling
 and its focused verification mandatory; never silently overwrite remote saves.
-Depends on: verified S1-S6 identity/storage/authentication boundaries and completed
-S8-S9. S7 remains parked BLOCKED, not ACTIVE. Its unresolved reception/retention
-set is not an input to explicit save-group backup and restore. This corrects the
-derived scheduling dependency only; SAVE-01 still requires every installed-route,
-native restore, safety and handover criterion. Final reconciliation still requires
-S7 and S11. No concurrent implementation of S7-S9 is opened.
+Depends on: verified S1-S9 boundaries. S7's verified retained set is not an input
+to explicit save-group backup and restore. SAVE-01 still requires its installed-
+route, native restore, safety and handover criteria. S11 remains required after
+S10; no other implementation stage is ACTIVE.
 
 - Audit actual installed-emulator save/state paths, formats and legitimate
   Android access. Show coverage and unsupported routes; preserve the old device

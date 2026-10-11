@@ -85,7 +85,7 @@ class SaveEmulatorCoverage {
       ? 'Not applicable · launcher; use the selected emulator'
       : _retroArch
           ? _reviewed
-              ? 'Verified · mGBA and Game Gear cartridge SRAM; coupled RTC restore unfinished'
+              ? 'In-game saves · GBA, Game Gear, Master System and Mega Drive. Clock-data restore is not yet supported.'
               : 'Needs review · installed RetroArch runtime is not verified'
           : _psp
               ? 'Unfinished · SAVEDATA groups not implemented'
@@ -102,7 +102,7 @@ class SaveEmulatorCoverage {
           'A user grant and save-specific read/write review are still required.'
       : _retroArch
           ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
-              'Game Gear cartridge SRAM with exact launch binding. '
+              'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
               'Other cores and custom paths are unfinished.'
           : _psp
               ? 'Current route: explicitly selected shared PPSSPP_STATE folder and slot. '

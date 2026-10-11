@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import '../models/game_item.dart';
 import '../models/system_model.dart';
 import '../models/transfer_record.dart';
+import '../models/retroarch_battery_route.dart';
 import 'rom_manager.dart';
 import 'owned_storage.dart';
 
@@ -72,29 +73,31 @@ class OwnedEmulatorLauncher {
   /// activity. RetroArch names SAF saves from its encoded document leaf, not
   /// the display title or the archive member's basename.
   Future<String> reviewRetroArchGbaSave(
-      GameItem game, SystemModel system, String root) async {
-    if (system.id != 'gba' || !supports(game, system)) {
-      throw UnsupportedError('No reviewed save route for this format');
-    }
-    final grant = await _grant(game, system, root);
-    final name = await channel.invokeMethod<String>(
-        'reviewOwnedRetroArchGameBoyAdvanceSave', grant);
-    if (name == null || name.isEmpty) {
-      throw StateError('No validated launch save target');
-    }
-    return name;
-  }
+          GameItem game, SystemModel system, String root) =>
+      reviewRetroArchBatterySave(
+          game, system, root, RetroArchBatteryRoute.mgba);
 
   /// Game Gear ZIPs use the same owned-document naming contract, but their
   /// save review must not accidentally select the GBA/core namespace.
   Future<String> reviewRetroArchGameGearSave(
-      GameItem game, SystemModel system, String root) async {
-    if (system.id != 'gamegear' || !supports(game, system)) {
+          GameItem game, SystemModel system, String root) =>
+      reviewRetroArchBatterySave(
+          game, system, root, RetroArchBatteryRoute.gameGear);
+
+  Future<String> reviewRetroArchBatterySave(GameItem game, SystemModel system,
+      String root, RetroArchBatteryRoute route) async {
+    if (system.id != route.platformId || !supports(game, system)) {
       throw UnsupportedError('No reviewed save route for this format');
     }
+    final method = switch (route) {
+      RetroArchBatteryRoute.mgba => 'reviewOwnedRetroArchGameBoyAdvanceSave',
+      RetroArchBatteryRoute.gameGear => 'reviewOwnedRetroArchGameGearSave',
+      RetroArchBatteryRoute.masterSystem =>
+        'reviewOwnedRetroArchMasterSystemSave',
+      RetroArchBatteryRoute.megaDrive => 'reviewOwnedRetroArchMegaDriveSave',
+    };
     final grant = await _grant(game, system, root);
-    final name = await channel.invokeMethod<String>(
-        'reviewOwnedRetroArchGameGearSave', grant);
+    final name = await channel.invokeMethod<String>(method, grant);
     if (name == null || name.isEmpty) {
       throw StateError('No validated launch save target');
     }

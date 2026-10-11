@@ -7,6 +7,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun segaCartridgeFormatsHaveExplicitConsoleJournalsAndTheReviewedCoreDirectory() {
+        val genesis = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
+        for (format in listOf("mastersystem-battery", "megadrive-battery")) {
+            assertTrue(SaveCaptureService.validRestoreBinding("encoded%2FGame.srm", 65536, format, genesis))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 65537, format, genesis))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 4, format,
+                "/storage/emulated/0/RetroArch/saves/mGBA"))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.rtc", 4, format, genesis))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.state", 4, format, genesis))
+        }
+    }
     @Test fun gameGearBatteryRestoreCannotReuseMgbasNamespaceOrStateFormat() {
         val genesis = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         val mgba = "/storage/emulated/0/RetroArch/saves/mGBA"

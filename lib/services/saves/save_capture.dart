@@ -20,7 +20,7 @@ class CapturedSaveGroup {
       : files = List.unmodifiable(files);
 }
 
-/// Explicit mGBA/Game Gear battery or PPSSPP published-slot capture, not a general
+/// Explicit mGBA/Sega cartridge battery or PPSSPP published-slot capture, not a general
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
   static const _channel = MethodChannel('com.retro.rshop/save_capture');

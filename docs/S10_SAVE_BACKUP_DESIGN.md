@@ -1,8 +1,87 @@
 # S10 save backup — active implementation
 
 Authority: SAVE-01 in SPECIFICATION.md. S10 is the sole ACTIVE stage; setup and
-inventory do not satisfy SAVE-01 as a whole. S7 remains parked BLOCKED
-on its independent reception/retention evidence. S11 is NOT STARTED.
+inventory do not satisfy SAVE-01 as a whole. S7 is COMPLETE as of 2026-10-11;
+its sequencing hold is resolved. S11 is NOT STARTED. Historical checkpoints below
+do not override this schedule or restore the rejected full-scraping requirement.
+
+## Current resumption — 2026-10-11
+
+### Genesis Plus GX cartridge route expansion
+
+SAVE-01 already requires the remaining accessible console/core routes. The owned
+launcher already handles Master System and Mega Drive ZIPs through Genesis Plus
+GX. Their save workflow now uses that same verified owned/local-copy grant,
+encoded document leaf and core save directory rather than guessing display names.
+The existing cartridge route enum carries the console, format and durable journal
+key; GBA and Game Gear keys remain unchanged. Master System/Mega Drive get distinct
+keys and native capture/restore formats, despite sharing the core directory.
+No generic provider framework, whole-directory backup, game loading or CD-save
+support was added. Unexpected RTC members still reject rather than get omitted.
+
+The core's [primary source](https://github.com/libretro/Genesis-Plus-GX/blob/master/libretro/libretro.c)
+exposes cartridge SAVE_RAM with maximum loading size 0x10000 and treats CD BRAM
+separately. The existing 65,536-byte cartridge limit is retained. Tests first
+reproduced the missing routes. Focused host checks now cover console-specific
+capture/restore calls, backup/reopen/restore/rollback, separate durable journals
+and exact owned-launch review. They also exposed two stale expectations for the
+already-authorized plain-language status and undo dialog; the assertions now
+match the actual product copy while preserving operation/confirmation checks.
+
+Gated request 636 (`229efb8a211f427e94d7420ca69a0ead`) passed the focused JVM
+directory/format and encoded-leaf tests plus debug/test-companion assembly.
+The gate was acquired; completion was verified. Observed workers=2,
+parallel=false, Gradle heap=3 GiB, Kotlin 2.3.21 in-process; the executed JVM
+tests used one 512 MiB fail-fast fork. The app's current ARM64 CMake compile/link
+pool remains depth one; no universal native or total-host cap is claimed.
+No memory failure or heap increase. Log `928ab719488143e5ad753efa7b9a778b.log`.
+The unchanged signer verified and preserving installation succeeded; built and
+independently hashed installed APK agree:
+`043696e1e521ca9374619691fcc55fec606b0c9c731b05c7620fcdfbe030a6f3`.
+Immediate schema/root/configuration, saved metadata jobs and all ten private
+preference digests agree across installation. Optional job 76 remains paused.
+
+Thor instrumentation ran the actual app-UID SaveCaptureService for both consoles
+against the real installed RetroArch's CONTENTLESS acknowledgement. Exclusive
+50-byte synthetic saves were captured/digest-checked, replaced through the normal
+atomic restore path and restored to their retained local bytes. All test-owned
+public/private fixture files were removed; the previously empty Genesis Plus GX
+save directory is empty again. No ROM, BIOS, settings or Drive content was read or
+written by this proof. Both physical displays were switched off afterward.
+This is native destination/write evidence, not a fresh Drive round trip or
+gameplay/save-load claim for these consoles. Wider installed-emulator routes,
+coherent groups, live conflict/recovery cases and conditional handover remain
+required S10 work. S10 remains ACTIVE; S11 is NOT STARTED.
+
+The coverage section now lists these in-game-save consoles without suggesting
+that clock-data restore or other cores are complete. Its focused model/settings
+checks pass. Current gated assembly 638 (`252fcd820e3246b284b6c70e13619673`)
+completed exit 0 with verified completion and the same observed worker/JVM/native
+profile. Test-fork settings were observed during configuration, not executed by
+this assembly. No memory failure or heap increase occurred. Log:
+`83fbf29487104657ac51e9ea1f062e78.log`. Signature verification and preserving
+installation passed; the independently hashed installed APK matches
+`533c2a1578cfe015215fb90a5fea4da24573416c23f405b75a87db8db4b38cc2`.
+The strengthened actual app-UID proof passed cross-console capture and restore
+journal replay rejection, followed by successful normal publication and rollback
+for both consoles. Fixture cleanup restored the originally empty shared save
+directory. Schema/root/configuration, optional paused metadata job and all private
+preference digests still match. Both actual/committed display states are OFF.
+Scoped Dart analysis and whitespace verification are recorded with this checkpoint.
+
+Read-only explicit-device package inspection reconfirms all 27 known installed
+emulator/runtime/frontend packages. The existing audited versions are unchanged,
+including RetroArch 1.22.2_GIT, PPSSPP v1.20.4, Dolphin 2606 and Cemu 0.5.2.
+This verifies the known inventory at resumption, not completion of the remaining
+save routes or discovery of all unknown future emulator packages. No save or
+account configuration was changed; both actual/committed displays remain OFF.
+
+Resume from the already working RetroArch/PPSSPP vertical slices and the current
+scheduled-backup implementation. Required work remains accessible route/group
+coverage, explicit conflict/recovery verification, remaining integration and
+conditional exact-target legacy handover. Do not repeat game progress/save-load
+tests, S7 cleanup or exhaustive metadata gathering. Ordinary unfinished route
+implementation is not an external blocker or a deferral to S11.
 
 Current acceptance revision, authorized by the user on 2026-10-09: verify that
 restored bytes are written at the configured emulator's expected save location.

@@ -102,9 +102,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         areaId,
         editionId,
         if (isPpsspp) ...[_format, ppssppDirectory, ppssppSlot] else
-          retroArchRoute == RetroArchBatteryRoute.mgba
-              ? 'mgba-battery'
-              : 'gamegear-battery'
+          retroArchRoute.journalId
       ])))
       .toString();
   bool get busy => _operation != null;

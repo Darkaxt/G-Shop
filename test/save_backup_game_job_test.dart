@@ -963,67 +963,90 @@ void main() {
     expect(job.lastVerified!.generationId, verified);
     expect(generations.uploads, uploads);
   });
-  test(
-      'Game Gear route persists distinct binding through backup restore and rollback',
-      () async {
-    await LibraryStore(Future.value(db)).putGame(GameIdentity(
-        id: 'game',
-        platformId: 'gamegear',
-        title: 'Game',
-        matchStatus: IdentityMatchStatus.manuallyMatched));
-    SaveBackupGameJob openGameGear() => SaveBackupGameJob(
-        database: Future.value(db),
-        capture: capture,
-        areas: areas,
-        generations: generations,
-        clientId: 'client',
-        accountId: 'account',
-        areaId: 'area',
-        editionId: 'edition',
-        artifactId: artifactId,
-        retroArchRoute: RetroArchBatteryRoute.gameGear,
-        resolveSaveName: () async => currentName);
-    final gg = openGameGear();
-    await gg.backup(currentName);
-    expect(gg.issue, isNull);
-    final first = gg.lastVerified!;
-    expect(first.binding.platformId, 'gamegear');
-    expect(first.binding.coreId, 'genesis_plus_gx');
-    expect(first.binding.formatId, 'libretro-genesis-plus-gx-sram-v1');
-    expect(first.binding.kind, SaveBackupKind.save);
-    expect(capture.batteryRoutes, [RetroArchBatteryRoute.gameGear]);
-    gg.dispose();
-    final reopened = openGameGear();
-    await reopened.load();
-    expect(reopened.lastVerified!.generationId, first.generationId);
-    await reopened.restoreLatest();
-    expect(reopened.issue, isNull);
-    expect(capture.restoreRoutes, [RetroArchBatteryRoute.gameGear]);
-    final rollbackId = capture.restored.single.rollback;
-    final directory =
-        await Directory('D:/Temp').createTemp('rshop-gg-rollback-');
-    final retained = File('${directory.path}/member');
-    try {
-      await retained.writeAsBytes([1, 2, 3, 4], flush: true);
-      capture.sealed[rollbackId] = CapturedSaveGroup(rollbackId, 'device',
-          '1.22.2_GIT', [CapturedSaveFile(currentName, retained, 4, 'b' * 64)]);
-      await reopened.rollbackLast();
+  for (final platform in ['gamegear', 'mastersystem', 'megadrive']) {
+    test(
+        '$platform route persists distinct binding through backup restore and rollback',
+        () async {
+      final route = RetroArchBatteryRoute.values
+          .singleWhere((route) => route.platformId == platform);
+      await LibraryStore(Future.value(db)).putGame(GameIdentity(
+          id: 'game',
+          platformId: platform,
+          title: 'Game',
+          matchStatus: IdentityMatchStatus.manuallyMatched));
+      SaveBackupGameJob openGameGear() => SaveBackupGameJob(
+          database: Future.value(db),
+          capture: capture,
+          areas: areas,
+          generations: generations,
+          clientId: 'client',
+          accountId: 'account',
+          areaId: 'area',
+          editionId: 'edition',
+          artifactId: artifactId,
+          retroArchRoute: route,
+          resolveSaveName: () async => currentName);
+      final gg = openGameGear();
+      await gg.backup(currentName);
+      expect(gg.issue, isNull);
+      final first = gg.lastVerified!;
+      expect(first.binding.platformId, platform);
+      expect(first.binding.coreId, 'genesis_plus_gx');
+      expect(first.binding.formatId, 'libretro-genesis-plus-gx-sram-v1');
+      expect(first.binding.kind, SaveBackupKind.save);
+      expect(capture.batteryRoutes, [route]);
+      gg.dispose();
+      final reopened = openGameGear();
+      await reopened.load();
+      expect(reopened.lastVerified!.generationId, first.generationId);
+      await reopened.restoreLatest();
       expect(reopened.issue, isNull);
-      expect(capture.restoreRoutes,
-          [RetroArchBatteryRoute.gameGear, RetroArchBatteryRoute.gameGear]);
-      expect(
-          capture.batteryRoutes
-              .every((r) => r == RetroArchBatteryRoute.gameGear),
-          isTrue);
-      await job.load();
-      expect(job.lastVerified, isNull,
-          reason: 'mGBA cannot adopt the Game Gear job');
-    } finally {
-      reopened.dispose();
-      if (await retained.exists()) await retained.delete();
-      await directory.delete();
-    }
-  });
+      expect(capture.restoreRoutes, [route]);
+      final rollbackId = capture.restored.single.rollback;
+      final directory =
+          await Directory('D:/Temp').createTemp('rshop-gg-rollback-');
+      final retained = File('${directory.path}/member');
+      try {
+        await retained.writeAsBytes([1, 2, 3, 4], flush: true);
+        capture.sealed[rollbackId] = CapturedSaveGroup(
+            rollbackId,
+            'device',
+            '1.22.2_GIT',
+            [CapturedSaveFile(currentName, retained, 4, 'b' * 64)]);
+        await reopened.rollbackLast();
+        expect(reopened.issue, isNull);
+        expect(capture.restoreRoutes, [route, route]);
+        expect(capture.batteryRoutes.every((r) => r == route), isTrue);
+        await job.load();
+        expect(job.lastVerified, isNull,
+            reason: 'mGBA cannot adopt a Sega cartridge job');
+        for (final other
+            in RetroArchBatteryRoute.values.where((r) => r != route)) {
+          final isolated = SaveBackupGameJob(
+              database: Future.value(db),
+              capture: capture,
+              areas: areas,
+              generations: generations,
+              clientId: 'client',
+              accountId: 'account',
+              areaId: 'area',
+              editionId: 'edition',
+              artifactId: artifactId,
+              retroArchRoute: other,
+              resolveSaveName: () async => currentName);
+          await isolated.load();
+          expect(isolated.lastVerified, isNull,
+              reason:
+                  '${other.platformId} must not load the $platform journal');
+          isolated.dispose();
+        }
+      } finally {
+        reopened.dispose();
+        if (await retained.exists()) await retained.delete();
+        await directory.delete();
+      }
+    });
+  }
 
   test('PPSSPP slot uses reviewed state identity and survives reload',
       () async {
@@ -1795,7 +1818,7 @@ void main() {
     await tester.ensureVisible(rollback);
     await tester.tap(rollback);
     await tester.pumpAndSettle();
-    expect(find.text('Restore the retained local save?'), findsOneWidget);
+    expect(find.text('Undo the last restore?'), findsOneWidget);
     expect(uiJob.rollbacks, 0);
     await tester.tap(find.byKey(const ValueKey('save-restore-confirm')));
     await tester.pumpAndSettle();
@@ -1925,7 +1948,8 @@ void main() {
     final panelState = tester.state(find.byType(SaveBackupGamePanel));
     await showSection(SaveBackupSection.status);
     expect(tester.state(find.byType(SaveBackupGamePanel)), same(panelState));
-    expect(find.textContaining('Waiting for closed content'), findsOneWidget);
+    expect(
+        find.textContaining('Waiting for the game to close'), findsOneWidget);
     await showSection(SaveBackupSection.area);
     expect(uiJob.busy, isTrue);
     expect(capture.held!.isCompleted, isFalse);

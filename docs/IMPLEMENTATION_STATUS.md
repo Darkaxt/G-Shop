@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S10 cartridge-save checkpoint — 2026-10-11
+
+S10 remains the sole ACTIVE stage. The existing Genesis Plus GX save workflow now
+includes Master System and Mega Drive, with separate console-bound journals and
+exact owned-launch review. Focused capture, durable backup/reopen/restore/rollback,
+launcher and coverage/settings checks pass. Native Thor proof confirms both
+expected-location writes, retained-byte rollback and cross-console journal replay
+rejection; exclusive fixtures were removed. This is not a new live Drive round
+trip or gameplay/save-load claim. Details: S10_SAVE_BACKUP_DESIGN.md.
+
+Gated assembly 638 completed exit 0; gate acquisition and completion were verified.
+Observed profile: two workers, no parallelism, 3-GiB Gradle heap, Kotlin in-process;
+one 512-MiB test fork configured (assembly did not execute tests). The app's ARM64
+compile/link pool remains depth one. No memory failure or budget increase occurred.
+Signer-preserving installation passed with independently matching installed APK
+digest. Configuration, schema/root, saved jobs and private preferences are unchanged.
+Both displays' actual/committed states are OFF.
+
+Remaining S10 acceptance: related-file groups, remaining accessible installed
+emulator routes, live conflict/recovery and manual/background contention cases,
+then verified exact-target legacy handover. These are ordinary unfinished S10
+work, not external blockers or S11 deferrals. S11 is NOT STARTED. S0-S9 remain
+COMPLETE; exhaustive scraping is not required and the optional job stays paused.
+
 ### S7 COMPLETE; S10 ACTIVE — 2026-10-11
 
 S7 is reconciled against revision 23 in S7_ACCEPTANCE_RECONCILIATION.md. Its

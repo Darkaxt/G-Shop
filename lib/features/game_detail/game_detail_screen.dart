@@ -15,6 +15,7 @@ import '../../models/game_item.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/game_metadata_info.dart';
 import '../../models/system_model.dart';
+import '../../models/retroarch_battery_route.dart';
 import '../../models/ra_models.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/download_providers.dart';
@@ -595,7 +596,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final raMatch = raMatches[variant.raMatchKey];
     return [
       if (editionId != null &&
-          {'gba', 'gamegear', 'psp'}.contains(widget.system.id) &&
+          (RetroArchBatteryRoute.forPlatform(widget.system.id) != null ||
+              widget.system.id == 'psp') &&
           variant.remoteArtifact != null)
         QuickMenuItem(
             label: L.of(context).saveBackup_title,

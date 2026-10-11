@@ -55,14 +55,18 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                         call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2" ||
                         call.method == "launchOwnedCemu" || call.method == "reviewOwnedRetroArchGameBoyAdvanceSave" ||
-                        call.method == "reviewOwnedRetroArchGameGearSave") {
+                        call.method == "reviewOwnedRetroArchGameGearSave" ||
+                        call.method == "reviewOwnedRetroArchMasterSystemSave" ||
+                        call.method == "reviewOwnedRetroArchMegaDriveSave") {
                         val reviewGbaSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
                         val reviewGameGearSave = call.method == "reviewOwnedRetroArchGameGearSave"
-                        val reviewSave = reviewGbaSave || reviewGameGearSave
+                        val reviewSegaSave = call.method == "reviewOwnedRetroArchMasterSystemSave" ||
+                            call.method == "reviewOwnedRetroArchMegaDriveSave"
+                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave
                         val gameGear = call.method == "launchOwnedRetroArchGameGear" || reviewGameGearSave
                         val segaPlatform = when (call.method) {
-                            "launchOwnedRetroArchMegaDrive" -> "megadrive"
-                            "launchOwnedRetroArchMasterSystem" -> "mastersystem"
+                            "launchOwnedRetroArchMegaDrive", "reviewOwnedRetroArchMegaDriveSave" -> "megadrive"
+                            "launchOwnedRetroArchMasterSystem", "reviewOwnedRetroArchMasterSystemSave" -> "mastersystem"
                             "launchOwnedRetroArchSG1000" -> "sg1000"
                             else -> null
                         }
@@ -108,7 +112,7 @@ internal class OwnedStorageService(private val context: Context) {
                             requiredStandaloneWua = wiiu).use { }
                         if (reviewSave) {
                             val name = RetroArchSaveBoundary.archiveSaveName(
-                                uri.encodedPath!!.substringAfterLast('/'), gameGear)
+                                uri.encodedPath!!.substringAfterLast('/'), gameGear || segaPlatform != null)
                             main.post { result.success(name) }
                             return@execute
                         }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
+import 'package:retro_eshop/models/retroarch_battery_route.dart';
 import 'package:retro_eshop/services/owned_emulator_launcher.dart';
 import 'package:retro_eshop/services/rom_manager.dart';
 import 'drive_exact_identity_runtime_test.dart' show exactGame;
@@ -188,6 +189,45 @@ void main() {
         throwsUnsupportedError);
     expect(calls, hasLength(1));
   });
+  for (final (route, method) in [
+    (
+      RetroArchBatteryRoute.masterSystem,
+      'reviewOwnedRetroArchMasterSystemSave'
+    ),
+    (RetroArchBatteryRoute.megaDrive, 'reviewOwnedRetroArchMegaDriveSave'),
+  ]) {
+    test('${route.platformId} save review uses the launch-bound ZIP name',
+        () async {
+      final console = SystemModel.supportedSystems
+          .singleWhere((system) => system.id == route.platformId);
+      final zip = exactGame('sega-save', name: 'Game.zip');
+      final installed = InstalledArtifact.fromJson({
+        ...manifest.toJson(),
+        'artifact': zip.remoteArtifact!.toJson(),
+        'relativePath': zip.filename,
+      });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        return 'installed-one%2FGame.srm';
+      });
+      final launcher = OwnedEmulatorLauncher(
+          romManager: _RomManager(() async => installed), channel: channel);
+      expect(
+          await launcher.reviewRetroArchBatterySave(
+              zip, console, '/owned', route),
+          'installed-one%2FGame.srm');
+      expect(calls.single.method, method);
+      expect(calls.single.arguments, {
+        'installationId': installed.id,
+        'filename': zip.filename,
+      });
+      await expectLater(
+          launcher.reviewRetroArchBatterySave(zip, system, '/owned', route),
+          throwsUnsupportedError);
+      expect(calls, hasLength(1));
+    });
+  }
   test('mapped N64 archives retain their filename and require fresh ownership',
       () async {
     final n64 = SystemModel.supportedSystems.singleWhere((s) => s.id == 'n64');
