@@ -381,7 +381,6 @@ class MigrationAuditTests(unittest.TestCase):
         for snapshot in (self.retention_fixture([]),
                          self.retention_fixture([member], dirty_editions=1),
                          self.retention_fixture([member], dirty_artifacts=1),
-                         self.retention_fixture([member], unbound_artifacts=1),
                          self.retention_fixture([member, dict(member, group_key='another')]),
                          self.retention_fixture([dict(member, artifact_key='other')])):
             with self.subTest(snapshot=snapshot):
@@ -393,16 +392,33 @@ class MigrationAuditTests(unittest.TestCase):
         self.assertEqual(result['disposition'], 'preserve')
         self.assertEqual(result['comparison'], 'digest_mismatch')
 
-    def test_incomplete_ranking_does_not_classify_unranked_or_lower_ranks_as_removals(self):
+    def test_incomplete_ranking_allows_cloud_only_planning_without_removal_authority(self):
         key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
                          separators=(',', ':'))
         for rank in (None, 26):
             result = audit.review_retention(self.local, [self.cloud], self.retention_fixture([
                 {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
                  'group_key': 'canonical', 'canonical_rank': rank}], ranked_games=26))
-            self.assertEqual(result['retention']['disposition'], 'preserve')
+            self.assertEqual(result['retention']['disposition'], 'outside_sample')
             self.assertTrue(result['retention']['provisional'])
             self.assertEqual(result['disposition'], 'preserve')
+            self.assertFalse(result['removalAuthorized'])
+            self.assertEqual(result['remainingGates'], GATES)
+
+    def test_unrelated_unbound_artifact_does_not_veto_exact_member_planning(self):
+        key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],
+                         separators=(',', ':'))
+        for rank, expected in ((1, 'keep'), (26, 'outside_sample'),
+                               (None, 'outside_sample')):
+            member = {'artifact_key': key, 'edition_id': 'edition', 'game_id': 'game',
+                      'group_key': 'canonical', 'canonical_rank': rank}
+            with self.subTest(rank=rank):
+                result = audit.review_retention(self.local, [self.cloud],
+                    self.retention_fixture([member], unbound_artifacts=1))
+                self.assertEqual(result['retention']['disposition'], expected)
+                self.assertTrue(result['retention']['provisional'])
+                self.assertFalse(result['removalAuthorized'])
+                self.assertEqual(result['remainingGates'], GATES)
 
     def test_retention_pages_are_bounded_and_reject_mixed_or_partial_observations(self):
         key = json.dumps(['drive', 'fixture-source', 'fixture-account', 'fixture-file'],

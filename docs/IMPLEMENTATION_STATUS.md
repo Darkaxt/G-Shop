@@ -5,6 +5,38 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current live resumption — 2026-10-11
+
+S7 is ACTIVE. Fresh explicit-device ADB inspection finds `bfa98654` online;
+the disconnected-device blocker below is resolved by current evidence. S10
+remains BLOCKED on the user-directed sequencing hold and S11 NOT STARTED.
+The revision-19 cloud-only policy also applies to the private read-only audit:
+an exact unrated member or an unrelated unbound artifact must not restore the
+superseded ranking veto. Dirty projection, ambiguous bindings and failed byte
+comparisons still preserve the member. Audit output never grants removal.
+Current inventory, live recovery proof, reviewed execution, no-refill activation
+and final retained-set/space/restore/save verification remain unfinished S7 work.
+
+The audit regression failed first on the old unrated/global-unbound veto; the
+focused `python -B -m unittest test_thor_migration_audit -q` now passes. The audit
+retains its dirty-projection/identity/digest guards and every live-removal gate;
+no executor or deletion permission was added. A normal native Resume continues
+immutable ScreenScraper job 76 from 26,707 to 26,715 lookups without credential
+entry, a replacement capture or checkpoint edits. The prior provider-unavailable
+state is therefore not treated as a current external blocker. Root generation 2
+remains published (pending=null); schema remains 38. Normal N64 Best-25 discovery
+refreshes the projection from thousands of dirty rows to seven edition rows and
+zero artifact rows in the subsequent observation. These are live observations,
+not atomic removal authority or completed metadata coverage.
+
+A read-only whole-ROM-tree stat inventory is running to private exclusive-create
+`D:/RShopPrivate/Migration/s7-inventory-20261011.jsonl`; no cloud or body proof is
+implied and an unfinished journal is not complete. Both physical display actual
+and committed states were verified OFF after normal sleep. Gated assembly request
+607 is queued; acquisition/effective profile/build success are not yet claimed.
+No SD ROM, save, BIOS, setting, Drive original or external sync policy was removed
+or changed by these checks.
+
 ### Current S7 policy authorization — 2026-10-11
 
 S7 is BLOCKED on the disconnected Thor after completing and verifying the offline

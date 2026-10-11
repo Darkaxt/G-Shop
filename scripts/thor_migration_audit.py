@@ -102,15 +102,16 @@ def review_retention(local, candidates, snapshot):
     retention.update(groupKey=next(iter(groups)), gameId=next(iter(games)),
                      editionIds=sorted({m['edition_id'] for m in members}),
                      canonicalRank=rank)
-    if any(snapshot[f] > 0 for f in ('dirty_editions', 'dirty_artifacts', 'unbound_artifacts')):
+    if any(snapshot[f] > 0 for f in ('dirty_editions', 'dirty_artifacts')):
         retention['reason'] = 'projection_incomplete'
     elif rank is not None and rank <= 25:
         retention.update(disposition='keep', reason='observed_top25_member')
         result['disposition'] = 'keep'
-    elif provisional or rank is None:
-        retention['reason'] = 'ranking_incomplete'
     else:
-        retention.update(disposition='outside_sample', reason='observed_outside_top25')
+        # Revision 19 permits exact unrated members to be cloud-only. Coverage
+        # remains provisional; it is not a per-file recovery/removal permission.
+        retention.update(disposition='outside_sample', reason=(
+            'observed_unrated_member' if rank is None else 'observed_outside_top25'))
     return result
 
 

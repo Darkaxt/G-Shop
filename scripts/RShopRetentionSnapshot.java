@@ -6,7 +6,9 @@ import org.json.JSONObject;
 
 /** Private, fixed READONLY S7 retention observation, not a migration executor.
  * This reads the normal app's projection; unlike retentionPage it cannot refresh
- * it. Dirty/missing bindings and incomplete ranks must prevent removal planning.
+ * it. Dirty/missing bindings prevent usable exact-member planning. Incomplete
+ * rating coverage stays visible but is not a veto under specification revision 19.
+ * This observation never authorizes removal.
  * Source equality with the actual Dart query is checked in the focused tests.
  */
 public final class RShopRetentionSnapshot {

@@ -3,14 +3,14 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 19.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Current scheduling (2026-10-11): S0-S6 and S8-S9 COMPLETE; S7 BLOCKED on the
-disconnected Thor after its verified offline cloud-only policy change; S10 BLOCKED
+Current scheduling (2026-10-11): S0-S6 and S8-S9 COMPLETE; S7 ACTIVE after fresh
+explicit-device ADB inspection confirms the Thor connected; S10 BLOCKED
 on the user-directed sequencing hold; S11 NOT STARTED. The missing-rating preservation
 rule is superseded by revision 19, not an unresolved approval question. Within
 S7: exact-member planning, review labels and focused query/UI/recovery-safety
-verification are satisfied for this policy change. The external disconnected-Thor
-blocker prevents live inventory, byte revalidation, journaled removal and final
-restore/space proof.
+verification are satisfied for this policy change. The disconnected-Thor blocker
+is resolved; live inventory, byte revalidation, journaled removal and final
+restore/space proof remain unfinished current-stage work.
 No new implementation stage or tracked deferral is opened. Older dated ACTIVE
 checkpoints below are historical; current specification and status win.
 
