@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 19, 2026-10-11.
+Authoritative specification, revision 20, 2026-10-11.
+
+Immediate owner-directed SD cleanup, 2026-10-11: the owner explicitly ordered
+removal of every ROM outside each console's existing Top-25 and confirmed the
+Drive collection has not changed. For this one-time cleanup, use the existing
+collection and current positive Top-25 keep-list rather than blocking deletion
+on a new cloud traversal, repeated scrape, new per-file cloud comparison or
+save-sync verification. Existing checksum comparisons remain recorded evidence,
+not a prerequisite for every removal under this explicit directive. Preserve
+actual Top-25 members, saves, emulator BIOS/settings and non-ROM data. A console
+with no eligible ranked members retains no fabricated sample. Resolve exact
+ROM paths (including their MSU game companions), verify unchanged local identities
+at execution and journal exact removals. This operational override does not claim fresh cloud-stream proof,
+save-backup completion, or completion of unrelated S7 acceptance criteria.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at

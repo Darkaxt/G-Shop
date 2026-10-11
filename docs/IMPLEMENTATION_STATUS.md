@@ -14,8 +14,9 @@ The revision-19 cloud-only policy also applies to the private read-only audit:
 an exact unrated member or an unrelated unbound artifact must not restore the
 superseded ranking veto. Dirty projection, ambiguous bindings and failed byte
 comparisons still preserve the member. Audit output never grants removal.
-Current inventory, live recovery proof, reviewed execution, no-refill activation
-and final retained-set/space/restore/save verification remain unfinished S7 work.
+Current inventory, owner-directed exact-file execution, no-refill activation and
+retained-set/space reconciliation are now verified. Remaining independent S7
+metadata/recovery acceptance is not reported as complete by this cleanup.
 
 The audit regression failed first on the old unrated/global-unbound veto; the
 focused `python -B -m unittest test_thor_migration_audit -q` now passes. The audit
@@ -29,13 +30,53 @@ refreshes the projection from thousands of dirty rows to seven edition rows and
 zero artifact rows in the subsequent observation. These are live observations,
 not atomic removal authority or completed metadata coverage.
 
-A read-only whole-ROM-tree stat inventory is running to private exclusive-create
-`D:/RShopPrivate/Migration/s7-inventory-20261011.jsonl`; no cloud or body proof is
-implied and an unfinished journal is not complete. Both physical display actual
-and committed states were verified OFF after normal sleep. Gated assembly request
-607 is queued; acquisition/effective profile/build success are not yet claimed.
-No SD ROM, save, BIOS, setting, Drive original or external sync policy was removed
-or changed by these checks.
+The whole-ROM-tree inventory completed and reconciled: 15,965 stable files,
+722,867,145,438 bytes. The intentional private evidence is
+`D:/RShopPrivate/Migration/s7-inventory-20261011.jsonl`. Gated assembly 607 acquired
+the shared gate, verified two workers/no parallelism and the 3-GiB Gradle heap,
+and completed successfully without memory-failure evidence. Kotlin was configured
+in-process; assembly did not execute tests. The retained-signature debug APK was
+installed as an update; installed SHA-256 matches
+`75605b2a9aeba53042b6fdc62216210cbaae4ab0b43b0394a40c26ce7776c4a0`.
+The pre/post shared protected-data baseline matches (159 files, 310,188,490 bytes),
+as do configuration and private-preference digests at the update boundary.
+
+The owner's subsequent explicit deletion directive is recorded in specification
+revision 20. The completed one-time cleanup removed 15,718 exact ROM/game-companion
+paths totaling 704,092,184,748 bytes. All removal journals reconcile against the
+original 15,965-file inventory, with no duplicate removal or keep-list overlap.
+A fresh device `find` matches the expected 247 remaining files exactly; all 40
+remaining game files are current, present Top-25 members: N64 25, PSP 13, PS2 2.
+Each retained file's full reviewed stat is unchanged. Consoles with no eligible
+ranked members retain no invented sample; this includes PS1. No missing sample
+members were downloaded or ratings fabricated. The other 207 files include
+metadata, SNES coprocessor firmware and a preserved `.srm` save.
+
+Actual SD free space changed from 265,588,224 to 957,752,320 KiB (about 913.4 GiB
+now free; filesystem allocation savings differ from logical removed bytes).
+The shared protected-data comparison is equal: 159 saves/BIOS/configuration
+files, 310,188,490 bytes, stable scope membership and no unverified shared scope.
+Those protected scopes were outside the removal set. This is preservation
+evidence, not a new claim about private/custom save paths or cloud backups.
+
+The private native helper stopped safely on two Android SD/FUSE identity
+behaviors: close-after-unlink returned EIO, and opening/closing a raw `.gb` file
+changed its exposed inode. Its journals identified every completed operation
+and the one quarantined file. Resumption reconciled that exact file and used
+immediate canonical regular-file stat validation followed by direct exact-path
+unlink, without opening or renaming. The final journal has a verified COMPLETE
+footer (14,865 files); all preceding journals reconcile into the total above.
+No directory wipe or hidden quarantine remains.
+
+Private operational evidence, manifests, helper sources and per-file journals
+are retained in `D:/RShopPrivate/Migration`. Independent read-only reconciliation:
+`top25-cleanup-verified-20261011.json`, produced by
+`verify-top25-cleanup-20261011.py`. LoLSuite's live device-only
+`on_demand_folders` guard was parsed and verified to reject every affected console
+(27 distinct folders), preventing refill. Archive profiles, FolderSync, scheduled
+save-sync tasks and Drive originals are unchanged. Both physical displays are
+verified OFF. The owner-requested SD cleanup is finished; this does not falsely
+close unrelated S7 acceptance, S10 or S11. S7 remains the sole ACTIVE stage.
 
 ### Current S7 policy authorization — 2026-10-11
 
