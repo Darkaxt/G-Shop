@@ -539,6 +539,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       final code =
           error is PlatformException ? error.code : 'installation_unavailable';
       final message = switch (code) {
+        'save_restore_pending' =>
+          'Finish the pending save restore in Save backups before opening this game.',
         'companion_missing' =>
           'Companion app is missing. Change it or open without companion.',
         'companion_unlaunchable' =>

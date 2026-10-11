@@ -85,7 +85,7 @@ class SaveEmulatorCoverage {
       ? 'Not applicable · launcher; use the selected emulator'
       : _retroArch
           ? _reviewed
-              ? 'In-game saves · GBA, Game Gear, Master System and Mega Drive. Clock-data restore is not yet supported.'
+              ? 'In-game saves · GBA (including paired clock data), Game Gear, Master System and Mega Drive.'
               : 'Needs review · installed RetroArch runtime is not verified'
           : _psp
               ? 'Unfinished · SAVEDATA groups not implemented'

@@ -5,6 +5,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S10 related-save publication — native proof verified, 2026-10-11
+
+S10 remains ACTIVE, the only ACTIVE stage. The mGBA SRAM/RTC host implementation
+now passes the native Thor proof. The earlier proof exposed a post-rename
+mtime-only change during the final read despite correct desired bytes and
+published child receipts. The corrected coordinator anchors committed files to
+the receipt's device/inode/size and exact digest, retains full stable-stat checks
+before replacement, and reconciles the named entry and parent. Failed forced-stat
+experimentation was removed; no delay/retry or new native API remains.
+
+Request 647 (`288f83112f894769a30c8c3ea3981ac1`) completed exit 0 with the shared
+gate acquired and completion verified: workers=2, parallel=false, Gradle=3 GiB,
+Kotlin in-process. Test tasks were configured for one 512-MiB fail-fast fork;
+assembly did not execute them. App native compile/link pool depth is one. No
+memory failure or budget increase. The signer-preserving owner/test installation
+passed; the independently read installed owner APK digest matches
+`8bc3b64aacb45466743ef1f7e2384b5bb98799beee6ea7f6db2ea1fc3db50f70`.
+
+Actual app-UID SRAM/RTC capture/digests, whole-group seal, scalar bypass rejection,
+changed-byte and same-byte replacement-inode rejection, interrupted-prefix resume
+after service recreation, expected-location restore and retained-byte rollback
+pass. Exclusive native fixtures were removed; configuration, schema/root, saved
+jobs and all private preference digests are unchanged. Both displays are OFF.
+No gameplay or new live Drive round trip is claimed.
+
+Focused host checks pass both-file current-installation naming, retained-local
+rollback without redownload, and explicit cloud choice preserving the local
+branch. Coverage and status now describe paired clock support and specific pending
+restore/changed-membership conditions. Scoped Dart analysis and whitespace review
+pass. Integrated copy assembly and focused SaveCaptureStorageTest passed in
+shared-gate request 648 (`ab8f281de7204d56ae8ad1373155565c`), with the same verified
+worker/heap profile and one executed 512-MiB test fork, no memory failure. Its
+signer-preserving installation independently matches installed APK digest
+`e7482967b6494024498edb4630ce2fd2a0720a747bd5cf917c52f3014b4861f1`;
+configuration, schema/root, saved jobs and every private preference remain
+unchanged. Both displays remain OFF. Changed membership reconciliation, other accessible
+installed routes, broader live conflict/recovery/contention checks and verified
+legacy handover remain ordinary unfinished S10 work. S11 is NOT STARTED.
+See S10_SAVE_BACKUP_DESIGN.md.
+
 ### S10 cartridge-save checkpoint — 2026-10-11
 
 S10 remains the sole ACTIVE stage. The existing Genesis Plus GX save workflow now

@@ -1124,7 +1124,15 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   Semantics(
                       liveRegion: true,
                       child: Text(
-                          'The save operation could not finish. Your previous cloud backups and saved local copies are kept. Check your connection and save-folder access, then try again.',
+                          switch (job.issue) {
+                            'related_group_changed' =>
+                              'This backup and the local save contain different files. Nothing was replaced; both copies are kept.',
+                            'pending_restore' ||
+                            'save_restore_pending' =>
+                              'Finish the pending restore in Restore & conflicts before backing up or opening this game.',
+                            _ =>
+                              'The save operation could not finish. Your previous cloud backups and saved local copies are kept. Check your connection and save-folder access, then try again.',
+                          },
                           style: const TextStyle(fontSize: 18))),
                   ExpansionTile(
                       title: const Text('Technical details'),

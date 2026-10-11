@@ -116,6 +116,10 @@ internal class OwnedStorageService(private val context: Context) {
                             main.post { result.success(name) }
                             return@execute
                         }
+                        if (gameBoyAdvance && SaveCaptureService.groupRestorePending(context.filesDir,
+                                RetroArchSaveBoundary.archiveSaveName(uri.encodedPath!!.substringAfterLast('/')))) {
+                            throw Failure("save_restore_pending")
+                        }
                         main.post {
                             if (closed) {
                                 result.error("closed", "Emulator handoff closed", null)

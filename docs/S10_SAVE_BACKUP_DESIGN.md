@@ -7,6 +7,94 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Related SRAM/clock restore — ACTIVE implementation
+
+The existing backup already captures mGBA SRAM plus its paired RTC file. Restore
+incorrectly rejected every multi-member manifest before download. SAVE-01's
+related-file requirement owns this correction; it does not authorize gameplay,
+whole-directory scanning, or a new general sync framework.
+
+The same durable restore intent now stages both exact roles, validates both
+streams before a group seal, retains the original coherent rollback capture and
+publishes through the existing atomic per-file native primitive. A group receipt
+is written only after every member is committed. This is a recoverable group
+transaction, not a claim that two independent filesystem entries change in one
+kernel operation. An interrupted prefix stays pending and blocks R-Shop launching
+that GBA save until publication resumes; third-party/direct emulator launches are
+not controlled by R-Shop. The closed-content writer boundary remains required.
+Scalar publication cannot bypass the group coordinator. Prior scalar journals
+retain their schema and namespace.
+
+The host regression first reproduced `related_group_unfinished`; focused current
+host checks now pass normal group restore, reload with stable IDs, failed-stream
+preservation and changed-membership rejection before publication. The first
+implementation intentionally preserves/reports a changed RTC presence instead
+of silently adding or deleting it. Explicit reconciliation of changed membership,
+other emulator groups and broader SAVE-01 coverage remain ordinary S10 work,
+not a stage-closing exemption or deferral to S11.
+
+Native requests 640-645 completed; the actual Thor proof exposed a final-review
+defect, not missing destination writes. Both files held the desired bytes and
+both child receipts were published. During the last file's first read, only
+mtime changed (stat fields 3/4); device/inode/size and the full digest matched.
+The pre-read snapshot equalled the staged receipt, then mtime regressed by
+388 ms. A forced `statx` refresh did not prevent this and was removed completely;
+no new JNI/API dependency, delay, retry or timestamp-only success rule remains.
+
+The corrected review keeps complete stable snapshots for uncommitted members.
+For committed members it checks the durable receipt's exact device/inode/size,
+full desired digest, descriptor identity after reading and the current named
+entry. It also reopens/reconciles the source parent. Post-rename FUSE timestamp
+refresh is not treated as a different committed object. Different bytes or a
+replacement inode must still fail before another member is published.
+Android's [FUSE implementation](https://android.googlesource.com/platform/packages/providers/MediaProvider/+/refs/heads/android13-security-release/jni/FuseDaemon.cpp)
+documents cached attributes and stale destination metadata around replacement;
+the concrete mtime-only observation above is from this device, not an assertion
+that its vendor kernel exactly matches that upstream implementation.
+
+Corrected assembly passed in shared-gate request 647,
+`288f83112f894769a30c8c3ea3981ac1` (log `a8e29f818ff44e51af1648d4dcc88a95.log`).
+Gate acquisition, profile and supervised completion were verified: two workers,
+no parallel projects, 3-GiB Gradle heap, Kotlin in-process, one 512-MiB test fork
+configured (not executed by assembly), native app compile/link pool depth one.
+No memory failure or heap increase. The instrumentation uses exclusive synthetic
+SRAM/RTC files and the actual app-UID service/real RetroArch CONTENTLESS reply.
+It verifies interrupted-prefix recovery after service recreation, changed-byte
+and same-byte replacement-inode rejection, then complete restore and rollback.
+No production fault hooks, Drive operations, ROM access or in-emulator save
+loading. The actual Thor run returned its complete PASS result and instrumentation
+code -1. It also verifies scalar-publication bypass rejection and fixture removal.
+The signature-preserving update's independently read installed owner APK matches
+`8bc3b64aacb45466743ef1f7e2384b5bb98799beee6ea7f6db2ea1fc3db50f70`;
+configuration, schema/root generation, saved jobs and every private preference
+digest agree before/after. Both physical displays' actual/committed states are OFF.
+
+Focused host checks cover current-installation SRAM/RTC names, retained rollback
+using both local files with no additional cloud download, and explicit cloud
+choice preserving the local branch before both-file restore. A newly added test
+initially used an invalid dotted cloud object ID; fixing that fixture identity,
+not weakening production validation, resolves its failure. Coverage and status
+copy expose paired-clock support and distinguish changed membership/pending restore
+from transport failures. This is not evidence of a new live Drive round trip or
+completion of SAVE-01 as a whole.
+
+Final bounded integration: scoped Dart analysis reports no issues; whitespace
+review passes. Request 648 (`ab8f281de7204d56ae8ad1373155565c`, log
+`009b507347a845418aa1998bad89c844.log`) passes focused SaveCaptureStorageTest
+and debug assembly. The shared gate was acquired and supervised completion
+verified. Effective worker/Gradle profile remains 2/no-parallel/3 GiB, Kotlin
+in-process; the executed JVM test task uses one 512-MiB fork with fail-fast.
+No memory failure or increase. The preserving installed APK independently matches
+`e7482967b6494024498edb4630ce2fd2a0720a747bd5cf917c52f3014b4861f1`.
+Configuration, schema/root, saved jobs and all private preferences are unchanged;
+both displays remain OFF. No release was published or legacy sync altered.
+
+The known-package audit was refreshed: all 27 listed apps are still installed;
+RetroArch remains 1.22.2_GIT and PPSSPP v1.20.4. Azahar currently reports
+263745c1d-vanilla. This is a known-package refresh, not the final full installed
+coverage reconciliation. Changed group membership, other accessible emulator
+routes and broader SAVE-01 recovery/handover criteria remain unfinished S10 work.
+
 ### Genesis Plus GX cartridge route expansion
 
 SAVE-01 already requires the remaining accessible console/core routes. The owned

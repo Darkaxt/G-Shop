@@ -7,6 +7,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun relatedRestoreAcceptsOnlyTheSramAndItsExactClockCompanion() {
+        assertTrue(SaveCaptureService.validGroupNames("Game.srm", listOf("Game.rtc", "Game.srm")))
+        for (names in listOf(listOf("Game.srm"), listOf("Game.srm", "Other.rtc"),
+            listOf("Game.srm", "Game.srm"), listOf("Game.srm", "../Game.rtc"), listOf("Game.srm", "Game.state"))) {
+            assertFalse(SaveCaptureService.validGroupNames("Game.srm", names))
+        }
+    }
     @Test fun segaCartridgeFormatsHaveExplicitConsoleJournalsAndTheReviewedCoreDirectory() {
         val genesis = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         for (format in listOf("mastersystem-battery", "megadrive-battery")) {

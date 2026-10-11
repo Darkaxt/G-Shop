@@ -23,18 +23,22 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var mountProbe = false
     private var companionProbe = false
     private var saveRouteProbe = false
+    private var saveGroupProbe = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         mountProbe = arguments?.getString("mountProbe") == "true"
         companionProbe = arguments?.getString("companionProbe") == "true"
         saveRouteProbe = arguments?.getString("saveRouteProbe") == "true"
+        saveGroupProbe = arguments?.getString("saveGroupProbe") == "true"
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
         try {
-            if (saveRouteProbe) {
+            if (saveGroupProbe) {
+                report.putString("result", MgbaGroupSaveProof.exercise(targetContext))
+            } else if (saveRouteProbe) {
                 report.putString("result", SegaSaveRouteProof.exercise(targetContext))
             } else if (companionProbe) {
                 report.putString("result", CompanionProof.exercise(targetContext))

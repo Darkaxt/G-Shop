@@ -20,6 +20,13 @@ class CapturedSaveGroup {
       : files = List.unmodifiable(files);
 }
 
+class RestoreSaveMember {
+  final String name, sha256;
+  final int size;
+  final Stream<Uint8List> bytes;
+  RestoreSaveMember(this.name, this.size, this.sha256, this.bytes);
+}
+
 /// Explicit mGBA/Sega cartridge battery or PPSSPP published-slot capture, not a general
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
@@ -248,5 +255,77 @@ class SaveCapture {
     }
     await _channel.invokeMethod('publishRestore',
         {'captureId': restoreId, 'rollbackCaptureId': rollbackCaptureId});
+  }
+
+  /// mGBA SRAM and its paired clock file are sealed together before either
+  /// public file changes. Native journals retain per-file atomic receipts so
+  /// interrupted group publication can resume without discarding rollback bytes.
+  Future<void> stageRetroArchGroupRestore(
+      {required String restoreId,
+      required String name,
+      required List<RestoreSaveMember> members}) async {
+    if (!validName(name)) {
+      throw const FormatException('Invalid related save group');
+    }
+    final allowed = {name, '${name.substring(0, name.length - 4)}.rtc'};
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
+        members.length != 2 ||
+        members.map((m) => m.name).toSet().length != 2 ||
+        members.any((m) =>
+            !allowed.contains(m.name) ||
+            m.size <= 0 ||
+            m.size > RetroArchBatteryRoute.mgba.maxBytes ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(m.sha256))) {
+      throw const FormatException('Invalid related save group');
+    }
+    final ordered = members.toList()..sort((a, b) => a.name.compareTo(b.name));
+    await _channel.invokeMethod('beginRestoreGroup', {
+      'captureId': restoreId,
+      'name': name,
+      'members': ordered
+          .map((m) => {'name': m.name, 'size': m.size, 'sha256': m.sha256})
+          .toList(),
+    });
+    for (var index = 0; index < ordered.length; index++) {
+      final member = ordered[index];
+      var offset = 0;
+      await for (final chunk in member.bytes) {
+        if (offset + chunk.length > member.size) {
+          throw const FormatException('Invalid group member length');
+        }
+        for (var begin = 0; begin < chunk.length; begin += 65536) {
+          final end = (begin + 65536).clamp(0, chunk.length);
+          final part = Uint8List.sublistView(chunk, begin, end);
+          final next = await _channel.invokeMethod<int>('appendRestoreGroup', {
+            'captureId': restoreId,
+            'member': index,
+            'offset': offset,
+            'bytes': part,
+          });
+          if (next != offset + part.length) {
+            throw const FormatException(
+                'Invalid group restore acknowledgement');
+          }
+          offset = next!;
+        }
+      }
+      if (offset != member.size) {
+        throw const FormatException('Incomplete group restore');
+      }
+    }
+    await _channel.invokeMethod('sealRestoreGroup', {'captureId': restoreId});
+  }
+
+  Future<void> publishRestoreGroup(
+      {required String restoreId, required String rollbackCaptureId}) async {
+    if (![restoreId, rollbackCaptureId]
+            .every((id) => RegExp(r'^[a-f0-9]{32}$').hasMatch(id)) ||
+        restoreId == rollbackCaptureId) {
+      throw const FormatException('Invalid group publication');
+    }
+    await _channel.invokeMethod('publishRestoreGroup', {
+      'captureId': restoreId,
+      'rollbackCaptureId': rollbackCaptureId,
+    });
   }
 }

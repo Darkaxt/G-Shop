@@ -232,11 +232,10 @@ class SaveBackupGameJob extends ChangeNotifier {
           final manifest = SaveBackupManifest.decode(
               utf8.encode(jsonEncode(restore['manifest'])));
           if (manifest.generationId != restore['generationId'] ||
-              !_bindingMatches(manifest.binding) ||
-              manifest.members.length != 1 ||
-              !_validName(manifest.members.single.relativePath)) {
+              !_bindingMatches(manifest.binding)) {
             throw const FormatException('Changed restore binding');
           }
+          _contents(manifest);
           if (operationKey == 'rollback' &&
               (record['restore'] is! Map ||
                   restore['sourceCaptureId'] !=
@@ -635,10 +634,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           if (useCloud != null) {
             final chosen =
                 heads.where((h) => h.generationId == useCloud).single;
-            if (chosen.members.length != 1) {
-              _issue = 'related_group_unfinished';
-              return;
-            }
+            _contents(chosen);
             // A private rollback is not independently recoverable after
             // reinstall. Publish the sealed local branch, with its durable
             // reserved IDs and verified readback, before selecting a cloud
@@ -848,11 +844,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           if (manifest.binding.editions.single.gameId != game!.id) {
             throw const FormatException('Changed restore game');
           }
-          if (manifest.members.length != 1 ||
-              !_validName(manifest.members.single.relativePath)) {
-            _issue = 'related_group_unfinished';
-            return;
-          }
+          _contents(manifest);
           String newId() =>
               List.generate(16, (_) => Random.secure().nextInt(256))
                   .map((b) => b.toRadixString(16).padLeft(2, '0'))
@@ -899,8 +891,9 @@ class SaveBackupGameJob extends ChangeNotifier {
               : await capture.captureRetroArch(
                   captureId: rollbackId, name: name, route: retroArchRoute);
           _check(cancellation);
-          if (local.files.length != 1 || local.files.single.name != name) {
-            _issue = 'related_group_unfinished';
+          if (local.files.length != selected.members.length ||
+              !local.files.any((file) => file.name == name)) {
+            _issue = 'related_group_changed';
             return;
           }
           restore = {...restore, 'state': 'download'};
@@ -924,7 +917,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         }
         _check(cancellation);
         if (restore['state'] == 'download') {
-          CapturedSaveFile? retained;
+          CapturedSaveGroup? retained;
           if (rollback) {
             _captureId = restore['sourceCaptureId'] as String;
             final group = isPpsspp
@@ -935,30 +928,58 @@ class SaveBackupGameJob extends ChangeNotifier {
                 : await capture.captureRetroArch(
                     captureId: _captureId!, name: name, route: retroArchRoute);
             _check(cancellation);
-            if (group.files.length != 1 || group.files.single.name != name) {
+            if (group.files.length != selected.members.length ||
+                !group.files.any((file) => file.name == name)) {
               throw const FormatException('Changed retained rollback group');
             }
-            retained = group.files.single;
+            retained = group;
             _captureId = restoreId;
           }
-          final member = cloud.members.single;
-          await capture.stageRestore(
-              restoreId: restoreId,
-              name: name,
-              size: retained?.size ?? member.sizeBytes,
-              sha256: retained?.sha256 ?? member.sha256,
-              ppssppDirectory: ppssppDirectory,
-              retroArchRoute: retroArchRoute,
-              bytes: retained != null
-                  ? retained.file.openRead().map((chunk) {
-                      _check(cancellation);
-                      return Uint8List.fromList(chunk);
-                    })
-                  : generations.memberBytes(
-                      areaId: areaId,
-                      generation: cloud,
-                      memberId: member.cloudFileId,
-                      cancellation: cancellation));
+          if (cloud.members.length > 1) {
+            final members = cloud.members.map((member) {
+              final target = member.relativePath.endsWith('.srm')
+                  ? name
+                  : '${name.substring(0, name.length - 4)}.rtc';
+              final local =
+                  retained?.files.singleWhere((file) => file.name == target);
+              return RestoreSaveMember(
+                  target,
+                  local?.size ?? member.sizeBytes,
+                  local?.sha256 ?? member.sha256,
+                  local != null
+                      ? local.file.openRead().map((chunk) {
+                          _check(cancellation);
+                          return Uint8List.fromList(chunk);
+                        })
+                      : generations.memberBytes(
+                          areaId: areaId,
+                          generation: cloud,
+                          memberId: member.cloudFileId,
+                          cancellation: cancellation));
+            }).toList();
+            await capture.stageRetroArchGroupRestore(
+                restoreId: restoreId, name: name, members: members);
+          } else {
+            final member = cloud.members.single;
+            final retainedFile = retained?.files.single;
+            await capture.stageRestore(
+                restoreId: restoreId,
+                name: name,
+                size: retainedFile?.size ?? member.sizeBytes,
+                sha256: retainedFile?.sha256 ?? member.sha256,
+                ppssppDirectory: ppssppDirectory,
+                retroArchRoute: retroArchRoute,
+                bytes: retainedFile != null
+                    ? retainedFile.file.openRead().map((chunk) {
+                        _check(cancellation);
+                        return Uint8List.fromList(chunk);
+                      })
+                    : generations.memberBytes(
+                        areaId: areaId,
+                        generation: cloud,
+                        memberId: member.cloudFileId,
+                        cancellation: cancellation));
+          }
           _check(cancellation);
           restore = {...restore, 'state': 'ready'};
           record = {...record, operationKey: restore};
@@ -970,9 +991,15 @@ class SaveBackupGameJob extends ChangeNotifier {
         await _requireName(name,
             gameId: selected.binding.editions.single.gameId);
         _check(cancellation);
-        await capture.publishRestore(
-            restoreId: restoreId, rollbackCaptureId: rollbackId);
-        // Native acknowledges only after the atomic commit and durable receipt.
+        if (selected.members.length > 1) {
+          await capture.publishRestoreGroup(
+              restoreId: restoreId, rollbackCaptureId: rollbackId);
+        } else {
+          await capture.publishRestore(
+              restoreId: restoreId, rollbackCaptureId: rollbackId);
+        }
+        // Native acknowledges after every per-file commit and durable receipt.
+        // A related group is recoverable, not a single filesystem operation.
         // Cancellation after that receipt must not discard the completed result.
         await _persist({
           ...record,
@@ -993,6 +1020,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           'emulator_missing',
           'changed_capture',
           'related_group_unfinished',
+          'related_group_changed',
           'restore_stage_conflict'
         }.contains(error.code)
             ? error.code

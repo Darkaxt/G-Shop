@@ -33,6 +33,21 @@ internal class SaveCaptureService(private val activity: Context) {
         internal fun stagingRoot(filesDir: File): File = File(filesDir.canonicalFile, "save-captures")
         private const val MGBA_SOURCE = "/storage/emulated/0/RetroArch/saves/mGBA"
         private const val GAMEGEAR_SOURCE = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
+        internal fun validGroupNames(name: String, members: List<String>): Boolean =
+            RetroArchSaveBoundary.validName(name) && members.size == 2 &&
+                members.toSet() == setOf(name, name.dropLast(4) + ".rtc")
+
+        internal fun groupRestorePending(filesDir: File, name: String): Boolean {
+            val restores = File(filesDir.canonicalFile, "save-restores")
+            return restores.listFiles().orEmpty().any { directory ->
+                val journal = File(directory, "group.json")
+                if (!journal.exists()) false else {
+                    require(journal.canonicalFile == journal.absoluteFile && journal.isFile && journal.length() in 1..16384)
+                    val record = JSONObject(journal.readText())
+                    record.getString("name") == name && record.getString("phase") == "publishing"
+                }
+            }
+        }
         internal fun validRestoreBinding(name: String, size: Long, format: String, source: String): Boolean =
             when (format) {
                 "mgba-battery" -> source == MGBA_SOURCE && RetroArchSaveBoundary.validName(name) &&
@@ -164,6 +179,11 @@ internal class SaveCaptureService(private val activity: Context) {
                         "appendRestore" -> appendRestore(captureId!!, call)
                         "sealRestore" -> sealRestore(captureId!!)
                         "publishRestore" -> publishRestore(captureId!!,
+                            call.argument<String>("rollbackCaptureId") ?: "")
+                        "beginRestoreGroup" -> beginRestoreGroup(captureId!!, call)
+                        "appendRestoreGroup" -> appendRestoreGroup(captureId!!, call)
+                        "sealRestoreGroup" -> sealRestoreGroup(captureId!!)
+                        "publishRestoreGroup" -> publishRestoreGroup(captureId!!,
                             call.argument<String>("rollbackCaptureId") ?: "")
                         else -> throw Failure("invalid_method")
                     }
@@ -452,9 +472,18 @@ internal class SaveCaptureService(private val activity: Context) {
             throw Failure("invalid_restore")
         }
         val record = JSONObject(file.readText())
-        if (record.getString("id") != directory.name ||
-            !validRestoreBinding(record.getString("name"), record.getLong("size"),
-                record.optString("format", "mgba-battery"), record.optString("source", source)) ||
+        val groupId = record.optString("groupId").takeIf { it.isNotEmpty() }
+        val validBinding = if (groupId == null) validRestoreBinding(record.getString("name"), record.getLong("size"),
+                record.optString("format", "mgba-battery"), record.optString("source", source)) else {
+            val group = groupRecord(restoreDirectory(groupId))
+            val members = group.getJSONArray("members")
+            (0 until members.length()).any { index ->
+                val member = members.getJSONObject(index)
+                childId(groupId, index) == directory.name && member.getString("name") == record.getString("name") &&
+                    member.getLong("size") == record.getLong("size") && member.getString("sha256") == record.getString("sha256")
+            } && record.getString("format") == "mgba-battery" && record.getString("source") == MGBA_SOURCE
+        }
+        if (record.getString("id") != directory.name || !validBinding ||
             !record.getString("sha256").matches(Regex("[a-f0-9]{64}")) ||
             record.getString("phase") !in setOf("downloading", "ready", "publishing", "published")) {
             throw Failure("invalid_restore")
@@ -462,17 +491,17 @@ internal class SaveCaptureService(private val activity: Context) {
         return record
     }
 
-    private fun writeRestoreRecord(directory: File, record: JSONObject) {
+    private fun writeRestoreRecord(directory: File, record: JSONObject, leaf: String = "restore.json") {
         // This directory is exclusively app-private and owned by the single
         // native worker. Only its exact journal temporary is replaced.
-        val next = File(directory, "restore.json.next")
+        val next = File(directory, "$leaf.next")
         if (next.canonicalFile != next.absoluteFile || (next.exists() && !next.isFile)) {
             throw Failure("invalid_restore")
         }
         FileOutputStream(next).use {
             it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync()
         }
-        Os.rename(next.absolutePath, File(directory, "restore.json").absolutePath)
+        Os.rename(next.absolutePath, File(directory, leaf).absolutePath)
         val parent = OwnedStorageNative.openRoot(directory.absolutePath)
         try { OwnedStorageNative.sync(parent) } finally { OwnedStorageNative.close(parent) }
     }
@@ -489,7 +518,7 @@ internal class SaveCaptureService(private val activity: Context) {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun beginRestore(id: String, call: MethodCall): Any? {
+    private fun beginRestore(id: String, call: MethodCall, groupId: String? = null): Any? {
         check()
         val name = call.argument<String>("name") ?: ""
         val size = call.argument<Number>("size")?.toLong() ?: 0L
@@ -500,7 +529,14 @@ internal class SaveCaptureService(private val activity: Context) {
         val sourceDirectory = ppssppDirectory ?: batterySource(route)
         val format = if (ppssppDirectory != null) "ppsspp-slot-v1"
             else batteryFormat(route)
-        if (!validRestoreBinding(name, size, format, sourceDirectory) ||
+        val group = groupId?.let { groupRecord(restoreDirectory(it)) }
+        val validBinding = if (group == null) validRestoreBinding(name, size, format, sourceDirectory)
+            else sourceDirectory == MGBA_SOURCE && format == "mgba-battery" &&
+                validGroupNames(group.getString("name"), listOf(group.getString("name"), name).distinct()) &&
+                size in 1..(16L * 1024 * 1024)
+        // SRAM is also a group member; its normal scalar binding remains valid.
+        if (!(validBinding || (group != null && name == group.getString("name") &&
+                validRestoreBinding(name, size, format, sourceDirectory))) ||
             File(sourceDirectory).canonicalPath != sourceDirectory ||
             !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
         val directory = restoreDirectory(id)
@@ -509,6 +545,7 @@ internal class SaveCaptureService(private val activity: Context) {
             val record = restoreRecord(directory)
             if (record.getString("name") != name || record.getLong("size") != size ||
                 record.getString("sha256") != digest ||
+                record.optString("groupId").takeIf { it.isNotEmpty() } != groupId ||
                 record.optString("format", "mgba-battery") != format ||
                 record.optString("source", source) != sourceDirectory) throw Failure("invalid_restore")
             if (record.getString("phase") != "downloading") return null
@@ -516,7 +553,9 @@ internal class SaveCaptureService(private val activity: Context) {
             if (directory.list()?.isNotEmpty() != false) throw Failure("invalid_restore")
             writeRestoreRecord(directory, JSONObject().put("id", id).put("name", name)
                 .put("size", size).put("sha256", digest).put("format", format)
-                .put("source", sourceDirectory).put("phase", "downloading"))
+                .put("source", sourceDirectory).put("phase", "downloading").also {
+                    if (groupId != null) it.put("groupId", groupId)
+                })
         }
         val parent = OwnedStorageNative.openRoot(directory.absolutePath)
         try {
@@ -573,11 +612,14 @@ internal class SaveCaptureService(private val activity: Context) {
         return null
     }
 
-    private fun publishRestore(id: String, rollbackId: String): Any? {
+    private fun publishRestore(id: String, rollbackId: String, groupId: String? = null): Any? {
         check()
         if (!rollbackId.matches(Regex("[a-f0-9]{32}")) || rollbackId == id) throw Failure("invalid_restore")
         val directory = restoreDirectory(id)
         val record = restoreRecord(directory)
+        if (record.optString("groupId").takeIf { it.isNotEmpty() } != groupId) throw Failure("invalid_restore")
+        val group = groupId?.let { groupRecord(restoreDirectory(it)) }
+        if (group != null && group.getString("phase") != "publishing") throw Failure("invalid_restore")
         if (record.getString("phase") == "downloading") throw Failure("invalid_restore")
         if (record.has("rollbackId") && record.getString("rollbackId") != rollbackId) {
             throw Failure("invalid_restore")
@@ -591,10 +633,13 @@ internal class SaveCaptureService(private val activity: Context) {
         val rollbackDirectory = File(root, rollbackId)
         if (rollbackDirectory.canonicalFile != rollbackDirectory.absoluteFile) throw Failure("invalid_restore")
         val batteryRoute = routeForFormat(record.optString("format", "mgba-battery"))
-        val rollback = captured(rollbackDirectory, name, sourceDirectory.takeIf { ppsspp }, batteryRoute)
+        val rollback = captured(rollbackDirectory, group?.getString("name") ?: name,
+            sourceDirectory.takeIf { ppsspp }, batteryRoute)
             ?: throw Failure("invalid_restore")
         @Suppress("UNCHECKED_CAST")
-        val oldMembers = rollback["files"] as List<Map<String, Any>>
+        val oldMembers = (rollback["files"] as List<Map<String, Any>>).filter {
+            group == null || it["name"] == name
+        }
         if (oldMembers.size != 1) throw Failure("related_group_unfinished")
         @Suppress("DEPRECATION")
         val packageName = if (ppsspp) "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
@@ -603,7 +648,7 @@ internal class SaveCaptureService(private val activity: Context) {
         if (version !in versions ||
             rollback["emulatorVersion"] != version) throw Failure("runtime_unreviewed")
         val rtc = name.dropLast(4) + ".rtc"
-        if (!ppsspp && File(sourceDirectory, rtc).exists()) throw Failure("related_group_unfinished")
+        if (group == null && !ppsspp && File(sourceDirectory, rtc).exists()) throw Failure("related_group_unfinished")
         record.put("rollbackId", rollbackId)
         writeRestoreRecord(directory, record) // durable rollback association before public IO
         val connection = if (ppsspp) null else synchronized(guard) {
@@ -680,7 +725,7 @@ internal class SaveCaptureService(private val activity: Context) {
                         if (digestFd(staged, size) != record.getString("sha256")) throw Failure("changed_capture")
                     } finally { OwnedStorageNative.close(member) }
                     writerClosed()
-                    if ((!ppsspp && File(sourceDirectory, rtc).exists()) || !same(oldIdentity, OwnedStorageNative.identity(current)) ||
+                    if ((group == null && !ppsspp && File(sourceDirectory, rtc).exists()) || !same(oldIdentity, OwnedStorageNative.identity(current)) ||
                         digestFd(current, oldIdentity[2]) != oldMembers.single()["sha256"]) throw Failure("source_changed")
                     // Reopen the namespace to reject a moved/replaced ancestor.
                     val freshParent = OwnedStorageNative.openRoot(sourceDirectory)
@@ -702,6 +747,135 @@ internal class SaveCaptureService(private val activity: Context) {
                 } finally { OwnedStorageNative.close(staged) }
             } finally { OwnedStorageNative.close(current) }
         } finally { OwnedStorageNative.close(privateDir); OwnedStorageNative.close(parent) }
+        return null
+    }
+
+    private fun childId(groupId: String, index: Int): String = hash("$groupId/$index".toByteArray()).take(32)
+
+    private fun groupRecord(directory: File): JSONObject {
+        val file = File(directory, "group.json")
+        if (file.canonicalFile != file.absoluteFile || !file.isFile || file.length() !in 1..16384) throw Failure("invalid_restore")
+        val record = JSONObject(file.readText())
+        val members = record.getJSONArray("members")
+        val names = (0 until members.length()).map { members.getJSONObject(it).getString("name") }
+        if (record.getString("id") != directory.name || !validGroupNames(record.getString("name"), names) ||
+            names != names.sorted() || record.getString("phase") !in setOf("downloading", "ready", "publishing", "published") ||
+            (0 until members.length()).any { val m = members.getJSONObject(it)
+                m.getLong("size") !in 1..(16L * 1024 * 1024) || !m.getString("sha256").matches(Regex("[a-f0-9]{64}")) }) {
+            throw Failure("invalid_restore")
+        }
+        return record
+    }
+
+    private fun beginRestoreGroup(id: String, call: MethodCall): Any? {
+        check()
+        val name = call.argument<String>("name") ?: ""
+        val raw = call.argument<List<Map<String, Any>>>("members") ?: throw Failure("invalid_restore")
+        if (!validGroupNames(name, raw.map { it["name"] as? String ?: "" })) throw Failure("invalid_restore")
+        val members = JSONArray()
+        for (item in raw.sortedBy { it["name"] as String }) {
+            val size = (item["size"] as? Number)?.toLong() ?: 0L
+            val digest = item["sha256"] as? String ?: ""
+            if (size !in 1..(16L * 1024 * 1024) || !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
+            members.put(JSONObject().put("name", item["name"]).put("size", size).put("sha256", digest))
+        }
+        val directory = restoreDirectory(id)
+        if (File(directory, "group.json").exists()) {
+            val old = groupRecord(directory)
+            if (old.getString("name") != name || old.getJSONArray("members").toString() != members.toString()) throw Failure("invalid_restore")
+        } else {
+            if (directory.list()?.isNotEmpty() != false) throw Failure("invalid_restore")
+            writeRestoreRecord(directory, JSONObject().put("id", id).put("name", name)
+                .put("members", members).put("phase", "downloading"), "group.json")
+        }
+        for (index in 0 until members.length()) {
+            val member = members.getJSONObject(index)
+            beginRestore(childId(id, index), MethodCall("beginRestore", mapOf(
+                "name" to member.getString("name"), "size" to member.getLong("size"),
+                "sha256" to member.getString("sha256"))), id)
+        }
+        return null
+    }
+
+    private fun appendRestoreGroup(id: String, call: MethodCall): Long {
+        val record = groupRecord(restoreDirectory(id))
+        val index = call.argument<Int>("member") ?: -1
+        if (index !in 0 until record.getJSONArray("members").length()) throw Failure("invalid_restore")
+        return appendRestore(childId(id, index), call)
+    }
+
+    private fun sealRestoreGroup(id: String): Any? {
+        val directory = restoreDirectory(id)
+        val record = groupRecord(directory)
+        for (index in 0 until record.getJSONArray("members").length()) sealRestore(childId(id, index))
+        if (record.getString("phase") == "downloading") writeRestoreRecord(directory, record.put("phase", "ready"), "group.json")
+        return null
+    }
+
+    private fun publishRestoreGroup(id: String, rollbackId: String): Any? {
+        check()
+        if (!rollbackId.matches(Regex("[a-f0-9]{32}")) || rollbackId == id) throw Failure("invalid_restore")
+        val directory = restoreDirectory(id)
+        val record = groupRecord(directory)
+        if (record.getString("phase") == "published") return null
+        if (record.getString("phase") == "downloading" ||
+            (record.has("rollbackId") && record.getString("rollbackId") != rollbackId)) throw Failure("invalid_restore")
+        sealRestoreGroup(id)
+        val name = record.getString("name")
+        val rollback = captured(File(root, rollbackId), name) ?: throw Failure("invalid_restore")
+        @Suppress("UNCHECKED_CAST") val old = rollback["files"] as List<Map<String, Any>>
+        if (!validGroupNames(name, old.map { it["name"] as String })) throw Failure("related_group_changed")
+        val members = record.getJSONArray("members")
+        fun verifyCurrentGroup() {
+            check()
+            val parent = OwnedStorageNative.openRoot(MGBA_SOURCE)
+            try {
+                for (index in 0 until members.length()) {
+                    val next = members.getJSONObject(index)
+                    val child = restoreRecord(restoreDirectory(childId(id, index)))
+                    val targetName = next.getString("name")
+                    val stage = File(MGBA_SOURCE, ".rshop-save-restore-${childId(id, index)}")
+                    val placed = child.getString("phase") == "published" ||
+                        (child.getString("phase") == "publishing" && !stage.exists())
+                    val before = old.single { it["name"] == targetName }
+                    val size = if (placed) next.getLong("size") else (before["size"] as Number).toLong()
+                    val digest = if (placed) next.getString("sha256") else before["sha256"] as String
+                    val fd = OwnedStorageNative.openFile(parent, targetName, false, false)
+                    try {
+                        val identity = OwnedStorageNative.identity(fd)
+                        // Before replacement, require the complete stable stat
+                        // snapshot. After replacement, the durable child receipt
+                        // anchors the committed inode/size and desired digest.
+                        // Android FUSE may refresh mtime on the first read after
+                        // rename, even for our closed, fsynced file. Mtime is not
+                        // the identity of a committed save. Do not retry hashing
+                        // or accept a different inode because its bytes match.
+                        val committed = if (placed) child.getJSONArray("staged") else null
+                        fun matchesCommitted(actual: LongArray): Boolean =
+                            committed != null && (0..2).all { actual[it] == committed.getLong(it) }
+                        if (identity[2] != size || (placed && !matchesCommitted(identity)) ||
+                            digestFd(fd, size) != digest) throw Failure("source_changed")
+                        val reviewedIdentity = OwnedStorageNative.identity(fd)
+                        val entry = OwnedStorageNative.entryIdentity(parent, targetName)
+                        if (if (placed) !matchesCommitted(reviewedIdentity) || !matchesCommitted(entry)
+                            else !same(identity, reviewedIdentity) || !same(identity, entry)) throw Failure("source_changed")
+                    } finally { OwnedStorageNative.close(fd) }
+                }
+                val currentParent = OwnedStorageNative.openRoot(MGBA_SOURCE)
+                try {
+                    if (OwnedStorageNative.identity(parent).take(2) !=
+                        OwnedStorageNative.identity(currentParent).take(2)) throw Failure("source_changed")
+                } finally { OwnedStorageNative.close(currentParent) }
+            } finally { OwnedStorageNative.close(parent) }
+        }
+        verifyCurrentGroup() // Validate every rollback/committed member before any further mutation.
+        writeRestoreRecord(directory, record.put("rollbackId", rollbackId).put("phase", "publishing"), "group.json")
+        for (index in 0 until members.length()) {
+            verifyCurrentGroup()
+            publishRestore(childId(id, index), rollbackId, id)
+        }
+        verifyCurrentGroup()
+        writeRestoreRecord(directory, record.put("phase", "published"), "group.json")
         return null
     }
 

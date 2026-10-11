@@ -40,6 +40,7 @@ class _Driver implements DriveAuthorizationDriver {
 
 class _Capture extends SaveCapture {
   int captures = 0;
+  bool includeRtc = false;
   String digest = 'b' * 64;
   final staged = <String>[];
   final stagedNames = <String>[];
@@ -52,6 +53,7 @@ class _Capture extends SaveCapture {
   final ppssppSources = <String>[];
   final batteryRoutes = <RetroArchBatteryRoute>[];
   final restoreRoutes = <RetroArchBatteryRoute>[];
+  final stagedGroups = <List<String>>[];
   int appInfoOpens = 0;
   final retired = <String>[];
   String? retirementIssue;
@@ -100,9 +102,12 @@ class _Capture extends SaveCapture {
     captures++;
     if (!started.isCompleted) started.complete();
     await held?.future;
-    return sealed[captureId] = CapturedSaveGroup(
-        captureId, 'device', '1.22.2_GIT', [
-      CapturedSaveFile(name, File('/private/$captureId/member-0'), 4, digest)
+    return sealed[captureId] =
+        CapturedSaveGroup(captureId, 'device', '1.22.2_GIT', [
+      CapturedSaveFile(name, File('/private/$captureId/member-0'), 4, digest),
+      if (includeRtc)
+        CapturedSaveFile(name.replaceFirst(RegExp(r'\.srm$'), '.rtc'),
+            File('/private/$captureId/member-1'), 4, 'd' * 64)
     ]);
   }
 
@@ -137,6 +142,24 @@ class _Capture extends SaveCapture {
     }
     restored.add((id: restoreId, rollback: rollbackCaptureId));
   }
+
+  @override
+  Future<void> stageRetroArchGroupRestore(
+      {required String restoreId,
+      required String name,
+      required List<RestoreSaveMember> members}) async {
+    for (final member in members) {
+      await member.bytes.drain<void>();
+    }
+    stagedGroups.add(members.map((m) => m.name).toList());
+    staged.add(restoreId);
+  }
+
+  @override
+  Future<void> publishRestoreGroup(
+          {required String restoreId, required String rollbackCaptureId}) =>
+      publishRestore(
+          restoreId: restoreId, rollbackCaptureId: rollbackCaptureId);
 }
 
 class _Areas extends DriveSaveBackupAreaApi {
@@ -414,6 +437,51 @@ void main() {
     expect(find.byKey(const ValueKey('save-backup-game-run')), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     ui.dispose();
+  });
+  testWidgets('changed related files show a specific preservation message',
+      (tester) async {
+    await tester.runAsync(() async {
+      capture.includeRtc = true;
+      await job.backup(currentName);
+      capture.includeRtc = false;
+      await job.restoreLatest();
+    });
+    expect(job.issue, 'related_group_changed');
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SaveBackupGamePanel(
+                job: job, title: 'Game', section: SaveBackupSection.status)))));
+    await tester.pumpAndSettle();
+    expect(
+        find.text('This backup and the local save contain different files. '
+            'Nothing was replaced; both copies are kept.'),
+        findsOneWidget);
+    expect(find.textContaining('Check your connection'), findsNothing);
+    expect(capture.restored, isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('pending restore directs the user to resume before backing up',
+      (tester) async {
+    await tester.runAsync(() async {
+      capture.includeRtc = true;
+      await job.backup(currentName);
+      capture.publicationIssue = 'source_changed';
+      await job.restoreLatest();
+      await job.backup(currentName);
+    });
+    expect(job.issue, 'pending_restore');
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SaveBackupGamePanel(
+                job: job, title: 'Game', section: SaveBackupSection.status)))));
+    await tester.pumpAndSettle();
+    expect(
+        find.text('Finish the pending restore in Restore & conflicts before '
+            'backing up or opening this game.'),
+        findsOneWidget);
+    expect(find.textContaining('Check your connection'), findsNothing);
+    expect(generations.uploads, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
   Future<
       ({
@@ -1272,6 +1340,65 @@ void main() {
     expect(job.lastVerified?.members.single.relativePath, 'Game.srm');
     expect(generations.uploads, 1);
   });
+  test(
+      'related SRAM and RTC restore is not rejected as a single-file selection',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    expect(job.lastVerified!.members.map((m) => m.relativePath),
+        unorderedEquals(['Game.srm', 'Game.rtc']));
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(capture.restored, hasLength(1));
+    expect(
+        capture.stagedGroups.single, unorderedEquals(['Game.srm', 'Game.rtc']));
+  });
+  test(
+      'related restore keeps its IDs and rollback after failed publication and reload',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    capture.publicationIssue = 'close_content_required';
+    await job.restoreLatest();
+    expect(job.issue, 'close_content_required');
+    expect(job.restorePending, isTrue);
+    final staged = capture.staged.single;
+    await job.load();
+    capture.publicationIssue = null;
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(capture.staged, [staged],
+        reason: 'A sealed group is not re-downloaded');
+    expect(capture.restored.single.id, staged);
+  });
+  test(
+      'related restore rejects changed local membership before download or publication',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    capture.includeRtc = false;
+    await job.restoreLatest();
+    expect(job.issue, 'related_group_changed');
+    expect(generations.downloads, 0);
+    expect(capture.staged, isEmpty);
+    expect(capture.restored, isEmpty);
+  });
+  test(
+      'failed related-member transport preserves pending intent without publication',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    generations.failDownload = true;
+    await job.restoreLatest();
+    expect(job.issue, isNotNull);
+    expect(job.restorePending, isTrue);
+    expect(capture.restored, isEmpty);
+    generations.failDownload = false;
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(capture.restored, hasLength(1));
+  });
   test('another installation cloud change requires a choice before upload',
       () async {
     await job.backup('Game.srm');
@@ -1285,6 +1412,83 @@ void main() {
     expect(job.pendingName, 'Game.srm');
     expect(generations.cloud[remote.generationId]!.contentDigest,
         remote.contentDigest);
+  });
+  test('related restore uses current installation names for both file roles',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    currentName = 'Reinstalled.srm';
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(capture.stagedGroups.single,
+        unorderedEquals(['Reinstalled.srm', 'Reinstalled.rtc']));
+  });
+  test(
+      'related rollback reads both retained local members without a cloud download',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    await job.restoreLatest();
+    final rollbackId = capture.restored.single.rollback;
+    final downloads = generations.downloads;
+    final directory =
+        await Directory('D:/Temp').createTemp('rshop-group-rollback-');
+    final sram = File('${directory.path}/sram');
+    final rtc = File('${directory.path}/rtc');
+    try {
+      await sram.writeAsBytes([1, 2, 3, 4], flush: true);
+      await rtc.writeAsBytes([5, 6, 7, 8], flush: true);
+      capture.sealed[rollbackId] =
+          CapturedSaveGroup(rollbackId, 'device', '1.22.2_GIT', [
+        CapturedSaveFile(currentName, sram, 4, 'b' * 64),
+        CapturedSaveFile('Game.rtc', rtc, 4, 'd' * 64),
+      ]);
+      await job.rollbackLast();
+      expect(job.issue, isNull);
+      expect(job.phase, 'rolled_back');
+      expect(generations.downloads, downloads);
+      expect(capture.restored, hasLength(2));
+      expect(
+          capture.stagedGroups.last, unorderedEquals(['Game.srm', 'Game.rtc']));
+    } finally {
+      if (await sram.exists()) await sram.delete();
+      if (await rtc.exists()) await rtc.delete();
+      await directory.delete();
+    }
+  });
+  test(
+      'related cloud choice preserves the local branch before restoring both files',
+      () async {
+    capture.includeRtc = true;
+    await job.backup('Game.srm');
+    final base = job.lastVerified!;
+    final remote = SaveBackupManifest(
+        generationId: 'other-device',
+        binding: base.binding,
+        parentGenerationIds: [base.generationId],
+        createdAt: DateTime.utc(2000),
+        members: base.members
+            .map((m) => SaveBackupMember(
+                relativePath: m.relativePath,
+                cloudFileId: m.relativePath.endsWith('.srm')
+                    ? 'other-sram'
+                    : 'other-rtc',
+                sizeBytes: 4,
+                sha256: 'c' * 64))
+            .toList());
+    generations.cloud[remote.generationId] = remote;
+    await job.backup('Game.srm');
+    expect(job.issue, 'save_conflict');
+    final original = remote.encode();
+    await job.restoreConflict(
+        remote.generationId, job.conflicts.map((m) => m.generationId).toSet());
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(generations.cloud[remote.generationId]!.encode(), original);
+    expect(generations.uploads, 2,
+        reason: 'The local branch must be independently recoverable');
+    expect(
+        capture.stagedGroups.single, unorderedEquals(['Game.srm', 'Game.rtc']));
   });
   test('installation filenames do not turn identical SRAM into a conflict',
       () async {

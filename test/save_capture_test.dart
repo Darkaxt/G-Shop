@@ -264,6 +264,76 @@ void main() {
     expect((calls[1].arguments as Map)['offset'], 0);
   });
 
+  test(
+      'related restore seals the whole group only after both verified streams end',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'appendRestoreGroup') {
+        final args = call.arguments as Map;
+        return (args['offset'] as int) + (args['bytes'] as Uint8List).length;
+      }
+      return null;
+    });
+    await SaveCapture().stageRetroArchGroupRestore(
+        restoreId: 'a' * 32,
+        name: 'Game.srm',
+        members: [
+          RestoreSaveMember('Game.srm', 4, 'b' * 64,
+              Stream.value(Uint8List.fromList([1, 2, 3, 4]))),
+          RestoreSaveMember('Game.rtc', 4, 'c' * 64,
+              Stream.value(Uint8List.fromList([5, 6, 7, 8]))),
+        ]);
+    expect(calls.map((c) => c.method), [
+      'beginRestoreGroup',
+      'appendRestoreGroup',
+      'appendRestoreGroup',
+      'sealRestoreGroup'
+    ]);
+    expect(calls.skip(1).take(2).map((c) => (c.arguments as Map)['member']),
+        [0, 1]);
+    calls.clear();
+    Stream<Uint8List> failed() async* {
+      yield Uint8List.fromList([1, 2, 3, 4]);
+      throw StateError('changed cloud');
+    }
+
+    await expectLater(
+        SaveCapture().stageRetroArchGroupRestore(
+            restoreId: 'a' * 32,
+            name: 'Game.srm',
+            members: [
+              RestoreSaveMember('Game.rtc', 4, 'c' * 64,
+                  Stream.value(Uint8List.fromList([5, 6, 7, 8]))),
+              RestoreSaveMember('Game.srm', 4, 'b' * 64, failed()),
+            ]),
+        throwsStateError);
+    expect(calls.any((c) => c.method == 'sealRestoreGroup'), isFalse);
+  });
+
+  test(
+      'group staging rejects unrelated, duplicate and escaping members before IO',
+      () async {
+    for (final names in [
+      ['Game.srm', 'Other.rtc'],
+      ['Game.srm', 'Game.srm'],
+      ['Game.srm', '../Game.rtc'],
+      ['Game.srm', 'Game.state']
+    ]) {
+      await expectLater(
+          SaveCapture().stageRetroArchGroupRestore(
+              restoreId: 'a' * 32,
+              name: 'Game.srm',
+              members: [
+                for (final name in names)
+                  RestoreSaveMember(name, 4, 'b' * 64, const Stream.empty()),
+              ]),
+          throwsFormatException);
+    }
+    expect(calls, isEmpty);
+  });
+
   test('a full-length download followed by verification failure cannot seal',
       () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
