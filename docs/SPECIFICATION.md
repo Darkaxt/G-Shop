@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 17, 2026-10-10.
+Authoritative specification, revision 18, 2026-10-11.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -1463,6 +1463,19 @@ Raise only a diagnosed insufficient budget, and record observed effective
 settings, actual gate acquisition and any memory failure with the next required
 focused verification. Do not modify another task's configuration or interrupt
 its build to enforce this constraint.
+
+### QA-04 — Installed Gradle 9.x maintenance
+
+Authorized on 2026-10-11: review and upgrade this project's Android build to
+Gradle newer than 9.0, preferring a distribution already available on this host.
+Select a coherent Gradle/Kotlin/AGP/JDK/Flutter combination, pin the official
+distribution checksum, preserve application/signing identity and the existing
+QA-01 resource limits. Make only build compatibility changes; no device install,
+publication, SD migration, global Flutter SDK change or shared-cache cleanup.
+Acceptance: actual gated debug APK assembly and Android JVM tests pass on the
+selected installed distribution; inspect effective memory/concurrency settings
+and record remaining warnings, then commit. The bounded maintenance stage and
+evidence are in TOOLCHAIN_UPGRADE.md; it does not close any product stage.
 
 ### QA-02 — Regression and end-to-end evidence
 

@@ -5,6 +5,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current maintenance override — closed 2026-10-11
+
+TM1 in TOOLCHAIN_UPGRADE.md is COMPLETE: installed Gradle 9.1.0, AGP 8.13.2
+and Kotlin 2.3.21 passed gated Android JVM tests and debug APK assembly. Actual
+runtime resource markers, fresh reports, APK identity/signature and bounded
+cleanup were inspected; the evidence is recorded with the verified commit.
+No implementation stage is ACTIVE under this maintenance request. S7 and S10
+remain BLOCKED on the scoped user-directed execution hold, not a new product
+defect. Their outstanding criteria and prior evidence remain unchanged; no
+migration, metadata-policy waiver, hibernation, device installation or release
+was performed. The dated product-stage states below are historical; this
+maintenance result does not close S7, S10 or the overall fork.
+
 ### Current execution override — 2026-10-10, console-isolated S7 cleanup
 
 The user explicitly resumed S7 and requested laptop hibernation after a safe
