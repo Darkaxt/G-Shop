@@ -116,9 +116,11 @@ class LibraryRetentionPage {
     if (rank != null && rank <= 25) {
       return LibraryRetentionDisposition.keep;
     }
-    if (provisional || rank == null) {
-      return LibraryRetentionDisposition.preserve;
-    }
+    // MIGRATE-01's 2026-10-11 authorization permits unrated games to become
+    // cloud-only. Missing scores (including elsewhere in this console) are
+    // coverage information, not a veto on this exact member's planning status.
+    // Unknown/ambiguous identities are excluded from members by the query;
+    // outsideSample still grants no ownership, recovery proof or deletion.
     return LibraryRetentionDisposition.outsideSample;
   }
 }

@@ -75,7 +75,7 @@ Widget _testApp({required Widget home}) =>
     ProviderScope(child: MaterialApp(home: home));
 
 void main() {
-  for (final rank in [25, 26]) {
+  for (final rank in <int?>[25, 26, null]) {
     testWidgets('complete retention review reports rank $rank without deletion',
         (tester) async {
       final runtime = _Runtime();
@@ -99,7 +99,7 @@ void main() {
                 canonicalRank: rank)
           ],
           collectionGames: 26,
-          rankedGames: 26,
+          rankedGames: rank == null ? 25 : 26,
           totalMembers: 26,
           unboundArtifacts: 0));
       await tester.pumpWidget(_testApp(
@@ -115,9 +115,12 @@ void main() {
       expect(
           find.text(rank == 25
               ? 'Keep · canonical rank 25 (Top 25)'
-              : 'Outside sample · canonical rank 26'),
+              : rank == null
+                  ? 'Outside sample · unrated; cloud recovery required'
+                  : 'Outside sample · canonical rank 26'),
           findsOneWidget);
-      expect(find.textContaining('Provisional'), findsNothing);
+      expect(find.textContaining('Provisional'),
+          rank == null ? findsOneWidget : findsNothing);
       expect(find.textContaining('Planning only'), findsOneWidget);
       expect(find.text('Remove'), findsNothing);
       expect(runtime.cancellation, isNull);
@@ -163,8 +166,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(query.requestedArtifact, same(artifact));
     expect(query.requestedPlatform, 'psx');
-    expect(
-        find.textContaining('Preserve · ranking incomplete'), findsOneWidget);
+    expect(find.text('Outside sample · canonical rank 26'), findsOneWidget);
     expect(find.textContaining('26/27 ranked · Provisional'), findsOneWidget);
     expect(find.textContaining('Planning only'), findsOneWidget);
     expect(runtime.cancellation, isNull);

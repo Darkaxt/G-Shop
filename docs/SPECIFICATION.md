@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 18, 2026-10-11.
+Authoritative specification, revision 19, 2026-10-11.
 
 Status: implementation authorized on 2026-09-08; acceptance tracked in the ledger.
 Upstream baseline: `AverageConsumer/R-Shop` at
@@ -1087,19 +1087,34 @@ pass and live on-demand round trip on the actual Thor. Keep the best 25 canonica
 games per console as the offline sample, using the same validated overall-score
 and identity rules as META-05/META-07. Preserve required disc/bundle members; do
 not count each disc as a game or add uncapped translation/hack/tag bonuses. Fewer
-than 25 games are valid for smaller collections. An incomplete/untrustworthy
-ranking cannot justify deleting unranked games; report and defer that console
-until its retention set is defensible.
+than 25 games are valid for smaller collections. Do not invent scores or treat
+unrated games as poorly rated. The authorized cloud-only policy below separates
+offline-sample selection from per-file recoverability and removal permission.
 
 User clarification, 2026-10-10: Top 25 is an upper limit, not a quota. A smaller
 reliably scored sample (for example nineteen games) needs no padding, fabricated
-scores or wait for additional votes. Preserve unranked/uncertain games rather
-than treating missing scores as poor reception. Console outcomes are independent:
+scores or wait for additional votes. Console outcomes are independent:
 an unresolved console must not prevent eligible cleanup of another console.
 Game Gear may be preserved in full because its storage cost is small. Record
 preserved exceptions explicitly; do not use them as a whole-SD blocking gate.
 This clarification does not waive exact cloud recovery, local identity,
 save/settings preservation or the required fresh metadata work.
+
+User authorization, 2026-10-11: unrated games may become cloud-only as well;
+missing ratings are no longer a mandatory-local exception or a whole-console
+cleanup blocker. This supersedes the previous preservation rule for missing or
+insufficient score evidence only. Keep up to 25 valid ranked canonical games per
+console, including every required member of those kept games and explicit pins.
+Other exactly bound ROMs, including unrated games, may be removal candidates.
+Incomplete rating coverage remains visible and must not manufacture rankings,
+change score eligibility or automatically refill the sample with unrated games.
+An unrelated unbound artifact must not veto planning for an exactly bound one;
+unbound/ambiguous identities themselves remain preserved. This is authorization
+for reviewed ROM removal, not formatting the SD card or deleting arbitrary files.
+The owner's statement that everything is backed up is not per-file proof: all
+current-byte, readable cloud-copy, restore-format, save/settings, journal and
+no-refill requirements below remain mandatory. The disconnected device prevents
+live inventory/revalidation/removal, not this offline policy implementation.
 
 Inventory exact existing SD ROM paths and prove each removal candidate has an
 identical, complete, readable cloud artifact (stable provider ID/version and

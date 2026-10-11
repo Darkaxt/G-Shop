@@ -5,6 +5,44 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current S7 policy authorization — 2026-10-11
+
+S7 is BLOCKED on the disconnected Thor after completing and verifying the offline
+portion of the owner's explicit cloud-only authorization, including unrated games.
+No implementation stage is ACTIVE. SPECIFICATION.md revision 19 supersedes the
+missing-rating preservation rule; that policy question is resolved. Exact-member
+retention planning and accurate unrated review labels are implemented and verified.
+Top-25 score validity, canonical membership/bundles/pins and exact current cloud
+recovery remain required. S10 stays BLOCKED on the execution hold; S11 is NOT
+STARTED. No other implementation stage is opened.
+
+The Thor is disconnected according to the owner. This externally prevents
+MIGRATE-01's current SD inventory, immediate byte/identity revalidation, journaled
+removals and final retained-set/free-space/restore verification. Reconnection
+resolves that availability blocker, not the still-unfinished migration work.
+No live backup proof or SD deletion is claimed. Older execution/maintenance
+states below are historical and superseded by this entry.
+
+Offline verification: the changed regression first failed on the old `preserve`
+disposition. The final serial command
+`flutter test --no-pub --concurrency=1 test/library_query_test.dart test/widgets/drive_recovery_review_dialog_test.dart test/migration_byte_observation_test.dart --reporter expanded`
+passed on 2026-10-11 (55 checks). It proves valid Top-25/canonical-member retention,
+unrated/outside-sample planning without invented scores, exclusion of ambiguous
+bindings, independence from another unbound artifact, read-only UI planning,
+explicit UI initiation of byte/adoption operations, cancellation drain and durable byte-observation
+validation. The existing migration test's stale schema-37 assertion was corrected
+to the current production schema captured before its v35-upgrade exercise;
+production schema 38 and its migration logic were not changed.
+
+Tests used one workload at a time and a task-specific D:/Temp directory, removed
+afterward through transactional cleanup `9ad1e328a1f1559b4d57524a52a86da6` (only
+that empty generated directory remained). No Gradle build, gate acquisition,
+APK install, Drive mutation or device operation occurred in this policy change.
+Fresh metadata completion, reviewed private migration membership, current
+per-file recovery proof, no-refill activation, journaled execution and final
+space/retained-set/restore/save verification remain required S7 work, not tracked
+deferrals. S7 and overall implementation are not COMPLETE.
+
 ### Current maintenance override — closed 2026-10-11
 
 TM1 in TOOLCHAIN_UPGRADE.md is COMPLETE: installed Gradle 9.1.0, AGP 8.13.2

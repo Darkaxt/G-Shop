@@ -1,12 +1,18 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 16.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 19.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Current scheduling (2026-10-09): S0-S6 and S8-S9 COMPLETE; S7 BLOCKED on external Game Gear
-reception evidence for MIGRATE-01; S10 sole ACTIVE; S11 NOT STARTED. See the
-current status entry for exact blocker, resolution and dependent work. Older
-dated ACTIVE checkpoints below are historical. No acceptance criterion changes.
+Current scheduling (2026-10-11): S0-S6 and S8-S9 COMPLETE; S7 BLOCKED on the
+disconnected Thor after its verified offline cloud-only policy change; S10 BLOCKED
+on the user-directed sequencing hold; S11 NOT STARTED. The missing-rating preservation
+rule is superseded by revision 19, not an unresolved approval question. Within
+S7: exact-member planning, review labels and focused query/UI/recovery-safety
+verification are satisfied for this policy change. The external disconnected-Thor
+blocker prevents live inventory, byte revalidation, journaled removal and final
+restore/space proof.
+No new implementation stage or tracked deferral is opened. Older dated ACTIVE
+checkpoints below are historical; current specification and status win.
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do
@@ -1173,15 +1179,17 @@ reproduce those counts. PS1 currently has no automatic CD-CHD raw identifier
 route; the DVD-only header must remain rejected for CDs. Resolve the actual
 META-03 identity-evidence boundary, not the symptom with another title-only
 scrape. Evidence and limitations are in S7_ACCEPTANCE_RECONCILIATION.md.
-Preserve the provisional-retention guard: incomplete identity resolution can
-merge canonical groups, so a current rank above 25 is not a fixed-set proof.
+Revision 19 separates provisional ranking coverage from removal review:
+incomplete/ambiguous identities themselves remain excluded and preserved, but
+missing scores or another unbound artifact no longer veto an exact member's
+cloud-only planning status. A current rank is never per-file recovery proof.
 
 | Remaining acceptance work | Current evidence / next required result |
 | --- | --- |
 | Stable current root publication | COMPLETE: generation 2 is published, active=2/pending=null/next=3. Preserving update 436 retains it; no reset traversal. |
 | Normal native mapping/policy/nested-reader integration | APK 435 preservation and explicit DSi mapping pass. Normal Wii/Wii U Best-25 reports truthful zero/provisional coverage after the completed policy rebuild; two ordinary nested GBA raw bindings match exact container observations. This execution check passes, not full coverage or removal authority. See S7_NATIVE_POLICY_AND_NESTED_PROOF.md. |
 | Fresh collection metadata | Same immutable ScreenScraper job 76 resumed without sign-in after provider unavailability: 18,548 requested / 25,016 pending / 701 rated. Finish its capture, then required scoped Wii/DSi and aggregate-score work through normal provider controls. No terminal outcome rewrites or replacement capture. |
-| Defensible per-console retained games | Use current canonical identities and supported overall scores; incomplete rankings preserve unresolved games and do not grant deletion. Full provider traversal alone is not a defensible Top-25. |
+| Defensible per-console retained games | Keep up to 25 canonical games using valid scores. Unrated exact members may be cloud-only under revision 19; unknown identities stay preserved. Neither full provider traversal nor this planning classification grants per-file deletion. |
 | Reviewed migration | Revalidate exact local/cloud bytes and applicable tested restore routes, review the private keep/remove/preserve manifest and journal exact eligible removals; verify retained games, free space, restore and save safety. |
 
 This is the sole ACTIVE stage. S8-S11 remain NOT STARTED; these outstanding S7
@@ -1415,8 +1423,10 @@ restoration/removal support and does not authorize speculative NES/SNES expansio
   selection, bounded payload, multiple entries, job/provider isolation, no
   additional lookup and no publication/rank from candidate facts. This shared
   path must not contain per-game corrections or hardcoded title rules.
-  Establish defensible Top-25 retention per console; no fabricated scores or
-  automatic deletion of unresolved games. Count canonical games, retain bundles.
+  Establish up-to-25 scored retention per console; no fabricated scores or
+  automatic deletion of unresolved identities. Missing ratings alone do not
+  preserve exactly bound ROMs under the authorized cloud-only policy. Count
+  canonical games, retain bundles and pins; recovery gates still apply per file.
 - Resolve shared matching defects rather than curate individual games. The
   reproduced NDS catalogue-number defect belongs to this same S7 boundary:
   strip only the observed ordinal shape for provider discovery, retain captured

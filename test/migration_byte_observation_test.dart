@@ -54,6 +54,8 @@ void main() {
       DatabaseService.resetForTesting();
       final service = DatabaseService();
       db = await service.database;
+      final currentSchemaVersion = await db.getVersion();
+      expect(currentSchemaVersion, greaterThan(35));
       await service.saveGames('psx', [
         const GameItem(
             filename: 'Fixture.chd',
@@ -74,7 +76,7 @@ void main() {
       await db.close();
       DatabaseService.resetForTesting();
       db = await service.database;
-      expect(await db.getVersion(), 37);
+      expect(await db.getVersion(), currentSchemaVersion);
       for (final name in before.keys) {
         expect(await db.query(name), before[name], reason: name);
       }

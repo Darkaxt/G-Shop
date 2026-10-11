@@ -548,8 +548,8 @@ void main() {
     final provisional = await query.retentionForArtifact(
         platformId: 'psx', artifact: remote(1), assessedBases: [basis]);
     expect(provisional.provisional, isTrue);
-    expect(
-        provisional.disposition(provisional.members.single).name, 'preserve');
+    expect(provisional.disposition(provisional.members.single).name,
+        'outsideSample');
   });
 
   test('exact artifact review rejects namesakes and duplicate bindings',
@@ -587,7 +587,7 @@ void main() {
   });
 
   test(
-      'retention preserves unresolved games rather than treating them as bottom ranked',
+      'retention permits unrated cloud-only candidates without inventing ranks',
       () async {
     for (var n = 1; n <= 26; n++) {
       await seed(n, score: n.toDouble());
@@ -602,10 +602,13 @@ void main() {
         page
             .disposition(page.members.singleWhere((m) => m.cacheRowId == 1))
             .name,
-        'preserve');
+        'outsideSample');
     final unresolved = page.members.singleWhere((m) => m.cacheRowId == 27);
     expect(unresolved.canonicalRank, isNull);
-    expect(page.disposition(unresolved).name, 'preserve');
+    expect(page.disposition(unresolved).name, 'outsideSample');
+    final retained = page.members.singleWhere((m) => m.cacheRowId == 26);
+    expect(retained.canonicalRank, 1);
+    expect(page.disposition(retained).name, 'keep');
   });
 
   test(
@@ -634,7 +637,8 @@ void main() {
     expect(empty.collectionGames, 2);
   });
 
-  test('retention treats conflicting scores and low vote counts as unresolved',
+  test(
+      'retention leaves conflicting and low-vote scores unranked but cloud-only',
       () async {
     await seed(1, group: 'same', score: 70);
     await seed(2, group: 'same', score: 90);
@@ -645,7 +649,8 @@ void main() {
     expect(page.rankedGames, 0);
     expect(page.provisional, isTrue);
     expect(page.members.every((m) => m.canonicalRank == null), isTrue);
-    expect(page.members.every((m) => page.disposition(m).name == 'preserve'),
+    expect(
+        page.members.every((m) => page.disposition(m).name == 'outsideSample'),
         isTrue);
   });
 
@@ -697,12 +702,43 @@ void main() {
     expect(page.rankedGames, 0);
     expect(page.provisional, isTrue);
     expect(page.disposition(page.members.single),
-        LibraryRetentionDisposition.preserve);
+        LibraryRetentionDisposition.outsideSample);
     await db.delete('games', where: 'id = 1');
     page = await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
     expect(page.members, isEmpty);
     expect(page.totalMembers, 0);
     expect(page.unboundArtifacts, 0);
+  });
+
+  test('unbound identity does not veto other exact cloud-only candidates',
+      () async {
+    await seed(1, score: 90);
+    final unrated = await seed(2);
+    final uncertain = await seed(3);
+    final edition = (await store.edition(uncertain))!;
+    final game = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'platformId': 'snes',
+    }));
+    final page =
+        await query.retentionPage(platformId: 'psx', assessedBases: [basis]);
+    expect(page.unboundArtifacts, 1);
+    expect(page.members.any((m) => m.editionId == uncertain), isFalse);
+    expect(page.disposition(page.members.singleWhere((m) => m.cacheRowId == 1)),
+        LibraryRetentionDisposition.keep);
+    final candidate = page.members.singleWhere((m) => m.editionId == unrated);
+    expect(candidate.canonicalRank, isNull);
+    expect(
+        page.disposition(candidate), LibraryRetentionDisposition.outsideSample);
+    expect(
+        () => page.disposition(LibraryRetentionMember(
+            editionId: uncertain,
+            gameId: game.id,
+            groupKey: 'uncertain',
+            cacheRowId: 3,
+            canonicalRank: null)),
+        throwsArgumentError);
   });
 
   test('cache UPSERT coalesces invalidations without rolling back refresh',
@@ -1177,11 +1213,13 @@ void main() {
     for (final platform in ['nes', 'snes', 'wii', 'wiiu']) {
       final retained = await query.retentionPage(platformId: platform);
       expect(retained.provisional, isTrue);
-      expect(
-          retained.members.every((member) =>
-              retained.disposition(member) !=
-              LibraryRetentionDisposition.outsideSample),
-          isTrue);
+      for (final member in retained.members) {
+        expect(
+            retained.disposition(member),
+            member.canonicalRank == null
+                ? LibraryRetentionDisposition.outsideSample
+                : LibraryRetentionDisposition.keep);
+      }
     }
   });
 

@@ -93,8 +93,9 @@ class _DriveRecoveryReviewDialogState
       LibraryRetentionDisposition.keep =>
         'Keep · canonical rank ${member.canonicalRank} (Top 25)',
       LibraryRetentionDisposition.preserve => 'Preserve · ranking incomplete',
-      LibraryRetentionDisposition.outsideSample =>
-        'Outside sample · canonical rank ${member.canonicalRank}',
+      LibraryRetentionDisposition.outsideSample => member.canonicalRank == null
+          ? 'Outside sample · unrated; cloud recovery required'
+          : 'Outside sample · canonical rank ${member.canonicalRank}',
     };
   }
 
