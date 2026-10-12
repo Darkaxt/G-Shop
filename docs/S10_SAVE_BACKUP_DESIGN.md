@@ -7,6 +7,47 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### First DS launch, watched Drive backup and restore — 2026-10-12
+
+The normal Library queue downloaded a real DS archive, and normal game settings
+automatically discovered its protected Melon save path, including the expected
+absent first save. Per-game automatic backup was enabled through the normal UI.
+The normal handoff opened Zoo Keeper in MelonDualDS. Its genuine initial 8-KiB
+save was captured by the protected root watcher and published as a verified Drive
+generation while the emulator remained foreground. An independent root read
+matched the local save SHA-256 to the verified manifest. Normal cloud restore,
+after safely exiting the test game and using Android App info to stop its writer,
+completed at the exact configured save path with the same digest. No gameplay,
+deep save parsing, fabricated save, manual folder mapping or runtime ADB dependency
+was required. The actual save and cloud generation remain intentional product data.
+
+This live workflow reproduced two defects. A long game quick menu clipped its
+first action above the handheld viewport; bounded scrolling and controller
+ensure-visible now pass focused viewport/navigation checks. The DS action label
+also incorrectly said Dolphin; emulator labels now come from the actual route.
+Melon's coverage copy now describes automatic root discovery and coherent live
+capture, retaining the separate restore writer boundary.
+
+The launch investigation reproduced a root snapshot failure with read-only
+protocol calls: snapshotBegin succeeded, an entry lookup returned expected
+ENOENT for an absent save, then snapshotVerify incorrectly returned source_changed.
+The worker had marked every protocol error as sticky snapshot failure, including
+that expected existence result. The implementation now excludes only entry/ENOENT
+from that error flag; kernel mutation and writer checks remain unchanged. The
+native protected/shared fixture now verifies absence and an empty restore baseline
+before exercising the existing writer/mutation refusal cases. Preserving owner
+build 728 and test build 730 pass the direct formerly failing root protocol and
+protected native regression, including stopped-runtime restore/retained rollback.
+
+The real workflow also exposed a stale open settings job: automatic backup had
+completed in SQLite, but the screen retained a pending record and disabled restore.
+Leaving/reopening the screen reproduced the missing reconciliation. Automatic
+completion now refreshes the view through existing native save admission, without
+substituting a refresh for another instance's requested backup. Focused host
+regressions pass; integrated build 734/device confirmation remain pending.
+S10 remains the sole ACTIVE stage and S11 remains NOT STARTED. Remaining emulator
+routes, acceptance faults and conditional legacy handover are ordinary S10 work.
+
 ### DS archives share the launch/save route — verified slice, 2026-10-12
 
 DS `.7z` and `.zip` now participate in the same typed transfer, publication,

@@ -658,27 +658,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(
-            label: const {
-              'gamegear',
-              'megadrive',
-              'mastersystem',
-              'sg1000',
-              'n64',
-              'gb',
-              'gbc',
-              'gba',
-              'nes',
-              'snes',
-              'psx'
-            }.contains(widget.system.id)
-                ? 'Open in RetroArch'
-                : widget.system.id == 'psp'
-                    ? 'Open in PPSSPP'
-                    : widget.system.id == 'ps2'
-                        ? 'Open in NetherSX2'
-                        : widget.system.id == 'wiiu'
-                            ? 'Open in Cemu'
-                            : 'Open in Dolphin',
+            label: 'Open in ${OwnedEmulatorLauncher.emulatorName(widget.system.id)}',
             icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
       if (controller.state.isVariantInstalled &&

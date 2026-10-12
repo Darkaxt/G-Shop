@@ -43,8 +43,13 @@ preserving build 716. No live DS game/watch-to-Drive claim is made by these prob
 DS `.7z`/`.zip` normal queue, recovery/adoption/offline validation and launch ordering
 now pass focused host/native checks. Preserving integrated build 720 passes the
 actual Thor compressed-document/save-location proof, including an archive whose
-member has a different name. No real game/watch-to-Drive claim is made. Finish
-that real workflow next, then remaining SAVE-01 coverage/faults and handover.
+member has a different name. The subsequent real normal-UI DS workflow now
+passes launch, protected watched backup to Drive while Melon stays foreground,
+and cloud restore at its expected save path with independent matching digests.
+Builds 728/730 verify the absent-first-save root correction and native regressions;
+734 integrates the automatic-completion settings refresh and preserves all ten
+private preferences on installation. Finish the remaining installed-emulator
+SAVE-01 routes, required faults and conditional legacy handover next.
 S10 stays ACTIVE; S11 stays NOT STARTED.
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11

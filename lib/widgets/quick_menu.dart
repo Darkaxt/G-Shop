@@ -44,6 +44,8 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
     with SingleTickerProviderStateMixin {
   int _focusedIndex = 0;
   final FocusNode _menuFocusNode = FocusNode(debugLabel: 'QuickMenu');
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _itemKeys = {};
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -76,6 +78,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
   @override
   void dispose() {
     _menuFocusNode.dispose();
+    _scrollController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -102,6 +105,15 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         item.onSelect();
       });
+    });
+  }
+
+  void _focusItem(int index) {
+    setState(() => _focusedIndex = index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final context = _itemKeys[index]?.currentContext;
+      if (context != null) Scrollable.ensureVisible(context, alignment: .5);
     });
   }
 
@@ -138,7 +150,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
       final indices = _selectableIndices;
       final pos = indices.indexOf(_focusedIndex);
       if (pos > 0) {
-        setState(() => _focusedIndex = indices[pos - 1]);
+        _focusItem(indices[pos - 1]);
         ref.read(feedbackServiceProvider).tick();
       }
       return KeyEventResult.handled;
@@ -147,7 +159,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
       final indices = _selectableIndices;
       final pos = indices.indexOf(_focusedIndex);
       if (pos >= 0 && pos < indices.length - 1) {
-        setState(() => _focusedIndex = indices[pos + 1]);
+        _focusItem(indices[pos + 1]);
         ref.read(feedbackServiceProvider).tick();
       }
       return KeyEventResult.handled;
@@ -158,8 +170,14 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
 
   /// Maps a Nintendo-convention hint label to a gamepad button ID for SVG lookup.
   static const _hintToButtonId = {
-    'A': 'a', 'B': 'b', 'X': 'x', 'Y': 'y',
-    'L': 'l', 'R': 'r', 'ZL': 'zl', 'ZR': 'zr',
+    'A': 'a',
+    'B': 'b',
+    'X': 'x',
+    'Y': 'y',
+    'L': 'l',
+    'R': 'r',
+    'ZL': 'zl',
+    'ZR': 'zr',
     '−': 'minus',
   };
 
@@ -199,14 +217,18 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
                 ),
                 // Menu panel positioned above HUD
                 Positioned(
+                  top: rs.safeAreaTop + rs.spacing.lg,
                   bottom: rs.isPortrait
                       ? rs.safeAreaBottom + 60
                       : rs.spacing.lg + 60,
                   right: rs.isPortrait ? null : rs.spacing.lg,
                   left: rs.isPortrait ? rs.spacing.lg : null,
-                  child: rs.isPortrait
-                      ? Center(child: _buildPanel(rs))
-                      : _buildPanel(rs),
+                  child: Align(
+                    alignment: rs.isPortrait
+                        ? Alignment.bottomCenter
+                        : Alignment.bottomRight,
+                    child: _buildPanel(rs),
+                  ),
                 ),
               ],
             ),
@@ -239,9 +261,15 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(rs.radius.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: _buildItems(rs),
+            child: Scrollbar(
+              controller: _scrollController,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildItems(rs),
+                ),
+              ),
             ),
           ),
         ),
@@ -297,6 +325,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
     final accentColor = item.highlight ? Colors.greenAccent : Colors.cyanAccent;
 
     return GestureDetector(
+      key: _itemKeys.putIfAbsent(index, GlobalKey.new),
       onTap: () => _selectItem(index),
       child: MouseRegion(
         onEnter: (_) => setState(() => _focusedIndex = index),
@@ -320,9 +349,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
                 height: rs.isSmall ? 18 : 22,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(2),
-                  color: isFocused
-                      ? accentColor
-                      : Colors.transparent,
+                  color: isFocused ? accentColor : Colors.transparent,
                 ),
               ),
               SizedBox(width: rs.spacing.sm),
@@ -347,9 +374,12 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
                       item.label,
                       style: TextStyle(
                         fontSize: rs.isSmall ? 13 : 14,
-                        fontWeight: isFocused ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isFocused ? FontWeight.w600 : FontWeight.w400,
                         color: isFocused
-                            ? (item.highlight ? Colors.greenAccent : Colors.white)
+                            ? (item.highlight
+                                ? Colors.greenAccent
+                                : Colors.white)
                             : (item.highlight
                                 ? Colors.greenAccent.withValues(alpha: 0.7)
                                 : Colors.white70),
@@ -367,8 +397,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
                 ),
               ),
               // Shortcut hint
-              if (hintSvg != null)
-                _buildHintBadge(hintSvg, isFocused, rs),
+              if (hintSvg != null) _buildHintBadge(hintSvg, isFocused, rs),
             ],
           ),
         ),

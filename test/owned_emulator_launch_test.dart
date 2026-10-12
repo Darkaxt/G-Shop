@@ -45,6 +45,12 @@ void main() {
       return null;
     });
   });
+  test('DS launch label names Melon rather than the Dolphin fallback', () {
+    expect(OwnedEmulatorLauncher.emulatorName('nds'), 'MelonDualDS');
+    expect(OwnedEmulatorLauncher.emulatorName('psp'), 'PPSSPP');
+    expect(OwnedEmulatorLauncher.emulatorName('gc'), 'Dolphin');
+    expect(OwnedEmulatorLauncher.emulatorName('gba'), 'RetroArch');
+  });
   tearDown(() => TestDefaultBinaryMessengerBinding
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));

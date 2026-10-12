@@ -207,6 +207,24 @@ class _Areas extends DriveSaveBackupAreaApi {
 /// UI verifies the explicit choice; the separate job tests exercise real SQLite
 /// ordering. Do not launch FFI work from a dialog's fake-clock continuation.
 class _UiJob extends SaveBackupGameJob {
+  SaveBackupGameJob? refreshedFrom;
+  bool refreshFixture = false;
+  bool refreshed = false;
+  Completer<void>? loadHold;
+  @override
+  Future<void> load() async {
+    await loadHold?.future;
+    if (!refreshFixture) return super.load();
+    refreshed = refreshedFrom != null;
+    notifyListeners();
+  }
+
+  @override
+  String? get pendingName =>
+      refreshed ? refreshedFrom!.pendingName : super.pendingName;
+  @override
+  SaveBackupManifest? get lastVerified =>
+      refreshed ? refreshedFrom!.lastVerified : super.lastVerified;
   int restores = 0;
   int rollbacks = 0;
   int localChoices = 0;
@@ -254,6 +272,7 @@ class _UiJob extends SaveBackupGameJob {
 class _AutomaticUi extends AutomaticSaveBackups {
   bool enabled = false;
   int changes = 0;
+  void completed() => notifyListeners();
   _AutomaticUi(Database db, SharedPreferences preferences)
       : super(
             database: Future.value(db),
@@ -401,6 +420,81 @@ void main() {
     areas.close();
     generations.close();
     await db.close();
+  });
+  test('refresh joins another job instance and reloads without recapturing',
+      () async {
+    final ui = _UiJob(job);
+    await ui.load();
+    capture.held = Completer<void>();
+    final backup = job.backup(currentName);
+    await capture.started.future;
+    var refreshed = false;
+    final refresh = ui.refresh().then((_) => refreshed = true);
+    expect(refreshed, isFalse);
+    expect(ui.lastVerified, isNull);
+    expect(identical(job.refresh(), backup), isTrue);
+    capture.held!.complete();
+    await backup;
+    await refresh;
+    expect(ui.lastVerified!.generationId, job.lastVerified!.generationId);
+    expect(ui.pendingName, isNull);
+    expect(capture.captures, 1);
+    expect(generations.uploads, 1);
+    ui.dispose();
+  });
+  test('a UI refresh never substitutes for another instance requested backup',
+      () async {
+    final ui = _UiJob(job)..loadHold = Completer<void>();
+    final refresh = ui.refresh();
+    final backup = job.backup(currentName);
+    expect(identical(backup, refresh), isFalse);
+    ui.loadHold!.complete();
+    await refresh;
+    await backup;
+    expect(capture.captures, 1);
+    expect(job.lastVerified, isNotNull);
+    ui.dispose();
+  });
+  testWidgets('automatic completion refreshes an open restore panel',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+    final ui = _UiJob(job);
+    await tester.runAsync(() async {
+      generations.fail = true;
+      await job.backup(currentName);
+      await ui.load();
+      expect(ui.pendingName, currentName);
+      generations.fail = false;
+      await job.backup(currentName);
+      expect(job.pendingName, isNull);
+    });
+    ui.refreshFixture = true;
+    await tester.pumpWidget(ProviderScope(
+        child: MaterialApp(
+            home: Scaffold(
+                body: SaveBackupGamePanel(
+                    job: ui,
+                    automatic: automatic,
+                    title: 'Game',
+                    section: SaveBackupSection.restore)))));
+    await tester.pumpAndSettle();
+    expect(ui.pendingName, currentName);
+    // The panel event path uses an immediate UI fixture, not FFI under fake time.
+    ui.refreshedFrom = job;
+    automatic.completed();
+    await tester.pumpAndSettle();
+    expect(ui.pendingName, isNull);
+    expect(ui.lastVerified, isNotNull);
+    expect(
+        tester
+            .widget<OutlinedButton>(
+                find.byKey(const ValueKey('save-backup-game-restore')))
+            .onPressed,
+        isNotNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    ui.dispose();
+    automatic.dispose();
   });
   testWidgets(
       'automatic opt-in requires review and status has no hidden controls',
@@ -1752,6 +1846,7 @@ void main() {
         melonDirectory: SaveCapture.melonStandardDirectory,
         melonName: 'Game.sav',
         resolveSaveName: () async => 'Game.sav'));
+    ds.refreshFixture = true;
     addTearDown(ds.dispose);
     addTearDown(automatic.dispose);
     Future<void> show(SaveBackupSection section) async {

@@ -344,7 +344,12 @@ object RootSaveSourceWorker {
                     reply(result)
                 } catch (error: Exception) {
                     val message = (error as? IOException)?.message
-                    if (snapshot >= 0) snapshotInvalid = true
+                    // exists() deliberately uses entry/ENOENT to represent an
+                    // absent first save. That observation is not a failed
+                    // snapshot. The armed kernel guard still rejects creation,
+                    // removal, replacement and writes before verification.
+                    val absentEntry = row.optString("operation") == "entry" && message == "owned_storage:2"
+                    if (snapshot >= 0 && !absentEntry) snapshotInvalid = true
                     reply(JSONObject().put("error", if (message == "source_changed" ||
                         message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable"))
                 }

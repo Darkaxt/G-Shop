@@ -92,7 +92,7 @@ class SaveEmulatorCoverage {
               : 'Needs review · installed RetroArch runtime is not verified'
           : _melon
               ? _reviewed
-                  ? 'In-game saves · selected shared .sav/.srm file; emulator must be closed.'
+                  ? 'In-game saves · shared or protected .sav/.srm file; completed writes can be backed up while MelonDualDS stays open.'
                   : 'Needs review · installed MelonDualDS runtime is not verified'
               : _psp
                   ? 'Unfinished · SAVEDATA groups not implemented'
@@ -104,21 +104,22 @@ class SaveEmulatorCoverage {
               ? 'Verified · reviewed PPSSPP state slot'
               : 'Needs review · installed PPSSPP runtime is not verified'
           : 'Unfinished · state mapping and restore not implemented';
-  String get storage => documentAuthorities.isNotEmpty
-      ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
-          'A user grant and save-specific read/write review are still required.'
-      : _retroArch
-          ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
-              'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
-              'Other cores and custom paths are unfinished.'
-          : _psp
-              ? 'Current route: explicitly selected shared PPSSPP_STATE folder and slot. '
-                  'Restore requires user-mediated Android App info preparation.'
-              : _melon
-                  ? 'Current route: explicitly selected shared save folder and file. '
-                      'Exit safely, then use Android App info before capture or restore. '
-                      'Root-assisted discovery and access to the standard Android/data '
-                      'save location are still being integrated.'
+  String get storage => _melon
+      ? 'Root-assisted discovery automatically resolves the downloaded game’s save '
+          'from MelonDualDS settings, including its standard Android/data folder. '
+          'Custom folders remain configurable. Completed saves are watched and '
+          'captured without stopping the emulator. Restore requires closing the '
+          'game safely and preparing MelonDualDS through Android App info.'
+      : documentAuthorities.isNotEmpty
+          ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
+              'A user grant and save-specific read/write review are still required.'
+          : _retroArch
+              ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
+                  'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
+                  'Other cores and custom paths are unfinished.'
+              : _psp
+                  ? 'Current route: explicitly selected shared PPSSPP_STATE folder and slot. '
+                      'Restore requires user-mediated Android App info preparation.'
                   : _launcher
                       ? 'This launcher does not own the emulator’s save files.'
                       : 'Storage/export route not yet reviewed. This is unfinished work, '

@@ -129,6 +129,21 @@ internal object MelonSaveProof {
             watch.close() // EOF shutdown and joined root child, without a save event.
             check(!watchFailed)
             synchronized(events) { check(events.isNotEmpty() && events.all { it == key }) }
+            // A first launch legitimately has no SRAM file. ENOENT from the
+            // existence lookup must not poison an otherwise unchanged guard.
+            // Namespace mutations still invalidate the kernel-backed snapshot.
+            val absentName = "RShopFixture-${id()}.sav"
+            SaveSourceStorage.open(context, source.path).use { storage ->
+                storage.beginMelonSnapshot(context, absentName)
+                check(!storage.exists(absentName))
+                storage.verifyMelonSnapshot()
+            }
+            val absentCapture = id().also(captures::add)
+            @Suppress("UNCHECKED_CAST")
+            val absence = call("captureMelon", mapOf("captureId" to absentCapture,
+                "directory" to source.path, "name" to absentName,
+                "restoreBaseline" to true)) as Map<String, Any>
+            check(absence["localWasAbsent"] == true && (absence["files"] as List<*>).isEmpty())
             // A writer can be paused between two writes with unchanged stat
             // fields. Neither a quiet file nor the emulator's stopped flag is
             // proof that this descriptor has completed its generation.
@@ -173,7 +188,7 @@ internal object MelonSaveProof {
                 val restore = stage(first.second.readBytes())
                 call("publishRestore", mapOf("captureId" to restore, "rollbackCaptureId" to first.first), "stop_melon_required")
                 check(read().contentEquals(a))
-                return "PASS MelonDualDS running-runtime ${if (protected) "protected" else "shared"} capture: open writer rejected, mutation rejection stays invalid, read-only descriptor admitted, closed-file capture/digest accepted without FLAG_STOPPED; live restore rejected without changing bytes; exclusive fixture cleanup; no gameplay/Drive/ROM access"
+                return "PASS MelonDualDS running-runtime ${if (protected) "protected" else "shared"} capture: absent first-save baseline accepted, open writer rejected, mutation rejection stays invalid, read-only descriptor admitted, closed-file capture/digest accepted without FLAG_STOPPED; live restore rejected without changing bytes; exclusive fixture cleanup; no gameplay/Drive/ROM access"
             }
             write(b)
             val rollback = capture()

@@ -5,6 +5,55 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Real DS watch-to-Drive and restore — 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 is NOT STARTED. Root authorization is not
+restricted to manual paths: the normal Library game menu discovered the installed
+MelonDualDS standard protected save destination and absent first-save basename
+from the real owned archive and live configuration. Normal launch then opened the
+game. While Melon remained foreground, its genuine 8,192-byte initial save caused
+the root watcher to enter the durable automatic lane and publish a verified Drive
+generation. Independent local SHA-256 matched the verified cloud manifest:
+`76e3bd2f0eca8dc61a1093fb2b22310cb8d00e3dcdb4a3689615f579d69a6a7e`.
+Normal explicit restore subsequently completed at that configured protected path;
+an independent digest matched again. The current local generation is retained for
+rollback. No gameplay/deep-save parsing or artificial game save was required.
+
+The real first launch exposed an expected-ENOENT error poisoning the root mutation
+guard. Direct read-only protocol calls reproduced it on 720 and pass on 728;
+only entry/ENOENT is exempted, never a writer or kernel mutation. Test artifact
+730 passes shared and protected app-UID native capture, absence-baseline, writer/
+mutation refusal, stopped-runtime recreated-service restore, changed-local refusal,
+retained rollback and exclusive fixture cleanup. These are bounded synthetic
+fault proofs, separate from the real normal-UI Drive workflow above.
+
+The long game menu now stays inside landscape/portrait viewports and scrolls the
+controller selection into view. Its DS launch label correctly says MelonDualDS.
+The live restore check also reproduced stale settings state after another job
+instance completed an automatic backup. The view now refreshes on automatic-lane
+completion through existing save admission. Host regressions prove it enables the
+open restore panel, joins an active same-game operation and does not replace a
+requested backup with a read. Affected save/job, viewport/navigation, launch and
+coverage checks pass; scoped analysis passes. No full-suite repetition was used.
+
+Integrated owner build 734 (`9ab798c30c994402b37c7c50dd787fad`) waited behind the
+existing build, acquired the shared host gate, then completed with exit 0 and
+independently confirmed completion. Actual workers=2, parallel=false and Gradle
+heap=3 GiB; reviewed Kotlin 2.3.21 remains in-process and shares that budget.
+Test tasks are configured for one 512-MiB fail-fast fork, but assembly did not run
+JVM tests. Generated compile/link Ninja pools are depth one in all three ABIs.
+No memory failure or heap increase occurred. Log:
+`C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/5961d50ce24748db9670f6d3485dfb9d.log`.
+
+Preserving installation and independently read installed APK match SHA-256
+`c07b8f5dd42fe2c7abcdb57b95b366e3ee015172e0b9b0a1ee221a63448f4f92`.
+The debug signing identity is unchanged, and all ten private preference file
+digests match immediately before/after installation. Test APK 730 is
+`f1dd636260b6356ca051e3cb33eb904e66cb8d2d75a2eba874ca7ba597d16ffe`.
+Final 734 UI confirmation is pending normal startup catalogue synchronization.
+Remaining installed-emulator routes/faults and conditional legacy handover remain
+ordinary S10 work; none is waived or claimed complete by this slice.
+
 ### DS archive integration — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 remains NOT STARTED. DS `.7z` and `.zip`

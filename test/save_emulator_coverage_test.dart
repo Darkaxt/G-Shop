@@ -71,13 +71,20 @@ void main() {
     expect(row.storage, isNot(contains('unsupported')));
   });
 
-  test('Melon coverage describes shared stopped-writer SRAM, not states', () {
+  test(
+      'Melon coverage describes automatic root discovery and coherent live capture',
+      () {
     final current = SaveEmulatorCoverage.decode(
         [_row('me.magnum.melondualds', '0.8.0.rc2')]).single;
     expect(current.saves, contains('shared'));
-    expect(current.saves, contains('closed'));
+    expect(current.saves, contains('completed'));
+    expect(current.saves, isNot(contains('must be closed')));
     expect(current.storage, contains('Android/data'));
     expect(current.storage, contains('Root'));
+    expect(current.storage, contains('automatically'));
+    expect(current.storage, contains('Restore'));
+    expect(current.storage, isNot(contains('before capture')));
+    expect(current.storage, isNot(contains('still being integrated')));
     expect(current.storage, isNot(contains('not accessible')));
     expect(current.states, startsWith('Unfinished'));
     final changed =

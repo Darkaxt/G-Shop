@@ -330,6 +330,41 @@ class SaveBackupGameJob extends ChangeNotifier {
     _changed();
   }
 
+  /// Reconcile an open screen after the automatic lane updates this durable job.
+  /// Admission and local ownership keep the read from racing a manual operation.
+  Future<void> refresh() {
+    if (_disposed) return Future.value();
+    if (_operation case final pending?) return pending;
+    if (_running[_key] case final pending?) {
+      return pending.then((_) => refresh());
+    }
+    final cancellation = CancelToken();
+    _cancellation = cancellation;
+    final operation = Future<void>.microtask(() async {
+      Future<void> Function()? release;
+      try {
+        release = await admission.acquire(cancellation);
+        _check(cancellation);
+        await load();
+      } catch (_) {
+        if (!cancellation.isCancelled) _issue = 'status_unavailable';
+      } finally {
+        try {
+          await release?.call();
+        } finally {
+          _operation = null;
+          _cancellation = null;
+          _changed();
+        }
+      }
+    });
+    // A read must not occupy the backup de-duplication map: another instance's
+    // requested capture still needs to run after native admission is released.
+    _operation = operation;
+    _changed();
+    return operation;
+  }
+
   Future<void> _persist(Map<String, dynamic> record) async {
     final db = await database;
     final encoded = jsonEncode(record);

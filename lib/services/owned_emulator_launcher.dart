@@ -9,6 +9,15 @@ import 'owned_storage.dart';
 /// Exact local handoff through an owned installation or separately byte-bound
 /// read-only copy. No source access, ownership adoption or emulator setup mutation.
 class OwnedEmulatorLauncher {
+  static String emulatorName(String platformId) => switch (platformId) {
+        'nds' => 'MelonDualDS',
+        'psp' => 'PPSSPP',
+        'ps2' => 'NetherSX2',
+        'wiiu' => 'Cemu',
+        'gc' || 'wii' => 'Dolphin',
+        _ => 'RetroArch',
+      };
+
   final RomManager romManager;
   final MethodChannel channel;
   final _opening = <String, Future<void>>{};

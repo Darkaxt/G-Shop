@@ -810,6 +810,37 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
   late final Future<List<String>> _names = widget.job.reviewedNames();
   String? _name;
   bool _confirmed = false;
+  @override
+  void initState() {
+    super.initState();
+    widget.automatic?.addListener(_automaticChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _automaticChanged());
+  }
+
+  @override
+  void didUpdateWidget(SaveBackupGamePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.automatic != widget.automatic) {
+      oldWidget.automatic?.removeListener(_automaticChanged);
+      widget.automatic?.addListener(_automaticChanged);
+    }
+  }
+
+  void _automaticChanged() {
+    if (mounted &&
+        widget.automatic != null &&
+        widget.automatic!.activeMappingKey == null &&
+        !widget.job.busy) {
+      widget.job.refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.automatic?.removeListener(_automaticChanged);
+    super.dispose();
+  }
+
   Widget _appInfoButton(SaveBackupGameJob job) => ConsoleFocusable(
       focusScale: 1,
       onSelect: job.busy ? null : job.openAppInfo,
