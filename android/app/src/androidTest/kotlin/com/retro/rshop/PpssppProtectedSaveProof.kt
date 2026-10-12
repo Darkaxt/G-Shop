@@ -124,6 +124,26 @@ internal object PpssppProtectedSaveProof {
             write(a)
             call("publishRestore", mapOf("captureId" to restore, "rollbackCaptureId" to rollback.first), "source_changed")
             check(read().contentEquals(a)); write(b)
+            // A test-owned process runs under the emulator UID without starting
+            // PPSSPP or changing its stopped flag/settings. Kernel UID evidence
+            // must reject restore even when Android still says stopped=true.
+            val uidProcess = ProcessBuilder("su", uid.toString(), "-c", "/system/bin/cat").start()
+            val diagnostics = Thread({ uidProcess.errorStream.use { stream ->
+                val buffer = ByteArray(1024); while (stream.read(buffer) >= 0) {}
+            } }, "rshop-uid-fixture-stderr").apply { start() }
+            try {
+                uidProcess.outputStream.write("rshop-owned-uid-process\n".toByteArray())
+                uidProcess.outputStream.flush()
+                check(uidProcess.inputStream.bufferedReader().readLine() == "rshop-owned-uid-process")
+                check(context.packageManager.getApplicationInfo(PpssppSaveSettings.PACKAGE, 0)
+                    .flags and ApplicationInfo.FLAG_STOPPED != 0)
+                call("publishRestore", mapOf("captureId" to restore,
+                    "rollbackCaptureId" to rollback.first), "stop_ppsspp_required")
+                check(read().contentEquals(b))
+            } finally {
+                uidProcess.outputStream.close(); uidProcess.inputStream.close()
+                check(uidProcess.waitFor() == 0); diagnostics.join()
+            }
             closeService(); service = SaveCaptureService(context)
             call("publishRestore", mapOf("captureId" to restore, "rollbackCaptureId" to rollback.first))
             check(read().contentEquals(a))
@@ -149,6 +169,6 @@ internal object PpssppProtectedSaveProof {
                 }
             }
         }
-        return "PASS PPSSPP protected external-files app-UID/root listing, streamed capture/digest, exact publication watch, joined shutdown, recreated-service atomic restore, changed-local refusal and retained rollback; exclusive fixture removed; no emulator settings/real saves/ROM/cloud mutation"
+        return "PASS PPSSPP protected external-files app-UID/root listing, streamed capture/digest, exact publication watch, joined shutdown, real emulator-UID process refusal despite stopped=true, process-exit/recreated-service atomic restore, changed-local refusal and retained rollback; exclusive fixture removed; no emulator settings/real saves/ROM/cloud mutation"
     }
 }

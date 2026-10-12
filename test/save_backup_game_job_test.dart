@@ -1911,7 +1911,8 @@ void main() {
     expect(toggle, findsNothing);
     expect(find.text('Automatic save checks: enabled'), findsOneWidget);
     await show(SaveBackupSection.restore);
-    expect(find.textContaining('Force stop'), findsOneWidget);
+    expect(find.textContaining('Force stop'), findsNothing);
+    expect(find.textContaining('checks that it has exited'), findsOneWidget);
     expect(find.byKey(const ValueKey('save-melon-app-info')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -2183,7 +2184,8 @@ void main() {
     await tester.ensureVisible(restore);
     await tester.tap(restore);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Force stop'), findsWidgets);
+    expect(find.textContaining('Force stop'), findsNothing);
+    expect(find.textContaining('checks that it has exited'), findsWidgets);
     expect(find.textContaining('RetroArch'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('save-restore-cancel')));
     await tester.pumpAndSettle();

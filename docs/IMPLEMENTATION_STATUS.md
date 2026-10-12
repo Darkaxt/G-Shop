@@ -5,6 +5,56 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Root-assisted standalone restore exit evidence — 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 is NOT STARTED. Root is available
+proactively for discovery, tracking, capture and restore under specification
+revision 25, not only after manual mapping or ordinary-access failure.
+
+PPSSPP/Melon restore now checks actual emulator-UID process status before public
+staging and again before publication, instead of requiring Android's stopped-app
+flag. A single joined root helper is reused for the restore's checks, with bounded
+kernel-status reads and explicit descriptor closure; no per-PID su calls, signals,
+quiet delays or command-line/payload inspection. Live/suspended UID processes
+block; actual exit does not require Force stop. Existing rollback, digest,
+inode/namespace and conflict checks remain connected. Settings no longer prescribe
+Force stop for every restore; App info remains available.
+
+The focused UI regression failed before implementation and passed afterward;
+scoped Dart analysis passes. Focused automatic watch persistence, pre-launch
+reconciliation, DS/PSP restore, conflict-preservation and settings checks pass.
+Native parser/PPSSPP path/settings checks pass.
+On the actual Thor, the protected PPSSPP fixture demonstrates a live test-owned
+emulator-UID process blocking publication despite `stopped=true`, unchanged local
+bytes on refusal, joined process exit, recreated-service restore and retained-byte
+rollback. Protected Melon capture/watch/restore/rollback regressions also pass.
+No real save, ROM, emulator setting or Drive object was changed by these fixtures.
+The exclusive PPSSPP fixture is independently absent afterward.
+
+Gated request 744 (`83654aeaac32420ab817387ad9e59e89`) acquired
+`Local\\Darka.AndroidGradleBuildGate`, exited 0 and confirmed supervision
+completion. Observed workers=2, parallel=false, Gradle heap=3 GiB; reviewed Kotlin
+2.3.21 runs in-process. The executed test task uses one 512-MiB fail-fast fork;
+all three app ABI native compile/link pool definitions retain depth one. Native
+objects were up-to-date in this build, not a new native compilation stress proof.
+No memory failure or budget increase occurred. Log:
+`C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/88a19571307c4c64a91327bf1b59da27.log`.
+
+Preserving installs independently match built owner/test APK SHA-256
+`7853c3dc5fab6bf3befae57fca133888a32174fb8f705867123679b4529cbdcf`
+and `169b4d652a6cdb642033b7942b4bacad0562a930ff36aca286c30ef75612dc27`;
+the signer is unchanged and all ten preference digests match immediately
+before/after installation. No release or legacy-sync handover was performed.
+
+This is actual-process exit evidence, not verification of every cached-runtime
+normal-exit path: upstream PPSSPP explicitly retains its Android process after
+native shutdown. That completion route, PPSSPP SAVEDATA groups, remaining installed
+emulator coverage, acceptance faults/reconnect and conditional legacy handover
+remain ordinary unfinished S10 work. The stage is not COMPLETE and no acceptance
+criterion is waived or reclassified as an external blocker.
+Both actual/committed display states are OFF. No root save helper remains;
+`git diff --check` passes. No full-suite repetition was used.
+
 ### Protected PPSSPP state storage — ACTIVE, 2026-10-12
 
 The owner's clarification is recorded in specification revision 25: root may be

@@ -737,16 +737,17 @@ internal class SaveCaptureService(private val activity: Context) {
             check(); DatagramSocket().also { socket = it }
         }
         connection?.connect(InetAddress.getByName("127.0.0.1"), 55355)
+        val sourceStorage = SaveSourceStorage.open(activity, sourceDirectory)
         fun writerClosed() {
             check()
             if (connection != null) contentClosed(connection) else {
-                @Suppress("DEPRECATION")
-                val info = activity.packageManager.getApplicationInfo(packageName, 0)
-                if (info.flags and ApplicationInfo.FLAG_STOPPED == 0) throw Failure(
-                    if (melon) "stop_melon_required" else "stop_ppsspp_required")
+                try { sourceStorage.verifyEmulatorClosed(activity) }
+                catch (error: java.io.IOException) {
+                    if (error.message != "emulator_running") throw error
+                    throw Failure(if (melon) "stop_melon_required" else "stop_ppsspp_required")
+                }
             }
         }
-        val sourceStorage = SaveSourceStorage.open(activity, sourceDirectory)
         val parent = sourceStorage.root
         val privateDir = try { OwnedStorageNative.openRoot(directory.absolutePath) }
             catch (e: Exception) { sourceStorage.close(); throw e }

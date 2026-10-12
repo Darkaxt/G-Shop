@@ -31,6 +31,7 @@ internal class SaveSourceStorage private constructor(
     val root: Int
     private var closed = false
     private var snapshotHelper: SaveSourceStorage? = null
+    private var emulatorHelper: SaveSourceStorage? = null
 
     init {
         try {
@@ -55,9 +56,9 @@ internal class SaveSourceStorage private constructor(
             val command = "CLASSPATH=${quote(apk)} /system/bin/app_process -Xmx64m /system/bin " +
                 "com.retro.rshop.RootSaveProcess ${quote(apk)} source"
             // Android's per-app mount namespace hides other apps' private data
-            // even from an inherited root child. Settings discovery must enter
-            // Magisk's global namespace; ordinary/protected-save IO keeps its
-            // already verified namespace and descriptor boundary.
+            // even from an inherited root child. Discovery and protected source
+            // IO enter Magisk's global namespace, including the exact package
+            // UID lookup used for restore's process-exit checks.
             val arguments = if (globalMountNamespace) arrayOf("su", "--mount-master", "-c", command)
                 else arrayOf("su", "-c", command)
             return try { ProcessBuilder(*arguments).start() }
@@ -73,7 +74,7 @@ internal class SaveSourceStorage private constructor(
         }
         fun open(context: Context, source: String): SaveSourceStorage {
             if (!isProtectedDirectory(source)) return SaveSourceStorage(source, null)
-            return SaveSourceStorage(source, start(context))
+            return SaveSourceStorage(source, start(context, globalMountNamespace = true))
         }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
@@ -112,7 +113,7 @@ internal class SaveSourceStorage private constructor(
             return response
         } catch (error: IOException) {
             if (error.message?.matches(Regex("owned_storage:[0-9]+")) == true ||
-                error.message == "source_changed") throw error
+                error.message in setOf("source_changed", "emulator_running")) throw error
             throw IOException("root_unavailable", error)
         }
     }
@@ -186,10 +187,19 @@ internal class SaveSourceStorage private constructor(
         val helper = snapshotHelper ?: this
         helper.call(helper.request("snapshotVerify"))
     }
+    fun verifyEmulatorClosed(context: Context) {
+        require(MelonSaveBoundary.validDirectory(source) || PpssppSaveBoundary.validDirectory(source))
+        val helper = if (rootAssisted) this else emulatorHelper ?: SaveSourceStorage(
+            source, start(context, globalMountNamespace = true), true).also { emulatorHelper = it }
+        helper.call(helper.request("emulatorClosed"))
+    }
     override fun close() {
         if (closed) return
         closed = true
-        try { snapshotHelper?.close() } finally { snapshotHelper = null; closeSource() }
+        try { snapshotHelper?.close() } finally {
+            snapshotHelper = null
+            try { emulatorHelper?.close() } finally { emulatorHelper = null; closeSource() }
+        }
     }
     private fun closeSource() {
         if (child == null) { OwnedStorageNative.close(root); return }
@@ -239,7 +249,7 @@ object RootSaveSourceWorker {
             val validName: (String) -> Boolean = if (ppsspp) PpssppSaveBoundary::validName else MelonSaveBoundary::validName
             val maxBytes = if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES else MelonSaveBoundary.MAX_BYTES
             val snapshotOnly = hello.length() == 2 && hello.optBoolean("snapshotOnly") &&
-                MelonSaveBoundary.validDirectory(source)
+                (MelonSaveBoundary.validDirectory(source) || PpssppSaveBoundary.validDirectory(source))
             require(snapshotOnly || hello.length() == 1 && SaveSourceStorage.isProtectedDirectory(source))
             val backing = SaveSourceStorage.backingDirectory(source)
             parent = OwnedStorageNative.openRoot(backing)
@@ -257,7 +267,7 @@ object RootSaveSourceWorker {
                 val row = JSONObject(encoded)
                 try {
                     val operation = row.getString("operation")
-                    require(!snapshotOnly || operation in setOf("snapshotBegin", "snapshotVerify"))
+                    require(!snapshotOnly || operation in setOf("snapshotBegin", "snapshotVerify", "emulatorClosed"))
                     fun verifySnapshot() {
                         if (snapshotInvalid) throw IOException("source_changed")
                         val leaf = snapshotName ?: throw IOException("source_changed")
@@ -270,8 +280,13 @@ object RootSaveSourceWorker {
                         } finally { OwnedStorageNative.close(fresh) }
                     }
                     val result = when (operation) {
+                        "emulatorClosed" -> {
+                            SaveEmulatorProcess.requireClosed(if (PpssppSaveBoundary.validDirectory(source))
+                                PpssppSaveSettings.PACKAGE else MelonSaveBoundary.PACKAGE)
+                            JSONObject()
+                        }
                         "snapshotBegin" -> {
-                            require(snapshot == -1)
+                            require(snapshot == -1 && MelonSaveBoundary.validDirectory(source))
                             snapshotName = name(row)
                             snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
                             verifySnapshot()
@@ -367,7 +382,7 @@ object RootSaveSourceWorker {
                     // removal, replacement and writes before verification.
                     val absentEntry = row.optString("operation") == "entry" && message == "owned_storage:2"
                     if (snapshot >= 0 && !absentEntry) snapshotInvalid = true
-                    reply(JSONObject().put("error", if (message == "source_changed" ||
+                    reply(JSONObject().put("error", if (message in setOf("source_changed", "emulator_running") ||
                         message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable"))
                 }
             }

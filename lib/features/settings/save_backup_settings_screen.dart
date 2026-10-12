@@ -866,7 +866,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   : 'Restore the selected cloud version to this game’s configured save location. '
                       '${job.localCopyAvailable ? 'Copies of your local saves are kept so you can undo the restore. ' : 'There is no device copy to replace. '}'
                       'No cloud version is overwritten or deleted. '
-                      '${job.isStandalone ? 'Exit the game, then use Force stop in ${job.emulatorLabel} App info. Keep ${job.emulatorLabel} closed during restore.' : 'Close the game in RetroArch first.'}'),
+                      '${job.isStandalone ? 'Exit ${job.emulatorLabel} safely and keep it closed during restore. R-Shop checks that it has exited before replacing a save.' : 'Close the game in RetroArch first.'}'),
               actions: [
                 TextButton(
                     key: const ValueKey('save-conflict-cancel'),
@@ -893,8 +893,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
   Future<void> _restore({bool rollback = false}) async {
     if (widget.job.busy) return;
     final writerInstruction = widget.job.isStandalone
-        ? 'Exit the game, then use Force stop in ${widget.job.emulatorLabel} App info. '
-            'Keep ${widget.job.emulatorLabel} closed during restore. R-Shop never stops it automatically.'
+        ? 'Exit ${widget.job.emulatorLabel} safely and keep it closed during restore. '
+            'R-Shop checks that it has exited before replacing a save; it never stops the emulator automatically.'
         : 'Close the game in RetroArch before continuing.';
     final accepted = await showDialog<bool>(
         context: context,
@@ -1056,9 +1056,9 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               if (widget.section == SaveBackupSection.restore) ...[
                 if (job.isStandalone) ...[
                   Text(
-                      'Exit the game safely, then use Force stop in ${job.emulatorLabel} App info. '
-                      'Return here without reopening ${job.emulatorLabel}. R-Shop checks Android’s stopped state '
-                      'before replacing the selected save; it never stops the emulator automatically.'),
+                      'Exit ${job.emulatorLabel} safely and keep it closed during restore. '
+                      'R-Shop checks that it has exited before replacing a save; '
+                      'it never stops the emulator automatically.'),
                   _appInfoButton(job),
                 ],
                 const SizedBox(height: 16),
@@ -1231,8 +1231,9 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             'conflict_changed' => job.restorePending
                                 ? 'The cloud save changed while it was being checked. Automatic restore stopped. You can review and explicitly resume the previously selected copy in Restore & conflicts; other cloud copies are kept.'
                                 : 'The cloud saves changed while you were choosing. Review the current choices in Restore & conflicts. No copy was replaced.',
-                            'stop_melon_required' =>
-                              'Exit the game safely, then use Force stop in MelonDualDS App info. Return here without reopening it, then resume. Your existing saves and cloud backups are kept.',
+                            'stop_melon_required' ||
+                            'stop_ppsspp_required' =>
+                              'Exit ${job.emulatorLabel} safely, then return here and resume without reopening it. Your existing saves and cloud backups are kept.',
                             'root_unavailable' =>
                               'Allow R-Shop root access in your root manager, then resume the restore. Your cloud backup and staged save are kept.',
                             'related_group_changed' =>

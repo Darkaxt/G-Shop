@@ -1163,19 +1163,35 @@ legacy mGBA journals retain only their original fixed mGBA route. Replay cannot
 retarget the same restore ID to another root or format. One exact mapped state slot
 is restored; JPEG thumbnails, undo/temp files and SAVEDATA are not silently selected.
 
-Before public staging and again before replacement, require Android's documented
-ApplicationInfo.FLAG_STOPPED for the reviewed PPSSPP package/version. The Restore
-section opens Android App info; the user exits the game safely, uses Force stop,
-then returns without reopening PPSSPP until restore completes. This is explicit
-user-mediated restore preparation, not an automatic emulator termination or a
-capture prerequisite. Capture continues to pin/verify completed state files without
-killing the emulator. R-Shop never sends a kill/force-stop command. Preserve the
+Originally restore required `ApplicationInfo.FLAG_STOPPED`. The 2026-10-12
+root-assisted exit boundary replaces that unnecessary Force-stop prerequisite
+for PPSSPP and MelonDualDS: a joined root helper reads bounded kernel process
+status for the exact installed emulator UID (including real/effective/saved/fs
+UID roles), before staging and again before namespace publication. Live or
+suspended processes block restore; exited/zombie processes cannot write and do
+not require Android's stopped-package flag. Missing/ambiguous process evidence
+is an access error, not fabricated completion. No command lines or user payloads
+are read by this census, and no process is signalled. One helper is reused during
+the restore and joined on all exits; no per-PID/chunk su invocation or quiet delay.
+The existing full inode/digest/namespace checks remain mandatory. The user exits
+the emulator normally and keeps it closed during restore; App info is optional,
+not the required workflow. Capture continues to pin/verify completed state files
+without killing the emulator. R-Shop never sends a kill/force-stop command. Preserve the
 rollback and pending restore on a failed precondition, so normal Resume can continue.
 A lost post-rename acknowledgement reconciles the staged identity and receipt
 without rewriting the slot. This retains the original SAVE-01 publication and
 conflict criteria. Native compilation and the real destination/write checks are
 verified above; this does not assert universal exclusion of arbitrary external
 writers or authorize restarting PPSSPP during restore.
+
+This exit census is verified for actual process exit, not a completed cached
+Android runtime shutdown. PPSSPP v1.20.4's
+[`NativeShutdown`](https://github.com/hrydgard/ppsspp/blob/v1.20.4/UI/NativeApp.cpp#L1372-L1419) explicitly retains its
+Android process; the remaining normal-exit/cached-runtime completion route must
+be investigated and verified rather than assume that any closed activity means
+save completion. It remains ordinary unfinished S10 work alongside SAVEDATA
+groups, not a new specification limitation, waived criterion or external blocker.
+Do not claim the UID census alone delivers every normal-exit workflow.
 
 Primary references: [Android stopped-package flag](https://developer.android.com/reference/android/content/pm/ApplicationInfo#FLAG_STOPPED),
 [PPSSPP 1.20.4 slot publication](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/SaveState.cpp).
