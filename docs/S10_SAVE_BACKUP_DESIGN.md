@@ -1226,6 +1226,47 @@ Primary lifecycle references:
 [worker creation, lifetime and joined teardown](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Common/Thread/ThreadManager.cpp#L55-L215),
 [Android cached-process states](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-14.0.0_r1/core/java/android/app/ActivityManager.java#L695-L709).
 
+#### Complete PPSSPP in-game save folders (current S10 work)
+
+The native capture route uses the configured Memory Stick's `PSP/SAVEDATA`
+parent, not the state-slot directory. Discovery lists no-follow child folders;
+the selected folder is bound to the capture ID and format
+`ppsspp-savedata-v1`. Capture includes all regular members, including unknown
+custom payload names and empty companions. It does not parse gameplay contents,
+infer an edition from a title, or filter only a preferred data-file extension.
+
+PPSSPP's utility save writes its metadata, payload and optional media separately
+([reviewed v1.20.4 implementation](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/Dialog/SavedataParam.cpp#L384-L574)).
+Therefore a leaf close event is not a complete-folder boundary. Arm an all-member
+inotify guard, require the reviewed native-runtime shutdown, stream each member
+through the existing root source lane and private capture journal, then reconcile
+the full member set, identities, runtime and mutation guard before sealing.
+One source descriptor at a time bounds handles and one helper avoids per-member
+su launches. No emulator termination, arbitrary quiet delay or ADB dependency.
+
+The current root source lane also opens only validated SAVEDATA child folders
+and exclusive `.rshop-save-group-<id>` stages. Restored members are streamed
+through the same joined helper, with emulator ownership rather than root-only
+ownership. The native publication primitive verifies pinned directory identities
+and atomically exchanges a complete existing folder, or publishes a first folder
+without replacement. The old folder is retained at the owned stage name for
+rollback. An absent-folder capture binds to its existing SAVEDATA parent and
+mutation guard without fabricating a local save. Existing empty groups retain a
+separate presence marker. The exclusive fixture covers membership-changing
+exchange, baseline refusal, reverse exchange, first-folder publication and
+refusal to overwrite an existing folder through that first-publication route.
+All passed on the actual Thor after a preserving installation; capture and
+fixture retirement also passed. Settings remained unchanged and both screens
+are OFF. Request 765 passed focused native checks and assembly through the shared
+gate with the observed two-worker/no-parallel/3-GiB profile, Kotlin in-process,
+one 512-MiB test fork and app native pool depth one. No memory failure.
+
+The capture/publication backend is verified, not normal-UI delivery. Journaled group restore,
+publication recovery and retirement, group-bound cloud
+ancestry, normal UI and watching remain required S10 work; do not advertise full
+SAVEDATA support from native capture alone. Stage evidence lives in
+IMPLEMENTATION_STATUS.md.
+
 Primary references: [Android stopped-package flag](https://developer.android.com/reference/android/content/pm/ApplicationInfo#FLAG_STOPPED),
 [PPSSPP 1.20.4 slot publication](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/SaveState.cpp).
 

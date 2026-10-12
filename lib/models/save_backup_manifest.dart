@@ -187,7 +187,10 @@ class SaveBackupMember {
             part == '..' ||
             part.endsWith('.') ||
             part.endsWith(' ')) ||
-        sizeBytes <= 0) {
+        sizeBytes < 0 ||
+        (sizeBytes == 0 &&
+            sha256 !=
+                'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')) {
       throw const FormatException('Invalid save member');
     }
     _id(cloudFileId);
@@ -242,6 +245,8 @@ class SaveBackupManifest {
         parentGenerationIds.toSet().length != parentGenerationIds.length ||
         members.isEmpty ||
         members.length > 4096 ||
+        (binding.kind == SaveBackupKind.state &&
+            members.any((member) => member.sizeBytes == 0)) ||
         members.any((member) => member.cloudFileId == generationId) ||
         members.map((m) => m.relativePath.toLowerCase()).toSet().length !=
             members.length ||

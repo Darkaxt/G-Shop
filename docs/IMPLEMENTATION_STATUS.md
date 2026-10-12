@@ -5,6 +5,77 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Complete PPSSPP SAVEDATA capture and publication backend verified — 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 is NOT STARTED. The working tree now
+contains a complete-folder capture route, root-backed atomic directory publication,
+a native exclusive-fixture proof and the Dart capture channel boundary. This is
+NOT normal-UI SAVEDATA backup/restore delivery; the verified publication primitive is not
+yet connected to the normal restore journal/cloud/UI workflow.
+
+The route resolves the SAVEDATA parent from PPSSPP's existing Memory Stick
+discovery and lists its child save folders through one joined root helper.
+Capture guards the complete folder with inotify, checks the reviewed native-exit
+boundary, streams every regular member (including empty companions), reconciles
+membership/inodes and seals the existing app-private capture journal. Unexpected
+or nested entries are rejected rather than silently omitted. Save-state routes
+remain separate. The current utility-format capacity is 128 members and 512 MiB
+aggregate; exceeding it is an explicit error, not partial capture.
+An absent target folder can now produce a parent-bound restore baseline without
+creating a dummy game save. Existing empty folders remain distinguishable from
+missing folders. The publication route creates an exclusive emulator-owned
+same-filesystem stage and uses one directory exchange (or no-replace first
+publication); it has no unlink/ordinary-rename fallback. The previous complete
+folder remains available for rollback. The fixture now checks membership changes,
+changed-baseline refusal, exact resulting bytes and an atomic rollback. All these
+checks passed on the actual Thor, including first-folder publication and refusal
+to replace an existing folder through the first-publication route. Journaled publication/recovery and stage
+retirement remain unfinished integration work, not delivered user features.
+
+Focused regression request 762 (`973ca19886b2485ead69ce253b545f82`), original
+command session 75447, completed with the expected failure: the old retirement
+whitelist rejects a four-member capture. Production Kotlin compiled, and the
+other exact-target preservation/retirement checks passed. The supervisor recorded
+mutex acquisition, completion before release and exit 1. Observed workers=2,
+parallel=false and Gradle heap=3 GiB; Kotlin 2.3.21 is configured in-process.
+The focused test task used one 512-MiB fail-fast fork. No memory failure or heap
+increase. Log: `b49fd0a32b8e44458f8f788948254904.log` in the shared gate log directory.
+The retirement whitelist is now extended to the exact numbered complete-folder
+members, preserving numeric order, seal-last and unexpected-entry rejection.
+
+The focused Dart save-folder channel checks pass, including discovery, all-member
+capture with empty companions and unsafe/partial receipt rejection. Focused Dart
+analysis reports no issues. No full suite or overlapping test workload was run.
+Gated green/native assembly request 765 (`f58cb21e85944480aa0b541da875fe6c`),
+original command session 51101, completed successfully with mutex acquisition,
+exit 0 and confirmed completion before release. Focused retirement/boundary checks
+passed, as did owner/instrumentation assembly. Observed workers=2, parallel=false,
+Gradle heap=3 GiB; reviewed Kotlin 2.3.21 runs in-process. Test concurrency is one
+512-MiB fail-fast fork; generated app native compile/link pools have depth one on
+all three ABIs. No memory failure or budget increase. Log:
+`32ea603e6c074ca0926dd7a045586a2f.log` in the shared gate log directory.
+
+Preserving installation and the actual `ppssppSavedataCaptureProbe` passed. Installed
+owner SHA-256 `c09d93311123df69e7069c3fa341accf08d27030fd9ca8ab70eaa069560ea833`
+and test SHA-256 `b63904b248a0ada0886466ec6cb22e8e38777bf25d7a510b84d731bcb0640cb6`
+match the built artifacts; owner signer remains unchanged. All ten preference
+digests match before/after installation. The complete folder capture, independent
+bytes/digests, mutation/runtime refusal, service recreation, missing-folder baseline,
+atomic membership-changing publication, changed-baseline refusal, complete rollback,
+first-folder publication and exact capture retirement passed. Independent checks
+found no fixture folder; both actual/committed displays remain OFF. No real save,
+ROM, emulator setting or Drive object was changed by this fixture.
+
+The manifest regression reproduced rejection of a legitimate empty companion.
+Portable-save members now permit zero bytes only with SHA-256(empty); states still
+reject empty payloads. Focused manifest/generation checks and analysis pass. This
+is not live Drive verification of a zero-byte payload.
+
+Next: continue complete-group restore, game/edition/ancestry integration, normal UI,
+watching and the real Drive round trip in S10. Those are ordinary unfinished
+requirements, not waived criteria or later-stage deferrals. No new release,
+legacy handover or S10 completion claim has been made for this backend slice.
+
 ### PPSSPP normal Exit no longer requires process eviction — 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 is NOT STARTED. This resolves the cached-

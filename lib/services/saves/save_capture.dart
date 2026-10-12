@@ -110,6 +110,107 @@ class SaveCapture {
   static bool validPpssppName(String name) =>
       RegExp(r'^[A-Z0-9]{9}_[0-9]\.[0-9]{2}_[0-9]{1,2}\.ppst$').hasMatch(name);
 
+  static bool validPpssppSavedataMember(String name) =>
+      name.isNotEmpty &&
+      name.length <= 255 &&
+      name != '.' &&
+      name != '..' &&
+      !name.startsWith('.rshop-') &&
+      !name.endsWith('.') &&
+      !name.endsWith(' ') &&
+      !RegExp(r'[/\\:\x00-\x1f\x7f]').hasMatch(name);
+
+  static bool validPpssppSavedataParent(String path) {
+    if (!RegExp(
+            r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/(.+/)?[Pp][Ss][Pp]/SAVEDATA$')
+        .hasMatch(path)) {
+      return false;
+    }
+    final parts = path.split('/').skip(1);
+    final protected = RegExp(
+            r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/Android/data/org\.ppsspp\.ppsspp/files(/.*)?/[Pp][Ss][Pp]/SAVEDATA$')
+        .hasMatch(path);
+    return parts.every((part) =>
+            part.isNotEmpty &&
+            part != '.' &&
+            part != '..' &&
+            !RegExp(r'[\\\x00-\x1f\x7f]').hasMatch(part)) &&
+        (protected || parts.every((part) => part.toLowerCase() != 'android'));
+  }
+
+  static bool validPpssppSavedataDirectory(String path) {
+    final split = path.lastIndexOf('/');
+    return split > 0 &&
+        validPpssppSavedataParent(path.substring(0, split)) &&
+        validPpssppSavedataMember(path.substring(split + 1));
+  }
+
+  Future<String> ppssppSavedataParent() async {
+    final states = await ppssppSaveDirectory();
+    final parent =
+        '${states.substring(0, states.length - '/PPSSPP_STATE'.length)}/SAVEDATA';
+    if (!validPpssppSavedataParent(parent)) {
+      throw const FormatException('Invalid PPSSPP save folder');
+    }
+    return parent;
+  }
+
+  Future<List<String>> ppssppSavedataFolders(String parent) async {
+    if (!validPpssppSavedataParent(parent)) {
+      throw const FormatException('Invalid PPSSPP save folder');
+    }
+    final names = await _channel.invokeListMethod<String>(
+        'ppssppSavedataFolders', {'directory': parent});
+    if (names == null ||
+        names.length > 4096 ||
+        names.toSet().length != names.length ||
+        !names.every(validPpssppSavedataMember)) {
+      throw const FormatException('Invalid PPSSPP save folders');
+    }
+    return List.unmodifiable(names);
+  }
+
+  Future<CapturedSaveGroup> capturePpssppSavedata(
+      {required String captureId,
+      required String directory,
+      bool restoreBaseline = false}) async {
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) ||
+        !validPpssppSavedataDirectory(directory)) {
+      throw const FormatException('Invalid PPSSPP save selection');
+    }
+    final raw = await _channel
+        .invokeMapMethod<String, dynamic>('capturePpssppSavedata', {
+      'captureId': captureId,
+      'directory': directory,
+      if (restoreBaseline) 'restoreBaseline': true,
+    });
+    final members = raw?['files'];
+    if (members is! List || members.length > 128) {
+      throw const FormatException('Invalid PPSSPP save group');
+    }
+    final names = <String>[];
+    for (final member in members) {
+      if (member is! Map ||
+          member['name'] is! String ||
+          !validPpssppSavedataMember(member['name'] as String)) {
+        throw const FormatException('Invalid PPSSPP save member');
+      }
+      names.add(member['name'] as String);
+    }
+    final group = _captured(raw,
+        captureId: captureId,
+        allowedNames: names.toSet(),
+        requiredName: names.firstOrNull ?? '',
+        maxSize: 512 * 1024 * 1024,
+        restoreBaseline: restoreBaseline,
+        allowEmptyFiles: true);
+    if (group.files.fold<int>(0, (total, member) => total + member.size) >
+        512 * 1024 * 1024) {
+      throw const FormatException('Invalid PPSSPP save group size');
+    }
+    return group;
+  }
+
   /// Resolve the installed emulator's Memory Stick choice; never search guessed
   /// folders or change emulator settings. Native code reads only that setting.
   Future<String> ppssppSaveDirectory() async {
@@ -253,7 +354,8 @@ class SaveCapture {
       required Set<String> allowedNames,
       required String requiredName,
       required int maxSize,
-      bool restoreBaseline = false}) {
+      bool restoreBaseline = false,
+      bool allowEmptyFiles = false}) {
     if (raw == null ||
         raw['captureId'] != captureId ||
         raw['deviceId'] is! String ||
@@ -281,7 +383,7 @@ class SaveCapture {
           !paths.add(path) ||
           !path.startsWith('/') ||
           path.split('/').contains('..') ||
-          (item['size'] as int) <= 0 ||
+          (item['size'] as int) < (allowEmptyFiles ? 0 : 1) ||
           (item['size'] as int) > maxSize ||
           !RegExp(r'^[a-f0-9]{64}$').hasMatch(item['sha256'] as String)) {
         throw const FormatException('Invalid captured member');

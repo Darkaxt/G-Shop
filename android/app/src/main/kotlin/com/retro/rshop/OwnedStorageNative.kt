@@ -5,6 +5,7 @@ internal object OwnedStorageNative {
     init { System.loadLibrary("rshop_owned_storage") }
     external fun openRoot(path: String): Int
     external fun openDirectory(root: Int, relative: String, create: Boolean): Int
+    external fun createSaveDirectory(parent: Int, name: String): Int
     external fun openFile(dir: Int, name: String, createExclusive: Boolean, writable: Boolean): Int
     external fun identity(fd: Int): LongArray
     external fun mountId(fd: Int): Long
@@ -17,6 +18,9 @@ internal object OwnedStorageNative {
     /** Explicit save-only restore, after a sealed rollback and writer boundary. */
     external fun replaceReviewedSave(dir: Int, stage: String, target: String,
                                      staged: LongArray, current: LongArray): LongArray
+    /** Complete save-only group, with reviewed members and retained rollback. */
+    external fun publishReviewedSaveDirectory(parent: Int, stage: String, target: String,
+        staged: LongArray, current: LongArray?): LongArray
     /** Destination must be the app-exclusive private staging namespace. */
     external fun quarantineIntoPrivate(fromDir: Int, from: String, privateDir: Int, to: String, expected: LongArray): LongArray
     /** App-exclusive private stage entries only; never public installation paths. */
@@ -27,6 +31,7 @@ internal object OwnedStorageNative {
     external fun saveWatchRead(watch: Int): ByteArray?
     /** Capture-only guard. Arm before the writer census, check after the copy. */
     external fun saveSnapshotOpen(directory: Int): Int
+    /** Empty name guards all folder events for a complete SAVEDATA group. */
     external fun saveSnapshotChanged(watch: Int, name: String): Boolean
     /** Root-only read-only /proc census; no emulator signals or data writes. */
     external fun saveSnapshotHasWriter(directory: Int, name: String, source: String, backing: String): Boolean

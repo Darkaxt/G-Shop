@@ -15,7 +15,8 @@ internal object SaveCaptureRetirement {
         require(directory.canonicalFile == directory.absoluteFile)
         if (!Files.exists(directory.toPath(), NOFOLLOW_LINKS)) return emptyList()
         require(Files.isDirectory(directory.toPath(), NOFOLLOW_LINKS))
-        val allowed = listOf("member-0", "member-1", "capture.json.part", "capture.json")
+        val allowed = (0 until PpssppSavedataBoundary.MAX_MEMBERS).map { "member-$it" } +
+            listOf("capture.json.part", "capture.json")
         val entries = requireNotNull(directory.listFiles())
         require(entries.all { it.name in allowed &&
             it.canonicalFile == it.absoluteFile && Files.isRegularFile(it.toPath(), NOFOLLOW_LINKS) })

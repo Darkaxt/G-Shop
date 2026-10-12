@@ -9,6 +9,32 @@ import org.junit.Test
 class SaveCaptureRetirementTest {
     private val id = "a".repeat(32)
 
+    @Test fun completeSaveFoldersRetireEveryCapturedMemberAndKeepTheSealLast() {
+        val temp = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-retire-group-").toFile()
+        val root = File(temp, "save-captures").apply { mkdir() }
+        val capture = File(root, id).apply { mkdir() }
+        val members = listOf("member-0", "member-1", "member-2", "member-127", "capture.json")
+        try {
+            members.reversed().forEach { File(capture, it).writeText("fixture") }
+            assertEquals(members, SaveCaptureRetirement.review(root, id).map { it.name })
+            val overflow = File(capture, "member-128").apply { writeText("preserve") }
+            try {
+                assertThrows(IllegalArgumentException::class.java) { SaveCaptureRetirement.review(root, id) }
+                assertEquals("preserve", overflow.readText())
+            } finally { overflow.delete() }
+            for (name in listOf("member-00", "member--1", "member-1.extra")) {
+                val unexpected = File(capture, name).apply { writeText("preserve") }
+                try {
+                    assertThrows(IllegalArgumentException::class.java) { SaveCaptureRetirement.review(root, id) }
+                    assertEquals("preserve", unexpected.readText())
+                } finally { unexpected.delete() }
+            }
+        } finally {
+            members.forEach { File(capture, it).delete() }
+            capture.delete(); root.delete(); temp.delete()
+        }
+    }
+
     @Test fun reviewsOnlyTheExactCaptureWithSealLastAndAllowsInterruptedRetirement() {
         val temp = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-retire-").toFile()
         val root = File(temp, "save-captures").apply { mkdir() }

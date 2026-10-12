@@ -195,6 +195,9 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotChanged(JNIEnv* env, jobject
                 if (length > static_cast<size_t>(size) - offset) invalid();
                 if (event->mask & (IN_Q_OVERFLOW | IN_UNMOUNT | IN_IGNORED | IN_DELETE_SELF | IN_MOVE_SELF))
                     return JNI_TRUE;
+                // Empty selection guards an entire SAVEDATA folder, including
+                // directory attributes and members added during capture.
+                if (leaf.empty()) return JNI_TRUE;
                 if (event->len > 0 && ::strnlen(event->name, event->len) == leaf.size() &&
                     std::memcmp(event->name, leaf.data(), leaf.size()) == 0) return JNI_TRUE;
                 offset += length;
@@ -301,6 +304,11 @@ Java_com_retro_rshop_OwnedStorageNative_openRoot(JNIEnv* env, jobject, jstring p
 }
 
 extern "C" JNIEXPORT jint JNICALL
+Java_com_retro_rshop_OwnedStorageNative_createSaveDirectory(JNIEnv* env, jobject, jint parent, jstring name) {
+    return guarded<jint>(env, -1, [&] { return owned::createSaveDirectory(parent, utf8(env, name)); });
+}
+
+extern "C" JNIEXPORT jint JNICALL
 Java_com_retro_rshop_OwnedStorageNative_openDirectory(JNIEnv* env, jobject, jint root, jstring path, jboolean create) {
     return guarded<jint>(env, -1, [&] { return owned::openDirectory(root, utf8(env, path), create == JNI_TRUE); });
 }
@@ -375,6 +383,17 @@ Java_com_retro_rshop_OwnedStorageNative_replaceReviewedSave(JNIEnv* env, jobject
     return guarded<jlongArray>(env, nullptr, [&] {
         return identityArray(env, owned::replaceReviewedSave(dir, utf8(env, stage), utf8(env, target),
             identityValue(env, staged), identityValue(env, current)));
+    });
+}
+
+extern "C" JNIEXPORT jlongArray JNICALL
+Java_com_retro_rshop_OwnedStorageNative_publishReviewedSaveDirectory(JNIEnv* env, jobject, jint parent,
+    jstring stage, jstring target, jlongArray staged, jlongArray current) {
+    return guarded<jlongArray>(env, nullptr, [&] {
+        owned::Identity old{};
+        if (current != nullptr) old = identityValue(env, current);
+        return identityArray(env, owned::publishReviewedSaveDirectory(parent, utf8(env, stage), utf8(env, target),
+            identityValue(env, staged), current == nullptr ? nullptr : &old));
     });
 }
 

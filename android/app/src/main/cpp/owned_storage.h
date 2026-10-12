@@ -15,6 +15,8 @@ struct Identity {
 
 int openRoot(const std::string& absolute);
 int openDirectory(int root, const std::string& relative, bool create);
+// Exclusive save-restore staging directory on the destination filesystem.
+int createSaveDirectory(int parent, const std::string& name);
 int openFile(int dir, const std::string& name, bool createExclusive, bool writable);
 // Identity accepts directories and single-link regular files. Data operations
 // and entryIdentity accept only single-link regular files.
@@ -37,6 +39,11 @@ void renameNoReplace(int fromDir, const std::string& from, int toDir, const std:
 // does not lock an external emulator or authorize arbitrary ROM overwrites.
 Identity replaceReviewedSave(int dir, const std::string& stage, const std::string& target,
                              const Identity& staged, const Identity& current);
+// Complete save-group restore only. The caller has checked every member and
+// writer completion. Atomically install an absent directory or exchange it with
+// the reviewed old directory, retaining that old group at stage for rollback.
+Identity publishReviewedSaveDirectory(int parent, const std::string& stage, const std::string& target,
+                                     const Identity& staged, const Identity* current);
 // Only for a destination namespace held EXCLUSIVELY by the app and proved
 // PRIVATE by the Android boundary. Never use this for public publication.
 // Rejects a changed source and any existing destination. Uses ordinary rename

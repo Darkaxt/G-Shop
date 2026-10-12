@@ -164,6 +164,17 @@ int openDirectory(int root, const std::string& relative, bool create) {
     return current.release();
 }
 
+int createSaveDirectory(int parent, const std::string& name) {
+    basename(name);
+    directory(parent);
+    int result;
+    do { result = ::mkdirat(parent, name.c_str(), 0700); } while (result < 0 && errno == EINTR);
+    if (result < 0) fail(errno); // Existing entries are never adopted here.
+    Descriptor child(openAt(parent, name, kDirectoryFlags));
+    flush(parent);
+    return child.release();
+}
+
 int openFile(int dir, const std::string& name, bool createExclusive, bool writable) {
     basename(name);
     directory(dir);
@@ -285,6 +296,40 @@ Identity replaceReviewedSave(int dir, const std::string& stage, const std::strin
     // including on Android FUSE; never unlink the target or retry the mutation.
     if (::renameat(dir, stage.c_str(), dir, target.c_str()) < 0) fail(errno);
     return entryIdentity(dir, target);
+}
+
+Identity publishReviewedSaveDirectory(int parent, const std::string& stage, const std::string& target,
+                                     const Identity& staged, const Identity* current) {
+    basename(stage);
+    basename(target);
+    directory(parent);
+    if (stage == target) fail(EINVAL);
+    auto matches = [](const Identity& a, const Identity& b) {
+        return a.device == b.device && a.inode == b.inode && a.size == b.size &&
+            a.modifiedSeconds == b.modifiedSeconds && a.modifiedNanos == b.modifiedNanos;
+    };
+    Descriptor next(openAt(parent, stage, kDirectoryFlags));
+    if (!matches(identity(next.get()), staged)) fail(ESTALE);
+    if (current != nullptr) {
+        Descriptor old(openAt(parent, target, kDirectoryFlags));
+        if (!matches(identity(old.get()), *current)) fail(ESTALE);
+    }
+    using RenameAt2 = int (*)(int, const char*, int, const char*, unsigned int);
+    static auto renameAt2 = reinterpret_cast<RenameAt2>(::dlsym(RTLD_DEFAULT, "renameat2"));
+    if (renameAt2 == nullptr) fail(ENOTSUP);
+    constexpr unsigned int noReplace = 1, exchange = 2;
+    // No ordinary-rename fallback or old-directory unlink: either the whole new
+    // group becomes visible in one syscall, or no publication is reported.
+    if (renameAt2(parent, stage.c_str(), parent, target.c_str(), current ? exchange : noReplace) < 0) {
+        const int error = errno;
+        if (error == ENOSYS || error == EINVAL || error == EOPNOTSUPP) fail(ENOTSUP);
+        fail(error);
+    }
+    Descriptor placed(openAt(parent, target, kDirectoryFlags));
+    const auto result = identity(placed.get());
+    if (!matches(result, staged)) fail(ESTALE);
+    // Caller seals its durable receipt after flushing this pinned parent.
+    return result;
 }
 
 Identity quarantineIntoPrivate(int fromDir, const std::string& from, int privateDir,

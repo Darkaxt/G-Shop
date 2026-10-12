@@ -45,6 +45,33 @@ SaveBackupManifest manifest({
 
 void main() {
   test(
+      'portable groups preserve empty companions but an empty state is invalid',
+      () {
+    final empty = SaveBackupMember(
+        relativePath: 'ULUS10001DATA00/EMPTY',
+        cloudFileId: 'empty-companion',
+        sizeBytes: 0,
+        sha256:
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+    final group = manifest(
+        members: [member('ULUS10001DATA00/PARAM.SFO', 'metadata'), empty]);
+    final decoded = SaveBackupManifest.decode(group.encode());
+    expect(decoded.members.first.relativePath, 'ULUS10001DATA00/EMPTY');
+    expect(decoded.members.first.sizeBytes, 0);
+    expect(decoded.contentDigest, group.contentDigest);
+    expect(
+        () => manifest(
+            forBinding: binding(kind: SaveBackupKind.state), members: [empty]),
+        throwsFormatException);
+    expect(
+        () => SaveBackupMember(
+            relativePath: 'negative',
+            cloudFileId: 'negative',
+            sizeBytes: -1,
+            sha256: empty.sha256),
+        throwsFormatException);
+  });
+  test(
       'complete manifest round trip retains exact binding, members and ancestry',
       () {
     final original = manifest(parents: ['previous-generation']);

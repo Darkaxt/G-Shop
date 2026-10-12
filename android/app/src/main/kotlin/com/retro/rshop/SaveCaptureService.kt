@@ -165,7 +165,7 @@ internal class SaveCaptureService(private val activity: Context) {
                 result.success(null)
                 return
             }
-            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "melonNames", "melonSaveSettings", "ppssppSaveSettings")) id(call) else null
+            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "ppssppSavedataFolders", "melonNames", "melonSaveSettings", "ppssppSaveSettings")) id(call) else null
             synchronized(guard) {
                 if (closed) throw Failure("closed")
                 if (active != null) throw Failure("capture_busy")
@@ -177,6 +177,11 @@ internal class SaveCaptureService(private val activity: Context) {
                     val value = when (call.method) {
                         "retroArchNames" -> names()
                         "ppssppNames" -> ppssppNames(call.argument<String>("directory") ?: "")
+                        "ppssppSavedataFolders" -> {
+                            val parent = call.argument<String>("directory") ?: ""
+                            if (!PpssppSavedataBoundary.validParent(parent)) throw Failure("invalid_selection")
+                            SaveSourceStorage.open(activity, parent).use { it.names() }
+                        }
                         "ppssppSaveSettings" -> {
                             @Suppress("DEPRECATION")
                             val runtime = activity.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0)
@@ -197,6 +202,9 @@ internal class SaveCaptureService(private val activity: Context) {
                             restoreBaseline = call.argument<Boolean>("restoreBaseline") == true)
                         "capturePpsspp" -> capture(captureId!!,
                             call.argument<String>("name") ?: "",
+                            call.argument<String>("directory") ?: "",
+                            restoreBaseline = call.argument<Boolean>("restoreBaseline") == true)
+                        "capturePpssppSavedata" -> capturePpssppSavedata(captureId!!,
                             call.argument<String>("directory") ?: "",
                             restoreBaseline = call.argument<Boolean>("restoreBaseline") == true)
                         "captureMelon" -> capture(captureId!!,
@@ -292,17 +300,18 @@ internal class SaveCaptureService(private val activity: Context) {
                          ppssppDirectory: String? = null,
                          retroArchRoute: String = "gba",
                          melonDirectory: String? = null,
-                         restoreBaseline: Boolean = false): Map<String, Any>? {
+                         restoreBaseline: Boolean = false,
+                         savedata: Boolean = false): Map<String, Any>? {
         val seal = File(directory, "capture.json")
         if (!seal.exists()) return null
-        if (seal.length() !in 1..16384) throw Failure("invalid_capture")
+        if (seal.length() !in 1..(if (savedata) 131072 else 16384)) throw Failure("invalid_capture")
         val record = JSONObject(seal.readText())
         if (record.getString("name") != name || record.getString("captureId") != directory.name) {
             throw Failure("invalid_capture")
         }
         // A capture ID cannot be replayed against another directory or format.
         // Older mGBA journals lack these fields and retain their original binding.
-        val expectedFormat = if (melonDirectory != null) MelonSaveBoundary.FORMAT
+        val expectedFormat = if (savedata) PpssppSavedataBoundary.FORMAT else if (melonDirectory != null) MelonSaveBoundary.FORMAT
             else if (ppssppDirectory != null) "ppsspp-slot-v1"
             else batteryFormat(retroArchRoute)
         val expectedSource = melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
@@ -312,8 +321,8 @@ internal class SaveCaptureService(private val activity: Context) {
         }
         val members = record.getJSONArray("files")
         val includesRtc = ppssppDirectory == null && melonDirectory == null && retroArchRoute == "gba"
-        val maxMembers = if (includesRtc) 2 else 1
-        val maxSize = if (melonDirectory != null) MelonSaveBoundary.MAX_BYTES
+        val maxMembers = if (savedata) PpssppSavedataBoundary.MAX_MEMBERS else if (includesRtc) 2 else 1
+        val maxSize = if (savedata) PpssppSavedataBoundary.MAX_BYTES else if (melonDirectory != null) MelonSaveBoundary.MAX_BYTES
             else if (ppssppDirectory != null) PpssppSaveBoundary.MAX_STATE_BYTES
             else if (retroArchRoute != "gba") 65536L else 16L * 1024 * 1024
         val absent = record.optBoolean("localWasAbsent")
@@ -325,12 +334,12 @@ internal class SaveCaptureService(private val activity: Context) {
             check()
             val item = members.getJSONObject(i)
             val file = File(directory, "member-$i")
-            if (item.getString("name") != name &&
+            if (if (savedata) !PpssppSavedataBoundary.validMember(item.getString("name")) else item.getString("name") != name &&
                 (!includesRtc || item.getString("name") != name.dropLast(4) + ".rtc")) {
                 throw Failure("invalid_capture")
             }
             if (file.canonicalFile != file.absoluteFile || !file.isFile ||
-                file.length() !in 1..maxSize ||
+                file.length() !in (if (savedata) 0 else 1)..maxSize ||
                 file.length() != item.getLong("size")) throw Failure("changed_capture")
             val digest = MessageDigest.getInstance("SHA-256")
             file.inputStream().use { stream ->
@@ -347,12 +356,15 @@ internal class SaveCaptureService(private val activity: Context) {
             output += mapOf("name" to item.getString("name"), "path" to file.absolutePath,
                 "size" to item.getLong("size"), "sha256" to sum)
         }
-        if ((!absent && output.count { it["name"] == name } != 1) ||
+        if ((!absent && !savedata && output.count { it["name"] == name } != 1) ||
+            (savedata && output.sumOf { (it["size"] as Number).toLong() } > maxSize) ||
             output.map { it["name"] }.toSet().size != output.size) throw Failure("invalid_capture")
         return mapOf("captureId" to directory.name, "deviceId" to record.getString("deviceId"),
             "emulatorVersion" to record.getString("emulatorVersion"), "files" to output,
             "localWasAbsent" to absent,
-            "sourceIdentity" to if (absent) (0..1).map { record.getJSONArray("sourceIdentity").getLong(it) } else emptyList<Long>())
+            "sourceIdentity" to if (absent) (0..1).map { record.getJSONArray("sourceIdentity").getLong(it) } else emptyList<Long>()).let {
+                if (savedata) it + ("savedataGroupPresent" to record.optBoolean("savedataGroupPresent", true)) else it
+            }
     }
 
     private fun retireCapture(id: String): Any? {
@@ -519,6 +531,137 @@ internal class SaveCaptureService(private val activity: Context) {
         } finally {
             try { fds.forEach { runCatching { sourceStorage.closeFile(it) } } }
             finally { try { OwnedStorageNative.close(stageDir) } finally { sourceStorage.close() } }
+        }
+    }
+
+    /** Capture every member at PPSSPP's reviewed native-exit boundary. Root
+     * handles source IO and one whole-directory inotify guard; payloads remain
+     * streamed through the existing app-owned capture journal. */
+    private fun capturePpssppSavedata(captureId: String, sourceDirectory: String,
+                                    restoreBaseline: Boolean): Map<String, Any> {
+        if (!PpssppSavedataBoundary.validDirectory(sourceDirectory)) throw Failure("invalid_selection")
+        val name = sourceDirectory.substringAfterLast('/')
+        @Suppress("DEPRECATION")
+        val version = activity.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0).versionName
+        if (version !in setOf("v1.20.4", "1.20.4")) throw Failure("runtime_unreviewed")
+        val device = Settings.Secure.getString(activity.contentResolver, Settings.Secure.ANDROID_ID)
+            ?: throw Failure("device_identity_unavailable")
+        if (!root.isDirectory && !root.mkdir()) throw Failure("capture_storage")
+        if (root.canonicalFile != root.absoluteFile) throw Failure("invalid_capture")
+        val directory = File(root, captureId)
+        if (directory.exists() && directory.canonicalFile != directory.absoluteFile) throw Failure("invalid_capture")
+        if (!directory.isDirectory && !directory.mkdir()) throw Failure("capture_storage")
+        captured(directory, name, sourceDirectory, restoreBaseline = restoreBaseline, savedata = true)?.let { return it }
+        val leftovers = directory.listFiles() ?: throw Failure("capture_storage")
+        val allowed = (0 until PpssppSavedataBoundary.MAX_MEMBERS).map { "member-$it" }.toSet() + "capture.json.part"
+        if (leftovers.any { it.name !in allowed || it.canonicalFile != it.absoluteFile || !it.isFile })
+            throw Failure("invalid_capture")
+        leftovers.forEach { if (!it.delete()) throw Failure("capture_storage") }
+        val opened = try { SaveSourceStorage.open(activity, sourceDirectory) }
+        catch (error: java.io.IOException) {
+            if (!restoreBaseline || error.message != "owned_storage:2") throw error
+            return captureAbsentPpssppSavedata(captureId, directory, sourceDirectory, version!!, device)
+        }
+        opened.use { storage ->
+            fun closed() {
+                check()
+                try { storage.verifyEmulatorClosed(activity) } catch (error: java.io.IOException) {
+                    if (error.message != "emulator_running") throw error
+                    throw Failure("stop_ppsspp_required")
+                }
+            }
+            storage.beginPpssppSavedataSnapshot()
+            closed()
+            val selected = storage.names()
+            val absent = restoreBaseline && selected.isEmpty()
+            if (!absent && !PpssppSavedataBoundary.validMembers(selected)) throw Failure("invalid_selection")
+            val parentIdentity = storage.identity(storage.root)
+            val members = JSONArray()
+            val identities = mutableListOf<LongArray>()
+            var total = 0L
+            val stage = OwnedStorageNative.openRoot(directory.absolutePath)
+            try {
+                for ((index, member) in selected.withIndex()) {
+                    check()
+                    val fd = storage.openFile(member, false, false)
+                    try {
+                        val before = storage.identity(fd)
+                        if (before[2] !in 0..PpssppSavedataBoundary.MAX_BYTES ||
+                            total > PpssppSavedataBoundary.MAX_BYTES - before[2]) throw Failure("invalid_save_size")
+                        total += before[2]
+                        val target = OwnedStorageNative.openFile(stage, "member-$index", true, true)
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        try {
+                            var offset = 0L
+                            while (offset < before[2]) {
+                                check()
+                                val bytes = storage.read(fd, offset, minOf(65536L, before[2] - offset).toInt())
+                                if (bytes.isEmpty()) throw Failure("source_changed")
+                                digest.update(bytes); OwnedStorageNative.write(target, offset, bytes); offset += bytes.size
+                            }
+                            OwnedStorageNative.sync(target)
+                        } finally { OwnedStorageNative.close(target) }
+                        if (!same(before, storage.identity(fd)) || !same(before, storage.entryIdentity(member)))
+                            throw Failure("source_changed")
+                        identities.add(before)
+                        members.put(JSONObject().put("name", member).put("size", before[2])
+                            .put("sha256", digest.digest().joinToString("") { "%02x".format(it) }))
+                    } finally { storage.closeFile(fd) }
+                }
+                closed()
+                if (storage.names() != selected || storage.currentRootIdentity().take(2) != parentIdentity.take(2))
+                    throw Failure("source_changed")
+                for (index in selected.indices) if (!same(identities[index], storage.entryIdentity(selected[index])))
+                    throw Failure("source_changed")
+                storage.verifyPpssppSavedataSnapshot()
+                check()
+                val record = JSONObject().put("captureId", captureId).put("name", name)
+                    .put("deviceId", hash(device.toByteArray(Charsets.UTF_8))).put("emulatorVersion", version)
+                    .put("files", members).put("format", PpssppSavedataBoundary.FORMAT)
+                    .put("source", sourceDirectory).put("localWasAbsent", absent).put("savedataGroupPresent", true)
+                if (absent) record.put("sourceIdentity", JSONArray(parentIdentity.take(2)))
+                val part = File(directory, "capture.json.part")
+                FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
+                OwnedStorageNative.renameNoReplace(stage, part.name, stage, "capture.json")
+                OwnedStorageNative.sync(stage)
+                return captured(directory, name, sourceDirectory, restoreBaseline = restoreBaseline, savedata = true)
+                    ?: throw Failure("capture_storage")
+            } finally { OwnedStorageNative.close(stage) }
+        }
+    }
+
+    private fun captureAbsentPpssppSavedata(id: String, directory: File, sourceDirectory: String,
+                                           version: String, device: String): Map<String, Any> {
+        SaveSourceStorage.open(activity, sourceDirectory.substringBeforeLast('/')).use { storage ->
+            storage.beginPpssppSavedataSnapshot()
+            try { storage.verifyEmulatorClosed(activity) } catch (error: java.io.IOException) {
+                if (error.message != "emulator_running") throw error
+                throw Failure("stop_ppsspp_required")
+            }
+            val name = sourceDirectory.substringAfterLast('/')
+            try {
+                val existing = storage.openSaveGroup(name)
+                storage.closeFile(existing)
+                throw Failure("source_changed")
+            } catch (error: java.io.IOException) { if (error.message != "owned_storage:2") throw error }
+            val parent = storage.identity(storage.root)
+            if (storage.currentRootIdentity().take(2) != parent.take(2)) throw Failure("source_changed")
+            storage.verifyPpssppSavedataSnapshot()
+            check()
+            val record = JSONObject().put("captureId", id).put("name", name)
+                .put("deviceId", hash(device.toByteArray(Charsets.UTF_8))).put("emulatorVersion", version)
+                .put("files", JSONArray()).put("format", PpssppSavedataBoundary.FORMAT)
+                .put("source", sourceDirectory).put("localWasAbsent", true).put("savedataGroupPresent", false)
+                .put("sourceIdentity", JSONArray(parent.take(2)))
+            val stage = OwnedStorageNative.openRoot(directory.absolutePath)
+            try {
+                val part = File(directory, "capture.json.part")
+                FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
+                OwnedStorageNative.renameNoReplace(stage, part.name, stage, "capture.json")
+                OwnedStorageNative.sync(stage)
+            } finally { OwnedStorageNative.close(stage) }
+            return captured(directory, name, sourceDirectory, restoreBaseline = true, savedata = true)
+                ?: throw Failure("capture_storage")
         }
     }
 
