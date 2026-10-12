@@ -10,6 +10,25 @@ class SaveFileWatchTest {
     private val mapping = SaveFileWatch.Mapping("a".repeat(64),
         "/storage/emulated/0/PSP/PPSSPP_STATE", "ULUS10041_1.00_0.ppst")
 
+    @Test fun completePspFolderWatchAdmitsAllMembersButNotSiblingOrStagePaths() {
+        val group = SaveFileWatch.Mapping("c".repeat(64),
+            "/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00", "ULUS10041DATA00", "ppsspp-savedata")
+        assertEquals(listOf(group), SaveFileWatch.decode(listOf(mapOf("key" to group.key,
+            "directory" to group.directory, "name" to group.name, "route" to group.route))))
+        for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.CREATE, FileObserver.MOVED_TO,
+                FileObserver.MOVED_FROM, FileObserver.DELETE)) {
+            for (member in listOf("PARAM.SFO", "CUSTOM.SAV", "EMPTY", "ICON0.PNG")) {
+                assertEquals(listOf(group.key), SaveFileWatch.affected(listOf(group), event, member))
+            }
+            for (member in listOf("../Other", "nested/data", ".rshop-save-group-${"a".repeat(32)}")) {
+                assertTrue(SaveFileWatch.affected(listOf(group), event, member).isEmpty())
+            }
+        }
+        assertTrue(SaveFileWatch.affected(listOf(mapping), FileObserver.CREATE, mapping.name).isEmpty())
+        try { SaveFileWatch.Mapping(group.key, group.directory, "Other", group.route); fail() }
+        catch (_: IllegalArgumentException) {}
+    }
+
     @Test fun onlyExactMappedPublicationOrRemovalRequestsWork() {
         for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO,
                 FileObserver.MOVED_FROM, FileObserver.DELETE)) {

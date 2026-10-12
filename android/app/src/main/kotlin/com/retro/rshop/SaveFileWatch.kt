@@ -21,6 +21,8 @@ internal class SaveFileWatch(private val context: Context? = null,
             require(when (route) {
                 "ppsspp" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validName(name)
                 "melon" -> MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(name)
+                "ppsspp-savedata" -> PpssppSavedataBoundary.validDirectory(directory) &&
+                    directory.substringAfterLast('/') == name
                 else -> false
             })
         }
@@ -31,8 +33,11 @@ internal class SaveFileWatch(private val context: Context? = null,
         private const val SELF_EVENTS = FileObserver.DELETE_SELF or FileObserver.MOVE_SELF
         fun affected(mappings: List<Mapping>, event: Int, name: String?): List<String> =
             if (event and SELF_EVENTS != 0) mappings.map { it.key }
-            else if (event and FILE_EVENTS != 0) mappings.filter { it.name == name }.map { it.key }
-            else emptyList()
+            else mappings.filter {
+                if (it.route == "ppsspp-savedata") event and (FILE_EVENTS or FileObserver.CREATE) != 0 &&
+                    name != null && PpssppSavedataBoundary.validMember(name)
+                else event and FILE_EVENTS != 0 && it.name == name
+            }.map { it.key }
         fun decode(raw: List<*>): List<Mapping> {
             require(raw.size <= 4096)
             val mappings = raw.map { value ->
@@ -76,10 +81,12 @@ internal class SaveFileWatch(private val context: Context? = null,
             }
         }
         val registered = mutableListOf<String>()
-        for ((directory, entries) in mappings.groupBy { it.directory }) {
+        for ((directory, entries) in mappings.groupBy {
+            if (it.route == "ppsspp-savedata") it.directory.substringBeforeLast('/') else it.directory
+        }) {
             var observer: FileObserver? = null
             try {
-                if (SaveSourceStorage.isProtectedDirectory(directory)) {
+                if (entries.first().route == "ppsspp-savedata" || SaveSourceStorage.isProtectedDirectory(directory)) {
                     val root = SaveRootWatch(context ?: throw IllegalStateException(), entries,
                         { key -> enqueue(listOf(key)) }, { main.post {
                             if (generation == token) unavailable()

@@ -7,6 +7,31 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Complete PSP save-folder UI and root watch — verified slice, 2026-10-12
+
+Root is an implementation capability, not a manual-mapping-only fallback. The
+normal PSP backup controls now discover the emulator's SAVEDATA parent directly
+from its configured Memory Stick and keep folder associations separate from
+save-state slots. The existing automatic backup lane persists and reloads the
+complete-folder route with its account, edition, artifact and folder identity.
+Custom/ambiguous game associations remain reviewable; this is not permission to
+silently associate every discovered folder with the selected game.
+
+The root watcher groups associations by SAVEDATA parent, using one joined helper
+and one inotify descriptor for that parent and its selected child groups. Parent
+create/rename/delete events re-arm exact group watches; member changes enqueue
+the group. A replaced parent, unmount or overflow invalidates registration rather
+than pretending coverage survived. Existing startup/return reconciliation remains
+the recovery path. There is no new polling delay, emulator termination or broad
+private-data transfer. Capture still establishes group coherence independently.
+
+Focused host UI/automatic-job checks and actual Thor member-change, replaced-
+folder and first-folder watch delivery pass on preserving build 782. The native
+restore/recovery/rollback fixture also passes and retires its exact artifacts.
+See IMPLEMENTATION_STATUS.md for APK identities, the gate/profile and boundaries.
+Normal UI Drive backup/restore, zero-byte cloud payload verification and cloud-only
+folder discovery remain unfinished; this checkpoint does not close S10.
+
 ### Protected PPSSPP state storage — verified slice, 2026-10-12
 
 SAVE-01's root-assisted coverage includes PPSSPP's own external-files Memory

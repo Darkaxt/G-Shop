@@ -8,6 +8,7 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -59,8 +60,21 @@ internal object PpssppSavedataCaptureProof {
             @Suppress("UNCHECKED_CAST")
             return call("capturePpssppSavedata", mapOf("captureId" to captureId, "directory" to source)) as Map<String, Any>
         }
+        fun observedChange(directory: String = source, action: () -> Unit) {
+            val changed = CountDownLatch(1)
+            val unavailable = AtomicBoolean(false)
+            val mapping = SaveFileWatch.Mapping("d".repeat(64), directory,
+                directory.substringAfterLast('/'), "ppsspp-savedata")
+            val watch = SaveRootWatch(context, listOf(mapping), { key ->
+                check(key == mapping.key); changed.countDown()
+            }, { unavailable.set(true); changed.countDown() })
+            try {
+                action(); changed.await(); check(!unavailable.get())
+            } finally { watch.close() }
+        }
         try {
             for ((name, bytes) in data) shell("/system/bin/cat > '$backing/$name'", bytes)
+            observedChange { shell("/system/bin/cat > '$backing/CUSTOM.SAV'", data["CUSTOM.SAV"]!!) }
             check(call("ppssppSavedataFolders", mapOf("directory" to source.substringBeforeLast('/'))) ==
                 listOf("ULUS00000DATA00"))
             SaveSourceStorage.open(context, source).use { storage ->
@@ -244,7 +258,9 @@ internal object PpssppSavedataCaptureProof {
             val nextBytes = linkedMapOf("PARAM.SFO" to byteArrayOf(19, 20), "NEW.DAT" to byteArrayOf())
             val restore = stageRestore(source, nextBytes)
             close(); service = SaveCaptureService(context)
-            call("publishRestoreGroup", mapOf("captureId" to restore, "rollbackCaptureId" to captureId))
+            observedChange {
+                call("publishRestoreGroup", mapOf("captureId" to restore, "rollbackCaptureId" to captureId))
+            }
             verifyFolder(source, nextBytes)
             close(); service = SaveCaptureService(context)
             call("publishRestoreGroup", mapOf("captureId" to restore, "rollbackCaptureId" to captureId))
@@ -270,7 +286,9 @@ internal object PpssppSavedataCaptureProof {
             val firstRestore = stageRestore(firstTarget, nextBytes)
             additionalGroups[firstTarget.substringAfterLast('/')] = nextBytes.keys
             close(); service = SaveCaptureService(context)
-            call("publishRestoreGroup", mapOf("captureId" to firstRestore, "rollbackCaptureId" to firstBaseline["captureId"]!!))
+            observedChange(firstTarget) {
+                call("publishRestoreGroup", mapOf("captureId" to firstRestore, "rollbackCaptureId" to firstBaseline["captureId"]!!))
+            }
             verifyFolder(firstTarget, nextBytes)
 
             fun journal(restoreId: String, values: JSONObject) {
@@ -351,6 +369,6 @@ internal object PpssppSavedataCaptureProof {
                 shell("rmdir '$backing' && rmdir '$fixture/PSP/SAVEDATA' && rmdir '$fixture/PSP' && rmdir '$fixture'")
             }
         }
-        return "PASS complete protected PPSSPP SAVEDATA capture and journaled restore: streamed empty companions; mutation/runtime refusal; recreated-service publication/replay and rollback; changed-local refusal; first-folder restore; recovery after actual atomic commit without receipt and empty allocation without inode receipt; exact exchanged-stage/fixture/capture retirement; no real save/ROM/settings/Drive mutation"
+        return "PASS complete protected PPSSPP SAVEDATA capture and journaled restore: root member/folder-replacement/first-folder watch delivery and joined shutdown; streamed empty companions; mutation/runtime refusal; recreated-service publication/replay and rollback; changed-local refusal; first-folder restore; recovery after actual atomic commit without receipt and empty allocation without inode receipt; exact exchanged-stage/fixture/capture retirement; no real save/ROM/settings/Drive mutation"
     }
 }

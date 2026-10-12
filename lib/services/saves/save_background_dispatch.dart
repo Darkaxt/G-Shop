@@ -23,6 +23,7 @@ class SaveBackgroundDispatch {
                 'directory': mapping.directory,
                 'name': mapping.slot,
                 if (mapping.isMelon) 'route': 'melon',
+                if (mapping.isPpssppSavedata) 'route': 'ppsspp-savedata',
               })
           .toList(),
     });

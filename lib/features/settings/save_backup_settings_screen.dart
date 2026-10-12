@@ -76,6 +76,7 @@ class _SaveBackupSettingsScreenState
   Future<SaveBackupGameJob>? _gameLoading;
   String? _gameBinding;
   int _gameGeneration = 0;
+  bool _pspSavedata = true;
   SaveBackupSection _section = SaveBackupSection.area;
   Future<List<SaveEmulatorCoverage>?>? _coverage;
   final _contentScroll = ScrollController();
@@ -212,12 +213,19 @@ class _SaveBackupSettingsScreenState
       DriveSourceConfig config, String areaId) async {
     final generation = ++_gameGeneration;
     _automatic = await ref.read(automaticSaveBackupsProvider.future);
-    String? ppssppDirectory, ppssppSlot, melonDirectory, melonName;
+    String? ppssppDirectory,
+        ppssppSlot,
+        ppssppSavedataDirectory,
+        melonDirectory,
+        melonName;
     final melon = widget.system?.id == 'nds';
+    final savedata = widget.system?.id == 'psp' && _pspSavedata;
+    final mappingKey = melon
+        ? _melonMappingKey(config)
+        : _ppssppMappingKey(config, savedata: savedata);
     if (widget.system?.id == 'psp' || melon) {
       final preferences = await SharedPreferences.getInstance();
-      final raw = preferences.getString(
-          melon ? _melonMappingKey(config) : _ppssppMappingKey(config));
+      final raw = preferences.getString(mappingKey);
       if (raw == null) throw StateError('Save mapping required');
       final mapping = jsonDecode(raw) as Map<String, dynamic>;
       if (melon) {
@@ -226,6 +234,13 @@ class _SaveBackupSettingsScreenState
         if (!SaveCapture.validMelonDirectory(melonDirectory) ||
             !SaveCapture.validMelonName(melonName)) {
           throw const FormatException('Invalid MelonDualDS mapping');
+        }
+      } else if (savedata) {
+        ppssppSavedataDirectory = mapping['directory'] as String;
+        if (!SaveCapture.validPpssppSavedataDirectory(
+                ppssppSavedataDirectory) ||
+            mapping['name'] != ppssppSavedataDirectory.split('/').last) {
+          throw const FormatException('Invalid PPSSPP in-game save mapping');
         }
       } else {
         ppssppDirectory = mapping['directory'] as String;
@@ -254,11 +269,12 @@ class _SaveBackupSettingsScreenState
         artifactId: widget.game!.remoteArtifact!.id,
         ppssppDirectory: ppssppDirectory,
         ppssppSlot: ppssppSlot,
+        ppssppSavedataDirectory: ppssppSavedataDirectory,
         melonDirectory: melonDirectory,
         melonName: melonName,
         retroArchRoute: RetroArchBatteryRoute.forPlatform(widget.system?.id) ??
             RetroArchBatteryRoute.mgba,
-        resolveSaveName: ppssppSlot == null && melonName == null
+        resolveSaveName: !savedata && ppssppSlot == null && melonName == null
             ? () => OwnedEmulatorLauncher().reviewRetroArchBatterySave(
                 widget.game!,
                 widget.system!,
@@ -266,17 +282,20 @@ class _SaveBackupSettingsScreenState
                 RetroArchBatteryRoute.forPlatform(widget.system?.id)!)
             : () async {
                 final preferences = await SharedPreferences.getInstance();
-                final mapping = jsonDecode(preferences.getString(melon
-                        ? _melonMappingKey(config)
-                        : _ppssppMappingKey(config)) ??
-                    '{}') as Map<String, dynamic>;
+                final mapping =
+                    jsonDecode(preferences.getString(mappingKey) ?? '{}')
+                        as Map<String, dynamic>;
+                final name = savedata
+                    ? ppssppSavedataDirectory!.split('/').last
+                    : (melonName ?? ppssppSlot)!;
                 if (mapping['directory'] !=
-                        (melonDirectory ?? ppssppDirectory) ||
-                    mapping[melon ? 'name' : 'slot'] !=
-                        (melonName ?? ppssppSlot)) {
+                        (melonDirectory ??
+                            ppssppSavedataDirectory ??
+                            ppssppDirectory) ||
+                    mapping[melon || savedata ? 'name' : 'slot'] != name) {
                   throw StateError('Save mapping changed');
                 }
-                return (melonName ?? ppssppSlot)!;
+                return name;
               });
     try {
       await job.load();
@@ -294,8 +313,10 @@ class _SaveBackupSettingsScreenState
     }
   }
 
-  String _ppssppMappingKey(DriveSourceConfig config) =>
-      AutomaticSaveMapping.ppssppMappingKey(config.serverClientId,
+  String _ppssppMappingKey(DriveSourceConfig config, {bool? savedata}) =>
+      (savedata ?? _pspSavedata
+              ? AutomaticSaveMapping.ppssppSavedataMappingKey
+              : AutomaticSaveMapping.ppssppMappingKey)(config.serverClientId,
           config.accountId, widget.editionId!, widget.game!.remoteArtifact!.id);
 
   String _melonMappingKey(DriveSourceConfig config) =>
@@ -325,15 +346,21 @@ class _SaveBackupSettingsScreenState
 
   Future<void> _mapPpsspp(
       DriveSourceConfig config, String directory, String slot) async {
-    if (!SaveCapture.validPpssppDirectory(directory) ||
-        !SaveCapture.validPpssppName(slot)) {
+    final savedata = _pspSavedata;
+    if (savedata
+        ? !SaveCapture.validPpssppSavedataDirectory(directory) ||
+            directory.split('/').last != slot
+        : !SaveCapture.validPpssppDirectory(directory) ||
+            !SaveCapture.validPpssppName(slot)) {
       throw const FormatException('Invalid PPSSPP mapping');
     }
     final binding = _binding;
     final preferences = await SharedPreferences.getInstance();
     if (!mounted || binding != _binding || _gameJob?.busy == true) return;
-    if (!await preferences.setString(_ppssppMappingKey(config),
-        jsonEncode({'directory': directory, 'slot': slot}))) {
+    if (!await preferences.setString(
+        _ppssppMappingKey(config, savedata: savedata),
+        jsonEncode(
+            {'directory': directory, savedata ? 'name' : 'slot': slot}))) {
       throw StateError('Mapping could not be saved');
     }
     if (!mounted || binding != _binding) return;
@@ -359,10 +386,13 @@ class _SaveBackupSettingsScreenState
     }
     if (widget.system?.id == 'psp' && _section == SaveBackupSection.backup) {
       return StandaloneSaveMappingPanel(
+          key: ValueKey('psp-map-$_pspSavedata'),
+          pspSavedata: _pspSavedata,
           title: widget.gameTitle ?? 'Selected PSP edition',
           capture: SaveCapture(),
           chooseDirectory: () => FilePicker.platform.getDirectoryPath(
-              dialogTitle: 'Choose PPSSPP_STATE in your configured PSP folder'),
+              dialogTitle:
+                  'Choose ${_pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} in your configured PSP folder'),
           onMapped: (directory, slot) => _mapPpsspp(config, directory, slot));
     }
     return const Text(
@@ -590,7 +620,12 @@ class _SaveBackupSettingsScreenState
                                                                       binding,
                                                                       area,
                                                                       widget
-                                                                          .editionId
+                                                                          .editionId,
+                                                                      if (widget
+                                                                              .system
+                                                                              ?.id ==
+                                                                          'psp')
+                                                                        _pspSavedata,
                                                                     ]);
                                                           if (gameBinding !=
                                                               _gameBinding) {
@@ -611,6 +646,48 @@ class _SaveBackupSettingsScreenState
                                                                   CrossAxisAlignment
                                                                       .stretch,
                                                               children: [
+                                                                if (widget.system
+                                                                            ?.id ==
+                                                                        'psp' &&
+                                                                    _section !=
+                                                                        SaveBackupSection
+                                                                            .area &&
+                                                                    _section !=
+                                                                        SaveBackupSection
+                                                                            .emulators)
+                                                                  Padding(
+                                                                      padding: const EdgeInsets
+                                                                          .only(
+                                                                          bottom:
+                                                                              16),
+                                                                      child: DropdownButtonFormField<
+                                                                          bool>(
+                                                                        key: const ValueKey(
+                                                                            'psp-backup-kind'),
+                                                                        initialValue:
+                                                                            _pspSavedata,
+                                                                        decoration:
+                                                                            const InputDecoration(labelText: 'Backup type'),
+                                                                        items: const [
+                                                                          DropdownMenuItem(
+                                                                              value: true,
+                                                                              child: Text('In-game saves')),
+                                                                          DropdownMenuItem(
+                                                                              value: false,
+                                                                              child: Text('Save states'))
+                                                                        ],
+                                                                        onChanged: _gameJob?.busy ==
+                                                                                true
+                                                                            ? null
+                                                                            : (value) {
+                                                                                if (value != null && value != _pspSavedata) {
+                                                                                  setState(() {
+                                                                                    _pspSavedata = value;
+                                                                                    _closeGame();
+                                                                                  });
+                                                                                }
+                                                                              },
+                                                                      )),
                                                                 if (_section ==
                                                                     SaveBackupSection
                                                                         .area)
@@ -624,8 +701,8 @@ class _SaveBackupSettingsScreenState
                                                                     null)
                                                                   FutureBuilder<
                                                                           SaveBackupGameJob>(
-                                                                      key: const ValueKey(
-                                                                          'save-game-workspace'),
+                                                                      key: ValueKey(
+                                                                          'save-game-workspace-$gameBinding'),
                                                                       future:
                                                                           _gameLoading,
                                                                       builder: (context, game) => game
@@ -634,7 +711,7 @@ class _SaveBackupSettingsScreenState
                                                                               selected.drive!)
                                                                           : game.data == null
                                                                               ? const LinearProgressIndicator()
-                                                                              : SaveBackupGamePanel(section: _section, job: game.data!, automatic: _automatic, title: widget.gameTitle ?? 'Selected game')),
+                                                                              : SaveBackupGamePanel(key: ObjectKey(game.data!), section: _section, job: game.data!, automatic: _automatic, title: widget.gameTitle ?? 'Selected game')),
                                                                 if (_gameLoading ==
                                                                         null &&
                                                                     _section !=
@@ -951,22 +1028,26 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               Text(
                   job.isMelon
                       ? 'MelonDualDS · in-game save · 0.8.0.rc2'
-                      : job.isPpsspp
-                          ? 'PPSSPP · published state slot · v1.20.4'
-                          : !job.retroArchRoute.includesRtc
-                              ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
-                              : 'RetroArch · mGBA · battery saves only',
+                      : job.isPpssppSavedata
+                          ? 'PPSSPP · in-game save folder · v1.20.4'
+                          : job.isPpsspp
+                              ? 'PPSSPP · published state slot · v1.20.4'
+                              : !job.retroArchRoute.includesRtc
+                                  ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
+                                  : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (widget.section == SaveBackupSection.backup) ...[
                 const SizedBox(height: 12),
                 Text(
                     job.isMelon
                         ? 'Backs up only this game’s selected .sav or .srm file in its configured save folder. ROMs, settings and save states are not included.'
-                        : job.isPpsspp
-                            ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
-                            : !job.retroArchRoute.includesRtc
-                                ? 'Backs up this ${job.retroArchRoute.label} game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
-                                : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
+                        : job.isPpssppSavedata
+                            ? 'Backs up this game’s complete in-game save folder, including its companion files. ROMs, emulator settings and save states are not included.'
+                            : job.isPpsspp
+                                ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
+                                : !job.retroArchRoute.includesRtc
+                                    ? 'Backs up this ${job.retroArchRoute.label} game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
+                                    : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 FutureBuilder<List<String>>(
@@ -1015,9 +1096,11 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 Text(
                     job.isMelon
                         ? 'MelonDualDS can stay open. R-Shop only backs up a completed save and keeps your previous backup if the save is still changing.'
-                        : job.isPpsspp
-                            ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
-                            : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
+                        : job.isPpssppSavedata
+                            ? 'Exit PPSSPP normally after saving. R-Shop then backs up the complete folder together, keeping your last verified backup if saving has not finished.'
+                            : job.isPpsspp
+                                ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
+                                : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 ConsoleFocusable(
@@ -1397,7 +1480,7 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
 /// Selecting a directory never changes the application's ROM destination.
 class StandaloneSaveMappingPanel extends StatefulWidget {
   final String title;
-  final bool melon;
+  final bool melon, pspSavedata;
   final SaveCapture capture;
   final Future<({String directory, String name})> Function()? resolveMelonSave;
   final Future<String?> Function() chooseDirectory;
@@ -1405,6 +1488,7 @@ class StandaloneSaveMappingPanel extends StatefulWidget {
   const StandaloneSaveMappingPanel(
       {super.key,
       this.melon = false,
+      this.pspSavedata = false,
       this.resolveMelonSave,
       required this.title,
       required this.capture,
@@ -1434,16 +1518,21 @@ class _StandaloneSaveMappingPanelState
     });
     try {
       if (!widget.melon) {
-        final directory = await widget.capture.ppssppSaveDirectory();
-        final names = await widget.capture.ppssppNames(directory);
+        final directory = widget.pspSavedata
+            ? await widget.capture.ppssppSavedataParent()
+            : await widget.capture.ppssppSaveDirectory();
+        final names = widget.pspSavedata
+            ? await widget.capture.ppssppSavedataFolders(directory)
+            : await widget.capture.ppssppNames(directory);
         if (!mounted) return;
         setState(() {
           _directory = directory;
           _names = names;
           _slot = null;
           _confirmed = false;
-          _locationInfo = 'Found the save-state folder configured in PPSSPP. '
-              'Choose this game’s slot below.';
+          _locationInfo = widget.pspSavedata
+              ? 'Found PPSSPP’s in-game saves. Choose this game’s folder below; all its companion files are backed up together.'
+              : 'Found the save-state folder configured in PPSSPP. Choose this game’s slot below.';
         });
         return;
       }
@@ -1507,13 +1596,17 @@ class _StandaloneSaveMappingPanelState
       if (directory == null || !mounted) return;
       if (!(widget.melon
           ? SaveCapture.validMelonDirectory(directory)
-          : SaveCapture.validPpssppDirectory(directory))) {
+          : widget.pspSavedata
+              ? SaveCapture.validPpssppSavedataParent(directory)
+              : SaveCapture.validPpssppDirectory(directory))) {
         throw const FormatException(
             'Choose the configured PPSSPP_STATE folder');
       }
       final names = widget.melon
           ? await widget.capture.melonNames(directory)
-          : await widget.capture.ppssppNames(directory);
+          : widget.pspSavedata
+              ? await widget.capture.ppssppSavedataFolders(directory)
+              : await widget.capture.ppssppNames(directory);
       if (!mounted) return;
       setState(() {
         _directory = directory;
@@ -1527,7 +1620,7 @@ class _StandaloneSaveMappingPanelState
             ? error is PlatformException && error.code == 'root_unavailable'
                 ? 'Root access was not available. Allow R-Shop in Magisk, then try again. Your saves and mapping are unchanged.'
                 : 'The save folder could not be opened. Check root access for the standard folder, or choose the custom folder configured in MelonDualDS. Your mapping is unchanged.'
-            : 'Choose PPSSPP_STATE inside PPSSPP’s configured PSP folder. Protected app folders require R-Shop root access. No mapping was changed.');
+            : 'Choose ${widget.pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} inside PPSSPP’s configured PSP folder. Protected app folders require R-Shop root access. No mapping was changed.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1541,7 +1634,8 @@ class _StandaloneSaveMappingPanelState
       _issue = null;
     });
     try {
-      await widget.onMapped(_directory!, _slot!);
+      await widget.onMapped(
+          widget.pspSavedata ? '$_directory/$_slot' : _directory!, _slot!);
     } catch (_) {
       if (mounted) {
         setState(() =>
@@ -1560,13 +1654,17 @@ class _StandaloneSaveMappingPanelState
         Text(
             widget.melon
                 ? 'Choose a MelonDualDS save'
-                : 'Choose a PPSSPP save state',
+                : widget.pspSavedata
+                    ? 'Choose a PPSSPP in-game save'
+                    : 'Choose a PPSSPP save state',
             style: TextStyle(fontSize: 20)),
         const SizedBox(height: 12),
         Text(
             widget.melon
                 ? 'R-Shop checks MelonDualDS’s save settings using root. Select this game’s .sav or .srm file from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.'
-                : 'R-Shop checks PPSSPP’s Memory Stick setting using root. Choose this game’s save-state slot from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.',
+                : widget.pspSavedata
+                    ? 'R-Shop finds PPSSPP’s Memory Stick using root. Choose the in-game save folder for this edition. Its complete contents stay together; save states are managed separately.'
+                    : 'R-Shop checks PPSSPP’s Memory Stick setting using root. Choose this game’s save-state slot from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.',
             style: TextStyle(fontSize: 18, height: 1.4)),
         const SizedBox(height: 16),
         if (_locationInfo != null)
@@ -1604,14 +1702,18 @@ class _StandaloneSaveMappingPanelState
                 icon: const Icon(Icons.folder_open),
                 label: Text(widget.melon
                     ? 'Choose shared save folder'
-                    : 'Choose PPSSPP_STATE folder'))),
+                    : widget.pspSavedata
+                        ? 'Choose SAVEDATA folder'
+                        : 'Choose PPSSPP_STATE folder'))),
         if (_directory != null) ...[
           Text(_directory!, style: const TextStyle(fontSize: 18)),
           const SizedBox(height: 16),
           if (_names.isEmpty)
             Text(widget.melon
                 ? 'No in-game saves were found. Save in MelonDualDS, then choose this folder again.'
-                : 'No finished save states were found. Save a state in PPSSPP, then choose this folder again.'),
+                : widget.pspSavedata
+                    ? 'No in-game save folders were found. Save in PPSSPP, then refresh this list.'
+                    : 'No finished save states were found. Save a state in PPSSPP, then choose this folder again.'),
           DropdownButtonFormField<String>(
               key:
                   ValueKey(widget.melon ? 'melon-map-slot' : 'ppsspp-map-slot'),
@@ -1620,7 +1722,9 @@ class _StandaloneSaveMappingPanelState
               decoration: InputDecoration(
                   labelText: widget.melon
                       ? 'In-game save for this game'
-                      : 'Save-state slot for this game'),
+                      : widget.pspSavedata
+                          ? 'In-game save folder for this game'
+                          : 'Save-state slot for this game'),
               items: _names
                   .map((name) => DropdownMenuItem(
                       value: name,
@@ -1638,7 +1742,7 @@ class _StandaloneSaveMappingPanelState
               contentPadding: EdgeInsets.zero,
               value: _confirmed,
               title: Text(
-                  'I confirm this ${widget.melon ? 'save' : 'slot'} belongs to ${widget.title}',
+                  'I confirm this ${widget.melon || widget.pspSavedata ? 'save' : 'slot'} belongs to ${widget.title}',
                   style: const TextStyle(fontSize: 18)),
               onChanged: _busy
                   ? null
@@ -1652,8 +1756,9 @@ class _StandaloneSaveMappingPanelState
                     widget.melon ? 'melon-map-save' : 'ppsspp-map-save'),
                 style: AppTheme.primaryButtonStyle,
                 onPressed: !_busy && _confirmed && _slot != null ? _save : null,
-                child: Text(
-                    widget.melon ? 'Use this save' : 'Use this save state'))),
+                child: Text(widget.melon || widget.pspSavedata
+                    ? 'Use this save'
+                    : 'Use this save state'))),
         if (_busy) const LinearProgressIndicator(),
         if (_issue != null) Text(_issue!, style: const TextStyle(fontSize: 18)),
       ]);

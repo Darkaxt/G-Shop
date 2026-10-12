@@ -40,6 +40,15 @@ complete membership, empty companions, folder-specific ancestry and retained
 membership-changing rollback. Normal UI, automatic mapping/watch and actual Drive
 round trip remain unfinished S10 work. The checkpoint does not close S10.
 
+PSP folder UI/watch checkpoint, 2026-10-12: preserving gated request 782 and
+actual Thor member/replaced-folder/first-folder watch delivery pass, together
+with native restore/recovery/rollback. Normal settings separate in-game folders
+from states; configured-folder discovery and persisted automatic route admission
+pass focused host checks. Finish the normal UI Drive round trip, empty companion
+upload, cloud-only folder discovery and remaining SAVE-01 coverage/fault/handover
+requirements within the sole ACTIVE S10. This supersedes the previous checkpoint's
+unfinished UI/mapping/watch statement, not its remaining live-integration work.
+
 Protected PPSSPP state IO/watch slice, 2026-10-12: gated build 740, preserving
 installation and actual Thor app-UID/root listing, streamed capture/digest,
 publication watching, joined shutdown, recreated-service restore, changed-local

@@ -159,6 +159,26 @@ Java_com_retro_rshop_OwnedStorageNative_saveWatchRead(JNIEnv* env, jobject, jint
 }
 
 extern "C" JNIEXPORT jint JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveWatchAdd(JNIEnv* env, jobject, jint watch, jint directory) {
+    return guarded<jint>(env, -1, [&] {
+        std::string path = "/proc/self/fd/" + std::to_string(directory);
+        constexpr uint32_t events = IN_CLOSE_WRITE | IN_CREATE | IN_MOVED_TO | IN_MOVED_FROM |
+            IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT | IN_ONLYDIR;
+        int descriptor = ::inotify_add_watch(watch, path.c_str(), events);
+        if (descriptor < 0) throw std::system_error(errno, std::generic_category());
+        return descriptor;
+    });
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveWatchRemove(JNIEnv* env, jobject, jint watch, jint descriptor) {
+    guardedVoid(env, [&] {
+        if (::inotify_rm_watch(watch, descriptor) < 0 && errno != EINVAL)
+            throw std::system_error(errno, std::generic_category());
+    });
+}
+
+extern "C" JNIEXPORT jint JNICALL
 Java_com_retro_rshop_OwnedStorageNative_saveSnapshotOpen(JNIEnv* env, jobject, jint directory) {
     return guarded<jint>(env, -1, [&] {
         std::string path = "/proc/self/fd/" + std::to_string(directory);

@@ -15,14 +15,16 @@ import 'save_backup_game_job.dart';
 import 'save_backup_setup.dart';
 import 'save_capture.dart';
 
-/// Explicit published-slot association, not a folder watch or title match.
+/// Explicit save association, never a title-only game match.
 /// RetroArch's closed-content handshake is not yet an unattended capture route.
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
-  final bool isMelon;
+  final bool isMelon, isPpssppSavedata;
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
       : isMelon = value['schema'] == 2 && value['route'] == 'melon',
+        isPpssppSavedata =
+            value['schema'] == 2 && value['route'] == 'ppsspp-savedata',
         clientId = value['clientId'] as String,
         accountId = value['accountId'] as String,
         areaId = value['areaId'] as String,
@@ -32,17 +34,24 @@ class AutomaticSaveMapping {
         title = value['title'] as String,
         artifactId = RemoteArtifactId.fromJson(
             value['artifact'] as Map<String, dynamic>) {
-    if (!(value['schema'] == 1 && !value.containsKey('route') || isMelon) ||
+    if (!(value['schema'] == 1 && !value.containsKey('route') ||
+            isMelon ||
+            isPpssppSavedata) ||
         [clientId, accountId, areaId, editionId, title]
             .any((s) => s.trim().isEmpty || s.length > 1024) ||
         artifactId.providerId != 'drive' ||
         artifactId.accountId != accountId ||
         !(isMelon
             ? SaveCapture.validMelonDirectory(directory)
-            : SaveCapture.validPpssppDirectory(directory)) ||
+            : isPpssppSavedata
+                ? SaveCapture.validPpssppSavedataDirectory(directory)
+                : SaveCapture.validPpssppDirectory(directory)) ||
         !(isMelon
             ? SaveCapture.validMelonName(slot)
-            : SaveCapture.validPpssppName(slot))) {
+            : isPpssppSavedata
+                ? slot == directory.split('/').last &&
+                    SaveCapture.validPpssppSavedataMember(slot)
+                : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
   }
@@ -54,14 +63,21 @@ class AutomaticSaveMapping {
           'Unattended capture is not reviewed for this route');
     }
     return AutomaticSaveMapping._({
-      'schema': job.isMelon ? 2 : 1,
+      'schema': job.isMelon || job.isPpssppSavedata ? 2 : 1,
       if (job.isMelon) 'route': 'melon',
+      if (job.isPpssppSavedata) 'route': 'ppsspp-savedata',
       'clientId': job.clientId,
       'accountId': job.accountId,
       'areaId': job.areaId,
       'editionId': job.editionId,
-      'directory': job.isMelon ? job.melonDirectory : job.ppssppDirectory,
-      'slot': job.isMelon ? job.melonName : job.ppssppSlot,
+      'directory': job.isMelon
+          ? job.melonDirectory
+          : job.ppssppSavedataDirectory ?? job.ppssppDirectory,
+      'slot': job.isMelon
+          ? job.melonName
+          : job.isPpssppSavedata
+              ? job.ppssppSavedataDirectory!.split('/').last
+              : job.ppssppSlot,
       'artifact': job.artifactId.toJson(),
       'title': title,
     });
@@ -69,7 +85,17 @@ class AutomaticSaveMapping {
 
   String get slotStorageKey => isMelon
       ? melonMappingKey(clientId, accountId, editionId, artifactId)
-      : ppssppMappingKey(clientId, accountId, editionId, artifactId);
+      : isPpssppSavedata
+          ? ppssppSavedataMappingKey(clientId, accountId, editionId, artifactId)
+          : ppssppMappingKey(clientId, accountId, editionId, artifactId);
+  static String ppssppSavedataMappingKey(String clientId, String accountId,
+          String editionId, RemoteArtifactId artifact) =>
+      'save_ppsspp_savedata_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+            clientId,
+            accountId,
+            editionId,
+            artifact.key
+          ])))}';
   static String melonMappingKey(String clientId, String accountId,
           String editionId, RemoteArtifactId artifact) =>
       'save_melon_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
@@ -96,11 +122,13 @@ class AutomaticSaveMapping {
         directory,
         slot,
         if (isMelon) 'melondualds-sram-v1',
+        if (isPpssppSavedata) 'ppsspp-savedata-v1',
       ])))
       .toString();
   String encode() => jsonEncode({
-        'schema': isMelon ? 2 : 1,
+        'schema': isMelon || isPpssppSavedata ? 2 : 1,
         if (isMelon) 'route': 'melon',
+        if (isPpssppSavedata) 'route': 'ppsspp-savedata',
         'clientId': clientId,
         'accountId': accountId,
         'areaId': areaId,
@@ -329,7 +357,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
         setup['areaId'] != mapping.areaId ||
         slot is! Map ||
         slot['directory'] != mapping.directory ||
-        slot[mapping.isMelon ? 'name' : 'slot'] != mapping.slot) {
+        slot[mapping.isMelon || mapping.isPpssppSavedata ? 'name' : 'slot'] !=
+            mapping.slot) {
       throw PlatformException(code: 'source_changed');
     }
   }
@@ -365,8 +394,13 @@ class AutomaticSaveBackups extends ChangeNotifier {
         areaId: mapping.areaId,
         editionId: mapping.editionId,
         artifactId: mapping.artifactId,
-        ppssppDirectory: mapping.isMelon ? null : mapping.directory,
-        ppssppSlot: mapping.isMelon ? null : mapping.slot,
+        ppssppDirectory: mapping.isMelon || mapping.isPpssppSavedata
+            ? null
+            : mapping.directory,
+        ppssppSlot:
+            mapping.isMelon || mapping.isPpssppSavedata ? null : mapping.slot,
+        ppssppSavedataDirectory:
+            mapping.isPpssppSavedata ? mapping.directory : null,
         melonDirectory: mapping.isMelon ? mapping.directory : null,
         melonName: mapping.isMelon ? mapping.slot : null,
         resolveSaveName: resolve);

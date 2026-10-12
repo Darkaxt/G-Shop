@@ -5,6 +5,52 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### PSP save-folder UI, persisted association and root watch integration — 2026-10-12
+
+The normal game settings now distinguish in-game save folders from save states.
+PPSSPP's configured Memory Stick supplies SAVEDATA folder discovery; the reviewed
+game/edition association is stored independently of its state-slot association.
+Persisted automatic admission and background dispatch retain that folder route.
+Focused host tests verify discovery/selection, persisted watch admission,
+configuration invalidation and existing backup/restore/conflict behavior. Scoped
+Dart analysis is clean. The missing persisted folder route was reproduced as a
+behavioral failure before implementation.
+
+One joined root watcher per SAVEDATA parent watches its associated folders and
+their members through one inotify descriptor. It re-arms on folder replacement
+or first creation without polling or timing assumptions. Events request backup;
+they do not waive the complete-group capture and reviewed writer boundary.
+The actual Thor fixture passed member-close, atomic folder-replacement and
+first-folder-creation delivery, joined fixture-watch shutdown, journaled restore,
+recovery, changed-local refusal and complete rollback. It changed no real save,
+ROM, emulator setting or Drive object.
+
+Gated request 782 (`208ccae3e3a44529b704460db1e5bc5d`), original command session
+57823, completed with exit 0 and confirmed completion. The supervisor acquired
+`Local\Darka.AndroidGradleBuildGate`; observed workers=2, parallel=false, Gradle
+heap=3 GiB and reviewed Kotlin 2.3.21 in-process. Focused native tests used one
+512-MiB fail-fast fork, with native compile/link pools of depth one on all three
+ABIs. No memory failure or budget increase. Log:
+`9e4093bac4ab4ec0acf9928349472d8f.log` in the shared gate log directory.
+Focused watch/storage/boundary tests and owner/test assembly passed. The original
+host test workload (session 21783) and Thor proof (session 76368) are terminal;
+no second workload was started while either remained active.
+
+Preserving installation succeeded. Independent installed APK hashes match owner
+`31f5430e2ef668887fab2c32d2c8b5793ea30523c4b952f737f62a8c1c1c3d21`
+and test `00229dbd7345815e32f65b04ae92a71321adb27f76e5f52060653379664deb32`.
+The signer and all ten preference digests were preserved. The owned PSP fixture
+and UI dump are absent; both committed displays are OFF and power is Asleep.
+Normal app startup re-established its configured production root watch; that
+intentional watcher is not a leaked fixture worker and was not terminated.
+
+The native fixture and host UI checks do not prove the new complete-folder
+normal-UI Drive round trip. That workflow, zero-byte companion upload, discovery
+of cloud-only save folders after reinstall, remaining emulator routes, required
+fault/reconnect checks and conditional legacy handover remain ordinary unfinished
+S10 work. S10 is the sole ACTIVE stage; S11 is NOT STARTED. No completion or
+release is claimed.
+
 ### Complete PSP save-folder journal and game-job integration verified — 2026-10-12
 
 The actual Thor regression reproduced the missing normal restore route:

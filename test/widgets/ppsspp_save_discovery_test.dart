@@ -79,4 +79,51 @@ void main() {
     expect(calls.last.method, 'ppssppNames');
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+      'PSP in-game saves discover complete folders separately from states',
+      (tester) async {
+    const parent = '/storage/emulated/0/PSP/SAVEDATA';
+    const folder = 'ULUS10041DATA00';
+    String? mappedDirectory, mappedName;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'ppssppSaveSettings') return {'directory': directory};
+      if (call.method == 'ppssppSavedataFolders') return [folder];
+      return null;
+    });
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: StandaloneSaveMappingPanel(
+                pspSavedata: true,
+                title: 'Reviewed PSP edition',
+                capture: SaveCapture(),
+                chooseDirectory: () async =>
+                    throw StateError('Unexpected manual picker'),
+                onMapped: (directory, name) async {
+                  mappedDirectory = directory;
+                  mappedName = name;
+                })))));
+    await tester.pumpAndSettle();
+    expect(calls.map((call) => call.method),
+        ['ppssppSaveSettings', 'ppssppSavedataFolders']);
+    expect(calls.last.arguments, {'directory': parent});
+    expect(find.text('Choose a PPSSPP in-game save'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('ppsspp-map-slot')));
+    await tester.tap(find.byKey(const ValueKey('ppsspp-map-slot')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(folder).last);
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('ppsspp-map-confirm')));
+    await tester.tap(find.byKey(const ValueKey('ppsspp-map-confirm')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('ppsspp-map-save')));
+    await tester.tap(find.byKey(const ValueKey('ppsspp-map-save')));
+    await tester.pumpAndSettle();
+    expect(mappedDirectory, '$parent/$folder');
+    expect(mappedName, folder);
+    expect(tester.takeException(), isNull);
+  });
 }

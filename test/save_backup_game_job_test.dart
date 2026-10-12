@@ -737,6 +737,7 @@ void main() {
     Future<void> Function(List<AutomaticSaveMapping>)? watch,
     Set<String> watchFailures = const {},
     bool melon = false,
+    bool savedata = false,
     String? ppssppDirectory,
   }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
@@ -746,8 +747,14 @@ void main() {
         matchStatus: IdentityMatchStatus.manuallyMatched));
     final directory = melon
         ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
-        : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
-    final slot = melon ? 'Game.sav' : 'ULUS10041_1.00_0.ppst';
+        : savedata
+            ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
+            : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final slot = melon
+        ? 'Game.sav'
+        : savedata
+            ? 'ULUS10041DATA00'
+            : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
         capture: capture,
@@ -758,8 +765,9 @@ void main() {
         areaId: 'area',
         editionId: 'edition',
         artifactId: artifactId,
-        ppssppDirectory: melon ? null : directory,
-        ppssppSlot: melon ? null : slot,
+        ppssppDirectory: melon || savedata ? null : directory,
+        ppssppSlot: melon || savedata ? null : slot,
+        ppssppSavedataDirectory: savedata ? directory : null,
         melonDirectory: melon ? directory : null,
         melonName: melon ? slot : null,
         resolveSaveName: () async => slot);
@@ -768,8 +776,8 @@ void main() {
     SharedPreferences.setMockInitialValues({
       SaveBackupSetup.storageKey('client', 'account'):
           jsonEncode({'ready': true, 'areaId': 'area'}),
-      mapping.slotStorageKey:
-          jsonEncode({'directory': directory, melon ? 'name' : 'slot': slot}),
+      mapping.slotStorageKey: jsonEncode(
+          {'directory': directory, melon || savedata ? 'name' : 'slot': slot}),
     });
     final preferences = await SharedPreferences.getInstance();
     final service = AutomaticSaveBackups(
@@ -806,8 +814,9 @@ void main() {
             areaId: mapped.areaId,
             editionId: mapped.editionId,
             artifactId: mapped.artifactId,
-            ppssppDirectory: melon ? null : mapped.directory,
-            ppssppSlot: melon ? null : mapped.slot,
+            ppssppDirectory: melon || savedata ? null : mapped.directory,
+            ppssppSlot: melon || savedata ? null : mapped.slot,
+            ppssppSavedataDirectory: savedata ? mapped.directory : null,
             melonDirectory: melon ? mapped.directory : null,
             melonName: melon ? mapped.slot : null,
             resolveSaveName: resolve));
@@ -818,6 +827,40 @@ void main() {
     await service.setEnabled(mapping, true);
     return (service: service, mapping: mapping, preferences: preferences);
   }
+
+  test(
+      'automatic PSP save folders retain their route across persisted admission',
+      () async {
+    capture = _SavedataCapture();
+    final watches = <List<AutomaticSaveMapping>>[];
+    final fixture = await automaticFixture(
+        savedata: true,
+        watch: (mappings) async {
+          watches.add(mappings);
+        });
+    expect(jsonDecode(fixture.mapping.encode())['route'], 'ppsspp-savedata');
+    expect(fixture.mapping.slotStorageKey,
+        startsWith('save_ppsspp_savedata_mapping_v1_'));
+    expect(
+        fixture.mapping.slotStorageKey,
+        isNot(AutomaticSaveMapping.ppssppMappingKey(
+            'client', 'account', 'edition', artifactId)));
+    await fixture.service.reconcileWatches();
+    expect(watches.last.single.encode(), fixture.mapping.encode());
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    expect(
+        generations.cloud.values.single.binding.formatId, 'ppsspp-savedata-v1');
+    expect(capture.ppssppSources.single, fixture.mapping.directory);
+    await fixture.preferences.remove(fixture.mapping.slotStorageKey);
+    await fixture.service.reconcileWatches();
+    expect(watches.last, isEmpty);
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(generations.uploads, 1);
+    expect((await fixture.service.status(fixture.mapping)).issue, isNotNull);
+  });
 
   test('schedule follows persisted opt-in and removes only after opt-out',
       () async {
