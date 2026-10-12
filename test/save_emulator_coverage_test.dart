@@ -13,6 +13,25 @@ Map<String, Object> _row(String name, String version,
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('PC runtimes are excluded from ROM-emulator save coverage', () {
+    for (final package in [
+      'app.gamenative',
+      'com.winnative.cmod',
+      'org.force9.starboard',
+    ]) {
+      expect(SaveEmulatorCoverage.knownPackages, isNot(contains(package)));
+    }
+    for (final package in [
+      'com.retroarch.aarch64',
+      'org.ppsspp.ppsspp',
+      'org.dolphinemu.dolphinemu',
+      'xyz.aethersx2.android',
+      'me.magnum.melondualds',
+    ]) {
+      expect(SaveEmulatorCoverage.knownPackages, contains(package));
+    }
+  });
+
   test(
       'coverage requests bounded package metadata without paths or credentials',
       () async {

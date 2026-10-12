@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 26, 2026-10-12.
+Authoritative specification, revision 27, 2026-10-12.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -11,9 +11,11 @@ before removing the exact superseded local ROM. This explicitly authorizes that
 replacement/removal; preserve saves, BIOS/settings and unrelated files. Do not
 delete a matching Top-25 copy merely because installation ownership is absent,
 or mistake a filename match for proof of the same game/edition. Complete the
-retained-copy linkage as an existing-library prerequisite of active S10 save
-integration, using the existing comparison, installation and removal boundaries.
-This does not reopen exhaustive scraping or whole-SD cleanup.
+Drive/local identity reconciliation through the existing comparison, installation
+and removal boundaries. S10 verifies identity for its actual save workflows;
+adopting every retained ROM is not an additional stage-acceptance prerequisite.
+A verified current Drive download followed by exact superseded-copy removal is
+also valid. This does not reopen exhaustive scraping or whole-SD cleanup.
 
 Owner clarification, 2026-10-11: fresh metadata is a supported workflow, not a
 requirement to scrape every ROM in the owner's collection. Neither S7 closure,
@@ -1326,6 +1328,13 @@ or permit their existing acceptance criteria to be weakened.
 ## 6d. Emulator-aware save-backup sync (S10)
 
 ### SAVE-01 — Save and save-state backup without ROM mirroring
+
+Owner scope clarification, 2026-10-12: Windows compatibility apps such as
+GameNative and WinNative, and similar PC execution environments, are outside
+this ROM-emulator save-sync feature. They are not required save-coverage routes
+or S10 acceptance blockers. Starboard runs the PortMaster PC-port catalogue and
+is also excluded on this basis. Keep ROM emulators and ROM-derived engines in
+scope; do not interpret this exclusion as permission to remove apps or data.
 
 Acceptance scope revised by the user on 2026-10-09: a restored save must be
 published at the location the configured emulator expects. Verify the destination

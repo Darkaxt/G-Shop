@@ -1599,6 +1599,15 @@ export boundary; repeated equal timestamps or arbitrary delays are not proof.
 
 ## Entry observations and unfinished route audit
 
+Scope correction, 2026-10-12 (specification revision 27): the owner excludes
+GameNative and similar Windows/PC execution environments. GameNative and
+WinNative are no longer save-coverage requirements. Starboard is also excluded:
+its [upstream description](https://github.com/get-starboard/starboard) identifies
+it as a PortMaster PC-port runtime, not a ROM emulator. The three historical
+inventory rows below are observations only, not remaining implementation work.
+Their apps, containers, settings and saves stay untouched. ROM emulators and
+ROM-derived engines remain in scope.
+
 Read-only package/path audit; versions were read from installed package metadata.
 ADB visibility is **not** an Android application permission grant. Save/state
 coverage in every row is unfinished until a normal app route is implemented and

@@ -9,6 +9,8 @@ source/licensing when that stage starts, not during earlier-stage implementation
 Final S9 audits supported cartridge and legacy-media artwork coverage. It must
 not open a second ACTIVE stage or trigger speculative console-art generation.
 Authorized S10 adds emulator-aware save/save-state backup sync inside R-Shop.
+Windows/PC compatibility runtimes (GameNative, WinNative and Starboard) are
+outside S10's ROM-emulator save coverage; preserve their apps and data.
 Leave the existing device save-sync app and laptop save-sync task unchanged until
 S10 verifies their R-Shop replacement. Then identify and uninstall the exact old
 device sync package and stop/disable only the scheduled task invoking

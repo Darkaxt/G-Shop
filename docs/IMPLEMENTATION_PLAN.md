@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 26.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 27.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 S10 retained-copy clarification, 2026-10-12: reconcile the retained legacy ROMs
@@ -9,8 +9,16 @@ integration. Identical bytes become one linked local/cloud identity; a confirmed
 different version is replaced by the verified Drive installation and only then
 its exact superseded local ROM is removed. Preserve saves/settings and unrelated
 files. The current Patapon comparison proves the existing linkage consumer works;
-it does not prove all retained copies have been reconciled. S10 remains the sole
+it does not prove all retained copies have been reconciled. Bulk adoption of every
+retained ROM is not an extra S10 gate; verify the identity needed by each actual
+save workflow, or install the current Drive copy before retiring a differing
+legacy version. S10 remains the sole
 ACTIVE stage. No repeat of full scraping or whole-SD cleanup is required.
+
+S10 scope correction, 2026-10-12: GameNative, WinNative and similar PC execution
+environments are outside ROM-emulator save sync. Starboard's PortMaster PC-port
+runtime is excluded too. Do not implement their save mappings or count their
+absence as an acceptance blocker; preserve installed apps and their data.
 
 Current scope correction (2026-10-11): the owner never required exhaustive
 scraping of all ROMs. Saved metadata job 76 and exhaustive scoped/provider passes

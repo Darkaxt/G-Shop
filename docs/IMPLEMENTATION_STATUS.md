@@ -5,6 +5,38 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### ROM-emulator-only save coverage — 2026-10-12
+
+The owner's specification revision 27 excludes GameNative, WinNative and similar
+PC execution environments from S10. Starboard is a PortMaster PC-port runtime
+([upstream](https://github.com/get-starboard/starboard)), not a ROM emulator, and
+is excluded as well. The normal coverage inventory request no longer includes
+these three packages. ROM emulators and ROM-derived engines remain in scope;
+no app/container, save, setting or scheduled task was changed by this correction.
+The focused exclusion regression failed against the old package list and passes
+with the corrected list. Relevant coverage/settings checks and scoped analysis
+passed in original session 77811, exit zero. Native assembly request 796 is queued
+under the same host-wide gate; native presentation is not yet claimed for this
+exclusion. S10 remains the sole ACTIVE stage and S11 is NOT STARTED.
+
+The former bulk-adoption prerequisite was an overconstraint, not a new owner
+requirement. Six completed PSP adoptions remain valid. Original batch 16902 was
+stopped before more games were submitted; Dante's in-flight comparison was then
+cancelled through the normal app Cancel button, returning to its detail screen.
+An independent read-only MD5 check confirms its ROM is unchanged. No ROM was
+deleted. Individual S10 workflows still require correct Drive/edition identity;
+adopting every retained ROM is not a separate acceptance gate.
+
+Build 792's preserving installation succeeded and the installed APK independently
+matches the recorded SHA-256. All eleven observed configuration/preference
+digests survived replacement unchanged. Normal Settings -> Save backups ->
+Emulators on the Thor displayed the complete PPSSPP SAVEDATA support and
+root-assisted discovery/normal Exit instructions. The restored two-member save
+fixture and separate PPSSPP state fixture retain their recorded SHA-256 digests.
+The root audit used underlying `/data/media/0` for private-mode SAVEDATA members;
+the shell-facing FUSE path correctly denied those reads. This closes the earlier
+coverage-label native check, not remaining S10 routes/faults or cloud-only mapping.
+
 ### Retained PSP adoption and coverage presentation — 2026-10-12
 
 Normal Library -> Compare with Google Drive -> Add to R-Shop is now reconciling
