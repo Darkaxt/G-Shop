@@ -1423,7 +1423,7 @@ class _StandaloneSaveMappingPanelState
   @override
   void initState() {
     super.initState();
-    if (widget.melon) _discover();
+    _discover();
   }
 
   Future<void> _discover() async {
@@ -1432,6 +1432,20 @@ class _StandaloneSaveMappingPanelState
       _issue = null;
     });
     try {
+      if (!widget.melon) {
+        final directory = await widget.capture.ppssppSaveDirectory();
+        final names = await widget.capture.ppssppNames(directory);
+        if (!mounted) return;
+        setState(() {
+          _directory = directory;
+          _names = names;
+          _slot = null;
+          _confirmed = false;
+          _locationInfo = 'Found the save-state folder configured in PPSSPP. '
+              'Choose this game’s slot below.';
+        });
+        return;
+      }
       final resolve = widget.resolveMelonSave;
       if (resolve != null) {
         final mapping = await resolve();
@@ -1471,10 +1485,11 @@ class _StandaloneSaveMappingPanelState
       }
     } catch (error) {
       if (mounted) {
+        final emulator = widget.melon ? 'MelonDualDS' : 'PPSSPP';
         setState(() => _issue = error is PlatformException &&
                 error.code == 'root_unavailable'
-            ? 'Allow R-Shop root access in Magisk to find MelonDualDS’s save folder, or choose the folder yourself.'
-            : 'MelonDualDS’s save location could not be resolved. Choose the folder configured in the emulator. Your saves and mapping are unchanged.');
+            ? 'Allow R-Shop root access in Magisk to find $emulator’s save folder, or choose the folder yourself.'
+            : '$emulator’s save location could not be resolved. Choose the folder configured in the emulator. Your saves and mapping are unchanged.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1550,20 +1565,21 @@ class _StandaloneSaveMappingPanelState
         Text(
             widget.melon
                 ? 'R-Shop checks MelonDualDS’s save settings using root. Select this game’s .sav or .srm file from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.'
-                : 'Open PPSSPP_STATE inside the PSP folder you use in PPSSPP, then choose a save-state slot for this game. This does not change PPSSPP’s settings or start a backup.',
+                : 'R-Shop checks PPSSPP’s Memory Stick setting using root. Choose this game’s save-state slot from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.',
             style: TextStyle(fontSize: 18, height: 1.4)),
         const SizedBox(height: 16),
         if (_locationInfo != null)
           Text(_locationInfo!, style: const TextStyle(fontSize: 18)),
-        if (widget.melon)
-          ConsoleFocusable(
-              focusScale: 1,
-              onSelect: _busy ? null : _discover,
-              child: OutlinedButton.icon(
-                  key: const ValueKey('melon-map-discover'),
-                  onPressed: _busy ? null : _discover,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Find configured save folder'))),
+        ConsoleFocusable(
+            focusScale: 1,
+            onSelect: _busy ? null : _discover,
+            child: OutlinedButton.icon(
+                key: ValueKey(widget.melon
+                    ? 'melon-map-discover'
+                    : 'ppsspp-map-discover'),
+                onPressed: _busy ? null : _discover,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Find configured save folder'))),
         if (widget.melon)
           ConsoleFocusable(
               focusScale: 1,

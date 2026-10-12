@@ -7,6 +7,36 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PPSSPP configured-folder discovery — verified slice, 2026-10-12
+
+SAVE-01 requires standard locations to be discovered automatically, not a blanket
+manual picker. The installed PPSSPP records its Memory Stick in the exact private
+`files/memstick_dir.txt`; a read-only root observation found an external-storage
+tree/document URI. [PPSSPP v1.20.4 NativeApp.cpp](https://github.com/hrydgard/ppsspp/blob/v1.20.4/UI/NativeApp.cpp)
+reads that selection; [GetSysDirectory](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/Util/PathUtil.cpp)
+uses an existing case-insensitive PSP leaf directly, otherwise appends PSP, then
+PPSSPP_STATE. The existing joined root settings channel now reads this bounded
+setting, verifies its descriptor/entry/parent identities, and returns only the
+resolved state directory. The normal mapping panel discovers and lists it on
+entry and has an explicit retry; custom selection remains available. Discovery
+does not confirm a game's identity or start backup. No emulator setting changes,
+save/ROM uploads or general private-file API are introduced.
+
+Focused mapping regressions reproduced the missing automatic behavior before
+implementation and now pass, including root refusal with retained manual selection
+and retry. Native parser tests and the shared Melon settings regressions pass.
+Gated request 737 completed with exit 0 and confirmed supervision completion.
+Preserving owner/test installation retains the signer and all ten private
+preference digests. On the actual Thor, the normal app-UID capture channel resolves
+and lists the installed PPSSPP Memory Stick state folder through root, matching an
+independent settings-channel read; the Melon discovery regression also passes.
+These are native channel and host widget integration proofs, not a claim of a new
+normal-UI backup/restore round trip. No root helper remains; both screens are OFF.
+Exact artifacts and the observed resource profile are in IMPLEMENTATION_STATUS.md.
+PPSSPP SAVEDATA groups and
+protected-folder capture/watch routes remain required S10 work, not unsupported
+classifications; this state-folder change does not claim to implement them.
+
 ### First DS launch, watched Drive backup and restore — 2026-10-12
 
 The normal Library queue downloaded a real DS archive, and normal game settings

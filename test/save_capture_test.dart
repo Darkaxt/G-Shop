@@ -59,6 +59,32 @@ void main() {
     expect(captured.emulatorVersion, 'v1.20.4');
   });
 
+  test('PPSSPP settings discovery exposes only a validated state directory',
+      () async {
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {'directory': directory};
+    });
+    expect(await SaveCapture().ppssppSaveDirectory(), directory);
+    expect(calls.single.method, 'ppssppSaveSettings');
+    expect(calls.single.arguments, isNull);
+    for (final raw in [
+      null,
+      <String, dynamic>{},
+      {'directory': 123},
+      {'directory': '/data/user/0/other'},
+      {'directory': '/storage/emulated/0/PSP/SAVEDATA'},
+      {'directory': directory, 'privateConfig': 'not permitted'},
+    ]) {
+      messenger.setMockMethodCallHandler(channel, (_) async => raw);
+      await expectLater(
+          SaveCapture().ppssppSaveDirectory(), throwsFormatException);
+    }
+  });
+
   test('Game Gear capture binds its route and rejects unrelated RTC members',
       () async {
     final group = await SaveCapture().captureRetroArch(

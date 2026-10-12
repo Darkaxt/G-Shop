@@ -110,6 +110,21 @@ class SaveCapture {
   static bool validPpssppName(String name) =>
       RegExp(r'^[A-Z0-9]{9}_[0-9]\.[0-9]{2}_[0-9]{1,2}\.ppst$').hasMatch(name);
 
+  /// Resolve the installed emulator's Memory Stick choice; never search guessed
+  /// folders or change emulator settings. Native code reads only that setting.
+  Future<String> ppssppSaveDirectory() async {
+    final row =
+        await _channel.invokeMapMethod<String, dynamic>('ppssppSaveSettings');
+    final directory = row?['directory'];
+    if (row == null ||
+        row.length != 1 ||
+        directory is! String ||
+        !validPpssppDirectory(directory)) {
+      throw const FormatException('Invalid PPSSPP save settings');
+    }
+    return directory;
+  }
+
   static bool validPpssppDirectory(String path) {
     if (!RegExp(
             r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/.+/PPSSPP_STATE$')

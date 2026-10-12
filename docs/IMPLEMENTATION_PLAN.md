@@ -1622,7 +1622,14 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
-Current checkpoint, 2026-10-12: protected save discovery, capture/restore and
+Latest checkpoint, 2026-10-12: automatic PPSSPP Memory Stick state-folder discovery
+is integrated in normal mapping, with focused host regression and actual Thor
+app-UID/root channel listing evidence. Preserving gated request 737 retains current
+preferences and signing identity; both screens are OFF. This does not close
+PPSSPP SAVEDATA groups, remaining installed-emulator routes or acceptance faults.
+S10 remains the sole ACTIVE stage and S11 remains NOT STARTED.
+
+Earlier checkpoint, 2026-10-12: protected save discovery, capture/restore and
 kernel-backed exact-file watching are verified on the Thor. DS watch requests
 now enter the durable automatic lane in focused host verification; platform
 delivery is bounded and acknowledges durable admission rather than upload.

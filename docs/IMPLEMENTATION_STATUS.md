@@ -5,6 +5,44 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Automatic PPSSPP save-state folder discovery — 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 is NOT STARTED. The normal PPSSPP mapping
+panel now resolves the installed emulator's actual Memory Stick setting through
+the joined root channel and lists its published state slots, without first
+requiring a folder picker. The game/slot association still requires confirmation;
+discovery does not enable backup or mutate emulator settings. Manual custom-folder
+selection and retry remain available, including when Magisk access is refused.
+
+The focused widget regression failed before implementation and passes afterward.
+Affected settings/capture/coverage tests and scoped Dart analysis pass. The native
+parser verifies actual tree/document URI and absolute-path resolution, PSP leaf
+semantics, strict UTF-8 and escaping/foreign-provider rejection. Existing PPSSPP
+slot-boundary and Melon settings parser regressions pass. No full-suite repetition
+was used. Actual Thor app-UID/root channel discovery and listing pass, independently
+matching the installed Memory Stick setting; the Melon root settings probe also
+passes. These native channel plus host widget checks do not claim a separate new
+normal-UI backup/restore round trip.
+
+Build request 737 (`6c9cb7df2b0a4fd3ba13ada0275e26d1`) acquired
+`Local\\Darka.AndroidGradleBuildGate` and completed with exit 0 and independently
+confirmed supervision completion. Observed workers=2, parallel=false and Gradle
+heap=3 GiB; reviewed Kotlin 2.3.21 remains in-process, sharing that heap. The
+executed debug unit tests use one 512-MiB fail-fast fork. Generated compile/link
+Ninja pools are depth one in all three app ABIs. No memory-related failure or
+budget increase occurred. Log:
+`C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/6747d6b2817945f1a3af527816d01e68.log`.
+
+Preserving owner/test installations and independently read installed APKs match
+SHA-256 `7abee2a2f7b0e98279d23d7730677029c271c0482890c24793f274021ee51363`
+and `195ec1418d10f57c1ce69d56b5739a7d526709ef5a35b59f9c048a19bcdb8bf3`.
+The debug signer is unchanged and all ten private preference digests match
+immediately before/after installation. No settings, saves, ROMs or cloud files
+were changed by these discovery probes; no root child remains and both actual and
+committed display states are OFF. Remaining accessible emulator save/state routes,
+PPSSPP SAVEDATA groups, acceptance faults and conditional legacy handover remain
+ordinary unfinished S10 work, not unsupported classifications or waived criteria.
+
 ### Real DS watch-to-Drive and restore — 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 is NOT STARTED. Root authorization is not

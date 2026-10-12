@@ -165,7 +165,7 @@ internal class SaveCaptureService(private val activity: Context) {
                 result.success(null)
                 return
             }
-            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "melonNames", "melonSaveSettings")) id(call) else null
+            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "melonNames", "melonSaveSettings", "ppssppSaveSettings")) id(call) else null
             synchronized(guard) {
                 if (closed) throw Failure("closed")
                 if (active != null) throw Failure("capture_busy")
@@ -177,6 +177,12 @@ internal class SaveCaptureService(private val activity: Context) {
                     val value = when (call.method) {
                         "retroArchNames" -> names()
                         "ppssppNames" -> ppssppNames(call.argument<String>("directory") ?: "")
+                        "ppssppSaveSettings" -> {
+                            @Suppress("DEPRECATION")
+                            val runtime = activity.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0)
+                            if (runtime.versionName !in setOf("1.20.4", "v1.20.4")) throw Failure("emulator_changed")
+                            mapOf("directory" to SaveSourceStorage.ppssppSettings(activity).getString("directory"))
+                        }
                         "melonNames" -> melonNames(call.argument<String>("directory") ?: "")
                         "melonSaveSettings" -> {
                             @Suppress("DEPRECATION")

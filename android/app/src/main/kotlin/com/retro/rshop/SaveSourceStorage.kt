@@ -67,7 +67,9 @@ internal class SaveSourceStorage private constructor(
             if (!MelonSaveBoundary.isProtectedDirectory(source)) return SaveSourceStorage(source, null)
             return SaveSourceStorage(source, start(context))
         }
-        fun melonSettings(context: Context): JSONObject {
+        fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
+        fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
+        private fun settings(context: Context, packageName: String): JSONObject {
             val child = start(context, globalMountNamespace = true)
             val input = DataInputStream(child.inputStream.buffered())
             val output = DataOutputStream(child.outputStream.buffered())
@@ -76,7 +78,7 @@ internal class SaveSourceStorage private constructor(
                 while (stream.read(buffer) >= 0) { /* No private settings logs. */ }
             } }, "rshop-root-save-settings-stderr").apply { start() }
             try {
-                output.writeUTF(JSONObject().put("settings", MelonSaveBoundary.PACKAGE).toString()); output.flush()
+                output.writeUTF(JSONObject().put("settings", packageName).toString()); output.flush()
                 val reply = JSONObject(input.readUTF())
                 reply.optString("error").takeIf(String::isNotEmpty)?.let { throw IOException(it) }
                 return reply
@@ -210,8 +212,12 @@ object RootSaveSourceWorker {
         fun reply(value: JSONObject) { output.writeUTF(value.toString()); output.flush() }
         try {
             val hello = JSONObject(input.readUTF())
-            if (hello.length() == 1 && hello.optString("settings") == MelonSaveBoundary.PACKAGE) {
-                val settings = try { MelonSaveSettings.read() } catch (error: Exception) {
+            if (hello.length() == 1 && hello.optString("settings") in
+                setOf(MelonSaveBoundary.PACKAGE, PpssppSaveSettings.PACKAGE)) {
+                val settings = try {
+                    if (hello.getString("settings") == MelonSaveBoundary.PACKAGE) MelonSaveSettings.read()
+                    else JSONObject().put("directory", PpssppSaveSettings.read())
+                } catch (error: Exception) {
                     if (error is IOException && error.message == "source_changed") throw error
                     throw IOException("save_settings_unresolved")
                 }

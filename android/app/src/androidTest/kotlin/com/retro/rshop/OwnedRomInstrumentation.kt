@@ -31,6 +31,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var protectedMelonSaveProbe = false
     private var melonLiveCaptureProbe = false
     private var melonSettingsProbe = false
+    private var ppssppSettingsProbe = false
     private var dsProviderProbe = false
     private var dsArchiveProbe = false
     private var saveWatchProbe = false
@@ -45,6 +46,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         protectedMelonSaveProbe = arguments?.getString("protectedMelonSaveProbe") == "true"
         melonLiveCaptureProbe = arguments?.getString("melonLiveCaptureProbe") == "true"
         melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
+        ppssppSettingsProbe = arguments?.getString("ppssppSettingsProbe") == "true"
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
         dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
         saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
@@ -61,6 +63,8 @@ class OwnedRomInstrumentation : Instrumentation() {
             } else if (dsProviderProbe) {
                 exercise(ds = true)
                 report.putString("result", "PASS DS document leaf read/name/size and launch-bound live save-location review, read-only grant and native publication/identity/ownership/removal rejection; exclusive fixture cleanup; no emulator launch")
+            } else if (ppssppSettingsProbe) {
+                report.putString("result", PpssppSaveSettingsProof.exercise(targetContext))
             } else if (melonSettingsProbe) {
                 report.putString("result", MelonSaveSettingsProof.exercise(targetContext))
             } else if (missingSaveProbe) {
