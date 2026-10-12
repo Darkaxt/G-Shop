@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 30, 2026-10-12.
+Authoritative specification, revision 32, 2026-10-12.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -1353,7 +1353,7 @@ controls are added, keep settings in persistent left-hand
 section navigation rather than one long scrolling form (user instruction,
 2026-10-09). Separate backup-area setup, game backup, restore/conflicts and
 status. Only the selected section's controls are visible/focusable; section
-changes preserve the selected save, confirmation and running operation. Reuse
+changes preserve the resolved save association and running operation. Reuse
 the metadata settings' responsive/controller navigation pattern. Verify narrow
 and handheld layouts, touch/controller section changes and operation continuity.
 At stage entry, audit the emulators installed on the Thor and their supported save-memory
@@ -1364,6 +1364,13 @@ standalone-emulator vertical slice, then implement the remaining accessible
 installed-emulator routes. Use deterministic emulator configuration and installed
 package evidence to discover standard save locations automatically; allow explicit
 mapping for custom or ambiguous locations, not as a blanket setup requirement.
+Owner clarification, 2026-10-12: do not ask the user to confirm a save belongs to
+the game when the installed ROM/document identity and emulator naming/configuration
+already resolve the exact association. Select that save automatically, without a
+redundant file dropdown or ownership checkbox. Keep backup opt-in and explicit
+restore/conflict choices. Manual mapping remains only for unresolved/custom or
+ambiguous layouts; a display-title or first-file guess is not an exact association.
+An unresolved or changed association must not enable backup of another game's save.
 Owner authorization, 2026-10-12: the Thor is rooted and root access may be used
 where it improves save tracking, access, restoration, reliability or performance.
 Do not classify protected emulator saves as unsupported merely because ordinary
@@ -1551,6 +1558,22 @@ still available -> identical re-download and usable emulator launch. Use isolate
 test destinations; restore owner configuration and switch both screens off.
 Do not count manual deletion, unit fixtures or a displayed Settings form as proof
 of automatic native rotation. Reconcile S1-S11 before overall completion.
+
+## 6f. Proposed 3D physical-media frontend (S12)
+
+Planning request, 2026-10-12: review the owner's conversation "Identify AYN
+Thor Frontends" and consider an S12 task. Record the candidate in
+[S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md). The owner's direction is a
+modern, Socket-inspired frontend retaining R-Shop's red theme, using actual 3D
+physical-media models and animations rather than scraped cartridge pictures.
+
+S12 is NOT STARTED. This request authorizes review and planning, not renderer
+implementation, toolchain changes, APK extraction or a frontend replacement.
+Assistant suggestions in the source conversation are design candidates, not
+automatically approved requirements or verified technical facts. FRONTEND-01
+in the proposal is a candidate contract, not an added S10/S11 acceptance gate.
+S10 remains the sole ACTIVE stage; the existing authorized S1-S11 completion
+scope is unchanged. Do not implement S12 without an implementation instruction.
 
 ## 7. Quality and delivery requirements
 

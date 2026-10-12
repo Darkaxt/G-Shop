@@ -1,7 +1,12 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 30.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 32.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+
+S12 planning addition (owner, 2026-10-12): reviewed "Identify AYN Thor Frontends"
+and recorded the proposed 3D physical-media frontend below. S12 is NOT STARTED;
+review/planning only is authorized. S10 remains the sole ACTIVE stage and S11
+remains NOT STARTED. This proposal does not delay existing stage acceptance.
 
 Root-use direction (owner, 2026-10-12): use root to simplify features and improve
 performance, not to add emulator handshakes or unnecessary lifecycle requirements.
@@ -10,6 +15,12 @@ existing mutation guard; no emulator status reply or game closure is required.
 Detect changes through file events and reconcile missed events on existing recovery
 checks. Verify the captured bytes stayed consistent, preserve conflicts, and keep
 restore's protection against overwriting saves in use. This belongs to ACTIVE S10.
+
+S10 save-association UX (owner, 2026-10-12): known exact ROM/emulator mappings
+select their save automatically, without a redundant file picker or ownership
+checkbox. Preserve backup opt-in, restore/conflict choices and custom/ambiguous
+mapping. Verify resolved, pending and unresolved association controls in the
+focused game-panel checks, then inspect the installed normal game menu.
 
 S10 automatic RetroArch checkpoint, 2026-10-12: focused host integration and
 actual Thor exact N64 SRM/mGBA RTC watch delivery pass. Reinstallation is reviewed
@@ -1870,6 +1881,40 @@ both scope modes, identical emulator-usable restore, preserved pins/offline
 sample/saves/metadata/cloud originals, restored owner configuration and final
 S1-S11 reconciliation. A settings-only implementation does not close S11.
 
+## S12 — Proposed 3D physical-media frontend
+
+Status: NOT STARTED.
+Authorization: review and planning only; no implementation instruction yet.
+Candidate requirement: FRONTEND-01 in
+[S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
+Dependency: close S10/S11 before implementation; do not open another ACTIVE stage.
+
+Objective: modernize presentation while keeping R-Shop's red identity and its
+existing catalogue, on-demand installation and emulator workflows. Use actual
+console-specific 3D media, not a new dependency on scraped cartridge images.
+
+Proposed execution order within S12, if implementation is authorized:
+
+1. Study the reference's observable navigation, physical-media rendering,
+   animation and two-display behavior. Record findings and asset provenance;
+   do not import proprietary code/models or assume claims in the chat are true.
+2. Prove one real cartridge-to-emulator workflow on Thor using independently
+   sourced assets and existing R-Shop identity/launch logic before broadening
+   renderer support. Choose the renderer from measured compatibility/lifecycle
+   evidence, not a speculative framework rewrite.
+3. Integrate the proven view with controller/touch browsing, cloud/local states,
+   metadata and filters, plus scalable large-library navigation. Check disc and
+   additional cartridge representations only after the first real slice works.
+4. Verify the candidate acceptance contract, including missing artwork, cancelled
+   or failed downloads/launches, lifecycle recovery and companion handoff;
+   reconcile the specification and commit. No release is implied.
+
+Evidence required: observed reference report, reproducible Thor rendering and
+resource measurements, real normal launch workflow, integrated controller/touch
+navigation and regression evidence. No implementation or runtime evidence exists
+yet. Proposed renderer/asset decisions are unfinished design work, not blockers
+for S10/S11 or tracked deferrals from those stages.
+
 ## Source extension map (baseline, not implemented classes)
 
 | Area | Existing entry points | Required consideration |
@@ -1955,3 +2000,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
 | SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and restore to expected emulator locations; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
 | CACHE-01 | S11 | Persisted Settings duration/queue/order/budget and unified/per-console scope; protected sample/pins; actual automatic expiry/capacity rotation through exact owned/cloud-verified removal and identical usable restore |
+| FRONTEND-01 (proposed, not implementation-authorized) | S12 | Actual 3D media and animation on Thor; retained red identity; scalable browsing, normal launch and existing-feature regression evidence; contract in S12_FRONTEND_PROPOSAL.md |

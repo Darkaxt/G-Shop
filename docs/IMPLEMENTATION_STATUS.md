@@ -5,6 +5,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S12 frontend proposal — review recorded, 2026-10-12
+
+Reviewed all six turns of the owner's "Identify AYN Thor Frontends"
+conversation. The owner distinguishes actual 3D cartridge models/animations
+from scraped physical-media images and wants to retain the red theme while
+considering a Socket-inspired frontend. Assistant recommendations and technical
+claims were not adopted as verified facts or blanket implementation authority.
+
+S12 — Proposed 3D physical-media frontend: NOT STARTED. Planning is recorded in
+S12_FRONTEND_PROPOSAL.md and specification revision 32. Acceptance satisfied:
+none of the candidate runtime criteria; only source review and planning are
+finished. Remaining: reference analysis, renderer selection/proof, independently
+sourced media assets, integrated browsing/animation/launch and Thor verification.
+No S12 blocker or tracked deferral is declared; implementation is not authorized
+by the planning request. S10 remains the sole ACTIVE stage; S11 is NOT STARTED.
+S12 does not add a gate to existing S10/S11 acceptance or authorize a release.
+
 ### Root filesystem capture — verified slice, 2026-10-12
 
 Root guidance is recorded in the plan and specification revision 30. RetroArch
