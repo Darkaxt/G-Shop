@@ -7,6 +7,68 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Exact association and live automatic publication — 2026-10-12
+
+The normal per-game panel now selects its single identity-validated save
+automatically. It no longer asks for a redundant file dropdown or ownership
+checkbox. Backup consent and restore/conflict choices remain explicit. Missing,
+ambiguous and changed associations cannot enable backup. Section changes retain
+the association; pending lookup says Finding this game's save rather than briefly
+reporting a failed link. The latter incorrect message reproduced in the focused
+widget regression before its correction. Focused association contracts and scoped
+Dart analysis pass; the earlier complete job/widget result applies to the unchanged
+capture/publication code.
+
+Actual Thor: build 812's normal Banjo-Tooie Save backups panel displayed Save
+linked automatically and an enabled Back up save action without a picker or
+confirmation. Existing automatic opt-in survived the preserving update. The
+earlier persisted source_changed result was not reproduced after app restart:
+read-only native diagnosis showed matching source/account, ready backup area,
+directory/name association and complete work. No association safeguard was
+bypassed or speculative production patch added to clear that historical result.
+
+With the ordinary app running, a guarded one-byte modification of the exclusive
+N64 fixture triggered its file watch. No manual backup, app-return event or
+emulator-status request was used to trigger publication. The normal Status page
+reported backup verified at 20:09:35 local (18:09:35 UTC). Independent read-only
+SQLite observation showed requested=handled=9, outcome=verified, no issue, and a
+complete generation containing the full 296,960-byte member with SHA-256
+`989197c4dca986d104849c63d87427af5d79c85c4dbb48b6ae8841f3b67bee71`,
+matching the independently hashed local fixture. The real generation API performs
+full remote payload readback before publishing the manifest. This proves the
+normal automatic watch -> coherent capture -> Drive/readback path for this route,
+not all installed-emulator coverage or S10 completion.
+
+Native diagnosis opens the installed database read-only, bounds its records and
+reports predicates/fixture receipts without private account or Drive IDs. Gated
+instrumentation assembly 814/ticket `d98072a94aa149c4b4d5efd5363e8b9b` and final
+UI assembly 815/ticket `48ddf0dabda74975853922316cfdd4c2` acquired and released
+`Local\Darka.AndroidGradleBuildGate` after confirmed completion. Observed profile:
+two workers, no parallelism, 3 GiB Gradle; project Kotlin in-process; configured
+tests one 512 MiB fork, fail-fast, no ignored failures. No memory failure or heap
+increase. Existing native depth-one pools were unchanged; native environment
+hints are not claimed as independently verified concurrency. The optional thread
+label was omitted on these two requests rather than guessed.
+
+Final UI APK SHA-256:
+`9ff7eef2a395a2f8ad93f355cd4c55df1817645cd987bed628637b60f5855e11`.
+It was installed with -r, without uninstalling or clearing app data. Final build
+815's normal panel independently showed automatic linkage, the usable Back up
+save action and the preserved opt-in. Opt-out completed through that normal UI;
+read-only diagnosis then reported no enabled mappings. The exclusive synthetic
+save was restored with an expected-digest guard to its original SHA-256
+`c5126a9b5e718019bf5982e85b4b0b42bcd584d88ed9a547a3352aac51718b43`.
+All 23 preservation hashes matched: the fixture, 19 other saves/sidecars, source
+configuration, secure key storage and Google sign-in state. Token/preferences
+files legitimately changed through authentication and opt-in and are not claimed
+byte-identical. Both physical displays committed OFF and wakefulness Asleep.
+The superseded throwaway diagnostic JAR and four attributed host scratch files
+were removed after inspection; the tested read-only source remains in the repo.
+Remaining
+accessible installed-emulator routes, required fault/reconnect evidence and
+conditional legacy-sync handover remain ordinary ACTIVE S10 work. S11 remains
+NOT STARTED. No release or S12 implementation is authorized by this result.
+
 ### Filesystem-only RetroArch capture — 2026-10-12
 
 Owner clarification supersedes the historical CONTENTLESS backup requirement

@@ -270,6 +270,9 @@ class _Areas extends DriveSaveBackupAreaApi {
 /// UI verifies the explicit choice; the separate job tests exercise real SQLite
 /// ordering. Do not launch FFI work from a dialog's fake-clock continuation.
 class _UiJob extends SaveBackupGameJob {
+  List<String>? namesFixture;
+  Object? namesFailure;
+  Future<List<String>>? namesPending;
   bool? busyFixture;
   @override
   bool get busy => busyFixture ?? super.busy;
@@ -312,7 +315,12 @@ class _UiJob extends SaveBackupGameJob {
             melonName: other.melonName,
             resolveSaveName: other.resolveSaveName);
   @override
-  Future<List<String>> reviewedNames() async => [await resolveSaveName()];
+  Future<List<String>> reviewedNames() async {
+    if (namesPending != null) return await namesPending!;
+    if (namesFailure != null) throw namesFailure!;
+    return namesFixture ?? [await resolveSaveName()];
+  }
+
   @override
   Future<void> restoreLatest() async {
     restores++;
@@ -586,7 +594,7 @@ void main() {
     psp.dispose();
   });
   testWidgets(
-      'RetroArch automatic control requires reviewed game and selection',
+      'RetroArch exact save association enables controls without manual confirmation',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
@@ -599,19 +607,18 @@ void main() {
     final control = find.byKey(const ValueKey('automatic-save-enable'));
     expect(control, findsOneWidget);
     expect(find.textContaining('Close the game in RetroArch'), findsNothing);
-    expect(find.textContaining('backup waits until it is safely closed'), findsNothing);
+    expect(find.textContaining('backup waits until it is safely closed'),
+        findsNothing);
     expect(find.textContaining('RetroArch can stay open'), findsOneWidget);
-    expect(tester.widget<CheckboxListTile>(control).onChanged, isNull);
-    tester
-        .widget<DropdownButtonFormField<String>>(
-            find.byType(DropdownButtonFormField<String>))
-        .onChanged!(currentName);
-    await tester.pump();
-    tester
-        .widget<CheckboxListTile>(find.widgetWithText(
-            CheckboxListTile, 'I confirm this save belongs to Game'))
-        .onChanged!(true);
-    await tester.pumpAndSettle();
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    expect(find.text('I confirm this save belongs to Game'), findsNothing);
+    expect(find.text('Save linked automatically'), findsOneWidget);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('save-backup-game-run')))
+            .onPressed,
+        isNotNull);
     expect(tester.widget<CheckboxListTile>(control).onChanged, isNotNull);
     tester.widget<CheckboxListTile>(control).onChanged!(true);
     await tester.pumpAndSettle();
@@ -2243,17 +2250,9 @@ void main() {
     expect(find.textContaining('Force stop'), findsNothing);
     expect(find.byKey(const ValueKey('save-melon-app-info')), findsNothing);
     final toggle = find.byKey(const ValueKey('automatic-save-enable'));
-    expect(tester.widget<CheckboxListTile>(toggle).onChanged, isNull);
-    final files = find.byType(DropdownButtonFormField<String>);
-    await tester.ensureVisible(files);
-    await tester.tap(files);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Game.sav').last);
-    await tester.pumpAndSettle();
-    final confirmation = find.text('I confirm this save belongs to Game');
-    await tester.ensureVisible(confirmation);
-    await tester.tap(confirmation);
-    await tester.pumpAndSettle();
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    expect(find.text('I confirm this save belongs to Game'), findsNothing);
+    expect(find.text('Save linked automatically'), findsOneWidget);
     expect(tester.widget<CheckboxListTile>(toggle).onChanged, isNotNull);
     await tester.ensureVisible(toggle);
     await tester.tap(toggle);
@@ -3496,7 +3495,7 @@ void main() {
     expect(capture.restored, isEmpty);
   });
   testWidgets(
-      'mapping requires both explicit file selection and edition confirmation',
+      'exact save association survives section changes without manual confirmation',
       (tester) async {
     final uiJob = _UiJob(job);
     var section = SaveBackupSection.backup;
@@ -3510,14 +3509,8 @@ void main() {
     })))));
     await tester.pumpAndSettle();
     final run = find.byKey(const ValueKey('save-backup-game-run'));
-    expect(tester.widget<FilledButton>(run).onPressed, isNull);
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Game.srm').last);
-    await tester.pumpAndSettle();
-    expect(tester.widget<FilledButton>(run).onPressed, isNull);
-    await tester.tap(find.byType(CheckboxListTile));
-    await tester.pumpAndSettle();
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    expect(find.byType(CheckboxListTile), findsNothing);
     expect(tester.widget<FilledButton>(run).onPressed, isNotNull);
     final panelState = tester.state(find.byType(SaveBackupGamePanel));
     for (final next in [
@@ -3533,9 +3526,8 @@ void main() {
     }
     selectSection(() => section = SaveBackupSection.backup);
     await tester.pumpAndSettle();
-    expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
-        isTrue);
-    expect(find.text('Game.srm'), findsOneWidget);
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.text('Save linked automatically'), findsOneWidget);
     expect(tester.widget<FilledButton>(run).onPressed, isNotNull);
     expect(capture.captures, 0);
     expect(generations.uploads, 0);
@@ -3543,6 +3535,64 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     uiJob.dispose();
   });
+  testWidgets('pending association shows lookup rather than a failed link',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+    final names = Completer<List<String>>();
+    final ui = _UiJob(job)
+      ..refreshFixture = true
+      ..namesPending = names.future;
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SaveBackupGamePanel(
+            job: ui,
+            title: 'Game',
+            section: SaveBackupSection.status,
+            automatic: automatic))));
+    await tester.pump();
+    expect(find.text('Finding this game’s save…'), findsOneWidget);
+    expect(find.textContaining('could not link'), findsNothing);
+    expect(find.byKey(const ValueKey('automatic-save-enable')), findsNothing);
+    names.complete(['Game.srm']);
+    await tester.pumpAndSettle();
+    expect(find.text('Finding this game’s save…'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    ui.dispose();
+    automatic.dispose();
+  });
+  for (final scenario in ['missing', 'ambiguous', 'changed']) {
+    testWidgets('unresolved $scenario association cannot enable backup',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+      final ui = _UiJob(job)..refreshFixture = true;
+      if (scenario == 'changed') {
+        ui.namesFailure = PlatformException(code: 'source_changed');
+      } else {
+        ui.namesFixture =
+            scenario == 'missing' ? [] : ['Game.srm', 'Other.srm'];
+      }
+      await tester.pumpWidget(createTestApp(Scaffold(
+          body: SingleChildScrollView(
+              child: SaveBackupGamePanel(
+                  job: ui, title: 'Game', automatic: automatic)))));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<FilledButton>(
+                  find.byKey(const ValueKey('save-backup-game-run')))
+              .onPressed,
+          isNull);
+      expect(find.text('Save linked automatically'), findsNothing);
+      expect(find.byKey(const ValueKey('automatic-save-enable')), findsNothing);
+      expect(capture.captures, 0);
+      expect(generations.uploads, 0);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      ui.dispose();
+      automatic.dispose();
+    });
+  }
   testWidgets('section changes do not cancel or duplicate a running capture',
       (tester) async {
     final uiJob = _UiJob(job);

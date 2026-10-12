@@ -941,8 +941,8 @@ class _SaveBackupSettingsScreenState
       );
 }
 
-/// Explicit per-edition mapping. No basename matching or recursive folder scan.
-/// The selected source plus optional related RTC is reviewed before capture.
+/// Exact per-edition mapping resolved from installation/emulator evidence.
+/// Custom/ambiguous location setup belongs to the mapping editor, not this panel.
 class SaveBackupGamePanel extends StatefulWidget {
   final SaveBackupGameJob job;
   final AutomaticSaveBackups? automatic;
@@ -961,9 +961,20 @@ class SaveBackupGamePanel extends StatefulWidget {
 }
 
 class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
-  late final Future<List<String>> _names = widget.job.reviewedNames();
+  late final Future<List<String>> _names = _resolveName();
   String? _name;
-  bool _confirmed = false;
+  Future<List<String>> _resolveName() async {
+    final names = await widget.job.reviewedNames();
+    if (mounted) {
+      setState(() => _name = names.length == 1 ? names.single : null);
+    }
+    return names;
+  }
+
+  String? get _selectedName =>
+      widget.job.pendingName == null || widget.job.pendingName == _name
+          ? _name
+          : null;
   @override
   void initState() {
     super.initState();
@@ -1001,15 +1012,17 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
         mapping: AutomaticSaveMapping.fromJob(job,
             title: widget.title, saveName: name),
         statusOnly: statusOnly,
-        allowEnable:
-            !job.busy && _confirmed && (job.pendingName ?? _name) != null);
+        allowEnable: !job.busy && _selectedName != null);
     if (job.isStandalone) return panel(null);
     return FutureBuilder<List<String>>(
         future: _names,
         builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Text('Finding this game’s save…');
+          }
           if (!snapshot.hasData || snapshot.data!.length != 1) {
             return const Text(
-                'Review this game’s save before enabling automatic backups.');
+                'R-Shop could not link this game’s save. Check its save location.');
           }
           return panel(snapshot.data!.single);
         });
@@ -1178,39 +1191,14 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       if (!snapshot.hasData) {
                         return const LinearProgressIndicator();
                       }
-                      final names = {...snapshot.data!}.toList()..sort();
-                      final selected = names.contains(job.pendingName ?? _name)
-                          ? job.pendingName ?? _name
-                          : null;
-                      return DropdownButtonFormField<String>(
-                          key: ValueKey('save-file-$selected'),
-                          initialValue: selected,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                              labelText: 'Save file for this game'),
-                          items: names
-                              .map((name) => DropdownMenuItem(
-                                  value: name,
-                                  child: Text(name,
-                                      overflow: TextOverflow.ellipsis)))
-                              .toList(),
-                          onChanged: job.busy || job.pendingName != null
-                              ? null
-                              : (value) => setState(() {
-                                    _name = value;
-                                    _confirmed = false;
-                                  }));
+                      if (_selectedName == null) {
+                        return const Text(
+                            'R-Shop could not link this game’s save. Check its save location.');
+                      }
+                      return const Text('Save linked automatically',
+                          key: ValueKey('save-linked-automatically'),
+                          style: TextStyle(fontSize: 18));
                     }),
-                CheckboxListTile(
-                    value: _confirmed,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                        'I confirm this save belongs to ${widget.title}',
-                        style: const TextStyle(fontSize: 18)),
-                    onChanged: job.busy
-                        ? null
-                        : (value) =>
-                            setState(() => _confirmed = value ?? false)),
                 Text(
                     job.isMelon
                         ? 'MelonDualDS can stay open. R-Shop only backs up a completed save and keeps your previous backup if the save is still changing.'
@@ -1226,9 +1214,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                     onSelect: !job.busy &&
                             !job.restorePending &&
                             conflicts.isEmpty &&
-                            _confirmed &&
-                            (job.pendingName ?? _name) != null
-                        ? () => job.backup((job.pendingName ?? _name)!)
+                            _selectedName != null
+                        ? () => job.backup(_selectedName!)
                         : null,
                     child: FilledButton(
                         key: const ValueKey('save-backup-game-run'),
@@ -1236,12 +1223,11 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                         onPressed: !job.busy &&
                                 !job.restorePending &&
                                 conflicts.isEmpty &&
-                                _confirmed &&
-                                (job.pendingName ?? _name) != null
-                            ? () => job.backup((job.pendingName ?? _name)!)
+                                _selectedName != null
+                            ? () => job.backup(_selectedName!)
                             : null,
                         child: Text(job.pendingName == null
-                            ? 'Back up selected save'
+                            ? 'Back up save'
                             : 'Resume this backup'))),
                 if (conflicts.isNotEmpty)
                   const Text('Conflict needs review in Restore & conflicts.'),

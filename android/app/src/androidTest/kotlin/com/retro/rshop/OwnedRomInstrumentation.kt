@@ -42,6 +42,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var saveWatchProbe = false
     private var retroArchWatchProbe = false
     private var retroArchSnapshotProbe = false
+    private var automaticSaveDiagnosis = false
     private var missingSaveProbe = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
@@ -64,6 +65,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
         retroArchWatchProbe = arguments?.getString("retroArchWatchProbe") == "true"
         retroArchSnapshotProbe = arguments?.getString("retroArchSnapshotProbe") == "true"
+        automaticSaveDiagnosis = arguments?.getString("automaticSaveDiagnosis") == "true"
         missingSaveProbe = arguments?.getString("missingSaveProbe") == "true"
         start()
     }
@@ -71,7 +73,9 @@ class OwnedRomInstrumentation : Instrumentation() {
     override fun onStart() {
         val report = Bundle()
         try {
-            if (dsArchiveProbe) {
+            if (automaticSaveDiagnosis) {
+                report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
+            } else if (dsArchiveProbe) {
                 exercise(ds = true, dsZip = true)
                 report.putString("result", "PASS DS ZIP document validation, unchanged archive read and live save-location review; read-only grant and native identity/ownership/publication/removal rejection; exclusive fixture cleanup; no emulator launch")
             } else if (dsProviderProbe) {

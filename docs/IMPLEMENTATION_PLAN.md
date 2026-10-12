@@ -1701,6 +1701,15 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
+Latest verified slice, 2026-10-12: exact per-game save association no longer asks
+for redundant selection/ownership confirmation. Focused unresolved-association
+and section contracts pass. The normal Thor file watch automatically published a
+changed exclusive N64 save to Drive; its completed generation's full 296,960-byte
+digest independently matches the local fixture. Final preserving UI build 815
+passed the shared gate/profile. Remaining installed-emulator routes, required
+fault/reconnect coverage and conditional legacy handover remain ordinary S10 work.
+See the current status ledger and S10_SAVE_BACKUP_DESIGN.md; S11 is NOT STARTED.
+
 Current checkpoint, 2026-10-12: build 785 normal PSP UI backed up a complete
 SAVEDATA fixture to Drive and restored both its nonempty and zero-byte members
 after local-folder removal; independent restored hashes match. Root discovery

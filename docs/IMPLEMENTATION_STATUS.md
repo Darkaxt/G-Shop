@@ -5,6 +5,36 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Exact association and automatic Drive backup — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. The normal game save panel resolves the exact
+association without a redundant ownership checkbox/file picker; backup opt-in and
+restore/conflict decisions remain explicit. Missing/ambiguous/changed associations
+cannot enable backup. A focused regression caught and corrected a false failed-link
+message during pending lookup. Association/section contracts and scoped analysis
+pass. The actual Thor normal panel displayed automatic linkage and usable backup
+controls, with prior opt-in preserved across a -r APK update.
+
+The real watch -> capture -> Drive/readback path now passes for the exclusive N64
+fixture: after a guarded one-byte change with the ordinary app running, no manual
+backup or emulator status request, the normal UI reported backup verified at
+20:09:35. Read-only installed-state diagnosis independently reported complete
+work, no issue and the same full 296,960-byte digest as the local fixture. The
+historical source_changed result cleared on normal restart and was not reproduced;
+no identity safeguard was bypassed. Exact receipt/profile evidence is recorded in
+S10_SAVE_BACKUP_DESIGN.md.
+
+Final assembly 815 acquired the shared Gradle mutex and completed before release:
+two workers, no parallelism, 3 GiB Gradle, Kotlin in-process and one configured
+512 MiB test fork; no memory failure or heap increase. Preserving UI APK SHA-256:
+`9ff7eef2a395a2f8ad93f355cd4c55df1817645cd987bed628637b60f5855e11`.
+Final installed UI verified; test-only automatic opt-in disabled normally and its
+synthetic save restored. All 23 preservation hashes match. Both Thor screens are
+OFF, wakefulness Asleep; no user save or cloud generation was removed.
+Remaining accessible emulator routes, required fault/reconnect verification and
+conditional legacy handover are unfinished S10 work, not deferrals to S11.
+S11 is NOT STARTED; S12 remains a NOT STARTED proposal. No release occurred.
+
 ### S12 frontend proposal — review recorded, 2026-10-12
 
 Reviewed all six turns of the owner's "Identify AYN Thor Frontends"
