@@ -8,7 +8,9 @@ Scheduling: after S10 and S11; neither stage's acceptance depends on this propos
 
 ## Owner direction and source boundary
 
-Reviewed the six-turn conversation "Identify AYN Thor Frontends". The owner
+Reviewed all five available turns of
+["Identify AYN Thor Frontends"](https://chatgpt.com/c/6acd147a-1e08-83ed-8fae-e071ea0912be).
+The owner
 considers R-Shop's presentation dated, wants to keep its red theme, and is
 interested in studying Socket and reproducing the physical-media experience.
 The explicit correction is important: actual 3D cartridge models, rotation and
