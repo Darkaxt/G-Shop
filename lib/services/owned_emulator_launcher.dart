@@ -25,6 +25,8 @@ class OwnedEmulatorLauncher {
                   .any((ext) => game.filename.toLowerCase().endsWith(ext))) ||
           (const {'psx', 'psp', 'ps2'}.contains(system.id) &&
               game.filename.toLowerCase().endsWith('.chd')) ||
+          (system.id == 'nds' &&
+              game.filename.toLowerCase().endsWith('.nds')) ||
           (system.id == 'wiiu' &&
               game.filename.toLowerCase().endsWith('.wua')) ||
           TransferRecord.supportsArchiveMapping(game.filename, system.id));
@@ -70,9 +72,29 @@ class OwnedEmulatorLauncher {
     return grant;
   }
 
-  /// Uses the very same validated native URI as launch, without opening an
-  /// activity. RetroArch names SAF saves from its encoded document leaf, not
-  /// the display title or the archive member's basename.
+  /// Resolves the save for the very same validated external URI as DS launch,
+  /// using Melon's current settings and actual filename, without opening it.
+  Future<({String directory, String name})> reviewMelonSave(
+      GameItem game, SystemModel system, String root) async {
+    if (system.id != 'nds' || !supports(game, system)) {
+      throw UnsupportedError('No reviewed DS save route for this format');
+    }
+    final grant = await _grant(game, system, root);
+    final mapping = await channel.invokeMapMethod<String, dynamic>(
+        'reviewOwnedMelonSave', grant);
+    if (mapping == null ||
+        mapping['directory'] is! String ||
+        mapping['name'] is! String) {
+      throw StateError('No validated DS save target');
+    }
+    return (
+      directory: mapping['directory'] as String,
+      name: mapping['name'] as String
+    );
+  }
+
+  /// RetroArch names SAF saves from the encoded document leaf, not the display
+  /// title or the archive member's basename. Review shares the launch grant.
   Future<String> reviewRetroArchGbaSave(
           GameItem game, SystemModel system, String root) =>
       reviewRetroArchBatterySave(
@@ -113,36 +135,38 @@ class OwnedEmulatorLauncher {
       grant['companionComponent'] = companionComponent;
     }
     await channel.invokeMethod<void>(
-        system.id == 'gamegear'
-            ? 'launchOwnedRetroArchGameGear'
-            : system.id == 'megadrive'
-                ? 'launchOwnedRetroArchMegaDrive'
-                : system.id == 'mastersystem'
-                    ? 'launchOwnedRetroArchMasterSystem'
-                    : system.id == 'sg1000'
-                        ? 'launchOwnedRetroArchSG1000'
-                        : system.id == 'n64'
-                            ? 'launchOwnedRetroArchN64'
-                            : system.id == 'nes'
-                                ? 'launchOwnedRetroArchNes'
-                                : system.id == 'snes'
-                                    ? 'launchOwnedRetroArchSnes'
-                                    : system.id == 'gb'
-                                        ? 'launchOwnedRetroArchGameBoy'
-                                        : system.id == 'gbc'
-                                            ? 'launchOwnedRetroArchGameBoyColor'
-                                            : system.id == 'gba'
-                                                ? 'launchOwnedRetroArchGameBoyAdvance'
-                                                : system.id == 'psx'
-                                                    ? 'launchOwnedRetroArchPSX'
-                                                    : system.id == 'psp'
-                                                        ? 'launchOwnedPPSSPP'
-                                                        : system.id == 'ps2'
-                                                            ? 'launchOwnedNetherSX2'
-                                                            : system.id ==
-                                                                    'wiiu'
-                                                                ? 'launchOwnedCemu'
-                                                                : 'launchOwnedDolphin',
+        system.id == 'nds'
+            ? 'launchOwnedMelon'
+            : system.id == 'gamegear'
+                ? 'launchOwnedRetroArchGameGear'
+                : system.id == 'megadrive'
+                    ? 'launchOwnedRetroArchMegaDrive'
+                    : system.id == 'mastersystem'
+                        ? 'launchOwnedRetroArchMasterSystem'
+                        : system.id == 'sg1000'
+                            ? 'launchOwnedRetroArchSG1000'
+                            : system.id == 'n64'
+                                ? 'launchOwnedRetroArchN64'
+                                : system.id == 'nes'
+                                    ? 'launchOwnedRetroArchNes'
+                                    : system.id == 'snes'
+                                        ? 'launchOwnedRetroArchSnes'
+                                        : system.id == 'gb'
+                                            ? 'launchOwnedRetroArchGameBoy'
+                                            : system.id == 'gbc'
+                                                ? 'launchOwnedRetroArchGameBoyColor'
+                                                : system.id == 'gba'
+                                                    ? 'launchOwnedRetroArchGameBoyAdvance'
+                                                    : system.id == 'psx'
+                                                        ? 'launchOwnedRetroArchPSX'
+                                                        : system.id == 'psp'
+                                                            ? 'launchOwnedPPSSPP'
+                                                            : system.id == 'ps2'
+                                                                ? 'launchOwnedNetherSX2'
+                                                                : system.id ==
+                                                                        'wiiu'
+                                                                    ? 'launchOwnedCemu'
+                                                                    : 'launchOwnedDolphin',
         grant);
   }
 }

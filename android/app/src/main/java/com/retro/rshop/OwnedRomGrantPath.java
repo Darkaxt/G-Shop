@@ -7,7 +7,7 @@ import java.util.Locale;
 /** Decodes only one committed installation leaf, never a public directory tree. */
 final class OwnedRomGrantPath {
     private static final java.util.Set<String> COPY_PLATFORMS = new java.util.HashSet<>(java.util.Arrays.asList(
-        "gamegear", "megadrive", "mastersystem", "sg1000", "n64", "gb", "gbc", "gba", "nes", "snes", "psx", "psp", "ps2", "wiiu", "gc", "wii"));
+        "gamegear", "megadrive", "mastersystem", "sg1000", "n64", "gb", "gbc", "gba", "nes", "snes", "psx", "psp", "ps2", "wiiu", "gc", "wii", "nds"));
     final String installationId;
     final String filename;
     final boolean document;
@@ -58,6 +58,12 @@ final class OwnedRomGrantPath {
     static boolean standaloneChd(String filename, String archivePlatform,
             boolean bundleMember, int dependencies, int members) {
         return leaf(filename) && filename.toLowerCase(Locale.ROOT).endsWith(".chd") &&
+            archivePlatform.isEmpty() && !bundleMember && dependencies == 0 && members == 0;
+    }
+
+    static boolean standaloneNds(String filename, String archivePlatform,
+            boolean bundleMember, int dependencies, int members) {
+        return leaf(filename) && filename.toLowerCase(Locale.ROOT).endsWith(".nds") &&
             archivePlatform.isEmpty() && !bundleMember && dependencies == 0 && members == 0;
     }
 

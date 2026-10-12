@@ -31,6 +31,18 @@ evidence; custom or ambiguous paths remain configurable. This extends the active
 SAVE-01 implementation, not another stage. Preserve coherent snapshots, game/state
 compatibility, both conflict versions and the save-only transfer boundary.
 
+S10 verified capture slice, 2026-10-12: shared and protected Melon captures now
+use an armed mutation guard plus root writer-descriptor census instead of a
+stopped-app requirement. Native Thor fixtures pass with Melon at its ROM list
+and `stopped=false`; open/overlapping writers are rejected, closed-file digests
+pass, and unsafe live restore is still refused. Final gated request 705 and
+preserving-install evidence are in IMPLEMENTATION_STATUS.md. Close the normal
+DS automatic controls and standalone `.nds` launch-bound save discovery now pass
+focused host checks and the real native discovery/grant/capture probes on
+preserving build 716. No live DS game/watch-to-Drive claim is made by these probes.
+Close DS archive handoff and the real watch-to-Drive workflow next, then SAVE-01
+coverage and handover. S10 stays ACTIVE; S11 stays NOT STARTED.
+
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do
 not replace the required live evidence. The user selected Top 25 per console as

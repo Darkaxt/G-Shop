@@ -6,6 +6,20 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class OwnedRomGrantPathTest {
+    @Test public void standaloneDsRetainsItsExactLeafAndRejectsBundles() throws Exception {
+        assertTrue(OwnedRomGrantPath.standaloneNds("Game.NDS", "", false, 0, 0));
+        for (String name : new String[]{"Game.7z", "Game.zip", "Game.chd", "../Game.nds"}) {
+            assertFalse(OwnedRomGrantPath.standaloneNds(name, "", false, 0, 0));
+        }
+        assertFalse(OwnedRomGrantPath.standaloneNds("Game.nds", "gba", false, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneNds("Game.nds", "", true, 0, 0));
+        assertFalse(OwnedRomGrantPath.standaloneNds("Game.nds", "", false, 1, 1));
+        OwnedRomGrantPath path = OwnedRomGrantPath.parse(Arrays.asList("tree", "copy:17:nds",
+            "document", "copy:17:nds/Game.nds"));
+        assertEquals("nds", path.platform);
+        assertEquals(Long.valueOf(17), path.observationId);
+        assertEquals("Game.nds", path.filename);
+    }
     @Test public void segaObservedCopiesRetainTheirBoundConsoleLeaf() throws Exception {
         for (String platform : new String[]{"megadrive", "mastersystem", "sg1000"}) {
             String id = "copy:17:" + platform;

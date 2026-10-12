@@ -255,7 +255,8 @@ class MainActivity : FlutterActivity() {
                 call.method == "reviewOwnedRetroArchMasterSystemSave" ||
                 call.method == "reviewOwnedRetroArchMegaDriveSave" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
-                call.method == "launchOwnedNetherSX2" || call.method == "launchOwnedCemu") {
+                call.method == "launchOwnedNetherSX2" || call.method == "launchOwnedCemu" ||
+                call.method == "launchOwnedMelon" || call.method == "reviewOwnedMelonSave") {
                 val service = ownedStorage ?: OwnedStorageService(applicationContext).also { ownedStorage = it }
                 service.handle(call, result)
                 return@setMethodCallHandler

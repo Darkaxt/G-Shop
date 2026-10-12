@@ -7,6 +7,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun melonSnapshotBackingKeepsTheExactInternalOrRemovableSavePath() {
+        assertEquals(MelonSaveBoundary.PROTECTED_BACKING,
+            MelonSaveBoundary.backingDirectory(MelonSaveBoundary.PROTECTED_SOURCE))
+        assertEquals("/data/media/0/Saves/MelonDualDS",
+            MelonSaveBoundary.backingDirectory("/storage/emulated/0/Saves/MelonDualDS"))
+        assertEquals("/mnt/media_rw/75D7-DC5F/Saves/MelonDualDS",
+            MelonSaveBoundary.backingDirectory("/storage/75D7-DC5F/Saves/MelonDualDS"))
+        for (path in listOf("/data/media/0/Saves", "/storage/emulated/0/Saves/..",
+                "/storage/75D7-DC5F/Android/data/another.app/files")) {
+            try { MelonSaveBoundary.backingDirectory(path); fail("Accepted an unbound source") }
+            catch (_: IllegalArgumentException) { }
+        }
+    }
     @Test fun melonSaveBindingUsesSharedOrItsStandardRootAssistedSramAndItsOwnFormat() {
         val path = "/storage/emulated/0/Saves/MelonDualDS"
         for (name in listOf("Game.sav", "Game.srm")) {

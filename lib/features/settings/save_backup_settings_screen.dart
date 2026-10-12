@@ -347,6 +347,11 @@ class _SaveBackupSettingsScreenState
           melon: true,
           title: widget.gameTitle ?? 'Selected DS edition',
           capture: SaveCapture(),
+          resolveMelonSave: widget.game != null &&
+                  OwnedEmulatorLauncher.supports(widget.game!, widget.system!)
+              ? () => OwnedEmulatorLauncher().reviewMelonSave(
+                  widget.game!, widget.system!, widget.targetFolder!)
+              : null,
           chooseDirectory: () => FilePicker.platform.getDirectoryPath(
               dialogTitle:
                   'Choose the shared save folder configured in MelonDualDS'),
@@ -925,7 +930,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 const SizedBox(height: 12),
                 Text(
                     job.isMelon
-                        ? 'Backs up only this game’s selected .sav or .srm file in your configured shared save folder. ROMs, settings and save states are not included.'
+                        ? 'Backs up only this game’s selected .sav or .srm file in its configured save folder. ROMs, settings and save states are not included.'
                         : job.isPpsspp
                             ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
                             : !job.retroArchRoute.includesRtc
@@ -978,7 +983,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             setState(() => _confirmed = value ?? false)),
                 Text(
                     job.isMelon
-                        ? 'Exit the game safely, then use Force stop in MelonDualDS App info before backing up. Keep it closed until the backup finishes.'
+                        ? 'MelonDualDS can stay open. R-Shop only backs up a completed save and keeps your previous backup if the save is still changing.'
                         : job.isPpsspp
                             ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
                             : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
@@ -1008,8 +1013,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : 'Resume this backup'))),
                 if (conflicts.isNotEmpty)
                   const Text('Conflict needs review in Restore & conflicts.'),
-                if (job.isMelon) _appInfoButton(job),
-                if (job.isPpsspp && widget.automatic != null)
+                if (job.isStandalone && widget.automatic != null)
                   AutomaticSaveBackupPanel(
                       service: widget.automatic!,
                       mapping: AutomaticSaveMapping.fromJob(job,
@@ -1168,7 +1172,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       'No device save or compatible cloud backup yet. '
                       'You can start the game to create one.',
                       style: TextStyle(fontSize: 18)),
-                if (job.isPpsspp && widget.automatic != null)
+                if (job.isStandalone && widget.automatic != null)
                   AutomaticSaveBackupPanel(
                       service: widget.automatic!,
                       mapping: AutomaticSaveMapping.fromJob(job,
@@ -1275,7 +1279,7 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
     } catch (_) {
       if (mounted) {
         setState(() => _issue =
-            'Automatic backup setting could not be saved. Review the source, backup area and slot mapping.');
+            'Automatic backup setting could not be saved. Review the source, backup area and selected save.');
       }
     } finally {
       if (mounted) {
@@ -1318,10 +1322,10 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       value: status.enabled,
                       onChanged:
                           canChange ? (value) => _set(value ?? false) : null,
-                      title: const Text('Automatically back up this slot',
+                      title: const Text('Automatically back up this save',
                           style: TextStyle(fontSize: 18)),
                       subtitle: const Text(
-                          'Only for this version of the game. Watches this slot while R-Shop is running, including while you play. Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
+                          'Only for this version of the game. Watches this save while R-Shop is running, including while you play. Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(
@@ -1363,11 +1367,13 @@ class StandaloneSaveMappingPanel extends StatefulWidget {
   final String title;
   final bool melon;
   final SaveCapture capture;
+  final Future<({String directory, String name})> Function()? resolveMelonSave;
   final Future<String?> Function() chooseDirectory;
   final Future<void> Function(String directory, String slot) onMapped;
   const StandaloneSaveMappingPanel(
       {super.key,
       this.melon = false,
+      this.resolveMelonSave,
       required this.title,
       required this.capture,
       required this.chooseDirectory,
@@ -1395,6 +1401,26 @@ class _StandaloneSaveMappingPanelState
       _issue = null;
     });
     try {
+      final resolve = widget.resolveMelonSave;
+      if (resolve != null) {
+        final mapping = await resolve();
+        if (!SaveCapture.validMelonDirectory(mapping.directory) ||
+            !SaveCapture.validMelonName(mapping.name)) {
+          throw const FormatException('Invalid DS save destination');
+        }
+        final names = await widget.capture.melonNames(mapping.directory);
+        if (!mounted) return;
+        setState(() {
+          _directory = mapping.directory;
+          _names = {...names, mapping.name}.toList()..sort();
+          _slot = mapping.name;
+          _confirmed = false;
+          _locationInfo = names.contains(mapping.name)
+              ? 'Found the save used by this game’s R-Shop launch. Review it below.'
+              : 'Found where this game’s R-Shop launch will save. No local save exists yet; a compatible cloud save can be restored here.';
+        });
+        return;
+      }
       final settings = await widget.capture.melonSaveSettings();
       if (!mounted) return;
       if (settings.directory == null) {

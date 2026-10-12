@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
 import org.json.JSONObject
 import java.io.File
 import java.io.FileNotFoundException
@@ -15,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
 
 /** Real provider/SQLite/native-descriptor contract. No application bootstrap,
  * accounts, source requests or user ROMs. Uses only an exclusive synthetic file
@@ -26,7 +29,9 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var saveGroupProbe = false
     private var melonSaveProbe = false
     private var protectedMelonSaveProbe = false
+    private var melonLiveCaptureProbe = false
     private var melonSettingsProbe = false
+    private var dsProviderProbe = false
     private var saveWatchProbe = false
     private var missingSaveProbe = false
     override fun onCreate(arguments: Bundle?) {
@@ -37,7 +42,9 @@ class OwnedRomInstrumentation : Instrumentation() {
         saveGroupProbe = arguments?.getString("saveGroupProbe") == "true"
         melonSaveProbe = arguments?.getString("melonSaveProbe") == "true"
         protectedMelonSaveProbe = arguments?.getString("protectedMelonSaveProbe") == "true"
+        melonLiveCaptureProbe = arguments?.getString("melonLiveCaptureProbe") == "true"
         melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
+        dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
         saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
         missingSaveProbe = arguments?.getString("missingSaveProbe") == "true"
         start()
@@ -46,14 +53,17 @@ class OwnedRomInstrumentation : Instrumentation() {
     override fun onStart() {
         val report = Bundle()
         try {
-            if (melonSettingsProbe) {
+            if (dsProviderProbe) {
+                exercise(ds = true)
+                report.putString("result", "PASS DS document leaf read/name/size and launch-bound live save-location review, read-only grant and native publication/identity/ownership/removal rejection; exclusive fixture cleanup; no emulator launch")
+            } else if (melonSettingsProbe) {
                 report.putString("result", MelonSaveSettingsProof.exercise(targetContext))
             } else if (missingSaveProbe) {
                 report.putString("result", MissingSaveProof.exercise(targetContext))
             } else if (saveWatchProbe) {
                 report.putString("result", SaveFileWatchProof.exercise(targetContext))
             } else if (melonSaveProbe) {
-                report.putString("result", MelonSaveProof.exercise(targetContext, protectedMelonSaveProbe))
+                report.putString("result", MelonSaveProof.exercise(targetContext, protectedMelonSaveProbe, melonLiveCaptureProbe))
             } else if (saveGroupProbe) {
                 report.putString("result", MgbaGroupSaveProof.exercise(targetContext))
             } else if (saveRouteProbe) {
@@ -119,12 +129,12 @@ class OwnedRomInstrumentation : Instrumentation() {
         return results.joinToString("; ")
     }
 
-    private fun exercise() {
+    private fun exercise(ds: Boolean = false) {
         check(targetContext.packageName == "com.darkaxt.rshop.debug")
         val id = "provider-proof-${UUID.randomUUID()}"
         val root = File(targetContext.getExternalFilesDir(null), id)
         check(root.mkdir())
-        val rom = File(root, "synthetic.rvz")
+        val rom = File(root, if (ds) "synthetic.nds" else "synthetic.rvz")
         val bytes = byteArrayOf(4, 8, 15, 16, 23, 42)
         val db = SQLiteDatabase.openDatabase(targetContext.getDatabasePath("rshop.db").path,
             null, SQLiteDatabase.OPEN_READWRITE)
@@ -177,7 +187,31 @@ class OwnedRomInstrumentation : Instrumentation() {
                 db.insertOrThrow("transfer_target_owners", null, owner())
                 db.setTransactionSuccessful()
             } finally { db.endTransaction() }
-            val uri = OwnedRomContentProvider.uri(targetContext, id, rom.name)
+            val uri = if (ds) OwnedRomContentProvider.gameGearUri(targetContext, id, rom.name)
+                else OwnedRomContentProvider.uri(targetContext, id, rom.name)
+            if (ds) OwnedRomContentProvider.openCommitted(targetContext, uri,
+                requiredStandaloneNds = true).use { }
+            if (ds) {
+                val service = OwnedStorageService(targetContext)
+                val done = CountDownLatch(1)
+                var mapping: Any? = null
+                var failure: String? = null
+                try {
+                    service.handle(MethodCall("reviewOwnedMelonSave", mapOf(
+                        "installationId" to id, "filename" to rom.name)), object : MethodChannel.Result {
+                        override fun success(value: Any?) { mapping = value; done.countDown() }
+                        override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                        override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+                    })
+                    done.await()
+                    check(failure == null) { failure ?: "review_missing" }
+                    val settings = SaveSourceStorage.melonSettings(targetContext)
+                    val expectedDirectory = if (settings.isNull("directory")) MelonSaveBoundary.PROTECTED_SOURCE
+                        else settings.getString("directory")
+                    check(mapping == mapOf("directory" to expectedDirectory,
+                        "name" to "synthetic.${settings.getString("extension")}"))
+                } finally { service.shutdown() }
+            }
             val resolver = targetContext.contentResolver
             fun read() = resolver.openFileDescriptor(uri, "r")!!.let { descriptor ->
                 ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { it.readBytes() }

@@ -17,7 +17,7 @@ import java.io.File
  * cross this channel; payloads use bounded binary frames, not shell commands or
  * per-chunk su processes. Ordinary shared save paths retain direct JNI access. */
 internal class SaveSourceStorage private constructor(
-    private val source: String, private val child: java.lang.Process?
+    private val source: String, private val child: java.lang.Process?, private val snapshotOnly: Boolean = false
 ) : Closeable {
     private val input = child?.let { DataInputStream(it.inputStream.buffered()) }
     private val output = child?.let { DataOutputStream(it.outputStream.buffered()) }
@@ -30,11 +30,14 @@ internal class SaveSourceStorage private constructor(
     val rootAssisted: Boolean get() = child != null
     val root: Int
     private var closed = false
+    private var snapshotHelper: SaveSourceStorage? = null
 
     init {
         try {
             root = if (child == null) OwnedStorageNative.openRoot(source) else {
-                call(JSONObject().put("source", source)); 1
+                call(JSONObject().put("source", source).also {
+                    if (snapshotOnly) it.put("snapshotOnly", true)
+                }); 1
             }
         } catch (error: Exception) {
             runCatching { output?.close() }
@@ -156,9 +159,27 @@ internal class SaveSourceStorage private constructor(
     fun closeFile(fd: Int) {
         if (!rootAssisted) OwnedStorageNative.close(fd) else call(request("close", fd))
     }
+    fun beginMelonSnapshot(context: Context, name: String) {
+        require(MelonSaveBoundary.validDirectory(source) && MelonSaveBoundary.validName(name))
+        check(snapshotHelper == null)
+        if (rootAssisted) call(request("snapshotBegin").put("name", name)) else {
+            // Shared bytes retain direct JNI IO. Only the root writer census
+            // and backing-inode guard use this one joined, read-only helper.
+            val helper = SaveSourceStorage(source, start(context, globalMountNamespace = true), true)
+            snapshotHelper = helper
+            helper.call(helper.request("snapshotBegin").put("name", name))
+        }
+    }
+    fun verifyMelonSnapshot() {
+        val helper = snapshotHelper ?: this
+        helper.call(helper.request("snapshotVerify"))
+    }
     override fun close() {
         if (closed) return
         closed = true
+        try { snapshotHelper?.close() } finally { snapshotHelper = null; closeSource() }
+    }
+    private fun closeSource() {
         if (child == null) { OwnedStorageNative.close(root); return }
         // EOF ends the exact child. Join even after a lost reply/cancellation;
         // never detach a writer or infer completion from a timer.
@@ -183,6 +204,9 @@ object RootSaveSourceWorker {
         val files = mutableMapOf<Int, Int>()
         val writable = mutableSetOf<Int>()
         var parent = -1
+        var snapshot = -1
+        var snapshotName: String? = null
+        var snapshotInvalid = false
         fun reply(value: JSONObject) { output.writeUTF(value.toString()); output.flush() }
         try {
             val hello = JSONObject(input.readUTF())
@@ -194,8 +218,11 @@ object RootSaveSourceWorker {
                 reply(settings)
                 return
             }
-            require(hello.length() == 1 && MelonSaveBoundary.isProtectedDirectory(hello.getString("source")))
-            val backing = MelonSaveBoundary.PROTECTED_BACKING
+            val source = hello.getString("source")
+            val snapshotOnly = hello.length() == 2 && hello.optBoolean("snapshotOnly") &&
+                MelonSaveBoundary.validDirectory(source)
+            require(snapshotOnly || hello.length() == 1 && MelonSaveBoundary.isProtectedDirectory(source))
+            val backing = MelonSaveBoundary.backingDirectory(source)
             parent = OwnedStorageNative.openRoot(backing)
             files[1] = parent
             reply(JSONObject().put("ready", true))
@@ -210,7 +237,28 @@ object RootSaveSourceWorker {
                 require(encoded.length <= 4096)
                 val row = JSONObject(encoded)
                 try {
-                    val result = when (row.getString("operation")) {
+                    val operation = row.getString("operation")
+                    require(!snapshotOnly || operation in setOf("snapshotBegin", "snapshotVerify"))
+                    fun verifySnapshot() {
+                        if (snapshotInvalid) throw IOException("source_changed")
+                        val leaf = snapshotName ?: throw IOException("source_changed")
+                        if (OwnedStorageNative.saveSnapshotHasWriter(parent, leaf, source, backing) ||
+                            OwnedStorageNative.saveSnapshotChanged(snapshot, leaf)) throw IOException("source_changed")
+                        val fresh = OwnedStorageNative.openRoot(backing)
+                        try {
+                            if (OwnedStorageNative.identity(fresh).take(2) != OwnedStorageNative.identity(parent).take(2))
+                                throw IOException("source_changed")
+                        } finally { OwnedStorageNative.close(fresh) }
+                    }
+                    val result = when (operation) {
+                        "snapshotBegin" -> {
+                            require(snapshot == -1)
+                            snapshotName = name(row)
+                            snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
+                            verifySnapshot()
+                            JSONObject()
+                        }
+                        "snapshotVerify" -> { verifySnapshot(); JSONObject() }
                         "names" -> {
                             val names = File(backing).list() ?: throw IOException("owned_storage:13")
                             require(names.size <= 4096)
@@ -296,6 +344,7 @@ object RootSaveSourceWorker {
                     reply(result)
                 } catch (error: Exception) {
                     val message = (error as? IOException)?.message
+                    if (snapshot >= 0) snapshotInvalid = true
                     reply(JSONObject().put("error", if (message == "source_changed" ||
                         message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable"))
                 }
@@ -307,6 +356,7 @@ object RootSaveSourceWorker {
             runCatching { reply(JSONObject().put("error", if (message in setOf("source_changed", "save_settings_unresolved") ||
                 message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable")) }
         } finally {
+            if (snapshot >= 0) runCatching { OwnedStorageNative.close(snapshot) }
             files.values.forEach { runCatching { OwnedStorageNative.close(it) } }
         }
     }

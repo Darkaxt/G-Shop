@@ -78,7 +78,7 @@ class OwnedRomContentProvider : ContentProvider() {
 
         private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null,
             requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
-            requiredStandaloneWua: Boolean = false): JSONObject {
+            requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false): JSONObject {
             if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
                 uri.query != null || uri.fragment != null) throw FileNotFoundException("Invalid ROM grant")
             val grant = OwnedRomGrantPath.parse(uri.pathSegments)
@@ -89,7 +89,8 @@ class OwnedRomContentProvider : ContentProvider() {
                     if (bundleOwner != null ||
                         (requiredArchivePlatform != null && requiredArchivePlatform != grant.platform) ||
                         (requiredStandaloneChd && grant.platform !in setOf("psx", "psp", "ps2")) ||
-                        (requiredStandaloneWua && grant.platform != "wiiu")) {
+                        (requiredStandaloneWua && grant.platform != "wiiu") ||
+                        (requiredStandaloneNds && grant.platform != "nds")) {
                         throw FileNotFoundException("Local copy mapping changed")
                     }
                     return observedCopy(db, grant)
@@ -141,6 +142,8 @@ class OwnedRomContentProvider : ContentProvider() {
                         owner != null, dependencies.length(), members.length())
                     val standaloneWua = OwnedRomGrantPath.standaloneWua(filename, platform,
                         owner != null, dependencies.length(), members.length())
+                    val standaloneNds = OwnedRomGrantPath.standaloneNds(filename, platform,
+                        owner != null, dependencies.length(), members.length())
                     if (requiredArchivePlatform != null && platform != requiredArchivePlatform) {
                         throw FileNotFoundException("Archive mapping changed")
                     }
@@ -150,7 +153,10 @@ class OwnedRomContentProvider : ContentProvider() {
                     if (requiredStandaloneWua && !standaloneWua) {
                         throw FileNotFoundException("Unsupported standalone WUA grant")
                     }
-                    if (grant.document && !supportedArchive && !standaloneChd && !standaloneWua) {
+                    if (requiredStandaloneNds && !standaloneNds) {
+                        throw FileNotFoundException("Unsupported standalone DS grant")
+                    }
+                    if (grant.document && !supportedArchive && !standaloneChd && !standaloneWua && !standaloneNds) {
                         throw FileNotFoundException("Unsupported document grant")
                     }
                     if ((filename.endsWith(".zip") || filename.endsWith(".7z") || filename.endsWith(".rar")) &&
@@ -271,6 +277,7 @@ class OwnedRomContentProvider : ContentProvider() {
             val supported = archive ||
                 (platform in setOf("psx", "psp", "ps2") && filename.endsWith(".chd")) ||
                 (platform == "wiiu" && filename.endsWith(".wua")) ||
+                (platform == "nds" && filename.endsWith(".nds")) ||
                 (platform in setOf("gc", "wii") && listOf(".rvz", ".iso", ".gcm", ".wbfs").any(filename::endsWith))
             if (!supported) throw FileNotFoundException("Unsupported copy format")
             return JSONObject().put("id", grant.installationId).put("destinationRoot", root)
@@ -290,11 +297,11 @@ class OwnedRomContentProvider : ContentProvider() {
 
         fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null,
             requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
-            requiredStandaloneWua: Boolean = false): ParcelFileDescriptor {
+            requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false): ParcelFileDescriptor {
             var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
             try {
                 val saved = manifest(context, uri, bundleOwner, requiredArchivePlatform,
-                    requiredStandaloneChd, requiredStandaloneWua)
+                    requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds)
                 val rootPath = saved.getString("destinationRoot")
                 val relative = saved.getString("relativePath")
                 val pieces = relative.split('/')
@@ -345,7 +352,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 }
                 // Recheck durable ownership after opening the pinned object.
                 if (!sameJson(manifest(context, uri, bundleOwner, requiredArchivePlatform,
-                        requiredStandaloneChd, requiredStandaloneWua), saved)) {
+                        requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds), saved)) {
                     throw FileNotFoundException("Installation ownership changed")
                 }
                 val result = ParcelFileDescriptor.adoptFd(file)

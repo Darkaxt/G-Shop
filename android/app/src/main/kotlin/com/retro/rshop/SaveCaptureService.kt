@@ -224,6 +224,7 @@ internal class SaveCaptureService(private val activity: Context) {
                         else if (e is Failure) e.code
                         else if (e is java.io.IOException && e.message == "root_unavailable") "root_unavailable"
                         else if (e is java.io.IOException && e.message == "save_settings_unresolved") "save_settings_unresolved"
+                        else if (e is java.io.IOException && e.message == "source_changed") "source_changed"
                         else "capture_unavailable"
                     ({ result.error(code, "Save capture: $code", null) })
                 } finally {
@@ -276,13 +277,6 @@ internal class SaveCaptureService(private val activity: Context) {
             (!MelonSaveBoundary.isProtectedDirectory(directory) &&
                 File(directory).canonicalPath != directory)) throw Failure("invalid_selection")
         return SaveSourceStorage.open(activity, directory).use { it.melonNames() }
-    }
-
-    private fun requireMelonStopped() {
-        check()
-        @Suppress("DEPRECATION")
-        val info = activity.packageManager.getApplicationInfo(MelonSaveBoundary.PACKAGE, 0)
-        if (info.flags and ApplicationInfo.FLAG_STOPPED == 0) throw Failure("stop_melon_required")
     }
 
     private fun captured(directory: File, name: String,
@@ -430,7 +424,6 @@ internal class SaveCaptureService(private val activity: Context) {
                 it.canonicalFile != it.absoluteFile || !it.isFile }) throw Failure("invalid_capture")
         leftovers.forEach { if (!it.delete()) throw Failure("capture_storage") }
 
-        if (melon) requireMelonStopped()
         val connection = if (standalone) null else synchronized(guard) {
             check(); DatagramSocket().also { socket = it }
         }
@@ -448,6 +441,7 @@ internal class SaveCaptureService(private val activity: Context) {
             catch (e: Exception) { sourceStorage.close(); throw e }
         val fds = mutableListOf<Int>()
         try {
+            if (melon) sourceStorage.beginMelonSnapshot(activity, name)
             val absent = restoreBaseline && !sourceStorage.exists(name)
             val selected = if (absent) mutableListOf<String>() else mutableListOf(name)
             val rtc = name.dropLast(4) + ".rtc"
@@ -485,7 +479,6 @@ internal class SaveCaptureService(private val activity: Context) {
                 } finally { OwnedStorageNative.close(target) }
             }
             if (connection != null) contentClosed(connection)
-            if (melon) requireMelonStopped()
             if (absent && sourceStorage.exists(name)) throw Failure("source_changed")
             // Compare the complete group after all copies, including the RTC
             // existence assertion. A changed/replaced source never gets a seal.
@@ -500,6 +493,7 @@ internal class SaveCaptureService(private val activity: Context) {
             // after any protocol wait as well as the complete copy.
             if (sourceStorage.currentRootIdentity().take(2) !=
                 sourceStorage.identity(sourceDir).take(2)) throw Failure("source_changed")
+            if (melon) sourceStorage.verifyMelonSnapshot()
             check()
             val record = JSONObject().put("captureId", captureId).put("name", name)
                 .put("deviceId", hash(device.toByteArray(Charsets.UTF_8)))

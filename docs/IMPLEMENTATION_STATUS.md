@@ -5,6 +5,103 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### DS launch/save integration — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. The automatic DS backup control now shares
+the existing durable backup lane and appears in Backup and Status; capture no
+longer instructs users to force-stop Melon. Restore retains its distinct writer
+boundary. Focused UI/job checks pass enablement review and the separate restore
+instructions. Gated integrated assembly 709 passed and its preserving install
+matched SHA-256 `1e906a3cca94487fa41a6ef07afe0b3179797e8fd80300b9469db76997194870`.
+The protected running-runtime capture proof was repeated successfully on that
+artifact, not inferred from the earlier native APK.
+
+The verified owned-file launcher now includes a standalone `.nds` handoff to
+MelonDualDS, retaining fresh installation/byte-bound-copy validation and exact
+read-only URI grants. Host regression proves that save preparation finishes
+before the handoff, and a save conflict prevents emulator/companion launch.
+Save-location review uses that same grant, actual leaf name and live emulator
+settings. The external URI processor has no ROM parent; ROM-relative settings
+therefore resolve the emulator's standard protected directory, rather than an
+invented ROM-parent folder. Custom settings remain honored. The UI automatically
+selects that exact destination/name, including an absent first save, without a
+folder picker; edition review and backup opt-in remain explicit.
+
+Focused launch/settings checks and scoped analysis pass. Request 713 passed
+focused native leaf/storage checks and assembly. Final request 716
+(`e4bc6557056046cc8d32c5d65ff0a29d`) acquired the shared gate and completed with
+exit 0 and confirmed completion. Observed workers=2, parallel=false and Gradle
+heap=3 GiB; reviewed Kotlin 2.3.21 remains in-process and shares that heap.
+The earlier focused native tests ran in one 512-MiB fail-fast fork; 716 assembled
+the integrated artifacts, not another unit-test run. Generated compile/link
+Ninja rules retain the depth-one app pool for all three ABIs. No memory failure
+or budget increase occurred.
+
+Signer-preserving owner/test installation independently matches SHA-256
+`1f9fe9796b6cb4dc5db8971d9b989b4e50eb437e20c3f3f50ba7d953de5cd5c6`
+and `6da41971379509ab79ece7544e61b8d88fef2ddf30046cd245a7c4e8924036a4`.
+The actual Thor DS document proof passes read/name/size and launch-bound live
+save-location review, plus write/identity/ownership/publication/removal refusal.
+The shared and protected running-runtime capture proofs pass on these exact
+artifacts. The existing generic owned/bundle/observed-copy provider proof also
+passes. All exclusive fixture files/rows are removed, no root child remains,
+configuration/catalogue/jobs and all current preference hashes match the
+pre-install baseline, and both actual/committed display states are OFF. This is
+native grant/discovery/capture evidence, not a live ROM handoff or Drive round trip.
+
+Remaining ordinary S10 work includes DS archive
+handoff for the collection's `.7z` files, watch-to-Drive verification, remaining
+installed-emulator coverage/fault cases and conditional legacy handover. This is
+not a new required deferral or a waiver. S11 remains NOT STARTED.
+
+### Coherent Melon capture without force-stop — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. Melon capture no longer requires Android's
+stopped-package flag. It arms a backing-directory mutation guard before a
+root-only read-only census of open writable descriptors, retains the complete
+source/entry/group checks, and verifies the guard after copying. A failed guard
+stays invalid. Protected captures reuse their source child; shared saves keep
+direct JNI data IO with one joined snapshot-only helper. There is no emulator
+signal, quiet-period timer, per-chunk process or runtime ADB dependency. Restore
+retains its separate writer boundary, conflict checks and durable rollback.
+This supersedes older stopped-**capture** checkpoints below, not restore rules.
+
+The actual Thor regression first reproduced the unsafe case on request 701:
+capture succeeded while an expendable save was still open for writing. Requests
+704 and 705 passed focused native storage tests and owner/instrumentation
+assembly. Final request 705 (`c2d2cb075b754f0395e9105ef9aab17c`) acquired the
+shared gate through confirmed completion, exit 0. Observed workers=2,
+parallel=false and Gradle heap=3 GiB; reviewed Kotlin 2.3.21 in-process compilation
+is configured without a task-specific override and shares that heap. One
+512-MiB fail-fast test fork was configured and the focused tests executed.
+Actual generated app Ninja compile/link rules use a depth-one pool per ABI.
+No memory failure or budget increase occurred; no universal host cap is claimed.
+
+The preserving install independently matches owner SHA-256
+`0ffd94cfd724151a299f099ed0c100f7a8fd774adbc7fa99be000126c253c840`
+and instrumentation SHA-256
+`40be3c34dda053c71b0ae99ef92a3766395cc04cc9acf8df0dfa9945084630f5`;
+the existing signing identity is verified. On these exact artifacts, protected
+and shared Thor probes pass open-writer rejection, overlapping-mutation
+rejection, sticky invalidation, read-only descriptor admission, complete
+capture/digest, stopped-runtime restore and rollback. Melon was then opened at
+its ROM list without launching a game: PID 4625 and `stopped=false` were observed.
+Both routes still captured successfully, while restore was rejected without
+changing fixture bytes. All exclusive fixtures and root children are removed.
+
+R-Shop's configuration, saved jobs and all ten private preference digests are
+unchanged. Melon's preference-file digest changed after its normal app launch
+(`bc40ab...` to `7a419a...`); it was not reverted or rewritten by R-Shop. Its
+reviewed save settings remain `use_rom_dir=true`, `.sav` and
+`save_state_location=save_dir`; the current native settings probe passes.
+Both actual and committed display states are OFF.
+
+This proves synthetic capture with the application running at its ROM list,
+not a new gameplay or watch-to-Drive workflow. Automatic DS UI/launch association,
+normal end-to-end Drive verification, remaining installed-emulator coverage,
+fault/reconnect cases and conditional legacy handover remain ordinary S10 work.
+S11 is NOT STARTED; no acceptance criterion is waived or silently deferred.
+
 ### Protected save watching — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage. Protected MelonDualDS save watching now uses

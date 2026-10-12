@@ -2,12 +2,17 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <cstring>
+#include <dirent.h>
+#include <fcntl.h>
 #include <jni.h>
+#include <memory>
 #include <new>
 #include <string>
 #include <system_error>
 #include <poll.h>
 #include <sys/inotify.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace {
@@ -150,6 +155,143 @@ Java_com_retro_rshop_OwnedStorageNative_saveWatchRead(JNIEnv* env, jobject, jint
                 reinterpret_cast<const jbyte*>(bytes));
             return output;
         }
+    });
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveSnapshotOpen(JNIEnv* env, jobject, jint directory) {
+    return guarded<jint>(env, -1, [&] {
+        std::string path = "/proc/self/fd/" + std::to_string(directory);
+        int fd = ::inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
+        if (fd < 0) throw std::system_error(errno, std::generic_category());
+        constexpr uint32_t events = IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE | IN_CREATE |
+            IN_MOVED_TO | IN_MOVED_FROM | IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT | IN_ONLYDIR;
+        if (::inotify_add_watch(fd, path.c_str(), events) < 0) {
+            int error = errno;
+            ::close(fd);
+            throw std::system_error(error, std::generic_category());
+        }
+        return fd;
+    });
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveSnapshotChanged(JNIEnv* env, jobject, jint watch, jstring name) {
+    return guarded<jboolean>(env, JNI_TRUE, [&]() -> jboolean {
+        std::string leaf = utf8(env, name);
+        alignas(inotify_event) char bytes[65536];
+        // Bound work under unrelated directory churn. Exhausting the bound is
+        // unavailable evidence, never a claim that the queue was clean.
+        for (int frame = 0; frame < 4; ++frame) {
+            ssize_t size;
+            do { size = ::read(watch, bytes, sizeof(bytes)); } while (size < 0 && errno == EINTR);
+            if (size < 0 && errno == EAGAIN) return JNI_FALSE;
+            if (size <= 0) throw std::system_error(size < 0 ? errno : EIO, std::generic_category());
+            size_t offset = 0;
+            while (offset < static_cast<size_t>(size)) {
+                if (static_cast<size_t>(size) - offset < sizeof(inotify_event)) invalid();
+                const auto* event = reinterpret_cast<const inotify_event*>(bytes + offset);
+                size_t length = sizeof(inotify_event) + event->len;
+                if (length > static_cast<size_t>(size) - offset) invalid();
+                if (event->mask & (IN_Q_OVERFLOW | IN_UNMOUNT | IN_IGNORED | IN_DELETE_SELF | IN_MOVE_SELF))
+                    return JNI_TRUE;
+                if (event->len > 0 && ::strnlen(event->name, event->len) == leaf.size() &&
+                    std::memcmp(event->name, leaf.data(), leaf.size()) == 0) return JNI_TRUE;
+                offset += length;
+            }
+        }
+        return JNI_TRUE;
+    });
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobject, jint directory,
+    jstring name, jstring source, jstring backing) {
+    return guarded<jboolean>(env, JNI_TRUE, [&]() -> jboolean {
+        if (::geteuid() != 0) throw std::system_error(EACCES, std::generic_category());
+        const std::string leaf = utf8(env, name);
+        const std::string publicPath = utf8(env, source) + "/" + leaf;
+        const std::string backingPath = utf8(env, backing) + "/" + leaf;
+        struct stat pinned{}, publicFile{};
+        if (::fstatat(directory, leaf.c_str(), &pinned, AT_SYMLINK_NOFOLLOW) < 0) {
+            if (errno != ENOENT) throw std::system_error(errno, std::generic_category());
+        } else if (!S_ISREG(pinned.st_mode) || pinned.st_nlink != 1) invalid();
+        if (::stat(publicPath.c_str(), &publicFile) < 0 && errno != ENOENT && errno != EACCES)
+            throw std::system_error(errno, std::generic_category());
+        auto exited = [](int error) { return error == ENOENT || error == ESRCH; };
+        auto numeric = [](const char* text) {
+            if (*text == '\0') return false;
+            for (; *text; ++text) if (*text < '0' || *text > '9') return false;
+            return true;
+        };
+        auto next = [](DIR* dir) {
+            errno = 0;
+            dirent* entry = ::readdir(dir);
+            if (entry == nullptr && errno != 0) throw std::system_error(errno, std::generic_category());
+            return entry;
+        };
+        auto closeDir = [](DIR* dir) { ::closedir(dir); };
+        std::unique_ptr<DIR, decltype(closeDir)> processes(::opendir("/proc"), closeDir);
+        if (!processes) throw std::system_error(errno, std::generic_category());
+        while (auto* process = next(processes.get())) {
+            if (!numeric(process->d_name)) continue;
+            const std::string prefix = std::string("/proc/") + process->d_name;
+            std::unique_ptr<DIR, decltype(closeDir)> descriptors(::opendir((prefix + "/fd").c_str()), closeDir);
+            if (!descriptors) {
+                if (exited(errno)) continue;
+                throw std::system_error(errno, std::generic_category());
+            }
+            while (auto* descriptor = next(descriptors.get())) {
+                if (!numeric(descriptor->d_name)) continue;
+                struct stat candidate{};
+                if (::fstatat(::dirfd(descriptors.get()), descriptor->d_name, &candidate, 0) < 0) {
+                    if (exited(errno)) continue;
+                    throw std::system_error(errno, std::generic_category());
+                }
+                if (!S_ISREG(candidate.st_mode)) continue;
+                bool matched = (pinned.st_ino != 0 && candidate.st_dev == pinned.st_dev && candidate.st_ino == pinned.st_ino) ||
+                    (publicFile.st_ino != 0 && candidate.st_dev == publicFile.st_dev && candidate.st_ino == publicFile.st_ino);
+                if (!matched) {
+                    // FUSE and backing inode numbers differ. Also recognize the
+                    // exact descriptor path in the writer's mount namespace.
+                    char path[4096];
+                    ssize_t size = ::readlinkat(::dirfd(descriptors.get()), descriptor->d_name, path, sizeof(path));
+                    if (size < 0) {
+                        if (exited(errno)) continue;
+                        throw std::system_error(errno, std::generic_category());
+                    }
+                    if (static_cast<size_t>(size) == sizeof(path)) throw std::system_error(ENAMETOOLONG, std::generic_category());
+                    std::string actual(path, static_cast<size_t>(size));
+                    matched = actual == publicPath || actual == backingPath;
+                }
+                if (!matched) continue;
+                auto closeFile = [](FILE* file) { ::fclose(file); };
+                std::unique_ptr<FILE, decltype(closeFile)> info(
+                    ::fopen((prefix + "/fdinfo/" + descriptor->d_name).c_str(), "re"), closeFile);
+                if (!info) {
+                    if (exited(errno)) continue;
+                    throw std::system_error(errno, std::generic_category());
+                }
+                char line[256];
+                bool flagsFound = false;
+                while (::fgets(line, sizeof(line), info.get()) != nullptr) {
+                    unsigned long flags;
+                    if (std::sscanf(line, "flags:\t%lo", &flags) != 1) continue;
+                    flagsFound = true;
+                    if ((flags & O_ACCMODE) != O_RDONLY) return JNI_TRUE;
+                    break;
+                }
+                if (::ferror(info.get())) throw std::system_error(EIO, std::generic_category());
+                if (!flagsFound) {
+                    // A descriptor may close between stat and fdinfo. Its
+                    // CLOSE_WRITE is then in the already armed mutation guard.
+                    struct stat current{};
+                    if (::fstatat(::dirfd(descriptors.get()), descriptor->d_name, &current, 0) == 0 || !exited(errno))
+                        throw std::system_error(EIO, std::generic_category());
+                }
+            }
+        }
+        return JNI_FALSE;
     });
 }
 

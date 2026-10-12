@@ -7,6 +7,53 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Coherent Melon capture without force-stop — verified slice, 2026-10-12
+
+Automatic controls now use the same DS durable lane in Backup and Status. The
+standalone `.nds` owned handoff uses the installed Melon exported activity/action
+and exact read-only document URI, after the existing save-preparation callback.
+Location review validates the same leaf without launching an activity, reads
+current save settings and derives the `.sav`/`.srm` basename from that filename.
+The pinned [external ROM processor](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/java/me/magnum/melonds/common/romprocessors/NdsRomFileProcessor.kt)
+sets `parentTreeUri=null`; the [settings resolver](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/java/me/magnum/melonds/impl/SharedPreferencesSettingsRepository.kt#L1382)
+then uses the protected standard save directory for ROM-relative mode. This is
+actual launch-context resolution, not a blanket fallback for arbitrary external
+ROMs. The UI can review an expected absent save before restoring a cloud copy.
+Final preserving build 716 passes actual app-UID native DS grant/location review
+and shared/protected running-runtime coherent capture, with unchanged current
+settings and no remaining root child. DS `.7z` handoff and real watch-to-Drive
+verification remain S10 work; these probes do not establish those workflows.
+
+The pinned runtime's [SaveManager](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/cpp/SaveManager.cpp)
+opens the save, writes the full buffered SRAM and closes the file on every flush.
+[PlatformAndroid](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/cpp/PlatformAndroid.cpp)
+uses stdio write/close, not a mapped-file writer. Capture now arms
+a backing-directory mutation guard before a root-only read-only descriptor
+census. An existing writable descriptor blocks the capture even if the file's
+stat fields are unchanged. A write, attribute/namespace change, writer close,
+watch invalidation or overflow during the copy rejects that capture. Complete
+descriptor/entry/group checks remain required before sealing. This proves a
+historical coherent copy, not that the live save will never change again.
+
+Protected saves reuse their existing root child. Shared saves retain direct JNI
+data IO and use one joined snapshot-only root helper; there are no per-chunk
+processes, emulator signals, quiet-period timers or runtime ADB dependency. The
+census considers both public/FUSE and backing identities and exact descriptor
+paths. Unavailable inspection is not interpreted as an absent writer. Restore
+retains its separate writer/lifecycle requirement and durable rollback.
+
+The real-device regression reproduced the former gap: capture succeeded while
+an expendable shared save remained open for writing. The corrected implementation
+passes shared/protected open-writer, mutation, sticky invalidation, read-only
+descriptor and complete-copy tests. After Melon was opened at its ROM list,
+both routes captured with `stopped=false`; restore remained refused without
+changing bytes. Stopped-runtime restore/rollback also passes. Final gated build
+705, installed digests and preservation details are in IMPLEMENTATION_STATUS.md.
+No game was launched for this check. This supersedes the older stopped-capture
+checkpoints below, not restore safeguards. Automatic DS launch, the real
+watch-to-Drive workflow, remaining coverage and handover still belong to the
+same ACTIVE stage; this slice does not close S10.
+
 ### Protected watch and durable admission — verified 2026-10-12
 
 The exact protected Melon SRAM mapping now follows the existing automatic lane,

@@ -473,6 +473,62 @@ void main() {
     await expectLater(missing.open(chd, psp, '/owned'), throwsStateError);
     expect(calls, hasLength(1));
   });
+  test('DS save review uses the validated launch leaf without starting Melon',
+      () async {
+    final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
+    final rom = exactGame('ds-review', name: 'Game.nds');
+    final installed = InstalledArtifact.fromJson({
+      ...manifest.toJson(),
+      'artifact': rom.remoteArtifact!.toJson(),
+      'relativePath': rom.filename
+    });
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => installed), channel: channel);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {
+        'directory': '/storage/emulated/0/Saves/MelonDualDS',
+        'name': 'Game.sav'
+      };
+    });
+    final mapping = await launcher.reviewMelonSave(rom, ds, '/owned');
+    expect(mapping.directory, '/storage/emulated/0/Saves/MelonDualDS');
+    expect(mapping.name, 'Game.sav');
+    expect(calls.single.method, 'reviewOwnedMelonSave');
+    expect(calls.single.arguments,
+        {'installationId': installed.id, 'filename': installed.relativePath});
+  });
+  test('DS launch awaits save reconciliation before the Melon handoff',
+      () async {
+    final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
+    final rom = exactGame('ds-raw', name: 'Game.nds');
+    final installed = InstalledArtifact.fromJson({
+      ...manifest.toJson(),
+      'artifact': rom.remoteArtifact!.toJson(),
+      'relativePath': rom.filename
+    });
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => installed), channel: channel);
+    expect(OwnedEmulatorLauncher.supports(rom, ds), isTrue);
+    final prepared = Completer<void>();
+    final opening =
+        launcher.open(rom, ds, '/owned', prepareSave: () => prepared.future);
+    await Future<void>.value();
+    expect(calls, isEmpty);
+    prepared.complete();
+    await opening;
+    expect(calls.single.method, 'launchOwnedMelon');
+    expect(calls.single.arguments,
+        {'installationId': installed.id, 'filename': rom.filename});
+    calls.clear();
+    await expectLater(
+        launcher.open(rom, ds, '/owned',
+            prepareSave: () async =>
+                throw PlatformException(code: 'save_conflict')),
+        throwsA(isA<PlatformException>()));
+    expect(calls, isEmpty);
+  });
   test('standalone Wii U WUA requires ownership and exact Cemu handoff',
       () async {
     final wiiu =

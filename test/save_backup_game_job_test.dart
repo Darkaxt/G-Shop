@@ -224,6 +224,8 @@ class _UiJob extends SaveBackupGameJob {
             artifactId: other.artifactId,
             ppssppDirectory: other.ppssppDirectory,
             ppssppSlot: other.ppssppSlot,
+            melonDirectory: other.melonDirectory,
+            melonName: other.melonName,
             resolveSaveName: other.resolveSaveName);
   @override
   Future<List<String>> reviewedNames() async => [await resolveSaveName()];
@@ -1732,7 +1734,69 @@ void main() {
     });
   }
 
-  test('Melon save binds DS edition and shared folder, preserves stopped retry',
+  testWidgets(
+      'Melon backup exposes automatic saves without force-stop instructions',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+    final ds = _UiJob(SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        melonDirectory: SaveCapture.melonStandardDirectory,
+        melonName: 'Game.sav',
+        resolveSaveName: () async => 'Game.sav'));
+    addTearDown(ds.dispose);
+    addTearDown(automatic.dispose);
+    Future<void> show(SaveBackupSection section) async {
+      await tester.pumpWidget(ProviderScope(
+          child: createTestApp(SingleChildScrollView(
+              child: SaveBackupGamePanel(
+                  job: ds,
+                  title: 'Game',
+                  automatic: automatic,
+                  section: section)))));
+      await tester.pumpAndSettle();
+    }
+
+    await show(SaveBackupSection.backup);
+    expect(find.byType(AutomaticSaveBackupPanel), findsOneWidget);
+    expect(find.textContaining('Force stop'), findsNothing);
+    expect(find.byKey(const ValueKey('save-melon-app-info')), findsNothing);
+    final toggle = find.byKey(const ValueKey('automatic-save-enable'));
+    expect(tester.widget<CheckboxListTile>(toggle).onChanged, isNull);
+    final files = find.byType(DropdownButtonFormField<String>);
+    await tester.ensureVisible(files);
+    await tester.tap(files);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Game.sav').last);
+    await tester.pumpAndSettle();
+    final confirmation = find.text('I confirm this save belongs to Game');
+    await tester.ensureVisible(confirmation);
+    await tester.tap(confirmation);
+    await tester.pumpAndSettle();
+    expect(tester.widget<CheckboxListTile>(toggle).onChanged, isNotNull);
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(automatic.enabled, isTrue);
+    await show(SaveBackupSection.status);
+    expect(toggle, findsNothing);
+    expect(find.text('Automatic save checks: enabled'), findsOneWidget);
+    await show(SaveBackupSection.restore);
+    expect(find.textContaining('Force stop'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save-melon-app-info')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  test(
+      'Melon save binds DS edition and shared folder, preserves changed-source retry',
       () async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
@@ -1755,9 +1819,9 @@ void main() {
         resolveSaveName: () async => 'Game.sav');
     final ds = dsJob(directory);
     addTearDown(ds.dispose);
-    capture.captureIssue = 'stop_melon_required';
+    capture.captureIssue = 'source_changed';
     await ds.backup('Game.sav');
-    expect(ds.issue, 'stop_melon_required');
+    expect(ds.issue, 'source_changed');
     expect(generations.cloud, isEmpty);
     capture.captureIssue = null;
     await ds.backup('Game.sav');

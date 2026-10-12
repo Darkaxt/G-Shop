@@ -14,12 +14,12 @@ import org.json.JSONObject
 /** App-UID proof for the explicitly mapped shared SRAM route. No emulator
  * launch, user configuration change, real save, account or network operation. */
 internal object MelonSaveProof {
-    fun exercise(context: Context, protected: Boolean = false): String {
+    fun exercise(context: Context, protected: Boolean = false, liveCapture: Boolean = false): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
         @Suppress("DEPRECATION")
         val runtime = context.packageManager.getPackageInfo(MelonSaveBoundary.PACKAGE, 0)
         check(runtime.versionName == MelonSaveBoundary.VERSION)
-        check(runtime.applicationInfo!!.flags and ApplicationInfo.FLAG_STOPPED != 0)
+        check((runtime.applicationInfo!!.flags and ApplicationInfo.FLAG_STOPPED == 0) == liveCapture)
         fun id() = UUID.randomUUID().toString().replace("-", "")
         fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
@@ -129,6 +129,38 @@ internal object MelonSaveProof {
             watch.close() // EOF shutdown and joined root child, without a save event.
             check(!watchFailed)
             synchronized(events) { check(events.isNotEmpty() && events.all { it == key }) }
+            // A writer can be paused between two writes with unchanged stat
+            // fields. Neither a quiet file nor the emulator's stopped flag is
+            // proof that this descriptor has completed its generation.
+            val unfinished = id().also(captures::add)
+            val heldWriter = if (protected) ProcessBuilder("su", "-c",
+                "exec 3<>'${MelonSaveBoundary.PROTECTED_BACKING}/${file.name}'; printf 'READY\\n'; read done").start() else null
+            val sharedWriter = if (!protected) FileOutputStream(file, true) else null
+            try {
+                if (heldWriter != null) check(heldWriter.inputStream.bufferedReader().readLine() == "READY")
+                call("captureMelon", mapOf("captureId" to unfinished,
+                    "directory" to source.path, "name" to file.name), "source_changed")
+                check(!File(context.filesDir.canonicalFile, "save-captures/$unfinished/capture.json").exists())
+            } finally {
+                sharedWriter?.close()
+                if (heldWriter != null) {
+                    heldWriter.outputStream.close()
+                    check(heldWriter.waitFor() == 0 || heldWriter.exitValue() == 1)
+                    heldWriter.inputStream.close(); heldWriter.errorStream.close()
+                }
+            }
+            SaveSourceStorage.open(context, source.path).use { storage ->
+                storage.beginMelonSnapshot(context, file.name)
+                // A descriptor used only for reading must not block capture.
+                val reader = storage.openFile(file.name, false, false)
+                try { storage.verifyMelonSnapshot() } finally { storage.closeFile(reader) }
+                write(b)
+                repeat(2) {
+                    try { storage.verifyMelonSnapshot(); error("Sealed an overlapping write") }
+                    catch (error: java.io.IOException) { check(error.message == "source_changed") }
+                }
+            }
+            write(a)
             @Suppress("UNCHECKED_CAST")
             val names = call("melonNames", mapOf("directory" to source.path)) as List<String>
             check(file.name in names && (protected || names == listOf(file.name)))
@@ -137,6 +169,12 @@ internal object MelonSaveProof {
                 "name" to file.name), "invalid_selection")
             call("captureMelon", mapOf("captureId" to first.first, "directory" to parent.path,
                 "name" to file.name), "invalid_capture")
+            if (liveCapture) {
+                val restore = stage(first.second.readBytes())
+                call("publishRestore", mapOf("captureId" to restore, "rollbackCaptureId" to first.first), "stop_melon_required")
+                check(read().contentEquals(a))
+                return "PASS MelonDualDS running-runtime ${if (protected) "protected" else "shared"} capture: open writer rejected, mutation rejection stays invalid, read-only descriptor admitted, closed-file capture/digest accepted without FLAG_STOPPED; live restore rejected without changing bytes; exclusive fixture cleanup; no gameplay/Drive/ROM access"
+            }
             write(b)
             val rollback = capture()
             val restore = stage(first.second.readBytes())
@@ -196,6 +234,6 @@ internal object MelonSaveProof {
             remove("save-restores", restores, setOf("restore.json", "restore.json.next", "member"))
             if (createdParent) check(parent.delete())
         }
-        return "PASS MelonDualDS 0.8.0.rc2 stopped-runtime ${if (protected) "root-assisted standard protected" else "shared"} mapping: exact-file watch registration/publication and joined shutdown, app-UID capture/digest, exact format/directory replay rejection, changed-local rejection, service-recreation restore, retained-byte rollback, exclusive fixture cleanup; no emulator configuration/gameplay/Drive/ROM access"
+        return "PASS MelonDualDS 0.8.0.rc2 ${if (protected) "root-assisted standard protected" else "shared"} mapping: open writer/mutation rejected, read-only descriptor admitted, exact-file watch registration/publication and joined shutdown, app-UID capture/digest, exact format/directory replay rejection, changed-local rejection, stopped-runtime service-recreation restore, retained-byte rollback, exclusive fixture cleanup; no emulator configuration/gameplay/Drive/ROM access"
     }
 }

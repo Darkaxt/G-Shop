@@ -1,8 +1,9 @@
 package com.retro.rshop
 
 /** MelonDualDS 0.8.0.rc2 SRAM; ordinary shared or root-assisted standard storage.
- * SaveManager flushes in place. Both capture and publication require Android's
- * stopped flag, not a guessed quiet interval or an emulator-background signal. */
+ * SaveManager opens, rewrites and closes SRAM on each flush. Capture requires
+ * an open-writer census plus an overlapping-mutation guard; publication still
+ * requires the stopped runtime. A quiet interval is not either boundary. */
 internal object MelonSaveBoundary {
     const val PACKAGE = "me.magnum.melondualds"
     const val VERSION = "0.8.0.rc2"
@@ -11,6 +12,12 @@ internal object MelonSaveBoundary {
     const val PROTECTED_SOURCE = "/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves"
     const val PROTECTED_BACKING = "/data/media/0/Android/data/me.magnum.melondualds/files/saves"
     fun isProtectedDirectory(path: String): Boolean = path == PROTECTED_SOURCE
+    fun backingDirectory(path: String): String {
+        require(validDirectory(path))
+        return if (path.startsWith("/storage/emulated/0/"))
+            "/data/media/0/" + path.removePrefix("/storage/emulated/0/")
+        else "/mnt/media_rw/" + path.removePrefix("/storage/")
+    }
     fun validName(name: String): Boolean = name.length in 5..255 &&
         (name.endsWith(".sav") || name.endsWith(".srm")) &&
         name.none { it == '/' || it == '\\' || it.code < 32 || it.code == 127 }

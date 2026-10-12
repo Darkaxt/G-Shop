@@ -349,6 +349,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'DS launch-bound mapping finds the exact destination even before the first save',
+      (tester) async {
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return <String>[];
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    var pickerCalls = 0;
+    final mapped = <String>[];
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: StandaloneSaveMappingPanel(
+      melon: true,
+      title: 'Reviewed DS edition',
+      capture: SaveCapture(),
+      resolveMelonSave: () async =>
+          (directory: SaveCapture.melonStandardDirectory, name: 'Game.sav'),
+      chooseDirectory: () async {
+        pickerCalls++;
+        return null;
+      },
+      onMapped: (directory, name) async => mapped.add('$directory/$name'),
+    )))));
+    await tester.pumpAndSettle();
+    expect(calls.single.method, 'melonNames');
+    expect(pickerCalls, 0);
+    expect(find.text('Game.sav'), findsOneWidget);
+    final save = find.byKey(const ValueKey('melon-map-save'));
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    await tester.ensureVisible(find.byKey(const ValueKey('melon-map-confirm')));
+    await tester.tap(find.byKey(const ValueKey('melon-map-confirm')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(mapped, ['${SaveCapture.melonStandardDirectory}/Game.sav']);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('save settings has persistent independent left-hand sections',
       (tester) async {
     SharedPreferences.setMockInitialValues({});

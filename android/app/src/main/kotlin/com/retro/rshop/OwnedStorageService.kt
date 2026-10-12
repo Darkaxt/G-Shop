@@ -54,7 +54,9 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "launchOwnedRetroArchSnes" ||
                         call.method == "launchOwnedRetroArchGameBoyColor" || call.method == "launchOwnedRetroArchGameBoyAdvance" ||
                         call.method == "launchOwnedPPSSPP" || call.method == "launchOwnedNetherSX2" ||
-                        call.method == "launchOwnedCemu" || call.method == "reviewOwnedRetroArchGameBoyAdvanceSave" ||
+                        call.method == "launchOwnedCemu" || call.method == "launchOwnedMelon" ||
+                        call.method == "reviewOwnedMelonSave" ||
+                        call.method == "reviewOwnedRetroArchGameBoyAdvanceSave" ||
                         call.method == "reviewOwnedRetroArchGameGearSave" ||
                         call.method == "reviewOwnedRetroArchMasterSystemSave" ||
                         call.method == "reviewOwnedRetroArchMegaDriveSave") {
@@ -82,34 +84,51 @@ internal class OwnedStorageService(private val context: Context) {
                         val psp = call.method == "launchOwnedPPSSPP"
                         val ps2 = call.method == "launchOwnedNetherSX2"
                         val wiiu = call.method == "launchOwnedCemu"
+                        val reviewMelon = call.method == "reviewOwnedMelonSave"
+                        val nds = call.method == "launchOwnedMelon" || reviewMelon
                         val retroArch = gameGear || segaPlatform != null || n64 || handheld || nes || snes || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
                         if (((gameGear || segaPlatform != null) && !filename.endsWith(".zip")) ||
                             ((handheld || nes || snes) && !filename.endsWith(".7z")) ||
                             (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
                             ((psx || psp || ps2) && !filename.endsWith(".chd")) ||
-                            (wiiu && !filename.endsWith(".wua"))) throw Failure("unsupported_archive")
+                            (wiiu && !filename.endsWith(".wua")) ||
+                            (nds && !filename.endsWith(".nds"))) throw Failure("unsupported_archive")
                         val observed = call.argument<Number>("observationId")
                         if (observed != null && ((observed !is Long && observed !is Int) || observed.toLong() <= 0)) {
                             throw Failure("invalid_arguments")
                         }
                         val platform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes"
                             else if (handheld) handheldPlatform else if (psx) "psx" else if (psp) "psp"
-                            else if (ps2) "ps2" else if (wiiu) "wiiu" else if (observed != null) string(call, "platformId") else ""
+                            else if (ps2) "ps2" else if (wiiu) "wiiu" else if (nds) "nds" else if (observed != null) string(call, "platformId") else ""
                         if (observed != null && (call.hasArgument("installationId") ||
-                            string(call, "platformId") != platform || (platform != "gc" && platform != "wii" && !retroArch && !psp && !ps2 && !wiiu))) {
+                            string(call, "platformId") != platform || (platform != "gc" && platform != "wii" && !retroArch && !psp && !ps2 && !wiiu && !nds))) {
                             throw Failure("invalid_arguments")
                         }
                         val uri = if (observed != null) OwnedRomContentProvider.localCopyUri(context,
-                            observed.toLong(), platform, string(call, "filename"), retroArch || psp || ps2 || wiiu)
-                        else if (retroArch || psp || ps2 || wiiu) OwnedRomContentProvider.gameGearUri(context,
+                            observed.toLong(), platform, string(call, "filename"), retroArch || psp || ps2 || wiiu || nds)
+                        else if (retroArch || psp || ps2 || wiiu || nds) OwnedRomContentProvider.gameGearUri(context,
                             string(call, "installationId"), string(call, "filename"))
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
                             requiredArchivePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else null,
                             requiredStandaloneChd = psx || psp || ps2,
-                            requiredStandaloneWua = wiiu).use { }
+                            requiredStandaloneWua = wiiu, requiredStandaloneNds = nds).use { }
+                        if (reviewMelon) {
+                            // Melon's external URI processor creates a ROM with
+                            // parentTreeUri=null. Its configured ROM-relative
+                            // policy therefore uses its private standard folder,
+                            // not the read-only owned-ROM provider's tree.
+                            val settings = SaveSourceStorage.melonSettings(context)
+                            val directory = if (settings.isNull("directory")) MelonSaveBoundary.PROTECTED_SOURCE
+                                else settings.getString("directory")
+                            val leaf = string(call, "filename").substringAfterLast('/')
+                            val saveName = leaf.substringBeforeLast('.') + "." + settings.getString("extension")
+                            require(MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(saveName))
+                            main.post { result.success(mapOf("directory" to directory, "name" to saveName)) }
+                            return@execute
+                        }
                         if (reviewSave) {
                             val name = RetroArchSaveBoundary.archiveSaveName(
                                 uri.encodedPath!!.substringAfterLast('/'), gameGear || segaPlatform != null)
@@ -127,6 +146,7 @@ internal class OwnedStorageService(private val context: Context) {
                                 val app = if (retroArch) "com.retroarch.aarch64" else if (psp) "org.ppsspp.ppsspp"
                                     else if (ps2) "xyz.aethersx2.android"
                                     else if (wiiu) "info.cemu.cemu"
+                                    else if (nds) "me.magnum.melondualds"
                                     else "org.dolphinemu.dolphinemu"
                                 val intent = context.packageManager.getLaunchIntentForPackage(app)
                                     ?: throw Failure("emulator_missing")
@@ -151,12 +171,17 @@ internal class OwnedStorageService(private val context: Context) {
                                     intent.action = Intent.ACTION_VIEW
                                     intent.setDataAndType(uri, "application/octet-stream")
                                 }
+                                if (nds) {
+                                    intent.setClassName(app, "me.magnum.melonds.ui.emulator.EmulatorActivity")
+                                    intent.action = "$app.LAUNCH_ROM"
+                                    intent.putExtra("uri", uri.toString())
+                                }
                                 intent.data = uri
                                 intent.clipData = ClipData.newRawUri("Owned ROM", uri)
                                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                                 val companion = call.argument<String>("companionComponent")
                                 val pair = companion?.let { CompanionLauncher.prepare(context, it, intent) }
-                                if (!retroArch && !psp && !ps2 && !wiiu) {
+                                if (!retroArch && !psp && !ps2 && !wiiu && !nds) {
                                     // Dolphin finishes MainActivity before its non-exported
                                     // EmulationActivity reads the ROM. An intent-owned grant
                                     // dies with that launcher; retain an exact package read

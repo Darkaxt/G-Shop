@@ -25,4 +25,9 @@ internal object OwnedStorageNative {
     /** Kernel-confirmed directory registration and EOF-driven watch shutdown. */
     external fun saveWatchOpen(directory: Int): Int
     external fun saveWatchRead(watch: Int): ByteArray?
+    /** Capture-only guard. Arm before the writer census, check after the copy. */
+    external fun saveSnapshotOpen(directory: Int): Int
+    external fun saveSnapshotChanged(watch: Int, name: String): Boolean
+    /** Root-only read-only /proc census; no emulator signals or data writes. */
+    external fun saveSnapshotHasWriter(directory: Int, name: String, source: String, backing: String): Boolean
 }
