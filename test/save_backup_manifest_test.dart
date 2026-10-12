@@ -44,6 +44,69 @@ SaveBackupManifest manifest({
         members: members ?? [member('Pokemon.srm', 'member-a')]);
 
 void main() {
+  test('shared PS1 card history survives different initiating game editions',
+      () {
+    Map<String, dynamic> card(String edition,
+            {int slot = 2,
+            String directory =
+                '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed'}) =>
+        {
+          ...binding(edition: edition).toJson(),
+          'platformId': 'psx',
+          'coreId': 'pcsx_rearmed',
+          'formatId': 'pcsx-shared-card$slot-v1',
+          'sharedCard': {'directory': directory, 'slot': slot},
+        };
+    final first = SaveBackupBinding.fromJson(card('edition-a'));
+    final second = SaveBackupBinding.fromJson(card('edition-b'));
+    expect(first.restoreIssue(second), isNull);
+    expect(first.editions.single.editionId, 'edition-a');
+    expect(second.editions.single.editionId, 'edition-b');
+    final restored =
+        SaveBackupManifest.decode(manifest(forBinding: first).encode());
+    expect(restored.binding.toJson(), first.toJson());
+    expect(
+        first.restoreIssue(
+            SaveBackupBinding.fromJson(card('edition-a', slot: 1))),
+        'editionMismatch');
+    expect(
+        first.restoreIssue(SaveBackupBinding.fromJson(
+            card('edition-a', directory: '/storage/emulated/0/Other'))),
+        'editionMismatch');
+    final privateCard = card('edition-a')..remove('sharedCard');
+    expect(first.restoreIssue(SaveBackupBinding.fromJson(privateCard)),
+        'editionMismatch');
+    for (final change in [
+      {'platformId': 'gba'},
+      {'coreId': 'mgba'},
+      {'emulatorPackage': 'other'},
+      {'kind': 'state'},
+      {'formatId': 'pcsx-libretro-card1-v1'},
+      {
+        'sharedCard': {'directory': '/storage/emulated/0/../Other', 'slot': 2}
+      },
+      {
+        'sharedCard': {'directory': '/storage/emulated/0/Other', 'slot': 3}
+      },
+      {
+        'sharedCard': {
+          'directory': '/storage/emulated/0/Other',
+          'slot': 2,
+          'extra': true
+        }
+      },
+    ]) {
+      expect(
+          () => SaveBackupBinding.fromJson({...card('edition-a'), ...change}),
+          throwsFormatException);
+    }
+    expect(
+        first.restoreIssue(SaveBackupBinding.fromJson(
+            {...card('edition-a'), 'accountId': 'other'})),
+        'accountMismatch');
+    // Existing bindings retain their byte-for-byte metadata/hash representation.
+    expect(binding().toJson(), isNot(contains('sharedCard')));
+  });
   test(
       'portable groups preserve empty companions but an empty state is invalid',
       () {

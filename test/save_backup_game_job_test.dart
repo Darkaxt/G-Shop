@@ -16,6 +16,7 @@ import 'package:retro_eshop/services/saves/save_backup_setup.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/save_backup_manifest.dart';
 import 'package:retro_eshop/models/retroarch_battery_route.dart';
+import 'package:retro_eshop/models/pcsx_save_layout.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
@@ -53,6 +54,30 @@ class _Capture extends SaveCapture {
   Map<String, CapturedSaveGroup> sealed = {};
   final ppssppSources = <String>[];
   final melonSources = <String>[];
+  final pcsxSources = <String>[];
+  @override
+  Future<CapturedSaveGroup> capturePcsx(
+      {required String captureId,
+      required Map<String, Object> grant,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card,
+      bool restoreBaseline = false}) async {
+    if (captureIssue != null) throw PlatformException(code: captureIssue!);
+    if (sealed[captureId] case final previous?) return previous;
+    captures++;
+    pcsxSources.add('${layout.directory}/${card.name}');
+    return sealed[captureId] = CapturedSaveGroup(
+        captureId,
+        'device',
+        '1.22.2_GIT',
+        [
+          if (!localAbsent)
+            CapturedSaveFile(card.name!, File('/private/$captureId/member-0'),
+                131072, digest)
+        ],
+        localWasAbsent: localAbsent && restoreBaseline);
+  }
+
   final batteryRoutes = <RetroArchBatteryRoute>[];
   int batterySize = 4;
   final restoreRoutes = <RetroArchBatteryRoute>[];
@@ -505,6 +530,94 @@ void main() {
     areas.close();
     generations.close();
     await db.close();
+  });
+  test('PS1 shared card uses one durable history across reviewed games',
+      () async {
+    final store = LibraryStore(Future.value(db));
+    final otherArtifact = RemoteArtifactId(
+        providerId: 'drive',
+        sourceId: 'source',
+        accountId: 'account',
+        providerFileId: 'other');
+    for (final row in [
+      ('game', 'edition', artifactId),
+      ('other-game', 'other-edition', otherArtifact)
+    ]) {
+      await store.putGame(GameIdentity(
+          id: row.$1,
+          platformId: 'psx',
+          title: row.$1,
+          matchStatus: IdentityMatchStatus.manuallyMatched));
+      await store.putEdition(EditionIdentity(
+          id: row.$2,
+          gameId: row.$1,
+          members: [EditionMember(artifactId: row.$3)]));
+    }
+    final layout = PcsxSaveLayout.decode({
+      'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+      'cards': [
+        {'slot': 1, 'mode': 'libretro', 'name': 'owned%2FGame.srm'},
+        {'slot': 2, 'mode': 'shared', 'name': 'pcsx-card2.mcd'}
+      ]
+    });
+    SaveBackupGameJob make(
+            String edition, RemoteArtifactId artifact, PcsxSaveCard card) =>
+        SaveBackupGameJob(
+            database: Future.value(db),
+            capture: capture,
+            areas: areas,
+            generations: generations,
+            clientId: 'client',
+            accountId: 'account',
+            areaId: 'area',
+            editionId: edition,
+            artifactId: artifact,
+            pcsxLayout: layout,
+            pcsxCard: card,
+            resolvePcsxGrant: () async =>
+                {'installationId': edition, 'filename': 'Game.chd'},
+            resolveSaveName: () async => card.name!);
+    final first = make('edition', artifactId, layout.cards.last);
+    final second = make('other-edition', otherArtifact, layout.cards.last);
+    final privateCard =
+        make('other-edition', otherArtifact, layout.cards.first);
+    try {
+      await first.backup(layout.cards.last.name!);
+      expect(first.issue, isNull);
+      final original = first.lastVerified!;
+      expect(original.binding.sharedCardResourceKey,
+          layout.sharedResourceKey(layout.cards.last));
+      await second.backup(layout.cards.last.name!);
+      expect(second.issue, isNull);
+      expect(second.phase, 'unchanged');
+      expect(second.lastVerified!.generationId, original.generationId);
+      expect(generations.uploads, 1);
+      capture.digest = 'd' * 64;
+      await second.backup(layout.cards.last.name!);
+      expect(second.issue, isNull);
+      expect(second.lastVerified!.parentGenerationIds, [original.generationId]);
+      expect(second.lastVerified!.binding.editions.single.editionId,
+          'other-edition');
+      expect(generations.cloud, contains(original.generationId));
+      expect(await db.query('save_backup_game_jobs'), hasLength(1));
+      await privateCard.load();
+      expect(privateCard.lastVerified, isNull);
+      expect(capture.batteryRoutes, isEmpty);
+      // Native restore/watch integration remains required; never misroute a PS1
+      // job into the default mGBA restore or automatic mapping.
+      await second.restoreLatest();
+      expect(second.issue, 'related_group_unfinished');
+      expect(capture.staged, isEmpty);
+      expect(() => AutomaticSaveMapping.fromJob(second, title: 'PS1'),
+          throwsFormatException);
+    } finally {
+      await first.cancelAndJoin();
+      await second.cancelAndJoin();
+      await privateCard.cancelAndJoin();
+      first.dispose();
+      second.dispose();
+      privateCard.dispose();
+    }
   });
   test('refresh joins another job instance and reloads without recapturing',
       () async {

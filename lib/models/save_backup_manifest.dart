@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
+import 'pcsx_save_layout.dart';
+
 enum SaveBackupKind { save, state }
 
 enum SaveBackupRelation { identical, localChanged, cloudChanged, conflict }
@@ -69,6 +71,10 @@ class SaveBackupBinding {
   final List<SaveBackupEdition> editions;
   final SaveBackupKind kind;
   final String formatId;
+  // The editions remain provenance. A physical shared PS1 card has one history
+  // even when another reviewed game initiates the next generation.
+  final String? sharedCardDirectory;
+  final int? sharedCardSlot;
 
   SaveBackupBinding(
       {required this.accountId,
@@ -80,7 +86,9 @@ class SaveBackupBinding {
       required this.platformId,
       required List<SaveBackupEdition> editions,
       required this.kind,
-      required this.formatId})
+      required this.formatId,
+      this.sharedCardDirectory,
+      this.sharedCardSlot})
       : editions = List.unmodifiable(
             [...editions]..sort((a, b) => a.key.compareTo(b.key))) {
     for (final value in [
@@ -100,17 +108,45 @@ class SaveBackupBinding {
         editions.map((e) => e.editionId).toSet().length != editions.length) {
       throw const FormatException('Invalid reviewed save group');
     }
+    if ((sharedCardDirectory == null) != (sharedCardSlot == null)) {
+      throw const FormatException('Incomplete shared memory card identity');
+    }
+    if (sharedCardDirectory != null) {
+      if (emulatorPackage != 'com.retroarch.aarch64' ||
+          coreId != 'pcsx_rearmed' ||
+          platformId != 'psx' ||
+          kind != SaveBackupKind.save ||
+          formatId != 'pcsx-shared-card$sharedCardSlot-v1') {
+        throw const FormatException('Invalid shared memory card binding');
+      }
+      PcsxSaveLayout.decode({
+        'directory': sharedCardDirectory,
+        'cards': [
+          {
+            'slot': sharedCardSlot,
+            'mode': 'shared',
+            'name': 'pcsx-card$sharedCardSlot.mcd'
+          }
+        ]
+      });
+    }
   }
 
   String get key => jsonEncode(toJson());
   String get _editionsKey => jsonEncode(editions.map((e) => e.key).toList());
+  String? get sharedCardResourceKey => sharedCardDirectory == null
+      ? null
+      : jsonEncode(
+          [emulatorPackage, coreId, sharedCardDirectory, sharedCardSlot]);
 
   /// Origin device is recorded, but explicit cross-device restore is allowed.
   /// Battery-save portability still requires the exact reviewed format ID.
   String? restoreIssue(SaveBackupBinding target) {
     if (accountId != target.accountId) return 'accountMismatch';
     if (platformId != target.platformId ||
-        _editionsKey != target._editionsKey) {
+        sharedCardResourceKey != target.sharedCardResourceKey ||
+        (sharedCardResourceKey == null &&
+            _editionsKey != target._editionsKey)) {
       return 'editionMismatch';
     }
     if (kind != target.kind || formatId != target.formatId) {
@@ -137,6 +173,11 @@ class SaveBackupBinding {
         'editions': editions.map((e) => e.toJson()).toList(),
         'kind': kind.name,
         'formatId': formatId,
+        if (sharedCardDirectory != null)
+          'sharedCard': {
+            'directory': sharedCardDirectory!,
+            'slot': sharedCardSlot!
+          },
       };
 
   factory SaveBackupBinding.fromJson(Object? raw) {
@@ -150,8 +191,16 @@ class SaveBackupBinding {
       'platformId',
       'editions',
       'kind',
-      'formatId'
+      'formatId',
+      if (raw is Map && raw.containsKey('sharedCard')) 'sharedCard'
     });
+    final shared = data.containsKey('sharedCard')
+        ? _object(data['sharedCard'], {'directory', 'slot'})
+        : null;
+    if (shared != null &&
+        (shared['directory'] is! String || shared['slot'] is! int)) {
+      throw const FormatException('Invalid shared memory card fields');
+    }
     return SaveBackupBinding(
         accountId: data['accountId'] as String,
         deviceId: data['deviceId'] as String,
@@ -163,7 +212,9 @@ class SaveBackupBinding {
         editions:
             (data['editions'] as List).map(SaveBackupEdition.fromJson).toList(),
         kind: SaveBackupKind.values.byName(data['kind'] as String),
-        formatId: data['formatId'] as String);
+        formatId: data['formatId'] as String,
+        sharedCardDirectory: shared?['directory'] as String?,
+        sharedCardSlot: shared?['slot'] as int?);
   }
 }
 

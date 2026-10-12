@@ -5,6 +5,24 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### PS1 shared-card history — verified host/native contract, 2026-10-13
+
+S10 remains the sole ACTIVE stage. Two reviewed PS1 games now share one durable
+backup history for the same configured shared memory card, with unchanged-byte
+deduplication, changed-byte ancestry and separate private-card histories.
+Manifest/generation/job checks pass, including simulated Drive publication and
+discovery from a different initiating edition. Scoped Dart analysis passes.
+Native request 839 passes the shared-resource replay contract and existing PCSX
+settings checks: gate acquired, two workers, no parallelism, 3 GiB Gradle,
+Kotlin in-process, one configured 512 MiB test fork, no memory-related failure.
+These are host/native-unit proofs, not a new installed-Thor/real-Drive proof.
+
+PS1 restore/rollback, automatic watch and normal game-panel integration remain
+unfinished and are the next S10 work. Their default mGBA fallthrough is rejected
+until the explicit PS1 consumers are integrated. Other coverage, states,
+fault/reconnect checks and conditional handover remain required. S11 and
+proposed S12 remain NOT STARTED; no S10 requirement has been waived or deferred.
+
 ### PS1 card capture — verified checkpoint, 2026-10-12
 
 S10 remains the sole ACTIVE stage. Exact owned/byte-bound CHD grants now support

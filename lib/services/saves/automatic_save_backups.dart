@@ -70,6 +70,9 @@ class AutomaticSaveMapping {
 
   factory AutomaticSaveMapping.fromJob(SaveBackupGameJob job,
       {required String title, String? saveName}) {
+    if (job.isPcsx) {
+      throw const FormatException('PlayStation card watch is not integrated');
+    }
     if (!job.isStandalone &&
         (saveName == null || !SaveCapture.validName(saveName))) {
       throw const FormatException('Reviewed RetroArch save name required');

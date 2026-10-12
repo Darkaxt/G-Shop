@@ -25,6 +25,11 @@ internal object PcsxSaveSettings {
     data class Selection(val directory: String, val card: Card) {
         val format: String get() = "pcsx-${card.mode}-card${card.slot}-v1"
         fun acceptsSize(size: Long): Boolean = size == 131072L
+        // Shared cards belong to the configured resource, not the ROM which
+        // triggered capture. Private cards retain their existing ROM binding.
+        fun captureKey(ownedUri: String): List<Any> =
+            (if (card.mode == "shared") emptyList() else listOf(ownedUri)) +
+                listOf(card.slot, card.mode, requireNotNull(card.name), directory)
     }
     fun select(layout: Layout, slot: Int): Selection {
         require(slot in 1..2 && storagePath(layout.directory) == layout.directory)

@@ -234,6 +234,77 @@ void main() {
     expect(drive.listPages, isEmpty);
   });
 
+  test(
+      'shared PS1 publication is discoverable from another game but not another card',
+      () async {
+    final file = files['member-a']!;
+    await file.writeAsBytes(List<int>.generate(131072, (index) => index % 251));
+    final binding = SaveBackupBinding.fromJson({
+      ...generation.binding.toJson(),
+      'platformId': 'psx',
+      'coreId': 'pcsx_rearmed',
+      'formatId': 'pcsx-shared-card2-v1',
+      'sharedCard': {
+        'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+        'slot': 2
+      }
+    });
+    final shared = SaveBackupManifest(
+        generationId: 'shared-generation',
+        binding: binding,
+        parentGenerationIds: [],
+        createdAt: DateTime.utc(2026, 10, 12),
+        members: [
+          SaveBackupMember(
+              relativePath: 'pcsx-card2.mcd',
+              cloudFileId: 'member-a',
+              sizeBytes: 131072,
+              sha256: (await sha256.bind(file.openRead()).first).toString())
+        ]);
+    await api.publish(
+        areaId: 'area', generation: shared, captures: {'member-a': file});
+    final target = SaveBackupBinding.fromJson({
+      ...binding.toJson(),
+      'editions': [
+        {'gameId': 'another-game', 'editionId': 'another-edition'}
+      ]
+    });
+    for (final selected in [
+      target,
+      SaveBackupBinding.fromJson({
+        ...target.toJson(),
+        'formatId': 'pcsx-shared-card1-v1',
+        'sharedCard': {
+          'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+          'slot': 1
+        }
+      })
+    ]) {
+      drive.listPages.add({
+        'files': [
+          {'id': shared.generationId}
+        ]
+      });
+      final found =
+          await api.discoverGenerations(areaId: 'area', target: selected);
+      if (selected == target) {
+        expect(found.single.binding.editions.single.editionId, 'edition-a');
+        final recovered = await api
+            .memberBytes(
+                areaId: 'area', generation: found.single, memberId: 'member-a')
+            .fold<int>(0, (size, chunk) => size + chunk.length);
+        expect(recovered, 131072);
+      } else {
+        expect(found, isEmpty);
+      }
+    }
+    expect(drive.committed, ['member-a', 'shared-generation']);
+    expect(
+        drive.requests
+            .every((request) => !['DELETE', 'PATCH'].contains(request.method)),
+        isTrue);
+  });
+
   test('incomplete listing cannot authorize a conflict-free upload', () async {
     drive.listPages.add({'files': [], 'incompleteSearch': true});
     await expectLater(

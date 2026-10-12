@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../models/save_backup_manifest.dart';
 import '../../models/retroarch_battery_route.dart';
+import '../../models/pcsx_save_layout.dart';
 import '../../models/library_identity.dart';
 import '../drive/drive_authorization.dart';
 import '../library_store.dart';
@@ -38,6 +39,9 @@ class SaveBackupGameJob extends ChangeNotifier {
   final String? ppssppSavedataDirectory;
   final String? melonDirectory, melonName;
   final RetroArchBatteryRoute retroArchRoute;
+  final PcsxSaveLayout? pcsxLayout;
+  final PcsxSaveCard? pcsxCard;
+  final Future<Map<String, Object>> Function()? resolvePcsxGrant;
   Map<String, dynamic>? _record;
   Future<void>? _operation;
   CancelToken? _cancellation;
@@ -62,6 +66,9 @@ class SaveBackupGameJob extends ChangeNotifier {
       this.ppssppSavedataDirectory,
       this.melonDirectory,
       this.melonName,
+      this.pcsxLayout,
+      this.pcsxCard,
+      this.resolvePcsxGrant,
       this.retroArchRoute = RetroArchBatteryRoute.mgba})
       : admission = admission ?? SaveOperationAdmission() {
     if ([clientId, accountId, areaId, editionId].any((s) => s.trim().isEmpty) ||
@@ -88,8 +95,22 @@ class SaveBackupGameJob extends ChangeNotifier {
                 !SaveCapture.validMelonName(melonName!)))) {
       throw ArgumentError('Invalid MelonDualDS mapping');
     }
+    if ((pcsxLayout == null) != (pcsxCard == null) ||
+        (pcsxLayout == null) != (resolvePcsxGrant == null) ||
+        (isPcsx &&
+            (isStandalone ||
+                retroArchRoute != RetroArchBatteryRoute.mgba ||
+                !pcsxLayout!.cards.contains(pcsxCard) ||
+                pcsxCard!.name == null ||
+                !{'libretro', 'shared'}.contains(pcsxCard!.mode)))) {
+      throw ArgumentError('Invalid PlayStation card mapping');
+    }
   }
 
+  bool get isPcsx => pcsxLayout != null;
+  bool get isSharedPcsx => isPcsx && pcsxCard!.isShared;
+  String? get _sharedCardKey =>
+      isSharedPcsx ? pcsxLayout!.sharedResourceKey(pcsxCard!) : null;
   bool get isPpssppState => ppssppDirectory != null;
   bool get isPpssppSavedata => ppssppSavedataDirectory != null;
   bool get isPpsspp => isPpssppState || isPpssppSavedata;
@@ -107,43 +128,53 @@ class SaveBackupGameJob extends ChangeNotifier {
           : capture.openRetroArch();
   Future<void> openAppInfo() =>
       isMelon ? capture.openMelonAppInfo() : capture.openPpssppAppInfo();
-  String get _platform => isMelon
-      ? 'nds'
-      : isPpsspp
-          ? 'psp'
-          : retroArchRoute.platformId;
+  String get _platform => isPcsx
+      ? 'psx'
+      : isMelon
+          ? 'nds'
+          : isPpsspp
+              ? 'psp'
+              : retroArchRoute.platformId;
   String get _emulator => isMelon
       ? 'me.magnum.melondualds'
       : isPpsspp
           ? 'org.ppsspp.ppsspp'
           : 'com.retroarch.aarch64';
-  String get _core => isMelon
-      ? 'melonds'
-      : isPpsspp
-          ? 'ppsspp'
-          : retroArchRoute.coreId;
-  String get _format => isMelon
-      ? 'melondualds-sram-v1'
-      : isPpssppSavedata
-          ? 'ppsspp-savedata-v1'
+  String get _core => isPcsx
+      ? 'pcsx_rearmed'
+      : isMelon
+          ? 'melonds'
           : isPpsspp
-              ? 'ppsspp-slot-v1'
-              : retroArchRoute.formatId;
+              ? 'ppsspp'
+              : retroArchRoute.coreId;
+  String get _format => isPcsx
+      ? 'pcsx-${pcsxCard!.mode}-card${pcsxCard!.slot}-v1'
+      : isMelon
+          ? 'melondualds-sram-v1'
+          : isPpssppSavedata
+              ? 'ppsspp-savedata-v1'
+              : isPpsspp
+                  ? 'ppsspp-slot-v1'
+                  : retroArchRoute.formatId;
   SaveBackupKind get _kind =>
       isPpssppState ? SaveBackupKind.state : SaveBackupKind.save;
   String get _savedataName => ppssppSavedataDirectory!.split('/').last;
-  bool _validName(String name) => isMelon
-      ? name == melonName && SaveCapture.validMelonName(name)
-      : isPpssppSavedata
-          ? name == _savedataName
-          : isPpsspp
-              ? name == ppssppSlot && SaveCapture.validPpssppName(name)
-              : SaveCapture.validName(name);
+  bool _validName(String name) => isPcsx
+      ? name == pcsxCard!.name
+      : isMelon
+          ? name == melonName && SaveCapture.validMelonName(name)
+          : isPpssppSavedata
+              ? name == _savedataName
+              : isPpsspp
+                  ? name == ppssppSlot && SaveCapture.validPpssppName(name)
+                  : SaveCapture.validName(name);
   bool _bindingMatches(SaveBackupBinding binding) =>
       binding.accountId == accountId &&
       binding.platformId == _platform &&
-      binding.editions.length == 1 &&
-      binding.editions.single.editionId == editionId &&
+      binding.sharedCardResourceKey == _sharedCardKey &&
+      (isSharedPcsx ||
+          (binding.editions.length == 1 &&
+              binding.editions.single.editionId == editionId)) &&
       binding.emulatorPackage == _emulator &&
       binding.coreId == _core &&
       binding.kind == _kind &&
@@ -152,37 +183,48 @@ class SaveBackupGameJob extends ChangeNotifier {
       (!isMelon || binding.emulatorVersion == '0.8.0.rc2');
 
   Future<CapturedSaveGroup> _capture(String id, String name,
-          {bool restoreBaseline = false}) =>
-      isMelon
-          ? capture.captureMelon(
+          {bool restoreBaseline = false}) async =>
+      isPcsx
+          ? capture.capturePcsx(
               captureId: id,
-              directory: melonDirectory!,
-              name: name,
+              grant: await resolvePcsxGrant!(),
+              layout: pcsxLayout!,
+              card: pcsxCard!,
               restoreBaseline: restoreBaseline)
-          : isPpssppSavedata
-              ? capture.capturePpssppSavedata(
+          : isMelon
+              ? capture.captureMelon(
                   captureId: id,
-                  directory: ppssppSavedataDirectory!,
+                  directory: melonDirectory!,
+                  name: name,
                   restoreBaseline: restoreBaseline)
-              : isPpsspp
-                  ? capture.capturePpsspp(
+              : isPpssppSavedata
+                  ? capture.capturePpssppSavedata(
                       captureId: id,
-                      directory: ppssppDirectory!,
-                      name: name,
+                      directory: ppssppSavedataDirectory!,
                       restoreBaseline: restoreBaseline)
-                  : capture.captureRetroArch(
-                      captureId: id,
-                      name: name,
-                      route: retroArchRoute,
-                      restoreBaseline: restoreBaseline);
+                  : isPpsspp
+                      ? capture.capturePpsspp(
+                          captureId: id,
+                          directory: ppssppDirectory!,
+                          name: name,
+                          restoreBaseline: restoreBaseline)
+                      : capture.captureRetroArch(
+                          captureId: id,
+                          name: name,
+                          route: retroArchRoute,
+                          restoreBaseline: restoreBaseline);
 
   String get _key => sha256
       .convert(utf8.encode(jsonEncode([
         clientId,
         accountId,
         areaId,
-        editionId,
-        if (isMelon) ...[
+        if (isSharedPcsx) _sharedCardKey else editionId,
+        if (isPcsx) ...[
+          _format,
+          pcsxLayout!.directory,
+          pcsxCard!.slot,
+        ] else if (isMelon) ...[
           _format,
           melonDirectory,
           melonName
@@ -670,6 +712,18 @@ class SaveBackupGameJob extends ChangeNotifier {
   /// make identical logical save bytes diverge. Do not generalize this to other
   /// formats, whose directory/member names may carry actual game-save meaning.
   String _contents(SaveBackupManifest manifest) {
+    if (isPcsx) {
+      if (!_bindingMatches(manifest.binding) ||
+          manifest.members.length != 1 ||
+          manifest.members.single.sizeBytes != 131072 ||
+          (isSharedPcsx
+              ? manifest.members.single.relativePath != pcsxCard!.name
+              : !SaveCapture.validName(manifest.members.single.relativePath))) {
+        throw const FormatException('Invalid PlayStation card generation');
+      }
+      final member = manifest.members.single;
+      return jsonEncode([_format, member.sizeBytes, member.sha256]);
+    }
     if (isPpssppSavedata) {
       if (!_bindingMatches(manifest.binding) ||
           _savedataFolder(manifest) != _savedataName) {
@@ -771,7 +825,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         final store = LibraryStore(database);
         final edition = await store.edition(editionId);
         final game = edition == null ? null : await store.game(edition.gameId);
-        if (edition == null || game?.platformId != _platform) {
+        if (edition == null || game == null || game.platformId != _platform) {
           throw const FormatException('Unresolved save edition');
         }
         var record = _record;
@@ -822,10 +876,12 @@ class SaveBackupGameJob extends ChangeNotifier {
               coreVersion: 'unreported',
               platformId: _platform,
               editions: [
-                SaveBackupEdition(gameId: game!.id, editionId: editionId)
+                SaveBackupEdition(gameId: game.id, editionId: editionId)
               ],
               kind: _kind,
-              formatId: _format);
+              formatId: _format,
+              sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
+              sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);
           if (group.localWasAbsent) {
             // Absence is a restore baseline, never a zero-member backup or
             // a fabricated last-good receipt. Discover using runtime/edition
@@ -841,7 +897,8 @@ class SaveBackupGameJob extends ChangeNotifier {
                 _heads(await _cloudHistoryForBinding(binding, cancellation));
             for (final head in heads) {
               if (!_bindingMatches(head.binding) ||
-                  head.binding.editions.single.gameId != game.id) {
+                  (!isSharedPcsx &&
+                      head.binding.editions.single.gameId != game.id)) {
                 throw const FormatException('Changed restore binding');
               }
               _contents(head);
@@ -950,7 +1007,8 @@ class SaveBackupGameJob extends ChangeNotifier {
         _check(cancellation);
         var manifest = SaveBackupManifest.decode(
             utf8.encode(jsonEncode(record['generation'])));
-        if (manifest.binding.editions.single.gameId != game!.id) {
+        if (!isSharedPcsx &&
+            manifest.binding.editions.single.gameId != game.id) {
           throw const FormatException('Changed game binding');
         }
         var paths = (record['captures'] as Map).cast<String, String>();
@@ -1261,6 +1319,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         release = await admission.acquire(cancellation);
         _check(cancellation);
         _issue = null;
+        if (isPcsx) throw PlatformException(code: 'related_group_unfinished');
         await load();
         _check(cancellation);
         await _retireCompletedCapture();
@@ -1285,7 +1344,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         final store = LibraryStore(database);
         final edition = await store.edition(editionId);
         final game = edition == null ? null : await store.game(edition.gameId);
-        if (edition == null || game?.platformId != _platform) {
+        if (edition == null || game == null || game.platformId != _platform) {
           throw const FormatException('Unresolved restore edition');
         }
         final operationKey = rollback ? 'rollback' : 'restore';
@@ -1298,7 +1357,7 @@ class SaveBackupGameJob extends ChangeNotifier {
               ? SaveBackupManifest.decode(
                   utf8.encode(jsonEncode(record['restore']['manifest'])))
               : lastVerified!;
-          if (manifest.binding.editions.single.gameId != game!.id) {
+          if (manifest.binding.editions.single.gameId != game.id) {
             throw const FormatException('Changed restore game');
           }
           _contents(manifest);
@@ -1327,7 +1386,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         }
         final selected = SaveBackupManifest.decode(
             utf8.encode(jsonEncode(restore['manifest'])));
-        if (selected.binding.editions.single.gameId != game!.id) {
+        if (selected.binding.editions.single.gameId != game.id) {
           throw const FormatException('Changed restore game');
         }
         final restoreId = restore['id'] as String;

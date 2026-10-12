@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PcsxSaveSettingsTest {
+    @Test fun captureReplayFollowsTheSharedCardNotItsInitiatingRom() {
+        val layout = PcsxSaveSettings.resolve(leaf, files()::get)
+        val shared = PcsxSaveSettings.select(layout, 2)
+        val privateCard = PcsxSaveSettings.select(layout, 1)
+        assertEquals(shared.captureKey("owned-a"), shared.captureKey("owned-b"))
+        assertNotEquals(privateCard.captureKey("owned-a"), privateCard.captureKey("owned-b"))
+        assertNotEquals(shared.captureKey("owned-a"), privateCard.captureKey("owned-a"))
+        val other = PcsxSaveSettings.select(PcsxSaveSettings.Layout("/storage/emulated/0/Other", layout.cards), 2)
+        assertNotEquals(shared.captureKey("owned-a"), other.captureKey("owned-a"))
+    }
     @Test fun selectedCardsHaveDistinctRolesAndRequireCompleteMemoryCardBytes() {
         val layout = PcsxSaveSettings.resolve(leaf, files()::get)
         val privateCard = PcsxSaveSettings.select(layout, 1)

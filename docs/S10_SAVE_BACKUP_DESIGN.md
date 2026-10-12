@@ -7,6 +7,55 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PS1 shared-card job integration — ACTIVE work, 2026-10-12
+
+The existing manifest now optionally records the configured shared card's
+directory and slot, constrained to PCSX-ReARMed/PS1 portable saves. Initiating
+game/edition identities remain provenance; restore compatibility and the durable
+backup job identify a shared card independently of that initiating game. Existing
+non-shared bindings retain their encoded representation. Private cards remain
+edition-bound. The existing capture and immutable Drive-generation pipeline is
+used, not a second backup engine.
+
+Focused host checks demonstrate two reviewed games reusing one SQLite job and
+verified history, unchanged-byte deduplication, changed-byte child ancestry and
+private-card isolation. Simulated Drive transport verifies publication,
+independent discovery/readback from another initiating edition and rejection of
+another slot. These are host checks, not a live Drive or installed-UI proof.
+
+Native shared-card capture replay now uses the configured directory/card role
+instead of the initiating ROM; private-card keys retain the original ROM-bound
+representation. Each replay still rechecks its current owned CHD grant.
+Gated request 836 confirmed the missing capture-key contract with an unresolved
+reference compilation failure. Request 839 (ticket
+`288f12fd8cb443c5864e69dacd249424`) then passes the focused native settings/replay
+contract. Its inspected XML reports no failures/errors, and scoped Dart analysis
+passes. The shared mutex was acquired and held to verified completion; observed
+workers were two, parallelism false, Gradle heap 3 GiB, Kotlin in-process, with
+one configured 512 MiB test fork. No memory failure or budget increase occurred.
+Log: `bb960534447a458b894f2622ea857591.log` in the local gate log directory.
+This proves the native key contract, not a new installed-Thor/cloud round trip.
+PS1 restore, automatic watch and normal game-panel
+consumers remain unfinished; until those consumers are integrated, a PS1 job
+cannot fall through to the default mGBA restore/watch route. This is unfinished
+work in the same ACTIVE S10, not a new stage or an unsupported waiver. S11 and
+proposed S12 remain NOT STARTED.
+
+PS1 restore integration uses the existing scalar staging, digest, rollback and
+atomic-publication journal, not a second restore coordinator. The PS1-specific
+entry must revalidate the current owned/byte-bound CHD grant and configured card
+before staging and publication. Its journal pins the selected directory, role,
+slot and name; a shared-card replay may change initiating ROM, but never that
+resource identity. Keep generic scalar restore bindings unable to select PS1
+paths without this route. The joined root lane must distinguish read-only
+capture from restore, permit writes only to the exact restore-ID staging leaf,
+and allow atomic publication only onto the configured card. Recheck settings,
+namespace, retained local bytes and restore's independent in-use protection
+before publication. Private/shared restoration and rollback, changed grants or
+settings, wrong slots, interrupted receipts and capture-lane write rejection
+need focused native evidence before exposing the route in the normal game UI.
+This is the next unfinished integration within S10, not accepted functionality.
+
 ### PS1 private/shared card capture — verified checkpoint, 2026-10-12
 
 The exact owned or byte-bound CHD grant now feeds the existing capture journal

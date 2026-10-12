@@ -87,8 +87,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private var closed = false
     private class Failure(val code: String) : Exception()
     private data class PcsxSource(val uri: Uri, val leaf: String, val selection: PcsxSaveSettings.Selection) {
-        val journalKey: String get() = JSONArray(listOf(uri.toString(), selection.card.slot,
-            selection.card.mode, selection.card.name, selection.directory)).toString()
+        val journalKey: String get() = JSONArray(selection.captureKey(uri.toString())).toString()
     }
     private fun pcsxSource(call: MethodCall): PcsxSource {
         val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")
