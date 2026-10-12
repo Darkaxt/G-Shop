@@ -36,6 +36,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var melonLiveCaptureProbe = false
     private var melonSettingsProbe = false
     private var ppssppSettingsProbe = false
+    private var pcsxSettingsProbe = false
     private var protectedPpssppSaveProbe = false
     private var ppssppCachedExitProbe = false
     private var ppssppSavedataCaptureProbe = false
@@ -62,6 +63,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         melonLiveCaptureProbe = arguments?.getString("melonLiveCaptureProbe") == "true"
         melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
         ppssppSettingsProbe = arguments?.getString("ppssppSettingsProbe") == "true"
+        pcsxSettingsProbe = arguments?.getString("pcsxSettingsProbe") == "true"
         protectedPpssppSaveProbe = arguments?.getString("protectedPpssppSaveProbe") == "true"
         ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
@@ -81,6 +83,9 @@ class OwnedRomInstrumentation : Instrumentation() {
         try {
             if (automaticSaveDiagnosis) {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
+            } else if (pcsxSettingsProbe) {
+                exercise(psx = true)
+                report.putString("result", "PASS exact owned CHD grant to live read-only PCSX card mapping; encoded per-game card and shared card roles, ownership/identity/publication/removal rejection; exclusive fixture cleanup; no emulator launch or save mutation")
             } else if (dsArchiveProbe) {
                 exercise(ds = true, dsZip = true)
                 report.putString("result", "PASS DS ZIP document validation, unchanged archive read and live save-location review; read-only grant and native identity/ownership/publication/removal rejection; exclusive fixture cleanup; no emulator launch")
@@ -181,12 +186,12 @@ class OwnedRomInstrumentation : Instrumentation() {
         return results.joinToString("; ")
     }
 
-    private fun exercise(ds: Boolean = false, dsZip: Boolean = false) {
+    private fun exercise(ds: Boolean = false, dsZip: Boolean = false, psx: Boolean = false) {
         check(targetContext.packageName == "com.darkaxt.rshop.debug")
         val id = "provider-proof-${UUID.randomUUID()}"
         val root = File(targetContext.getExternalFilesDir(null), id)
         check(root.mkdir())
-        val rom = File(root, if (dsZip) "synthetic.zip" else if (ds) "synthetic.nds" else "synthetic.rvz")
+        val rom = File(root, if (psx) "synthetic.chd" else if (dsZip) "synthetic.zip" else if (ds) "synthetic.nds" else "synthetic.rvz")
         val raw = byteArrayOf(4, 8, 15, 16, 23, 42)
         val bytes = if (dsZip) java.io.ByteArrayOutputStream().also { output ->
             java.util.zip.ZipOutputStream(output).use { zip ->
@@ -247,11 +252,36 @@ class OwnedRomInstrumentation : Instrumentation() {
                 db.insertOrThrow("transfer_target_owners", null, owner())
                 db.setTransactionSuccessful()
             } finally { db.endTransaction() }
-            val uri = if (ds) OwnedRomContentProvider.gameGearUri(targetContext, id, rom.name)
+            val uri = if (ds || psx) OwnedRomContentProvider.gameGearUri(targetContext, id, rom.name)
                 else OwnedRomContentProvider.uri(targetContext, id, rom.name)
             if (ds) OwnedRomContentProvider.openCommitted(targetContext, uri,
                 requiredArchivePlatform = if (dsZip) "nds" else null,
                 requiredStandaloneNds = !dsZip).use { }
+            if (psx) {
+                OwnedRomContentProvider.openCommitted(targetContext, uri, requiredStandaloneChd = true).use { }
+                val service = OwnedStorageService(targetContext)
+                val done = CountDownLatch(1)
+                var mapping: Any? = null
+                var failure: String? = null
+                try {
+                    service.handle(MethodCall("reviewOwnedRetroArchPcsxSaves", mapOf(
+                        "installationId" to id, "filename" to rom.name)), object : MethodChannel.Result {
+                        override fun success(value: Any?) { mapping = value; done.countDown() }
+                        override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                        override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+                    })
+                    done.await(); check(failure == null) { failure ?: "review_missing" }
+                    val row = mapping as Map<*, *>
+                    check(row.keys == setOf("directory", "cards"))
+                    val cards = row["cards"] as List<*>
+                    // This proof checks the actual installed libretro/shared
+                    // configuration; it does not rewrite settings to fit it.
+                    check(row["directory"] == "/storage/emulated/0/RetroArch/saves/PCSX-ReARMed")
+                    check(cards == listOf(
+                        mapOf("slot" to 1, "mode" to "libretro", "name" to "$id%2Fsynthetic.srm"),
+                        mapOf("slot" to 2, "mode" to "shared", "name" to "pcsx-card2.mcd")))
+                } finally { service.shutdown() }
+            }
             if (ds) {
                 val service = OwnedStorageService(targetContext)
                 val done = CountDownLatch(1)

@@ -54,6 +54,43 @@ void main() {
   tearDown(() => TestDefaultBinaryMessengerBinding
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));
+  test('PS1 card review uses the same exact owned CHD grant without launching',
+      () async {
+    final psx = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psx');
+    final item = exactGame('psx-one', name: 'Game.chd');
+    final installed = InstalledArtifact(
+        id: 'installed-psx',
+        transferId: 'psx-one',
+        artifact: item.remoteArtifact!,
+        destinationRoot: '/owned',
+        relativePath: 'Game.chd',
+        sizeBytes: 42,
+        verifiedChecksums: {'sha256': '0' * 64},
+        fileIdentity: manifest.fileIdentity);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return {
+        'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+        'cards': [
+          {'slot': 1, 'mode': 'libretro', 'name': 'installed-psx%2FGame.srm'},
+          {'slot': 2, 'mode': 'shared', 'name': 'pcsx-card2.mcd'},
+        ]
+      };
+    });
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => installed), channel: channel);
+    final mapping =
+        await launcher.reviewRetroArchPcsxSaves(item, psx, '/owned');
+    expect(mapping.cards.first.name, 'installed-psx%2FGame.srm');
+    expect(mapping.cards.last.isShared, true);
+    expect(calls.single.method, 'reviewOwnedRetroArchPcsxSaves');
+    expect(calls.single.arguments,
+        {'installationId': installed.id, 'filename': 'Game.chd'});
+    await expectLater(launcher.reviewRetroArchPcsxSaves(item, system, '/owned'),
+        throwsUnsupportedError);
+    expect(calls, hasLength(1));
+  });
   test(
       'hands off only a fresh exact manifest, never a filename path or source token',
       () async {

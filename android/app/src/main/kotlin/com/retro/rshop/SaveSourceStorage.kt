@@ -84,7 +84,11 @@ internal class SaveSourceStorage private constructor(
         }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
-        private fun settings(context: Context, packageName: String): JSONObject {
+        fun pcsxSettings(context: Context, encodedLeaf: String): JSONObject {
+            require(PcsxSaveSettings.validChdLeaf(encodedLeaf))
+            return settings(context, PcsxSaveSettings.PACKAGE, encodedLeaf)
+        }
+        private fun settings(context: Context, packageName: String, encodedLeaf: String? = null): JSONObject {
             val child = start(context, globalMountNamespace = true)
             val input = DataInputStream(child.inputStream.buffered())
             val output = DataOutputStream(child.outputStream.buffered())
@@ -93,7 +97,9 @@ internal class SaveSourceStorage private constructor(
                 while (stream.read(buffer) >= 0) { /* No private settings logs. */ }
             } }, "rshop-root-save-settings-stderr").apply { start() }
             try {
-                output.writeUTF(JSONObject().put("settings", packageName).toString()); output.flush()
+                output.writeUTF(JSONObject().put("settings", packageName).also {
+                    if (encodedLeaf != null) it.put("encodedLeaf", encodedLeaf)
+                }.toString()); output.flush()
                 val reply = JSONObject(input.readUTF())
                 reply.optString("error").takeIf(String::isNotEmpty)?.let { throw IOException(it) }
                 return reply
@@ -300,6 +306,16 @@ object RootSaveSourceWorker {
         fun reply(value: JSONObject) { output.writeUTF(value.toString()); output.flush() }
         try {
             val hello = JSONObject(input.readUTF())
+            if (hello.length() == 2 && hello.optString("settings") == PcsxSaveSettings.PACKAGE &&
+                hello.has("encodedLeaf")) {
+                val settings = try { PcsxSaveSettings.read(hello.getString("encodedLeaf")) }
+                    catch (error: Exception) {
+                        if (error is IOException && error.message == "source_changed") throw error
+                        throw IOException("save_settings_unresolved")
+                    }
+                reply(settings)
+                return
+            }
             if (hello.length() == 1 && hello.optString("settings") in
                 setOf(MelonSaveBoundary.PACKAGE, PpssppSaveSettings.PACKAGE)) {
                 val settings = try {

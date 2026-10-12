@@ -3,6 +3,7 @@ import '../models/game_item.dart';
 import '../models/system_model.dart';
 import '../models/transfer_record.dart';
 import '../models/retroarch_battery_route.dart';
+import '../models/pcsx_save_layout.dart';
 import 'rom_manager.dart';
 import 'owned_storage.dart';
 
@@ -140,6 +141,18 @@ class OwnedEmulatorLauncher {
       throw StateError('No validated launch save target');
     }
     return name;
+  }
+
+  /// Same exact CHD grant as PS1 launch, with the current core/card overrides.
+  /// Keep a shared card separate from the selected game's private first card.
+  Future<PcsxSaveLayout> reviewRetroArchPcsxSaves(
+      GameItem game, SystemModel system, String root) async {
+    if (system.id != 'psx' || !supports(game, system)) {
+      throw UnsupportedError('No reviewed PlayStation card route');
+    }
+    final grant = await _grant(game, system, root);
+    return PcsxSaveLayout.decode(await channel.invokeMapMethod<String, dynamic>(
+        'reviewOwnedRetroArchPcsxSaves', grant));
   }
 
   Future<void> _open(GameItem game, SystemModel system, String root,

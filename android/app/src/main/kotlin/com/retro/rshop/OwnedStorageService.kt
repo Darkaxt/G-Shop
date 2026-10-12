@@ -64,6 +64,7 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "reviewOwnedRetroArchSnesSave" ||
                         call.method == "reviewOwnedRetroArchGameBoySave" ||
                         call.method == "reviewOwnedRetroArchGameBoyColorSave" ||
+                        call.method == "reviewOwnedRetroArchPcsxSaves" ||
                         call.method == "reviewOwnedRetroArchN64Save") {
                         val reviewGbaSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
                         val reviewGameGearSave = call.method == "reviewOwnedRetroArchGameGearSave"
@@ -90,7 +91,8 @@ internal class OwnedStorageService(private val context: Context) {
                         val handheld = gameBoy || gameBoyColor || gameBoyAdvance
                         val handheldPlatform = if (gameBoyAdvance) "gba" else if (gameBoyColor) "gbc" else "gb"
                         val n64 = call.method == "launchOwnedRetroArchN64" || reviewN64Save
-                        val psx = call.method == "launchOwnedRetroArchPSX"
+                        val reviewPcsx = call.method == "reviewOwnedRetroArchPcsxSaves"
+                        val psx = call.method == "launchOwnedRetroArchPSX" || reviewPcsx
                         val psp = call.method == "launchOwnedPPSSPP"
                         val ps2 = call.method == "launchOwnedNetherSX2"
                         val wiiu = call.method == "launchOwnedCemu"
@@ -126,6 +128,23 @@ internal class OwnedStorageService(private val context: Context) {
                             requiredArchivePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else if (ndsArchive) "nds" else null,
                             requiredStandaloneChd = psx || psp || ps2,
                             requiredStandaloneWua = wiiu, requiredStandaloneNds = nds && !ndsArchive).use { }
+                        if (reviewPcsx) {
+                            @Suppress("DEPRECATION")
+                            val runtime = context.packageManager.getPackageInfo(PcsxSaveSettings.PACKAGE, 0)
+                            if (runtime.versionName !in setOf("1.22.2", "1.22.2_GIT")) throw Failure("emulator_changed")
+                            val layout = SaveSourceStorage.pcsxSettings(context, uri.encodedPath!!.substringAfterLast('/'))
+                            // Settings discovery must not turn a stale grant into
+                            // a valid association after ownership/bytes change.
+                            OwnedRomContentProvider.openCommitted(context, uri, requiredStandaloneChd = true).use { }
+                            val cards = layout.getJSONArray("cards")
+                            val rows = (0 until cards.length()).map { index ->
+                                val card = cards.getJSONObject(index)
+                                mapOf("slot" to card.getInt("slot"), "mode" to card.getString("mode"),
+                                    "name" to if (card.isNull("name")) null else card.getString("name"))
+                            }
+                            main.post { result.success(mapOf("directory" to layout.getString("directory"), "cards" to rows)) }
+                            return@execute
+                        }
                         if (reviewMelon) {
                             // Melon's external URI processor creates a ROM with
                             // parentTreeUri=null. Its configured ROM-relative
@@ -804,7 +823,8 @@ internal class OwnedStorageService(private val context: Context) {
         ?.groupValues?.get(1)?.toIntOrNull()
     private fun errorCode(error: Exception): String = when (error) {
         is Failure -> error.code
-        is IOException -> when (errno(error)) {
+        is IOException -> if (error.message in setOf("source_changed", "save_settings_unresolved", "root_unavailable"))
+            error.message!! else when (errno(error)) {
             2 -> "not_found"; 13, 1 -> "access_denied"; 17 -> "collision"; 18 -> "cross_volume"
             20, 22, 40 -> "invalid_arguments"; 28 -> "out_of_space"; 38, 95 -> "unsupported"
             116 -> "changed"

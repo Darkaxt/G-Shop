@@ -259,6 +259,7 @@ class MainActivity : FlutterActivity() {
                 call.method == "reviewOwnedRetroArchSnesSave" ||
                 call.method == "reviewOwnedRetroArchGameBoySave" ||
                 call.method == "reviewOwnedRetroArchGameBoyColorSave" ||
+                call.method == "reviewOwnedRetroArchPcsxSaves" ||
                 call.method == "launchOwnedRetroArchPSX" || call.method == "launchOwnedPPSSPP" ||
                 call.method == "launchOwnedNetherSX2" || call.method == "launchOwnedCemu" ||
                 call.method == "launchOwnedMelon" || call.method == "reviewOwnedMelonSave") {

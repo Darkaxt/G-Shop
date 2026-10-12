@@ -7,6 +7,47 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PS1 configured memory-card discovery — verified, 2026-10-12
+
+The actual Thor PCSX-ReARMed settings select a per-game libretro first card and
+a shared second card. Exact owned-CHD review now resolves those roles from current
+RetroArch configuration, frontend overrides and selected game/folder/core options.
+Settings reads are bounded, root-assisted, no-follow and revalidated, including
+missing higher-precedence overrides. The owned grant is rechecked afterwards.
+Selected option files replace lower-priority files; missing keys use core defaults.
+Shared-card identity is independent of the initiating ROM, distinct by directory
+and slot. Do not copy it into every game's exclusive private generation.
+
+Reference semantics: [RetroArch 1.22.2 option selection](https://github.com/libretro/RetroArch/blob/v1.22.2/runloop.c#L1018-L1163),
+[frontend overrides](https://github.com/libretro/RetroArch/blob/v1.22.2/configuration.c#L4296-L4425),
+and [PCSX card naming](https://github.com/libretro/pcsx_rearmed/blob/master/frontend/libretro.c#L3529-L3556).
+The core master reference is not proof of installed binary equivalence; current
+device configuration and discovery were independently checked.
+
+Focused native/Dart contracts and scoped analysis pass. Regression tests caught
+and fixed a missing nullable-field check and inconsistent own external-files path
+validation. Actual Thor exact-provider discovery passes private/shared resolution,
+identity/publication/removal rejection and exclusive fixture cleanup. The synthetic
+CHD leaf tests the provider grant, not CHD decoding/gameplay. Existing PPSSPP and
+Melon settings probes pass through the joined root lane. No save/cloud mutation.
+
+Native request 827 and final assembly 828 completed through the shared Gradle
+gate: observed two workers, no parallelism, 3 GiB Gradle, Kotlin in-process;
+test tasks configured for one 512 MiB fork. No memory failure or budget increase.
+Native two-job hints are not measured effective concurrency. Installed APK digest
+independently matches the packaged artifact:
+`e0d9593b00d1024880128683d19c5f6c6ec4fac480ae0091291fecd06f19699f`.
+All 31 save/settings preservation hashes match. Both physical displays are
+committed OFF; wakefulness Asleep.
+
+PS1 capture, watch, normal backup jobs and restore are **not integrated yet**.
+Next required work is card IO and shared-resource ancestry, then normal
+pre-launch/watch/restore consumers. Serial naming, content-URI folder policies
+and include handling remain unfinished coverage, not unsupported waivers.
+Broader installed routes, states, required fault/reconnect checks and conditional
+handover also remain unfinished S10 work. S10 stays the sole ACTIVE stage; S11
+and proposed S12 remain NOT STARTED. No release occurred.
+
 ### GB/GBC SameBoy SRAM and RTC routes — verified slice, 2026-10-12
 
 SAVE-01's installed-route coverage now includes ordinary owned GB/GBC archives

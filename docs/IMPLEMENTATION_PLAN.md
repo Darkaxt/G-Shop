@@ -22,6 +22,13 @@ checkbox. Preserve backup opt-in, restore/conflict choices and custom/ambiguous
 mapping. Verify resolved, pending and unresolved association controls in the
 focused game-panel checks, then inspect the installed normal game menu.
 
+S10 PS1 checkpoint, 2026-10-12: exact owned CHD -> configured private/shared card
+discovery passes focused host and actual Thor checks. This is not yet
+capture/watch/backup/restore. Finish card IO and shared-resource ancestry, then
+normal job/pre-launch consumers within the same ACTIVE S10. Serial/content-URI
+policies remain unfinished coverage, not unsupported waivers. See
+S10_SAVE_BACKUP_DESIGN.md. S11 and proposed S12 remain NOT STARTED.
+
 S10 automatic RetroArch checkpoint, 2026-10-12: focused host integration and
 actual Thor exact N64 SRM/mGBA RTC watch delivery pass. Reinstallation is reviewed
 before launch; explicit remapping retires the former watch and retains history,
