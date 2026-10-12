@@ -48,7 +48,7 @@ void main() {
     expect(rows.singleWhere((r) => r.label == 'PPSSPP').states,
         startsWith('Verified'));
     expect(rows.singleWhere((r) => r.label == 'PPSSPP').saves,
-        startsWith('Unfinished'));
+        'In-game saves · complete PPSSPP SAVEDATA folders.');
     for (final row in SaveEmulatorCoverage.decode([
       _row('com.retroarch.aarch64', '1.23.0'),
       _row('org.ppsspp.ppsspp', '1.21.0'),
@@ -56,6 +56,28 @@ void main() {
       expect('${row.saves} ${row.states}', isNot(contains('Verified')));
       expect('${row.saves} ${row.states}', contains('Needs review'));
     }
+  });
+
+  test('PPSSPP coverage describes the verified folder and normal-exit routes',
+      () {
+    for (final version in ['1.20.4', 'v1.20.4']) {
+      final row = SaveEmulatorCoverage.decode([
+        _row('org.ppsspp.ppsspp', version),
+      ]).single;
+      expect(row.saves, contains('SAVEDATA'));
+      expect(row.saves, isNot(contains('Unfinished')));
+      expect(row.storage, contains('SAVEDATA'));
+      expect(row.storage, contains('PPSSPP_STATE'));
+      expect(row.storage, contains('root'));
+      expect(row.storage, contains('Exit'));
+      expect(row.storage, isNot(contains('App info')));
+    }
+    final changed = SaveEmulatorCoverage.decode([
+      _row('org.ppsspp.ppsspp', '1.21.0'),
+    ]).single;
+    expect(changed.saves, startsWith('Needs review'));
+    expect(changed.states, startsWith('Needs review'));
+    expect(changed.storage, startsWith('Needs review'));
   });
 
   test('advertised provider is neither a grant nor implemented restore support',

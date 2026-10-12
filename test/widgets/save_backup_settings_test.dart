@@ -171,7 +171,8 @@ void main() {
         findsOneWidget);
     expect(find.text('States: Verified · reviewed PPSSPP state slot'),
         findsOneWidget);
-    expect(find.text('Saves: Unfinished · SAVEDATA groups not implemented'),
+    expect(
+        find.text('Saves: In-game saves · complete PPSSPP SAVEDATA folders.'),
         findsOneWidget);
     expect(find.byType(SaveBackupSetupPanel), findsNothing);
     await tester.tap(find.byKey(const ValueKey('save-nav-status')));

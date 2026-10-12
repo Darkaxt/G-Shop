@@ -95,7 +95,9 @@ class SaveEmulatorCoverage {
                   ? 'In-game saves · shared or protected .sav/.srm file; completed writes can be backed up while MelonDualDS stays open.'
                   : 'Needs review · installed MelonDualDS runtime is not verified'
               : _psp
-                  ? 'Unfinished · SAVEDATA groups not implemented'
+                  ? _reviewed
+                      ? 'In-game saves · complete PPSSPP SAVEDATA folders.'
+                      : 'Needs review · installed PPSSPP runtime is not verified'
                   : 'Unfinished · save mapping and restore not implemented';
   String get states => _launcher
       ? 'Not applicable · launcher; use the selected emulator'
@@ -110,16 +112,21 @@ class SaveEmulatorCoverage {
           'Custom folders remain configurable. Completed saves are watched and '
           'captured without stopping the emulator. Restore requires closing the '
           'game safely and preparing MelonDualDS through Android App info.'
-      : documentAuthorities.isNotEmpty
-          ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
-              'A user grant and save-specific read/write review are still required.'
-          : _retroArch
-              ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
-                  'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
-                  'Other cores and custom paths are unfinished.'
-              : _psp
-                  ? 'The configured PPSSPP_STATE folder is discovered from PPSSPP’s Memory Stick setting using root; shared and protected app folders support exact-file watching, capture and restore. Select this game’s slot. '
-                      'Restore requires user-mediated Android App info preparation.'
+      : _psp
+          ? _reviewed
+              ? 'PPSSPP’s Memory Stick setting supplies the SAVEDATA and '
+                  'PPSSPP_STATE folders. Automatic root-assisted discovery '
+                  'supports shared and protected storage. Select this game’s '
+                  'save folder or state slot. Close the game using PPSSPP’s '
+                  'Exit command before restoring.'
+              : 'Needs review · installed PPSSPP runtime is not verified'
+          : documentAuthorities.isNotEmpty
+              ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
+                  'A user grant and save-specific read/write review are still required.'
+              : _retroArch
+                  ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
+                      'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
+                      'Other cores and custom paths are unfinished.'
                   : _launcher
                       ? 'This launcher does not own the emulator’s save files.'
                       : 'Storage/export route not yet reviewed. This is unfinished work, '

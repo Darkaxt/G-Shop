@@ -5,6 +5,40 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Retained PSP adoption and coverage presentation — 2026-10-12
+
+Normal Library -> Compare with Google Drive -> Add to R-Shop is now reconciling
+the retained PSP sample serially. This is the existing production adoption flow,
+not a filename merge or a second ROM download. Each adoption compares complete
+current cloud/local bytes, revalidates the identities and commits ownership.
+The native success message and return to "Press A to open" have been observed
+for Burnout Legends, Castlevania, LocoRoco, Jeanne d'Arc, Tekken 6 and Crisis Core.
+The original batch session 16902 is still active on Dante's Inferno; the remaining
+seven adoptions are not yet claimed.
+Patapon's earlier byte observation is not counted as adoption. No mismatching
+version has been found and no retained ROM has been removed.
+
+PPSSPP's coverage presentation incorrectly still said SAVEDATA groups were
+unimplemented and directed restore preparation through Android App info. The
+reviewed 1.20.4 runtime now describes the existing complete SAVEDATA-folder,
+root-discovery and normal PPSSPP Exit routes. Unknown versions remain explicitly
+unverified. Focused model/widget regressions failed before this correction
+(session 71974) and passed afterward (52504); scoped analysis passed (59068).
+No full suite was run. Native presentation verification is pending.
+
+Android assembly request 792 (`841573dbe5a74590956a963b25b23507`), original session
+59068, completed with exit zero and confirmed completion. Shared-gate telemetry
+records mutex acquisition before build start and release after completion.
+Observed Gradle profile: two workers, parallel=false, 3-GiB maximum heap;
+reviewed Kotlin 2.3.21 compilation is in-process. The configured test policy is
+one 512-MiB fail-fast fork; assembly executed no Gradle tests. Native depth-one
+compile/link pools are unchanged. No memory failure or budget increase.
+Log: `70a4c9dcab234d758be79f7cc95623c8.log`. APK SHA-256:
+`ba7d95e6d9f6697707dd1f108f4ad7727801451419b7f79b9c86609ccd470805`;
+independent signature verification matches the existing debug signer. Installation
+is deliberately waiting for the active adoption batch to finish. S10 remains
+ACTIVE; S11 remains NOT STARTED.
+
 ### Retained PSP identity correction — 2026-10-12
 
 The S7 terminal reconciliation retained thirteen PSP ROMs as positive Top-25
