@@ -5,6 +5,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### PS1 restore/rollback — verified slice, 2026-10-13
+
+S10 remains the sole ACTIVE stage. PS1 jobs now route restore and rollback to
+explicit current-grant/card native entrypoints rather than the mGBA route. The
+existing bounded stream, digest, retained-local capture and atomic-publication
+journal are reused. Shared-card restore accepts another initiating game's
+provenance only for the same configured resource; private cards remain isolated.
+The root restore lane is restricted to the exact restore-ID stage and configured
+card, with settings/namespace/writer checks. Capture remains read-only.
+
+Focused host capture/job checks pass, including verified-EOF sealing, cross-game
+shared-card restoration and retained-byte rollback without another download.
+Scoped Dart analysis reports no issues. Gated request 842 passes the native
+binding checks and debug/test packaging. Actual Thor private/shared restore,
+retained rollback, missing-card publication and lost-ack service recreation pass;
+wrong-card/generic publication, invalid grants, open writers and changed settings
+are rejected. Exclusive synthetic cards and a content override are removed.
+The existing SRAM/RTC interruption probe exposed one stale three-argument test
+reflection call; it was corrected, rebuilt through request 844 and passes on Thor.
+PS1 capture and filesystem-only RetroArch snapshot regressions also pass.
+
+Both builds acquired the shared gate: two workers, no parallelism, 3 GiB Gradle,
+Kotlin in-process requested, one configured 512 MiB test fork. No memory failure
+or budget increase occurred; native two-job hints are not a measured cap.
+The installed application digest matches `105a6af5cdaef7b083624e202d5d08a0d35ef5b1618c3b813664dd1e2df104ae`.
+All 31 baseline content digests are unchanged. Thirty paths compare exactly;
+one accent was decoded as a replacement character in the older baseline output.
+The final Unicode-preserving inventory exactly matches the post-restore inventory.
+Both physical displays are OFF and the device is Asleep.
+
+Automatic PS1 watch and normal game-panel integration remain unfinished; this
+is not a normal UI-to-Drive PS1 workflow proof. Other accessible
+routes, states, required fault checks and conditional handover remain required.
+S11 and proposed S12 remain NOT STARTED. No criterion is waived or deferred.
+
 ### PS1 shared-card history — verified host/native contract, 2026-10-13
 
 S10 remains the sole ACTIVE stage. Two reviewed PS1 games now share one durable

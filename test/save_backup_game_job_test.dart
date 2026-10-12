@@ -55,6 +55,7 @@ class _Capture extends SaveCapture {
   final ppssppSources = <String>[];
   final melonSources = <String>[];
   final pcsxSources = <String>[];
+  final pcsxRestores = <String>[];
   @override
   Future<CapturedSaveGroup> capturePcsx(
       {required String captureId,
@@ -72,13 +73,49 @@ class _Capture extends SaveCapture {
         '1.22.2_GIT',
         [
           if (!localAbsent)
-            CapturedSaveFile(card.name!, File('/private/$captureId/member-0'),
-                131072, digest)
+            CapturedSaveFile(
+                card.name!,
+                _MemorySaveFile(
+                    '/private/$captureId/member-0', List.filled(131072, 7)),
+                131072,
+                digest)
         ],
         localWasAbsent: localAbsent && restoreBaseline);
   }
 
   final batteryRoutes = <RetroArchBatteryRoute>[];
+  @override
+  Future<void> stagePcsxRestore(
+      {required String restoreId,
+      required Map<String, Object> grant,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card,
+      required int size,
+      required String sha256,
+      required Stream<Uint8List> bytes}) async {
+    var received = 0;
+    await for (final chunk in bytes) {
+      received += chunk.length;
+    }
+    expect(received, 131072);
+    expect(size, 131072);
+    pcsxRestores.add('${layout.directory}/${card.slot}/${card.name}');
+    staged.add(restoreId);
+  }
+
+  @override
+  Future<void> publishPcsxRestore(
+      {required String restoreId,
+      required String rollbackCaptureId,
+      required Map<String, Object> grant,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card}) async {
+    if (publicationIssue != null) {
+      throw PlatformException(code: publicationIssue!);
+    }
+    restored.add((id: restoreId, rollback: rollbackCaptureId));
+  }
+
   int batterySize = 4;
   final restoreRoutes = <RetroArchBatteryRoute>[];
   final stagedGroups = <List<String>>[];
@@ -435,9 +472,11 @@ class _Generations extends DriveSaveBackupGenerationApi {
             .singleWhere((m) => m.cloudFileId == memberId)
             .sizeBytes !=
         0) {
-      yield generation.binding.platformId == 'n64'
-          ? Uint8List(296960)
-          : Uint8List.fromList([1, 2, 3, 4]);
+      yield generation.binding.platformId == 'psx'
+          ? Uint8List(131072)
+          : generation.binding.platformId == 'n64'
+              ? Uint8List(296960)
+              : Uint8List.fromList([1, 2, 3, 4]);
     }
     if (failDownload) {
       throw const SaveBackupGenerationException(
@@ -603,11 +642,22 @@ void main() {
       await privateCard.load();
       expect(privateCard.lastVerified, isNull);
       expect(capture.batteryRoutes, isEmpty);
-      // Native restore/watch integration remains required; never misroute a PS1
-      // job into the default mGBA restore or automatic mapping.
-      await second.restoreLatest();
-      expect(second.issue, 'related_group_unfinished');
-      expect(capture.staged, isEmpty);
+      // Restore the shared resource from another initiating game's publication,
+      // then roll back using the retained local capture, not a second download.
+      await first.restoreLatest();
+      expect(first.issue, isNull);
+      expect(first.phase, 'restored');
+      expect(
+          capture.pcsxRestores.single, '${layout.directory}/2/pcsx-card2.mcd');
+      expect(first.rollbackAvailable, isTrue);
+      final downloads = generations.downloads;
+      await first.rollbackLast();
+      expect(first.issue, isNull);
+      expect(first.phase, 'rolled_back');
+      expect(capture.restored, hasLength(2));
+      expect(generations.downloads, downloads);
+      expect(capture.restoreRoutes, isEmpty);
+      // Watch integration is still unfinished, never map PS1 as mGBA.
       expect(() => AutomaticSaveMapping.fromJob(second, title: 'PS1'),
           throwsFormatException);
     } finally {

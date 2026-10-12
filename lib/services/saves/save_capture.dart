@@ -118,33 +118,13 @@ class SaveCapture {
       required PcsxSaveLayout layout,
       required PcsxSaveCard card,
       bool restoreBaseline = false}) async {
-    final owned = grant.keys.toSet().length == 2 &&
-        grant.keys.toSet().containsAll({'installationId', 'filename'}) &&
-        grant['installationId'] is String &&
-        (grant['installationId'] as String).isNotEmpty;
-    final observed = grant.keys.toSet().length == 3 &&
-        grant.keys
-            .toSet()
-            .containsAll({'observationId', 'platformId', 'filename'}) &&
-        grant['observationId'] is int &&
-        (grant['observationId'] as int) > 0 &&
-        grant['platformId'] == 'psx';
-    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) ||
-        !(owned || observed) ||
-        grant['filename'] is! String ||
-        !(grant['filename'] as String).toLowerCase().endsWith('.chd') ||
-        !layout.cards.contains(card) ||
-        card.name == null ||
-        !const {'libretro', 'shared'}.contains(card.mode)) {
-      throw const FormatException('Invalid PlayStation card selection');
+    final selection = _pcsxArguments(grant, layout, card);
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId)) {
+      throw const FormatException('Invalid PlayStation capture');
     }
     final raw = await _channel.invokeMapMethod<String, dynamic>('capturePcsx', {
       'captureId': captureId,
-      ...grant,
-      'directory': layout.directory,
-      'slot': card.slot,
-      'mode': card.mode,
-      'name': card.name,
+      ...selection,
       if (restoreBaseline) 'restoreBaseline': true,
     });
     final group = _captured(raw,
@@ -157,6 +137,36 @@ class SaveCapture {
       throw const FormatException('Incomplete PlayStation memory card');
     }
     return group;
+  }
+
+  Map<String, Object> _pcsxArguments(
+      Map<String, Object> grant, PcsxSaveLayout layout, PcsxSaveCard card) {
+    final owned = grant.keys.toSet().length == 2 &&
+        grant.keys.toSet().containsAll({'installationId', 'filename'}) &&
+        grant['installationId'] is String &&
+        (grant['installationId'] as String).isNotEmpty;
+    final observed = grant.keys.toSet().length == 3 &&
+        grant.keys
+            .toSet()
+            .containsAll({'observationId', 'platformId', 'filename'}) &&
+        grant['observationId'] is int &&
+        (grant['observationId'] as int) > 0 &&
+        grant['platformId'] == 'psx';
+    if (!(owned || observed) ||
+        grant['filename'] is! String ||
+        !(grant['filename'] as String).toLowerCase().endsWith('.chd') ||
+        !layout.cards.contains(card) ||
+        card.name == null ||
+        !const {'libretro', 'shared'}.contains(card.mode)) {
+      throw const FormatException('Invalid PlayStation card selection');
+    }
+    return {
+      ...grant,
+      'directory': layout.directory,
+      'slot': card.slot,
+      'mode': card.mode,
+      'name': card.name!,
+    };
   }
 
   static bool validPpssppName(String name) =>
@@ -518,6 +528,34 @@ class SaveCapture {
       if (retroArchRoute != RetroArchBatteryRoute.mgba)
         'retroArchRoute': retroArchRoute.platformId,
     });
+    await _streamRestore(restoreId, size, bytes);
+  }
+
+  Future<void> stagePcsxRestore(
+      {required String restoreId,
+      required Map<String, Object> grant,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card,
+      required int size,
+      required String sha256,
+      required Stream<Uint8List> bytes}) async {
+    final selection = _pcsxArguments(grant, layout, card);
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
+        size != 131072 ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(sha256)) {
+      throw const FormatException('Invalid PlayStation restore');
+    }
+    await _channel.invokeMethod('beginPcsxRestore', {
+      'captureId': restoreId,
+      ...selection,
+      'size': size,
+      'sha256': sha256,
+    });
+    await _streamRestore(restoreId, size, bytes);
+  }
+
+  Future<void> _streamRestore(
+      String restoreId, int size, Stream<Uint8List> bytes) async {
     var offset = 0;
     await for (final chunk in bytes) {
       if (offset + chunk.length > size) {
@@ -549,6 +587,25 @@ class SaveCapture {
     }
     await _channel.invokeMethod('publishRestore',
         {'captureId': restoreId, 'rollbackCaptureId': rollbackCaptureId});
+  }
+
+  Future<void> publishPcsxRestore(
+      {required String restoreId,
+      required String rollbackCaptureId,
+      required Map<String, Object> grant,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card}) async {
+    final selection = _pcsxArguments(grant, layout, card);
+    if (![restoreId, rollbackCaptureId]
+            .every((id) => RegExp(r'^[a-f0-9]{32}$').hasMatch(id)) ||
+        restoreId == rollbackCaptureId) {
+      throw const FormatException('Invalid PlayStation publication');
+    }
+    await _channel.invokeMethod('publishPcsxRestore', {
+      'captureId': restoreId,
+      'rollbackCaptureId': rollbackCaptureId,
+      ...selection,
+    });
   }
 
   /// SRAM and its paired clock file are sealed together before either

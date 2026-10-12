@@ -38,6 +38,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var ppssppSettingsProbe = false
     private var pcsxSettingsProbe = false
     private var pcsxCaptureProbe = false
+    private var pcsxRestoreProbe = false
     private var protectedPpssppSaveProbe = false
     private var ppssppCachedExitProbe = false
     private var ppssppSavedataCaptureProbe = false
@@ -66,6 +67,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         ppssppSettingsProbe = arguments?.getString("ppssppSettingsProbe") == "true"
         pcsxSettingsProbe = arguments?.getString("pcsxSettingsProbe") == "true"
         pcsxCaptureProbe = arguments?.getString("pcsxCaptureProbe") == "true"
+        pcsxRestoreProbe = arguments?.getString("pcsxRestoreProbe") == "true"
         protectedPpssppSaveProbe = arguments?.getString("protectedPpssppSaveProbe") == "true"
         ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
@@ -85,6 +87,9 @@ class OwnedRomInstrumentation : Instrumentation() {
         try {
             if (automaticSaveDiagnosis) {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
+            } else if (pcsxRestoreProbe) {
+                exercise(psx = true)
+                report.putString("result", "PASS exact PS1 private/shared restore, retained rollback, missing-card recovery, changed settings, wrong-card/generic publication rejection and lost-ack service recreation; isolated override/cards removed; real RetroArch CONTENTLESS")
             } else if (pcsxCaptureProbe) {
                 exercise(psx = true)
                 report.putString("result", "PASS exact owned PS1 private/shared card capture; full-card bytes/digests, missing baseline, writer rejection, configuration revision, stale role and cross-card journal rejection; existing shared card read-only; exclusive fixture cleanup")
@@ -286,6 +291,7 @@ class OwnedRomInstrumentation : Instrumentation() {
                         mapOf("slot" to 1, "mode" to "libretro", "name" to "$id%2Fsynthetic.srm"),
                         mapOf("slot" to 2, "mode" to "shared", "name" to "pcsx-card2.mcd")))
                     if (pcsxCaptureProbe) PcsxCaptureProof.exercise(targetContext, id, rom.name, uri.encodedPath!!.substringAfterLast('/'))
+                    if (pcsxRestoreProbe) PcsxRestoreProof.exercise(targetContext, id, rom.name, uri.encodedPath!!.substringAfterLast('/'))
                 } finally { service.shutdown() }
             }
             if (ds) {

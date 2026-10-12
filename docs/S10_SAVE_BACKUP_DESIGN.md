@@ -7,6 +7,61 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PS1 restore/rollback — verified slice, 2026-10-13
+
+The scalar restore journal now has an explicit PCSX binding containing the owned
+URI/encoded leaf and configured card role/slot. Generic scalar publication cannot
+consume it. Current CHD grants and current card configuration are checked at the
+PS1 staging/publication entrypoints; shared replay compares resource identity,
+not the initiating ROM. Private replay retains ROM identity. The existing sealed
+stream, retained rollback, prefix recovery and atomic namespace receipt remain
+the publication mechanism. The joined root restore channel writes only its exact
+restore-ID stage and publishes only its selected card, rechecking settings
+revision, namespace and writable descriptors. Restore retains the existing
+RetroArch content-in-use protection; capture adds no frontend-status dependency.
+
+The focused host capture/job checks pass, including complete-card chunking,
+verified EOF, cross-game shared restore and retained-byte rollback without a
+second download. Scoped Dart analysis is clean. Native binding checks and
+debug/test packaging pass through request 842, ticket
+`e93e9a3735eb4744be30ca4b2cc4c7c0`, original session 14599 (terminal exit 0).
+Log: `66cd87d12f2a43a7baac10c350b36cf4.log` in the local gate log directory.
+
+The actual Thor `pcsxRestoreProbe` passes with exclusive private/shared card fixtures and
+one exclusive game configuration override; existing user cards/settings are not
+replaced. It exercises generic/wrong-card/invalid-grant rejection, writable-handle
+rejection, settings revision rejection, service-recreation/lost-ack recovery,
+retained rollback and missing-card publication against the real contentless
+RetroArch endpoint. Installed APK SHA-256 independently matches
+`105a6af5cdaef7b083624e202d5d08a0d35ef5b1618c3b813664dd1e2df104ae`.
+
+The existing `saveGroupProbe` initially failed at a stale test-only reflection
+invocation (four parameters expected, three supplied). Both interruption calls
+now explicitly supply the null PCSX binding. Test packaging request 844, ticket
+`6a6513b02b1046ba84f6f6d0fbd6b210`, session 81756 exits 0; log
+`aee639d35c3b40f59d0e3f93b08e225a.log`. The corrected actual Thor probe passes
+SRAM/RTC group restore, retained rollback, changed-byte/inode rejection and
+missing-pair interrupted publication. `pcsxCaptureProbe` and
+`retroArchSnapshotProbe` pass afterward, including read-only capture, writer and
+mutation guards without frontend-status replies. Final test APK SHA-256:
+`6b2192ff6c08edf96fc72fba097d39fa6e7c640eceb35a432e1fa48707a60b2c`.
+
+Both gated builds verify two workers, parallelism false and a 3 GiB Gradle heap;
+Kotlin in-process was explicitly requested for the assessed project versions.
+Test configuration markers show one 512 MiB fork. No memory failure or heap
+increase occurred. Native two-job environment hints are not measured concurrency
+proof; task-specific Kotlin/native overrides retain the gate's verification gap.
+All 31 baseline content digests remain unchanged. Thirty filename/digest pairs
+compare exactly; one old baseline filename contains a replacement character where
+the current UTF-8 output contains its accent, with identical content digest and
+otherwise identical path. Final Unicode-preserving inventory matches the first
+post-restore inventory exactly. Exclusive fixtures/journals are removed by the
+probes' exact-identity cleanup; no owner saves/settings were replaced. Both
+physical displays are OFF and wakefulness is Asleep. No new real Drive or normal
+PS1 game-panel round trip is claimed by this native fixture proof.
+Automatic watch, normal UI and the remaining S10 coverage/fault/handover criteria
+remain unfinished; S10 is ACTIVE, S11/S12 NOT STARTED.
+
 ### PS1 shared-card job integration — ACTIVE work, 2026-10-12
 
 The existing manifest now optionally records the configured shared card's

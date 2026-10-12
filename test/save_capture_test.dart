@@ -112,6 +112,101 @@ void main() {
     expect(calls, isEmpty);
   });
 
+  test('PS1 restore stages complete cards and revalidates the grant at publish',
+      () async {
+    final layout = PcsxSaveLayout.decode({
+      'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+      'cards': [
+        {'slot': 1, 'mode': 'libretro', 'name': 'owned%2FGame.srm'},
+        {'slot': 2, 'mode': 'shared', 'name': 'pcsx-card2.mcd'},
+      ]
+    });
+    const grant = {'installationId': 'owned', 'filename': 'Game.chd'};
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'appendRestore') {
+        final args = call.arguments as Map;
+        return (args['offset'] as int) + (args['bytes'] as Uint8List).length;
+      }
+      return null;
+    });
+    for (final card in layout.cards) {
+      calls.clear();
+      await SaveCapture().stagePcsxRestore(
+          restoreId: 'a' * 32,
+          grant: grant,
+          layout: layout,
+          card: card,
+          size: 131072,
+          sha256: 'b' * 64,
+          bytes: Stream.value(Uint8List(131072)));
+      expect(calls.first.method, 'beginPcsxRestore');
+      expect(calls.first.arguments, {
+        'captureId': 'a' * 32,
+        ...grant,
+        'directory': layout.directory,
+        'slot': card.slot,
+        'mode': card.mode,
+        'name': card.name,
+        'size': 131072,
+        'sha256': 'b' * 64,
+      });
+      final chunks = calls.where((c) => c.method == 'appendRestore').toList();
+      expect(chunks.map((c) => (c.arguments as Map)['offset']), [0, 65536]);
+      expect(
+          chunks.every((c) =>
+              ((c.arguments as Map)['bytes'] as Uint8List).length == 65536),
+          isTrue);
+      expect(calls.last.method, 'sealRestore');
+      calls.clear();
+      await SaveCapture().publishPcsxRestore(
+          restoreId: 'a' * 32,
+          rollbackCaptureId: 'c' * 32,
+          grant: grant,
+          layout: layout,
+          card: card);
+      expect(calls.single.method, 'publishPcsxRestore');
+      expect(calls.single.arguments, {
+        'captureId': 'a' * 32,
+        'rollbackCaptureId': 'c' * 32,
+        ...grant,
+        'directory': layout.directory,
+        'slot': card.slot,
+        'mode': card.mode,
+        'name': card.name,
+      });
+    }
+    calls.clear();
+    await expectLater(
+        SaveCapture().stagePcsxRestore(
+            restoreId: 'a' * 32,
+            grant: grant,
+            layout: layout,
+            card: layout.cards.last,
+            size: 131071,
+            sha256: 'b' * 64,
+            bytes: Stream.value(Uint8List(131071))),
+        throwsFormatException);
+    expect(calls, isEmpty);
+    Stream<Uint8List> failedTransport() async* {
+      yield Uint8List(131072);
+      throw StateError('final transport verification failed');
+    }
+
+    await expectLater(
+        SaveCapture().stagePcsxRestore(
+            restoreId: 'a' * 32,
+            grant: grant,
+            layout: layout,
+            card: layout.cards.last,
+            size: 131072,
+            sha256: 'b' * 64,
+            bytes: failedTransport()),
+        throwsStateError);
+    expect(calls.any((c) => c.method == 'sealRestore'), isFalse);
+  });
+
   test('SNES battery route retains its Snes9x SRAM and optional clock contract',
       () {
     final route = RetroArchBatteryRoute.forPlatform('snes');

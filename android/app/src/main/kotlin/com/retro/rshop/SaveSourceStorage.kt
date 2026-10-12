@@ -18,7 +18,8 @@ import java.io.File
  * per-chunk su processes. Ordinary shared save paths retain direct JNI access. */
 internal class SaveSourceStorage private constructor(
     private val source: String, private val child: java.lang.Process?, private val snapshotOnly: Boolean = false,
-    private val pcsxLeaf: String? = null, private val pcsxCard: PcsxSaveSettings.Card? = null
+    private val pcsxLeaf: String? = null, private val pcsxCard: PcsxSaveSettings.Card? = null,
+    private val pcsxRestoreId: String? = null
 ) : Closeable {
     private val input = child?.let { DataInputStream(it.inputStream.buffered()) }
     private val output = child?.let { DataOutputStream(it.outputStream.buffered()) }
@@ -41,6 +42,7 @@ internal class SaveSourceStorage private constructor(
                     if (snapshotOnly) it.put("snapshotOnly", true)
                     if (pcsxLeaf != null) it.put("pcsxLeaf", pcsxLeaf).put("pcsxSlot", pcsxCard!!.slot)
                         .put("pcsxMode", pcsxCard.mode).put("pcsxName", pcsxCard.name)
+                    if (pcsxRestoreId != null) it.put("pcsxRestoreId", pcsxRestoreId)
                 }); 1
             }
         } catch (error: Exception) {
@@ -90,6 +92,13 @@ internal class SaveSourceStorage private constructor(
             PcsxSaveSettings.select(PcsxSaveSettings.Layout(selection.directory, listOf(selection.card)), selection.card.slot)
             return SaveSourceStorage(selection.directory, start(context, globalMountNamespace = true),
                 pcsxLeaf = encodedLeaf, pcsxCard = selection.card)
+        }
+        fun openPcsxRestore(context: Context, encodedLeaf: String, selection: PcsxSaveSettings.Selection,
+                            restoreId: String): SaveSourceStorage {
+            require(PcsxSaveSettings.validChdLeaf(encodedLeaf) && restoreId.matches(Regex("[a-f0-9]{32}")))
+            PcsxSaveSettings.select(PcsxSaveSettings.Layout(selection.directory, listOf(selection.card)), selection.card.slot)
+            return SaveSourceStorage(selection.directory, start(context, globalMountNamespace = true),
+                pcsxLeaf = encodedLeaf, pcsxCard = selection.card, pcsxRestoreId = restoreId)
         }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
@@ -343,8 +352,11 @@ object RootSaveSourceWorker {
             }
             val source = hello.getString("source")
             val pcsxLeaf = if (hello.has("pcsxLeaf")) hello.getString("pcsxLeaf") else null
+            val pcsxRestoreId = if (hello.has("pcsxRestoreId")) hello.getString("pcsxRestoreId").also {
+                require(pcsxLeaf != null && it.matches(Regex("[a-f0-9]{32}")))
+            } else null
             val pcsx = pcsxLeaf?.let { leaf ->
-                require(hello.length() == 5)
+                require(hello.length() == if (pcsxRestoreId == null) 5 else 6)
                 val configured = try { PcsxSaveSettings.readSelection(leaf, hello.getInt("pcsxSlot")) }
                     catch (error: Exception) {
                         if (error is IOException && error.message == "source_changed") throw error
@@ -377,8 +389,11 @@ object RootSaveSourceWorker {
             reply(JSONObject().put("ready", true))
             var next = 2
             fun fd(row: JSONObject) = files[row.getInt("fd")] ?: throw IOException("source_changed")
+            fun validStage(leaf: String) = if (pcsx != null)
+                pcsxRestoreId != null && leaf == ".rshop-save-restore-$pcsxRestoreId"
+                else leaf.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}"))
             fun name(row: JSONObject, key: String = "name", stage: Boolean = false): String = row.getString(key).also {
-                require(if (stage) it.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}")) else validName(it))
+                require(if (stage) validStage(it) else validName(it))
             }
             fun identity(value: LongArray) = JSONObject().put("identity", JSONArray(value.toList()))
             while (true) {
@@ -387,10 +402,11 @@ object RootSaveSourceWorker {
                 val row = JSONObject(encoded)
                 try {
                     val operation = row.getString("operation")
-                    // This card lane is capture-only. Restore will require its
-                    // independently reviewed rollback/publication contract.
-                    require(pcsx == null || operation in setOf("identity", "currentRoot", "entry", "open", "read", "close",
-                        "snapshotBegin", "snapshotVerify"))
+                    // Capture stays read-only. Restore can write only its exact
+                    // private stage and publish only the configured card.
+                    require(pcsx == null || operation in if (pcsxRestoreId == null)
+                        setOf("identity", "currentRoot", "entry", "open", "read", "close", "snapshotBegin", "snapshotVerify")
+                        else setOf("identity", "currentRoot", "entry", "open", "read", "write", "sync", "close", "rename", "replace"))
                     require(!savedataParent || operation in setOf("names", "identity", "currentRoot", "emulatorClosed",
                         "savedataSnapshotBegin", "snapshotVerify", "groupOpen", "groupFile", "groupEntry", "groupNames",
                         "groupPublish", "groupProbe", "groupSnapshotBegin", "groupMemberRetire", "groupRetire", "read", "write", "sync", "close"))
@@ -407,12 +423,22 @@ object RootSaveSourceWorker {
                                 throw IOException("source_changed")
                         } finally { OwnedStorageNative.close(fresh) }
                     }
+                    fun verifyPcsxSettings() {
+                        if (pcsx == null) return
+                        val current = try { PcsxSaveSettings.readSelection(pcsxLeaf, pcsx.first.card.slot) }
+                            catch (_: Exception) { throw IOException("source_changed") }
+                        if (current != pcsx) throw IOException("source_changed")
+                        pinnedParent()
+                    }
+                    fun verifyPcsxPublication() {
+                        if (pcsx == null) return
+                        require(pcsxRestoreId != null)
+                        verifyPcsxSettings()
+                        if (OwnedStorageNative.saveSnapshotHasWriter(parent, pcsx.first.card.name!!, source, backing))
+                            throw IOException("source_changed")
+                    }
                     fun verifySnapshot() {
-                        if (pcsx != null) {
-                            val current = try { PcsxSaveSettings.readSelection(pcsxLeaf, pcsx.first.card.slot) }
-                                catch (_: Exception) { throw IOException("source_changed") }
-                            if (current != pcsx) throw IOException("source_changed")
-                        }
+                        verifyPcsxSettings()
                         if (snapshotInvalid) throw IOException("source_changed")
                         val leaf = snapshotName ?: throw IOException("source_changed")
                         if ((!savedata && !savedataParent && OwnedStorageNative.saveSnapshotHasWriter(parent, leaf, source, backing)) ||
@@ -597,19 +623,21 @@ object RootSaveSourceWorker {
                         }
                         "identity" -> identity(OwnedStorageNative.identity(fd(row)))
                         "currentRoot" -> {
+                            verifyPcsxSettings()
                             val fresh = OwnedStorageNative.openRoot(backing)
                             try { identity(OwnedStorageNative.identity(fresh)) } finally { OwnedStorageNative.close(fresh) }
                         }
                         "entry" -> {
                             val leaf = row.getString("name")
-                            require(validName(leaf) || (pcsx == null && leaf.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}"))))
+                            require(validName(leaf) || validStage(leaf))
                             identity(OwnedStorageNative.entryIdentity(parent, leaf))
                         }
                         "open" -> {
                             require(files.size < 5)
                             val create = row.getBoolean("create")
                             val write = row.getBoolean("writable")
-                            require(pcsx == null || (!create && !write))
+                            require(pcsx == null || pcsxRestoreId != null || (!create && !write))
+                            if (pcsx != null && (create || write)) verifyPcsxSettings()
                             val leaf = name(row, stage = write || create)
                             val opened = OwnedStorageNative.openFile(parent, leaf, create, write)
                             val handle = next++
@@ -645,15 +673,18 @@ object RootSaveSourceWorker {
                             val offset = row.getLong("offset")
                             require(length in 1..65536 && offset in 0..maxBytes && offset + length <= maxBytes)
                             val bytes = ByteArray(length).also(input::readFully)
+                            verifyPcsxSettings()
                             OwnedStorageNative.write(fd(row), offset, bytes)
                             JSONObject()
                         }
                         "sync" -> { OwnedStorageNative.sync(fd(row)); JSONObject() }
                         "rename" -> {
+                            verifyPcsxPublication()
                             OwnedStorageNative.renameNoReplace(parent, name(row, "stage", true), parent, name(row))
                             JSONObject()
                         }
                         "replace" -> {
+                            verifyPcsxPublication()
                             identity(OwnedStorageNative.replaceReviewedSave(parent, name(row, "stage", true), name(row),
                                 expected("staged"), expected("current")))
                         }

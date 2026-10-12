@@ -4,6 +4,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PcsxSaveSettingsTest {
+    @Test fun restoreBindingPinsCompleteCardRoleAndDoesNotEnableGenericRestore() {
+        val layout = PcsxSaveSettings.resolve(leaf, files()::get)
+        for (slot in 1..2) {
+            val selected = PcsxSaveSettings.select(layout, slot)
+            assertTrue(selected.acceptsRestore(selected.card.name!!, 131072, selected.format, layout.directory))
+            assertFalse(selected.acceptsRestore(selected.card.name!!, 131071, selected.format, layout.directory))
+            assertFalse(selected.acceptsRestore("other.srm", 131072, selected.format, layout.directory))
+            assertFalse(selected.acceptsRestore(selected.card.name!!, 131072, "pcsx-shared-card1-v1", layout.directory))
+            assertFalse(selected.acceptsRestore(selected.card.name!!, 131072, selected.format, "/storage/emulated/0/Other"))
+            assertFalse(SaveCaptureService.validRestoreBinding(selected.card.name!!, 131072,
+                selected.format, layout.directory))
+        }
+    }
     @Test fun captureReplayFollowsTheSharedCardNotItsInitiatingRom() {
         val layout = PcsxSaveSettings.resolve(leaf, files()::get)
         val shared = PcsxSaveSettings.select(layout, 2)

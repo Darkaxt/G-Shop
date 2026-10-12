@@ -278,10 +278,13 @@ internal class SaveCaptureService(private val activity: Context) {
                             restoreBaseline = call.argument<Boolean>("restoreBaseline") == true)
                         "retireCapture" -> retireCapture(captureId!!)
                         "beginRestore" -> beginRestore(captureId!!, call)
+                        "beginPcsxRestore" -> beginRestore(captureId!!, call, pcsx = pcsxSource(call))
                         "appendRestore" -> appendRestore(captureId!!, call)
                         "sealRestore" -> sealRestore(captureId!!)
                         "publishRestore" -> publishRestore(captureId!!,
                             call.argument<String>("rollbackCaptureId") ?: "")
+                        "publishPcsxRestore" -> publishRestore(captureId!!,
+                            call.argument<String>("rollbackCaptureId") ?: "", pcsx = pcsxSource(call))
                         "beginRestoreGroup" -> beginRestoreGroup(captureId!!, call)
                         "appendRestoreGroup" -> appendRestoreGroup(captureId!!, call)
                         "sealRestoreGroup" -> sealRestoreGroup(captureId!!)
@@ -755,6 +758,23 @@ internal class SaveCaptureService(private val activity: Context) {
         return directory
     }
 
+    private fun restorePcsx(record: JSONObject): PcsxSource? {
+        if (!record.has("pcsx")) return null
+        val row = record.getJSONObject("pcsx")
+        if (row.length() != 4 || record.has("groupId")) throw Failure("invalid_restore")
+        val uri = Uri.parse(row.getString("uri"))
+        val leaf = row.getString("leaf")
+        if (uri.scheme != "content" || uri.authority != "${activity.packageName}.owned-roms" ||
+            uri.query != null || uri.fragment != null || uri.encodedPath?.substringAfterLast('/') != leaf ||
+            !PcsxSaveSettings.validChdLeaf(leaf)) throw Failure("invalid_restore")
+        val selected = PcsxSaveSettings.select(PcsxSaveSettings.Layout(record.getString("source"),
+            listOf(PcsxSaveSettings.Card(row.getInt("slot"), row.getString("mode"), record.getString("name")))),
+            row.getInt("slot"))
+        if (!selected.acceptsRestore(record.getString("name"), record.getLong("size"),
+                record.getString("format"), record.getString("source"))) throw Failure("invalid_restore")
+        return PcsxSource(uri, leaf, selected)
+    }
+
     private fun restoreRecord(directory: File): JSONObject {
         val file = File(directory, "restore.json")
         if (file.canonicalFile != file.absoluteFile || !file.isFile || file.length() !in 1..16384) {
@@ -762,7 +782,8 @@ internal class SaveCaptureService(private val activity: Context) {
         }
         val record = JSONObject(file.readText())
         val groupId = record.optString("groupId").takeIf { it.isNotEmpty() }
-        val validBinding = if (groupId == null) validRestoreBinding(record.getString("name"), record.getLong("size"),
+        val pcsx = restorePcsx(record)
+        val validBinding = if (pcsx != null) true else if (groupId == null) validRestoreBinding(record.getString("name"), record.getLong("size"),
                 record.optString("format", "mgba-battery"), record.optString("source", source)) else {
             val group = groupRecord(restoreDirectory(groupId))
             val members = group.getJSONArray("members")
@@ -817,7 +838,7 @@ internal class SaveCaptureService(private val activity: Context) {
         true
     }
 
-    private fun beginRestore(id: String, call: MethodCall, groupId: String? = null): Any? {
+    private fun beginRestore(id: String, call: MethodCall, groupId: String? = null, pcsx: PcsxSource? = null): Any? {
         check()
         val name = call.argument<String>("name") ?: ""
         val size = call.argument<Number>("size")?.toLong() ?: 0L
@@ -826,12 +847,14 @@ internal class SaveCaptureService(private val activity: Context) {
         val melonDirectory = call.argument<String>("melonDirectory")
         val route = batteryRoute(call)
         if ((ppssppDirectory != null && melonDirectory != null) ||
+            (pcsx != null && (groupId != null || ppssppDirectory != null || melonDirectory != null || route != "gba")) ||
             ((ppssppDirectory != null || melonDirectory != null) && route != "gba")) throw Failure("invalid_restore")
         val group = groupId?.let { groupRecord(restoreDirectory(it)) }
-        val sourceDirectory = group?.optString("source", MGBA_SOURCE) ?: melonDirectory ?: ppssppDirectory ?: batterySource(route)
-        val format = group?.optString("format", "mgba-battery") ?: if (melonDirectory != null) MelonSaveBoundary.FORMAT else if (ppssppDirectory != null) "ppsspp-slot-v1"
+        val sourceDirectory = pcsx?.selection?.directory ?: group?.optString("source", MGBA_SOURCE) ?: melonDirectory ?: ppssppDirectory ?: batterySource(route)
+        val format = pcsx?.selection?.format ?: group?.optString("format", "mgba-battery") ?: if (melonDirectory != null) MelonSaveBoundary.FORMAT else if (ppssppDirectory != null) "ppsspp-slot-v1"
             else batteryFormat(route)
-        val validBinding = if (group == null) validRestoreBinding(name, size, format, sourceDirectory)
+        val validBinding = if (pcsx != null) pcsx.selection.acceptsRestore(name, size, format, sourceDirectory)
+            else if (group == null) validRestoreBinding(name, size, format, sourceDirectory)
             else (0 until group.getJSONArray("members").length()).any { index ->
                 val member = group.getJSONArray("members").getJSONObject(index)
                 childId(groupId!!, index) == id && member.getString("name") == name &&
@@ -839,7 +862,7 @@ internal class SaveCaptureService(private val activity: Context) {
             }
         // SRAM is also a group member; its normal scalar binding remains valid.
         if (!validBinding ||
-            (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
+            (pcsx == null && !SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
                 File(sourceDirectory).canonicalPath != sourceDirectory) ||
             !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
         val directory = restoreDirectory(id)
@@ -847,6 +870,7 @@ internal class SaveCaptureService(private val activity: Context) {
         if (journal.exists()) {
             val record = restoreRecord(directory)
             if (record.getString("name") != name || record.getLong("size") != size ||
+                restorePcsx(record)?.journalKey != pcsx?.journalKey ||
                 record.getString("sha256") != digest ||
                 record.optString("groupId").takeIf { it.isNotEmpty() } != groupId ||
                 record.optString("format", "mgba-battery") != format ||
@@ -858,6 +882,8 @@ internal class SaveCaptureService(private val activity: Context) {
                 .put("size", size).put("sha256", digest).put("format", format)
                 .put("source", sourceDirectory).put("phase", "downloading").also {
                     if (groupId != null) it.put("groupId", groupId)
+                    if (pcsx != null) it.put("pcsx", JSONObject().put("uri", pcsx.uri.toString())
+                        .put("leaf", pcsx.leaf).put("slot", pcsx.selection.card.slot).put("mode", pcsx.selection.card.mode))
                 })
         }
         val parent = OwnedStorageNative.openRoot(directory.absolutePath)
@@ -915,12 +941,13 @@ internal class SaveCaptureService(private val activity: Context) {
         return null
     }
 
-    private fun publishRestore(id: String, rollbackId: String, groupId: String? = null): Any? {
+    private fun publishRestore(id: String, rollbackId: String, groupId: String? = null, pcsx: PcsxSource? = null): Any? {
         check()
         if (!rollbackId.matches(Regex("[a-f0-9]{32}")) || rollbackId == id) throw Failure("invalid_restore")
         val directory = restoreDirectory(id)
         val record = restoreRecord(directory)
-        if (record.optString("groupId").takeIf { it.isNotEmpty() } != groupId) throw Failure("invalid_restore")
+        if (record.optString("groupId").takeIf { it.isNotEmpty() } != groupId ||
+            restorePcsx(record)?.journalKey != pcsx?.journalKey) throw Failure("invalid_restore")
         val group = groupId?.let { groupRecord(restoreDirectory(it)) }
         if (record.optString("format") == PpssppSavedataBoundary.FORMAT) throw Failure("invalid_restore")
         if (group != null && group.getString("phase") != "publishing") throw Failure("invalid_restore")
@@ -935,13 +962,13 @@ internal class SaveCaptureService(private val activity: Context) {
         val melon = record.optString("format") == MelonSaveBoundary.FORMAT
         val standalone = ppsspp || melon
         val sourceDirectory = record.optString("source", source)
-        if (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
+        if (pcsx == null && !SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
             File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_restore")
         val rollbackDirectory = File(root, rollbackId)
         if (rollbackDirectory.canonicalFile != rollbackDirectory.absoluteFile) throw Failure("invalid_restore")
-        val batteryRoute = routeForFormat(record.optString("format", "mgba-battery"))
+        val batteryRoute = if (pcsx != null) "gba" else routeForFormat(record.optString("format", "mgba-battery"))
         val rollback = captured(rollbackDirectory, group?.getString("name") ?: name,
-            sourceDirectory.takeIf { ppsspp }, batteryRoute, sourceDirectory.takeIf { melon }, true)
+            sourceDirectory.takeIf { ppsspp }, batteryRoute, sourceDirectory.takeIf { melon }, true, pcsx = pcsx)
             ?: throw Failure("invalid_restore")
         val absent = rollback["localWasAbsent"] == true
         @Suppress("UNCHECKED_CAST")
@@ -956,16 +983,18 @@ internal class SaveCaptureService(private val activity: Context) {
         if (version !in versions ||
             rollback["emulatorVersion"] != version) throw Failure("runtime_unreviewed")
         val rtc = name.dropLast(4) + ".rtc"
-        if (group == null && !standalone && File(sourceDirectory, rtc).exists()) throw Failure("related_group_unfinished")
+        if (group == null && !standalone && pcsx == null && File(sourceDirectory, rtc).exists()) throw Failure("related_group_unfinished")
         record.put("rollbackId", rollbackId)
         writeRestoreRecord(directory, record) // durable rollback association before public IO
         val connection = if (standalone) null else synchronized(guard) {
             check(); DatagramSocket().also { socket = it }
         }
         connection?.connect(InetAddress.getByName("127.0.0.1"), 55355)
-        val sourceStorage = SaveSourceStorage.open(activity, sourceDirectory)
+        val sourceStorage = if (pcsx != null) SaveSourceStorage.openPcsxRestore(activity, pcsx.leaf, pcsx.selection, id)
+            else SaveSourceStorage.open(activity, sourceDirectory)
         fun writerClosed() {
             check()
+            if (pcsx != null) OwnedRomContentProvider.openCommitted(activity, pcsx.uri, requiredStandaloneChd = true).use { }
             if (connection != null) contentClosed(connection) else {
                 try { sourceStorage.verifyEmulatorClosed(activity) }
                 catch (error: java.io.IOException) {
@@ -1057,7 +1086,7 @@ internal class SaveCaptureService(private val activity: Context) {
                         if (digestFd(staged, size, sourceStorage = sourceStorage) != record.getString("sha256")) throw Failure("changed_capture")
                     } finally { OwnedStorageNative.close(member) }
                     writerClosed()
-                    if (group == null && !standalone && File(sourceDirectory, rtc).exists()) throw Failure("source_changed")
+                    if (group == null && !standalone && pcsx == null && File(sourceDirectory, rtc).exists()) throw Failure("source_changed")
                     verifyCurrent()
                     // Reopen the namespace to reject a moved/replaced ancestor.
                     val a = sourceStorage.identity(parent); val b = sourceStorage.currentRootIdentity()

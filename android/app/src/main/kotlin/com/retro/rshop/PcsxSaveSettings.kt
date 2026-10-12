@@ -25,6 +25,8 @@ internal object PcsxSaveSettings {
     data class Selection(val directory: String, val card: Card) {
         val format: String get() = "pcsx-${card.mode}-card${card.slot}-v1"
         fun acceptsSize(size: Long): Boolean = size == 131072L
+        fun acceptsRestore(name: String, size: Long, format: String, source: String): Boolean =
+            name == card.name && acceptsSize(size) && format == this.format && source == directory
         // Shared cards belong to the configured resource, not the ROM which
         // triggered capture. Private cards retain their existing ROM binding.
         fun captureKey(ownedUri: String): List<Any> =

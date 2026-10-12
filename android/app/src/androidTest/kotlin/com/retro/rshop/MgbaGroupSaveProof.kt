@@ -90,9 +90,9 @@ internal object MgbaGroupSaveProof {
             val journal = File(context.filesDir.canonicalFile, "save-restores/$restore/group.json")
             val record = JSONObject(journal.readText()).put("rollbackId", rollback).put("phase", "publishing")
             write(journal, record.toString().toByteArray())
-            val publish = SaveCaptureService::class.java.getDeclaredMethod("publishRestore", String::class.java, String::class.java, String::class.java)
+            val publish = SaveCaptureService::class.java.declaredMethods.single { it.name == "publishRestore" && it.parameterCount == 4 }
             publish.isAccessible = true
-            publish.invoke(service, child(restore, 0), rollback, restore)
+            publish.invoke(service, child(restore, 0), rollback, restore, null)
             check(File(source, names[0]).readBytes().contentEquals(before.getValue(names[0])))
             check(File(source, names[1]).readBytes().contentEquals(after.getValue(names[1])))
             check(SaveCaptureService.groupRestorePending(context.filesDir, name))
@@ -132,7 +132,7 @@ internal object MgbaGroupSaveProof {
             val missingJournal = File(context.filesDir.canonicalFile, "save-restores/$missing/group.json")
             val missingRecord = JSONObject(missingJournal.readText()).put("rollbackId", absent).put("phase", "publishing")
             write(missingJournal, missingRecord.toString().toByteArray())
-            publish.invoke(service, child(missing, 0), absent, missing)
+            publish.invoke(service, child(missing, 0), absent, missing, null)
             check(File(source, names[0]).readBytes().contentEquals(before.getValue(names[0])))
             check(!File(source, names[1]).exists())
             close(); service = SaveCaptureService(context)

@@ -1319,7 +1319,6 @@ class SaveBackupGameJob extends ChangeNotifier {
         release = await admission.acquire(cancellation);
         _check(cancellation);
         _issue = null;
-        if (isPcsx) throw PlatformException(code: 'related_group_unfinished');
         await load();
         _check(cancellation);
         await _retireCompletedCapture();
@@ -1357,7 +1356,8 @@ class SaveBackupGameJob extends ChangeNotifier {
               ? SaveBackupManifest.decode(
                   utf8.encode(jsonEncode(record['restore']['manifest'])))
               : lastVerified!;
-          if (manifest.binding.editions.single.gameId != game.id) {
+          if (!isSharedPcsx &&
+              manifest.binding.editions.single.gameId != game.id) {
             throw const FormatException('Changed restore game');
           }
           _contents(manifest);
@@ -1386,14 +1386,15 @@ class SaveBackupGameJob extends ChangeNotifier {
         }
         final selected = SaveBackupManifest.decode(
             utf8.encode(jsonEncode(restore['manifest'])));
-        if (selected.binding.editions.single.gameId != game.id) {
+        if (!isSharedPcsx &&
+            selected.binding.editions.single.gameId != game.id) {
           throw const FormatException('Changed restore game');
         }
+        _contents(selected);
         final restoreId = restore['id'] as String;
         final rollbackId = restore['rollbackId'] as String;
         final name = restore['name'] as String;
-        await _requireName(name,
-            gameId: selected.binding.editions.single.gameId);
+        await _requireName(name, gameId: game.id);
         _check(cancellation);
         if (restore['state'] == 'capture') {
           phase = 'rollback_capture';
@@ -1504,24 +1505,38 @@ class SaveBackupGameJob extends ChangeNotifier {
           } else {
             final member = cloud.members.single;
             final retainedFile = retained?.files.single;
-            await capture.stageRestore(
-                restoreId: restoreId,
-                name: name,
-                size: retainedFile?.size ?? member.sizeBytes,
-                sha256: retainedFile?.sha256 ?? member.sha256,
-                ppssppDirectory: ppssppDirectory,
-                melonDirectory: melonDirectory,
-                retroArchRoute: retroArchRoute,
-                bytes: retainedFile != null
-                    ? retainedFile.file.openRead().map((chunk) {
-                        _check(cancellation);
-                        return Uint8List.fromList(chunk);
-                      })
-                    : generations.memberBytes(
-                        areaId: areaId,
-                        generation: cloud,
-                        memberId: member.cloudFileId,
-                        cancellation: cancellation));
+            final bytes = retainedFile != null
+                ? retainedFile.file.openRead().map((chunk) {
+                    _check(cancellation);
+                    return Uint8List.fromList(chunk);
+                  })
+                : generations.memberBytes(
+                    areaId: areaId,
+                    generation: cloud,
+                    memberId: member.cloudFileId,
+                    cancellation: cancellation);
+            if (isPcsx) {
+              final grant = await resolvePcsxGrant!();
+              _check(cancellation);
+              await capture.stagePcsxRestore(
+                  restoreId: restoreId,
+                  grant: grant,
+                  layout: pcsxLayout!,
+                  card: pcsxCard!,
+                  size: retainedFile?.size ?? member.sizeBytes,
+                  sha256: retainedFile?.sha256 ?? member.sha256,
+                  bytes: bytes);
+            } else {
+              await capture.stageRestore(
+                  restoreId: restoreId,
+                  name: name,
+                  size: retainedFile?.size ?? member.sizeBytes,
+                  sha256: retainedFile?.sha256 ?? member.sha256,
+                  ppssppDirectory: ppssppDirectory,
+                  melonDirectory: melonDirectory,
+                  retroArchRoute: retroArchRoute,
+                  bytes: bytes);
+            }
           }
           _check(cancellation);
           restore = {...restore, 'state': 'ready'};
@@ -1531,8 +1546,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         _check(cancellation);
         phase = 'restore_publish';
         _changed();
-        await _requireName(name,
-            gameId: selected.binding.editions.single.gameId);
+        await _requireName(name, gameId: game.id);
         _check(cancellation);
         if (beforeLaunch && !rollback) {
           final currentHeads = await _cloudHeads(selected, cancellation);
@@ -1547,7 +1561,16 @@ class SaveBackupGameJob extends ChangeNotifier {
             return;
           }
         }
-        if (isPpssppSavedata || selected.members.length > 1) {
+        if (isPcsx) {
+          final grant = await resolvePcsxGrant!();
+          _check(cancellation);
+          await capture.publishPcsxRestore(
+              restoreId: restoreId,
+              rollbackCaptureId: rollbackId,
+              grant: grant,
+              layout: pcsxLayout!,
+              card: pcsxCard!);
+        } else if (isPpssppSavedata || selected.members.length > 1) {
           await capture.publishRestoreGroup(
               restoreId: restoreId, rollbackCaptureId: rollbackId);
         } else {
