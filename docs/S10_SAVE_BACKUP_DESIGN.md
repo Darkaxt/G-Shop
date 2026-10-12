@@ -7,6 +7,56 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### GB/GBC SameBoy SRAM and RTC routes — verified slice, 2026-10-12
+
+SAVE-01's installed-route coverage now includes ordinary owned GB/GBC archives
+through SameBoy. Exact encoded archive names resolve automatically through the
+existing owned launch review. The normal backup job and pre-launch watch carry
+separate `gb`/`gbc` platform bindings, `libretro-sameboy-sram-v1` format and
+`gb-battery`/`gbc-battery` journals into the existing capture/restore coordinator.
+Both use `RetroArch/saves/SameBoy`, without a second save engine or manual
+ownership confirmation. Launch blocks on an unfinished related-file restore.
+
+[SameBoy's libretro memory interface](https://github.com/libretro/SameBoy/blob/master/libretro/libretro.c#L1209-L1272)
+exposes cartridge-sized SRAM and a separate RTC section for battery cartridges.
+The existing 16 MiB member bound limits IO, not a claimed universal format size.
+An exact-stem RTC is included when present, and its creation during capture is
+guarded. The installed SameBoy core exists (302,480 bytes); upstream master is
+reference evidence, not proof of binary equivalence. Save states and the two-cart
+link subsystem remain unfinished coverage, not silently satisfied requirements.
+
+The missing route was first reproduced by the failing GB/GBC route contract.
+Focused Dart checks now pass exact owned review, distinct persistent bindings,
+pre-launch watch admission, paired staging, failed-publication recovery and
+retained rollback. Scoped analysis/format and native boundary/capture/watch
+contracts pass. Gated request 823, ticket `b1145a44bbac4ea8a312dbcbebe22c2d`,
+completed with exit 0 and verified supervision: shared mutex acquired, two workers,
+no parallelism, 3 GiB Gradle, Kotlin in-process, one configured 512 MiB test fork.
+The current project is Gradle 9.1.0/AGP 8.13.2/Kotlin 2.3.21; in-process compilation
+passed this focused build. No memory failure/budget increase. Native two-job
+environment hints were supplied, not independently measured. Existing plugin,
+SDK XML and future Gradle deprecation warnings remain outside this save change.
+
+Preserving APK SHA-256, independently matched to the installed base APK:
+`b49a0a8609139d7e9ae07634be068de5dbd26b4dd82156a7251dd345827ab903`.
+Serial Thor probes passed `retroArchSnapshotProbe`, `retroArchWatchProbe`,
+`sameBoySaveProbe gb`, `sameBoySaveProbe gbc` and default GBA `saveGroupProbe`.
+They prove writer/mutation/absent-RTC guards, paired digests, exact watch delivery,
+GB-to-GBC and GBC-to-GB journal replay rejection even in the shared directory,
+whole-group sealing/scalar-bypass rejection, changed-byte/replacement-inode
+rejection, interrupted first-member publication across service recreation,
+expected-location restore, retained-byte rollback and missing-pair root recovery.
+Restore retains actual RetroArch CONTENTLESS protection; backup requires no
+frontend reply. Per-member publication is atomic, not an atomic entire pair.
+
+All 30 before/after preservation hashes match; existing saves, RetroArch settings
+and R-Shop preferences are unchanged. Exclusive fixture files/journals were
+removed by their owners. Both displays are OFF and wakefulness Asleep. No ROM,
+BIOS, user save or Drive generation was changed by the probes. This is not a new
+GB/GBC-specific UI-to-Drive round trip. S10 stays ACTIVE with other accessible
+routes, states, required faults/reconnect and conditional handover unfinished;
+S11 and proposed S12 stay NOT STARTED. No release occurred.
+
 ### SNES/Snes9x SRAM and RTC route — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage. The existing owned SNES 7z review, normal

@@ -381,7 +381,7 @@ object RootSaveSourceWorker {
                             require(snapshot == -1 && MelonSaveBoundary.validDirectory(source))
                             snapshotName = name(row)
                             snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
-                            if (source in listOf(RetroArchSaveBoundary.saveDirectory("gba"),
+                            if (source in listOf(RetroArchSaveBoundary.saveDirectory("gb"), RetroArchSaveBoundary.saveDirectory("gba"),
                                     RetroArchSaveBoundary.saveDirectory("snes"))) {
                                 clockName = RetroArchSaveBoundary.snapshotNames(source, snapshotName!!).last()
                                 clockSnapshot = OwnedStorageNative.saveSnapshotOpen(parent)

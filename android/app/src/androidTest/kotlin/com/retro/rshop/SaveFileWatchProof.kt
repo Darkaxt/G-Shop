@@ -13,10 +13,10 @@ internal object SaveFileWatchProof {
     fun retroArch(context: Context): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
         val suffix = UUID.randomUUID().toString()
-        val mappings = listOf("gba", "n64", "nes", "snes").mapIndexed { index, platform ->
-            SaveFileWatch.Mapping(listOf("d", "e", "f", "a")[index].repeat(64),
+        val mappings = listOf("gba", "n64", "nes", "snes", "gb", "gbc").mapIndexed { index, platform ->
+            SaveFileWatch.Mapping(listOf("d", "e", "f", "a", "b", "c")[index].repeat(64),
                 RetroArchSaveBoundary.saveDirectory(platform)!!,
-                "rshop-watch-$suffix.srm", "retroarch-$platform")
+                "rshop-watch-$platform-$suffix.srm", "retroarch-$platform")
         }
         val initial = mappings.associate { it.directory to File(it.directory).list()!!.toSet() }
         val delivered = CountDownLatch(mappings.size)
@@ -32,11 +32,11 @@ internal object SaveFileWatchProof {
         }
         try {
             val publications = mappings.map { mapping ->
-                // Only the mapped GBA/SNES clock leaf or N64/NES SRM should deliver.
+                // Only each exact clock leaf or N64/NES SRM should deliver.
                 val leaf = if (RetroArchSaveBoundary.includesRtc(mapping.route.removePrefix("retroarch-")))
                     mapping.name.dropLast(4) + ".rtc" else mapping.name
                 val target = allocate(File(mapping.directory, leaf))
-                val unrelated = allocate(File(mapping.directory, "rshop-other-$suffix.srm"))
+                val unrelated = allocate(File(mapping.directory, "rshop-other-${mapping.name}"))
                 val temporary = allocate(File(mapping.directory, "$leaf.tmp"))
                 Triple(target, unrelated, temporary)
             }
@@ -58,7 +58,7 @@ internal object SaveFileWatchProof {
             }
             for ((directory, names) in initial) check(File(directory).list()!!.toSet() == names)
         }
-        return "PASS RetroArch exact native watches: mGBA/Snes9x clock and N64/NES SRM publications delivered; unrelated and temporary leaves excluded; joined observer cleanup; existing saves preserved; no emulator/Drive/settings changes"
+        return "PASS RetroArch exact native watches: mGBA/Snes9x/SameBoy GB/GBC clock and N64/NES SRM publications delivered; unrelated and temporary leaves excluded; joined observer cleanup; existing saves preserved; no emulator/Drive/settings changes"
     }
 
     fun exercise(context: Context): String {

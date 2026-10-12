@@ -6,6 +6,7 @@ package com.retro.rshop
  * State tasks require separate analysis; this route must not capture them. */
 internal object RetroArchSaveBoundary {
     fun saveDirectory(platform: String): String? = when (platform) {
+        "gb", "gbc" -> "/storage/emulated/0/RetroArch/saves/SameBoy"
         "gba" -> "/storage/emulated/0/RetroArch/saves/mGBA"
         "nes" -> "/storage/emulated/0/RetroArch/saves/FCEUmm"
         "snes" -> "/storage/emulated/0/RetroArch/saves/Snes9x"
@@ -13,14 +14,14 @@ internal object RetroArchSaveBoundary {
         "n64" -> "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         else -> null
     }
-    fun includesRtc(platform: String): Boolean = platform == "gba" || platform == "snes"
+    fun includesRtc(platform: String): Boolean = platform in setOf("gb", "gbc", "gba", "snes")
 
     fun snapshotNames(directory: String, name: String): List<String> {
-        require(directory in listOf(saveDirectory("gba"), saveDirectory("nes"), saveDirectory("snes"), saveDirectory("gamegear"), saveDirectory("n64")))
+        require(directory in listOf(saveDirectory("gb"), saveDirectory("gba"), saveDirectory("nes"), saveDirectory("snes"), saveDirectory("gamegear"), saveDirectory("n64")))
         require(validName(name))
         // Watch the clock even when absent so creation during SRAM capture
         // cannot produce a falsely complete group.
-        return if (directory == saveDirectory("gba") || directory == saveDirectory("snes"))
+        return if (directory in listOf(saveDirectory("gb"), saveDirectory("gba"), saveDirectory("snes")))
             listOf(name, name.dropLast(4) + ".rtc") else listOf(name)
     }
     // Pinned SAF archive launch: preserve the encoded document ID. Decoding

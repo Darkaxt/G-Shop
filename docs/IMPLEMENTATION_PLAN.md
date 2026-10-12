@@ -1701,7 +1701,17 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
-Latest verified slice, 2026-10-12: SNES/Snes9x now joins exact owned save review
+Latest verified slice, 2026-10-12: GB/GBC SameBoy now joins exact owned save
+review, normal backup/watch, capture and paired restore/rollback with distinct
+console journals. Focused host/native checks and scoped analysis pass. Thor
+verifies capture/watch, cross-console replay rejection, interrupted paired
+publication, expected-location restore, retained rollback and missing-pair
+recovery; the GBA pair passes regression. Request 823 used the shared gate/profile.
+All 30 preservation hashes match; fixtures are removed and both screens OFF.
+Other routes, states, required faults/reconnect and handover remain S10 work.
+S11 and proposed S12 remain NOT STARTED; see S10_SAVE_BACKUP_DESIGN.md.
+
+Earlier verified slice, 2026-10-12: SNES/Snes9x now joins exact owned save review
 and the common backup/watch/capture/restore paths, including optional RTC groups.
 Focused Dart/native contracts and scoped analysis pass. Thor probes verify
 coherent capture/watch, wrong-console replay rejection, interrupted paired

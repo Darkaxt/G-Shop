@@ -2135,7 +2135,9 @@ void main() {
     'megadrive',
     'n64',
     'nes',
-    'snes'
+    'snes',
+    'gb',
+    'gbc'
   ]) {
     test(
         '$platform route persists distinct binding through backup restore and rollback',
@@ -2717,60 +2719,62 @@ void main() {
     expect(job.lastVerified?.members.single.relativePath, 'Game.srm');
     expect(generations.uploads, 1);
   });
-  test(
-      'SNES clock group retains its route across publication failure and rollback',
-      () async {
-    final route = RetroArchBatteryRoute.forPlatform('snes')!;
-    await LibraryStore(Future.value(db)).putGame(GameIdentity(
-        id: 'game',
-        platformId: 'snes',
-        title: 'Game',
-        matchStatus: IdentityMatchStatus.manuallyMatched));
-    final snes = SaveBackupGameJob(
-        database: Future.value(db),
-        capture: capture,
-        areas: areas,
-        generations: generations,
-        clientId: 'client',
-        accountId: 'account',
-        areaId: 'area',
-        editionId: 'edition',
-        artifactId: artifactId,
-        retroArchRoute: route,
-        resolveSaveName: () async => currentName);
-    addTearDown(snes.dispose);
-    capture.includeRtc = true;
-    await snes.backup(currentName);
-    expect(snes.issue, isNull);
-    expect(snes.lastVerified!.binding.formatId, route.formatId);
-    expect(snes.lastVerified!.members, hasLength(2));
-    capture.publicationIssue = 'close_content_required';
-    await snes.restoreLatest();
-    expect(snes.restorePending, isTrue);
-    expect(capture.restoreRoutes.single, route);
-    final staged = capture.staged.single;
-    await snes.load();
-    capture.publicationIssue = null;
-    await snes.restoreLatest();
-    expect(snes.issue, isNull);
-    expect(capture.staged.single, staged);
-    final rollback = capture.restored.single.rollback;
-    capture.sealed[rollback] =
-        CapturedSaveGroup(rollback, 'device', '1.22.2_GIT', [
-      CapturedSaveFile('Game.srm',
-          _MemorySaveFile('/private/sram', [1, 2, 3, 4]), 4, 'b' * 64),
-      CapturedSaveFile('Game.rtc',
-          _MemorySaveFile('/private/rtc', [5, 6, 7, 8]), 4, 'd' * 64),
-    ]);
-    final downloads = generations.downloads;
-    await snes.rollbackLast();
-    expect(snes.issue, isNull);
-    expect(snes.phase, 'rolled_back');
-    expect(capture.restoreRoutes, [route, route]);
-    expect(generations.downloads, downloads);
-    expect(
-        capture.stagedGroups.last, unorderedEquals(['Game.rtc', 'Game.srm']));
-  });
+  for (final platform in ['snes', 'gb', 'gbc']) {
+    test(
+        '$platform clock group retains its route across publication failure and rollback',
+        () async {
+      final route = RetroArchBatteryRoute.forPlatform(platform)!;
+      await LibraryStore(Future.value(db)).putGame(GameIdentity(
+          id: 'game',
+          platformId: platform,
+          title: 'Game',
+          matchStatus: IdentityMatchStatus.manuallyMatched));
+      final snes = SaveBackupGameJob(
+          database: Future.value(db),
+          capture: capture,
+          areas: areas,
+          generations: generations,
+          clientId: 'client',
+          accountId: 'account',
+          areaId: 'area',
+          editionId: 'edition',
+          artifactId: artifactId,
+          retroArchRoute: route,
+          resolveSaveName: () async => currentName);
+      addTearDown(snes.dispose);
+      capture.includeRtc = true;
+      await snes.backup(currentName);
+      expect(snes.issue, isNull);
+      expect(snes.lastVerified!.binding.formatId, route.formatId);
+      expect(snes.lastVerified!.members, hasLength(2));
+      capture.publicationIssue = 'close_content_required';
+      await snes.restoreLatest();
+      expect(snes.restorePending, isTrue);
+      expect(capture.restoreRoutes.single, route);
+      final staged = capture.staged.single;
+      await snes.load();
+      capture.publicationIssue = null;
+      await snes.restoreLatest();
+      expect(snes.issue, isNull);
+      expect(capture.staged.single, staged);
+      final rollback = capture.restored.single.rollback;
+      capture.sealed[rollback] =
+          CapturedSaveGroup(rollback, 'device', '1.22.2_GIT', [
+        CapturedSaveFile('Game.srm',
+            _MemorySaveFile('/private/sram', [1, 2, 3, 4]), 4, 'b' * 64),
+        CapturedSaveFile('Game.rtc',
+            _MemorySaveFile('/private/rtc', [5, 6, 7, 8]), 4, 'd' * 64),
+      ]);
+      final downloads = generations.downloads;
+      await snes.rollbackLast();
+      expect(snes.issue, isNull);
+      expect(snes.phase, 'rolled_back');
+      expect(capture.restoreRoutes, [route, route]);
+      expect(generations.downloads, downloads);
+      expect(
+          capture.stagedGroups.last, unorderedEquals(['Game.rtc', 'Game.srm']));
+    });
+  }
 
   test(
       'related SRAM and RTC restore is not rejected as a single-file selection',

@@ -5,6 +5,27 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### GB/GBC SameBoy save routes — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. GB and GBC now use exact owned archive save
+association, normal backup/watch jobs and the common SRAM/optional-RTC restore
+coordinator. Their platform bindings and native journals remain distinct despite
+sharing SameBoy's directory. Focused Dart/native contracts and scoped analysis
+pass. Thor verifies filesystem-only capture, exact watch delivery, GB/GBC journal
+replay rejection, interrupted paired publication, expected-location restore,
+retained rollback and missing-pair recovery. The default GBA pair also passes.
+
+Request 823 acquired the shared Gradle gate and completed with two workers,
+no parallelism, 3 GiB Gradle, Kotlin in-process and one configured 512 MiB test
+fork. No memory failure or budget increase; native two-job hints are not a
+measured concurrency guarantee. Preserving installed APK SHA-256:
+`b49a0a8609139d7e9ae07634be068de5dbd26b4dd82156a7251dd345827ab903`.
+All 30 save/settings preservation hashes match, fixtures are removed and both
+screens are OFF/Asleep. No new GB/GBC-specific UI-to-Drive proof or state/link
+subsystem coverage is claimed. Other accessible routes, state coverage, required
+fault/reconnect checks and conditional handover remain unfinished S10 work.
+S11 and proposed S12 are NOT STARTED. See S10_SAVE_BACKUP_DESIGN.md.
+
 ### SNES/Snes9x paired save route — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage. SNES now uses the existing exact owned launch

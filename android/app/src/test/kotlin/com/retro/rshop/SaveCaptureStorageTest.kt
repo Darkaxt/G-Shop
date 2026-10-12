@@ -7,6 +7,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun gameBoyFormatsUseSameBoyButKeepConsoleBoundJournals() {
+        val source = "/storage/emulated/0/RetroArch/saves/SameBoy"
+        for (route in listOf("gb", "gbc")) {
+            assertEquals(source, RetroArchSaveBoundary.saveDirectory(route))
+            assertTrue(RetroArchSaveBoundary.includesRtc(route))
+            assertTrue(SaveCaptureService.validRestoreBinding("owned%2FGame.srm", 32768, "$route-battery", source))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 0, "$route-battery", source))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 16L * 1024 * 1024 + 1, "$route-battery", source))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.rtc", 50, "$route-battery", source))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.state", 32768, "$route-battery", source))
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 32768, "$route-battery",
+                "/storage/emulated/0/RetroArch/saves/mGBA"))
+        }
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 32768, "mgba-battery", source))
+        assertEquals(listOf("owned%2FGame.srm", "owned%2FGame.rtc"),
+            RetroArchSaveBoundary.snapshotNames(source, "owned%2FGame.srm"))
+    }
     @Test fun snesBindingUsesItsOwnSramAndExactOptionalClockGroup() {
         val source = "/storage/emulated/0/RetroArch/saves/Snes9x"
         assertEquals(source, RetroArchSaveBoundary.saveDirectory("snes"))

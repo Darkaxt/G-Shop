@@ -59,7 +59,7 @@ void main() {
       _row('org.ppsspp.ppsspp', '1.20.4'),
     ]);
     expect(rows.singleWhere((r) => r.label == 'RetroArch').saves,
-        'In-game saves · NES, SNES and GBA (including paired clock data), Game Gear, Master System, Mega Drive and Nintendo 64 (including Controller Paks).');
+        'In-game saves · GB, GBC, NES, SNES and GBA (including paired clock data), Game Gear, Master System, Mega Drive and Nintendo 64 (including Controller Paks).');
     expect(rows.singleWhere((r) => r.label == 'RetroArch').storage,
         contains('FCEUmm'));
     expect(rows.singleWhere((r) => r.label == 'RetroArch').storage,

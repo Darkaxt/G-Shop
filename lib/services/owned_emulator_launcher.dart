@@ -122,6 +122,9 @@ class OwnedEmulatorLauncher {
       throw UnsupportedError('No reviewed save route for this format');
     }
     final method = switch (route) {
+      RetroArchBatteryRoute.gameBoy => 'reviewOwnedRetroArchGameBoySave',
+      RetroArchBatteryRoute.gameBoyColor =>
+        'reviewOwnedRetroArchGameBoyColorSave',
       RetroArchBatteryRoute.mgba => 'reviewOwnedRetroArchGameBoyAdvanceSave',
       RetroArchBatteryRoute.nes => 'reviewOwnedRetroArchNesSave',
       RetroArchBatteryRoute.snes => 'reviewOwnedRetroArchSnesSave',

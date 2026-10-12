@@ -1,6 +1,10 @@
 /// Only cartridge battery routes currently integrated with the owned launch
 /// review. Not a user-supplied directory, generic core registry or state format.
 enum RetroArchBatteryRoute {
+  gameBoy('gb', 'sameboy', 'libretro-sameboy-sram-v1', 16 * 1024 * 1024,
+      'gb-battery', 'Game Boy'),
+  gameBoyColor('gbc', 'sameboy', 'libretro-sameboy-sram-v1', 16 * 1024 * 1024,
+      'gbc-battery', 'Game Boy Color'),
   mgba('gba', 'mgba', 'libretro-mgba-sram-v1', 16 * 1024 * 1024, 'mgba-battery',
       'mGBA'),
   nes('nes', 'fceumm', 'libretro-fceumm-sram-v1', 16 * 1024 * 1024,
@@ -33,7 +37,8 @@ enum RetroArchBatteryRoute {
     return null;
   }
 
-  bool get includesRtc => this == mgba || this == snes;
+  bool get includesRtc =>
+      this == mgba || this == snes || this == gameBoy || this == gameBoyColor;
 
   String get directory => '/storage/emulated/0/RetroArch/saves/$coreLabel';
 
@@ -43,6 +48,7 @@ enum RetroArchBatteryRoute {
       size > 0 && size <= maxBytes && (this != n64 || size == maxBytes);
 
   String get coreLabel => switch (this) {
+        gameBoy || gameBoyColor => 'SameBoy',
         mgba => 'mGBA',
         nes => 'FCEUmm',
         snes => 'Snes9x',

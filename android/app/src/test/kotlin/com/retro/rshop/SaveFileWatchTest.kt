@@ -7,6 +7,23 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class SaveFileWatchTest {
+    @Test fun sameBoyWatchKeepsEachExactGameAndItsClock() {
+        for (route in listOf("gb", "gbc")) {
+            val mapping = SaveFileWatch.Mapping("b".repeat(64),
+                "/storage/emulated/0/RetroArch/saves/SameBoy", "owned%2FGame.srm", "retroarch-$route")
+            assertEquals(listOf(mapping), SaveFileWatch.decode(listOf(mapOf("key" to mapping.key,
+                "directory" to mapping.directory, "name" to mapping.name, "route" to mapping.route))))
+            for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO, FileObserver.DELETE)) {
+                for (leaf in listOf(mapping.name, "owned%2FGame.rtc"))
+                    assertEquals(listOf(mapping.key), SaveFileWatch.affected(listOf(mapping), event, leaf))
+                for (leaf in listOf("Other.srm", "Other.rtc", "owned%2FGame.state", "../${mapping.name}"))
+                    assertTrue(SaveFileWatch.affected(listOf(mapping), event, leaf).isEmpty())
+            }
+            assertThrows(IllegalArgumentException::class.java) {
+                SaveFileWatch.Mapping(mapping.key, "/storage/emulated/0/RetroArch/saves/mGBA", mapping.name, mapping.route)
+            }
+        }
+    }
     @Test fun snesWatchIncludesOnlyItsExactSramAndClock() {
         val mapping = SaveFileWatch.Mapping("a".repeat(64),
             "/storage/emulated/0/RetroArch/saves/Snes9x", "owned%2FGame.srm", "retroarch-snes")

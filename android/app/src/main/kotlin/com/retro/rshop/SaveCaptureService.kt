@@ -33,6 +33,7 @@ internal class SaveCaptureService(private val activity: Context) {
         // remain no-follow, canonical-equality checked descendants of this root.
         internal fun stagingRoot(filesDir: File): File = File(filesDir.canonicalFile, "save-captures")
         private const val MGBA_SOURCE = "/storage/emulated/0/RetroArch/saves/mGBA"
+        private const val SAMEBOY_SOURCE = "/storage/emulated/0/RetroArch/saves/SameBoy"
         private const val NES_SOURCE = "/storage/emulated/0/RetroArch/saves/FCEUmm"
         private const val SNES_SOURCE = "/storage/emulated/0/RetroArch/saves/Snes9x"
         private const val GAMEGEAR_SOURCE = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
@@ -57,6 +58,8 @@ internal class SaveCaptureService(private val activity: Context) {
                 "mgba-battery" -> source == MGBA_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..(16L * 1024 * 1024)
                 "nes-battery" -> source == NES_SOURCE && RetroArchSaveBoundary.validName(name) &&
+                    size in 1..(16L * 1024 * 1024)
+                "gb-battery", "gbc-battery" -> source == SAMEBOY_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..(16L * 1024 * 1024)
                 "snes-battery" -> source == SNES_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..131072L
@@ -93,6 +96,7 @@ internal class SaveCaptureService(private val activity: Context) {
         .digest(bytes).joinToString("") { "%02x".format(it) }
     private fun same(a: LongArray, b: LongArray) = a.contentEquals(b)
     private fun batterySource(route: String): String = when (route) {
+        "gb", "gbc" -> SAMEBOY_SOURCE
         "gba" -> MGBA_SOURCE
         "nes" -> NES_SOURCE
         "snes" -> SNES_SOURCE
@@ -103,6 +107,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun batteryRoute(call: MethodCall): String =
         (call.argument<String>("retroArchRoute") ?: "gba").also { batterySource(it) }
     private fun batteryFormat(route: String): String = when (route) {
+        "gb", "gbc" -> "$route-battery"
         "gba" -> "mgba-battery"
         "nes" -> "nes-battery"
         "snes" -> "snes-battery"
@@ -111,6 +116,8 @@ internal class SaveCaptureService(private val activity: Context) {
         else -> throw Failure("invalid_selection")
     }
     private fun routeForFormat(format: String): String = when (format) {
+        "gb-battery" -> "gb"
+        "gbc-battery" -> "gbc"
         "mgba-battery", "ppsspp-slot-v1", MelonSaveBoundary.FORMAT -> "gba"
         "gamegear-battery" -> "gamegear"
         "mastersystem-battery" -> "mastersystem"
@@ -122,7 +129,7 @@ internal class SaveCaptureService(private val activity: Context) {
     }
 
     private fun batteryMaxBytes(route: String): Long = when (route) {
-        "gba", "nes" -> 16L * 1024 * 1024
+        "gb", "gbc", "gba", "nes" -> 16L * 1024 * 1024
         "snes" -> 131072L
         "gamegear", "mastersystem", "megadrive" -> 65536L
         "n64" -> 296960L // Complete EEPROM + 4 Controller Paks + SRAM + FlashRAM.
@@ -1051,7 +1058,7 @@ internal class SaveCaptureService(private val activity: Context) {
         val savedata = record.optString("format", "mgba-battery") == PpssppSavedataBoundary.FORMAT
         val valid = if (savedata) PpssppSavedataBoundary.validDirectory(record.getString("source")) &&
             record.getString("source").substringAfterLast('/') == record.getString("name") && PpssppSavedataBoundary.validMembers(names)
-            else record.optString("format", "mgba-battery") in setOf("mgba-battery", "snes-battery") &&
+            else record.optString("format", "mgba-battery") in setOf("gb-battery", "gbc-battery", "mgba-battery", "snes-battery") &&
                 record.optString("source", MGBA_SOURCE) == batterySource(routeForFormat(record.optString("format", "mgba-battery"))) &&
                 validGroupNames(record.getString("name"), names)
         val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(routeForFormat(record.optString("format", "mgba-battery")))

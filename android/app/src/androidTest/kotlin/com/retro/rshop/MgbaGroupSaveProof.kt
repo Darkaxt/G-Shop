@@ -64,7 +64,8 @@ internal object MgbaGroupSaveProof {
             val arguments = mapOf("captureId" to restore, "name" to name, "retroArchRoute" to route,
                 "members" to names.map { mapOf("name" to it, "size" to bytes.getValue(it).size.toLong(), "sha256" to digest(bytes.getValue(it))) })
             call("beginRestoreGroup", arguments)
-            call("beginRestoreGroup", arguments + ("retroArchRoute" to if (route == "gba") "snes" else "gba"), "invalid_restore")
+            val otherRoute = when (route) { "gb" -> "gbc"; "gbc" -> "gb"; "gba" -> "snes"; else -> "gba" }
+            call("beginRestoreGroup", arguments + ("retroArchRoute" to otherRoute), "invalid_restore")
             for ((index, member) in names.withIndex()) {
                 check(call("appendRestoreGroup", mapOf("captureId" to restore, "member" to index,
                     "offset" to 0L, "bytes" to bytes.getValue(member))) == bytes.getValue(member).size.toLong())

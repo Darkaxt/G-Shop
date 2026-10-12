@@ -112,7 +112,7 @@ object RootSavePublicationWorker {
         val format = request.getString("format")
         val size = request.getLong("size")
         val digest = request.getString("sha256")
-        val baseName = if (format in setOf("mgba-battery", "snes-battery") && name.endsWith(".rtc"))
+        val baseName = if (format in setOf("gb-battery", "gbc-battery", "mgba-battery", "snes-battery") && name.endsWith(".rtc"))
             name.dropLast(4) + ".srm" else name
         require(SaveCaptureService.validRestoreBinding(baseName, size, format, source))
         require(digest.matches(Regex("[a-f0-9]{64}")))

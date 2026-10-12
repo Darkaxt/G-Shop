@@ -268,7 +268,7 @@ void main() {
       expect(calls, hasLength(1));
     });
   }
-  for (final platform in ['nes', 'snes']) {
+  for (final platform in ['nes', 'snes', 'gb', 'gbc']) {
     test(
         '$platform save review shares its exact 7z launch grant without opening the game',
         () async {
@@ -295,9 +295,12 @@ void main() {
           'installed-one%2FGame.srm');
       expect(
           calls.single.method,
-          platform == 'nes'
-              ? 'reviewOwnedRetroArchNesSave'
-              : 'reviewOwnedRetroArchSnesSave');
+          {
+            'nes': 'reviewOwnedRetroArchNesSave',
+            'snes': 'reviewOwnedRetroArchSnesSave',
+            'gb': 'reviewOwnedRetroArchGameBoySave',
+            'gbc': 'reviewOwnedRetroArchGameBoyColorSave',
+          }[platform]);
       expect(calls.single.arguments, {
         'installationId': installed.id,
         'filename': archive.filename,
