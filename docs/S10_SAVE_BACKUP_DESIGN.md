@@ -7,6 +7,53 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### RetroArch automatic save lane — verified host/native slice, 2026-10-12
+
+Connect the existing reviewed cartridge routes to the existing durable opt-in,
+exact-file watching, background/return recovery and pre-launch reconciliation.
+Persist the reviewed encoded save leaf with account/edition/artifact and the
+specific platform/core route; do not infer it from a display title. Watch mGBA's
+paired RTC as well as SRAM under the same group identity. Other cartridge routes
+watch only their complete SRM. A watch requests work, not writer completion;
+the real CONTENTLESS capture/restore boundary remains authoritative. No emulator
+termination, quiet-period heuristic, new timer or new transfer engine is needed.
+Verify durable route isolation, launch-before-watch ordering, changed association
+refusal, normal opt-in/status UI, native exact-file delivery and existing save
+preservation. This is unfinished S10 work, not a new stage or S11 deferral.
+
+The focused persistent-job, settings and owned-launch checks pass, including
+N64's distinct route, watch-before-launch ordering and refusal of a changed
+installed save target before IO. Explicitly enabling a newly reviewed target
+retires the former watch and retains cloud history; unfinished backup/restore or
+conflict records prevent remapping rather than silently dropping recovery work.
+The remapping failure reproduced before the change; scoped analysis passes.
+
+Gated request 807/ticket `b80ea576f7944e3fa60be12bbae0c703` passed focused
+SaveFileWatch policy checks and both debug APK assemblies. The actual Thor
+`retroArchWatchProbe` returned PASS for N64 SRM and mGBA paired-clock publications,
+exact mapping delivery, unrelated/temporary leaf exclusion and exclusive-fixture
+cleanup. All existing files in both save directories and all eleven protected
+configuration/preference digests were independently unchanged. Both actual and
+committed displays are OFF; wakefulness is Asleep. No emulator or companion was
+launched or changed. Unbound stays owner-accepted; DualDex is outside this work.
+
+Observed gate profile: two workers, no parallelism, 3 GiB Gradle heap, Kotlin
+in-process, one 512 MiB test fork with fail-fast and no ignored failures. Existing
+depth-one native pools are unchanged. No memory failure or budget increase.
+Current thread title was unavailable through the app listing, so the optional
+label was omitted rather than invented. The native event proof is not a real
+automatic watch-to-Drive round trip. That integration and remaining SAVE-01
+coverage/fault/handover acceptance still belong to sole ACTIVE S10.
+
+Final remapping assembly 808/ticket `e6c2b47852d3403a8a9a96ce370ffc0b`
+passed through the same gate/profile after the affected host checks and scoped
+analysis. It was installed preserving the existing signer; the native watch
+probe passed again with all original save/configuration/preference digests
+unchanged. Installed APK build input SHA-256:
+`f483e29e036444d2cd19b3b250e74466679bbce13b1d7376d1237908c5546f78`.
+Both screens remain OFF. No native test rerun was needed for Dart-only changes;
+the preceding native policy result applies to unchanged Kotlin/native sources.
+
 ### N64 complete save-memory route — 2026-10-12
 
 The installed RetroArch core identifies itself as Mupen64Plus-Next

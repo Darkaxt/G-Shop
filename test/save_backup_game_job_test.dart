@@ -337,6 +337,7 @@ class _UiJob extends SaveBackupGameJob {
 
 class _AutomaticUi extends AutomaticSaveBackups {
   bool enabled = false;
+  AutomaticSaveMapping? selected;
   int changes = 0;
   void completed() => notifyListeners();
   _AutomaticUi(Database db, SharedPreferences preferences)
@@ -349,6 +350,7 @@ class _AutomaticUi extends AutomaticSaveBackups {
       AutomaticSaveStatus(enabled: enabled, outcome: 'unchanged');
   @override
   Future<void> setEnabled(AutomaticSaveMapping mapping, bool value) async {
+    selected = mapping;
     enabled = value;
     changes++;
     notifyListeners();
@@ -583,6 +585,49 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     psp.dispose();
   });
+  testWidgets(
+      'RetroArch automatic control requires reviewed game and selection',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+    final ui = _UiJob(job)..refreshFixture = true;
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: ui, title: 'Game', automatic: automatic)))));
+    await tester.pumpAndSettle();
+    final control = find.byKey(const ValueKey('automatic-save-enable'));
+    expect(control, findsOneWidget);
+    expect(tester.widget<CheckboxListTile>(control).onChanged, isNull);
+    tester
+        .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>))
+        .onChanged!(currentName);
+    await tester.pump();
+    tester
+        .widget<CheckboxListTile>(find.widgetWithText(
+            CheckboxListTile, 'I confirm this save belongs to Game'))
+        .onChanged!(true);
+    await tester.pumpAndSettle();
+    expect(tester.widget<CheckboxListTile>(control).onChanged, isNotNull);
+    tester.widget<CheckboxListTile>(control).onChanged!(true);
+    await tester.pumpAndSettle();
+    expect(automatic.selected!.slot, currentName);
+    expect(automatic.selected!.retroArchRoute, RetroArchBatteryRoute.mgba);
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: ui,
+                title: 'Game',
+                automatic: automatic,
+                section: SaveBackupSection.status)))));
+    await tester.pumpAndSettle();
+    expect(control, findsNothing);
+    expect(find.text('Automatic save checks: enabled'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    ui.dispose();
+    automatic.dispose();
+  });
   testWidgets('automatic completion refreshes an open restore panel',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -800,22 +845,27 @@ void main() {
     bool melon = false,
     bool savedata = false,
     String? ppssppDirectory,
+    RetroArchBatteryRoute? retroArch,
   }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
-        platformId: melon ? 'nds' : 'psp',
+        platformId: retroArch?.platformId ?? (melon ? 'nds' : 'psp'),
         title: 'Game',
         matchStatus: IdentityMatchStatus.manuallyMatched));
-    final directory = melon
-        ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
-        : savedata
-            ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
-            : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
-    final slot = melon
-        ? 'Game.sav'
-        : savedata
-            ? 'ULUS10041DATA00'
-            : 'ULUS10041_1.00_0.ppst';
+    final directory = retroArch != null
+        ? '/storage/emulated/0/RetroArch/saves/${retroArch == RetroArchBatteryRoute.n64 ? 'Mupen64Plus-Next' : retroArch == RetroArchBatteryRoute.mgba ? 'mGBA' : 'Genesis Plus GX'}'
+        : melon
+            ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
+            : savedata
+                ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
+                : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final slot = retroArch != null
+        ? 'owned%2FGame.srm'
+        : melon
+            ? 'Game.sav'
+            : savedata
+                ? 'ULUS10041DATA00'
+                : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
         capture: capture,
@@ -826,19 +876,25 @@ void main() {
         areaId: 'area',
         editionId: 'edition',
         artifactId: artifactId,
-        ppssppDirectory: melon || savedata ? null : directory,
-        ppssppSlot: melon || savedata ? null : slot,
+        ppssppDirectory:
+            melon || savedata || retroArch != null ? null : directory,
+        ppssppSlot: melon || savedata || retroArch != null ? null : slot,
         ppssppSavedataDirectory: savedata ? directory : null,
         melonDirectory: melon ? directory : null,
         melonName: melon ? slot : null,
+        retroArchRoute: retroArch ?? RetroArchBatteryRoute.mgba,
         resolveSaveName: () async => slot);
-    final mapping = AutomaticSaveMapping.fromJob(psp, title: 'Game');
+    final mapping = AutomaticSaveMapping.fromJob(psp,
+        title: 'Game', saveName: retroArch != null ? slot : null);
     psp.dispose();
     SharedPreferences.setMockInitialValues({
       SaveBackupSetup.storageKey('client', 'account'):
           jsonEncode({'ready': true, 'areaId': 'area'}),
-      mapping.slotStorageKey: jsonEncode(
-          {'directory': directory, melon || savedata ? 'name' : 'slot': slot}),
+      if (retroArch == null)
+        mapping.slotStorageKey: jsonEncode({
+          'directory': directory,
+          melon || savedata || retroArch != null ? 'name' : 'slot': slot
+        }),
     });
     final preferences = await SharedPreferences.getInstance();
     final service = AutomaticSaveBackups(
@@ -875,11 +931,15 @@ void main() {
             areaId: mapped.areaId,
             editionId: mapped.editionId,
             artifactId: mapped.artifactId,
-            ppssppDirectory: melon || savedata ? null : mapped.directory,
-            ppssppSlot: melon || savedata ? null : mapped.slot,
+            ppssppDirectory: melon || savedata || retroArch != null
+                ? null
+                : mapped.directory,
+            ppssppSlot:
+                melon || savedata || retroArch != null ? null : mapped.slot,
             ppssppSavedataDirectory: savedata ? mapped.directory : null,
             melonDirectory: melon ? mapped.directory : null,
             melonName: melon ? mapped.slot : null,
+            retroArchRoute: retroArch ?? RetroArchBatteryRoute.mgba,
             resolveSaveName: resolve));
     addTearDown(() async {
       service.dispose();
@@ -887,6 +947,123 @@ void main() {
     });
     await service.setEnabled(mapping, true);
     return (service: service, mapping: mapping, preferences: preferences);
+  }
+
+  for (final route in RetroArchBatteryRoute.values) {
+    test(
+        'automatic RetroArch ${route.platformId} preserves route and arms before launch',
+        () async {
+      capture.batterySize = route == RetroArchBatteryRoute.n64 ? 296960 : 4;
+      final watches = <AutomaticSaveMapping>[];
+      final fixture = await automaticFixture(
+          retroArch: route, watch: (rows) async => watches.addAll(rows));
+      expect(jsonDecode(fixture.mapping.encode())['route'], 'retroarch');
+      expect(
+          jsonDecode(fixture.mapping.encode())['platform'], route.platformId);
+      expect(fixture.mapping.slot, 'owned%2FGame.srm');
+      await fixture.service.requestChanged(fixture.mapping.key);
+      await fixture.service.backupPending();
+      expect(
+          (await fixture.service.status(fixture.mapping)).outcome, 'verified');
+      expect(generations.cloud.values.single.binding.coreId, route.coreId);
+      expect(capture.ppssppSources, isEmpty);
+      watches.clear();
+      await fixture.service.prepareLaunch(
+          artifactId: artifactId,
+          editionId: 'edition',
+          reviewRetroArchSave: (_) async => fixture.mapping.slot);
+      expect(watches.single.key, fixture.mapping.key);
+      expect(
+          (await fixture.service.status(fixture.mapping)).outcome, 'unchanged');
+      await fixture.preferences.remove(fixture.mapping.slotStorageKey);
+      await fixture.service.reconcileWatches();
+      expect(fixture.service.watchIssue, 'watch_unavailable');
+    });
+  }
+  test('RetroArch pending save survives active content and retries on return',
+      () async {
+    final fixture = await automaticFixture(
+        retroArch: RetroArchBatteryRoute.n64, watch: (_) async {});
+    capture.batterySize = 296960;
+    capture.captureIssue = 'close_content_required';
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(generations.uploads, 0);
+    expect((await fixture.service.status(fixture.mapping)).issue, isNotNull);
+    capture.captureIssue = null;
+    await fixture.service.checkEnabled();
+    expect(generations.uploads, 1);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+  });
+  test('RetroArch launch rejects a changed installed save target before IO',
+      () async {
+    final fixture = await automaticFixture(
+        retroArch: RetroArchBatteryRoute.n64, watch: (_) async {});
+    capture.batterySize = 296960;
+    await expectLater(
+        fixture.service.prepareLaunch(
+            artifactId: artifactId,
+            editionId: 'edition',
+            reviewRetroArchSave: (_) async => 'new-install%2FGame.srm'),
+        throwsA(isA<PlatformException>()
+            .having((e) => e.code, 'code', 'source_changed')));
+    expect(capture.captures, 0);
+    expect(generations.uploads, 0);
+  });
+
+  for (final pending in [false, true]) {
+    test(
+        'RetroArch reviewed remap ${pending ? 'preserves pending work' : 'retires the former watch and keeps cloud history'}',
+        () async {
+      final watched = <List<String>>[];
+      final fixture = await automaticFixture(
+          retroArch: RetroArchBatteryRoute.n64,
+          watch: (rows) async =>
+              watched.add(rows.map((row) => row.slot).toList()));
+      capture.batterySize = 296960;
+      if (pending) capture.captureIssue = 'close_content_required';
+      await fixture.service.requestChanged(fixture.mapping.key);
+      await fixture.service.backupPending();
+      final originalCloud = Map.of(generations.cloud);
+      final replacementJob = SaveBackupGameJob(
+          database: Future.value(db),
+          capture: capture,
+          areas: areas,
+          generations: generations,
+          clientId: 'client',
+          accountId: 'account',
+          areaId: 'area',
+          editionId: 'edition',
+          artifactId: artifactId,
+          retroArchRoute: RetroArchBatteryRoute.n64,
+          resolveSaveName: () async => 'new-install%2FGame.srm');
+      final replacement = AutomaticSaveMapping.fromJob(replacementJob,
+          title: 'Game', saveName: 'new-install%2FGame.srm');
+      replacementJob.dispose();
+      final enabling = fixture.service.setEnabled(replacement, true);
+      if (pending) {
+        await expectLater(
+            enabling,
+            throwsA(isA<PlatformException>().having(
+                (error) => error.code, 'code', 'pending_save_operation')));
+        expect((await fixture.service.status(replacement)).enabled, isFalse);
+        expect(
+            jsonDecode(fixture.preferences
+                .getString(fixture.mapping.slotStorageKey)!)['name'],
+            fixture.mapping.slot);
+      } else {
+        await enabling;
+        expect(
+            (await fixture.service.status(fixture.mapping)).enabled, isFalse);
+        expect((await fixture.service.status(replacement)).enabled, isTrue);
+        expect(watched.last, [replacement.slot]);
+        expect(
+            jsonDecode(fixture.preferences
+                .getString(replacement.slotStorageKey)!)['name'],
+            replacement.slot);
+      }
+      expect(generations.cloud, originalCloud);
+    });
   }
 
   test(

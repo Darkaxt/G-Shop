@@ -3,6 +3,14 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 29.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
+S10 automatic RetroArch checkpoint, 2026-10-12: focused host integration and
+actual Thor exact N64 SRM/mGBA RTC watch delivery pass. Reinstallation is reviewed
+before launch; explicit remapping retires the former watch and retains history,
+while unresolved recovery work is preserved. Real watch-to-Drive integration,
+remaining coverage/faults and conditional handover still belong to sole ACTIVE
+S10. S11 is NOT STARTED. Unbound stays owner-accepted; do not retest it or work
+on DualDex. Detailed evidence is in S10_SAVE_BACKUP_DESIGN.md.
+
 S10 retained-copy clarification, 2026-10-12: reconcile the retained legacy ROMs
 with their authoritative Drive editions as part of existing-library save
 integration. Identical bytes become one linked local/cloud identity; a confirmed

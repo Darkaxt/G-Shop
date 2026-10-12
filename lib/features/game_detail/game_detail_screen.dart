@@ -535,7 +535,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         final artifact = game.remoteArtifact?.id;
         if (artifact == null) return;
         final saves = await ref.read(automaticSaveBackupsProvider.future);
-        await saves.prepareLaunch(artifactId: artifact, editionId: editionId);
+        await saves.prepareLaunch(
+            artifactId: artifact,
+            editionId: editionId,
+            reviewRetroArchSave: (route) =>
+                _emulatorLauncher.reviewRetroArchBatterySave(
+                    game, widget.system, widget.targetFolder, route));
       });
     } catch (error) {
       if (!mounted) return;
@@ -658,7 +663,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       if (controller.state.isVariantInstalled &&
           OwnedEmulatorLauncher.supports(variant, widget.system))
         QuickMenuItem(
-            label: 'Open in ${OwnedEmulatorLauncher.emulatorName(widget.system.id)}',
+            label:
+                'Open in ${OwnedEmulatorLauncher.emulatorName(widget.system.id)}',
             icon: Icons.play_arrow_rounded,
             onSelect: _openOwnedRom),
       if (controller.state.isVariantInstalled &&

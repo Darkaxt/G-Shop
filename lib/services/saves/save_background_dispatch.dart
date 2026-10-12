@@ -24,6 +24,8 @@ class SaveBackgroundDispatch {
                 'name': mapping.slot,
                 if (mapping.isMelon) 'route': 'melon',
                 if (mapping.isPpssppSavedata) 'route': 'ppsspp-savedata',
+                if (mapping.isRetroArch)
+                  'route': 'retroarch-${mapping.retroArchRoute!.platformId}',
               })
           .toList(),
     });

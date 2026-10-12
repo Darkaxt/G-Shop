@@ -7,7 +7,7 @@ import android.content.Context
 import java.io.Closeable
 import java.io.File
 
-/** Exact opted-in PPSSPP publication events, never recursive discovery or a
+/** Exact opted-in emulator publication events, never recursive discovery or a
  * writer-completion assertion. Capture still enforces its reviewed boundary.
  * Android may end this process; durable pending work and scheduled/return
  * comparisons recover missed events. No permanent foreground service or timer.
@@ -23,7 +23,9 @@ internal class SaveFileWatch(private val context: Context? = null,
                 "melon" -> MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(name)
                 "ppsspp-savedata" -> PpssppSavedataBoundary.validDirectory(directory) &&
                     directory.substringAfterLast('/') == name
-                else -> false
+                else -> route.startsWith("retroarch-") &&
+                    RetroArchSaveBoundary.saveDirectory(route.removePrefix("retroarch-")) == directory &&
+                    RetroArchSaveBoundary.validName(name)
             })
         }
     }
@@ -36,7 +38,8 @@ internal class SaveFileWatch(private val context: Context? = null,
             else mappings.filter {
                 if (it.route == "ppsspp-savedata") event and (FILE_EVENTS or FileObserver.CREATE) != 0 &&
                     name != null && PpssppSavedataBoundary.validMember(name)
-                else event and FILE_EVENTS != 0 && it.name == name
+                else event and FILE_EVENTS != 0 && (it.name == name ||
+                    (it.route == "retroarch-gba" && name == it.name.dropLast(4) + ".rtc"))
             }.map { it.key }
         fun decode(raw: List<*>): List<Mapping> {
             require(raw.size <= 4096)

@@ -10,6 +10,57 @@ import java.util.concurrent.CountDownLatch
 /** Actual Android file events in an exclusive fixture; no account, emulator,
  * user save, configuration, ROM or cloud operation. */
 internal object SaveFileWatchProof {
+    fun retroArch(context: Context): String {
+        check(context.packageName == "com.darkaxt.rshop.debug")
+        val suffix = UUID.randomUUID().toString()
+        val mappings = listOf("gba", "n64").mapIndexed { index, platform ->
+            SaveFileWatch.Mapping((if (index == 0) "d" else "e").repeat(64),
+                RetroArchSaveBoundary.saveDirectory(platform)!!,
+                "rshop-watch-$suffix.srm", "retroarch-$platform")
+        }
+        val initial = mappings.associate { it.directory to File(it.directory).list()!!.toSet() }
+        val delivered = CountDownLatch(mappings.size)
+        val events = linkedSetOf<String>()
+        val watch = SaveFileWatch { key ->
+            synchronized(events) { if (events.add(key)) delivered.countDown() }
+        }
+        val owned = mutableListOf<File>()
+        fun allocate(file: File): File {
+            check(file.canonicalFile == file.absoluteFile && file.createNewFile())
+            owned.add(file)
+            return file
+        }
+        try {
+            val publications = mappings.map { mapping ->
+                // Only the mapped mGBA clock leaf or N64 SRM should deliver.
+                val leaf = if (mapping.route == "retroarch-gba")
+                    mapping.name.dropLast(4) + ".rtc" else mapping.name
+                val target = allocate(File(mapping.directory, leaf))
+                val unrelated = allocate(File(mapping.directory, "rshop-other-$suffix.srm"))
+                val temporary = allocate(File(mapping.directory, "$leaf.tmp"))
+                Triple(target, unrelated, temporary)
+            }
+            // Initial exclusive allocation precedes registration, so a target's
+            // creation/close cannot masquerade as the rename under test.
+            check(watch.replace(mappings).toSet() == mappings.map { it.key }.toSet())
+            for ((target, unrelated, temporary) in publications) {
+                FileOutputStream(unrelated).use { it.write(byteArrayOf(9)); it.fd.sync() }
+                FileOutputStream(temporary).use { it.write(ByteArray(50) { 7 }); it.fd.sync() }
+                Os.rename(temporary.path, target.path)
+            }
+            delivered.await() // Actual kernel/main-thread delivery, not elapsed time.
+            synchronized(events) { check(events == mappings.map { it.key }.toSet()) }
+        } finally {
+            watch.close()
+            for (file in owned) {
+                check(file.canonicalFile == file.absoluteFile)
+                if (file.exists()) check(file.isFile && file.delete())
+            }
+            for ((directory, names) in initial) check(File(directory).list()!!.toSet() == names)
+        }
+        return "PASS RetroArch exact native watches: mGBA clock and N64 SRM publications delivered; unrelated and temporary leaves excluded; joined observer cleanup; existing saves preserved; no emulator/Drive/settings changes"
+    }
+
     fun exercise(context: Context): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
         val parent = File("/storage/emulated/0/RShopLiveTest")

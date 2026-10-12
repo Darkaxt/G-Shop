@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../models/config/source.dart';
 import '../../models/library_identity.dart';
+import '../../models/retroarch_battery_route.dart';
 import '../drive/drive_runtime.dart';
 import 'drive_save_backup_area.dart';
 import 'drive_save_backup_generation.dart';
@@ -16,15 +17,21 @@ import 'save_backup_setup.dart';
 import 'save_capture.dart';
 
 /// Explicit save association, never a title-only game match.
-/// RetroArch's closed-content handshake is not yet an unattended capture route.
+/// Watches request work; each emulator's capture boundary still decides when
+/// bytes are safe. RetroArch requires its real closed-content handshake.
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
   final bool isMelon, isPpssppSavedata;
+  final RetroArchBatteryRoute? retroArchRoute;
+  bool get isRetroArch => retroArchRoute != null;
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
       : isMelon = value['schema'] == 2 && value['route'] == 'melon',
         isPpssppSavedata =
             value['schema'] == 2 && value['route'] == 'ppsspp-savedata',
+        retroArchRoute = value['schema'] == 3 && value['route'] == 'retroarch'
+            ? RetroArchBatteryRoute.forPlatform(value['platform'] as String?)
+            : null,
         clientId = value['clientId'] as String,
         accountId = value['accountId'] as String,
         areaId = value['areaId'] as String,
@@ -36,58 +43,84 @@ class AutomaticSaveMapping {
             value['artifact'] as Map<String, dynamic>) {
     if (!(value['schema'] == 1 && !value.containsKey('route') ||
             isMelon ||
-            isPpssppSavedata) ||
+            isPpssppSavedata ||
+            isRetroArch) ||
         [clientId, accountId, areaId, editionId, title]
             .any((s) => s.trim().isEmpty || s.length > 1024) ||
         artifactId.providerId != 'drive' ||
         artifactId.accountId != accountId ||
-        !(isMelon
-            ? SaveCapture.validMelonDirectory(directory)
-            : isPpssppSavedata
-                ? SaveCapture.validPpssppSavedataDirectory(directory)
-                : SaveCapture.validPpssppDirectory(directory)) ||
-        !(isMelon
-            ? SaveCapture.validMelonName(slot)
-            : isPpssppSavedata
-                ? slot == directory.split('/').last &&
-                    SaveCapture.validPpssppSavedataMember(slot)
-                : SaveCapture.validPpssppName(slot))) {
+        !(isRetroArch
+            ? directory == retroArchRoute!.directory
+            : isMelon
+                ? SaveCapture.validMelonDirectory(directory)
+                : isPpssppSavedata
+                    ? SaveCapture.validPpssppSavedataDirectory(directory)
+                    : SaveCapture.validPpssppDirectory(directory)) ||
+        !(isRetroArch
+            ? SaveCapture.validName(slot)
+            : isMelon
+                ? SaveCapture.validMelonName(slot)
+                : isPpssppSavedata
+                    ? slot == directory.split('/').last &&
+                        SaveCapture.validPpssppSavedataMember(slot)
+                    : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
   }
 
   factory AutomaticSaveMapping.fromJob(SaveBackupGameJob job,
-      {required String title}) {
-    if (!job.isStandalone) {
-      throw UnsupportedError(
-          'Unattended capture is not reviewed for this route');
+      {required String title, String? saveName}) {
+    if (!job.isStandalone &&
+        (saveName == null || !SaveCapture.validName(saveName))) {
+      throw const FormatException('Reviewed RetroArch save name required');
     }
     return AutomaticSaveMapping._({
-      'schema': job.isMelon || job.isPpssppSavedata ? 2 : 1,
+      'schema': !job.isStandalone
+          ? 3
+          : job.isMelon || job.isPpssppSavedata
+              ? 2
+              : 1,
+      if (!job.isStandalone) ...{
+        'route': 'retroarch',
+        'platform': job.retroArchRoute.platformId
+      },
       if (job.isMelon) 'route': 'melon',
       if (job.isPpssppSavedata) 'route': 'ppsspp-savedata',
       'clientId': job.clientId,
       'accountId': job.accountId,
       'areaId': job.areaId,
       'editionId': job.editionId,
-      'directory': job.isMelon
-          ? job.melonDirectory
-          : job.ppssppSavedataDirectory ?? job.ppssppDirectory,
-      'slot': job.isMelon
-          ? job.melonName
-          : job.isPpssppSavedata
-              ? job.ppssppSavedataDirectory!.split('/').last
-              : job.ppssppSlot,
+      'directory': !job.isStandalone
+          ? job.retroArchRoute.directory
+          : job.isMelon
+              ? job.melonDirectory
+              : job.ppssppSavedataDirectory ?? job.ppssppDirectory,
+      'slot': !job.isStandalone
+          ? saveName
+          : job.isMelon
+              ? job.melonName
+              : job.isPpssppSavedata
+                  ? job.ppssppSavedataDirectory!.split('/').last
+                  : job.ppssppSlot,
       'artifact': job.artifactId.toJson(),
       'title': title,
     });
   }
 
-  String get slotStorageKey => isMelon
-      ? melonMappingKey(clientId, accountId, editionId, artifactId)
-      : isPpssppSavedata
-          ? ppssppSavedataMappingKey(clientId, accountId, editionId, artifactId)
-          : ppssppMappingKey(clientId, accountId, editionId, artifactId);
+  String get slotStorageKey => isRetroArch
+      ? 'save_retroarch_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+              clientId,
+              accountId,
+              editionId,
+              artifactId.key,
+              retroArchRoute!.platformId
+            ])))}'
+      : isMelon
+          ? melonMappingKey(clientId, accountId, editionId, artifactId)
+          : isPpssppSavedata
+              ? ppssppSavedataMappingKey(
+                  clientId, accountId, editionId, artifactId)
+              : ppssppMappingKey(clientId, accountId, editionId, artifactId);
   static String ppssppSavedataMappingKey(String clientId, String accountId,
           String editionId, RemoteArtifactId artifact) =>
       'save_ppsspp_savedata_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
@@ -121,12 +154,21 @@ class AutomaticSaveMapping {
         artifactId.key,
         directory,
         slot,
+        if (isRetroArch) retroArchRoute!.journalId,
         if (isMelon) 'melondualds-sram-v1',
         if (isPpssppSavedata) 'ppsspp-savedata-v1',
       ])))
       .toString();
   String encode() => jsonEncode({
-        'schema': isMelon || isPpssppSavedata ? 2 : 1,
+        'schema': isRetroArch
+            ? 3
+            : isMelon || isPpssppSavedata
+                ? 2
+                : 1,
+        if (isRetroArch) ...{
+          'route': 'retroarch',
+          'platform': retroArchRoute!.platformId
+        },
         if (isMelon) 'route': 'melon',
         if (isPpssppSavedata) 'route': 'ppsspp-savedata',
         'clientId': clientId,
@@ -221,6 +263,56 @@ class AutomaticSaveBackups extends ChangeNotifier {
     final db = await _db();
     if (enabled) {
       await refreshConfiguration?.call();
+      if (mapping.isRetroArch) {
+        _requireConfiguration(mapping, requireSelection: false);
+        final selected =
+            jsonDecode(preferences.getString(mapping.slotStorageKey) ?? '{}');
+        if (selected is! Map ||
+            selected['directory'] != mapping.directory ||
+            selected['name'] != mapping.slot) {
+          // This explicit opt-in commits the newly reviewed launch destination.
+          // Retire the former association before changing its selection; old
+          // journals and every local/cloud copy remain available for recovery.
+          final rows = await db.query('automatic_save_backups', limit: 4097);
+          if (rows.length > 4096) {
+            throw const FormatException('Too many mappings');
+          }
+          for (final row in rows) {
+            final old = AutomaticSaveMapping._(
+                jsonDecode(row['record_json'] as String)
+                    as Map<String, dynamic>);
+            if (old.key != row['mapping_key']) {
+              throw const FormatException('Changed mapping');
+            }
+            if (old.slotStorageKey != mapping.slotStorageKey ||
+                old.key == mapping.key) {
+              continue;
+            }
+            await setEnabled(old, false);
+            final job = _open(old);
+            try {
+              await job.refresh();
+              if (job.issue != null ||
+                  job.pendingName != null ||
+                  job.restorePending ||
+                  job.conflicts.isNotEmpty) {
+                throw PlatformException(code: 'pending_save_operation');
+              }
+            } finally {
+              await job.cancelAndJoin();
+              job.dispose();
+              job.areas.close();
+              job.generations.close();
+            }
+          }
+          if (!await preferences.setString(
+              mapping.slotStorageKey,
+              jsonEncode(
+                  {'directory': mapping.directory, 'name': mapping.slot}))) {
+            throw PlatformException(code: 'mapping_unavailable');
+          }
+        }
+      }
       _requireConfiguration(mapping);
       await db.transaction((tx) async {
         final old = await tx.query('automatic_save_backups',
@@ -339,7 +431,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
     return row.map((key, value) => MapEntry(key, value as int));
   }
 
-  void _requireConfiguration(AutomaticSaveMapping mapping) {
+  void _requireConfiguration(AutomaticSaveMapping mapping,
+      {bool requireSelection = true}) {
     final configured = sources().any((s) =>
         s.enabled &&
         s.type == SourceType.drive &&
@@ -355,10 +448,15 @@ class AutomaticSaveBackups extends ChangeNotifier {
         setup is! Map ||
         setup['ready'] != true ||
         setup['areaId'] != mapping.areaId ||
-        slot is! Map ||
-        slot['directory'] != mapping.directory ||
-        slot[mapping.isMelon || mapping.isPpssppSavedata ? 'name' : 'slot'] !=
-            mapping.slot) {
+        (requireSelection &&
+            (slot is! Map ||
+                slot['directory'] != mapping.directory ||
+                slot[mapping.isMelon ||
+                            mapping.isPpssppSavedata ||
+                            mapping.isRetroArch
+                        ? 'name'
+                        : 'slot'] !=
+                    mapping.slot))) {
       throw PlatformException(code: 'source_changed');
     }
   }
@@ -394,15 +492,19 @@ class AutomaticSaveBackups extends ChangeNotifier {
         areaId: mapping.areaId,
         editionId: mapping.editionId,
         artifactId: mapping.artifactId,
-        ppssppDirectory: mapping.isMelon || mapping.isPpssppSavedata
-            ? null
-            : mapping.directory,
+        ppssppDirectory:
+            mapping.isMelon || mapping.isPpssppSavedata || mapping.isRetroArch
+                ? null
+                : mapping.directory,
         ppssppSlot:
-            mapping.isMelon || mapping.isPpssppSavedata ? null : mapping.slot,
+            mapping.isMelon || mapping.isPpssppSavedata || mapping.isRetroArch
+                ? null
+                : mapping.slot,
         ppssppSavedataDirectory:
             mapping.isPpssppSavedata ? mapping.directory : null,
         melonDirectory: mapping.isMelon ? mapping.directory : null,
         melonName: mapping.isMelon ? mapping.slot : null,
+        retroArchRoute: mapping.retroArchRoute ?? RetroArchBatteryRoute.mgba,
         resolveSaveName: resolve);
   }
 
@@ -439,7 +541,10 @@ class AutomaticSaveBackups extends ChangeNotifier {
   /// Only an explicitly enabled, exact artifact/edition association participates.
   /// Launch waits on the existing serial lane and on native watch registration.
   Future<void> prepareLaunch(
-      {required RemoteArtifactId artifactId, String? editionId}) async {
+      {required RemoteArtifactId artifactId,
+      String? editionId,
+      Future<String> Function(RetroArchBatteryRoute)?
+          reviewRetroArchSave}) async {
     final generation = _cancelGeneration;
     final db = await _db();
     final enabled = await db.query('automatic_save_backups',
@@ -480,12 +585,22 @@ class AutomaticSaveBackups extends ChangeNotifier {
             AutomaticSaveMapping._(jsonDecode(raw) as Map<String, dynamic>);
         SaveBackupGameJob? job;
         String? failure;
+        Future<void> reviewTarget() async {
+          if (mapping.isRetroArch &&
+              (reviewRetroArchSave == null ||
+                  await reviewRetroArchSave(mapping.retroArchRoute!) !=
+                      mapping.slot)) {
+            throw PlatformException(code: 'source_changed');
+          }
+        }
+
         try {
           if (mapping.key != row['mapping_key'] ||
               (editionId != null && mapping.editionId != editionId)) {
             throw PlatformException(code: 'source_changed');
           }
           await _resolve(mapping);
+          await reviewTarget();
           if (_disposed || generation != _cancelGeneration) {
             throw PlatformException(code: 'cancelled');
           }
@@ -494,6 +609,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
           job.addListener(_notify);
           await job.reconcileBeforeLaunch(mapping.slot);
           await _resolve(mapping);
+          await reviewTarget();
           failure = job.issue ??
               (job.restorePending ? 'pending_restore' : null) ??
               (job.conflicts.isNotEmpty ? 'save_conflict' : null);

@@ -31,6 +31,8 @@ enum RetroArchBatteryRoute {
 
   bool get includesRtc => this == mgba;
 
+  String get directory => '/storage/emulated/0/RetroArch/saves/$coreLabel';
+
   // Mupen's EEPROM, four Controller Paks, SRAM and FlashRAM are one fixed-size
   // libretro memory region. A standalone .eep/.mpk or truncated SRM is not it.
   bool acceptsSize(int size) =>

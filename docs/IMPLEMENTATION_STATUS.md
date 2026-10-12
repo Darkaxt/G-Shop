@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### RetroArch automatic save lane — host/native slice, 2026-10-12
+
+N64 and the existing cartridge routes now participate in durable automatic
+opt-in, exact native file watching and pre-launch reconciliation. Focused job,
+settings and owned-launch verification passes. A changed installation is refused
+before save IO; explicitly reviewing its replacement retires the former watch
+without deleting cloud history. Pending recovery work prevents a silent remap.
+Build 807 passed the focused native watch policy checks and both assemblies;
+the actual Thor watch probe passed N64 SRM and paired mGBA RTC publication and
+exact fixture cleanup. Existing saves and all eleven configuration/preference
+digests were unchanged. Gated assembly 808 includes the final Dart remapping
+changes, passed scoped analysis and the affected host checks, and was installed
+with the existing signer. The native watch probe passed again and the same
+eleven configuration/preference digests plus existing save digests stayed
+unchanged. APK SHA-256:
+`f483e29e036444d2cd19b3b250e74466679bbce13b1d7376d1237908c5546f78`.
+Both actual/committed displays are OFF and wakefulness is Asleep.
+
+This does not claim a live automatic watch-to-Drive round trip or S10 completion.
+That integration, remaining installed-emulator routes, required faults and
+conditional legacy-sync handover remain ordinary S10 work. S10 is ACTIVE;
+S11 is NOT STARTED. Unbound remains owner-accepted; no DualDex work is required.
+Resource profile and native evidence are recorded in S10_SAVE_BACKUP_DESIGN.md.
+
 ### N64 manual save route — verified, 2026-10-12
 
 The existing cartridge workflow now accepts Mupen64Plus-Next's complete

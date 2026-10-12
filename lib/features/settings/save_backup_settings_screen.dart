@@ -995,6 +995,26 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     super.dispose();
   }
 
+  Widget _automaticPanel(SaveBackupGameJob job, {bool statusOnly = false}) {
+    Widget panel(String? name) => AutomaticSaveBackupPanel(
+        service: widget.automatic!,
+        mapping: AutomaticSaveMapping.fromJob(job,
+            title: widget.title, saveName: name),
+        statusOnly: statusOnly,
+        allowEnable:
+            !job.busy && _confirmed && (job.pendingName ?? _name) != null);
+    if (job.isStandalone) return panel(null);
+    return FutureBuilder<List<String>>(
+        future: _names,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data!.length != 1) {
+            return const Text(
+                'Review this game’s save before enabling automatic backups.');
+          }
+          return panel(snapshot.data!.single);
+        });
+  }
+
   Widget _appInfoButton(SaveBackupGameJob job) => ConsoleFocusable(
       focusScale: 1,
       onSelect: job.busy ? null : job.openAppInfo,
@@ -1225,14 +1245,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : 'Resume this backup'))),
                 if (conflicts.isNotEmpty)
                   const Text('Conflict needs review in Restore & conflicts.'),
-                if (job.isStandalone && widget.automatic != null)
-                  AutomaticSaveBackupPanel(
-                      service: widget.automatic!,
-                      mapping: AutomaticSaveMapping.fromJob(job,
-                          title: widget.title),
-                      allowEnable: !job.busy &&
-                          _confirmed &&
-                          (job.pendingName ?? _name) != null),
+                if (widget.automatic != null) _automaticPanel(job),
               ],
               if (widget.section == SaveBackupSection.restore) ...[
                 if (job.isStandalone) ...[
@@ -1384,12 +1397,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       'No device save or compatible cloud backup yet. '
                       'You can start the game to create one.',
                       style: TextStyle(fontSize: 18)),
-                if (job.isStandalone && widget.automatic != null)
-                  AutomaticSaveBackupPanel(
-                      service: widget.automatic!,
-                      mapping: AutomaticSaveMapping.fromJob(job,
-                          title: widget.title),
-                      statusOnly: true),
+                if (widget.automatic != null)
+                  _automaticPanel(job, statusOnly: true),
                 if (job.phase == 'restored')
                   Semantics(
                       liveRegion: true,
@@ -1489,10 +1498,12 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
     });
     try {
       await widget.service.setEnabled(widget.mapping, enabled);
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        setState(() => _issue =
-            'Automatic backup setting could not be saved. Review the source, backup area and selected save.');
+        setState(() => _issue = error is PlatformException &&
+                error.code == 'pending_save_operation'
+            ? 'Finish the previous save backup or restore, and resolve any save conflict before changing its location. Existing saves and cloud copies are kept.'
+            : 'Automatic backup setting could not be saved. Review the source, backup area and selected save.');
       }
     } finally {
       if (mounted) {
@@ -1537,8 +1548,8 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                           canChange ? (value) => _set(value ?? false) : null,
                       title: const Text('Automatically back up this save',
                           style: TextStyle(fontSize: 18)),
-                      subtitle: const Text(
-                          'Only for this version of the game. Watches this save while R-Shop is running, including while you play. Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
+                      subtitle: Text(
+                          'Only for this version of the game. Watches this save while R-Shop is running, including while you play. ${widget.mapping.isRetroArch ? 'Close the game in RetroArch after saving; the backup waits until it is safely closed. ' : ''}Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(

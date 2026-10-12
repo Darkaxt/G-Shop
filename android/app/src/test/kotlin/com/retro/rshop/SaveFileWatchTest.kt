@@ -7,6 +7,26 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class SaveFileWatchTest {
+    @Test fun retroArchWatchKeepsCoreAndExactSavePlusRequiredClock() {
+        val gba = SaveFileWatch.Mapping("d".repeat(64),
+            "/storage/emulated/0/RetroArch/saves/mGBA", "owned%2FGame.srm", "retroarch-gba")
+        val n64 = SaveFileWatch.Mapping("e".repeat(64),
+            "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next", "owned%2FGame.srm", "retroarch-n64")
+        for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO, FileObserver.DELETE)) {
+            assertEquals(listOf(gba.key), SaveFileWatch.affected(listOf(gba), event, gba.name))
+            assertEquals(listOf(gba.key), SaveFileWatch.affected(listOf(gba), event, "owned%2FGame.rtc"))
+            assertTrue(SaveFileWatch.affected(listOf(n64), event, "owned%2FGame.rtc").isEmpty())
+            assertTrue(SaveFileWatch.affected(listOf(gba), event, "Other.srm").isEmpty())
+        }
+        assertEquals(listOf(gba), SaveFileWatch.decode(listOf(mapOf("key" to gba.key,
+            "directory" to gba.directory, "name" to gba.name, "route" to gba.route))))
+        for (route in listOf("retroarch-n64", "retroarch-unknown", "retroarch-gamegear")) {
+            try { SaveFileWatch.Mapping(gba.key, gba.directory, gba.name, route); fail() }
+            catch (_: IllegalArgumentException) {}
+        }
+        try { SaveFileWatch.Mapping(gba.key, gba.directory, "Game.gba", gba.route); fail() }
+        catch (_: IllegalArgumentException) {}
+    }
     private val mapping = SaveFileWatch.Mapping("a".repeat(64),
         "/storage/emulated/0/PSP/PPSSPP_STATE", "ULUS10041_1.00_0.ppst")
 
