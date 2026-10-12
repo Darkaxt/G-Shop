@@ -5,6 +5,65 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Standalone save-location editing — 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 is NOT STARTED. A configured standalone
+save previously had no normal route back to its location selector. The focused
+regression reproduces the missing action (session 81207). The backup/restore
+sections now expose Change save location, with an unchanged-location cancel path.
+Selection remains mounted but unfocusable in other sections. Committing a new
+selection disables and joins only the previous association's automatic work,
+refreshes its durable state and rejects unfinished operations/conflicts before
+changing preferences. Existing local saves and cloud generations are untouched;
+the new selection requires fresh automatic-backup enablement. Relevant job/settings
+checks passed in session 12635; the location-commit control checks passed in
+34802. Scoped analysis and whitespace checks pass. The first two reproduction
+attempts were harness errors (FFI/fake-clock and an animated busy indicator),
+not product regressions; they were stopped/finished before another test started.
+The missing-action behavioral RED was session 81207. This is not S10 closure.
+
+Build 798 was installed preserving all eleven configuration/preference digest
+rows and the existing signer. The installed APK independently matched SHA-256
+`d0dc7b7e12eacb9bcc3ac4ada78c74cb4d09ce8df5d01be7e11ec1f9158e7e72`.
+Normal Patapon -> Save backups -> Change save location -> Find cloud saves
+discovered `UCUS98711_RSHOP_S10_CLOUD` while its local fixture folder was absent.
+Only its two independently hash-verified synthetic members and empty folder were
+removed for this test. Both cloud-only folder selection and edition confirmation
+survived Status -> Restore section changes. Use this save committed the selection;
+normal Restore verified cloud backup recreated both members at PPSSPP's expected
+SAVEDATA location, with the recorded nonempty and empty-file SHA-256 values.
+No real save, ROM, BIOS, emulator setting or cloud generation was removed.
+The complete installed coverage traversal showed all 24 currently requested
+packages and no GameNative/WinNative/Starboard entries. An initial uiautomator
+idle-observation error was not used as product failure evidence; the scratch
+observer now rejects a failed dump rather than reuse the prior XML.
+
+Live editing also exposed an enabled cancel button during location commit. The
+cancel control now shares the selector's actual busy state; held-commit tests
+cover both PSP and DS. Final gated build 799, original session 63690, passed;
+telemetry confirms acquisition before build start and release after completion.
+Observed workers=2, parallel=false, Gradle heap=3 GiB, Kotlin in-process; configured
+test forks=1/512 MiB/fail-fast (assembly runs no tests), native depth-one pools
+unchanged, no memory failure/increase. Log: `0199365cf286406eb9321ebce04cce47.log`.
+Preserving installation retains all eleven digest rows and the signer; installed
+APK SHA-256 matches `5325b60ce6b766116dd624af22bc81d19712be7d6a97c633942b23946100e2fd`.
+Final build 799 normal Patapon -> Change save location -> Keep current location
+returned to the original backup workspace with all configuration/preference
+digests unchanged. After testing, both actual/committed display states were
+independently observed OFF and device wakefulness Asleep. Remaining emulator routes,
+acceptance faults/reconnect and conditional legacy handover remain S10 work;
+S11 has not begun.
+
+Prior ROM-only coverage assembly 796 completed successfully in original session
+32881, with actual shared-mutex acquisition and confirmed completion. Observed
+workers=2, parallel=false, Gradle heap=3 GiB; reviewed Kotlin 2.3.21 is in-process.
+Configured test forks=1, heap=512 MiB, fail-fast; assembly executed no Gradle tests.
+Existing native depth-one pools are unchanged. No memory failure or heap increase.
+Log: `be8af88a3d884a15a83d43d1db6c3914.log`. Independent APK SHA-256:
+`c78324900b31fef1dc4395eb42a1e65679a24846c0ef451c8b2fac1671c3a5f6`;
+signer matches the retained debug identity. It was not separately installed:
+the next preserving test build will include the location-editing correction too.
+
 ### ROM-emulator-only save coverage — 2026-10-12
 
 The owner's specification revision 27 excludes GameNative, WinNative and similar

@@ -269,6 +269,9 @@ class _Areas extends DriveSaveBackupAreaApi {
 /// UI verifies the explicit choice; the separate job tests exercise real SQLite
 /// ordering. Do not launch FFI work from a dialog's fake-clock continuation.
 class _UiJob extends SaveBackupGameJob {
+  bool? busyFixture;
+  @override
+  bool get busy => busyFixture ?? super.busy;
   SaveBackupGameJob? refreshedFrom;
   bool refreshFixture = false;
   bool refreshed = false;
@@ -521,6 +524,61 @@ void main() {
     expect(capture.captures, 1);
     expect(job.lastVerified, isNotNull);
     ui.dispose();
+  });
+  testWidgets('mapped standalone saves expose change-location action',
+      (tester) async {
+    final psp = _UiJob(SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: '/storage/emulated/0/PSP/PPSSPP_STATE',
+        ppssppSlot: 'ULUS10041_1.00_0.ppst',
+        resolveSaveName: () async => 'ULUS10041_1.00_0.ppst'));
+    var changes = 0;
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: psp, title: 'Game', onChangeMapping: () => changes++)))));
+    await tester.pumpAndSettle();
+    final change = find.byKey(const ValueKey('save-change-location'));
+    expect(change, findsOneWidget);
+    await tester.tap(change);
+    expect(changes, 1);
+    psp.busyFixture = true;
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: psp, title: 'Game', onChangeMapping: () => changes++)))));
+    await tester.pump(); // A running operation intentionally animates.
+    expect(tester.widget<OutlinedButton>(change).onPressed, isNull);
+    expect(changes, 1);
+    psp.busyFixture = false;
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: psp,
+                title: 'Game',
+                section: SaveBackupSection.restore,
+                onChangeMapping: () => changes++)))));
+    await tester.pumpAndSettle();
+    expect(tester.widget<OutlinedButton>(change).onPressed, isNotNull);
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: psp,
+                title: 'Game',
+                section: SaveBackupSection.status,
+                onChangeMapping: () => changes++)))));
+    await tester.pumpAndSettle();
+    expect(change, findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    psp.dispose();
   });
   testWidgets('automatic completion refreshes an open restore panel',
       (tester) async {

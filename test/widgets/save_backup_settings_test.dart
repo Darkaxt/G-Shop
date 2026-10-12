@@ -230,6 +230,8 @@ void main() {
           .instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null));
       final mapped = <String>[];
+      final commit = Completer<void>();
+      var cancelled = 0;
       await tester.pumpWidget(createTestApp(Scaffold(
           body: SingleChildScrollView(
               child: StandaloneSaveMappingPanel(
@@ -237,8 +239,11 @@ void main() {
                   title: 'Reviewed edition',
                   capture: SaveCapture(),
                   chooseDirectory: () async => directory,
-                  onMapped: (directory, slot) async =>
-                      mapped.add('$directory/$slot'))))));
+                  onCancel: () => cancelled++,
+                  onMapped: (directory, slot) async {
+                    await commit.future;
+                    mapped.add('$directory/$slot');
+                  })))));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('$prefix-map-folder')));
       await tester.pumpAndSettle();
@@ -255,8 +260,17 @@ void main() {
       await tester.pumpAndSettle();
       await tester.ensureVisible(save);
       await tester.tap(save);
+      await tester.pump();
+      final cancel = find.byKey(const ValueKey('save-change-location-cancel'));
+      expect(tester.widget<TextButton>(cancel).onPressed, isNull,
+          reason: 'A location commit must finish before cancelling the editor');
+      expect(mapped, isEmpty);
+      commit.complete();
       await tester.pumpAndSettle();
       expect(mapped, ['$directory/$name']);
+      await tester.ensureVisible(cancel);
+      await tester.tap(cancel);
+      expect(cancelled, 1);
       expect(tester.takeException(), isNull);
     });
   }

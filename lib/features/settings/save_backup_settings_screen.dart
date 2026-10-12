@@ -78,6 +78,7 @@ class _SaveBackupSettingsScreenState
   String? _gameBinding;
   int _gameGeneration = 0;
   bool _pspSavedata = true;
+  bool _editingMapping = false;
   SaveBackupSection _section = SaveBackupSection.area;
   Future<List<SaveEmulatorCoverage>?>? _coverage;
   final _contentScroll = ScrollController();
@@ -335,6 +336,7 @@ class _SaveBackupSettingsScreenState
       throw const FormatException('Invalid MelonDualDS mapping');
     }
     final binding = _binding;
+    await _prepareMappingChange();
     final preferences = await SharedPreferences.getInstance();
     if (!mounted || binding != _binding || _gameJob?.busy == true) return;
     if (!await preferences.setString(_melonMappingKey(config),
@@ -356,6 +358,7 @@ class _SaveBackupSettingsScreenState
       throw const FormatException('Invalid PPSSPP mapping');
     }
     final binding = _binding;
+    await _prepareMappingChange();
     final preferences = await SharedPreferences.getInstance();
     if (!mounted || binding != _binding || _gameJob?.busy == true) return;
     if (!await preferences.setString(
@@ -368,11 +371,43 @@ class _SaveBackupSettingsScreenState
     setState(_closeGame);
   }
 
+  Future<void> _prepareMappingChange() async {
+    final job = _gameJob;
+    if (job == null) return;
+    void requireIdle() {
+      if (!mounted ||
+          _gameJob != job ||
+          job.busy ||
+          job.pendingName != null ||
+          job.restorePending ||
+          job.conflicts.isNotEmpty) {
+        throw StateError(
+            'Finish the current save operation before changing its location.');
+      }
+    }
+
+    requireIdle();
+    // Retire only this association's automatic work/watch before publishing a
+    // new location. Other games and all retained backup generations are kept.
+    await _automatic?.setEnabled(
+        AutomaticSaveMapping.fromJob(job,
+            title: widget.gameTitle ?? 'Selected game'),
+        false);
+    await job.refresh();
+    requireIdle();
+  }
+
   Widget _mappingIssue(DriveSourceConfig config) {
-    if (_section == SaveBackupSection.area) return const SizedBox.shrink();
-    if (widget.system?.id == 'nds' && _section == SaveBackupSection.backup) {
+    if (_section == SaveBackupSection.area && !_editingMapping) {
+      return const SizedBox.shrink();
+    }
+    if (widget.system?.id == 'nds' &&
+        (_section == SaveBackupSection.backup || _editingMapping)) {
       return StandaloneSaveMappingPanel(
           melon: true,
+          onCancel: _editingMapping
+              ? () => setState(() => _editingMapping = false)
+              : null,
           title: widget.gameTitle ?? 'Selected DS edition',
           capture: SaveCapture(),
           resolveMelonSave: widget.game != null &&
@@ -386,10 +421,15 @@ class _SaveBackupSettingsScreenState
           onMapped: (directory, name) => _mapMelon(config, directory, name));
     }
     if (widget.system?.id == 'psp' &&
-        (_section == SaveBackupSection.backup ||
-            _pspSavedata && _section == SaveBackupSection.restore)) {
+        (_editingMapping ||
+            _section == SaveBackupSection.backup ||
+            (_pspSavedata || _editingMapping) &&
+                _section == SaveBackupSection.restore)) {
       return StandaloneSaveMappingPanel(
           key: ValueKey('psp-map-$_pspSavedata'),
+          onCancel: _editingMapping
+              ? () => setState(() => _editingMapping = false)
+              : null,
           pspSavedata: _pspSavedata,
           title: widget.gameTitle ?? 'Selected PSP edition',
           capture: SaveCapture(),
@@ -423,6 +463,7 @@ class _SaveBackupSettingsScreenState
   }
 
   void _closeGame() {
+    _editingMapping = false;
     _gameGeneration++;
     _gameBinding = null;
     _gameLoading = null;
@@ -734,7 +775,18 @@ class _SaveBackupSettingsScreenState
                                                                               selected.drive!)
                                                                           : game.data == null
                                                                               ? const LinearProgressIndicator()
-                                                                              : SaveBackupGamePanel(key: ObjectKey(game.data!), section: _section, job: game.data!, automatic: _automatic, title: widget.gameTitle ?? 'Selected game')),
+                                                                              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                                                                  if (_editingMapping)
+                                                                                    Offstage(
+                                                                                        offstage: _section != SaveBackupSection.backup && _section != SaveBackupSection.restore,
+                                                                                        child: ExcludeFocus(
+                                                                                            excluding: _section != SaveBackupSection.backup && _section != SaveBackupSection.restore,
+                                                                                            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                                                                              const Text('Changing the selection turns off automatic backups for the previous save. Your existing cloud backups are kept.'),
+                                                                                              _mappingIssue(selected.drive!),
+                                                                                            ]))),
+                                                                                  if (!_editingMapping || (_section != SaveBackupSection.backup && _section != SaveBackupSection.restore)) SaveBackupGamePanel(key: ObjectKey(game.data!), section: _section, job: game.data!, automatic: _automatic, title: widget.gameTitle ?? 'Selected game', onChangeMapping: () => setState(() => _editingMapping = true)),
+                                                                                ])),
                                                                 if (_gameLoading ==
                                                                         null &&
                                                                     _section !=
@@ -896,11 +948,13 @@ class SaveBackupGamePanel extends StatefulWidget {
   final AutomaticSaveBackups? automatic;
   final String title;
   final SaveBackupSection section;
+  final VoidCallback? onChangeMapping;
   const SaveBackupGamePanel(
       {super.key,
       required this.job,
       required this.title,
       this.automatic,
+      this.onChangeMapping,
       this.section = SaveBackupSection.backup});
   @override
   State<SaveBackupGamePanel> createState() => _SaveBackupGamePanelState();
@@ -1059,6 +1113,27 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                                   ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
                                   : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
+              if (job.isStandalone &&
+                  (widget.section == SaveBackupSection.backup ||
+                      widget.section == SaveBackupSection.restore))
+                ConsoleFocusable(
+                    focusScale: 1,
+                    onSelect: !job.busy &&
+                            job.pendingName == null &&
+                            !job.restorePending &&
+                            conflicts.isEmpty
+                        ? widget.onChangeMapping
+                        : null,
+                    child: OutlinedButton.icon(
+                        key: const ValueKey('save-change-location'),
+                        onPressed: !job.busy &&
+                                job.pendingName == null &&
+                                !job.restorePending &&
+                                conflicts.isEmpty
+                            ? widget.onChangeMapping
+                            : null,
+                        icon: const Icon(Icons.folder_open_outlined),
+                        label: const Text('Change save location'))),
               if (widget.section == SaveBackupSection.backup) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -1509,12 +1584,14 @@ class StandaloneSaveMappingPanel extends StatefulWidget {
   final Future<List<String>> Function(CancelToken)? cloudSavedataFolders;
   final Future<String?> Function() chooseDirectory;
   final Future<void> Function(String directory, String slot) onMapped;
+  final VoidCallback? onCancel;
   const StandaloneSaveMappingPanel(
       {super.key,
       this.melon = false,
       this.pspSavedata = false,
       this.resolveMelonSave,
       this.cloudSavedataFolders,
+      this.onCancel,
       required this.title,
       required this.capture,
       required this.chooseDirectory,
@@ -1850,6 +1927,14 @@ class _StandaloneSaveMappingPanelState
                 child: Text(widget.melon || widget.pspSavedata
                     ? 'Use this save'
                     : 'Use this save state'))),
+        if (widget.onCancel != null)
+          ConsoleFocusable(
+              focusScale: 1,
+              onSelect: _busy ? null : widget.onCancel,
+              child: TextButton(
+                  key: const ValueKey('save-change-location-cancel'),
+                  onPressed: _busy ? null : widget.onCancel,
+                  child: const Text('Keep current location'))),
         if (_busy) const LinearProgressIndicator(),
         if (_issue != null) Text(_issue!, style: const TextStyle(fontSize: 18)),
       ]);
