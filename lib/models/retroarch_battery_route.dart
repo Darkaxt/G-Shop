@@ -5,6 +5,8 @@ enum RetroArchBatteryRoute {
       'mGBA'),
   nes('nes', 'fceumm', 'libretro-fceumm-sram-v1', 16 * 1024 * 1024,
       'nes-battery', 'NES'),
+  snes('snes', 'snes9x', 'libretro-snes9x-sram-v1', 131072, 'snes-battery',
+      'SNES'),
   gameGear('gamegear', 'genesis_plus_gx', 'libretro-genesis-plus-gx-sram-v1',
       65536, 'gamegear-battery', 'Game Gear'),
   masterSystem(
@@ -31,7 +33,7 @@ enum RetroArchBatteryRoute {
     return null;
   }
 
-  bool get includesRtc => this == mgba;
+  bool get includesRtc => this == mgba || this == snes;
 
   String get directory => '/storage/emulated/0/RetroArch/saves/$coreLabel';
 
@@ -43,6 +45,7 @@ enum RetroArchBatteryRoute {
   String get coreLabel => switch (this) {
         mgba => 'mGBA',
         nes => 'FCEUmm',
+        snes => 'Snes9x',
         n64 => 'Mupen64Plus-Next',
         _ => 'Genesis Plus GX',
       };

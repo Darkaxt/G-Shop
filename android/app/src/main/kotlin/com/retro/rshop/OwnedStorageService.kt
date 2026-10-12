@@ -61,6 +61,7 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "reviewOwnedRetroArchMasterSystemSave" ||
                         call.method == "reviewOwnedRetroArchMegaDriveSave" ||
                         call.method == "reviewOwnedRetroArchNesSave" ||
+                        call.method == "reviewOwnedRetroArchSnesSave" ||
                         call.method == "reviewOwnedRetroArchN64Save") {
                         val reviewGbaSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
                         val reviewGameGearSave = call.method == "reviewOwnedRetroArchGameGearSave"
@@ -68,7 +69,8 @@ internal class OwnedStorageService(private val context: Context) {
                             call.method == "reviewOwnedRetroArchMegaDriveSave"
                         val reviewN64Save = call.method == "reviewOwnedRetroArchN64Save"
                         val reviewNesSave = call.method == "reviewOwnedRetroArchNesSave"
-                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave || reviewN64Save || reviewNesSave
+                        val reviewSnesSave = call.method == "reviewOwnedRetroArchSnesSave"
+                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave || reviewN64Save || reviewNesSave || reviewSnesSave
                         val gameGear = call.method == "launchOwnedRetroArchGameGear" || reviewGameGearSave
                         val segaPlatform = when (call.method) {
                             "launchOwnedRetroArchMegaDrive", "reviewOwnedRetroArchMegaDriveSave" -> "megadrive"
@@ -80,7 +82,7 @@ internal class OwnedStorageService(private val context: Context) {
                         val gameBoyColor = call.method == "launchOwnedRetroArchGameBoyColor"
                         val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance" || reviewGbaSave
                         val nes = call.method == "launchOwnedRetroArchNes" || reviewNesSave
-                        val snes = call.method == "launchOwnedRetroArchSnes"
+                        val snes = call.method == "launchOwnedRetroArchSnes" || reviewSnesSave
                         val handheld = gameBoy || gameBoyColor || gameBoyAdvance
                         val handheldPlatform = if (gameBoyAdvance) "gba" else if (gameBoyColor) "gbc" else "gb"
                         val n64 = call.method == "launchOwnedRetroArchN64" || reviewN64Save
@@ -141,7 +143,7 @@ internal class OwnedStorageService(private val context: Context) {
                             main.post { result.success(name) }
                             return@execute
                         }
-                        if (gameBoyAdvance && SaveCaptureService.groupRestorePending(context.filesDir,
+                        if ((gameBoyAdvance || snes) && SaveCaptureService.groupRestorePending(context.filesDir,
                                 RetroArchSaveBoundary.archiveSaveName(uri.encodedPath!!.substringAfterLast('/')))) {
                             throw Failure("save_restore_pending")
                         }

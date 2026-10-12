@@ -1438,7 +1438,10 @@ class SaveBackupGameJob extends ChangeNotifier {
                           cancellation: cancellation));
             }).toList();
             await capture.stageRetroArchGroupRestore(
-                restoreId: restoreId, name: name, members: members);
+                restoreId: restoreId,
+                name: name,
+                members: members,
+                route: retroArchRoute);
           } else {
             final member = cloud.members.single;
             final retainedFile = retained?.files.single;

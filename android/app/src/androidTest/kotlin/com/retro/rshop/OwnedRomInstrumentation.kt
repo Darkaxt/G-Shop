@@ -28,6 +28,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var saveRouteProbe = false
     private var n64SaveProbe = false
     private var nesSaveProbe = false
+    private var snesSaveProbe = false
     private var saveGroupProbe = false
     private var melonSaveProbe = false
     private var protectedMelonSaveProbe = false
@@ -52,6 +53,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         saveRouteProbe = arguments?.getString("saveRouteProbe") == "true"
         n64SaveProbe = arguments?.getString("n64SaveProbe") == "true"
         nesSaveProbe = arguments?.getString("nesSaveProbe") == "true"
+        snesSaveProbe = arguments?.getString("snesSaveProbe") == "true"
         saveGroupProbe = arguments?.getString("saveGroupProbe") == "true"
         melonSaveProbe = arguments?.getString("melonSaveProbe") == "true"
         protectedMelonSaveProbe = arguments?.getString("protectedMelonSaveProbe") == "true"
@@ -105,6 +107,8 @@ class OwnedRomInstrumentation : Instrumentation() {
                 report.putString("result", MelonSaveProof.exercise(targetContext, protectedMelonSaveProbe, melonLiveCaptureProbe))
             } else if (saveGroupProbe) {
                 report.putString("result", MgbaGroupSaveProof.exercise(targetContext))
+            } else if (snesSaveProbe) {
+                report.putString("result", MgbaGroupSaveProof.exercise(targetContext, route = "snes"))
             } else if (nesSaveProbe) {
                 report.putString("result", SegaSaveRouteProof.exercise(targetContext, nes = true))
             } else if (n64SaveProbe) {

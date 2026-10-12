@@ -39,7 +39,8 @@ internal class SaveFileWatch(private val context: Context? = null,
                 if (it.route == "ppsspp-savedata") event and (FILE_EVENTS or FileObserver.CREATE) != 0 &&
                     name != null && PpssppSavedataBoundary.validMember(name)
                 else event and FILE_EVENTS != 0 && (it.name == name ||
-                    (it.route == "retroarch-gba" && name == it.name.dropLast(4) + ".rtc"))
+                    (RetroArchSaveBoundary.includesRtc(it.route.removePrefix("retroarch-")) &&
+                        name == it.name.dropLast(4) + ".rtc"))
             }.map { it.key }
         fun decode(raw: List<*>): List<Mapping> {
             require(raw.size <= 4096)

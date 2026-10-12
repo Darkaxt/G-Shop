@@ -7,6 +7,16 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class SaveFileWatchTest {
+    @Test fun snesWatchIncludesOnlyItsExactSramAndClock() {
+        val mapping = SaveFileWatch.Mapping("a".repeat(64),
+            "/storage/emulated/0/RetroArch/saves/Snes9x", "owned%2FGame.srm", "retroarch-snes")
+        for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO, FileObserver.DELETE)) {
+            for (leaf in listOf(mapping.name, "owned%2FGame.rtc"))
+                assertEquals(listOf(mapping.key), SaveFileWatch.affected(listOf(mapping), event, leaf))
+            for (leaf in listOf("Other.rtc", "owned%2FGame.state", "../${mapping.name}"))
+                assertTrue(SaveFileWatch.affected(listOf(mapping), event, leaf).isEmpty())
+        }
+    }
     @Test fun nesWatchBindsOnlyFceummAndTheExactSrm() {
         val mapping = SaveFileWatch.Mapping("f".repeat(64),
             "/storage/emulated/0/RetroArch/saves/FCEUmm", "owned%2FGame.srm", "retroarch-nes")

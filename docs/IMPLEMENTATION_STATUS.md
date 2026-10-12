@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### SNES/Snes9x paired save route — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. SNES now uses the existing exact owned launch
+association, normal backup/automatic-watch job, capture and restore/rollback
+paths, with its own Snes9x directory/format/journal and optional RTC group.
+Focused Dart/native contracts and scoped analysis pass. Actual Thor probes pass
+coherent SRAM/RTC capture and watch delivery, wrong-console journal rejection,
+interrupted paired-publication recovery, expected-location restore, retained-byte
+rollback and missing-pair root publication. Existing mGBA paired and protected
+MelonDualDS routes also pass regression probes. This is not a new SNES-specific
+UI-to-Drive proof and does not claim state or multi-cartridge subsystem coverage.
+
+Gated request 821 completed with the shared mutex acquired, two workers, no
+parallelism, 3 GiB Gradle, Kotlin in-process and one configured 512 MiB test fork;
+no memory failure/budget increase. Native two-job hints are not an independently
+verified concurrency measurement. Preserving installed APK SHA-256:
+`456f6a140ccba8b1484146528a0e95c0398c91ca45c2c3cfcd7072655d9500b0`.
+All 30 preservation hashes match, exclusive fixtures are removed and both screens
+committed OFF with wakefulness Asleep. Other accessible routes, state coverage,
+required recovery/fault evidence and conditional legacy handover remain unfinished
+S10 work. S11 and proposed S12 are NOT STARTED. Evidence:
+S10_SAVE_BACKUP_DESIGN.md. No release occurred.
+
 ### NES/FCEUmm save route — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage. NES uses its exact owned 7z launch association

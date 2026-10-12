@@ -8,16 +8,20 @@ internal object RetroArchSaveBoundary {
     fun saveDirectory(platform: String): String? = when (platform) {
         "gba" -> "/storage/emulated/0/RetroArch/saves/mGBA"
         "nes" -> "/storage/emulated/0/RetroArch/saves/FCEUmm"
+        "snes" -> "/storage/emulated/0/RetroArch/saves/Snes9x"
         "gamegear", "mastersystem", "megadrive" -> "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         "n64" -> "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         else -> null
     }
+    fun includesRtc(platform: String): Boolean = platform == "gba" || platform == "snes"
+
     fun snapshotNames(directory: String, name: String): List<String> {
-        require(directory in listOf(saveDirectory("gba"), saveDirectory("nes"), saveDirectory("gamegear"), saveDirectory("n64")))
+        require(directory in listOf(saveDirectory("gba"), saveDirectory("nes"), saveDirectory("snes"), saveDirectory("gamegear"), saveDirectory("n64")))
         require(validName(name))
         // Watch the clock even when absent so creation during SRAM capture
         // cannot produce a falsely complete group.
-        return if (directory == saveDirectory("gba")) listOf(name, name.dropLast(4) + ".rtc") else listOf(name)
+        return if (directory == saveDirectory("gba") || directory == saveDirectory("snes"))
+            listOf(name, name.dropLast(4) + ".rtc") else listOf(name)
     }
     // Pinned SAF archive launch: preserve the encoded document ID. Decoding
     // %2F or using the display name would select a different save on disk.

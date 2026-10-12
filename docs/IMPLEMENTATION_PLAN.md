@@ -1701,7 +1701,19 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
-Latest verified slice, 2026-10-12: NES/FCEUmm now joins the existing exact owned
+Latest verified slice, 2026-10-12: SNES/Snes9x now joins exact owned save review
+and the common backup/watch/capture/restore paths, including optional RTC groups.
+Focused Dart/native contracts and scoped analysis pass. Thor probes verify
+coherent capture/watch, wrong-console replay rejection, interrupted paired
+publication recovery, expected-location restore, retained rollback and absent-pair
+root publication. GBA paired and protected Melon routes pass regression probes.
+Request 821 completed through the shared gate/profile. All 30 preservation hashes
+match; fixtures are removed and both screens OFF/Asleep. Other accessible routes,
+state coverage, required faults/reconnect and conditional handover remain S10 work.
+No new SNES-specific UI-to-Drive round trip is claimed. Evidence:
+S10_SAVE_BACKUP_DESIGN.md. S11 and proposed S12 are NOT STARTED.
+
+Earlier verified slice, 2026-10-12: NES/FCEUmm now joins the existing exact owned
 7z save review and common backup/automatic-watch/restore paths. Focused host and
 native contracts pass; real Thor probes verify filesystem-only coherent capture,
 exact-file event delivery, expected-location restore, cross-console rejection and

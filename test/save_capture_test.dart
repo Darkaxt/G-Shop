@@ -33,6 +33,18 @@ void main() {
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));
 
+  test('SNES battery route retains its Snes9x SRAM and optional clock contract',
+      () {
+    final route = RetroArchBatteryRoute.forPlatform('snes');
+    expect(route, isNotNull);
+    expect(route!.coreId, 'snes9x');
+    expect(route.directory, '/storage/emulated/0/RetroArch/saves/Snes9x');
+    expect(route.formatId, 'libretro-snes9x-sram-v1');
+    expect(route.includesRtc, isTrue);
+    expect(route.acceptsSize(131072), isTrue);
+    expect(route.acceptsSize(131073), isFalse);
+  });
+
   test('capture requests only an explicitly selected mGBA battery group',
       () async {
     final captured = await SaveCapture()
@@ -41,6 +53,55 @@ void main() {
     expect(calls.single.arguments, {'captureId': 'a' * 32, 'name': 'Game.srm'});
     expect(captured.files.single.name, 'Game.srm');
     expect(captured.deviceId, 'device');
+  });
+
+  test('SNES captures and stages SRAM plus RTC with its own native route',
+      () async {
+    final route = RetroArchBatteryRoute.forPlatform('snes')!;
+    (response['files'] as List).add({
+      'name': 'Game.rtc',
+      'path': '/private/save-captures/${'a' * 32}/member-1',
+      'size': 20,
+      'sha256': 'c' * 64,
+    });
+    final group = await SaveCapture()
+        .captureRetroArch(captureId: 'a' * 32, name: 'Game.srm', route: route);
+    expect(group.files.map((f) => f.name), ['Game.srm', 'Game.rtc']);
+    expect((calls.single.arguments as Map)['retroArchRoute'], 'snes');
+    calls.clear();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'appendRestoreGroup') {
+        final args = call.arguments as Map;
+        return (args['offset'] as int) + (args['bytes'] as Uint8List).length;
+      }
+      return null;
+    });
+    await SaveCapture().stageRetroArchGroupRestore(
+        restoreId: 'a' * 32,
+        name: 'Game.srm',
+        route: route,
+        members: [
+          RestoreSaveMember(
+              'Game.srm', 4, 'b' * 64, Stream.value(Uint8List(4))),
+          RestoreSaveMember(
+              'Game.rtc', 20, 'c' * 64, Stream.value(Uint8List(20))),
+        ]);
+    expect((calls.first.arguments as Map)['retroArchRoute'], 'snes');
+    expect(calls.last.method, 'sealRestoreGroup');
+    calls.clear();
+    await expectLater(
+        SaveCapture().stageRetroArchGroupRestore(
+            restoreId: 'a' * 32,
+            name: 'Game.srm',
+            route: RetroArchBatteryRoute.nes,
+            members: [
+              RestoreSaveMember('Game.srm', 4, 'b' * 64, const Stream.empty()),
+              RestoreSaveMember('Game.rtc', 20, 'c' * 64, const Stream.empty()),
+            ]),
+        throwsFormatException);
+    expect(calls, isEmpty);
   });
 
   test('PPSSPP captures one explicitly mapped completed state slot', () async {

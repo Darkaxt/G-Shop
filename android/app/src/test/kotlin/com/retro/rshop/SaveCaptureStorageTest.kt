@@ -7,6 +7,19 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun snesBindingUsesItsOwnSramAndExactOptionalClockGroup() {
+        val source = "/storage/emulated/0/RetroArch/saves/Snes9x"
+        assertEquals(source, RetroArchSaveBoundary.saveDirectory("snes"))
+        assertTrue(RetroArchSaveBoundary.includesRtc("snes"))
+        assertTrue(SaveCaptureService.validRestoreBinding("encoded%2FGame.srm", 131072, "snes-battery", source))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 131073, "snes-battery", source))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.rtc", 20, "snes-battery", source))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 8192, "mgba-battery", source))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 8192, "snes-battery",
+            "/storage/emulated/0/RetroArch/saves/mGBA"))
+        assertEquals(listOf("encoded%2FGame.srm", "encoded%2FGame.rtc"),
+            RetroArchSaveBoundary.snapshotNames(source, "encoded%2FGame.srm"))
+    }
     @Test fun nesBindingKeepsFceummBatteryMemorySeparateFromStatesAndOtherCores() {
         val source = "/storage/emulated/0/RetroArch/saves/FCEUmm"
         assertEquals(source, RetroArchSaveBoundary.saveDirectory("nes"))

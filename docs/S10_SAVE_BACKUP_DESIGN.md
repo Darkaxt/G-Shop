@@ -7,6 +7,67 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### SNES/Snes9x SRAM and RTC route — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. The existing owned SNES 7z review, normal
+backup job, automatic mapping/watch, coherent capture and restore/rollback now
+carry the `snes` route, `libretro-snes9x-sram-v1` binding, `snes-battery` journal
+and `RetroArch/saves/Snes9x` directory. The existing paired-file coordinator is
+extended rather than adding a parallel capture or restore engine. Default mGBA
+and PPSSPP group behavior remains backward compatible. Interrupted paired restore
+continues to retain per-file atomic receipts and rollback bytes; the entire pair
+is not claimed to be one atomic filesystem operation.
+
+[Snes9x's libretro memory interface](https://github.com/libretro/snes9x/blob/master/libretro/libretro.cpp#L2148-L2208)
+exposes mapper-sized SRAM capped at 131,072 bytes and optional 20-byte S-RTC or
+SPC7110 RTC memory. Capture includes an existing exact-stem RTC and watches its
+creation even when absent initially. The 131,072-byte member envelope is an IO
+bound, not fixed-size save validation or proof that the installed core equals
+upstream master. This is the ordinary single-cartridge route; Sufami Turbo
+multi-cartridge subsystem memory and save states are not claimed implemented.
+
+The missing route was first reproduced by a failing route contract. Focused Dart
+checks now pass for exact owned launch association, route separation, SRAM/RTC
+staging, persistent backup/restore, publication failure and retained-byte rollback.
+Scoped analysis reports no issues. Gated request 821, ticket
+`4bf820f701ad4c28b1ce45e8a62b90e3`, completed focused native capture/boundary/watch
+checks and debug/instrumentation APKs with exit 0 and verified completion. The
+shared mutex was acquired; observed profile: two workers, no parallelism, 3 GiB
+Gradle, selected Kotlin in-process, one configured 512 MiB test fork. No memory
+failure or budget increase occurred. Native tools received two-job hints; their
+effective concurrency is not independently established by this result. Existing
+plugin/deprecation warnings and optional tray telemetry PermissionError did not
+change the successful build result or mutex supervision.
+
+The preserving APK SHA-256 is
+`456f6a140ccba8b1484146528a0e95c0398c91ca45c2c3cfcd7072655d9500b0`;
+the installed base APK independently has the same digest. Real Thor app-UID
+probes passed serially:
+
+- `retroArchSnapshotProbe`: SNES joins N64/GBA/NES coherent capture, writable
+  handle rejection/read-only admission, mutation and newly created RTC rejection.
+- `retroArchWatchProbe`: exact SNES/GBA RTC and NES/N64 SRAM events delivered;
+  unrelated/temp leaves excluded; observer shutdown joined.
+- `snesSaveProbe`: paired digests, wrong-console journal replay rejection,
+  whole-group sealing and scalar-bypass rejection, changed-byte/replaced-inode
+  rejection after interrupted first-member publication, service-recreation
+  recovery, expected-location restore, retained-byte rollback and missing-pair
+  root publication/recovery. Restore uses actual RetroArch CONTENTLESS protection.
+- `saveGroupProbe`: the existing GBA paired route passes the same regression.
+- Protected `melonSaveProbe`: the root source worker still supports ordinary
+  non-RetroArch saves, coherent capture/watch, restore and retained-byte rollback.
+
+All 30 fresh before/after preservation hashes match: 28 existing RetroArch saves/
+sidecars plus its configuration and R-Shop Flutter preferences. Snes9x returned
+to its sole original save; exclusive probe fixtures/journals were removed by
+their owners. No ROM, BIOS, user save or Drive generation was changed by these
+probes. These native proofs are not a new SNES-specific UI-to-Drive round trip;
+the common Drive lane retains the separately verified real workflows below.
+Both Thor displays committed OFF and wakefulness Asleep after live work.
+Other accessible routes, state coverage, required recovery/fault evidence and
+conditional handover remain unfinished S10 work. S11 and proposed S12 remain
+NOT STARTED; no release occurred.
+
 ### NES/FCEUmm battery route — 2026-10-12
 
 The existing owned NES 7z launch now exposes its identity-validated encoded save

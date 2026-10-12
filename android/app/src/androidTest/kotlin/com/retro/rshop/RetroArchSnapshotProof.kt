@@ -37,12 +37,13 @@ internal object RetroArchSnapshotProof {
         fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
         try {
-            for (route in listOf("n64", "gba", "nes")) {
+            for (route in listOf("n64", "gba", "nes", "snes")) {
                 val directory = File(requireNotNull(RetroArchSaveBoundary.saveDirectory(route)))
                 check(directory.isDirectory && directory.canonicalFile == directory.absoluteFile)
                 val initialNames = directory.list()!!.toSet()
                 val file = File(directory, "RShopSnapshot-${id()}.srm")
                 val clock = File(directory, file.name.dropLast(4) + ".rtc")
+                val clockBytes = if (route == "snes") ByteArray(20) { (it + 1).toByte() } else byteArrayOf(1, 2, 3, 4)
                 check(file.createNewFile())
                 val bytes = ByteArray(if (route == "n64") 296960 else 32768) { (it + 17).toByte() }
                 fun write(target: File, value: ByteArray) {
@@ -66,11 +67,11 @@ internal object RetroArchSnapshotProof {
                             catch (error: IOException) { check(error.message == "source_changed") }
                         }
                     }
-                    if (route == "gba") {
+                    if (RetroArchSaveBoundary.includesRtc(route)) {
                         SaveSourceStorage.open(context, directory.path).use { storage ->
                             storage.beginRetroArchSnapshot(context, file.name)
                             check(clock.createNewFile())
-                            write(clock, byteArrayOf(1, 2, 3, 4))
+                            write(clock, clockBytes)
                             try { storage.verifySnapshot(); error("Missed newly created clock") }
                             catch (error: IOException) { check(error.message == "source_changed") }
                         }
@@ -82,10 +83,10 @@ internal object RetroArchSnapshotProof {
                             check(member["sha256"] == digest(File(directory, member["name"] as String).readBytes()))
                         }
                     }
-                    check(directory.list()!!.toSet() == initialNames + file.name + if (route == "gba") setOf(clock.name) else emptySet())
+                    check(directory.list()!!.toSet() == initialNames + file.name + if (RetroArchSaveBoundary.includesRtc(route)) setOf(clock.name) else emptySet())
                 } finally {
                     check(file.readBytes().contentEquals(bytes)); check(file.delete())
-                    if (clock.exists()) { check(clock.readBytes().contentEquals(byteArrayOf(1, 2, 3, 4))); check(clock.delete()) }
+                    if (clock.exists()) { check(clock.readBytes().contentEquals(clockBytes)); check(clock.delete()) }
                     check(directory.list()!!.toSet() == initialNames)
                 }
             }
@@ -102,6 +103,6 @@ internal object RetroArchSnapshotProof {
                 members.forEach { check(it.delete()) }; check(directory.delete())
             }
         }
-        return "PASS root filesystem RetroArch N64/GBA/NES capture without frontend replies; writable handles rejected, read-only handles admitted, overlapping writes and newly created RTC rejected, paired digests verified; exclusive fixtures removed"
+        return "PASS root filesystem RetroArch N64/GBA/NES/SNES capture without frontend replies; writable handles rejected, read-only handles admitted, overlapping writes and newly created RTC rejected, paired digests verified; exclusive fixtures removed"
     }
 }

@@ -13,9 +13,10 @@ import java.util.concurrent.CountDownLatch
 /** Actual app-UID group writes with exclusive disposable files. The interrupted
  * receipt is injected only in this instrumentation, never a production hook. */
 internal object MgbaGroupSaveProof {
-    fun exercise(context: Context): String {
+    fun exercise(context: Context, route: String = "gba"): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
-        val source = File("/storage/emulated/0/RetroArch/saves/mGBA")
+        check(RetroArchSaveBoundary.includesRtc(route))
+        val source = File(requireNotNull(RetroArchSaveBoundary.saveDirectory(route)))
         check(source.isDirectory && source.canonicalFile == source.absoluteFile)
         val initial = source.list()!!.toSet()
         var service = SaveCaptureService(context)
@@ -25,11 +26,12 @@ internal object MgbaGroupSaveProof {
         fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
         fun child(group: String, index: Int) = digest("$group/$index".toByteArray()).take(32)
-        val name = "rshop-mgba-group-${id()}.srm"
+        val name = "rshop-$route-group-${id()}.srm"
         val held = File(source, "$name.held")
         val names = listOf(name.dropLast(4) + ".rtc", name)
-        val before = names.associateWith { ByteArray(50) { i -> (i + 11).toByte() } }
-        val after = names.associateWith { ByteArray(50) { i -> (i + 71).toByte() } }
+        fun memberSize(name: String) = if (route == "snes" && name.endsWith(".rtc")) 20 else 50
+        val before = names.associateWith { ByteArray(memberSize(it)) { i -> (i + 11).toByte() } }
+        val after = names.associateWith { ByteArray(memberSize(it)) { i -> (i + 71).toByte() } }
         fun write(file: File, bytes: ByteArray) = FileOutputStream(file).use { it.write(bytes); it.fd.sync() }
         fun close() { val ack = CountDownLatch(1); service.shutdown { ack.countDown() }; ack.await() }
         fun call(method: String, args: Map<String, Any>, expected: String? = null): Any? {
@@ -47,7 +49,7 @@ internal object MgbaGroupSaveProof {
         }
         fun capture(): String {
             val capture = id().also(captures::add)
-            @Suppress("UNCHECKED_CAST") val receipt = call("captureRetroArch", mapOf("captureId" to capture, "name" to name)) as Map<String, Any>
+            @Suppress("UNCHECKED_CAST") val receipt = call("captureRetroArch", mapOf("captureId" to capture, "name" to name, "retroArchRoute" to route)) as Map<String, Any>
             @Suppress("UNCHECKED_CAST") val members = receipt["files"] as List<Map<String, Any>>
             check(members.map { it["name"] }.toSet() == names.toSet())
             for (member in members) {
@@ -59,11 +61,13 @@ internal object MgbaGroupSaveProof {
         fun stage(bytes: Map<String, ByteArray>, earlySeal: Boolean = false): String {
             val restore = id().also(restores::add)
             restores += (0..1).map { child(restore, it) }
-            call("beginRestoreGroup", mapOf("captureId" to restore, "name" to name,
-                "members" to names.map { mapOf("name" to it, "size" to bytes.getValue(it).size.toLong(), "sha256" to digest(bytes.getValue(it))) }))
+            val arguments = mapOf("captureId" to restore, "name" to name, "retroArchRoute" to route,
+                "members" to names.map { mapOf("name" to it, "size" to bytes.getValue(it).size.toLong(), "sha256" to digest(bytes.getValue(it))) })
+            call("beginRestoreGroup", arguments)
+            call("beginRestoreGroup", arguments + ("retroArchRoute" to if (route == "gba") "snes" else "gba"), "invalid_restore")
             for ((index, member) in names.withIndex()) {
                 check(call("appendRestoreGroup", mapOf("captureId" to restore, "member" to index,
-                    "offset" to 0L, "bytes" to bytes.getValue(member))) == 50L)
+                    "offset" to 0L, "bytes" to bytes.getValue(member))) == bytes.getValue(member).size.toLong())
                 if (earlySeal && index == 0) {
                     call("sealRestoreGroup", mapOf("captureId" to restore), "changed_capture")
                     check(names.all { File(source, it).readBytes().contentEquals(after.getValue(it)) })
@@ -121,7 +125,7 @@ internal object MgbaGroupSaveProof {
             val absent = id().also(captures::add)
             @Suppress("UNCHECKED_CAST")
             val absence = call("captureRetroArch", mapOf("captureId" to absent,
-                "name" to name, "restoreBaseline" to true)) as Map<String, Any>
+                "name" to name, "restoreBaseline" to true, "retroArchRoute" to route)) as Map<String, Any>
             check(absence["localWasAbsent"] == true && (absence["files"] as List<*>).isEmpty())
             val missing = stage(before)
             val missingJournal = File(context.filesDir.canonicalFile, "save-restores/$missing/group.json")
@@ -167,6 +171,6 @@ internal object MgbaGroupSaveProof {
             remove("save-restores", restores, setOf("group.json", "group.json.next", "restore.json", "restore.json.next", "member"))
             check(source.list()!!.toSet() == initial)
         }
-        return "PASS mGBA SRAM/RTC app-UID capture/digests, whole-group seal, scalar-bypass rejection, changed-byte and replacement-inode rejection, interrupted-prefix recovery after service recreation, expected-location group restore and retained-byte rollback, absent-group root publication with interrupted-prefix recovery; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
+        return "PASS $route SRAM/RTC app-UID capture/digests, cross-console journal replay rejection, whole-group seal, scalar-bypass rejection, changed-byte and replacement-inode rejection, interrupted-prefix recovery after service recreation, expected-location group restore and retained-byte rollback, absent-group root publication with interrupted-prefix recovery; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
     }
 }

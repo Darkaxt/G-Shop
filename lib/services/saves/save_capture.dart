@@ -503,14 +503,15 @@ class SaveCapture {
         {'captureId': restoreId, 'rollbackCaptureId': rollbackCaptureId});
   }
 
-  /// mGBA SRAM and its paired clock file are sealed together before either
+  /// SRAM and its paired clock file are sealed together before either
   /// public file changes. Native journals retain per-file atomic receipts so
   /// interrupted group publication can resume without discarding rollback bytes.
   Future<void> stageRetroArchGroupRestore(
       {required String restoreId,
       required String name,
+      RetroArchBatteryRoute route = RetroArchBatteryRoute.mgba,
       required List<RestoreSaveMember> members}) async {
-    if (!validName(name)) {
+    if (!validName(name) || !route.includesRtc) {
       throw const FormatException('Invalid related save group');
     }
     final allowed = {name, '${name.substring(0, name.length - 4)}.rtc'};
@@ -520,12 +521,15 @@ class SaveCapture {
         members.any((m) =>
             !allowed.contains(m.name) ||
             m.size <= 0 ||
-            m.size > RetroArchBatteryRoute.mgba.maxBytes ||
+            !route.acceptsSize(m.size) ||
             !RegExp(r'^[a-f0-9]{64}$').hasMatch(m.sha256))) {
       throw const FormatException('Invalid related save group');
     }
     await _stageGroupRestore(
-        restoreId: restoreId, name: name, members: members);
+        restoreId: restoreId,
+        name: name,
+        members: members,
+        retroArchRoute: route);
   }
 
   Future<void> stagePpssppSavedataRestore(
@@ -560,11 +564,14 @@ class SaveCapture {
       {required String restoreId,
       required String name,
       required List<RestoreSaveMember> members,
+      RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
       String? ppssppSavedataDirectory}) async {
     final ordered = members.toList()..sort((a, b) => a.name.compareTo(b.name));
     await _channel.invokeMethod('beginRestoreGroup', {
       'captureId': restoreId,
       'name': name,
+      if (retroArchRoute != RetroArchBatteryRoute.mgba)
+        'retroArchRoute': retroArchRoute.platformId,
       if (ppssppSavedataDirectory != null)
         'ppssppSavedataDirectory': ppssppSavedataDirectory,
       'members': ordered

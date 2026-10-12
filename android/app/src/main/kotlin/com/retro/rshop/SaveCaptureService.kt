@@ -34,6 +34,7 @@ internal class SaveCaptureService(private val activity: Context) {
         internal fun stagingRoot(filesDir: File): File = File(filesDir.canonicalFile, "save-captures")
         private const val MGBA_SOURCE = "/storage/emulated/0/RetroArch/saves/mGBA"
         private const val NES_SOURCE = "/storage/emulated/0/RetroArch/saves/FCEUmm"
+        private const val SNES_SOURCE = "/storage/emulated/0/RetroArch/saves/Snes9x"
         private const val GAMEGEAR_SOURCE = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         private const val N64_SOURCE = "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         internal fun validGroupNames(name: String, members: List<String>): Boolean =
@@ -57,6 +58,8 @@ internal class SaveCaptureService(private val activity: Context) {
                     size in 1..(16L * 1024 * 1024)
                 "nes-battery" -> source == NES_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..(16L * 1024 * 1024)
+                "snes-battery" -> source == SNES_SOURCE && RetroArchSaveBoundary.validName(name) &&
+                    size in 1..131072L
                 "gamegear-battery", "mastersystem-battery", "megadrive-battery" ->
                     source == GAMEGEAR_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..65536L
@@ -92,6 +95,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun batterySource(route: String): String = when (route) {
         "gba" -> MGBA_SOURCE
         "nes" -> NES_SOURCE
+        "snes" -> SNES_SOURCE
         "gamegear", "mastersystem", "megadrive" -> GAMEGEAR_SOURCE
         "n64" -> N64_SOURCE
         else -> throw Failure("invalid_selection")
@@ -101,6 +105,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun batteryFormat(route: String): String = when (route) {
         "gba" -> "mgba-battery"
         "nes" -> "nes-battery"
+        "snes" -> "snes-battery"
         "gamegear", "mastersystem", "megadrive" -> "$route-battery"
         "n64" -> "n64-battery"
         else -> throw Failure("invalid_selection")
@@ -112,11 +117,13 @@ internal class SaveCaptureService(private val activity: Context) {
         "megadrive-battery" -> "megadrive"
         "n64-battery" -> "n64"
         "nes-battery" -> "nes"
+        "snes-battery" -> "snes"
         else -> throw Failure("invalid_restore")
     }
 
     private fun batteryMaxBytes(route: String): Long = when (route) {
         "gba", "nes" -> 16L * 1024 * 1024
+        "snes" -> 131072L
         "gamegear", "mastersystem", "megadrive" -> 65536L
         "n64" -> 296960L // Complete EEPROM + 4 Controller Paks + SRAM + FlashRAM.
         else -> throw Failure("invalid_selection")
@@ -339,7 +346,7 @@ internal class SaveCaptureService(private val activity: Context) {
             throw Failure("invalid_capture")
         }
         val members = record.getJSONArray("files")
-        val includesRtc = ppssppDirectory == null && melonDirectory == null && retroArchRoute == "gba"
+        val includesRtc = ppssppDirectory == null && melonDirectory == null && RetroArchSaveBoundary.includesRtc(retroArchRoute)
         val maxMembers = if (savedata) PpssppSavedataBoundary.MAX_MEMBERS else if (includesRtc) 2 else 1
         val maxSize = if (savedata) PpssppSavedataBoundary.MAX_BYTES else if (melonDirectory != null) MelonSaveBoundary.MAX_BYTES
             else if (ppssppDirectory != null) PpssppSaveBoundary.MAX_STATE_BYTES
@@ -484,7 +491,7 @@ internal class SaveCaptureService(private val activity: Context) {
             val absent = restoreBaseline && !sourceStorage.exists(name)
             val selected = if (absent) mutableListOf<String>() else mutableListOf(name)
             val rtc = name.dropLast(4) + ".rtc"
-            if (!standalone && retroArchRoute != "gba" && File(sourceDirectory, rtc).exists()) {
+            if (!standalone && !RetroArchSaveBoundary.includesRtc(retroArchRoute) && File(sourceDirectory, rtc).exists()) {
                 throw Failure("related_group_unfinished")
             }
             if (!standalone && File(sourceDirectory, rtc).exists()) {
@@ -1044,9 +1051,10 @@ internal class SaveCaptureService(private val activity: Context) {
         val savedata = record.optString("format", "mgba-battery") == PpssppSavedataBoundary.FORMAT
         val valid = if (savedata) PpssppSavedataBoundary.validDirectory(record.getString("source")) &&
             record.getString("source").substringAfterLast('/') == record.getString("name") && PpssppSavedataBoundary.validMembers(names)
-            else record.optString("format", "mgba-battery") == "mgba-battery" && record.optString("source", MGBA_SOURCE) == MGBA_SOURCE &&
+            else record.optString("format", "mgba-battery") in setOf("mgba-battery", "snes-battery") &&
+                record.optString("source", MGBA_SOURCE) == batterySource(routeForFormat(record.optString("format", "mgba-battery"))) &&
                 validGroupNames(record.getString("name"), names)
-        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else 16L * 1024 * 1024
+        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(routeForFormat(record.optString("format", "mgba-battery")))
         if (record.getString("id") != directory.name || !valid || names != names.sorted() ||
             record.getString("phase") !in (if (savedata) setOf("downloading", "ready", "staging", "publishing", "retiring", "published")
                 else setOf("downloading", "ready", "publishing", "published")) ||
@@ -1064,15 +1072,17 @@ internal class SaveCaptureService(private val activity: Context) {
         val name = call.argument<String>("name") ?: ""
         val savedataDirectory = call.argument<String>("ppssppSavedataDirectory")
         val savedata = savedataDirectory != null
-        val format = if (savedata) PpssppSavedataBoundary.FORMAT else "mgba-battery"
-        val sourceDirectory = savedataDirectory ?: MGBA_SOURCE
+        val route = batteryRoute(call)
+        if (if (savedata) route != "gba" else !RetroArchSaveBoundary.includesRtc(route)) throw Failure("invalid_restore")
+        val format = if (savedata) PpssppSavedataBoundary.FORMAT else batteryFormat(route)
+        val sourceDirectory = savedataDirectory ?: batterySource(route)
         val raw = call.argument<List<Map<String, Any>>>("members") ?: throw Failure("invalid_restore")
         val names = raw.map { it["name"] as? String ?: "" }
         if (if (savedata) !PpssppSavedataBoundary.validDirectory(sourceDirectory) ||
                 sourceDirectory.substringAfterLast('/') != name || !PpssppSavedataBoundary.validMembers(names)
             else !validGroupNames(name, names)) throw Failure("invalid_restore")
         val members = JSONArray()
-        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else 16L * 1024 * 1024
+        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(route)
         var total = 0L
         for (item in raw.sortedBy { it["name"] as String }) {
             val size = (item["size"] as? Number)?.toLong() ?: 0L
@@ -1097,7 +1107,7 @@ internal class SaveCaptureService(private val activity: Context) {
             val member = members.getJSONObject(index)
             beginRestore(childId(id, index), MethodCall("beginRestore", mapOf(
                 "name" to member.getString("name"), "size" to member.getLong("size"),
-                "sha256" to member.getString("sha256"))), id)
+                "sha256" to member.getString("sha256"), "retroArchRoute" to route)), id)
         }
         return null
     }
@@ -1332,20 +1342,22 @@ internal class SaveCaptureService(private val activity: Context) {
             (record.has("rollbackId") && record.getString("rollbackId") != rollbackId)) throw Failure("invalid_restore")
         sealRestoreGroup(id)
         val name = record.getString("name")
-        val rollback = captured(File(root, rollbackId), name, restoreBaseline = true) ?: throw Failure("invalid_restore")
+        val route = routeForFormat(record.optString("format", "mgba-battery"))
+        val sourceDirectory = batterySource(route)
+        val rollback = captured(File(root, rollbackId), name, retroArchRoute = route, restoreBaseline = true) ?: throw Failure("invalid_restore")
         val absent = rollback["localWasAbsent"] == true
         @Suppress("UNCHECKED_CAST") val old = rollback["files"] as List<Map<String, Any>>
         if (!(absent && old.isEmpty()) && !validGroupNames(name, old.map { it["name"] as String })) throw Failure("related_group_changed")
         val members = record.getJSONArray("members")
         fun verifyCurrentGroup() {
             check()
-            val parent = OwnedStorageNative.openRoot(MGBA_SOURCE)
+            val parent = OwnedStorageNative.openRoot(sourceDirectory)
             try {
                 for (index in 0 until members.length()) {
                     val next = members.getJSONObject(index)
                     val child = restoreRecord(restoreDirectory(childId(id, index)))
                     val targetName = next.getString("name")
-                    val stage = File(MGBA_SOURCE, ".rshop-save-restore-${childId(id, index)}")
+                    val stage = File(sourceDirectory, ".rshop-save-restore-${childId(id, index)}")
                     val placed = child.getString("phase") == "published" ||
                         (child.getString("phase") == "publishing" && !stage.exists())
                     if (absent && !placed) {
@@ -1376,7 +1388,7 @@ internal class SaveCaptureService(private val activity: Context) {
                             else !same(identity, reviewedIdentity) || !same(identity, entry)) throw Failure("source_changed")
                     } finally { OwnedStorageNative.close(fd) }
                 }
-                val currentParent = OwnedStorageNative.openRoot(MGBA_SOURCE)
+                val currentParent = OwnedStorageNative.openRoot(sourceDirectory)
                 try {
                     if (OwnedStorageNative.identity(parent).take(2) !=
                         OwnedStorageNative.identity(currentParent).take(2)) throw Failure("source_changed")

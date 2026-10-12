@@ -268,34 +268,46 @@ void main() {
       expect(calls, hasLength(1));
     });
   }
-  test('NES save review shares its exact 7z launch grant without opening the game', () async {
-    final route = RetroArchBatteryRoute.forPlatform('nes');
-    expect(route, isNotNull);
-    final console = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nes');
-    final archive = exactGame('nes-save', name: 'Game.7z');
-    final installed = InstalledArtifact.fromJson({
-      ...manifest.toJson(),
-      'artifact': archive.remoteArtifact!.toJson(),
-      'relativePath': archive.filename,
+  for (final platform in ['nes', 'snes']) {
+    test(
+        '$platform save review shares its exact 7z launch grant without opening the game',
+        () async {
+      final route = RetroArchBatteryRoute.forPlatform(platform);
+      expect(route, isNotNull);
+      final console =
+          SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
+      final archive = exactGame('$platform-save', name: 'Game.7z');
+      final installed = InstalledArtifact.fromJson({
+        ...manifest.toJson(),
+        'artifact': archive.remoteArtifact!.toJson(),
+        'relativePath': archive.filename,
+      });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        return 'installed-one%2FGame.srm';
+      });
+      final launcher = OwnedEmulatorLauncher(
+          romManager: _RomManager(() async => installed), channel: channel);
+      expect(
+          await launcher.reviewRetroArchBatterySave(
+              archive, console, '/owned', route!),
+          'installed-one%2FGame.srm');
+      expect(
+          calls.single.method,
+          platform == 'nes'
+              ? 'reviewOwnedRetroArchNesSave'
+              : 'reviewOwnedRetroArchSnesSave');
+      expect(calls.single.arguments, {
+        'installationId': installed.id,
+        'filename': archive.filename,
+      });
+      await expectLater(
+          launcher.reviewRetroArchBatterySave(archive, system, '/owned', route),
+          throwsUnsupportedError);
+      expect(calls, hasLength(1));
     });
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      return 'installed-one%2FGame.srm';
-    });
-    final launcher = OwnedEmulatorLauncher(
-        romManager: _RomManager(() async => installed), channel: channel);
-    expect(await launcher.reviewRetroArchBatterySave(archive, console, '/owned', route!),
-        'installed-one%2FGame.srm');
-    expect(calls.single.method, 'reviewOwnedRetroArchNesSave');
-    expect(calls.single.arguments, {
-      'installationId': installed.id,
-      'filename': archive.filename,
-    });
-    await expectLater(launcher.reviewRetroArchBatterySave(archive, system, '/owned', route),
-        throwsUnsupportedError);
-    expect(calls, hasLength(1));
-  });
+  }
   test('N64 save review shares the exact 7z or ZIP launch grant', () async {
     final route = RetroArchBatteryRoute.forPlatform('n64')!;
     final console =
