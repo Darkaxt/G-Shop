@@ -4,6 +4,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RetroArchSaveBoundaryTest {
+    @Test fun filesystemSnapshotsBindTheExactCoreAndIncludeTheAbsentClockCompanion() {
+        for (platform in listOf("gba", "n64", "gamegear", "mastersystem", "megadrive")) {
+            val source = requireNotNull(RetroArchSaveBoundary.saveDirectory(platform))
+            assertEquals(if (platform == "gba") listOf("encoded%2FGame.srm", "encoded%2FGame.rtc")
+                else listOf("encoded%2FGame.srm"),
+                RetroArchSaveBoundary.snapshotNames(source, "encoded%2FGame.srm"))
+        }
+        for (source in listOf("/storage/emulated/0/RetroArch/saves", "/data/media/0/RetroArch/saves/mGBA",
+                "/storage/emulated/0/RetroArch/saves/mGBA/..")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                RetroArchSaveBoundary.snapshotNames(source, "Game.srm")
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            RetroArchSaveBoundary.snapshotNames(requireNotNull(RetroArchSaveBoundary.saveDirectory("gba")), "../Game.srm")
+        }
+    }
     @Test fun gameGearZipReviewRetainsEncodedLeafAndDoesNotAcceptGbaArchives() {
         assertEquals("copy%3A42%3Agamegear%2FGame.srm",
             RetroArchSaveBoundary.archiveSaveName("copy%3A42%3Agamegear%2FGame.zip", true))

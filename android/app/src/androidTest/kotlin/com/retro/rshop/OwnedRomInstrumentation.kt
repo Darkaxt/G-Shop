@@ -41,6 +41,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var dsArchiveProbe = false
     private var saveWatchProbe = false
     private var retroArchWatchProbe = false
+    private var retroArchSnapshotProbe = false
     private var missingSaveProbe = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
@@ -62,6 +63,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
         saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
         retroArchWatchProbe = arguments?.getString("retroArchWatchProbe") == "true"
+        retroArchSnapshotProbe = arguments?.getString("retroArchSnapshotProbe") == "true"
         missingSaveProbe = arguments?.getString("missingSaveProbe") == "true"
         start()
     }
@@ -87,6 +89,8 @@ class OwnedRomInstrumentation : Instrumentation() {
                 report.putString("result", MelonSaveSettingsProof.exercise(targetContext))
             } else if (missingSaveProbe) {
                 report.putString("result", MissingSaveProof.exercise(targetContext))
+            } else if (retroArchSnapshotProbe) {
+                report.putString("result", RetroArchSnapshotProof.exercise(targetContext))
             } else if (retroArchWatchProbe) {
                 report.putString("result", SaveFileWatchProof.retroArch(targetContext))
             } else if (saveWatchProbe) {

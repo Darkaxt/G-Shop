@@ -1,7 +1,15 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 29.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 30.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+
+Root-use direction (owner, 2026-10-12): use root to simplify features and improve
+performance, not to add emulator handshakes or unnecessary lifecycle requirements.
+For save backups, reuse direct filesystem access, writable-handle checks and the
+existing mutation guard; no emulator status reply or game closure is required.
+Detect changes through file events and reconcile missed events on existing recovery
+checks. Verify the captured bytes stayed consistent, preserve conflicts, and keep
+restore's protection against overwriting saves in use. This belongs to ACTIVE S10.
 
 S10 automatic RetroArch checkpoint, 2026-10-12: focused host integration and
 actual Thor exact N64 SRM/mGBA RTC watch delivery pass. Reinstallation is reviewed

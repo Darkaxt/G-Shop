@@ -1218,7 +1218,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             ? 'Exit PPSSPP normally after saving. R-Shop then backs up the complete folder together, keeping your last verified backup if saving has not finished.'
                             : job.isPpsspp
                                 ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
-                                : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
+                                : 'RetroArch can stay open. R-Shop checks that saving has finished and keeps your previous backup if the file is still changing.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 ConsoleFocusable(
@@ -1549,7 +1549,7 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       title: const Text('Automatically back up this save',
                           style: TextStyle(fontSize: 18)),
                       subtitle: Text(
-                          'Only for this version of the game. Watches this save while R-Shop is running, including while you play. ${widget.mapping.isRetroArch ? 'Close the game in RetroArch after saving; the backup waits until it is safely closed. ' : ''}Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
+                          'Only for this version of the game. Watches this save while R-Shop is running, including while you play. Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(

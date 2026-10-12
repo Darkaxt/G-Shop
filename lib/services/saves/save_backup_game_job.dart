@@ -1210,7 +1210,8 @@ class SaveBackupGameJob extends ChangeNotifier {
           'invalid_save_size',
           'related_group_unfinished',
           'emulator_missing',
-          'changed_capture'
+          'changed_capture',
+          'root_unavailable'
         }.contains(error.code)
             ? error.code
             : 'capture_unavailable';

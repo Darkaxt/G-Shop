@@ -1,7 +1,7 @@
 package com.retro.rshop
 
-/** Pinned 1.22.2 battery-save protocol. PAUSED/SAVE_FILES receipts are not a
- * writer boundary: autosave can still write. CONTENTLESS follows content_deinit,
+/** Pinned 1.22.2 battery-save formats. Capture uses root filesystem evidence,
+ * not a frontend reply. Restore still requires CONTENTLESS after content_deinit,
  * after autosave_deinit joins the writer and final CMD_EVENT_SAVE_FILES returns.
  * State tasks require separate analysis; this route must not capture them. */
 internal object RetroArchSaveBoundary {
@@ -10,6 +10,13 @@ internal object RetroArchSaveBoundary {
         "gamegear", "mastersystem", "megadrive" -> "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         "n64" -> "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         else -> null
+    }
+    fun snapshotNames(directory: String, name: String): List<String> {
+        require(directory in listOf(saveDirectory("gba"), saveDirectory("gamegear"), saveDirectory("n64")))
+        require(validName(name))
+        // Watch the clock even when absent so creation during SRAM capture
+        // cannot produce a falsely complete group.
+        return if (directory == saveDirectory("gba")) listOf(name, name.dropLast(4) + ".rtc") else listOf(name)
     }
     // Pinned SAF archive launch: preserve the encoded document ID. Decoding
     // %2F or using the display name would select a different save on disk.

@@ -5,6 +5,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Root filesystem capture — verified slice, 2026-10-12
+
+Root guidance is recorded in the plan and specification revision 30. RetroArch
+backup capture now reuses the existing writable-handle census and mutation guard,
+without querying the frontend or requiring game closure. Restore protection is
+unchanged. The real Thor probe passed idle-writer rejection, read-only admission,
+overlapping-write and new-RTC rejection, and complete N64/GBA digests.
+
+The normal Banjo-Tooie test-save backup resumed and reached Verified backup
+available through real Drive at 19:21:51. The former pending capture was retired.
+This proves manual capture-to-Drive integration, not the automatic watch round
+trip or overall S10 completion. Automatic checks were re-enabled for the existing
+exclusive fixture; that live verification remains ordinary ACTIVE S10 work.
+The focused Dart job/widget checks and scoped analysis passed. Gated builds 810
+and 811 acquired and released the shared mutex after confirmed completion, using
+two workers, no parallelism, 3 GiB Gradle, Kotlin in-process and one configured
+512 MiB test fork. No memory failure or heap increase occurred. Final preserving
+APK installation: SHA-256
+`466fb61464b4eddad2faeb20072c2d27f76bf2d980bc55e3973167b89db36f54`.
+
+Implementation history through `1e3b162` was pushed to
+`origin/codex/drive-metadata-implementation` and its remote hash verified.
+Public main remains unchanged; no APK/release was published. S10 remains ACTIVE,
+S11 NOT STARTED. Owner additionally requests automatic exact save association
+instead of a redundant per-game confirmation; record and implement that within
+S10 rather than weakening identity/conflict protection.
+
 ### RetroArch automatic save lane — host/native slice, 2026-10-12
 
 N64 and the existing cartridge routes now participate in durable automatic

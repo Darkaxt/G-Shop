@@ -18,7 +18,7 @@ import 'save_capture.dart';
 
 /// Explicit save association, never a title-only game match.
 /// Watches request work; each emulator's capture boundary still decides when
-/// bytes are safe. RetroArch requires its real closed-content handshake.
+/// bytes are safe. RetroArch uses root writer checks and a mutation guard.
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
   final bool isMelon, isPpssppSavedata;

@@ -598,6 +598,9 @@ void main() {
     await tester.pumpAndSettle();
     final control = find.byKey(const ValueKey('automatic-save-enable'));
     expect(control, findsOneWidget);
+    expect(find.textContaining('Close the game in RetroArch'), findsNothing);
+    expect(find.textContaining('backup waits until it is safely closed'), findsNothing);
+    expect(find.textContaining('RetroArch can stay open'), findsOneWidget);
     expect(tester.widget<CheckboxListTile>(control).onChanged, isNull);
     tester
         .widget<DropdownButtonFormField<String>>(

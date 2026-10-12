@@ -136,7 +136,7 @@ internal object MelonSaveProof {
             SaveSourceStorage.open(context, source.path).use { storage ->
                 storage.beginMelonSnapshot(context, absentName)
                 check(!storage.exists(absentName))
-                storage.verifyMelonSnapshot()
+                storage.verifySnapshot()
             }
             val absentCapture = id().also(captures::add)
             @Suppress("UNCHECKED_CAST")
@@ -168,10 +168,10 @@ internal object MelonSaveProof {
                 storage.beginMelonSnapshot(context, file.name)
                 // A descriptor used only for reading must not block capture.
                 val reader = storage.openFile(file.name, false, false)
-                try { storage.verifyMelonSnapshot() } finally { storage.closeFile(reader) }
+                try { storage.verifySnapshot() } finally { storage.closeFile(reader) }
                 write(b)
                 repeat(2) {
-                    try { storage.verifyMelonSnapshot(); error("Sealed an overlapping write") }
+                    try { storage.verifySnapshot(); error("Sealed an overlapping write") }
                     catch (error: java.io.IOException) { check(error.message == "source_changed") }
                 }
             }

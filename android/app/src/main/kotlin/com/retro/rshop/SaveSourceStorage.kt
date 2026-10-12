@@ -222,6 +222,13 @@ internal class SaveSourceStorage private constructor(
     }
     fun beginMelonSnapshot(context: Context, name: String) {
         require(MelonSaveBoundary.validDirectory(source) && MelonSaveBoundary.validName(name))
+        beginSnapshot(context, name)
+    }
+    fun beginRetroArchSnapshot(context: Context, name: String) {
+        RetroArchSaveBoundary.snapshotNames(source, name)
+        beginSnapshot(context, name)
+    }
+    private fun beginSnapshot(context: Context, name: String) {
         check(snapshotHelper == null)
         if (rootAssisted) call(request("snapshotBegin").put("name", name)) else {
             // Shared bytes retain direct JNI IO. Only the root writer census
@@ -231,7 +238,7 @@ internal class SaveSourceStorage private constructor(
             helper.call(helper.request("snapshotBegin").put("name", name))
         }
     }
-    fun verifyMelonSnapshot() {
+    fun verifySnapshot() {
         val helper = snapshotHelper ?: this
         helper.call(helper.request("snapshotVerify"))
     }
@@ -287,6 +294,8 @@ object RootSaveSourceWorker {
         var parent = -1
         var snapshot = -1
         var snapshotName: String? = null
+        var clockSnapshot = -1
+        var clockName: String? = null
         var snapshotInvalid = false
         fun reply(value: JSONObject) { output.writeUTF(value.toString()); output.flush() }
         try {
@@ -351,6 +360,10 @@ object RootSaveSourceWorker {
                         val leaf = snapshotName ?: throw IOException("source_changed")
                         if ((!savedata && !savedataParent && OwnedStorageNative.saveSnapshotHasWriter(parent, leaf, source, backing)) ||
                             OwnedStorageNative.saveSnapshotChanged(snapshot, leaf)) throw IOException("source_changed")
+                        clockName?.let { clock ->
+                            if (OwnedStorageNative.saveSnapshotHasWriter(parent, clock, source, backing) ||
+                                OwnedStorageNative.saveSnapshotChanged(clockSnapshot, clock)) throw IOException("source_changed")
+                        }
                         val fresh = OwnedStorageNative.openRoot(backing)
                         try {
                             if (OwnedStorageNative.identity(fresh).take(2) != OwnedStorageNative.identity(parent).take(2))
@@ -368,6 +381,10 @@ object RootSaveSourceWorker {
                             require(snapshot == -1 && MelonSaveBoundary.validDirectory(source))
                             snapshotName = name(row)
                             snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
+                            if (source == RetroArchSaveBoundary.saveDirectory("gba")) {
+                                clockName = RetroArchSaveBoundary.snapshotNames(source, snapshotName!!).last()
+                                clockSnapshot = OwnedStorageNative.saveSnapshotOpen(parent)
+                            }
                             verifySnapshot()
                             JSONObject()
                         }
@@ -611,6 +628,7 @@ object RootSaveSourceWorker {
             runCatching { reply(JSONObject().put("error", if (message in setOf("source_changed", "save_settings_unresolved") ||
                 message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable")) }
         } finally {
+            if (clockSnapshot >= 0) runCatching { OwnedStorageNative.close(clockSnapshot) }
             if (snapshot >= 0) runCatching { OwnedStorageNative.close(snapshot) }
             files.values.forEach { runCatching { OwnedStorageNative.close(it) } }
         }

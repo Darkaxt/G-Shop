@@ -7,6 +7,39 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Filesystem-only RetroArch capture — 2026-10-12
+
+Owner clarification supersedes the historical CONTENTLESS backup requirement
+below. Root should simplify the feature: capture reuses the existing writable-FD
+census and overlapping-mutation guard, with direct bounded reads. No frontend
+reply, game closure, emulator termination or quiet-time heuristic is required.
+Restore's independent CONTENTLESS protection is unchanged. The mGBA guard covers
+both SRAM and the RTC leaf even when the clock is initially absent.
+
+The Thor `retroArchSnapshotProbe` passed real app-UID N64/GBA capture and digest
+verification, idle writable-handle rejection, read-only-handle admission, persistent
+overlapping-write rejection, newly created RTC rejection and complete paired-file
+capture. Exclusive fixtures and private captures were removed. No emulator was
+launched, queried or modified by the probe. This proves the filesystem capture
+boundary, not yet the normal automatic Drive round trip.
+
+Gate 810/ticket `3d70047f9974495d8815f2b841b3f18c` acquired the shared mutex;
+focused native policy/storage checks and both debug assemblies passed. Actual
+profile: two workers, no parallelism, 3 GiB Gradle, Kotlin in-process; one 512 MiB
+test fork, fail-fast, no ignored failures. Existing native depth-one pools are
+unchanged. No memory failure or heap increase. Gate 809's initial regression
+attempt failed compilation because the new snapshot-selection API was absent;
+it was not a memory failure. S10 remains ACTIVE, S11 NOT STARTED.
+
+Final Dart assembly 811/ticket `fffebdebc3f34d51bb23962561a2c67d` acquired the
+same mutex and exited successfully before release with the same low-memory
+profile. The installed APK digest is
+`466fb61464b4eddad2faeb20072c2d27f76bf2d980bc55e3973167b89db36f54`.
+The normal game Save backups menu resumed the existing exclusive N64 fixture;
+real Drive review/upload/readback reached Verified backup at 19:21:51 and retired
+the prior pending capture. This is manual capture-to-Drive proof; the automatic
+watch round trip and remaining S10 coverage/faults/handover remain unfinished.
+
 ### RetroArch automatic save lane — verified host/native slice, 2026-10-12
 
 Connect the existing reviewed cartridge routes to the existing durable opt-in,

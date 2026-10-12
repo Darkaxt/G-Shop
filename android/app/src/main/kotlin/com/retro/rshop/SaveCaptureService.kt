@@ -461,13 +461,8 @@ internal class SaveCaptureService(private val activity: Context) {
                 it.canonicalFile != it.absoluteFile || !it.isFile }) throw Failure("invalid_capture")
         leftovers.forEach { if (!it.delete()) throw Failure("capture_storage") }
 
-        val connection = if (standalone) null else synchronized(guard) {
-            check(); DatagramSocket().also { socket = it }
-        }
-        if (connection != null) {
-            connection.connect(InetAddress.getByName("127.0.0.1"), 55355)
-            contentClosed(connection)
-        }
+        // Backup depends on the save's writers/bytes, not a responsive frontend.
+        // Android may freeze a background emulator even after it closed the save.
         // PPSSPP SaveSlot publishes .ppst only after closing its .tmp writer.
         // Holding the opened no-follow descriptor captures that complete inode;
         // changing the selected entry or inode before sealing rejects the copy.
@@ -479,6 +474,7 @@ internal class SaveCaptureService(private val activity: Context) {
         val fds = mutableListOf<Int>()
         try {
             if (melon) sourceStorage.beginMelonSnapshot(activity, name)
+            else if (!standalone) sourceStorage.beginRetroArchSnapshot(activity, name)
             val absent = restoreBaseline && !sourceStorage.exists(name)
             val selected = if (absent) mutableListOf<String>() else mutableListOf(name)
             val rtc = name.dropLast(4) + ".rtc"
@@ -518,7 +514,6 @@ internal class SaveCaptureService(private val activity: Context) {
                         .put("sha256", digest.digest().joinToString("") { "%02x".format(it) }))
                 } finally { OwnedStorageNative.close(target) }
             }
-            if (connection != null) contentClosed(connection)
             if (absent && sourceStorage.exists(name)) throw Failure("source_changed")
             // Compare the complete group after all copies, including the RTC
             // existence assertion. A changed/replaced source never gets a seal.
@@ -530,10 +525,10 @@ internal class SaveCaptureService(private val activity: Context) {
                 }
             }
             // Reconcile the selected path with the pinned source root,
-            // after any protocol wait as well as the complete copy.
+            // after the complete copy.
             if (sourceStorage.currentRootIdentity().take(2) !=
                 sourceStorage.identity(sourceDir).take(2)) throw Failure("source_changed")
-            if (melon) sourceStorage.verifyMelonSnapshot()
+            if (melon || !standalone) sourceStorage.verifySnapshot()
             check()
             val record = JSONObject().put("captureId", captureId).put("name", name)
                 .put("deviceId", hash(device.toByteArray(Charsets.UTF_8)))

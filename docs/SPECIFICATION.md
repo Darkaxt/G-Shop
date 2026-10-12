@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 29, 2026-10-12.
+Authoritative specification, revision 30, 2026-10-12.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -1377,6 +1377,12 @@ self-imposed access limitations. ADB is a development tool, not a normal-use
 runtime dependency.
 Root access does not waive coherent snapshots, edition/format association,
 conflict preservation, completed-write verification or the save-only boundary.
+Owner clarification, 2026-10-12: root must simplify features rather than introduce
+extra emulator coordination. Save backup must use filesystem writer/completion
+evidence and consistent capture, without requiring an emulator status reply or
+closing the game. Reuse the existing root writable-handle census and mutation
+guard. Keep restore's independent protection against overwriting saves in use;
+timestamps detect changes but do not choose conflict winners.
 Protected or unidentifiable storage remains unresolved only after investigating
 the available ordinary, root and export/import routes; record the concrete reason.
 The user's coverage target is most installed emulators, not just the initial
