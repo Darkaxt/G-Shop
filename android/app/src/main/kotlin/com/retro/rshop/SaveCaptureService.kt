@@ -257,7 +257,10 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun ppssppNames(directory: String): List<String> {
         check()
         if (!PpssppSaveBoundary.validDirectory(directory) ||
-            File(directory).canonicalPath != directory) throw Failure("invalid_selection")
+            (!PpssppSaveBoundary.isProtectedDirectory(directory) &&
+                File(directory).canonicalPath != directory)) throw Failure("invalid_selection")
+        if (PpssppSaveBoundary.isProtectedDirectory(directory))
+            return SaveSourceStorage.open(activity, directory).use { it.names() }
         val entries = File(directory).list() ?: throw Failure("storage_permission")
         if (entries.size > 4096) throw Failure("too_many_saves")
         return entries.filter(PpssppSaveBoundary::validName).sorted()
@@ -282,7 +285,7 @@ internal class SaveCaptureService(private val activity: Context) {
         if (!MelonSaveBoundary.validDirectory(directory) ||
             (!MelonSaveBoundary.isProtectedDirectory(directory) &&
                 File(directory).canonicalPath != directory)) throw Failure("invalid_selection")
-        return SaveSourceStorage.open(activity, directory).use { it.melonNames() }
+        return SaveSourceStorage.open(activity, directory).use { it.names() }
     }
 
     private fun captured(directory: File, name: String,
@@ -404,7 +407,7 @@ internal class SaveCaptureService(private val activity: Context) {
                 !PpssppSaveBoundary.validDirectory(ppssppDirectory!!)
             else !RetroArchSaveBoundary.validName(name)) throw Failure("invalid_selection")
         val sourceDirectory = melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
-        if (!MelonSaveBoundary.isProtectedDirectory(sourceDirectory) &&
+        if (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
             File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_selection")
         val packageName = if (melon) MelonSaveBoundary.PACKAGE else if (ppsspp) "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
         @Suppress("DEPRECATION")
@@ -611,7 +614,7 @@ internal class SaveCaptureService(private val activity: Context) {
         // SRAM is also a group member; its normal scalar binding remains valid.
         if (!(validBinding || (group != null && name == group.getString("name") &&
                 validRestoreBinding(name, size, format, sourceDirectory))) ||
-            (!MelonSaveBoundary.isProtectedDirectory(sourceDirectory) &&
+            (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
                 File(sourceDirectory).canonicalPath != sourceDirectory) ||
             !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
         val directory = restoreDirectory(id)
@@ -706,7 +709,7 @@ internal class SaveCaptureService(private val activity: Context) {
         val melon = record.optString("format") == MelonSaveBoundary.FORMAT
         val standalone = ppsspp || melon
         val sourceDirectory = record.optString("source", source)
-        if (!MelonSaveBoundary.isProtectedDirectory(sourceDirectory) &&
+        if (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
             File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_restore")
         val rollbackDirectory = File(root, rollbackId)
         if (rollbackDirectory.canonicalFile != rollbackDirectory.absoluteFile) throw Failure("invalid_restore")

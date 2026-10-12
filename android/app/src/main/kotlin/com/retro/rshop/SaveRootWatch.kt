@@ -23,7 +23,8 @@ internal class SaveRootWatch(context: Context, entries: List<SaveFileWatch.Mappi
 
     init {
         require(entries.isNotEmpty() && entries.size <= 4096 && entries.all {
-            it.route == "melon" && MelonSaveBoundary.isProtectedDirectory(it.directory)
+            it.directory == entries.first().directory && it.route == entries.first().route &&
+                SaveSourceStorage.isProtectedDirectory(it.directory)
         })
         val apk = context.applicationInfo.sourceDir
         fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
@@ -37,6 +38,8 @@ internal class SaveRootWatch(context: Context, entries: List<SaveFileWatch.Mappi
             while (stream.read(bytes) >= 0) { /* bounded drain, no private logs */ }
         } }, "rshop-save-watch-stderr").apply { start() }
         try {
+            output.writeUTF(entries.first().directory)
+            output.writeUTF(entries.first().route)
             output.writeInt(entries.size)
             for (entry in entries) { output.writeUTF(entry.key); output.writeUTF(entry.name) }
             output.flush()
@@ -100,19 +103,26 @@ object RootSaveWatchWorker {
         require(Process.myUid() == 0)
         val input = DataInputStream(System.`in`)
         val output = DataOutputStream(System.out.buffered())
+        val source = input.readUTF()
+        val route = input.readUTF()
+        require(when (route) {
+            "melon" -> MelonSaveBoundary.isProtectedDirectory(source)
+            "ppsspp" -> PpssppSaveBoundary.isProtectedDirectory(source)
+            else -> false
+        })
         val count = input.readInt()
         require(count in 1..4096)
         val entries = (0 until count).map {
-            SaveFileWatch.Mapping(input.readUTF(), MelonSaveBoundary.PROTECTED_SOURCE,
-                input.readUTF(), "melon")
+            SaveFileWatch.Mapping(input.readUTF(), source, input.readUTF(), route)
         }
         require(entries.map { it.key }.toSet().size == count)
-        val directory = OwnedStorageNative.openRoot(MelonSaveBoundary.PROTECTED_BACKING)
+        val backing = SaveSourceStorage.backingDirectory(source)
+        val directory = OwnedStorageNative.openRoot(backing)
         try {
             val pinned = OwnedStorageNative.identity(directory)
             val watch = OwnedStorageNative.saveWatchOpen(directory)
             try {
-                val fresh = OwnedStorageNative.openRoot(MelonSaveBoundary.PROTECTED_BACKING)
+                val fresh = OwnedStorageNative.openRoot(backing)
                 try { check(pinned.take(2) == OwnedStorageNative.identity(fresh).take(2)) }
                 finally { OwnedStorageNative.close(fresh) }
                 output.writeInt(1); output.flush()

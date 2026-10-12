@@ -670,6 +670,7 @@ void main() {
     Future<void> Function(List<AutomaticSaveMapping>)? watch,
     Set<String> watchFailures = const {},
     bool melon = false,
+    String? ppssppDirectory,
   }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
@@ -678,7 +679,7 @@ void main() {
         matchStatus: IdentityMatchStatus.manuallyMatched));
     final directory = melon
         ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
-        : '/storage/emulated/0/PSP/PPSSPP_STATE';
+        : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
     final slot = melon ? 'Game.sav' : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
@@ -914,6 +915,31 @@ void main() {
     expect(generations.uploads, 1);
     await expectLater(
         fixture.service.requestChanged('../other'), throwsFormatException);
+  });
+
+  test('protected PPSSPP watch retains its exact durable backup mapping',
+      () async {
+    const directory =
+        '/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/PSP/PPSSPP_STATE';
+    final watched = <AutomaticSaveMapping>[];
+    final fixture = await automaticFixture(
+        ppssppDirectory: directory,
+        watch: (rows) async => watched.addAll(rows));
+    expect(watched.single.directory, directory);
+    expect(watched.single.key, fixture.mapping.key);
+    watched.clear();
+    await fixture.service.reconcileWatches();
+    expect(watched.single.directory, directory);
+    expect(watched.single.key, fixture.mapping.key);
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(capture.ppssppSources, ['$directory/ULUS10041_1.00_0.ppst']);
+    expect(capture.melonSources, isEmpty);
+    expect(generations.uploads, 1);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    await fixture.preferences.remove(fixture.mapping.slotStorageKey);
+    await fixture.service.reconcileWatches();
+    expect(fixture.service.watchIssue, 'watch_unavailable');
   });
 
   test(

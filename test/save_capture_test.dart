@@ -85,6 +85,23 @@ void main() {
     }
   });
 
+  test('PPSSPP protected state paths stay within its external files root', () {
+    for (final path in [
+      '/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/PSP/PPSSPP_STATE',
+      '/storage/75D7-DC5F/Android/data/org.ppsspp.ppsspp/files/Custom/PSP/PPSSPP_STATE',
+    ]) {
+      expect(SaveCapture.validPpssppDirectory(path), isTrue, reason: path);
+    }
+    for (final path in [
+      '/storage/emulated/0/Android/data/other/files/PSP/PPSSPP_STATE',
+      '/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/../PSP/PPSSPP_STATE',
+      '/storage/emulated/0/Android/data/org.ppsspp.ppsspp/cache/PSP/PPSSPP_STATE',
+      '/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/PSP/SAVEDATA',
+    ]) {
+      expect(SaveCapture.validPpssppDirectory(path), isFalse, reason: path);
+    }
+  });
+
   test('Game Gear capture binds its route and rejects unrelated RTC members',
       () async {
     final group = await SaveCapture().captureRetroArch(

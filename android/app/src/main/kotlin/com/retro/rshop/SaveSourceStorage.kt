@@ -63,8 +63,16 @@ internal class SaveSourceStorage private constructor(
             return try { ProcessBuilder(*arguments).start() }
                 catch (_: IOException) { throw IOException("root_unavailable") }
         }
+        fun isProtectedDirectory(source: String): Boolean =
+            MelonSaveBoundary.isProtectedDirectory(source) || PpssppSaveBoundary.isProtectedDirectory(source)
+        fun backingDirectory(source: String): String {
+            require(MelonSaveBoundary.validDirectory(source) || PpssppSaveBoundary.validDirectory(source))
+            return if (source.startsWith("/storage/emulated/0/"))
+                "/data/media/0/" + source.removePrefix("/storage/emulated/0/")
+            else "/mnt/media_rw/" + source.removePrefix("/storage/")
+        }
         fun open(context: Context, source: String): SaveSourceStorage {
-            if (!MelonSaveBoundary.isProtectedDirectory(source)) return SaveSourceStorage(source, null)
+            if (!isProtectedDirectory(source)) return SaveSourceStorage(source, null)
             return SaveSourceStorage(source, start(context))
         }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
@@ -126,15 +134,17 @@ internal class SaveSourceStorage private constructor(
     fun exists(name: String): Boolean = try { entryIdentity(name); true } catch (error: IOException) {
         if (error.message == "owned_storage:2") false else throw error
     }
-    fun melonNames(): List<String> {
+    fun names(): List<String> {
+        val validName: (String) -> Boolean = if (PpssppSaveBoundary.isProtectedDirectory(source))
+            PpssppSaveBoundary::validName else MelonSaveBoundary::validName
         if (!rootAssisted) {
             val names = File(source).list() ?: throw IOException("owned_storage:13")
             require(names.size <= 4096)
-            return names.filter(MelonSaveBoundary::validName).sorted()
+            return names.filter(validName).sorted()
         }
         val count = call(request("names")).getInt("count")
         if (count !in 0..4096) throw IOException("root_unavailable")
-        return List(count) { input!!.readUTF().also { require(MelonSaveBoundary.validName(it)) } }
+        return List(count) { input!!.readUTF().also { require(validName(it)) } }
     }
     fun read(fd: Int, offset: Long, length: Int): ByteArray {
         require(length in 1..65536)
@@ -225,17 +235,20 @@ object RootSaveSourceWorker {
                 return
             }
             val source = hello.getString("source")
+            val ppsspp = PpssppSaveBoundary.isProtectedDirectory(source)
+            val validName: (String) -> Boolean = if (ppsspp) PpssppSaveBoundary::validName else MelonSaveBoundary::validName
+            val maxBytes = if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES else MelonSaveBoundary.MAX_BYTES
             val snapshotOnly = hello.length() == 2 && hello.optBoolean("snapshotOnly") &&
                 MelonSaveBoundary.validDirectory(source)
-            require(snapshotOnly || hello.length() == 1 && MelonSaveBoundary.isProtectedDirectory(source))
-            val backing = MelonSaveBoundary.backingDirectory(source)
+            require(snapshotOnly || hello.length() == 1 && SaveSourceStorage.isProtectedDirectory(source))
+            val backing = SaveSourceStorage.backingDirectory(source)
             parent = OwnedStorageNative.openRoot(backing)
             files[1] = parent
             reply(JSONObject().put("ready", true))
             var next = 2
             fun fd(row: JSONObject) = files[row.getInt("fd")] ?: throw IOException("source_changed")
             fun name(row: JSONObject, key: String = "name", stage: Boolean = false): String = row.getString(key).also {
-                require(if (stage) it.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}")) else MelonSaveBoundary.validName(it))
+                require(if (stage) it.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}")) else validName(it))
             }
             fun identity(value: LongArray) = JSONObject().put("identity", JSONArray(value.toList()))
             while (true) {
@@ -268,7 +281,7 @@ object RootSaveSourceWorker {
                         "names" -> {
                             val names = File(backing).list() ?: throw IOException("owned_storage:13")
                             require(names.size <= 4096)
-                            val selected = names.filter(MelonSaveBoundary::validName).sorted()
+                            val selected = names.filter(validName).sorted()
                             reply(JSONObject().put("count", selected.size))
                             selected.forEach(output::writeUTF); output.flush()
                             continue
@@ -280,7 +293,7 @@ object RootSaveSourceWorker {
                         }
                         "entry" -> {
                             val leaf = row.getString("name")
-                            require(MelonSaveBoundary.validName(leaf) || leaf.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}")))
+                            require(validName(leaf) || leaf.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}")))
                             identity(OwnedStorageNative.entryIdentity(parent, leaf))
                         }
                         "open" -> {
@@ -310,8 +323,7 @@ object RootSaveSourceWorker {
                         "read" -> {
                             val length = row.getInt("length")
                             val offset = row.getLong("offset")
-                            require(length in 1..65536 && offset in 0..MelonSaveBoundary.MAX_BYTES &&
-                                offset + length <= MelonSaveBoundary.MAX_BYTES)
+                            require(length in 1..65536 && offset in 0..maxBytes && offset + length <= maxBytes)
                             val bytes = OwnedStorageNative.read(fd(row), offset, length)
                             reply(JSONObject().put("length", bytes.size))
                             output.write(bytes); output.flush()
@@ -321,8 +333,7 @@ object RootSaveSourceWorker {
                             require(row.getInt("fd") in writable)
                             val length = row.getInt("length")
                             val offset = row.getLong("offset")
-                            require(length in 1..65536 && offset in 0..MelonSaveBoundary.MAX_BYTES &&
-                                offset + length <= MelonSaveBoundary.MAX_BYTES)
+                            require(length in 1..65536 && offset in 0..maxBytes && offset + length <= maxBytes)
                             val bytes = ByteArray(length).also(input::readFully)
                             OwnedStorageNative.write(fd(row), offset, bytes)
                             JSONObject()

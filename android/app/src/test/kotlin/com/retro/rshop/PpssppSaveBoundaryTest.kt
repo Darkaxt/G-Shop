@@ -4,6 +4,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PpssppSaveBoundaryTest {
+    @Test fun protectedStatesStayWithinPpssppExternalFiles() {
+        for (path in listOf(
+            "/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/PSP/PPSSPP_STATE",
+            "/storage/75D7-DC5F/Android/data/org.ppsspp.ppsspp/files/Custom/PSP/PPSSPP_STATE")) {
+            assertTrue(path, PpssppSaveBoundary.validDirectory(path))
+            assertEquals(path, PpssppSaveSettings.configuredDirectory(path.removeSuffix("/PPSSPP_STATE")))
+            val mapping = SaveFileWatch.Mapping("c".repeat(64), path, "ULUS10041_1.00_0.ppst")
+            assertEquals(listOf(mapping.key), SaveFileWatch.affected(listOf(mapping),
+                android.os.FileObserver.MOVED_TO, mapping.name))
+        }
+        for (path in listOf(
+            "/storage/emulated/0/Android/data/other/files/PSP/PPSSPP_STATE",
+            "/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/../PSP/PPSSPP_STATE",
+            "/storage/emulated/0/Android/data/org.ppsspp.ppsspp/cache/PSP/PPSSPP_STATE")) {
+            assertFalse(path, PpssppSaveBoundary.validDirectory(path))
+        }
+    }
     @Test fun onlyCompletedRetailSlotsAreSelected() {
         assertTrue(PpssppSaveBoundary.validName("ULUS10001_1.00_0.ppst"))
         assertTrue(PpssppSaveBoundary.validName("ULES01234_2.01_99.ppst"))

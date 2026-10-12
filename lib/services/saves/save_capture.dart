@@ -131,12 +131,16 @@ class SaveCapture {
         .hasMatch(path)) {
       return false;
     }
-    return path.split('/').skip(1).every((part) =>
-        part.isNotEmpty &&
-        part != '.' &&
-        part != '..' &&
-        part.toLowerCase() != 'android' &&
-        !RegExp(r'[\\\x00-\x1f\x7f]').hasMatch(part));
+    final parts = path.split('/').skip(1);
+    final protected = RegExp(
+            r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/Android/data/org\.ppsspp\.ppsspp/files/.+/PPSSPP_STATE$')
+        .hasMatch(path);
+    return parts.every((part) =>
+            part.isNotEmpty &&
+            part != '.' &&
+            part != '..' &&
+            !RegExp(r'[\\\x00-\x1f\x7f]').hasMatch(part)) &&
+        (protected || parts.every((part) => part.toLowerCase() != 'android'));
   }
 
   Future<List<String>> ppssppNames(String directory) async {

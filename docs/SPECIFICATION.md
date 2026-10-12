@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 24, 2026-10-12.
+Authoritative specification, revision 25, 2026-10-12.
 
 Owner clarification, 2026-10-11: fresh metadata is a supported workflow, not a
 requirement to scrape every ROM in the owner's collection. Neither S7 closure,
@@ -1347,8 +1347,12 @@ where it improves save tracking, access, restoration, reliability or performance
 Do not classify protected emulator saves as unsupported merely because ordinary
 Android access fails, or restrict root to manually mapped paths. Implement the
 appropriate root-assisted route, including emulator-aware discovery and watching,
-while retaining ordinary access where it works and reporting actual root-grant
-failures. ADB is a development tool, not a normal-use runtime dependency.
+without treating ordinary-access failure or manual mapping as prerequisites for
+root use. Select the direct or root-assisted route on demonstrated correctness,
+reliability and performance, and report actual root-grant failures. The owner's
+clarification on 2026-10-12 requires feature-complete save support rather than
+self-imposed access limitations. ADB is a development tool, not a normal-use
+runtime dependency.
 Root access does not waive coherent snapshots, edition/format association,
 conflict preservation, completed-write verification or the save-only boundary.
 Protected or unidentifiable storage remains unresolved only after investigating

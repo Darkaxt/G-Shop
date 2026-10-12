@@ -1526,7 +1526,7 @@ class _StandaloneSaveMappingPanelState
             ? error is PlatformException && error.code == 'root_unavailable'
                 ? 'Root access was not available. Allow R-Shop in Magisk, then try again. Your saves and mapping are unchanged.'
                 : 'The save folder could not be opened. Check root access for the standard folder, or choose the custom folder configured in MelonDualDS. Your mapping is unchanged.'
-            : 'Choose an accessible PPSSPP_STATE folder from PPSSPP’s configured shared PSP folder. No mapping was changed.');
+            : 'Choose PPSSPP_STATE inside PPSSPP’s configured PSP folder. Protected app folders require R-Shop root access. No mapping was changed.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

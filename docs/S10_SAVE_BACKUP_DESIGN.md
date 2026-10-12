@@ -7,6 +7,30 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Protected PPSSPP state storage — verified slice, 2026-10-12
+
+SAVE-01's root-assisted coverage includes PPSSPP's own external-files Memory
+Stick, not only shared folders. Extend the existing joined source worker and
+per-directory exact-file watcher to PPSSPP state directories below its installed
+package's external `files` root, including explicitly configured subfolders and
+SD volumes. Keep direct JNI/FileObserver access for ordinary shared folders.
+The existing published-slot writer contract, streamed capture, restore journal,
+rollback and writer-stopped restore checks are unchanged. Root accesses only the
+selected state leaf and restore stage; it does not export other app data.
+
+Verification passes matching Dart/native path policy, exact name isolation,
+root-backed Thor listing/capture/restore/rollback, publication watch delivery,
+joined child shutdown, unchanged shared PPSSPP and protected Melon routes, and
+exclusive fixture cleanup. The persisted protected mapping enters the existing
+automatic backup lane and retains exact watch admission on reload in focused host
+checks. Native fixtures live under an exclusively created
+PPSSPP external-files subtree, never the owner's actual Memory Stick. This work
+does not claim PPSSPP SAVEDATA group support; that remains ordinary required S10
+work after this existing state route. Gated build 740 and preserving installation
+pass with unchanged signer/preferences; exact artifacts and resource observations
+are recorded in IMPLEMENTATION_STATUS.md. No new normal-UI cloud round trip is
+claimed by these channel and fixture checks.
+
 ### PPSSPP configured-folder discovery — verified slice, 2026-10-12
 
 SAVE-01 requires standard locations to be discovered automatically, not a blanket
@@ -33,9 +57,9 @@ independent settings-channel read; the Melon discovery regression also passes.
 These are native channel and host widget integration proofs, not a claim of a new
 normal-UI backup/restore round trip. No root helper remains; both screens are OFF.
 Exact artifacts and the observed resource profile are in IMPLEMENTATION_STATUS.md.
-PPSSPP SAVEDATA groups and
-protected-folder capture/watch routes remain required S10 work, not unsupported
-classifications; this state-folder change does not claim to implement them.
+At that discovery checkpoint, PPSSPP SAVEDATA groups and protected-folder
+capture/watch routes remained required S10 work, not unsupported classifications.
+Protected state IO/watch is now verified above; SAVEDATA groups remain required.
 
 ### First DS launch, watched Drive backup and restore — 2026-10-12
 

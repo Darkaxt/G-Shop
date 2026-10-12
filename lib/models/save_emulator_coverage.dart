@@ -118,7 +118,7 @@ class SaveEmulatorCoverage {
                   'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
                   'Other cores and custom paths are unfinished.'
               : _psp
-                  ? 'The configured PPSSPP_STATE folder is discovered from PPSSPP’s Memory Stick setting using root; select this game’s slot. '
+                  ? 'The configured PPSSPP_STATE folder is discovered from PPSSPP’s Memory Stick setting using root; shared and protected app folders support exact-file watching, capture and restore. Select this game’s slot. '
                       'Restore requires user-mediated Android App info preparation.'
                   : _launcher
                       ? 'This launcher does not own the emulator’s save files.'

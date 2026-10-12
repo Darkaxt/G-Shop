@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 24.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 25.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current scope correction (2026-10-11): the owner never required exhaustive
@@ -24,12 +24,21 @@ the remaining SAVE-01 acceptance work; no exhaustive scrape or repeated cleanup.
 Older dated stage statuses below are historical; this current schedule wins.
 
 S10 owner clarification, 2026-10-12: root-assisted emulator discovery, save
-tracking, access and restore are authorized where useful. Do not restrict these
+tracking, access and restore are authorized where useful, including for better
+performance without first requiring ordinary access to fail. Do not restrict these
 routes to manual mappings or call protected storage unsupported without reviewing
 root access. Standard paths should resolve from emulator/package/configuration
 evidence; custom or ambiguous paths remain configurable. This extends the active
 SAVE-01 implementation, not another stage. Preserve coherent snapshots, game/state
 compatibility, both conflict versions and the save-only transfer boundary.
+
+Protected PPSSPP state IO/watch slice, 2026-10-12: gated build 740, preserving
+installation and actual Thor app-UID/root listing, streamed capture/digest,
+publication watching, joined shutdown, recreated-service restore, changed-local
+refusal and retained rollback pass. Shared watch/protected Melon regressions and
+focused persisted automatic-mapping/launch/conflict checks pass. Remaining
+PPSSPP SAVEDATA groups and other accessible emulator save/state routes still
+belong to ACTIVE S10; this slice does not close the stage or open S11.
 
 S10 verified capture slice, 2026-10-12: shared and protected Melon captures now
 use an armed mutation guard plus root writer-descriptor census instead of a

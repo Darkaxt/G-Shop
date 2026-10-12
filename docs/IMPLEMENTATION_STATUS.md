@@ -5,6 +5,48 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Protected PPSSPP state storage — ACTIVE, 2026-10-12
+
+The owner's clarification is recorded in specification revision 25: root may be
+used for automatic discovery, tracking, capture and restore based on correctness,
+reliability and performance, without requiring manual mapping or an ordinary-
+access failure first. S10 remains the sole ACTIVE stage.
+
+The existing protected storage worker and exact-file watcher now support
+PPSSPP's external-files Memory Stick, including configured subfolders and SD
+volumes. Focused Dart checks pass for capture/path policy, configured-folder
+discovery, settings/coverage, persisted automatic mapping, exact watch admission,
+pre-launch reconciliation, conflict preservation and restore. The matching native
+path/settings/watch unit checks pass. No full-suite repetition was used.
+
+On the actual Thor, the app-UID protected PPSSPP fixture passes root-backed listing,
+streamed capture with independent digest/byte comparison, exact publication-watch
+delivery, joined shutdown, recreated-service atomic restore, changed-local refusal
+and retained-byte rollback. Shared watch and protected Melon regressions also pass,
+including mutation/writer refusal and restored destination bytes. The exclusive
+PPSSPP fixture is removed. These are real native filesystem/channel proofs plus
+host automatic-lane integration checks; they do not claim a new normal-UI cloud
+round trip or PPSSPP SAVEDATA group support.
+
+Original shared-gate request 740 (`19b8f95fbb1741468113626f046a18fc`) acquired
+`Local\\Darka.AndroidGradleBuildGate`, completed with exit 0 and confirmed
+supervision completion. Actual workers=2, parallel=false, Gradle heap=3 GiB;
+reviewed Kotlin 2.3.21 is in-process and shares that heap. Executed debug unit
+tests use one 512-MiB fail-fast fork; generated native compile/link pools have
+depth one for all three app ABIs. No memory failure or budget increase occurred.
+Log: `C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/b16801a8c431450196e0237d8ad2d6ad.log`.
+
+Preserving owner/test installs independently match built SHA-256
+`67a7bcab57e512b5b31dab95da6ea627bed58d7d44eb012bce8dfca7c4d570dc`
+and `e8efe651bfa7da22a02d357ab20a32963e4564400a3511ab9c667de3edfca92f`.
+The signer is unchanged and all ten private preference digests match immediately
+before/after installation. No real saves, emulator settings, ROMs or Drive files
+were changed by these probes. Remaining accessible emulator routes, PPSSPP
+SAVEDATA groups, acceptance faults and conditional legacy handover remain ordinary
+unfinished S10 work; S11 remains NOT STARTED.
+Scoped Dart analysis and `git diff --check` pass. No root save helper remains;
+both actual display states are OFF.
+
 ### Automatic PPSSPP save-state folder discovery — 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 is NOT STARTED. The normal PPSSPP mapping

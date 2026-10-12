@@ -79,7 +79,7 @@ internal class SaveFileWatch(private val context: Context? = null,
         for ((directory, entries) in mappings.groupBy { it.directory }) {
             var observer: FileObserver? = null
             try {
-                if (MelonSaveBoundary.isProtectedDirectory(directory)) {
+                if (SaveSourceStorage.isProtectedDirectory(directory)) {
                     val root = SaveRootWatch(context ?: throw IllegalStateException(), entries,
                         { key -> enqueue(listOf(key)) }, { main.post {
                             if (generation == token) unavailable()
