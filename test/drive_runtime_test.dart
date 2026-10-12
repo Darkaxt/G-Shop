@@ -324,6 +324,8 @@ class _NativeStorage {
       case 'ownedValidateSnesSevenZip':
       case 'ownedValidateN64SevenZip':
       case 'ownedValidateN64Zip':
+      case 'ownedValidateDsSevenZip':
+      case 'ownedValidateDsZip':
         expect(sessionOpen, isTrue);
         if (invalidArchive) throw PlatformException(code: 'unsupported_archive');
         return null;
@@ -694,6 +696,13 @@ void main() {
     expect(DriveRuntime.supportsStandaloneAdoption('Game.7z', {'.gg'}), isFalse);
     expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.gg'}), isFalse);
   });
+  test('DS archive adoption requires the explicit single-console mapping', () {
+    for (final extension in ['zip', '7z']) {
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.$extension', {'.nds'}), isTrue);
+      expect(DriveRuntime.supportsStandaloneAdoption('Game.$extension', {'.nds', '.gba'}), isFalse);
+    }
+    expect(DriveRuntime.supportsStandaloneAdoption('Game.rar', {'.nds'}), isFalse);
+  });
 
   for (final (platform, member, extensions) in [
     ('megadrive', 'md', {'.md', '.gen', '.bin', '.smd'}),
@@ -880,24 +889,27 @@ void main() {
       expect(fixture.native.sessionOpen, isFalse);
     });
   }
+  for (final platform in ['n64', 'nds']) {
   for (final extension in ['7z', 'zip']) {
-    test('normal N64 $extension queue publishes typed bytes and revalidates offline', () async {
+    test('normal $platform $extension queue publishes typed bytes and revalidates offline', () async {
       final name = 'fixture.$extension';
       final fixture = await _TransferFixture.create(reserve: false, name: name);
       final runtime = fixture.runtime();
       final queue = DownloadQueueManager(_QueueStorage(), NativeSmbService(), driveRuntime: runtime);
-      final n64 = SystemModel.supportedSystems.singleWhere((s) => s.id == 'n64');
+      final console = SystemModel.supportedSystems.singleWhere((s) => s.id == platform);
       final terminal = _queueTerminal(queue);
       queue.addToQueue(GameItem(filename: name, displayName: 'Fixture',
           url: 'drive-artifact:synthetic', providerConfig: _transferConfig,
-          remoteArtifact: _artifact(name: name)), n64, '/roms');
+          remoteArtifact: _artifact(name: name)), console, '/roms');
       final item = await terminal;
       expect(item.status, DownloadStatus.completed, reason: item.error);
       final record = (await fixture.journal.transfer(item.transferId!))!;
-      expect(record.archivePlatformId, 'n64');
+      expect(record.archivePlatformId, platform);
       expect(record.relativePath, name);
       await runtime.requireInstalledTransfer(record);
-      final method = extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
+      final method = platform == 'nds'
+          ? (extension == '7z' ? 'ownedValidateDsSevenZip' : 'ownedValidateDsZip')
+          : (extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip');
       expect(fixture.native.calls.where((m) => m == method), hasLength(2));
       expect(fixture.native.calls.indexOf(method), lessThan(fixture.native.calls.indexOf('ownedPublish')));
       expect(fixture.native.calls, isNot(contains('ownedValidateGameGearZip')));
@@ -907,21 +919,22 @@ void main() {
       await queue.close(); queue.dispose();
       fixture.driver.finishSignOut.complete(); await runtime.disconnect();
     });
-    test('N64 $extension adoption validates without downloading or mutating local bytes', () async {
+    test('$platform $extension adoption validates without downloading or mutating local bytes', () async {
       final name = 'fixture.$extension';
       final fixture = await _TransferFixture.create(reserve: false, name: name);
       fixture.native.bytes.addAll([1, 2, 3, 4, 5]); fixture.native.published = true;
       final runtime = fixture.runtime();
       final installed = await runtime.adoptLocalCloudBytes(config: _transferConfig,
           artifact: _artifact(name: name), destinationRoot: '/roms', relativePath: name,
-          supportedExtensions: {'.z64', '.n64', '.v64'}, cancellation: CancelToken());
+          supportedExtensions: platform == 'nds' ? {'.nds'} : {'.z64', '.n64', '.v64'}, cancellation: CancelToken());
       final record = (await fixture.journal.transfer(installed.transferId))!;
-      expect(record.archivePlatformId, 'n64');
+      expect(record.archivePlatformId, platform);
       await runtime.requireInstalledTransfer(record);
       expect(fixture.native.bytes, [1, 2, 3, 4, 5]);
       expect(fixture.native.calls, isNot(contains('ownedPublish')));
       expect(fixture.native.sessionOpen, isFalse);
     });
+  }
   }
 
   test('standalone adoption rejects unsupported archives and dependency manifests before IO', () async {

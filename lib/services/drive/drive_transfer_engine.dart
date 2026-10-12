@@ -426,6 +426,10 @@ class DriveTransferOperation {
       _checkCancellation();
       await _session!.validateN64Archive(record.relativePath);
       _checkCancellation();
+    } else if (record.archivePlatformId == 'nds') {
+      _checkCancellation();
+      await _session!.validateDsArchive(record.relativePath);
+      _checkCancellation();
     } else if (record.archivePlatformId == 'nes') {
       _checkCancellation();
       await _session!.validateNesSevenZip();

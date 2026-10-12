@@ -137,7 +137,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     val platform = transfer.optString("archivePlatformId")
                     val supportedArchive = (platform in setOf("gamegear", "megadrive", "mastersystem", "sg1000") && filename.endsWith(".zip")) ||
                         (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
-                        (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
+                        (platform in setOf("n64", "nds") && (filename.endsWith(".7z") || filename.endsWith(".zip")))
                     val standaloneChd = OwnedRomGrantPath.standaloneChd(filename, platform,
                         owner != null, dependencies.length(), members.length())
                     val standaloneWua = OwnedRomGrantPath.standaloneWua(filename, platform,
@@ -273,7 +273,7 @@ class OwnedRomContentProvider : ContentProvider() {
             val platform = grant.platform
             val archive = (platform in setOf("gamegear", "megadrive", "mastersystem", "sg1000") && filename.endsWith(".zip")) ||
                 (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
-                (platform == "n64" && (filename.endsWith(".7z") || filename.endsWith(".zip")))
+                (platform in setOf("n64", "nds") && (filename.endsWith(".7z") || filename.endsWith(".zip")))
             val supported = archive ||
                 (platform in setOf("psx", "psp", "ps2") && filename.endsWith(".chd")) ||
                 (platform == "wiiu" && filename.endsWith(".wua")) ||
@@ -334,7 +334,7 @@ class OwnedRomContentProvider : ContentProvider() {
                     if (platform == "gamegear") OwnedGameGearZip.validate(path)
                     else if (platform in setOf("megadrive", "mastersystem", "sg1000")) OwnedGameGearZip.validate(path, platform)
                     else if (relative.lowercase(Locale.ROOT).endsWith(".7z")) OwnedN64SevenZip.validate(path, platform)
-                    else OwnedGameGearZip.validateN64(path)
+                    else OwnedGameGearZip.validate(path, platform)
                     if (!OwnedStorageNative.identity(file).contentEquals(identity)) {
                         throw FileNotFoundException("Archive changed during validation")
                     }

@@ -16,6 +16,49 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void dsArchivesStreamMemberIdentityWithoutExtraction() throws Exception {
+        byte[] raw = new byte[32768];
+        for (int i = 0; i < raw.length; i++) raw[i] = (byte) (i * 19);
+        for (int codec : new int[]{0, 1, 2}) {
+            File file = File.createTempFile("rshop-ds-identity-", ".7z");
+            try {
+                byte[] encoded = archive("Actual member.nds", raw, codec, true,
+                        raw.length, codec == 2 ? 0 : 4096, 1);
+                Files.write(file.toPath(), encoded);
+                java.util.Map<String, Object> value = OwnedN64SevenZip.validate(file.getPath(), "nds");
+                assertEquals("Actual member.nds", value.get("filename"));
+                assertEquals((long) raw.length, value.get("sizeBytes"));
+                assertEquals(hash(raw, "MD5"), value.get("md5"));
+                assertArrayEquals(encoded, Files.readAllBytes(file.toPath()));
+            } finally { assertTrue(file.delete()); }
+        }
+        File zip = File.createTempFile("rshop-ds-identity-", ".zip");
+        try {
+            try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(zip.toPath()))) {
+                output.putNextEntry(new ZipEntry("Actual member.nds")); output.write(raw); output.closeEntry();
+            }
+            java.util.Map<String, Object> value = OwnedGameGearZip.validate(zip.getPath(), "nds");
+            assertEquals("Actual member.nds", value.get("filename"));
+            assertEquals(hash(raw, "MD5"), value.get("md5"));
+        } finally { assertTrue(zip.delete()); }
+    }
+
+    @Test public void dsArchiveRejectsOtherConsoleUnsafeNameBundleAndDeclaredOversize() throws Exception {
+        byte[] raw = rom();
+        for (byte[] encoded : new byte[][]{
+                archive("Game.gba", raw, 1, true, raw.length, 4096, 1),
+                archive("../Game.nds", raw, 1, true, raw.length, 4096, 1),
+                archive("Game.nds", raw, 1, true, raw.length, 4096, 2),
+                archive("Game.nds", raw, 1, true, 512L * 1024 * 1024 + 1, 4096, 1)}) {
+            File file = File.createTempFile("rshop-ds-reject-", ".7z");
+            try {
+                Files.write(file.toPath(), encoded);
+                try { OwnedN64SevenZip.validate(file.getPath(), "nds"); fail("Invalid DS archive accepted"); }
+                catch (IOException expected) { assertEquals("unsupported_archive", expected.getMessage()); }
+            } finally { assertTrue(file.delete()); }
+        }
+    }
+
     @Test public void snesProfileStreamsExactSfcAndSmcIdentityWithoutNormalization() throws Exception {
         for (String suffix : new String[]{"sfc", "smc"}) {
             byte[] raw = new byte[32768 + (suffix.equals("smc") ? 512 : 0)];

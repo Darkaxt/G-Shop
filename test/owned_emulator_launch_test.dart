@@ -473,6 +473,15 @@ void main() {
     await expectLater(missing.open(chd, psp, '/owned'), throwsStateError);
     expect(calls, hasLength(1));
   });
+  test('DS archives use the normal reviewed launch route', () {
+    final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
+    for (final extension in ['nds', '7z', 'zip']) {
+      expect(OwnedEmulatorLauncher.supports(
+          exactGame('ds-$extension', name: 'Game.$extension'), ds), isTrue);
+    }
+    expect(OwnedEmulatorLauncher.supports(
+        exactGame('ds-wrong', name: 'Game.chd'), ds), isFalse);
+  });
   test('DS save review uses the validated launch leaf without starting Melon',
       () async {
     final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
@@ -499,10 +508,11 @@ void main() {
     expect(calls.single.arguments,
         {'installationId': installed.id, 'filename': installed.relativePath});
   });
-  test('DS launch awaits save reconciliation before the Melon handoff',
+  for (final extension in ['nds', '7z', 'zip']) {
+  test('DS $extension launch awaits save reconciliation before the Melon handoff',
       () async {
     final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
-    final rom = exactGame('ds-raw', name: 'Game.nds');
+    final rom = exactGame('ds-$extension', name: 'Game.$extension');
     final installed = InstalledArtifact.fromJson({
       ...manifest.toJson(),
       'artifact': rom.remoteArtifact!.toJson(),
@@ -529,6 +539,7 @@ void main() {
         throwsA(isA<PlatformException>()));
     expect(calls, isEmpty);
   });
+  }
   test('standalone Wii U WUA requires ownership and exact Cemu handoff',
       () async {
     final wiiu =

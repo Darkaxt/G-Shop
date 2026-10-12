@@ -200,6 +200,8 @@ class _Native {
       case 'ownedValidateGameBoyColorSevenZip':
       case 'ownedValidateGameBoyAdvanceSevenZip':
       case 'ownedValidateN64Zip':
+      case 'ownedValidateDsSevenZip':
+      case 'ownedValidateDsZip':
         if (invalidArchive) fail('unsupported_archive');
         return null;
       case 'ownedWrite':
@@ -338,13 +340,14 @@ void main() {
     expect(native.files['/roms/fixture.zip']!.bytes, payload);
     expect(result.archivePlatformId, 'gamegear');
   });
-  for (final (platform, extension) in [('n64', '7z'), ('n64', 'zip'), ('gb', '7z'), ('gbc', '7z'), ('gba', '7z'), ('megadrive', 'zip'), ('mastersystem', 'zip'), ('sg1000', 'zip')]) {
+  for (final (platform, extension) in [('nds', '7z'), ('nds', 'zip'), ('n64', '7z'), ('n64', 'zip'), ('gb', '7z'), ('gbc', '7z'), ('gba', '7z'), ('megadrive', 'zip'), ('mastersystem', 'zip'), ('sg1000', 'zip')]) {
     test('$platform $extension validates before publication, recovery and offline reuse', () async {
       final name = 'fixture.$extension';
       final method = const {'megadrive', 'mastersystem', 'sg1000'}.contains(platform) ? 'ownedValidateSegaZip' :
           platform == 'gb' ? 'ownedValidateGameBoySevenZip' :
           platform == 'gbc' ? 'ownedValidateGameBoyColorSevenZip' :
           platform == 'gba' ? 'ownedValidateGameBoyAdvanceSevenZip' :
+          platform == 'nds' ? (extension == '7z' ? 'ownedValidateDsSevenZip' : 'ownedValidateDsZip') :
           extension == '7z' ? 'ownedValidateN64SevenZip' : 'ownedValidateN64Zip';
       await queue(source: artifact(name: name), name: name, archivePlatformId: platform);
       native.before = (call) async {
@@ -373,8 +376,8 @@ void main() {
           storage: OwnedStorage(channel: native.channel)))
           .requireInstalledArtifact(game, '/roms')).transferId, ready.id);
     });
-    if (platform == 'n64') {
-      test('legacy untyped $extension fails before network and native IO', () async {
+    if (platform == 'n64' || platform == 'nds') {
+      test('legacy untyped $platform $extension fails before network and native IO', () async {
         await queue(source: artifact(name: 'fixture.$extension'), name: 'fixture.$extension');
         expect((await engine().start('transfer').result).lifecycle, TransferLifecycle.failed);
         expect(requests, isEmpty);

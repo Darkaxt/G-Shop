@@ -85,7 +85,7 @@ class TransferRecord {
     final lower = path.toLowerCase();
     return (const {'gamegear', 'megadrive', 'mastersystem', 'sg1000'}.contains(platform) && lower.endsWith('.zip')) ||
         (const {'gb', 'gbc', 'gba', 'nes', 'snes'}.contains(platform) && lower.endsWith('.7z')) ||
-        (platform == 'n64' && (lower.endsWith('.7z') || lower.endsWith('.zip')));
+        (const {'n64', 'nds'}.contains(platform) && (lower.endsWith('.7z') || lower.endsWith('.zip')));
   }
 
   final String id;

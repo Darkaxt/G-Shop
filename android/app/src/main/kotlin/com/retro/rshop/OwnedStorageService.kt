@@ -88,12 +88,13 @@ internal class OwnedStorageService(private val context: Context) {
                         val nds = call.method == "launchOwnedMelon" || reviewMelon
                         val retroArch = gameGear || segaPlatform != null || n64 || handheld || nes || snes || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
+                        val ndsArchive = nds && (filename.endsWith(".7z") || filename.endsWith(".zip"))
                         if (((gameGear || segaPlatform != null) && !filename.endsWith(".zip")) ||
                             ((handheld || nes || snes) && !filename.endsWith(".7z")) ||
                             (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
                             ((psx || psp || ps2) && !filename.endsWith(".chd")) ||
                             (wiiu && !filename.endsWith(".wua")) ||
-                            (nds && !filename.endsWith(".nds"))) throw Failure("unsupported_archive")
+                            (nds && !ndsArchive && !filename.endsWith(".nds"))) throw Failure("unsupported_archive")
                         val observed = call.argument<Number>("observationId")
                         if (observed != null && ((observed !is Long && observed !is Int) || observed.toLong() <= 0)) {
                             throw Failure("invalid_arguments")
@@ -112,9 +113,9 @@ internal class OwnedStorageService(private val context: Context) {
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
-                            requiredArchivePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else null,
+                            requiredArchivePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else if (ndsArchive) "nds" else null,
                             requiredStandaloneChd = psx || psp || ps2,
-                            requiredStandaloneWua = wiiu, requiredStandaloneNds = nds).use { }
+                            requiredStandaloneWua = wiiu, requiredStandaloneNds = nds && !ndsArchive).use { }
                         if (reviewMelon) {
                             // Melon's external URI processor creates a ROM with
                             // parentTreeUri=null. Its configured ROM-relative
@@ -303,7 +304,8 @@ internal class OwnedStorageService(private val context: Context) {
             identityMap(OwnedStorageNative.identity(session.fileFd))
         }
         "ownedValidateGameGearZip", "ownedValidateSegaZip", "ownedValidateN64Zip", "ownedValidateN64SevenZip", "ownedValidateGameBoySevenZip",
-        "ownedValidateGameBoyColorSevenZip", "ownedValidateGameBoyAdvanceSevenZip", "ownedValidateNesSevenZip", "ownedValidateSnesSevenZip" -> {
+        "ownedValidateGameBoyColorSevenZip", "ownedValidateGameBoyAdvanceSevenZip", "ownedValidateNesSevenZip", "ownedValidateSnesSevenZip",
+        "ownedValidateDsSevenZip", "ownedValidateDsZip" -> {
             val session = session(call)
             validateLocation(session)
             val before = OwnedStorageNative.identity(session.fileFd)
@@ -317,6 +319,8 @@ internal class OwnedStorageService(private val context: Context) {
                         OwnedGameGearZip.validate(path, platform)
                     }
                     "ownedValidateN64Zip" -> OwnedGameGearZip.validateN64(path)
+                    "ownedValidateDsZip" -> OwnedGameGearZip.validate(path, "nds")
+                    "ownedValidateDsSevenZip" -> OwnedN64SevenZip.validate(path, "nds")
                     "ownedValidateGameBoySevenZip" -> OwnedN64SevenZip.validate(path, "gb")
                     "ownedValidateGameBoyColorSevenZip" -> OwnedN64SevenZip.validate(path, "gbc")
                     "ownedValidateGameBoyAdvanceSevenZip" -> OwnedN64SevenZip.validate(path, "gba")

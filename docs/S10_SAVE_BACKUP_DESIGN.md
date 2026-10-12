@@ -7,6 +7,30 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### DS archives share the launch/save route — verified slice, 2026-10-12
+
+DS `.7z` and `.zip` now participate in the same typed transfer, publication,
+recovery, exact-byte adoption and owned/byte-bound-copy handoff as raw `.nds`.
+Existing bounded single-member validators stream and verify complete bytes without
+extracting or rewriting ROMs. The DS-only work budget is 512 MiB; other console
+budgets and decompressor memory bounds are unchanged. Save preparation/conflict
+resolution remains before the native handoff. The pinned
+[compressed processor](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/java/me/magnum/melonds/common/romprocessors/CompressedRomFileProcessor.kt)
+retains the archive's filename and external parent context. Save-name review thus
+uses the archive basename, not the internal member, and honors current settings.
+Melon's own processor/cache handles extraction during launch; R-Shop does not add
+a competing extraction path.
+
+Focused normal-queue/adoption/recovery/launch checks and native validators pass.
+Preserving gated build 720 passes actual Thor ZIP document/read-only grant and
+live save-location review with a different member name, raw DS/provider regressions
+and shared/protected running-runtime capture. Current configuration/jobs/catalogue
+and private preference hashes are preserved; both screens are OFF. Exact artifacts
+and the observed build profile are recorded in IMPLEMENTATION_STATUS.md. These
+are native grant/discovery/capture proofs, not real gameplay or a new Drive round
+trip. The real on-demand game/watch-to-Drive workflow and remaining SAVE-01
+coverage/faults/handover stay in the sole ACTIVE S10 stage.
+
 ### Coherent Melon capture without force-stop — verified slice, 2026-10-12
 
 Automatic controls now use the same DS durable lane in Backup and Status. The

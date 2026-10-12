@@ -40,8 +40,12 @@ preserving-install evidence are in IMPLEMENTATION_STATUS.md. Close the normal
 DS automatic controls and standalone `.nds` launch-bound save discovery now pass
 focused host checks and the real native discovery/grant/capture probes on
 preserving build 716. No live DS game/watch-to-Drive claim is made by these probes.
-Close DS archive handoff and the real watch-to-Drive workflow next, then SAVE-01
-coverage and handover. S10 stays ACTIVE; S11 stays NOT STARTED.
+DS `.7z`/`.zip` normal queue, recovery/adoption/offline validation and launch ordering
+now pass focused host/native checks. Preserving integrated build 720 passes the
+actual Thor compressed-document/save-location proof, including an archive whose
+member has a different name. No real game/watch-to-Drive claim is made. Finish
+that real workflow next, then remaining SAVE-01 coverage/faults and handover.
+S10 stays ACTIVE; S11 stays NOT STARTED.
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do

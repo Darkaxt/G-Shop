@@ -354,6 +354,15 @@ class OwnedStorageSession {
     await _storage._invoke('ownedValidateNesSevenZip', {'session': id});
   }
 
+  Future<void> validateDsArchive(String filename) async {
+    _requireOpen();
+    final method = filename.toLowerCase().endsWith('.7z')
+        ? 'ownedValidateDsSevenZip' : filename.toLowerCase().endsWith('.zip')
+        ? 'ownedValidateDsZip' : null;
+    if (method == null) throw const OwnedStorageException('unsupported_archive');
+    await _storage._invoke(method, {'session': id});
+  }
+
   Future<void> validateSnesSevenZip() async {
     _requireOpen();
     await _storage._invoke('ownedValidateSnesSevenZip', {'session': id});

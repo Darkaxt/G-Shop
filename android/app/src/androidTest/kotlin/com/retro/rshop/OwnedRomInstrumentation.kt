@@ -32,6 +32,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var melonLiveCaptureProbe = false
     private var melonSettingsProbe = false
     private var dsProviderProbe = false
+    private var dsArchiveProbe = false
     private var saveWatchProbe = false
     private var missingSaveProbe = false
     override fun onCreate(arguments: Bundle?) {
@@ -45,6 +46,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         melonLiveCaptureProbe = arguments?.getString("melonLiveCaptureProbe") == "true"
         melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
+        dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
         saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
         missingSaveProbe = arguments?.getString("missingSaveProbe") == "true"
         start()
@@ -53,7 +55,10 @@ class OwnedRomInstrumentation : Instrumentation() {
     override fun onStart() {
         val report = Bundle()
         try {
-            if (dsProviderProbe) {
+            if (dsArchiveProbe) {
+                exercise(ds = true, dsZip = true)
+                report.putString("result", "PASS DS ZIP document validation, unchanged archive read and live save-location review; read-only grant and native identity/ownership/publication/removal rejection; exclusive fixture cleanup; no emulator launch")
+            } else if (dsProviderProbe) {
                 exercise(ds = true)
                 report.putString("result", "PASS DS document leaf read/name/size and launch-bound live save-location review, read-only grant and native publication/identity/ownership/removal rejection; exclusive fixture cleanup; no emulator launch")
             } else if (melonSettingsProbe) {
@@ -129,13 +134,20 @@ class OwnedRomInstrumentation : Instrumentation() {
         return results.joinToString("; ")
     }
 
-    private fun exercise(ds: Boolean = false) {
+    private fun exercise(ds: Boolean = false, dsZip: Boolean = false) {
         check(targetContext.packageName == "com.darkaxt.rshop.debug")
         val id = "provider-proof-${UUID.randomUUID()}"
         val root = File(targetContext.getExternalFilesDir(null), id)
         check(root.mkdir())
-        val rom = File(root, if (ds) "synthetic.nds" else "synthetic.rvz")
-        val bytes = byteArrayOf(4, 8, 15, 16, 23, 42)
+        val rom = File(root, if (dsZip) "synthetic.zip" else if (ds) "synthetic.nds" else "synthetic.rvz")
+        val raw = byteArrayOf(4, 8, 15, 16, 23, 42)
+        val bytes = if (dsZip) java.io.ByteArrayOutputStream().also { output ->
+            java.util.zip.ZipOutputStream(output).use { zip ->
+                // Save naming is bound to the archive, not this member's name.
+                zip.putNextEntry(java.util.zip.ZipEntry("different-member.nds"))
+                zip.write(raw); zip.closeEntry()
+            }
+        }.toByteArray() else raw
         val db = SQLiteDatabase.openDatabase(targetContext.getDatabasePath("rshop.db").path,
             null, SQLiteDatabase.OPEN_READWRITE)
         try {
@@ -165,6 +177,7 @@ class OwnedRomInstrumentation : Instrumentation() {
                 .put("relativePath", rom.name).put("lifecycle", "completed")
                 .put("artifact", artifact).put("verifiedChecksums", digests)
                 .put("publication", publication)
+            if (dsZip) transfer.put("archivePlatformId", "nds")
             fun saveTransfer() { db.update("transfer_records", ContentValues().apply {
                 put("record_json", transfer.toString())
             }, "transfer_id=?", arrayOf(id)) }
@@ -190,7 +203,8 @@ class OwnedRomInstrumentation : Instrumentation() {
             val uri = if (ds) OwnedRomContentProvider.gameGearUri(targetContext, id, rom.name)
                 else OwnedRomContentProvider.uri(targetContext, id, rom.name)
             if (ds) OwnedRomContentProvider.openCommitted(targetContext, uri,
-                requiredStandaloneNds = true).use { }
+                requiredArchivePlatform = if (dsZip) "nds" else null,
+                requiredStandaloneNds = !dsZip).use { }
             if (ds) {
                 val service = OwnedStorageService(targetContext)
                 val done = CountDownLatch(1)

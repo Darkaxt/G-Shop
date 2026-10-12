@@ -5,6 +5,51 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### DS archive integration — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 remains NOT STARTED. DS `.7z` and `.zip`
+now use the existing typed normal queue, complete streamed validation,
+publication/recovery, exact-byte adoption and offline revalidation. The owned
+and separately byte-bound-copy grants use the existing read-only document route;
+legacy untyped archives are not silently adopted. Save preparation still precedes
+Melon handoff and conflicts prevent launch. Save review derives the basename from
+the archive filename, matching Melon's compressed processor, not its member name.
+There is no new extraction/cache engine, ROM rewrite or whole-ROM allocation.
+The DS-only streamed work budget is 512 MiB; prior console budgets and the existing
+32-MiB dictionary / 40-MiB decoder memory bounds remain unchanged.
+
+The new launch-format regression first failed because archives were unsupported.
+Focused native 7z/ZIP validation and existing-console checks pass; affected host
+queue/recovery/adoption/launch tests and scoped analysis pass. Request 718
+(`eb5fe437ae18452d896ea084f7c09c5a`) verified the native single-member decoder.
+Integrated request 720 (`9b970e434eed45e7a298e667ddc30054`) acquired the same host
+gate, passed the existing Sega ZIP checks and assembled owner/test APKs with exit
+0 and independently confirmed completion. Observed workers=2, parallel=false,
+Gradle heap=3 GiB, reviewed Kotlin 2.3.21 in-process; the executed debug tests use
+one 512-MiB fail-fast fork. Other test-task configuration markers are not execution
+evidence. Generated compile/link Ninja pools remain depth one in all three ABIs.
+No memory failure or budget increase occurred. The gate log is
+`C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/adaa38bfbdc04c56ae1300d9d67279d7.log`.
+
+Preserving installation retains the debug signer. Local and independently read
+installed owner/test SHA-256 values match
+`360a3800862aefbc6140f4ee224e5de888120dd5aaa540f66349c02fb1ef0a26` and
+`9a55897d84aeaf87113d4018ff8b573f198d844333324c72e0545500eb3e6b73`.
+The actual Thor ZIP proof passes unchanged archive reads and save-location review
+with a differently named member; read-only/identity/ownership/publication/removal
+refusal and exclusive fixture cleanup pass. Raw DS and generic owned/bundle/
+observed-copy regressions pass. Shared and protected live-runtime coherent capture
+also passes on this artifact while Melon PID 4625 remains running; unsafe live
+restore is refused without changing bytes. Fresh configuration/catalogue/jobs and
+all current private preference hashes match the pre-update baseline. No root
+helper remains and both actual/committed display states are OFF.
+
+No real DS game or new Drive round trip was executed. The configured Thor `nds`
+folder currently contains only README/empty subdirectories, not the historical
+local-archive inventory. Real on-demand game/watch-to-Drive verification, remaining
+installed-emulator coverage/faults and conditional legacy handover remain ordinary
+S10 work. This is neither stage completion nor an acceptance waiver.
+
 ### DS launch/save integration — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage. The automatic DS backup control now shares

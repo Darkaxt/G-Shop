@@ -19,6 +19,7 @@ import org.tukaani.xz.LZMA2InputStream;
 final class OwnedN64SevenZip {
     static final int HEADER_LIMIT = 65536;
     static final long ROM_LIMIT = 128L * 1024 * 1024; // Work budget, not hardware capacity.
+    static final long DS_ROM_LIMIT = 512L * 1024 * 1024; // Streamed work budget; no whole-ROM allocation.
     private static final int DICTIONARY_LIMIT = 32 * 1024 * 1024;
     private static final byte[] SIGNATURE = {0x37, 0x7a, (byte) 0xbc, (byte) 0xaf, 0x27, 0x1c};
 
@@ -30,9 +31,9 @@ final class OwnedN64SevenZip {
      * A mapped suffix is not provider identity or migration approval. */
     static java.util.Map<String, Object> validate(String descriptorPath, String platform) throws IOException {
         require("n64".equals(platform) || "gb".equals(platform) || "gbc".equals(platform) ||
-                "gba".equals(platform) || "nes".equals(platform) || "snes".equals(platform));
+                "gba".equals(platform) || "nes".equals(platform) || "snes".equals(platform) || "nds".equals(platform));
         boolean n64 = "n64".equals(platform);
-        long limit = n64 ? ROM_LIMIT : ("gba".equals(platform) ? 32L : 16L) * 1024 * 1024;
+        long limit = "nds".equals(platform) ? DS_ROM_LIMIT : n64 ? ROM_LIMIT : ("gba".equals(platform) ? 32L : 16L) * 1024 * 1024;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
             require(length >= 32 && length <= limit + 3L * HEADER_LIMIT);
@@ -95,7 +96,7 @@ final class OwnedN64SevenZip {
         Stream s = new Stream();
         r.expect(6); s.position = r.number(); require(r.number() == 1);
         r.expect(9); s.packed = r.number();
-        require(s.packed > 0 && s.packed <= ROM_LIMIT + HEADER_LIMIT);
+        require(s.packed > 0 && s.packed <= Math.max(ROM_LIMIT, limit) + HEADER_LIMIT);
         if (r.peek() == 10) { r.byteValue(); s.packedCrc = digest(r); }
         r.expect(0); r.expect(7); r.expect(11);
         require(r.number() == 1); r.expect(0); // One inline folder.
@@ -196,6 +197,7 @@ final class OwnedN64SevenZip {
                 : "nes".equals(platform) ? lower.endsWith(".nes")
                 : "snes".equals(platform) ? lower.endsWith(".sfc") || lower.endsWith(".smc")
                 : "gba".equals(platform) ? lower.endsWith(".gba")
+                : "nds".equals(platform) ? lower.endsWith(".nds")
                 : lower.endsWith(".gb") || "gbc".equals(platform) && lower.endsWith(".gbc");
         return extension &&
                 !name.startsWith(".") && name.chars().noneMatch(c ->

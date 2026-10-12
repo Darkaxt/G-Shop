@@ -491,6 +491,9 @@ class DriveRuntime {
         mapped.containsAll(const {'.z64', '.n64', '.v64'})) {
       return 'n64';
     }
+    if ((ext == '.7z' || ext == '.zip') && mapped.length == 1 && mapped.contains('.nds')) {
+      return 'nds';
+    }
     return null;
   }
 
@@ -627,6 +630,8 @@ class DriveRuntime {
             await session.validateGameGearZip();
           } else if (const {'megadrive', 'mastersystem', 'sg1000'}.contains(archivePlatformId)) {
             await session.validateSegaZip(archivePlatformId);
+          } else if (archivePlatformId == 'nds') {
+            await session.validateDsArchive(relativePath);
           } else if (archivePlatformId == 'nes') {
             await session.validateNesSevenZip();
           } else if (archivePlatformId == 'snes') {
@@ -914,6 +919,8 @@ class DriveRuntime {
           await session.validateGameGearZip();
         } else if (const {'megadrive', 'mastersystem', 'sg1000'}.contains(record.archivePlatformId)) {
           await session.validateSegaZip(record.archivePlatformId!);
+        } else if (record.archivePlatformId == 'nds') {
+          await session.validateDsArchive(record.relativePath);
         } else if (record.archivePlatformId == 'nes') {
           await session.validateNesSevenZip();
         } else if (record.archivePlatformId == 'snes') {

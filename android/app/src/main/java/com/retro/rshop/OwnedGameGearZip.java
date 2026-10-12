@@ -38,10 +38,12 @@ final class OwnedGameGearZip {
             case "mastersystem": extension = ".sms"; break;
             case "sg1000": extension = ".sg"; break;
             case "n64": extension = null; break;
+            case "nds": extension = ".nds"; break;
             default: throw invalid();
         }
         boolean n64 = "n64".equals(platform);
-        long limit = n64 ? OwnedN64SevenZip.ROM_LIMIT : MAX_MEMBER_BYTES;
+        long limit = "nds".equals(platform) ? OwnedN64SevenZip.DS_ROM_LIMIT :
+                n64 ? OwnedN64SevenZip.ROM_LIMIT : MAX_MEMBER_BYTES;
         try (RandomAccessFile file = new RandomAccessFile(descriptorPath, "r")) {
             long length = file.length();
             require(length >= 98 && length <= limit + 3L * BUFFER);
