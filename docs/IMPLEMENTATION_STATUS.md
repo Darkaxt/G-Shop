@@ -50,7 +50,12 @@ Preserving installation and independently read installed APK match SHA-256
 The debug signing identity is unchanged, and all ten private preference file
 digests match immediately before/after installation. Test APK 730 is
 `f1dd636260b6356ca051e3cb33eb904e66cb8d2d75a2eba874ca7ba597d16ffe`.
-Final 734 UI confirmation is pending normal startup catalogue synchronization.
+After normal startup catalogue synchronization completed, installed build 734
+opened the real DS game through Library > Installed > Save backups. The same
+settings instance showed “Verified backup available” and an enabled “Restore
+verified cloud backup” action. This confirms native persisted-state integration;
+the automatic-completion notification race is covered by the focused host
+regression, not claimed as a separately reproduced native timing test.
 Remaining installed-emulator routes/faults and conditional legacy handover remain
 ordinary S10 work; none is waived or claimed complete by this slice.
 

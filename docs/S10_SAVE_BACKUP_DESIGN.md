@@ -44,7 +44,11 @@ completed in SQLite, but the screen retained a pending record and disabled resto
 Leaving/reopening the screen reproduced the missing reconciliation. Automatic
 completion now refreshes the view through existing native save admission, without
 substituting a refresh for another instance's requested backup. Focused host
-regressions pass; integrated build 734/device confirmation remain pending.
+regressions pass. Integrated gated build 734 passes preserving installation and
+normal Library-to-settings navigation on the Thor: the verified backup is shown
+and restore is enabled in the same settings instance. The exact notification
+timing regression is host-verified; this native check verifies persisted-state
+integration without claiming a second reproduction of that timing race.
 S10 remains the sole ACTIVE stage and S11 remains NOT STARTED. Remaining emulator
 routes, acceptance faults and conditional legacy handover are ordinary S10 work.
 
