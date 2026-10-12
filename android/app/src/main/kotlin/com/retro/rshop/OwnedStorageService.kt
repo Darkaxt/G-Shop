@@ -59,12 +59,14 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "reviewOwnedRetroArchGameBoyAdvanceSave" ||
                         call.method == "reviewOwnedRetroArchGameGearSave" ||
                         call.method == "reviewOwnedRetroArchMasterSystemSave" ||
-                        call.method == "reviewOwnedRetroArchMegaDriveSave") {
+                        call.method == "reviewOwnedRetroArchMegaDriveSave" ||
+                        call.method == "reviewOwnedRetroArchN64Save") {
                         val reviewGbaSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
                         val reviewGameGearSave = call.method == "reviewOwnedRetroArchGameGearSave"
                         val reviewSegaSave = call.method == "reviewOwnedRetroArchMasterSystemSave" ||
                             call.method == "reviewOwnedRetroArchMegaDriveSave"
-                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave
+                        val reviewN64Save = call.method == "reviewOwnedRetroArchN64Save"
+                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave || reviewN64Save
                         val gameGear = call.method == "launchOwnedRetroArchGameGear" || reviewGameGearSave
                         val segaPlatform = when (call.method) {
                             "launchOwnedRetroArchMegaDrive", "reviewOwnedRetroArchMegaDriveSave" -> "megadrive"
@@ -79,7 +81,7 @@ internal class OwnedStorageService(private val context: Context) {
                         val snes = call.method == "launchOwnedRetroArchSnes"
                         val handheld = gameBoy || gameBoyColor || gameBoyAdvance
                         val handheldPlatform = if (gameBoyAdvance) "gba" else if (gameBoyColor) "gbc" else "gb"
-                        val n64 = call.method == "launchOwnedRetroArchN64"
+                        val n64 = call.method == "launchOwnedRetroArchN64" || reviewN64Save
                         val psx = call.method == "launchOwnedRetroArchPSX"
                         val psp = call.method == "launchOwnedPPSSPP"
                         val ps2 = call.method == "launchOwnedNetherSX2"
@@ -132,7 +134,8 @@ internal class OwnedStorageService(private val context: Context) {
                         }
                         if (reviewSave) {
                             val name = RetroArchSaveBoundary.archiveSaveName(
-                                uri.encodedPath!!.substringAfterLast('/'), gameGear || segaPlatform != null)
+                                uri.encodedPath!!.substringAfterLast('/'), gameGear || segaPlatform != null ||
+                                    (n64 && filename.endsWith(".zip")))
                             main.post { result.success(name) }
                             return@execute
                         }

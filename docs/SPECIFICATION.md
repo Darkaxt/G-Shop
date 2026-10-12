@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 27, 2026-10-12.
+Authoritative specification, revision 29, 2026-10-12.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -1591,6 +1591,23 @@ metadata migrations, cover performance and controller navigation. Demonstrate
 the two features together with no RomM/PC dependency, an offline relaunch and
 save-safe local removal. Tests must not upload/download a real library by default.
 Use synthetic/homebrew or explicitly authorized test content for live proof.
+
+Owner-directed final pre-production check, 2026-10-12: use Pokémon Unbound
+(the hack ROM, not a substituted base Pokémon game) with DualDex as its linked
+companion on the Thor. After the required implementation stages, exercise the
+normal Drive catalogue -> download -> verified local installation -> game detail
+and available metadata/artwork -> emulator launch on the top display with DualDex
+on the bottom. Confirm one game identity across cloud/local residency and the
+Hack tag; missing hack-specific scores must remain truthful. Exclude save sync
+from this particular smoke test, preserving existing backups and opt-in settings;
+the owner will test that gameplay flow manually. This does not reopen exhaustive
+scraping, waive the existing SAVE-01 implementation criteria, or authorize release.
+Record the actual result and switch both displays off after testing.
+
+Owner acceptance clarification, 2026-10-12: the Unbound workflow is verified;
+RetroArch launch is sufficient for this smoke test. Do not reopen it for
+DualDex connection, parsing or internal behavior: DualDex is a separate project.
+This acceptance does not remove R-Shop's general metadata or save requirements.
 
 ### QA-03 — Privacy, scope and delivery gates
 

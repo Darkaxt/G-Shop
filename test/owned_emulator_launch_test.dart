@@ -268,6 +268,40 @@ void main() {
       expect(calls, hasLength(1));
     });
   }
+  test('N64 save review shares the exact 7z or ZIP launch grant', () async {
+    final route = RetroArchBatteryRoute.forPlatform('n64')!;
+    final console =
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'n64');
+    for (final extension in ['7z', 'zip']) {
+      calls.clear();
+      final archive = exactGame('n64-save', name: 'Game.$extension');
+      final installed = InstalledArtifact.fromJson({
+        ...manifest.toJson(),
+        'artifact': archive.remoteArtifact!.toJson(),
+        'relativePath': archive.filename,
+      });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        return 'installed-one%2FGame.srm';
+      });
+      final launcher = OwnedEmulatorLauncher(
+          romManager: _RomManager(() async => installed), channel: channel);
+      expect(
+          await launcher.reviewRetroArchBatterySave(
+              archive, console, '/owned', route),
+          'installed-one%2FGame.srm');
+      expect(calls.single.method, 'reviewOwnedRetroArchN64Save');
+      expect(calls.single.arguments, {
+        'installationId': installed.id,
+        'filename': archive.filename,
+      });
+      await expectLater(
+          launcher.reviewRetroArchBatterySave(archive, system, '/owned', route),
+          throwsUnsupportedError);
+      expect(calls, hasLength(1));
+    }
+  });
   test('mapped N64 archives retain their filename and require fresh ownership',
       () async {
     final n64 = SystemModel.supportedSystems.singleWhere((s) => s.id == 'n64');
@@ -482,11 +516,15 @@ void main() {
   test('DS archives use the normal reviewed launch route', () {
     final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
     for (final extension in ['nds', '7z', 'zip']) {
-      expect(OwnedEmulatorLauncher.supports(
-          exactGame('ds-$extension', name: 'Game.$extension'), ds), isTrue);
+      expect(
+          OwnedEmulatorLauncher.supports(
+              exactGame('ds-$extension', name: 'Game.$extension'), ds),
+          isTrue);
     }
-    expect(OwnedEmulatorLauncher.supports(
-        exactGame('ds-wrong', name: 'Game.chd'), ds), isFalse);
+    expect(
+        OwnedEmulatorLauncher.supports(
+            exactGame('ds-wrong', name: 'Game.chd'), ds),
+        isFalse);
   });
   test('DS save review uses the validated launch leaf without starting Melon',
       () async {
@@ -515,36 +553,37 @@ void main() {
         {'installationId': installed.id, 'filename': installed.relativePath});
   });
   for (final extension in ['nds', '7z', 'zip']) {
-  test('DS $extension launch awaits save reconciliation before the Melon handoff',
-      () async {
-    final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
-    final rom = exactGame('ds-$extension', name: 'Game.$extension');
-    final installed = InstalledArtifact.fromJson({
-      ...manifest.toJson(),
-      'artifact': rom.remoteArtifact!.toJson(),
-      'relativePath': rom.filename
+    test(
+        'DS $extension launch awaits save reconciliation before the Melon handoff',
+        () async {
+      final ds = SystemModel.supportedSystems.singleWhere((s) => s.id == 'nds');
+      final rom = exactGame('ds-$extension', name: 'Game.$extension');
+      final installed = InstalledArtifact.fromJson({
+        ...manifest.toJson(),
+        'artifact': rom.remoteArtifact!.toJson(),
+        'relativePath': rom.filename
+      });
+      final launcher = OwnedEmulatorLauncher(
+          romManager: _RomManager(() async => installed), channel: channel);
+      expect(OwnedEmulatorLauncher.supports(rom, ds), isTrue);
+      final prepared = Completer<void>();
+      final opening =
+          launcher.open(rom, ds, '/owned', prepareSave: () => prepared.future);
+      await Future<void>.value();
+      expect(calls, isEmpty);
+      prepared.complete();
+      await opening;
+      expect(calls.single.method, 'launchOwnedMelon');
+      expect(calls.single.arguments,
+          {'installationId': installed.id, 'filename': rom.filename});
+      calls.clear();
+      await expectLater(
+          launcher.open(rom, ds, '/owned',
+              prepareSave: () async =>
+                  throw PlatformException(code: 'save_conflict')),
+          throwsA(isA<PlatformException>()));
+      expect(calls, isEmpty);
     });
-    final launcher = OwnedEmulatorLauncher(
-        romManager: _RomManager(() async => installed), channel: channel);
-    expect(OwnedEmulatorLauncher.supports(rom, ds), isTrue);
-    final prepared = Completer<void>();
-    final opening =
-        launcher.open(rom, ds, '/owned', prepareSave: () => prepared.future);
-    await Future<void>.value();
-    expect(calls, isEmpty);
-    prepared.complete();
-    await opening;
-    expect(calls.single.method, 'launchOwnedMelon');
-    expect(calls.single.arguments,
-        {'installationId': installed.id, 'filename': rom.filename});
-    calls.clear();
-    await expectLater(
-        launcher.open(rom, ds, '/owned',
-            prepareSave: () async =>
-                throw PlatformException(code: 'save_conflict')),
-        throwsA(isA<PlatformException>()));
-    expect(calls, isEmpty);
-  });
   }
   test('standalone Wii U WUA requires ownership and exact Cemu handoff',
       () async {

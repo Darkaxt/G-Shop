@@ -128,6 +128,41 @@ void main() {
         throwsFormatException);
   });
 
+  test(
+      'N64 captures the complete Mupen save-memory group and rejects fragments',
+      () async {
+    final route = RetroArchBatteryRoute.forPlatform('n64');
+    expect(route, isNotNull);
+    expect(route!.coreId, 'mupen64plus_next_gles3');
+    expect(route.formatId, 'libretro-mupen64plus-next-srm-v1');
+    expect(route.includesRtc, isFalse);
+    (response['files'] as List).single['size'] = 296960;
+    final group = await SaveCapture()
+        .captureRetroArch(captureId: 'a' * 32, name: 'Game.srm', route: route);
+    expect(group.files.single.size, 296960);
+    expect((calls.single.arguments as Map)['retroArchRoute'], 'n64');
+    for (final size in [1, 65536, 296959, 296961]) {
+      (response['files'] as List).single['size'] = size;
+      await expectLater(
+          SaveCapture().captureRetroArch(
+              captureId: 'a' * 32, name: 'Game.srm', route: route),
+          throwsFormatException);
+    }
+    calls.clear();
+    for (final size in [1, 296959, 296961]) {
+      await expectLater(
+          SaveCapture().stageRestore(
+              restoreId: 'a' * 32,
+              name: 'Game.srm',
+              size: size,
+              sha256: 'b' * 64,
+              retroArchRoute: route,
+              bytes: const Stream.empty()),
+          throwsFormatException);
+    }
+    expect(calls, isEmpty);
+  });
+
   for (final platform in ['mastersystem', 'megadrive']) {
     test('$platform capture and restore retain the console route', () async {
       final route = RetroArchBatteryRoute.values

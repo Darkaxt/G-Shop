@@ -34,6 +34,7 @@ internal class SaveCaptureService(private val activity: Context) {
         internal fun stagingRoot(filesDir: File): File = File(filesDir.canonicalFile, "save-captures")
         private const val MGBA_SOURCE = "/storage/emulated/0/RetroArch/saves/mGBA"
         private const val GAMEGEAR_SOURCE = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
+        private const val N64_SOURCE = "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         internal fun validGroupNames(name: String, members: List<String>): Boolean =
             RetroArchSaveBoundary.validName(name) && members.size == 2 &&
                 members.toSet() == setOf(name, name.dropLast(4) + ".rtc")
@@ -56,6 +57,8 @@ internal class SaveCaptureService(private val activity: Context) {
                 "gamegear-battery", "mastersystem-battery", "megadrive-battery" ->
                     source == GAMEGEAR_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..65536L
+                "n64-battery" -> source == N64_SOURCE && RetroArchSaveBoundary.validName(name) &&
+                    size == 296960L
                 "ppsspp-slot-v1" -> PpssppSaveBoundary.validDirectory(source) &&
                     PpssppSaveBoundary.validName(name) && size in 1..PpssppSaveBoundary.MAX_STATE_BYTES
                 MelonSaveBoundary.FORMAT -> MelonSaveBoundary.validDirectory(source) &&
@@ -86,6 +89,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun batterySource(route: String): String = when (route) {
         "gba" -> MGBA_SOURCE
         "gamegear", "mastersystem", "megadrive" -> GAMEGEAR_SOURCE
+        "n64" -> N64_SOURCE
         else -> throw Failure("invalid_selection")
     }
     private fun batteryRoute(call: MethodCall): String =
@@ -93,6 +97,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun batteryFormat(route: String): String = when (route) {
         "gba" -> "mgba-battery"
         "gamegear", "mastersystem", "megadrive" -> "$route-battery"
+        "n64" -> "n64-battery"
         else -> throw Failure("invalid_selection")
     }
     private fun routeForFormat(format: String): String = when (format) {
@@ -100,7 +105,15 @@ internal class SaveCaptureService(private val activity: Context) {
         "gamegear-battery" -> "gamegear"
         "mastersystem-battery" -> "mastersystem"
         "megadrive-battery" -> "megadrive"
+        "n64-battery" -> "n64"
         else -> throw Failure("invalid_restore")
+    }
+
+    private fun batteryMaxBytes(route: String): Long = when (route) {
+        "gba" -> 16L * 1024 * 1024
+        "gamegear", "mastersystem", "megadrive" -> 65536L
+        "n64" -> 296960L // Complete EEPROM + 4 Controller Paks + SRAM + FlashRAM.
+        else -> throw Failure("invalid_selection")
     }
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
@@ -324,7 +337,7 @@ internal class SaveCaptureService(private val activity: Context) {
         val maxMembers = if (savedata) PpssppSavedataBoundary.MAX_MEMBERS else if (includesRtc) 2 else 1
         val maxSize = if (savedata) PpssppSavedataBoundary.MAX_BYTES else if (melonDirectory != null) MelonSaveBoundary.MAX_BYTES
             else if (ppssppDirectory != null) PpssppSaveBoundary.MAX_STATE_BYTES
-            else if (retroArchRoute != "gba") 65536L else 16L * 1024 * 1024
+            else batteryMaxBytes(retroArchRoute)
         val absent = record.optBoolean("localWasAbsent")
         if (savedata && record.optJSONArray("sourceIdentity")?.length() != 2) throw Failure("invalid_capture")
         if (absent && (!restoreBaseline || members.length() != 0 ||
@@ -341,6 +354,8 @@ internal class SaveCaptureService(private val activity: Context) {
             }
             if (file.canonicalFile != file.absoluteFile || !file.isFile ||
                 file.length() !in (if (savedata) 0 else 1)..maxSize ||
+                (!savedata && ppssppDirectory == null && melonDirectory == null &&
+                    retroArchRoute == "n64" && file.length() != maxSize) ||
                 file.length() != item.getLong("size")) throw Failure("changed_capture")
             val digest = MessageDigest.getInstance("SHA-256")
             file.inputStream().use { stream ->
@@ -477,8 +492,11 @@ internal class SaveCaptureService(private val activity: Context) {
             for (member in selected) fds += sourceStorage.openFile(member, false, false)
             val identities = fds.map(sourceStorage::identity)
             val maxSize = if (melon) MelonSaveBoundary.MAX_BYTES else if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES
-                else if (retroArchRoute != "gba") 65536L else 16L * 1024 * 1024
+                else batteryMaxBytes(retroArchRoute)
             if (identities.any { it[2] !in 1..maxSize }) throw Failure("invalid_save_size")
+            if (!standalone && retroArchRoute == "n64" && identities.any { it[2] != maxSize }) {
+                throw Failure("invalid_save_size")
+            }
             val members = JSONArray()
             for (i in fds.indices) {
                 check()

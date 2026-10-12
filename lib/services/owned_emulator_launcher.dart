@@ -127,6 +127,7 @@ class OwnedEmulatorLauncher {
       RetroArchBatteryRoute.masterSystem =>
         'reviewOwnedRetroArchMasterSystemSave',
       RetroArchBatteryRoute.megaDrive => 'reviewOwnedRetroArchMegaDriveSave',
+      RetroArchBatteryRoute.n64 => 'reviewOwnedRetroArchN64Save',
     };
     final grant = await _grant(game, system, root);
     final name = await channel.invokeMethod<String>(method, grant);

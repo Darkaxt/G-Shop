@@ -7,6 +7,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun n64BindingRequiresTheCompletePackedMemoryAndItsOwnCoreDirectory() {
+        val source = "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
+        assertTrue(SaveCaptureService.validRestoreBinding("encoded%2FGame.srm", 296960,
+            "n64-battery", source))
+        for (size in listOf(0L, 1L, 65536L, 296959L, 296961L)) {
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", size, "n64-battery", source))
+        }
+        for (name in listOf("Game.state", "Game.eep", "Game.mpk", "Game.rtc", "../Game.srm")) {
+            assertFalse(SaveCaptureService.validRestoreBinding(name, 296960, "n64-battery", source))
+        }
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 296960, "n64-battery",
+            "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 296960, "mgba-battery", source))
+    }
     @Test fun melonSnapshotBackingKeepsTheExactInternalOrRemovableSavePath() {
         assertEquals(MelonSaveBoundary.PROTECTED_BACKING,
             MelonSaveBoundary.backingDirectory(MelonSaveBoundary.PROTECTED_SOURCE))

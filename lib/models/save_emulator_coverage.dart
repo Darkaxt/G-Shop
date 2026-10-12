@@ -85,7 +85,7 @@ class SaveEmulatorCoverage {
       ? 'Not applicable · launcher; use the selected emulator'
       : _retroArch
           ? _reviewed
-              ? 'In-game saves · GBA (including paired clock data), Game Gear, Master System and Mega Drive.'
+              ? 'In-game saves · GBA (including paired clock data), Game Gear, Master System, Mega Drive and Nintendo 64 (including Controller Paks).'
               : 'Needs review · installed RetroArch runtime is not verified'
           : _melon
               ? _reviewed
@@ -122,7 +122,8 @@ class SaveEmulatorCoverage {
                   'A user grant and save-specific read/write review are still required.'
               : _retroArch
                   ? 'Current routes: shared RetroArch/saves/mGBA and Genesis Plus GX '
-                      'Game Gear, Master System and Mega Drive cartridge SRAM with exact launch binding. '
+                      'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
+                      'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
                       'Other cores and custom paths are unfinished.'
                   : _launcher
                       ? 'This launcher does not own the emulator’s save files.'

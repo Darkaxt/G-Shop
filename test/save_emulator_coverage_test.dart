@@ -59,7 +59,7 @@ void main() {
       _row('org.ppsspp.ppsspp', '1.20.4'),
     ]);
     expect(rows.singleWhere((r) => r.label == 'RetroArch').saves,
-        'In-game saves · GBA (including paired clock data), Game Gear, Master System and Mega Drive.');
+        'In-game saves · GBA (including paired clock data), Game Gear, Master System, Mega Drive and Nintendo 64 (including Controller Paks).');
     expect(rows.singleWhere((r) => r.label == 'RetroArch').storage,
         contains('Genesis Plus GX'));
     expect(rows.singleWhere((r) => r.label == 'RetroArch').states,

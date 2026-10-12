@@ -96,7 +96,7 @@ class SaveCapture {
       if (route != RetroArchBatteryRoute.mgba)
         'retroArchRoute': route.platformId
     });
-    return _captured(raw,
+    final group = _captured(raw,
         captureId: captureId,
         allowedNames: {
           name,
@@ -105,6 +105,10 @@ class SaveCapture {
         requiredName: name,
         maxSize: route.maxBytes,
         restoreBaseline: restoreBaseline);
+    if (group.files.any((file) => !route.acceptsSize(file.size))) {
+      throw const FormatException('Invalid cartridge save size');
+    }
+    return group;
   }
 
   static bool validPpssppName(String name) =>
@@ -445,6 +449,7 @@ class SaveCapture {
         (melon && !validMelonDirectory(melonDirectory)) ||
         (ppsspp && !validPpssppDirectory(ppssppDirectory)) ||
         ((ppsspp || melon) && retroArchRoute != RetroArchBatteryRoute.mgba) ||
+        (!ppsspp && !melon && !retroArchRoute.acceptsSize(size)) ||
         size <= 0 ||
         size >
             (melon

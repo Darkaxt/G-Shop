@@ -709,7 +709,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         sram.length != 1 ||
         !SaveCapture.validName(sram.single.relativePath) ||
         manifest.members.length > (retroArchRoute.includesRtc ? 2 : 1) ||
-        manifest.members.any((m) => m.sizeBytes > retroArchRoute.maxBytes)) {
+        manifest.members.any((m) => !retroArchRoute.acceptsSize(m.sizeBytes))) {
       throw const FormatException('Invalid cartridge save group');
     }
     final name = sram.single.relativePath;

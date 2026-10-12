@@ -54,6 +54,7 @@ class _Capture extends SaveCapture {
   final ppssppSources = <String>[];
   final melonSources = <String>[];
   final batteryRoutes = <RetroArchBatteryRoute>[];
+  int batterySize = 4;
   final restoreRoutes = <RetroArchBatteryRoute>[];
   final stagedGroups = <List<String>>[];
   int appInfoOpens = 0;
@@ -134,8 +135,8 @@ class _Capture extends SaveCapture {
         '1.22.2_GIT',
         [
           if (!localAbsent)
-            CapturedSaveFile(
-                name, File('/private/$captureId/member-0'), 4, digest),
+            CapturedSaveFile(name, File('/private/$captureId/member-0'),
+                batterySize, digest),
           if (includeRtc && !localAbsent)
             CapturedSaveFile(name.replaceFirst(RegExp(r'\.srm$'), '.rtc'),
                 File('/private/$captureId/member-1'), 4, 'd' * 64)
@@ -397,7 +398,9 @@ class _Generations extends DriveSaveBackupGenerationApi {
             .singleWhere((m) => m.cloudFileId == memberId)
             .sizeBytes !=
         0) {
-      yield Uint8List.fromList([1, 2, 3, 4]);
+      yield generation.binding.platformId == 'n64'
+          ? Uint8List(296960)
+          : Uint8List.fromList([1, 2, 3, 4]);
     }
     if (failDownload) {
       throw const SaveBackupGenerationException(
@@ -1937,12 +1940,13 @@ void main() {
     expect(job.lastVerified!.generationId, verified);
     expect(generations.uploads, uploads);
   });
-  for (final platform in ['gamegear', 'mastersystem', 'megadrive']) {
+  for (final platform in ['gamegear', 'mastersystem', 'megadrive', 'n64']) {
     test(
         '$platform route persists distinct binding through backup restore and rollback',
         () async {
       final route = RetroArchBatteryRoute.values
           .singleWhere((route) => route.platformId == platform);
+      capture.batterySize = platform == 'n64' ? 296960 : 4;
       await LibraryStore(Future.value(db)).putGame(GameIdentity(
           id: 'game',
           platformId: platform,
@@ -1965,8 +1969,8 @@ void main() {
       expect(gg.issue, isNull);
       final first = gg.lastVerified!;
       expect(first.binding.platformId, platform);
-      expect(first.binding.coreId, 'genesis_plus_gx');
-      expect(first.binding.formatId, 'libretro-genesis-plus-gx-sram-v1');
+      expect(first.binding.coreId, route.coreId);
+      expect(first.binding.formatId, route.formatId);
       expect(first.binding.kind, SaveBackupKind.save);
       expect(capture.batteryRoutes, [route]);
       gg.dispose();
@@ -1981,12 +1985,12 @@ void main() {
           await Directory('D:/Temp').createTemp('rshop-gg-rollback-');
       final retained = File('${directory.path}/member');
       try {
-        await retained.writeAsBytes([1, 2, 3, 4], flush: true);
+        await retained.writeAsBytes(List.filled(capture.batterySize, 4),
+            flush: true);
         capture.sealed[rollbackId] = CapturedSaveGroup(
-            rollbackId,
-            'device',
-            '1.22.2_GIT',
-            [CapturedSaveFile(currentName, retained, 4, 'b' * 64)]);
+            rollbackId, 'device', '1.22.2_GIT', [
+          CapturedSaveFile(currentName, retained, capture.batterySize, 'b' * 64)
+        ]);
         await reopened.rollbackLast();
         expect(reopened.issue, isNull);
         expect(capture.restoreRoutes, [route, route]);

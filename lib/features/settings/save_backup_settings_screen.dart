@@ -1110,7 +1110,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                           : job.isPpsspp
                               ? 'PPSSPP · published state slot · v1.20.4'
                               : !job.retroArchRoute.includesRtc
-                                  ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
+                                  ? 'RetroArch · ${job.retroArchRoute.coreLabel} · ${job.retroArchRoute.label} in-game saves'
                                   : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (job.isStandalone &&
@@ -1144,7 +1144,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : job.isPpsspp
                                 ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
                                 : !job.retroArchRoute.includesRtc
-                                    ? 'Backs up this ${job.retroArchRoute.label} game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
+                                    ? 'Backs up this ${job.retroArchRoute.label} game’s complete in-game save from RetroArch. ROMs, settings and save states are not included.'
                                     : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),

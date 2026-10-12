@@ -26,6 +26,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var mountProbe = false
     private var companionProbe = false
     private var saveRouteProbe = false
+    private var n64SaveProbe = false
     private var saveGroupProbe = false
     private var melonSaveProbe = false
     private var protectedMelonSaveProbe = false
@@ -45,6 +46,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         mountProbe = arguments?.getString("mountProbe") == "true"
         companionProbe = arguments?.getString("companionProbe") == "true"
         saveRouteProbe = arguments?.getString("saveRouteProbe") == "true"
+        n64SaveProbe = arguments?.getString("n64SaveProbe") == "true"
         saveGroupProbe = arguments?.getString("saveGroupProbe") == "true"
         melonSaveProbe = arguments?.getString("melonSaveProbe") == "true"
         protectedMelonSaveProbe = arguments?.getString("protectedMelonSaveProbe") == "true"
@@ -89,6 +91,8 @@ class OwnedRomInstrumentation : Instrumentation() {
                 report.putString("result", MelonSaveProof.exercise(targetContext, protectedMelonSaveProbe, melonLiveCaptureProbe))
             } else if (saveGroupProbe) {
                 report.putString("result", MgbaGroupSaveProof.exercise(targetContext))
+            } else if (n64SaveProbe) {
+                report.putString("result", SegaSaveRouteProof.exercise(targetContext, n64 = true))
             } else if (saveRouteProbe) {
                 report.putString("result", SegaSaveRouteProof.exercise(targetContext))
             } else if (companionProbe) {

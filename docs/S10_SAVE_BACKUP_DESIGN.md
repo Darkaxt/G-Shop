@@ -7,6 +7,38 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### N64 complete save-memory route — 2026-10-12
+
+The installed RetroArch core identifies itself as Mupen64Plus-Next
+`2.8-Vulkan f275caf`. Its pinned
+[memory layout](https://github.com/libretro/mupen64plus-libretro-nx/blob/f275caf4b2bfa1e6d1c51636746ea793f3d80320/libretro/libretro_memory.h)
+is one 296,960-byte SRM: 2,048-byte EEPROM, four 32,768-byte Controller Paks,
+32,768-byte SRAM and 131,072-byte FlashRAM. Actual existing Thor files have this
+size. The active configuration sorts saves by core into
+`RetroArch/saves/Mupen64Plus-Next`, not beside content or by content directory.
+
+The existing cartridge capture/restore job now has a distinct N64 platform,
+core, format and journal binding. Both 7z and ZIP save review retain the exact
+encoded owned/observed launch-document leaf. Capture, persisted manifest review
+and restore staging reject fragments, foreign namespaces, unrelated RTC files
+and save states. The complete memory region is streamed through the existing
+writer-closed capture, verified generation and atomic restore/rollback workflow;
+there is no new transfer engine or standalone-save conversion.
+
+The missing-route host regression and native binding regression both reproduced
+before the change. Focused host capture/launch, persistent job isolation,
+restore/rollback and settings checks pass; scoped analysis reports no issues.
+Gated build 803 passed focused native policy tests and both APK assemblies.
+The preserving installed build passed the real Thor `n64SaveProbe`: app-UID
+capture/digest, foreign-route rejection, complete expected-location restore and
+retained-byte rollback. RetroArch itself confirmed CONTENTLESS. All exclusive
+fixtures were removed; the three pre-existing save digests remained unchanged.
+The first attempt correctly refused access while content was still loaded;
+normal Close Content resolved that precondition without terminating RetroArch.
+This manual route does not close RetroArch unattended watching, other cores,
+standalone coverage, acceptance faults or the conditional legacy-sync handover.
+S10 remains ACTIVE; S11 is NOT STARTED.
+
 ### PSP cloud-folder recovery — verified slice, 2026-10-12
 
 Mapping now queries independently discoverable verified Drive publications for

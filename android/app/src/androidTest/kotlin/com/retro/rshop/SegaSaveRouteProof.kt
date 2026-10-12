@@ -13,9 +13,10 @@ import java.util.concurrent.CountDownLatch
  * save bytes. Requires the real installed RetroArch's CONTENTLESS reply. Does not
  * mock its UDP endpoint, run gameplay, access Drive or alter an existing save. */
 internal object SegaSaveRouteProof {
-    fun exercise(context: Context): String {
+    fun exercise(context: Context, n64: Boolean = false): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
-        val source = File("/storage/emulated/0/RetroArch/saves/Genesis Plus GX")
+        val source = File("/storage/emulated/0/RetroArch/saves/" +
+            if (n64) "Mupen64Plus-Next" else "Genesis Plus GX")
         check(source.isDirectory && source.canonicalFile == source.absoluteFile)
         val initialNames = source.list()!!.toSet()
         val service = SaveCaptureService(context)
@@ -64,19 +65,24 @@ internal object SegaSaveRouteProof {
             call("beginRestore", mapOf("captureId" to restoreId, "name" to name,
                 "retroArchRoute" to if (route == "mastersystem") "megadrive" else "mastersystem",
                 "size" to bytes.size.toLong(), "sha256" to digest(bytes)), "invalid_restore")
-            check(call("appendRestore", mapOf("captureId" to restoreId, "offset" to 0L,
-                "bytes" to bytes)) == bytes.size.toLong())
+            var offset = 0
+            while (offset < bytes.size) {
+                val end = minOf(offset + 65536, bytes.size)
+                check(call("appendRestore", mapOf("captureId" to restoreId, "offset" to offset.toLong(),
+                    "bytes" to bytes.copyOfRange(offset, end))) == end.toLong())
+                offset = end
+            }
             call("sealRestore", mapOf("captureId" to restoreId))
             call("publishRestore", mapOf("captureId" to restoreId, "rollbackCaptureId" to rollback))
             check(File(source, name).readBytes().contentEquals(bytes))
         }
         try {
-            for (route in listOf("mastersystem", "megadrive")) {
+            for (route in if (n64) listOf("n64") else listOf("mastersystem", "megadrive")) {
                 val name = "rshop-$route-proof-${id()}.srm".also(names::add)
                 val file = File(source, name)
                 check(file.createNewFile()) // Never replace a pre-existing entry.
-                val before = ByteArray(50) { (it + 11).toByte() }
-                val after = ByteArray(50) { (it + 71).toByte() }
+                val before = ByteArray(if (n64) 296960 else 50) { (it + 11).toByte() }
+                val after = ByteArray(before.size) { (it + 71).toByte() }
                 write(file, before)
                 val original = capture(route, name)
                 call("captureRetroArch", mapOf("captureId" to original, "name" to name,
@@ -116,6 +122,6 @@ internal object SegaSaveRouteProof {
             removePrivate("save-restores", ownedRestores, setOf("restore.json", "restore.json.part", "member"))
             check(source.list()!!.toSet() == initialNames)
         }
-        return "PASS mastersystem/megadrive app-UID capture/digest, cross-console capture/restore replay rejection, atomic expected-location restore and retained-byte rollback; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
+        return "PASS ${if (n64) "n64 complete 296960-byte memory" else "mastersystem/megadrive"} app-UID capture/digest, cross-console capture/restore replay rejection, atomic expected-location restore and retained-byte rollback; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
     }
 }

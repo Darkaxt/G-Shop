@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 27.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 29.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 S10 retained-copy clarification, 2026-10-12: reconcile the retained legacy ROMs
@@ -1839,6 +1839,14 @@ Depends on: S1-S10 acceptance. Do not begin while an earlier stage is ACTIVE.
 - Reconcile the full authoritative specification, resolve every required blocker
   and tracked deferral, run applicable final verification and commit the verified
   result. No public release is authorized.
+- Final QA-02 owner-selected smoke test: Pokémon Unbound from Drive through the
+  normal verified install and game-detail flow, then emulator on top and linked
+  DualDex below. Verify the single cloud/local game identity and truthful Hack
+  metadata/artwork. Do not run save sync in this check; the owner will test it
+  manually. Record the result and turn both displays off. This is final S11
+  integration evidence, not authority to start S11 while S10 is ACTIVE.
+  Owner accepted the Unbound/RetroArch smoke test on 2026-10-12; do not reopen
+  it or investigate DualDex internals. Return to unfinished R-Shop requirements.
 
 Evidence: persisted Settings/controller proof, deterministic focused policy and
 durable-removal contracts, actual native automatic expiry/capacity rotation in

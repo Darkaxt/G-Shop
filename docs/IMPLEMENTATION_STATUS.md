@@ -5,6 +5,59 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### N64 manual save route — verified, 2026-10-12
+
+The existing cartridge workflow now accepts Mupen64Plus-Next's complete
+296,960-byte save memory, including Controller Paks, with distinct platform/core/
+format binding and exact launch-document save naming. Focused host capture,
+launch, persistent backup/restore/rollback and settings checks passed; scoped
+analysis and whitespace checks passed. Build 803 passed focused native policy
+checks, debug assembly and instrumentation assembly.
+
+Actual Thor `n64SaveProbe` returned PASS for app-UID capture/digest, cross-console
+replay rejection, complete expected-location atomic restore and retained-byte
+rollback. The real RetroArch replied CONTENTLESS after normal Close Content.
+The earlier loaded-content attempt correctly returned `close_content_required`;
+the diagnostic netcat command was explicitly retired before the successful probe.
+All exclusive fixtures were removed and all three existing N64 save digests stayed
+unchanged. Both actual/committed display states are OFF; wakefulness is Asleep.
+
+Build-gate request 803/ticket `70f5479e5f47464498c74bfbe4632d5c` acquired the shared
+mutex and completed before release. Observed profile: two workers, no parallelism,
+3 GiB Gradle heap, Kotlin in-process; configured tests use one 512 MiB fork,
+fail-fast and no ignored failures. Existing depth-one native pools were unchanged.
+No memory failure or heap increase occurred. No additional Gradle run was needed
+for this device probe. This verifies the manual N64 storage route, not an N64
+Drive round trip or unattended watching. Remaining SAVE-01 coverage, faults and
+conditional handover remain ordinary S10 work; S10 alone is ACTIVE.
+
+### Final owner-selected smoke test — 2026-10-12
+
+Specification revision 28 records Pokémon Unbound with DualDex as the final
+pre-production QA-02 test, owned by S11 final integration. It must exercise the
+normal Drive-to-local installation, game presentation and top-emulator/bottom-
+companion launch without save sync in that run.
+
+Live owner-selected check: the normal GBA library search found Pokémon Unbound
+v2.1.1.1 as cloud-only. Its configured source is Drive. Download completed and
+the same entry became Installed, with the normal Open action. Its downloaded
+archive SHA-256 is
+`a275be0f927e1b9cd763ed08840e41bae38d0f0a3596f4163074ee4b229aff99`.
+The edition's normal companion selector saved DualDex. Normal Open launched
+RetroArch's mGBA core on display 0 and DualDex on display 4; independent screen
+capture confirmed Pokémon Unbound's title screen. No save-backup configuration
+was enabled or restore/upload requested for this check. The owner confirmed
+RetroArch launch is the needed check and explicitly confirmed Unbound verified.
+No additional DualDex connection/parsing test is required: DualDex is a separate
+project. Further work returns to R-Shop's S10 save support.
+R-Shop's detail page had sparse metadata and no score; this run does not establish
+fresh metadata/Hack-tag acceptance or overall production readiness. Build 803
+was installed with the existing signer and all eleven configuration/preference
+digest rows unchanged; installed APK SHA-256 independently matched
+`78887d56f7c4f856fb0892a4dd1bfc0a78daae548196ddc255ad83ca91d4239b`.
+S10 remains the sole ACTIVE stage; this test does not authorize release or
+reopen exhaustive scraping/SD cleanup.
+
 ### Standalone save-location editing — 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 is NOT STARTED. A configured standalone
