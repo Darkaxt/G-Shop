@@ -2128,6 +2128,42 @@ void main() {
             .singleWhere((m) => m.relativePath.endsWith('/EMPTY'))
             .sizeBytes,
         0);
+    final foreignBinding = first.binding.toJson()
+      ..['editions'] = [
+        {'gameId': 'different-game', 'editionId': 'different-edition'}
+      ];
+    generations.cloud['foreign'] = SaveBackupManifest(
+        generationId: 'foreign',
+        binding: SaveBackupBinding.fromJson(foreignBinding),
+        parentGenerationIds: const [],
+        createdAt: DateTime.utc(2026),
+        members: first.members);
+    generations.cloud['mixed-folders'] = SaveBackupManifest(
+        generationId: 'mixed-folders',
+        binding: first.binding,
+        parentGenerationIds: const [],
+        createdAt: DateTime.utc(2026),
+        members: [
+          first.members.first,
+          SaveBackupMember(
+              relativePath: 'OTHER/DATA',
+              cloudFileId: 'other-member',
+              sizeBytes: 4,
+              sha256: 'c' * 64)
+        ]);
+    final capturesBeforeDiscovery = folderCapture.captures;
+    expect(
+        await SaveBackupGameJob.discoverPpssppSavedataFolders(
+            database: Future.value(db),
+            generations: generations,
+            areaId: 'area',
+            editionId: 'edition',
+            artifactId: artifactId),
+        ['ULUS10041DATA00']);
+    expect(folderCapture.captures, capturesBeforeDiscovery,
+        reason: 'Cloud discovery cannot depend on a local save existing');
+    generations.cloud.remove('foreign');
+    generations.cloud.remove('mixed-folders');
     generations.cloud['another-folder'] = SaveBackupManifest(
         generationId: 'another-folder',
         binding: first.binding,

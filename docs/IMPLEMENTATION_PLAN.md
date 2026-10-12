@@ -1657,6 +1657,15 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
+Current checkpoint, 2026-10-12: build 785 normal PSP UI backed up a complete
+SAVEDATA fixture to Drive and restored both its nonempty and zero-byte members
+after local-folder removal; independent restored hashes match. Root discovery
+uses PPSSPP's configured Memory Stick. Cloud-only folder association/disposal
+has focused host evidence but still needs its fresh-association live proof.
+Remaining emulator routes, local/cloud library save-menu linkage, acceptance
+fault/reconnect coverage and verified legacy handover are unfinished S10 work,
+not external blockers or deferred S11 work. See the current status ledger.
+
 Latest checkpoint, 2026-10-12: automatic PPSSPP Memory Stick state-folder discovery
 is integrated in normal mapping, with focused host regression and actual Thor
 app-UID/root channel listing evidence. Preserving gated request 737 retains current

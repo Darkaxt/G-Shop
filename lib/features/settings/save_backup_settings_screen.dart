@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -384,12 +385,34 @@ class _SaveBackupSettingsScreenState
                   'Choose the shared save folder configured in MelonDualDS'),
           onMapped: (directory, name) => _mapMelon(config, directory, name));
     }
-    if (widget.system?.id == 'psp' && _section == SaveBackupSection.backup) {
+    if (widget.system?.id == 'psp' &&
+        (_section == SaveBackupSection.backup ||
+            _pspSavedata && _section == SaveBackupSection.restore)) {
       return StandaloneSaveMappingPanel(
           key: ValueKey('psp-map-$_pspSavedata'),
           pspSavedata: _pspSavedata,
           title: widget.gameTitle ?? 'Selected PSP edition',
           capture: SaveCapture(),
+          cloudSavedataFolders: _pspSavedata && _setup?.areaId != null
+              ? (cancellation) async {
+                  final api = DriveSaveBackupGenerationApi(
+                      authorization: DriveRuntime.instance
+                          .authorizationFor(config.serverClientId),
+                      accountId: config.accountId);
+                  try {
+                    return await SaveBackupGameJob
+                        .discoverPpssppSavedataFolders(
+                            database: DatabaseService().database,
+                            generations: api,
+                            areaId: _setup!.areaId!,
+                            editionId: widget.editionId!,
+                            artifactId: widget.game!.remoteArtifact!.id,
+                            cancellation: cancellation);
+                  } finally {
+                    api.close();
+                  }
+                }
+              : null,
           chooseDirectory: () => FilePicker.platform.getDirectoryPath(
               dialogTitle:
                   'Choose ${_pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} in your configured PSP folder'),
@@ -1483,6 +1506,7 @@ class StandaloneSaveMappingPanel extends StatefulWidget {
   final bool melon, pspSavedata;
   final SaveCapture capture;
   final Future<({String directory, String name})> Function()? resolveMelonSave;
+  final Future<List<String>> Function(CancelToken)? cloudSavedataFolders;
   final Future<String?> Function() chooseDirectory;
   final Future<void> Function(String directory, String slot) onMapped;
   const StandaloneSaveMappingPanel(
@@ -1490,6 +1514,7 @@ class StandaloneSaveMappingPanel extends StatefulWidget {
       this.melon = false,
       this.pspSavedata = false,
       this.resolveMelonSave,
+      this.cloudSavedataFolders,
       required this.title,
       required this.capture,
       required this.chooseDirectory,
@@ -1504,6 +1529,15 @@ class _StandaloneSaveMappingPanelState
   String? _directory, _slot, _issue, _locationInfo;
   List<String> _names = const [];
   bool _confirmed = false, _busy = false;
+  CancelToken? _cloudCancellation;
+  List<String> _localNames = const [];
+  String? _cloudInfo;
+
+  @override
+  void dispose() {
+    _cloudCancellation?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -1528,6 +1562,8 @@ class _StandaloneSaveMappingPanelState
         setState(() {
           _directory = directory;
           _names = names;
+          _localNames = names;
+          _cloudInfo = null;
           _slot = null;
           _confirmed = false;
           _locationInfo = widget.pspSavedata
@@ -1611,6 +1647,8 @@ class _StandaloneSaveMappingPanelState
       setState(() {
         _directory = directory;
         _names = names;
+        _localNames = names;
+        _cloudInfo = null;
         _slot = null;
         _confirmed = false;
       });
@@ -1623,6 +1661,48 @@ class _StandaloneSaveMappingPanelState
             : 'Choose ${widget.pspSavedata ? 'SAVEDATA' : 'PPSSPP_STATE'} inside PPSSPP’s configured PSP folder. Protected app folders require R-Shop root access. No mapping was changed.');
       }
     } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _findCloud() async {
+    final discover = widget.cloudSavedataFolders;
+    if (_busy ||
+        !widget.pspSavedata ||
+        discover == null ||
+        _directory == null) {
+      return;
+    }
+    final cancellation = CancelToken();
+    _cloudCancellation = cancellation;
+    setState(() {
+      _busy = true;
+      _issue = null;
+    });
+    try {
+      final names = await discover(cancellation);
+      if (!mounted || cancellation.isCancelled) return;
+      if (!names.every(SaveCapture.validPpssppSavedataMember)) {
+        throw const FormatException('Invalid cloud save folder');
+      }
+      setState(() {
+        // Remove previous cloud-only candidates on refresh; local names remain.
+        _names = {..._localNames, ...names}.toList()..sort();
+        _slot = null;
+        _confirmed = false;
+        _cloudInfo = names.isEmpty
+            ? 'No compatible cloud saves were found for this edition.'
+            : 'Cloud saves found. Choose a folder below. Restore will create it in PPSSPP’s save location if it is missing.';
+      });
+    } catch (_) {
+      if (mounted && !cancellation.isCancelled) {
+        setState(() => _issue =
+            'Cloud saves could not be checked. Check your connection and Drive access, then try again. Your saves are unchanged.');
+      }
+    } finally {
+      if (identical(_cloudCancellation, cancellation)) {
+        _cloudCancellation = null;
+      }
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -1669,6 +1749,8 @@ class _StandaloneSaveMappingPanelState
         const SizedBox(height: 16),
         if (_locationInfo != null)
           Text(_locationInfo!, style: const TextStyle(fontSize: 18)),
+        if (_cloudInfo != null)
+          Text(_cloudInfo!, style: const TextStyle(fontSize: 18)),
         ConsoleFocusable(
             focusScale: 1,
             onSelect: _busy ? null : _discover,
@@ -1679,6 +1761,15 @@ class _StandaloneSaveMappingPanelState
                 onPressed: _busy ? null : _discover,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Find configured save folder'))),
+        if (widget.pspSavedata && widget.cloudSavedataFolders != null)
+          ConsoleFocusable(
+              focusScale: 1,
+              onSelect: _busy || _directory == null ? null : _findCloud,
+              child: OutlinedButton.icon(
+                  key: const ValueKey('ppsspp-map-cloud'),
+                  onPressed: _busy || _directory == null ? null : _findCloud,
+                  icon: const Icon(Icons.cloud_download_outlined),
+                  label: const Text('Find cloud saves'))),
         if (widget.melon)
           ConsoleFocusable(
               focusScale: 1,
@@ -1712,7 +1803,7 @@ class _StandaloneSaveMappingPanelState
             Text(widget.melon
                 ? 'No in-game saves were found. Save in MelonDualDS, then choose this folder again.'
                 : widget.pspSavedata
-                    ? 'No in-game save folders were found. Save in PPSSPP, then refresh this list.'
+                    ? 'No local in-game saves were found. Check cloud saves, or save in PPSSPP and refresh.'
                     : 'No finished save states were found. Save a state in PPSSPP, then choose this folder again.'),
           DropdownButtonFormField<String>(
               key:

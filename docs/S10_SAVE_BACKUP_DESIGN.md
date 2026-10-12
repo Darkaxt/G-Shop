@@ -7,6 +7,30 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PSP cloud-folder recovery — verified slice, 2026-10-12
+
+Mapping now queries independently discoverable verified Drive publications for
+the reviewed PSP edition/account/artifact. It does not require local save bytes,
+borrow another edition's folders, or confuse save states with SAVEDATA groups.
+Only complete single-folder manifests contribute choices; normal group job
+loading retains conflict/ancestry review. Discovery has joined cancellation when
+the mapping panel closes and is available from unmapped in-game Restore too.
+
+Host checks cover cloud-only mapping without local IO, foreign-edition/mixed-
+folder exclusion and disposal cancellation. Preserving build 785 is installed.
+The actual normal UI backed up the exclusive two-member fixture, including an
+empty companion, then restored it after its whole local folder was removed.
+Independent restored byte/digest proof passes at PPSSPP's configured destination;
+see IMPLEMENTATION_STATUS.md for exact fixture, hashes and build/gate evidence.
+The restored 110-byte-plus-empty fixture and disabled association are retained
+for the still-required fresh-association discovery check, then exact removal.
+Existing owner state and emulator settings are unchanged; cloud versions remain.
+
+Cloud discovery after loss of the association has host, not live Drive evidence
+yet. The local-only installed library row also needs its save-menu linkage
+investigated. Neither is stage completion. Remaining accessible emulator routes,
+fault/reconnect checks and verified legacy handover stay within ACTIVE S10.
+
 ### Complete PSP save-folder UI and root watch — verified slice, 2026-10-12
 
 Root is an implementation capability, not a manual-mapping-only fallback. The

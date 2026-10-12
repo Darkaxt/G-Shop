@@ -5,6 +5,70 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### PSP cloud-only folder discovery and real complete-folder Drive restore — 2026-10-12
+
+SAVE-01's root-first capability remains authoritative, not a manual-only fallback.
+Normal PSP mapping can now find compatible cloud folder identities without a
+local save. It uses verified immutable publications, exact reviewed Drive
+artifact/edition/account binding, save/state format separation and complete
+single-folder membership checks. Closing discovery cancels its request. Local
+and cloud candidates remain distinct internally, so refresh removes stale cloud
+choices without losing the current local list. The restore section also exposes
+mapping when no in-game save association exists.
+
+Focused host verification of PSP discovery, complete-folder job/ancestry and
+save settings passed in original session 37960, exit 0. Scoped analysis passed
+in session 23995, exit 0. The cloud-only UI regression first failed because its
+button was absent (session 81952); the initial static API check was a missing-API
+compile diagnostic, not a behavioral RED. Current source is unchanged since the
+verified assembly below. No repository-wide suite was run.
+
+Preserving build request 785 (`8c7ff5d2071341bb996d070465c28434`), session 66488,
+completed with exit 0 and confirmed completion. Telemetry independently records
+acquisition and release of `Local\Darka.AndroidGradleBuildGate`. Observed profile:
+workers=2, parallel=false, Gradle heap=3 GiB, reviewed Kotlin 2.3.21 in-process.
+The configured test policy is one 512-MiB fail-fast fork; assembly ran no Gradle
+tests. Native implementation and its depth-one compile/link pools are unchanged
+from 782. No memory failure or heap increase. Log:
+`2f514a21c0a648c890ec37bdaa5cd2d0.log` in the shared gate log directory.
+Installed owner APK independently matches
+`772c317e3c97d2ce3f1960c50c7b1754751939ed0464dd9f4d2ef184936188a0`;
+signer and all ten preference-file digests survived installation unchanged.
+
+Actual normal UI workflow: Patapon's reviewed Drive edition -> root discovery of
+the configured `/storage/emulated/0/PSP/SAVEDATA` parent -> explicit association
+of the exclusively created `UCUS98711_RSHOP_S10_CLOUD` fixture -> Back up selected
+save -> Verified backup at 2026-10-12 14:21:10.123218, two members. PPSSPP was
+closed through its own Exit command, not force-stopped. Immutable publication
+performs full payload readback before publishing the manifest. After exact
+hash/member review, both fixture files and its folder were removed. Normal
+Restore verified cloud backup recreated the complete folder at the configured
+destination and reported "Cloud save restored and ready to use." Independent
+root reads of the restored files prove these bytes:
+
+- DATA.BIN: 110 bytes, SHA256
+  `edddadde7760cc2f783a013db7c6b8a53133763f96541dcba84d42e22f14ea0d`.
+- EMPTY.BIN: 0 bytes, SHA256
+  `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+The restored fixture and its explicit disabled-automatic association are retained
+only for the pending cold-association/cloud-discovery proof; its exact cleanup
+target is that two-member folder, not the SAVEDATA parent. Existing state fixture,
+ROMs, emulator configuration, other saves and legacy sync remain unchanged.
+Retained cloud generations are not pruned. The live restore proves cloud payload
+recovery with a missing local folder, not cloud discovery after a missing local
+association. That latter workflow remains live-unverified. The normal installed
+library's local-only rows also lack the cloud-backed save menu; investigate their
+identity/linkage as required S10 integration, without reopening full scraping.
+Remaining accessible emulator routes, acceptance fault/reconnect cases and the
+conditional legacy handover remain unfinished. S10 is the sole ACTIVE stage;
+S11 is NOT STARTED. No stage completion or release is claimed.
+The three reviewed host scratch files were deleted through cleanup transaction
+`38dd8a3162e67687163a5c58bc4631f6` (applied, no residual files). Exact remote UI
+dump/screenshot files were removed. Both physical displays report state OFF and
+committedState OFF; power is Asleep. The pre-existing Patapon state digest remains
+`ef64997dfb2f43e04d1c9b86416b98ab61b71c189f7c37026de7ce2db735cc53`.
+
 ### PSP save-folder UI, persisted association and root watch integration — 2026-10-12
 
 The normal game settings now distinguish in-game save folders from save states.

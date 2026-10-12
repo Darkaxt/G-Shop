@@ -218,6 +218,84 @@ class SaveBackupGameJob extends ChangeNotifier {
 
   Future<List<String>> reviewedNames() async => [await _reviewName()];
 
+  /// Recover the save-folder identity from verified cloud publications, even
+  /// when the emulator has not recreated a local save after reinstall.
+  static Future<List<String>> discoverPpssppSavedataFolders({
+    required Future<Database> database,
+    required DriveSaveBackupGenerationApi generations,
+    required String areaId,
+    required String editionId,
+    required RemoteArtifactId artifactId,
+    CancelToken? cancellation,
+  }) async {
+    final store = LibraryStore(database);
+    Future<String> reviewedGame() async {
+      if (cancellation?.isCancelled == true) throw cancellation!.cancelError!;
+      final edition = await store.edition(editionId);
+      final game = edition == null ? null : await store.game(edition.gameId);
+      if (artifactId.providerId != 'drive' ||
+          artifactId.accountId != generations.accountId ||
+          game?.platformId != 'psp' ||
+          !edition!.members.any((member) => member.artifactId == artifactId)) {
+        throw PlatformException(code: 'source_changed');
+      }
+      return game!.id;
+    }
+
+    final gameId = await reviewedGame();
+    final target = SaveBackupBinding(
+        accountId: generations.accountId,
+        deviceId: 'restore-discovery',
+        emulatorPackage: 'org.ppsspp.ppsspp',
+        emulatorVersion: 'v1.20.4',
+        coreId: 'ppsspp',
+        coreVersion: 'v1.20.4',
+        platformId: 'psp',
+        editions: [SaveBackupEdition(gameId: gameId, editionId: editionId)],
+        kind: SaveBackupKind.save,
+        formatId: 'ppsspp-savedata-v1');
+    final publications = await generations.discoverGenerations(
+        areaId: areaId, target: target, cancellation: cancellation);
+    if (await reviewedGame() != gameId) {
+      throw PlatformException(code: 'source_changed');
+    }
+    final names = <String>{};
+    for (final publication in publications) {
+      final binding = publication.binding;
+      if (binding.restoreIssue(target) != null ||
+          binding.emulatorPackage != target.emulatorPackage ||
+          binding.coreId != target.coreId ||
+          !{'v1.20.4', '1.20.4'}.contains(binding.emulatorVersion)) {
+        continue;
+      }
+      final folder = _savedataFolder(publication);
+      if (folder != null) names.add(folder);
+    }
+    if (cancellation?.isCancelled == true) throw cancellation!.cancelError!;
+    return List.unmodifiable(names.toList()..sort());
+  }
+
+  static String? _savedataFolder(SaveBackupManifest manifest) {
+    if (manifest.members.isEmpty ||
+        manifest.members.length > 128 ||
+        manifest.members.fold<int>(0, (sum, member) => sum + member.sizeBytes) >
+            512 * 1024 * 1024) {
+      return null;
+    }
+    String? folder;
+    for (final member in manifest.members) {
+      final parts = member.relativePath.split('/');
+      if (parts.length != 2 ||
+          !parts.every(SaveCapture.validPpssppSavedataMember) ||
+          member.sizeBytes > 512 * 1024 * 1024 ||
+          folder != null && folder != parts.first) {
+        return null;
+      }
+      folder = parts.first;
+    }
+    return folder;
+  }
+
   Future<void> _requireName(String name, {String? gameId}) async {
     if (await _reviewName(gameId: gameId) != name) {
       throw PlatformException(code: 'source_changed');
@@ -594,14 +672,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   String _contents(SaveBackupManifest manifest) {
     if (isPpssppSavedata) {
       if (!_bindingMatches(manifest.binding) ||
-          manifest.members.isEmpty ||
-          manifest.members.length > 128 ||
-          manifest.members.any((member) =>
-              _savedataLeaf(member.relativePath) == null ||
-              member.sizeBytes > 512 * 1024 * 1024) ||
-          manifest.members
-                  .fold<int>(0, (size, member) => size + member.sizeBytes) >
-              512 * 1024 * 1024) {
+          _savedataFolder(manifest) != _savedataName) {
         throw const FormatException('Invalid PPSSPP save folder');
       }
       final ordered = manifest.members.toList()
