@@ -377,6 +377,18 @@ Java_com_retro_rshop_OwnedStorageNative_retirePrivateFile(JNIEnv* env, jobject, 
     guardedVoid(env, [&] { owned::retirePrivateFile(dir, utf8(env, name), identityValue(env, expected)); });
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_retro_rshop_OwnedStorageNative_retireReviewedSaveMember(JNIEnv* env, jobject, jint dir, jstring name, jlongArray expected) {
+    // The root source boundary admits only an anchored, owned save stage after
+    // writer completion. Reuse the no-follow, exact-member unlink primitive.
+    guardedVoid(env, [&] { owned::retirePrivateFile(dir, utf8(env, name), identityValue(env, expected)); });
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_retro_rshop_OwnedStorageNative_retireSaveDirectory(JNIEnv* env, jobject, jint parent, jstring name, jlongArray expected) {
+    guardedVoid(env, [&] { owned::retireSaveDirectory(parent, utf8(env, name), identityValue(env, expected)); });
+}
+
 extern "C" JNIEXPORT jlongArray JNICALL
 Java_com_retro_rshop_OwnedStorageNative_replaceReviewedSave(JNIEnv* env, jobject, jint dir,
     jstring stage, jstring target, jlongArray staged, jlongArray current) {

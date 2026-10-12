@@ -195,6 +195,68 @@ class _Capture extends SaveCapture {
           restoreId: restoreId, rollbackCaptureId: rollbackCaptureId);
 }
 
+class _MemorySaveFile extends Fake implements File {
+  @override
+  final String path;
+  final List<int> bytes;
+  _MemorySaveFile(this.path, this.bytes);
+
+  @override
+  Stream<List<int>> openRead([int? start, int? end]) =>
+      Stream.value(bytes.sublist(start ?? 0, end));
+}
+
+class _SavedataCapture extends _Capture {
+  List<String> leaves = ['PARAM.SFO', 'CUSTOM.SAV', 'ICON0.PNG', 'EMPTY'];
+
+  @override
+  Future<CapturedSaveGroup> capturePpssppSavedata(
+      {required String captureId,
+      required String directory,
+      bool restoreBaseline = false}) async {
+    if (sealed[captureId] case final previous?) return previous;
+    captures++;
+    ppssppSources.add(directory);
+    return sealed[captureId] =
+        CapturedSaveGroup(captureId, 'device', 'v1.20.4', [
+      for (var index = 0; index < leaves.length; index++)
+        CapturedSaveFile(
+            leaves[index],
+            _MemorySaveFile('/private/$captureId/member-$index',
+                leaves[index] == 'EMPTY' ? [] : [1, 2, 3, 4]),
+            leaves[index] == 'EMPTY' ? 0 : 4,
+            leaves[index] == 'EMPTY'
+                ? 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+                : digest)
+    ]);
+  }
+
+  @override
+  Future<void> stagePpssppSavedataRestore(
+      {required String restoreId,
+      required String directory,
+      required List<RestoreSaveMember> members}) async {
+    for (final member in members) {
+      var size = 0;
+      await for (final bytes in member.bytes) {
+        size += bytes.length;
+      }
+      expect(size, member.size);
+    }
+    stagedGroups.add(members.map((member) => member.name).toList());
+    stagedDirectories.add(directory);
+    staged.add(restoreId);
+  }
+
+  @override
+  Future<void> publishRestoreGroup(
+      {required String restoreId, required String rollbackCaptureId}) async {
+    await super.publishRestoreGroup(
+        restoreId: restoreId, rollbackCaptureId: rollbackCaptureId);
+    leaves = stagedGroups.last.toList();
+  }
+}
+
 class _Areas extends DriveSaveBackupAreaApi {
   int reserved = 0;
   _Areas(DriveAuthorization auth)
@@ -328,7 +390,12 @@ class _Generations extends DriveSaveBackupGenerationApi {
         .single['record_json'] as String);
     expect(record['restore']['generationId'], generation.generationId);
     expect(record['restore']['rollbackId'], matches(RegExp(r'^[a-f0-9]{32}$')));
-    yield Uint8List.fromList([1, 2, 3, 4]);
+    if (generation.members
+            .singleWhere((m) => m.cloudFileId == memberId)
+            .sizeBytes !=
+        0) {
+      yield Uint8List.fromList([1, 2, 3, 4]);
+    }
     if (failDownload) {
       throw const SaveBackupGenerationException(
           SaveBackupGenerationIssue.digestMismatch);
@@ -1981,6 +2048,119 @@ void main() {
     expect(capture.melonSources, hasLength(2));
     expect(capture.batteryRoutes, isEmpty);
     expect(capture.ppssppSources, isEmpty);
+  });
+
+  test('PPSSPP save folder keeps complete membership and independent ancestry',
+      () async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'psp',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    final folderCapture = _SavedataCapture();
+    const directory = '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00';
+    SaveBackupGameJob folderJob() => SaveBackupGameJob(
+        database: Future.value(db),
+        capture: folderCapture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => 'ULUS10041DATA00',
+        ppssppSavedataDirectory: directory);
+    final psp = folderJob();
+    addTearDown(psp.dispose);
+    await psp.backup('ULUS10041DATA00');
+    expect(psp.issue, isNull);
+    final first = psp.lastVerified!;
+    expect(first.binding.kind, SaveBackupKind.save);
+    expect(first.binding.formatId, 'ppsspp-savedata-v1');
+    expect(first.members.map((member) => member.relativePath).toSet(),
+        {for (final leaf in folderCapture.leaves) 'ULUS10041DATA00/$leaf'});
+    expect(
+        first.members
+            .singleWhere((m) => m.relativePath.endsWith('/EMPTY'))
+            .sizeBytes,
+        0);
+    generations.cloud['another-folder'] = SaveBackupManifest(
+        generationId: 'another-folder',
+        binding: first.binding,
+        parentGenerationIds: const [],
+        createdAt: DateTime.utc(2026),
+        members: [
+          SaveBackupMember(
+              relativePath: 'ULUS10041DATA01/PARAM.SFO',
+              cloudFileId: 'another-folder-member',
+              sizeBytes: 4,
+              sha256: 'c' * 64)
+        ]);
+    folderCapture.digest = 'd' * 64;
+    await psp.backup('ULUS10041DATA00');
+    expect(psp.issue, isNull,
+        reason: 'A sibling PSP save folder has independent ancestry');
+    expect(psp.lastVerified!.parentGenerationIds, [first.generationId]);
+    final reloaded = folderJob();
+    addTearDown(reloaded.dispose);
+    await reloaded.load();
+    expect(reloaded.lastVerified!.generationId, psp.lastVerified!.generationId);
+    // Membership is part of the generation, not a reason to refuse the whole-
+    // folder replacement. Native publication compares the actual local baseline.
+    folderCapture.leaves = ['LOCAL.DAT'];
+    await reloaded.restoreLatest();
+    expect(reloaded.issue, isNull);
+    expect(reloaded.phase, 'restored');
+    expect(folderCapture.stagedGroups.single.toSet(),
+        {'PARAM.SFO', 'CUSTOM.SAV', 'ICON0.PNG', 'EMPTY'});
+    expect(folderCapture.stagedDirectories, [directory]);
+    expect(folderCapture.stagedNames, isEmpty,
+        reason: 'A PSP folder must never use the scalar state restore route');
+    expect(folderCapture.restored, hasLength(1));
+    expect(reloaded.rollbackAvailable, isTrue);
+    final downloads = generations.downloads;
+    await reloaded.rollbackLast();
+    expect(reloaded.issue, isNull);
+    expect(reloaded.phase, 'rolled_back');
+    expect(folderCapture.stagedGroups.last, ['LOCAL.DAT'],
+        reason:
+            'Rollback restores the retained local membership, not the cloud list');
+    expect(generations.downloads, downloads);
+  });
+
+  test('PPSSPP one-member save folder still uses whole-folder publication',
+      () async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'psp',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    final folderCapture = _SavedataCapture()..leaves = ['PARAM.SFO'];
+    final psp = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: folderCapture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => 'ULUS10041DATA00',
+        ppssppSavedataDirectory:
+            '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00');
+    addTearDown(psp.dispose);
+    await psp.backup('ULUS10041DATA00');
+    expect(psp.issue, isNull);
+    await psp.restoreLatest();
+    expect(psp.issue, isNull);
+    expect(psp.phase, 'restored');
+    expect(folderCapture.stagedGroups, [
+      ['PARAM.SFO']
+    ]);
+    expect(folderCapture.stagedNames, isEmpty);
+    expect(folderCapture.restored, hasLength(1));
   });
 
   test('PPSSPP slot uses reviewed state identity and survives reload',

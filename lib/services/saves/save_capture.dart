@@ -519,10 +519,49 @@ class SaveCapture {
             !RegExp(r'^[a-f0-9]{64}$').hasMatch(m.sha256))) {
       throw const FormatException('Invalid related save group');
     }
+    await _stageGroupRestore(
+        restoreId: restoreId, name: name, members: members);
+  }
+
+  Future<void> stagePpssppSavedataRestore(
+      {required String restoreId,
+      required String directory,
+      required List<RestoreSaveMember> members}) async {
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
+        !validPpssppSavedataDirectory(directory) ||
+        members.isEmpty ||
+        members.length > 128 ||
+        members.map((member) => member.name).toSet().length != members.length ||
+        members.any((member) =>
+            !validPpssppSavedataMember(member.name) ||
+            member.size < 0 ||
+            member.size > 512 * 1024 * 1024 ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(member.sha256) ||
+            (member.size == 0 &&
+                member.sha256 !=
+                    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')) ||
+        members.fold<int>(0, (size, member) => size + member.size) >
+            512 * 1024 * 1024) {
+      throw const FormatException('Invalid PPSSPP restore folder');
+    }
+    await _stageGroupRestore(
+        restoreId: restoreId,
+        name: directory.substring(directory.lastIndexOf('/') + 1),
+        members: members,
+        ppssppSavedataDirectory: directory);
+  }
+
+  Future<void> _stageGroupRestore(
+      {required String restoreId,
+      required String name,
+      required List<RestoreSaveMember> members,
+      String? ppssppSavedataDirectory}) async {
     final ordered = members.toList()..sort((a, b) => a.name.compareTo(b.name));
     await _channel.invokeMethod('beginRestoreGroup', {
       'captureId': restoreId,
       'name': name,
+      if (ppssppSavedataDirectory != null)
+        'ppssppSavedataDirectory': ppssppSavedataDirectory,
       'members': ordered
           .map((m) => {'name': m.name, 'size': m.size, 'sha256': m.sha256})
           .toList(),

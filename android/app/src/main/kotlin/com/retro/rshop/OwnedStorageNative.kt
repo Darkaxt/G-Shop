@@ -25,6 +25,8 @@ internal object OwnedStorageNative {
     external fun quarantineIntoPrivate(fromDir: Int, from: String, privateDir: Int, to: String, expected: LongArray): LongArray
     /** App-exclusive private stage entries only; never public installation paths. */
     external fun retirePrivateFile(dir: Int, name: String, expected: LongArray)
+    external fun retireReviewedSaveMember(dir: Int, name: String, expected: LongArray)
+    external fun retireSaveDirectory(parent: Int, name: String, expected: LongArray)
     external fun close(fd: Int)
     /** Kernel-confirmed directory registration and EOF-driven watch shutdown. */
     external fun saveWatchOpen(directory: Int): Int

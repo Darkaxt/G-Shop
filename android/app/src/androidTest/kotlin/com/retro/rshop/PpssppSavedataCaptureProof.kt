@@ -4,9 +4,12 @@ import android.content.Context
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Exclusive mock save-folder bytes. Never touches a real Memory Stick, ROM,
  * emulator setting or Drive object. Save-content loading is not an acceptance gate. */
@@ -36,6 +39,7 @@ internal object PpssppSavedataCaptureProof {
         fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
         val captures = mutableListOf<String>()
+        val restores = mutableSetOf<String>()
         val stagedGroups = mutableMapOf<String, Set<String>>()
         val additionalGroups = mutableMapOf<String, Set<String>>()
         var service = SaveCaptureService(context)
@@ -195,11 +199,144 @@ internal object PpssppSavedataCaptureProof {
                     verify("ULUS00000MISSING", replacement)
                 } finally { storage.closeFile(first) }
             }
+
+            // The same channel used by cloud restore must preserve the complete
+            // group across service recreation, not just expose a rename primitive.
+            fun stageRestore(target: String, bytes: Map<String, ByteArray>): String {
+                val restore = id().also(restores::add)
+                stagedGroups[".rshop-save-group-$restore"] = data.keys + bytes.keys
+                val ordered = bytes.toSortedMap()
+                for (index in ordered.keys.indices)
+                    restores.add(digest("$restore/$index".toByteArray()).take(32))
+                call("beginRestoreGroup", mapOf("captureId" to restore, "name" to target.substringAfterLast('/'),
+                    "ppssppSavedataDirectory" to target, "members" to ordered.map { (leaf, payload) ->
+                        mapOf("name" to leaf, "size" to payload.size.toLong(), "sha256" to digest(payload)) }))
+                for ((index, payload) in ordered.values.withIndex()) {
+                    var offset = 0
+                    while (offset < payload.size) {
+                        val end = minOf(offset + 65536, payload.size)
+                        check(call("appendRestoreGroup", mapOf("captureId" to restore, "member" to index,
+                            "offset" to offset.toLong(), "bytes" to payload.copyOfRange(offset, end))) == end.toLong())
+                        offset = end
+                    }
+                }
+                call("sealRestoreGroup", mapOf("captureId" to restore))
+                return restore
+            }
+            fun verifyFolder(target: String, bytes: Map<String, ByteArray>) {
+                SaveSourceStorage.open(context, target).use { storage ->
+                    check(storage.names() == bytes.keys.sorted())
+                    for ((leaf, payload) in bytes) {
+                        val file = storage.openFile(leaf, false, false)
+                        try {
+                            check(storage.identity(file)[2] == payload.size.toLong())
+                            val observed = MessageDigest.getInstance("SHA-256")
+                            var offset = 0L
+                            while (offset < payload.size) {
+                                val chunk = storage.read(file, offset, minOf(65536L, payload.size - offset).toInt())
+                                check(chunk.isNotEmpty()); observed.update(chunk); offset += chunk.size
+                            }
+                            check(observed.digest().contentEquals(MessageDigest.getInstance("SHA-256").digest(payload)))
+                        } finally { storage.closeFile(file) }
+                    }
+                }
+            }
+            val nextBytes = linkedMapOf("PARAM.SFO" to byteArrayOf(19, 20), "NEW.DAT" to byteArrayOf())
+            val restore = stageRestore(source, nextBytes)
+            close(); service = SaveCaptureService(context)
+            call("publishRestoreGroup", mapOf("captureId" to restore, "rollbackCaptureId" to captureId))
+            verifyFolder(source, nextBytes)
+            close(); service = SaveCaptureService(context)
+            call("publishRestoreGroup", mapOf("captureId" to restore, "rollbackCaptureId" to captureId))
+            verifyFolder(source, nextBytes)
+            val newBaseline = capture(id().also(captures::add))
+            val undo = stageRestore(source, data)
+            call("publishRestoreGroup", mapOf("captureId" to undo, "rollbackCaptureId" to newBaseline["captureId"]!!))
+            verifyFolder(source, data)
+            shell("test -z \"\$(find '$fixture/PSP/SAVEDATA' -maxdepth 1 -name '.rshop-save-group-$restore' -print)\"")
+
+            val changedBaseline = capture(id().also(captures::add))
+            val rejected = stageRestore(source, nextBytes)
+            val changed = data.toMutableMap().also { it["PARAM.SFO"] = ByteArray(31) { 99 } }
+            shell("/system/bin/cat > '$backing/PARAM.SFO'", changed["PARAM.SFO"])
+            call("publishRestoreGroup", mapOf("captureId" to rejected, "rollbackCaptureId" to changedBaseline["captureId"]!!), "source_changed")
+            verifyFolder(source, changed)
+            shell("/system/bin/cat > '$backing/PARAM.SFO'", data["PARAM.SFO"])
+
+            val firstTarget = "${source.substringBeforeLast('/')}/ULUS00000JOURNAL"
+            @Suppress("UNCHECKED_CAST")
+            val firstBaseline = call("capturePpssppSavedata", mapOf("captureId" to id().also(captures::add),
+                "directory" to firstTarget, "restoreBaseline" to true)) as Map<String, Any>
+            val firstRestore = stageRestore(firstTarget, nextBytes)
+            additionalGroups[firstTarget.substringAfterLast('/')] = nextBytes.keys
+            close(); service = SaveCaptureService(context)
+            call("publishRestoreGroup", mapOf("captureId" to firstRestore, "rollbackCaptureId" to firstBaseline["captureId"]!!))
+            verifyFolder(firstTarget, nextBytes)
+
+            fun journal(restoreId: String, values: JSONObject) {
+                val file = File(context.filesDir.canonicalFile, "save-restores/$restoreId/group.json")
+                FileOutputStream(file).use { it.write(values.toString().toByteArray()); it.fd.sync() }
+                val parent = OwnedStorageNative.openRoot(file.parentFile!!.absolutePath)
+                try { OwnedStorageNative.sync(parent) } finally { OwnedStorageNative.close(parent) }
+            }
+            val recoveryBaseline = capture(id().also(captures::add))
+            val recovery = stageRestore(source, nextBytes)
+            val recoveryStage = ".rshop-save-group-$recovery"
+            val recoveryRecord = JSONObject(File(context.filesDir.canonicalFile, "save-restores/$recovery/group.json").readText())
+                .put("rollbackId", recoveryBaseline["captureId"]!!)
+            SaveSourceStorage.open(context, source.substringBeforeLast('/')).use { storage ->
+                val current = storage.openSaveGroup(source.substringAfterLast('/'))
+                val currentIdentity = try { storage.identity(current) } finally { storage.closeFile(current) }
+                val next = storage.openSaveGroup(recoveryStage, createExclusive = true)
+                try {
+                    for ((leaf, payload) in nextBytes) {
+                        val file = storage.openSaveGroupFile(next, leaf, true, true)
+                        try {
+                            if (payload.isNotEmpty()) storage.write(file, 0, payload)
+                            storage.sync(file)
+                        } finally { storage.closeFile(file) }
+                    }
+                    storage.sync(next)
+                    val staged = storage.identity(next)
+                    journal(recovery, recoveryRecord.put("parent", JSONArray(storage.identity(storage.root).take(2)))
+                        .put("current", JSONArray(currentIdentity.toList())).put("stageAnchor", JSONArray(staged.toList()))
+                        .put("staged", JSONArray(staged.toList())).put("phase", "publishing"))
+                    storage.publishSaveGroup(recoveryStage, source.substringAfterLast('/'), staged, currentIdentity, version)
+                    // No journal receipt: actual namespace commit preceded process loss.
+                } finally { storage.closeFile(next) }
+            }
+            close(); service = SaveCaptureService(context)
+            call("publishRestoreGroup", mapOf("captureId" to recovery, "rollbackCaptureId" to recoveryBaseline["captureId"]!!))
+            verifyFolder(source, nextBytes)
+            check(JSONObject(File(context.filesDir.canonicalFile, "save-restores/$recovery/group.json").readText()).getString("phase") == "published")
+
+            val allocatedBaseline = capture(id().also(captures::add))
+            val allocated = stageRestore(source, data)
+            val allocatedRecord = JSONObject(File(context.filesDir.canonicalFile, "save-restores/$allocated/group.json").readText())
+                .put("rollbackId", allocatedBaseline["captureId"]!!).put("phase", "staging")
+            SaveSourceStorage.open(context, source.substringBeforeLast('/')).use { storage ->
+                journal(allocated, allocatedRecord.put("parent", JSONArray(storage.identity(storage.root).take(2))))
+                val empty = storage.openSaveGroup(".rshop-save-group-$allocated", createExclusive = true)
+                storage.closeFile(empty) // No inode receipt: recover only this exact empty allocation.
+            }
+            close(); service = SaveCaptureService(context)
+            call("publishRestoreGroup", mapOf("captureId" to allocated, "rollbackCaptureId" to allocatedBaseline["captureId"]!!))
+            verifyFolder(source, data)
+            for (restored in listOf(restore, undo, firstRestore, recovery, allocated))
+                shell("test ! -e '$fixture/PSP/SAVEDATA/.rshop-save-group-$restored'")
         } finally {
             try {
                 for (capture in captures) call("retireCapture", mapOf("captureId" to capture))
             } finally {
                 close()
+                for (restore in restores) {
+                    val directory = File(context.filesDir.canonicalFile, "save-restores/$restore")
+                    if (directory.exists()) {
+                        val entries = directory.listFiles()!!
+                        check(entries.all { it.isFile && it.name in setOf("member", "restore.json", "restore.json.next", "group.json", "group.json.next") })
+                        entries.forEach { check(it.delete()) }; check(directory.delete())
+                    }
+                }
                 for ((stage, members) in stagedGroups) {
                     check(PpssppSavedataBoundary.validStage(stage))
                     for (member in members) shell("if [ -f '$fixture/PSP/SAVEDATA/$stage/$member' ]; then rm '$fixture/PSP/SAVEDATA/$stage/$member'; fi")
@@ -210,10 +347,10 @@ internal object PpssppSavedataCaptureProof {
                     for (member in members) shell("if [ -f '$fixture/PSP/SAVEDATA/$group/$member' ]; then rm '$fixture/PSP/SAVEDATA/$group/$member'; fi")
                     shell("if [ -d '$fixture/PSP/SAVEDATA/$group' ]; then rmdir '$fixture/PSP/SAVEDATA/$group'; fi")
                 }
-                for (name in data.keys) shell("rm '$backing/$name'")
+                for (name in data.keys + "NEW.DAT") shell("if [ -f '$backing/$name' ]; then rm '$backing/$name'; fi")
                 shell("rmdir '$backing' && rmdir '$fixture/PSP/SAVEDATA' && rmdir '$fixture/PSP' && rmdir '$fixture'")
             }
         }
-        return "PASS complete protected PPSSPP SAVEDATA folder: streamed capture including empty companion, mutation/runtime checks, absent-folder baseline and recreated-service replay; root-backed atomic membership-changing publication, changed-baseline refusal and complete rollback; first-folder publication and existing-folder refusal; exact fixture/capture retirement; no real save/ROM/settings/Drive mutation"
+        return "PASS complete protected PPSSPP SAVEDATA capture and journaled restore: streamed empty companions; mutation/runtime refusal; recreated-service publication/replay and rollback; changed-local refusal; first-folder restore; recovery after actual atomic commit without receipt and empty allocation without inode receipt; exact exchanged-stage/fixture/capture retirement; no real save/ROM/settings/Drive mutation"
     }
 }

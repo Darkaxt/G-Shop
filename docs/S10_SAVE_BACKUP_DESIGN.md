@@ -1261,11 +1261,29 @@ are OFF. Request 765 passed focused native checks and assembly through the share
 gate with the observed two-worker/no-parallel/3-GiB profile, Kotlin in-process,
 one 512-MiB test fork and app native pool depth one. No memory failure.
 
-The capture/publication backend is verified, not normal-UI delivery. Journaled group restore,
-publication recovery and retirement, group-bound cloud
-ancestry, normal UI and watching remain required S10 work; do not advertise full
-SAVEDATA support from native capture alone. Stage evidence lives in
+The capture/publication backend and journaled restore/recovery/retirement now
+pass actual Thor verification on preserving build 779. The Dart game-job route
+also passes focused component checks for folder-bound cloud ancestry, empty
+companions, membership-changing restore and retained rollback. Normal UI,
+persisted automatic associations, complete-folder watching and an actual Drive
+round trip remain required S10 work; do not advertise normal SAVEDATA delivery
+from those component/native proofs. Stage evidence lives in
 IMPLEMENTATION_STATUS.md.
+
+Journal integration in active S10 reuses `group.json` and the existing streamed
+child restore journals. Bind each child to its exact group, format, source,
+member name, size and digest; a PSP member cannot enter scalar publication.
+Seal the complete replacement before touching its destination. Persist the
+allocation intent before creating an exclusive save-only stage, then seal its
+inode anchor before writing members. An interrupted allocation with no anchor
+may recover only the exact intent's empty stage, never an arbitrary nonempty
+folder. Resume anchored members only after matching their downloaded prefixes.
+Persist the complete staged/current identities and rollback binding before one
+atomic directory publication. Recovery recognizes the exact staged inode and
+complete verified new membership at the target, never equal bytes in an
+unrelated replacement inode. Record durability before retiring the exchanged
+old stage; the independent private capture remains the rollback source.
+Retirement reviews every remaining old member and refuses unknown entries.
 
 Primary references: [Android stopped-package flag](https://developer.android.com/reference/android/content/pm/ApplicationInfo#FLAG_STOPPED),
 [PPSSPP 1.20.4 slot publication](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/SaveState.cpp).

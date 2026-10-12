@@ -61,6 +61,63 @@ void main() {
     expect(SaveCapture.validPpssppDirectory(directory), false);
   });
 
+  test('stages a whole save folder, including an empty companion', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'appendRestoreGroup') {
+        final row = call.arguments as Map;
+        return (row['offset'] as int) + (row['bytes'] as Uint8List).length;
+      }
+      return null;
+    });
+    await SaveCapture().stagePpssppSavedataRestore(
+        restoreId: 'c' * 32,
+        directory: directory,
+        members: [
+          RestoreSaveMember(
+              'PARAM.SFO', 65537, 'a' * 64, Stream.value(Uint8List(65537))),
+          RestoreSaveMember(
+              'EMPTY',
+              0,
+              'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+              const Stream.empty()),
+        ]);
+    expect(calls.map((call) => call.method), [
+      'beginRestoreGroup',
+      'appendRestoreGroup',
+      'appendRestoreGroup',
+      'sealRestoreGroup',
+    ]);
+    expect(calls.first.arguments['ppssppSavedataDirectory'], directory);
+    expect(calls.first.arguments['name'], 'ULUS10001DATA00');
+    expect(calls.first.arguments['members'][0]['name'], 'EMPTY');
+    expect(calls[1].arguments['member'], 1);
+    expect((calls[1].arguments['bytes'] as Uint8List).length, 65536);
+    expect(calls[2].arguments['offset'], 65536);
+  });
+
+  test('transport failure at empty-member EOF cannot seal a restore', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return null;
+    });
+    await expectLater(
+        SaveCapture().stagePpssppSavedataRestore(
+            restoreId: 'c' * 32,
+            directory: directory,
+            members: [
+              RestoreSaveMember(
+                  'EMPTY',
+                  0,
+                  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+                  Stream.error(const FormatException('revision changed'))),
+            ]),
+        throwsFormatException);
+    expect(calls.map((call) => call.method), ['beginRestoreGroup']);
+  });
+
   test('rejects partial or unsafe complete-folder receipts', () async {
     for (final bad in [
       [],

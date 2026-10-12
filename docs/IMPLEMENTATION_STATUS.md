@@ -5,6 +5,59 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Complete PSP save-folder journal and game-job integration verified — 2026-10-12
+
+The actual Thor regression reproduced the missing normal restore route:
+`beginRestoreGroup: invalid_restore`. Test-only assembly request 771
+(`72e4bfa118df43509ebe01bff8e8c919`) completed successfully through the shared
+gate; the installed owner stayed at the verified backend while the new test
+exercised its real channel. No gameplay or emulator-load check was added.
+
+The implementation now connects complete PSP folders to the existing grouped
+restore journal and streamed child payloads. It includes source/format/member
+binding, empty companions, one atomic folder publication, durable intent/inode
+recovery, a retained private rollback and exact exchanged-stage retirement.
+The Thor fixture now covers real channel restore/replay/rollback, changed-local
+refusal, first-folder restore, actual commit without receipt, and interrupted
+empty allocation. These native checks passed on the actual Thor. The existing
+mGBA group proof also passed, including interrupted restore, recreated-service
+recovery and retained rollback. Its CONTENTLESS handshake resumed after waking
+the sleeping device; no arbitrary timeout or emulator termination was added.
+
+Original green/native request 779 (`60d3798e66e34a98a1dcafec89c11c9e`), command
+session 83619, completed successfully with confirmed completion before gate
+release. The supervisor recorded acquisition of
+`Local\Darka.AndroidGradleBuildGate`, workers=2, parallel=false and Gradle heap
+3 GiB. Reviewed Kotlin 2.3.21 uses in-process compilation; the focused native
+tests use one 512-MiB fail-fast fork. Generated native compile/link pools have
+depth one on all three ABIs. No memory failure or heap increase. Log:
+`f33334f7b6e24e89926c3c9402687c4b.log` in the shared gate log directory.
+Focused native storage/boundary results and owner/test assembly passed.
+
+Preserving owner/test installation succeeded; installed APK digests match the
+built owner `b9f6f5235192313e216fa1c2d6b2877983775bbeb579f4d687d7651257eae582`
+and test `b9773c302116a92708cff1695c9bebf3d3ffeaba07280c493c5df8a6af0a9fb9`.
+The owner signer and all ten preference digests remained unchanged. Independent
+checks found no owned PSP/mGBA fixture directories or source root worker. Both
+actual and committed displays are OFF; the device is asleep. Native fixtures
+changed no real save, ROM, setting or Drive object.
+
+The normal cloud game-job API now has a separate `ppssppSavedataDirectory`
+route. It records folder-qualified member paths, independent folder ancestry,
+the portable-save format and complete membership; even a single-member folder
+uses grouped publication. Rollback uses the retained local group's actual
+membership rather than the cloud group's names. Focused game-job, whole-folder
+capture and existing scalar/mGBA channel tests pass; scoped analysis is clean.
+The initial missing-constructor diagnostics were static evidence only, not a
+behavioral RED result. Native sources did not change while request 779 ran;
+production Dart integration was finished before its build began.
+
+Normal UI, persisted automatic associations, complete-folder/parent replacement
+watching and an actual Drive round trip (including a zero-byte companion) remain
+ordinary unfinished S10 integration work. Component tests/native fixtures do not
+prove that workflow. S10 is the sole ACTIVE stage; S11 is NOT STARTED. No stage
+completion, release or legacy-sync handover is claimed.
+
 ### Complete PPSSPP SAVEDATA capture and publication backend verified — 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 is NOT STARTED. The working tree now

@@ -58,5 +58,8 @@ Identity quarantineIntoPrivate(int fromDir, const std::string& from, int private
 // Never use for public installation paths. An absent entry is an idempotent
 // replay; both deletion and replay sync the pinned parent before returning.
 void retirePrivateFile(int dir, const std::string& name, const Identity& expected);
+// Reviewed save-only stage, after its complete rollback capture is durable.
+// Requires the same pinned directory inode and an empty stage; never recursive.
+void retireSaveDirectory(int parent, const std::string& name, const Identity& expected);
 void close(int fd);
 }  // namespace rshop::owned

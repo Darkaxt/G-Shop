@@ -375,6 +375,25 @@ void retirePrivateFile(int dir, const std::string& name, const Identity& expecte
     flush(dir);
 }
 
+void retireSaveDirectory(int parent, const std::string& name, const Identity& expected) {
+    basename(name);
+    directory(parent);
+    if (name.rfind(".rshop-save-group-", 0) != 0) fail(EINVAL);
+    try {
+        Descriptor child(openAt(parent, name, kDirectoryFlags));
+        const auto actual = identity(child.get());
+        // Reviewed member unlinks change directory size/mtime, not ownership.
+        if (actual.device != expected.device || actual.inode != expected.inode) fail(ESTALE);
+    } catch (const std::system_error& error) {
+        if (error.code().value() != ENOENT) throw;
+        flush(parent);
+        return;
+    }
+    // ENOTEMPTY preserves any unexpected entry rather than recursively deleting.
+    if (::unlinkat(parent, name.c_str(), AT_REMOVEDIR) < 0 && errno != ENOENT) fail(errno);
+    flush(parent);
+}
+
 void close(int fd) {
     // Never retry close after EINTR: the descriptor may already have been reused.
     if (::close(fd) < 0) fail(errno);

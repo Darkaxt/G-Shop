@@ -32,6 +32,14 @@ evidence; custom or ambiguous paths remain configurable. This extends the active
 SAVE-01 implementation, not another stage. Preserve coherent snapshots, game/state
 compatibility, both conflict versions and the save-only transfer boundary.
 
+PSP folder journal/game-job checkpoint, 2026-10-12: gated request 779,
+preserving installation and actual Thor normal-channel restore/replay/rollback,
+first-folder publication, lost commit receipt and interrupted allocation pass.
+Existing mGBA grouped restore/recovery also passes. Focused Dart job checks cover
+complete membership, empty companions, folder-specific ancestry and retained
+membership-changing rollback. Normal UI, automatic mapping/watch and actual Drive
+round trip remain unfinished S10 work. The checkpoint does not close S10.
+
 Protected PPSSPP state IO/watch slice, 2026-10-12: gated build 740, preserving
 installation and actual Thor app-UID/root listing, streamed capture/digest,
 publication watching, joined shutdown, recreated-service restore, changed-local

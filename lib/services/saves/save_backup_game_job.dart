@@ -35,6 +35,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   // Explicitly reviewed mapping, never inferred from a game title. One slot is
   // one state stream; another directory/slot must have a separate durable job.
   final String? ppssppDirectory, ppssppSlot;
+  final String? ppssppSavedataDirectory;
   final String? melonDirectory, melonName;
   final RetroArchBatteryRoute retroArchRoute;
   Map<String, dynamic>? _record;
@@ -58,6 +59,7 @@ class SaveBackupGameJob extends ChangeNotifier {
       SaveOperationAdmission? admission,
       this.ppssppDirectory,
       this.ppssppSlot,
+      this.ppssppSavedataDirectory,
       this.melonDirectory,
       this.melonName,
       this.retroArchRoute = RetroArchBatteryRoute.mgba})
@@ -69,7 +71,11 @@ class SaveBackupGameJob extends ChangeNotifier {
     }
     if ((isPpsspp && retroArchRoute != RetroArchBatteryRoute.mgba) ||
         (ppssppDirectory == null) != (ppssppSlot == null) ||
-        (isPpsspp &&
+        (isPpssppState && isPpssppSavedata) ||
+        (isPpssppSavedata &&
+            !SaveCapture.validPpssppSavedataDirectory(
+                ppssppSavedataDirectory!)) ||
+        (isPpssppState &&
             (!SaveCapture.validPpssppDirectory(ppssppDirectory!) ||
                 !SaveCapture.validPpssppName(ppssppSlot!)))) {
       throw ArgumentError('Invalid PPSSPP mapping');
@@ -84,7 +90,9 @@ class SaveBackupGameJob extends ChangeNotifier {
     }
   }
 
-  bool get isPpsspp => ppssppDirectory != null;
+  bool get isPpssppState => ppssppDirectory != null;
+  bool get isPpssppSavedata => ppssppSavedataDirectory != null;
+  bool get isPpsspp => isPpssppState || isPpssppSavedata;
   bool get isMelon => melonDirectory != null;
   bool get isStandalone => isPpsspp || isMelon;
   String get emulatorLabel => isMelon
@@ -116,16 +124,21 @@ class SaveBackupGameJob extends ChangeNotifier {
           : retroArchRoute.coreId;
   String get _format => isMelon
       ? 'melondualds-sram-v1'
-      : isPpsspp
-          ? 'ppsspp-slot-v1'
-          : retroArchRoute.formatId;
+      : isPpssppSavedata
+          ? 'ppsspp-savedata-v1'
+          : isPpsspp
+              ? 'ppsspp-slot-v1'
+              : retroArchRoute.formatId;
   SaveBackupKind get _kind =>
-      isPpsspp ? SaveBackupKind.state : SaveBackupKind.save;
+      isPpssppState ? SaveBackupKind.state : SaveBackupKind.save;
+  String get _savedataName => ppssppSavedataDirectory!.split('/').last;
   bool _validName(String name) => isMelon
       ? name == melonName && SaveCapture.validMelonName(name)
-      : isPpsspp
-          ? name == ppssppSlot && SaveCapture.validPpssppName(name)
-          : SaveCapture.validName(name);
+      : isPpssppSavedata
+          ? name == _savedataName
+          : isPpsspp
+              ? name == ppssppSlot && SaveCapture.validPpssppName(name)
+              : SaveCapture.validName(name);
   bool _bindingMatches(SaveBackupBinding binding) =>
       binding.accountId == accountId &&
       binding.platformId == _platform &&
@@ -146,17 +159,22 @@ class SaveBackupGameJob extends ChangeNotifier {
               directory: melonDirectory!,
               name: name,
               restoreBaseline: restoreBaseline)
-          : isPpsspp
-              ? capture.capturePpsspp(
+          : isPpssppSavedata
+              ? capture.capturePpssppSavedata(
                   captureId: id,
-                  directory: ppssppDirectory!,
-                  name: name,
+                  directory: ppssppSavedataDirectory!,
                   restoreBaseline: restoreBaseline)
-              : capture.captureRetroArch(
-                  captureId: id,
-                  name: name,
-                  route: retroArchRoute,
-                  restoreBaseline: restoreBaseline);
+              : isPpsspp
+                  ? capture.capturePpsspp(
+                      captureId: id,
+                      directory: ppssppDirectory!,
+                      name: name,
+                      restoreBaseline: restoreBaseline)
+                  : capture.captureRetroArch(
+                      captureId: id,
+                      name: name,
+                      route: retroArchRoute,
+                      restoreBaseline: restoreBaseline);
 
   String get _key => sha256
       .convert(utf8.encode(jsonEncode([
@@ -168,6 +186,10 @@ class SaveBackupGameJob extends ChangeNotifier {
           _format,
           melonDirectory,
           melonName
+        ] else if (isPpssppSavedata) ...[
+          _format,
+          ppssppSavedataDirectory,
+          _savedataName
         ] else if (isPpsspp) ...[
           _format,
           ppssppDirectory,
@@ -523,7 +545,16 @@ class SaveBackupGameJob extends ChangeNotifier {
     // PPSSPP slots are independent state streams within one game/edition.
     // Transport compatibility covers emulator/format; exact member selection
     // supplies slot identity without borrowing ancestry from another slot.
-    return isPpsspp
+    if (isPpssppSavedata) {
+      return compatible
+          .where((item) =>
+              _bindingMatches(item.binding) &&
+              item.members.isNotEmpty &&
+              item.members.every(
+                  (member) => _savedataLeaf(member.relativePath) != null))
+          .toList();
+    }
+    return isPpssppState
         ? compatible
             .where((item) =>
                 item.members.length == 1 &&
@@ -561,6 +592,25 @@ class SaveBackupGameJob extends ChangeNotifier {
   /// make identical logical save bytes diverge. Do not generalize this to other
   /// formats, whose directory/member names may carry actual game-save meaning.
   String _contents(SaveBackupManifest manifest) {
+    if (isPpssppSavedata) {
+      if (!_bindingMatches(manifest.binding) ||
+          manifest.members.isEmpty ||
+          manifest.members.length > 128 ||
+          manifest.members.any((member) =>
+              _savedataLeaf(member.relativePath) == null ||
+              member.sizeBytes > 512 * 1024 * 1024) ||
+          manifest.members
+                  .fold<int>(0, (size, member) => size + member.sizeBytes) >
+              512 * 1024 * 1024) {
+        throw const FormatException('Invalid PPSSPP save folder');
+      }
+      final ordered = manifest.members.toList()
+        ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
+      return jsonEncode([
+        for (final member in ordered)
+          [member.relativePath, member.sizeBytes, member.sha256]
+      ]);
+    }
     if (isMelon) {
       if (!_bindingMatches(manifest.binding) ||
           manifest.members.length != 1 ||
@@ -604,6 +654,13 @@ class SaveBackupGameJob extends ChangeNotifier {
       roles.add(['rtc', member.sizeBytes, member.sha256]);
     }
     return jsonEncode(roles);
+  }
+
+  String? _savedataLeaf(String path) {
+    final prefix = '$_savedataName/';
+    if (!path.startsWith(prefix)) return null;
+    final leaf = path.substring(prefix.length);
+    return SaveCapture.validPpssppSavedataMember(leaf) ? leaf : null;
   }
 
   Future<void> _backup(String name,
@@ -795,7 +852,9 @@ class SaveBackupGameJob extends ChangeNotifier {
             _check(cancellation);
             final id = await areas.reserveAreaId(cancellation: cancellation);
             members.add(SaveBackupMember(
-                relativePath: file.name,
+                relativePath: isPpssppSavedata
+                    ? '$_savedataName/${file.name}'
+                    : file.name,
                 cloudFileId: id,
                 sizeBytes: file.size,
                 sha256: file.sha256));
@@ -1212,7 +1271,8 @@ class SaveBackupGameJob extends ChangeNotifier {
           final local =
               await _capture(rollbackId, name, restoreBaseline: !rollback);
           _check(cancellation);
-          if (!(local.localWasAbsent && local.files.isEmpty && !rollback) &&
+          if (!isPpssppSavedata &&
+              !(local.localWasAbsent && local.files.isEmpty && !rollback) &&
               (local.files.length != selected.members.length ||
                   !local.files.any((file) => file.name == name))) {
             _issue = 'related_group_changed';
@@ -1248,14 +1308,42 @@ class SaveBackupGameJob extends ChangeNotifier {
             _captureId = restore['sourceCaptureId'] as String;
             final group = await _capture(_captureId!, name);
             _check(cancellation);
-            if (group.files.length != selected.members.length ||
-                !group.files.any((file) => file.name == name)) {
+            if (!isPpssppSavedata &&
+                (group.files.length != selected.members.length ||
+                    !group.files.any((file) => file.name == name))) {
               throw const FormatException('Changed retained rollback group');
             }
             retained = group;
             _captureId = restoreId;
           }
-          if (cloud.members.length > 1) {
+          if (isPpssppSavedata) {
+            final members = retained != null
+                ? retained.files
+                    .map((file) => RestoreSaveMember(
+                        file.name,
+                        file.size,
+                        file.sha256,
+                        file.file.openRead().map((chunk) {
+                          _check(cancellation);
+                          return Uint8List.fromList(chunk);
+                        })))
+                    .toList()
+                : cloud.members
+                    .map((member) => RestoreSaveMember(
+                        _savedataLeaf(member.relativePath)!,
+                        member.sizeBytes,
+                        member.sha256,
+                        generations.memberBytes(
+                            areaId: areaId,
+                            generation: cloud,
+                            memberId: member.cloudFileId,
+                            cancellation: cancellation)))
+                    .toList();
+            await capture.stagePpssppSavedataRestore(
+                restoreId: restoreId,
+                directory: ppssppSavedataDirectory!,
+                members: members);
+          } else if (cloud.members.length > 1) {
             final members = cloud.members.map((member) {
               final target = member.relativePath.endsWith('.srm')
                   ? name
@@ -1325,15 +1413,16 @@ class SaveBackupGameJob extends ChangeNotifier {
             return;
           }
         }
-        if (selected.members.length > 1) {
+        if (isPpssppSavedata || selected.members.length > 1) {
           await capture.publishRestoreGroup(
               restoreId: restoreId, rollbackCaptureId: rollbackId);
         } else {
           await capture.publishRestore(
               restoreId: restoreId, rollbackCaptureId: rollbackId);
         }
-        // Native acknowledges after every per-file commit and durable receipt.
-        // A related group is recoverable, not a single filesystem operation.
+        // Native acknowledges only after completed publication and a durable
+        // receipt. PSP folders use one namespace exchange; legacy related
+        // cartridge files retain their existing recoverable group journal.
         // Cancellation after that receipt must not discard the completed result.
         await _persist({
           ...record,

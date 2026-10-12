@@ -43,9 +43,9 @@ internal class SaveCaptureService(private val activity: Context) {
             return restores.listFiles().orEmpty().any { directory ->
                 val journal = File(directory, "group.json")
                 if (!journal.exists()) false else {
-                    require(journal.canonicalFile == journal.absoluteFile && journal.isFile && journal.length() in 1..16384)
+                    require(journal.canonicalFile == journal.absoluteFile && journal.isFile && journal.length() in 1..131072)
                     val record = JSONObject(journal.readText())
-                    record.getString("name") == name && record.getString("phase") == "publishing"
+                    record.getString("name") == name && record.getString("phase") in setOf("staging", "publishing", "retiring")
                 }
             }
         }
@@ -326,6 +326,7 @@ internal class SaveCaptureService(private val activity: Context) {
             else if (ppssppDirectory != null) PpssppSaveBoundary.MAX_STATE_BYTES
             else if (retroArchRoute != "gba") 65536L else 16L * 1024 * 1024
         val absent = record.optBoolean("localWasAbsent")
+        if (savedata && record.optJSONArray("sourceIdentity")?.length() != 2) throw Failure("invalid_capture")
         if (absent && (!restoreBaseline || members.length() != 0 ||
                 record.optJSONArray("sourceIdentity")?.length() != 2)) throw Failure("invalid_capture")
         if (!absent && members.length() !in 1..maxMembers) throw Failure("invalid_capture")
@@ -362,7 +363,7 @@ internal class SaveCaptureService(private val activity: Context) {
         return mapOf("captureId" to directory.name, "deviceId" to record.getString("deviceId"),
             "emulatorVersion" to record.getString("emulatorVersion"), "files" to output,
             "localWasAbsent" to absent,
-            "sourceIdentity" to if (absent) (0..1).map { record.getJSONArray("sourceIdentity").getLong(it) } else emptyList<Long>()).let {
+            "sourceIdentity" to if (absent || savedata) (0..1).map { record.getJSONArray("sourceIdentity").getLong(it) } else emptyList<Long>()).let {
                 if (savedata) it + ("savedataGroupPresent" to record.optBoolean("savedataGroupPresent", true)) else it
             }
     }
@@ -604,7 +605,7 @@ internal class SaveCaptureService(private val activity: Context) {
                         if (!same(before, storage.identity(fd)) || !same(before, storage.entryIdentity(member)))
                             throw Failure("source_changed")
                         identities.add(before)
-                        members.put(JSONObject().put("name", member).put("size", before[2])
+                        members.put(JSONObject().put("name", member).put("size", before[2]).put("identity", JSONArray(before.toList()))
                             .put("sha256", digest.digest().joinToString("") { "%02x".format(it) }))
                     } finally { storage.closeFile(fd) }
                 }
@@ -619,7 +620,7 @@ internal class SaveCaptureService(private val activity: Context) {
                     .put("deviceId", hash(device.toByteArray(Charsets.UTF_8))).put("emulatorVersion", version)
                     .put("files", members).put("format", PpssppSavedataBoundary.FORMAT)
                     .put("source", sourceDirectory).put("localWasAbsent", absent).put("savedataGroupPresent", true)
-                if (absent) record.put("sourceIdentity", JSONArray(parentIdentity.take(2)))
+                record.put("sourceIdentity", JSONArray(parentIdentity.take(2)))
                 val part = File(directory, "capture.json.part")
                 FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
                 OwnedStorageNative.renameNoReplace(stage, part.name, stage, "capture.json")
@@ -690,7 +691,8 @@ internal class SaveCaptureService(private val activity: Context) {
                 val member = members.getJSONObject(index)
                 childId(groupId, index) == directory.name && member.getString("name") == record.getString("name") &&
                     member.getLong("size") == record.getLong("size") && member.getString("sha256") == record.getString("sha256")
-            } && record.getString("format") == "mgba-battery" && record.getString("source") == MGBA_SOURCE
+            } && record.getString("format") == group.optString("format", "mgba-battery") &&
+                record.getString("source") == group.optString("source", MGBA_SOURCE)
         }
         if (record.getString("id") != directory.name || !validBinding ||
             !record.getString("sha256").matches(Regex("[a-f0-9]{64}")) ||
@@ -746,17 +748,18 @@ internal class SaveCaptureService(private val activity: Context) {
         val route = batteryRoute(call)
         if ((ppssppDirectory != null && melonDirectory != null) ||
             ((ppssppDirectory != null || melonDirectory != null) && route != "gba")) throw Failure("invalid_restore")
-        val sourceDirectory = melonDirectory ?: ppssppDirectory ?: batterySource(route)
-        val format = if (melonDirectory != null) MelonSaveBoundary.FORMAT else if (ppssppDirectory != null) "ppsspp-slot-v1"
-            else batteryFormat(route)
         val group = groupId?.let { groupRecord(restoreDirectory(it)) }
+        val sourceDirectory = group?.optString("source", MGBA_SOURCE) ?: melonDirectory ?: ppssppDirectory ?: batterySource(route)
+        val format = group?.optString("format", "mgba-battery") ?: if (melonDirectory != null) MelonSaveBoundary.FORMAT else if (ppssppDirectory != null) "ppsspp-slot-v1"
+            else batteryFormat(route)
         val validBinding = if (group == null) validRestoreBinding(name, size, format, sourceDirectory)
-            else sourceDirectory == MGBA_SOURCE && format == "mgba-battery" &&
-                validGroupNames(group.getString("name"), listOf(group.getString("name"), name).distinct()) &&
-                size in 1..(16L * 1024 * 1024)
+            else (0 until group.getJSONArray("members").length()).any { index ->
+                val member = group.getJSONArray("members").getJSONObject(index)
+                childId(groupId!!, index) == id && member.getString("name") == name &&
+                    member.getLong("size") == size && member.getString("sha256") == digest
+            }
         // SRAM is also a group member; its normal scalar binding remains valid.
-        if (!(validBinding || (group != null && name == group.getString("name") &&
-                validRestoreBinding(name, size, format, sourceDirectory))) ||
+        if (!validBinding ||
             (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
                 File(sourceDirectory).canonicalPath != sourceDirectory) ||
             !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
@@ -840,6 +843,7 @@ internal class SaveCaptureService(private val activity: Context) {
         val record = restoreRecord(directory)
         if (record.optString("groupId").takeIf { it.isNotEmpty() } != groupId) throw Failure("invalid_restore")
         val group = groupId?.let { groupRecord(restoreDirectory(it)) }
+        if (record.optString("format") == PpssppSavedataBoundary.FORMAT) throw Failure("invalid_restore")
         if (group != null && group.getString("phase") != "publishing") throw Failure("invalid_restore")
         if (record.getString("phase") == "downloading") throw Failure("invalid_restore")
         if (record.has("rollbackId") && record.getString("rollbackId") != rollbackId) {
@@ -1014,14 +1018,23 @@ internal class SaveCaptureService(private val activity: Context) {
 
     private fun groupRecord(directory: File): JSONObject {
         val file = File(directory, "group.json")
-        if (file.canonicalFile != file.absoluteFile || !file.isFile || file.length() !in 1..16384) throw Failure("invalid_restore")
+        if (file.canonicalFile != file.absoluteFile || !file.isFile || file.length() !in 1..131072) throw Failure("invalid_restore")
         val record = JSONObject(file.readText())
         val members = record.getJSONArray("members")
         val names = (0 until members.length()).map { members.getJSONObject(it).getString("name") }
-        if (record.getString("id") != directory.name || !validGroupNames(record.getString("name"), names) ||
-            names != names.sorted() || record.getString("phase") !in setOf("downloading", "ready", "publishing", "published") ||
+        val savedata = record.optString("format", "mgba-battery") == PpssppSavedataBoundary.FORMAT
+        val valid = if (savedata) PpssppSavedataBoundary.validDirectory(record.getString("source")) &&
+            record.getString("source").substringAfterLast('/') == record.getString("name") && PpssppSavedataBoundary.validMembers(names)
+            else record.optString("format", "mgba-battery") == "mgba-battery" && record.optString("source", MGBA_SOURCE) == MGBA_SOURCE &&
+                validGroupNames(record.getString("name"), names)
+        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else 16L * 1024 * 1024
+        if (record.getString("id") != directory.name || !valid || names != names.sorted() ||
+            record.getString("phase") !in (if (savedata) setOf("downloading", "ready", "staging", "publishing", "retiring", "published")
+                else setOf("downloading", "ready", "publishing", "published")) ||
             (0 until members.length()).any { val m = members.getJSONObject(it)
-                m.getLong("size") !in 1..(16L * 1024 * 1024) || !m.getString("sha256").matches(Regex("[a-f0-9]{64}")) }) {
+                m.getLong("size") !in (if (savedata) 0 else 1)..max || !m.getString("sha256").matches(Regex("[a-f0-9]{64}")) ||
+                    (m.getLong("size") == 0L && m.getString("sha256") != hash(byteArrayOf())) } ||
+            (savedata && (0 until members.length()).sumOf { members.getJSONObject(it).getLong("size") } > max)) {
             throw Failure("invalid_restore")
         }
         return record
@@ -1030,23 +1043,36 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun beginRestoreGroup(id: String, call: MethodCall): Any? {
         check()
         val name = call.argument<String>("name") ?: ""
+        val savedataDirectory = call.argument<String>("ppssppSavedataDirectory")
+        val savedata = savedataDirectory != null
+        val format = if (savedata) PpssppSavedataBoundary.FORMAT else "mgba-battery"
+        val sourceDirectory = savedataDirectory ?: MGBA_SOURCE
         val raw = call.argument<List<Map<String, Any>>>("members") ?: throw Failure("invalid_restore")
-        if (!validGroupNames(name, raw.map { it["name"] as? String ?: "" })) throw Failure("invalid_restore")
+        val names = raw.map { it["name"] as? String ?: "" }
+        if (if (savedata) !PpssppSavedataBoundary.validDirectory(sourceDirectory) ||
+                sourceDirectory.substringAfterLast('/') != name || !PpssppSavedataBoundary.validMembers(names)
+            else !validGroupNames(name, names)) throw Failure("invalid_restore")
         val members = JSONArray()
+        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else 16L * 1024 * 1024
+        var total = 0L
         for (item in raw.sortedBy { it["name"] as String }) {
             val size = (item["size"] as? Number)?.toLong() ?: 0L
             val digest = item["sha256"] as? String ?: ""
-            if (size !in 1..(16L * 1024 * 1024) || !digest.matches(Regex("[a-f0-9]{64}"))) throw Failure("invalid_restore")
+            if (size !in (if (savedata) 0 else 1)..max || !digest.matches(Regex("[a-f0-9]{64}")) ||
+                (size == 0L && digest != hash(byteArrayOf())) || (savedata && total > max - size)) throw Failure("invalid_restore")
+            total += size
             members.put(JSONObject().put("name", item["name"]).put("size", size).put("sha256", digest))
         }
         val directory = restoreDirectory(id)
         if (File(directory, "group.json").exists()) {
             val old = groupRecord(directory)
-            if (old.getString("name") != name || old.getJSONArray("members").toString() != members.toString()) throw Failure("invalid_restore")
+            if (old.getString("name") != name || old.optString("format", "mgba-battery") != format ||
+                old.optString("source", MGBA_SOURCE) != sourceDirectory ||
+                old.getJSONArray("members").toString() != members.toString()) throw Failure("invalid_restore")
         } else {
             if (directory.list()?.isNotEmpty() != false) throw Failure("invalid_restore")
             writeRestoreRecord(directory, JSONObject().put("id", id).put("name", name)
-                .put("members", members).put("phase", "downloading"), "group.json")
+                .put("members", members).put("format", format).put("source", sourceDirectory).put("phase", "downloading"), "group.json")
         }
         for (index in 0 until members.length()) {
             val member = members.getJSONObject(index)
@@ -1072,12 +1098,217 @@ internal class SaveCaptureService(private val activity: Context) {
         return null
     }
 
+    private fun publishPpssppSavedataGroup(id: String, rollbackId: String, directory: File, record: JSONObject): Any? {
+        if (record.getString("phase") == "downloading" ||
+            (record.has("rollbackId") && record.getString("rollbackId") != rollbackId)) throw Failure("invalid_restore")
+        sealRestoreGroup(id)
+        val sourceDirectory = record.getString("source")
+        val name = record.getString("name")
+        val rollbackDirectory = File(root, rollbackId)
+        if (rollbackDirectory.canonicalFile != rollbackDirectory.absoluteFile) throw Failure("invalid_restore")
+        val rollback = captured(rollbackDirectory, name, sourceDirectory, restoreBaseline = true, savedata = true)
+            ?: throw Failure("invalid_restore")
+        val baseline = JSONObject(File(rollbackDirectory, "capture.json").readText())
+        val previous = baseline.getJSONArray("files")
+        val members = record.getJSONArray("members")
+        val present = rollback["savedataGroupPresent"] == true
+        @Suppress("DEPRECATION")
+        val runtime = activity.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0)
+        if (runtime.versionName != rollback["emulatorVersion"] || runtime.versionName !in setOf("v1.20.4", "1.20.4"))
+            throw Failure("runtime_changed")
+        @Suppress("DEPRECATION")
+        val version = if (android.os.Build.VERSION.SDK_INT >= 28) runtime.longVersionCode else runtime.versionCode.toLong()
+        val stageName = ".rshop-save-group-$id"
+        fun identity(values: JSONArray, length: Int = 5): LongArray {
+            if (values.length() != length) throw Failure("invalid_restore")
+            return LongArray(length) { values.getLong(it) }
+        }
+        fun names(items: JSONArray): List<String> = (0 until items.length()).map { items.getJSONObject(it).getString("name") }
+        SaveSourceStorage.open(activity, sourceDirectory.substringBeforeLast('/')).use { storage ->
+            fun closed() {
+                check()
+                try { storage.verifyEmulatorClosed(activity) } catch (error: java.io.IOException) {
+                    if (error.message != "emulator_running") throw error
+                    throw Failure("stop_ppsspp_required")
+                }
+            }
+            closed()
+            val parentIdentity = storage.identity(storage.root).take(2)
+            if (record.has("parent") && identity(record.getJSONArray("parent"), 2).toList() != parentIdentity)
+                throw Failure("source_changed")
+            fun verifyGroup(group: Int, items: JSONArray, original: Boolean = false, subset: Boolean = false): LongArray {
+                val before = storage.identity(group)
+                val actualNames = storage.saveGroupNames(group)
+                val expectedNames = names(items)
+                if (if (subset) actualNames.any { it !in expectedNames } else actualNames != expectedNames.sorted())
+                    throw Failure("source_changed")
+                for (leaf in actualNames) {
+                    check()
+                    val member = (0 until items.length()).map(items::getJSONObject).single { it.getString("name") == leaf }
+                    val fd = storage.openSaveGroupFile(group, leaf, false, false)
+                    try {
+                        val beforeFile = storage.identity(fd)
+                        if (beforeFile[2] != member.getLong("size") ||
+                            (original && !same(beforeFile, identity(member.getJSONArray("identity")))) ||
+                            digestFd(fd, beforeFile[2], sourceStorage = storage) != member.getString("sha256") ||
+                            !same(beforeFile, storage.identity(fd)) || !same(beforeFile, storage.saveGroupEntryIdentity(group, leaf)))
+                            throw Failure("source_changed")
+                    } finally { storage.closeFile(fd) }
+                }
+                if (storage.saveGroupNames(group) != actualNames || !same(before, storage.identity(group)) ||
+                    storage.currentRootIdentity().take(2) != parentIdentity) throw Failure("source_changed")
+                return before
+            }
+            fun openTarget(): Int? = try { storage.openSaveGroup(name) } catch (error: java.io.IOException) {
+                if (error.message != "owned_storage:2") throw error
+                null
+            }
+            var snapshotArmed = false
+            fun reviewPrevious(): LongArray? {
+                val group = openTarget()
+                if (!present) {
+                    if (group != null) { storage.closeFile(group); throw Failure("source_changed") }
+                    if (identity(baseline.getJSONArray("sourceIdentity"), 2).toList() != parentIdentity)
+                        throw Failure("source_changed")
+                    return null
+                }
+                if (group == null) throw Failure("source_changed")
+                try {
+                    if (storage.identity(group).take(2) != identity(baseline.getJSONArray("sourceIdentity"), 2).toList())
+                        throw Failure("source_changed")
+                    if (!snapshotArmed) { storage.beginSaveGroupSnapshot(group); snapshotArmed = true }
+                    val result = verifyGroup(group, previous, original = true)
+                    storage.verifyPpssppSavedataSnapshot()
+                    closed()
+                    return result
+                } finally { storage.closeFile(group) }
+            }
+            if (record.getString("phase") == "ready") {
+                val current = reviewPrevious()
+                // An existing stage is never claimed by a new allocation intent.
+                if (storage.saveStageExists(stageName)) throw Failure("source_changed")
+                record.put("rollbackId", rollbackId).put("parent", JSONArray(parentIdentity)).put("phase", "staging")
+                if (current != null) record.put("current", JSONArray(current.toList()))
+                writeRestoreRecord(directory, record, "group.json")
+            }
+            if (record.getString("phase") == "staging") {
+                reviewPrevious()
+                val stage = if (record.has("stageAnchor")) storage.openSaveGroup(stageName, anchor = identity(record.getJSONArray("stageAnchor")))
+                    else {
+                        // Intent precedes mkdir. Without an inode receipt only
+                        // that intent's empty stage is recoverable; no data is adopted.
+                        val created = if (storage.saveStageExists(stageName)) storage.openSaveGroup(stageName, recoverEmpty = true)
+                            else storage.openSaveGroup(stageName, createExclusive = true)
+                        record.put("stageAnchor", JSONArray(storage.identity(created).toList()))
+                        writeRestoreRecord(directory, record, "group.json")
+                        created
+                    }
+                try {
+                    if (storage.saveGroupNames(stage).any { it !in names(members) }) throw Failure("source_changed")
+                    for (index in 0 until members.length()) {
+                        check()
+                        val member = members.getJSONObject(index)
+                        val leaf = member.getString("name")
+                        val privateDirectory = OwnedStorageNative.openRoot(restoreDirectory(childId(id, index)).absolutePath)
+                        try {
+                            val from = OwnedStorageNative.openFile(privateDirectory, "member", false, false)
+                            try {
+                                val fromIdentity = OwnedStorageNative.identity(from)
+                                if (fromIdentity[2] != member.getLong("size") || digestFd(from, fromIdentity[2]) != member.getString("sha256"))
+                                    throw Failure("changed_capture")
+                                val target = try { storage.openSaveGroupFile(stage, leaf, false, true) }
+                                catch (error: java.io.IOException) {
+                                    if (error.message != "owned_storage:2") throw error
+                                    storage.openSaveGroupFile(stage, leaf, true, true)
+                                }
+                                try {
+                                    val copied = storage.identity(target)[2]
+                                    if (copied > fromIdentity[2]) throw Failure("source_changed")
+                                    var offset = 0L
+                                    while (offset < fromIdentity[2]) {
+                                        check()
+                                        val length = minOf(65536L, fromIdentity[2] - offset,
+                                            if (offset < copied) copied - offset else 65536L).toInt()
+                                        val chunk = OwnedStorageNative.read(from, offset, length)
+                                        if (chunk.isEmpty()) throw Failure("changed_capture")
+                                        if (offset < copied) {
+                                            if (!storage.read(target, offset, length).contentEquals(chunk)) throw Failure("source_changed")
+                                        } else storage.write(target, offset, chunk)
+                                        offset += chunk.size
+                                    }
+                                    storage.sync(target)
+                                    if (!same(fromIdentity, OwnedStorageNative.identity(from))) throw Failure("changed_capture")
+                                } finally { storage.closeFile(target) }
+                            } finally { OwnedStorageNative.close(from) }
+                        } finally { OwnedStorageNative.close(privateDirectory) }
+                    }
+                    storage.sync(stage)
+                    val staged = verifyGroup(stage, members)
+                    val current = reviewPrevious()
+                    closed()
+                    record.put("staged", JSONArray(staged.toList())).put("phase", "publishing")
+                    if (current != null) record.put("current", JSONArray(current.toList()))
+                    writeRestoreRecord(directory, record, "group.json")
+                } finally { storage.closeFile(stage) }
+            }
+            if (record.getString("phase") == "publishing") {
+                val staged = identity(record.getJSONArray("staged"))
+                val target = openTarget()
+                var committed = false
+                if (target != null) try {
+                    if (storage.identity(target).take(2) == staged.take(2)) {
+                        if (!snapshotArmed) { storage.beginSaveGroupSnapshot(target); snapshotArmed = true }
+                        if (!same(verifyGroup(target, members), staged)) throw Failure("source_changed")
+                        storage.verifyPpssppSavedataSnapshot(); closed(); committed = true
+                    }
+                } finally { storage.closeFile(target) }
+                if (!committed) {
+                    val current = reviewPrevious()
+                    if (present && !same(current!!, identity(record.getJSONArray("current")))) throw Failure("source_changed")
+                    val stage = storage.openSaveGroup(stageName, anchor = staged)
+                    try {
+                        if (!same(verifyGroup(stage, members), staged)) throw Failure("source_changed")
+                        if (snapshotArmed) storage.verifyPpssppSavedataSnapshot()
+                        closed()
+                        val placed = storage.publishSaveGroup(stageName, name, staged, current, version)
+                        if (!same(placed, staged)) throw Failure("source_changed")
+                    } finally { storage.closeFile(stage) }
+                }
+                // Cancellation cannot split namespace commit from durable receipt.
+                storage.sync(storage.root)
+                writeRestoreRecord(directory, record.put("phase", "retiring"), "group.json")
+            }
+            if (record.getString("phase") == "retiring") {
+                closed()
+                if (present) {
+                    val oldIdentity = identity(record.getJSONArray("current"))
+                    val old = try { storage.openSaveGroup(stageName, anchor = oldIdentity) }
+                    catch (error: java.io.IOException) { if (error.message != "owned_storage:2") throw error; null }
+                    if (old != null) try {
+                        verifyGroup(old, previous, original = true, subset = true)
+                        for (leaf in storage.saveGroupNames(old)) {
+                            check()
+                            val member = (0 until previous.length()).map(previous::getJSONObject).single { it.getString("name") == leaf }
+                            storage.retireSaveGroupMember(old, leaf, identity(member.getJSONArray("identity")), version)
+                        }
+                        storage.sync(old)
+                    } finally { storage.closeFile(old) }
+                    storage.retireSaveGroup(stageName, oldIdentity, version)
+                }
+                writeRestoreRecord(directory, record.put("phase", "published"), "group.json")
+            }
+        }
+        return null
+    }
+
     private fun publishRestoreGroup(id: String, rollbackId: String): Any? {
         check()
         if (!rollbackId.matches(Regex("[a-f0-9]{32}")) || rollbackId == id) throw Failure("invalid_restore")
         val directory = restoreDirectory(id)
         val record = groupRecord(directory)
         if (record.getString("phase") == "published") return null
+        if (record.optString("format") == PpssppSavedataBoundary.FORMAT)
+            return publishPpssppSavedataGroup(id, rollbackId, directory, record)
         if (record.getString("phase") == "downloading" ||
             (record.has("rollbackId") && record.getString("rollbackId") != rollbackId)) throw Failure("invalid_restore")
         sealRestoreGroup(id)

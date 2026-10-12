@@ -159,9 +159,10 @@ internal class SaveSourceStorage private constructor(
         require((PpssppSavedataBoundary.validDirectory(source) || PpssppSavedataBoundary.validParent(source)) && rootAssisted)
         call(request("savedataSnapshotBegin"))
     }
-    fun openSaveGroup(name: String, createExclusive: Boolean = false, anchor: LongArray? = null): Int {
+    fun openSaveGroup(name: String, createExclusive: Boolean = false, anchor: LongArray? = null,
+                      recoverEmpty: Boolean = false): Int {
         require(PpssppSavedataBoundary.validParent(source) && rootAssisted)
-        return call(request("groupOpen").put("name", name).put("create", createExclusive).also {
+        return call(request("groupOpen").put("name", name).put("create", createExclusive).put("recoverEmpty", recoverEmpty).also {
             if (anchor != null) it.put("anchor", JSONArray(anchor.toList()))
         }).getInt("fd")
     }
@@ -174,6 +175,16 @@ internal class SaveSourceStorage private constructor(
         val count = call(request("groupNames", group)).getInt("count")
         require(count in 0..PpssppSavedataBoundary.MAX_MEMBERS)
         return List(count) { input!!.readUTF().also { require(PpssppSavedataBoundary.validMember(it)) } }
+    }
+    fun beginSaveGroupSnapshot(group: Int) { call(request("groupSnapshotBegin", group)) }
+    fun saveStageExists(name: String): Boolean = call(request("groupProbe").put("name", name)).getBoolean("exists")
+    fun retireSaveGroupMember(group: Int, name: String, expected: LongArray, version: Long) {
+        call(request("groupMemberRetire", group).put("name", name)
+            .put("expected", JSONArray(expected.toList())).put("versionCode", version))
+    }
+    fun retireSaveGroup(name: String, expected: LongArray, version: Long) {
+        call(request("groupRetire").put("name", name).put("expected", JSONArray(expected.toList()))
+            .put("versionCode", version))
     }
     fun publishSaveGroup(stage: String, name: String, staged: LongArray, current: LongArray?, version: Long): LongArray =
         longs(call(request("groupPublish").put("stage", stage).put("name", name)
@@ -321,7 +332,7 @@ object RootSaveSourceWorker {
                     val operation = row.getString("operation")
                     require(!savedataParent || operation in setOf("names", "identity", "currentRoot", "emulatorClosed",
                         "savedataSnapshotBegin", "snapshotVerify", "groupOpen", "groupFile", "groupEntry", "groupNames",
-                        "groupPublish", "read", "write", "sync", "close"))
+                        "groupPublish", "groupProbe", "groupSnapshotBegin", "groupMemberRetire", "groupRetire", "read", "write", "sync", "close"))
                     require(!snapshotOnly || operation in setOf("snapshotBegin", "snapshotVerify", "emulatorClosed"))
                     fun expected(key: String): LongArray {
                         val values = row.getJSONArray(key); require(values.length() == 5)
@@ -368,12 +379,30 @@ object RootSaveSourceWorker {
                             JSONObject()
                         }
                         "snapshotVerify" -> { verifySnapshot(); JSONObject() }
+                        "groupSnapshotBegin" -> {
+                            require(savedataParent && snapshot == -1); groupPath()
+                            snapshotName = ""
+                            snapshot = OwnedStorageNative.saveSnapshotOpen(fd(row))
+                            verifySnapshot(); JSONObject()
+                        }
+                        "groupProbe" -> {
+                            require(savedataParent)
+                            val leaf = row.getString("name"); require(PpssppSavedataBoundary.validStage(leaf))
+                            pinnedParent()
+                            val found = try {
+                                val opened = OwnedStorageNative.openDirectory(parent, leaf, false)
+                                OwnedStorageNative.close(opened); true
+                            } catch (error: IOException) { if (error.message != "owned_storage:2") throw error; false }
+                            JSONObject().put("exists", found)
+                        }
                         "groupOpen" -> {
                             require(savedataParent && files.size < 5)
                             val leaf = row.getString("name")
                             val stage = PpssppSavedataBoundary.validStage(leaf)
                             val create = row.getBoolean("create")
-                            require(if (create || row.has("anchor")) stage else PpssppSavedataBoundary.validMember(leaf))
+                            val recoverEmpty = row.optBoolean("recoverEmpty")
+                            require(!(create && recoverEmpty) && !(recoverEmpty && row.has("anchor")))
+                            require(if (create || recoverEmpty || row.has("anchor")) stage else PpssppSavedataBoundary.validMember(leaf))
                             pinnedParent()
                             val opened = if (create) OwnedStorageNative.createSaveDirectory(parent, leaf)
                                 else OwnedStorageNative.openDirectory(parent, leaf, false)
@@ -382,9 +411,14 @@ object RootSaveSourceWorker {
                             val before = OwnedStorageNative.identity(opened)
                             if (row.has("anchor") && before.take(2) != expected("anchor").take(2))
                                 throw IOException("source_changed")
-                            if (create) {
+                            if (create || recoverEmpty) {
                                 val owner = Os.stat("/data/user/0/${PpssppSaveSettings.PACKAGE}")
                                 require(owner.st_uid >= 10000)
+                                if (recoverEmpty) {
+                                    require(File("$backing/$leaf").list()?.isEmpty() == true)
+                                    val status = Os.lstat("$backing/$leaf")
+                                    require(status.st_uid == 0 || status.st_uid == owner.st_uid)
+                                }
                                 Os.lchown("$backing/$leaf", owner.st_uid, owner.st_gid)
                             }
                             if (stage) writableGroups.add(handle)
@@ -439,6 +473,26 @@ object RootSaveSourceWorker {
                                 expected("staged"), if (row.has("current")) expected("current") else null)
                             OwnedStorageNative.sync(parent)
                             identity(placed)
+                        }
+                        "groupMemberRetire" -> {
+                            require(savedataParent && row.getInt("fd") in writableGroups)
+                            val path = groupPath(); val fresh = OwnedStorageNative.openRoot(path)
+                            try {
+                                if (OwnedStorageNative.identity(fresh).take(2) != OwnedStorageNative.identity(fd(row)).take(2))
+                                    throw IOException("source_changed")
+                            } finally { OwnedStorageNative.close(fresh) }
+                            pinnedParent()
+                            SaveEmulatorProcess.requireClosed(PpssppSaveSettings.PACKAGE, row.getLong("versionCode"))
+                            OwnedStorageNative.retireReviewedSaveMember(fd(row), name(row), expected("expected"))
+                            JSONObject()
+                        }
+                        "groupRetire" -> {
+                            require(savedataParent)
+                            val leaf = row.getString("name"); require(PpssppSavedataBoundary.validStage(leaf))
+                            pinnedParent()
+                            SaveEmulatorProcess.requireClosed(PpssppSaveSettings.PACKAGE, row.getLong("versionCode"))
+                            OwnedStorageNative.retireSaveDirectory(parent, leaf, expected("expected"))
+                            JSONObject()
                         }
                         "names" -> {
                             val names = File(backing).list() ?: throw IOException("owned_storage:13")
@@ -543,8 +597,8 @@ object RootSaveSourceWorker {
                     // snapshot. The armed kernel guard still rejects creation,
                     // removal, replacement and writes before verification.
                     val absentEntry = message == "owned_storage:2" && (row.optString("operation") == "entry" ||
-                        (savedataParent && row.optString("operation") == "groupOpen" && !row.optBoolean("create") &&
-                            !row.has("anchor") && PpssppSavedataBoundary.validMember(row.optString("name"))))
+                        (savedataParent && row.optString("operation") in setOf("groupOpen", "groupFile") &&
+                            !row.optBoolean("create")))
                     if (snapshot >= 0 && !absentEntry) snapshotInvalid = true
                     reply(JSONObject().put("error", if (message in setOf("source_changed", "emulator_running") ||
                         message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable"))
