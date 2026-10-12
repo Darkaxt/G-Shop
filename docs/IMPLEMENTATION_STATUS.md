@@ -5,6 +5,36 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Retained PSP identity correction — 2026-10-12
+
+The S7 terminal reconciliation retained thirteen PSP ROMs as positive Top-25
+members. Calling those files "unlinked legacy copies" described missing R-Shop
+observations/ownership, not evidence that they were obsolete versions or outside
+the sample. The private PSP review contains thirteen exact retained bindings,
+all with matching reviewed Drive MD5 values. This is recorded comparison
+evidence, not a new claim that all current Drive objects were streamed today.
+Fresh read-only device MD5 verification (original session 91366, exit 0) also
+matches all thirteen exact retained paths against that reviewed keep-list:
+thirteen matches, zero changed files. Thus this audit found no differing local
+version to replace; it does not establish current linkage for the other twelve.
+
+Normal native Patapon -> Compare with Google Drive -> Compare files completed
+at 2026-10-12 14:32:13.910091 for the 138,981,638-byte CHD. The normal retention
+query shows #14, with 35 of 275 collection games scored. After closing comparison,
+the PSP Patapon search contains two sourced cards (Patapon, installed; Patapon 2,
+downloadable), instead of three local/cloud rows. Patapon's normal menu exposes
+Save backups and Open in PPSSPP. No ROM was adopted, downloaded, changed or
+deleted. Existing exact-byte observation and shared-index invalidation therefore
+work for this real entry; no filename-based merge patch is justified.
+
+Revision 26 records the owner's explicit Drive-authoritative replacement rule:
+link identical retained copies; for an established same-edition version mismatch,
+verify the current Drive installation before removing its superseded local ROM.
+The remaining retained-copy linkage is unfinished S10 integration, not a completed
+bulk migration or a reason to erase matching retained ROMs. S10 alone is ACTIVE;
+S11 is NOT STARTED. The later statement below about the local-only save menu is
+superseded for Patapon, not for every other retained copy.
+
 ### PSP cloud-only folder discovery and real complete-folder Drive restore — 2026-10-12
 
 SAVE-01's root-first capability remains authoritative, not a manual-only fallback.

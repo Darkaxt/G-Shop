@@ -1,7 +1,16 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 25.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 26.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+
+S10 retained-copy clarification, 2026-10-12: reconcile the retained legacy ROMs
+with their authoritative Drive editions as part of existing-library save
+integration. Identical bytes become one linked local/cloud identity; a confirmed
+different version is replaced by the verified Drive installation and only then
+its exact superseded local ROM is removed. Preserve saves/settings and unrelated
+files. The current Patapon comparison proves the existing linkage consumer works;
+it does not prove all retained copies have been reconciled. S10 remains the sole
+ACTIVE stage. No repeat of full scraping or whole-SD cleanup is required.
 
 Current scope correction (2026-10-11): the owner never required exhaustive
 scraping of all ROMs. Saved metadata job 76 and exhaustive scoped/provider passes

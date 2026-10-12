@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 25, 2026-10-12.
+Authoritative specification, revision 26, 2026-10-12.
+
+Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
+The corresponding Google Drive edition is authoritative. An identical retained
+copy must be linked to that Drive identity and presented as its local residency,
+not as a separate legacy game. If the retained copy is a different version of
+the same established game/edition, install and verify the current Drive version
+before removing the exact superseded local ROM. This explicitly authorizes that
+replacement/removal; preserve saves, BIOS/settings and unrelated files. Do not
+delete a matching Top-25 copy merely because installation ownership is absent,
+or mistake a filename match for proof of the same game/edition. Complete the
+retained-copy linkage as an existing-library prerequisite of active S10 save
+integration, using the existing comparison, installation and removal boundaries.
+This does not reopen exhaustive scraping or whole-SD cleanup.
 
 Owner clarification, 2026-10-11: fresh metadata is a supported workflow, not a
 requirement to scrape every ROM in the owner's collection. Neither S7 closure,
