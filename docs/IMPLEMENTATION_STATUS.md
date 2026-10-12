@@ -5,6 +5,50 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### PS1 automatic card backups — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. The normal PS1 game menu now opens Save
+backups, selects the configured private/shared card, and names shared-card
+history explicitly. Automatic opt-in persists the exact card role, slot and ROM
+root; background work re-resolves current installation/byte evidence and card
+settings instead of persisting a launch URI. Launch preparation rechecks the
+selected card before and after reconciliation and requires exact watch admission.
+PS1 watches use the existing joined root lane and keep private/shared roles in
+one folder separate; they do not require an emulator status reply for backup.
+
+Focused job, launch, layout and settings tests pass, including queued private/
+shared backups, changed-role rejection and existing-route regressions. Scoped
+Dart analysis reports no issues. Native regression request 847 reproduced the
+missing PS1 watch route before implementation. Request 851 passed the focused
+native regression and debug/test packaging; installed exact private/shared root
+watches and existing battery-save routes passed their isolated native probes.
+The normal PS1 save panel resolved the configured card automatically and its
+enabled watcher produced the exclusive 128 KiB fixture's sealed capture. Cloud
+publication then reported `unownedObject`. Diagnostic requests 857/858 assembled
+and were installed with `-r`, preserving app data. The resumed live job isolated
+the rejection to MIME equality: Drive reported `application/x-tex-tfm` for the
+payload; ownership, authorization, parent, binding, size and revision all passed.
+The new regression reproduced this rejection before the fix. Validation now
+accepts byte-backed media regardless of Drive's detected format label, while
+rejecting Google-native objects and retaining complete digest/revision checks.
+Focused generation tests and scoped analysis pass. Device-verification request
+861 passed and was installed preserving app data; the installed APK's independent
+digest matches the host artifact. Normal startup resumed the original pending
+capture/reserved IDs and completed publication. The bounded read-only durable
+projection reports `complete`, `fixtureVerified=true`, no retained capture, and
+automatic outcome `verified` with requested/handled 12/12 and no issue. The
+verified member is 131072 bytes and its SHA-256 matches the original fixture.
+This verifies the normal PS1 panel/watch-to-real-Drive path, not all S10 coverage.
+The temporary automatic opt-in was disabled through the normal game panel;
+the read-only projection then shows no enabled PS1 mapping. Only the exact,
+unchanged synthetic local card was removed; user cards and cloud history remain.
+Diagnostic validation uses redacted logs and durable job/file evidence, not
+screenshot polling. Both Thor displays were verified OFF after observation.
+Other accessible routes, states, required faults/reconnect and conditional
+handover remain unfinished S10 work. S11 and proposed S12 are NOT STARTED.
+The owner-authorized companion backup and device-specific import policy are
+recorded in specification revision 34 and remain unfinished within S10.
+
 ### PS1 restore/rollback — verified slice, 2026-10-13
 
 S10 remains the sole ACTIVE stage. PS1 jobs now route restore and rollback to

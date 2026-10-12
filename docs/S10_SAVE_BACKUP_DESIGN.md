@@ -7,6 +7,69 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PS1 automatic card backups — ACTIVE work, 2026-10-13
+
+The normal game-menu and automatic-work consumers now carry the explicit PCSX
+card route. A schema-4 automatic mapping records the account/artifact/edition,
+selected directory/card slot/mode/name and ROM destination root. The background
+consumer resolves the current catalogue artifact and exact installed or observed
+copy again, then reviews current PCSX settings before capture. No URI or ownership
+grant is persisted as authority. Private/shared histories retain their existing
+job identities and publication/restore coordinator.
+
+Opt-in and launch preparation use the existing durable serial backup lane.
+Preparation rejects a changed card selection and arms the exact mapped watch
+before emulator handoff. The native watcher validates the card role/name and
+keeps private/shared roles separate even in one directory. It uses the existing
+bounded root worker in the global mount namespace, observing the same backing
+filesystem as configured-card capture. It reports publication events only;
+filesystem writer/mutation checks still determine coherent capture. No emulator
+status request or arbitrary quiet-period delay is added.
+
+The normal panel links known cards automatically and exposes a card selector
+only when multiple configured cards exist. Shared-card wording states that the
+complete card can contain several games and uses one backup history. Existing
+backup opt-in and explicit restore/conflict choices remain.
+
+Focused host job/launch/layout/settings checks and scoped analysis pass. Request
+847 reproduced the former native watch rejection; request 851 passed its native
+regression and debug/test packaging. Installed-Thor isolated probes verified exact
+private/shared card watch delivery and existing battery-save-route regressions.
+The normal panel automatically associated the configured card; automatic opt-in
+captured the exclusive 128 KiB fixture, but cloud publication reported
+`unownedObject`. The capture and reserved publication journal remain recovery
+evidence. No live watch-to-Drive success is claimed. Diagnostic requests 857/858
+passed assembly and preserving installation. The resumed live job proves that
+only MIME equality fails: the payload is labelled `application/x-tex-tfm` although
+upload requested octet-stream. The regression reproduced rejection before the
+fix. Require byte-backed media (not Google-native documents/folders/shortcuts)
+and retain exact ownership, parent, binding, size, full digest and revision proof;
+do not use a detected MIME label as content identity. Focused generation checks
+and scoped analysis pass. Device-verification request 861 acquired the shared
+gate and passed assembly: two workers, no parallelism, 3 GiB Gradle, requested
+Kotlin in-process, one configured 512 MiB test fork. No memory failure or budget
+increase occurred; native two-job hints are not a verified effective cap.
+The installed application digest independently matches the host APK:
+`8c40e03cf9d05f706078640f391ecdf27bd724c103ff8f92ce7fe1051f87e1d8`.
+Its normal startup resumed the existing pending journal rather than creating
+replacement payloads. Real publication now passes: the bounded read-only durable
+projection reports a complete job, verified automatic outcome, requested/handled
+12/12, no issue, and the retired capture. Its sole verified cloud member is
+131072 bytes with SHA-256
+`58b65ebf644b430df2b825db796d5c39e4767514496461108c37c245343da4cb`,
+matching the original exclusive fixture. Automatic opt-in was disabled through
+the normal game panel and verified absent from enabled PS1 mappings. The exact
+regular fixture was removed only after size/digest checks; existing cards and
+the verified cloud generation were preserved.
+Diagnostics expose predicate results and a bounded MIME label, never tokens,
+private IDs, paths or response bodies. Logs and durable job/file evidence replace
+screenshot polling. The first bounded read-only app-process diagnostic failed
+because Android SQLite lacks `json_extract`; it was not a memory-exhaustion
+failure. Its disposable output was removed. The corrected bounded read-only
+projection parses JSON in Java and confirms the completed verified publication.
+This checkpoint does not
+close S10, other emulator/state coverage, required faults or handover.
+
 ### PS1 restore/rollback — verified slice, 2026-10-13
 
 The scalar restore journal now has an explicit PCSX binding containing the owned

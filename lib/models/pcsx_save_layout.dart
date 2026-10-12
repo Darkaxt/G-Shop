@@ -16,6 +16,21 @@ class PcsxSaveLayout {
   final List<PcsxSaveCard> cards;
   const PcsxSaveLayout._(this.directory, this.cards);
 
+  Map<String, dynamic> toJson() => {
+        'directory': directory,
+        'cards': [
+          for (final card in cards)
+            {'slot': card.slot, 'mode': card.mode, 'name': card.name}
+        ],
+      };
+
+  bool containsSelection(PcsxSaveLayout selected, PcsxSaveCard card) =>
+      directory == selected.directory &&
+      cards.any((current) =>
+          current.slot == card.slot &&
+          current.mode == card.mode &&
+          current.name == card.name);
+
   /// Stable across the initiating ROM, distinct for different card slots and
   /// configured directories. This is not a fabricated catalogue game identity.
   String sharedResourceKey(PcsxSaveCard card) {

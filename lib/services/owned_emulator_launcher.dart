@@ -63,7 +63,7 @@ class OwnedEmulatorLauncher {
   }
 
   Future<Map<String, Object>> _grant(
-      GameItem game, SystemModel system, String root) async {
+      GameItem game, String platformId, String root) async {
     Map<String, Object> grant;
     try {
       final installed = await romManager.requireInstalledArtifact(game, root);
@@ -76,7 +76,7 @@ class OwnedEmulatorLauncher {
       final copy = await romManager.requireLocalCopy(game, root);
       grant = {
         'observationId': copy.id,
-        'platformId': system.id,
+        'platformId': platformId,
         'filename': copy.observation.relativePath
       };
     }
@@ -90,7 +90,7 @@ class OwnedEmulatorLauncher {
     if (system.id != 'nds' || !supports(game, system)) {
       throw UnsupportedError('No reviewed DS save route for this format');
     }
-    final grant = await _grant(game, system, root);
+    final grant = await _grant(game, system.id, root);
     final mapping = await channel.invokeMapMethod<String, dynamic>(
         'reviewOwnedMelonSave', grant);
     if (mapping == null ||
@@ -136,7 +136,7 @@ class OwnedEmulatorLauncher {
       RetroArchBatteryRoute.megaDrive => 'reviewOwnedRetroArchMegaDriveSave',
       RetroArchBatteryRoute.n64 => 'reviewOwnedRetroArchN64Save',
     };
-    final grant = await _grant(game, system, root);
+    final grant = await _grant(game, system.id, root);
     final name = await channel.invokeMethod<String>(method, grant);
     if (name == null || name.isEmpty) {
       throw StateError('No validated launch save target');
@@ -151,9 +151,21 @@ class OwnedEmulatorLauncher {
     if (system.id != 'psx' || !supports(game, system)) {
       throw UnsupportedError('No reviewed PlayStation card route');
     }
-    final grant = await _grant(game, system, root);
+    final grant = await resolveRetroArchPcsxGrant(game, root);
     return PcsxSaveLayout.decode(await channel.invokeMapMethod<String, dynamic>(
         'reviewOwnedRetroArchPcsxSaves', grant));
+  }
+
+  /// Re-resolve durable installation/byte evidence for background card work.
+  /// Never persist a launch URI or turn a filename into an ownership grant.
+  Future<Map<String, Object>> resolveRetroArchPcsxGrant(
+      GameItem game, String root) {
+    if (game.isFolder ||
+        game.remoteArtifact == null ||
+        !game.filename.toLowerCase().endsWith('.chd')) {
+      throw UnsupportedError('No reviewed PlayStation card route');
+    }
+    return _grant(game, 'psx', root);
   }
 
   /// Capture uses the same owned/byte-bound document as launch, never a title
@@ -169,7 +181,7 @@ class OwnedEmulatorLauncher {
     }
     return SaveCapture().capturePcsx(
         captureId: captureId,
-        grant: await _grant(game, system, root),
+        grant: await resolveRetroArchPcsxGrant(game, root),
         layout: layout,
         card: card,
         restoreBaseline: restoreBaseline);
@@ -177,7 +189,7 @@ class OwnedEmulatorLauncher {
 
   Future<void> _open(GameItem game, SystemModel system, String root,
       String? companionComponent, Future<void> Function()? prepareSave) async {
-    final grant = await _grant(game, system, root);
+    final grant = await _grant(game, system.id, root);
     await prepareSave?.call();
     if (companionComponent != null) {
       grant['companionComponent'] = companionComponent;

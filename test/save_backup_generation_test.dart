@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/save_backup_manifest.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
@@ -214,6 +214,56 @@ void main() {
         drive.requests.every((r) => ['GET', 'POST', 'PUT'].contains(r.method)),
         isTrue);
   });
+
+  test(
+      'resumes and restores byte-backed objects with Drive-detected MIME types',
+      () async {
+    drive.loseResponse = 'member-a';
+    await expectLater(
+        api.publish(areaId: 'area', generation: generation, captures: files),
+        throwsA(isA<SaveBackupGenerationException>()));
+    // Observed on Thor: Drive classified the PS1 card as a TeX font metric,
+    // although the resumable upload requested application/octet-stream.
+    drive.metadata['member-a']!['mimeType'] = 'application/x-tex-tfm';
+    await api.publish(areaId: 'area', generation: generation, captures: files);
+    drive.metadata['generation-a']!['mimeType'] = 'application/json';
+    final restored = await api.loadGeneration(
+        areaId: 'area',
+        generationId: 'generation-a',
+        target: generation.binding);
+    final restoredBytes = await api
+        .memberBytes(areaId: 'area', generation: restored, memberId: 'member-a')
+        .fold<List<int>>([], (result, chunk) => result..addAll(chunk));
+    expect(
+        sha256.convert(restoredBytes).toString(),
+        generation.members
+            .singleWhere((member) => member.cloudFileId == 'member-a')
+            .sha256);
+    expect(drive.committed.where((id) => id == 'member-a'), hasLength(1));
+  });
+
+  for (final mime in [
+    'application/vnd.google-apps.document',
+    'application/vnd.google-apps.folder',
+    'application/vnd.google-apps.shortcut',
+    '',
+    null,
+  ]) {
+    test('rejects non-byte-backed MIME $mime before downloading content',
+        () async {
+      await api.publish(
+          areaId: 'area', generation: generation, captures: files);
+      drive.metadata['generation-a']!['mimeType'] = mime;
+      drive.verified.clear();
+      await expectLater(
+          api.loadGeneration(
+              areaId: 'area',
+              generationId: 'generation-a',
+              target: generation.binding),
+          throwsA(isA<SaveBackupGenerationException>()));
+      expect(drive.verified, isEmpty);
+    });
+  }
 
   test('discovers complete generations across pages and origin devices',
       () async {
@@ -491,11 +541,25 @@ void main() {
       () async {
     await api.publish(areaId: 'area', generation: generation, captures: files);
     drive.metadata['generation-a']!.remove('headRevisionId');
-    await expectLater(
-        api.loadGeneration(
-            areaId: 'area',
-            generationId: 'generation-a',
-            target: generation.binding),
-        throwsA(isA<SaveBackupGenerationException>()));
+    final diagnostics = <String>[];
+    final previous = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) diagnostics.add(message);
+    };
+    try {
+      await expectLater(
+          api.loadGeneration(
+              areaId: 'area',
+              generationId: 'generation-a',
+              target: generation.binding),
+          throwsA(isA<SaveBackupGenerationException>()));
+    } finally {
+      debugPrint = previous;
+    }
+    expect(diagnostics.single, contains('revision_valid=false'));
+    expect(diagnostics.single, contains('markers_equal=true'));
+    for (final privateValue in ['generation-a', 'account', 'private-token']) {
+      expect(diagnostics.single, isNot(contains(privateValue)));
+    }
   });
 }

@@ -9,6 +9,10 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/config/source.dart';
 import '../../models/library_identity.dart';
 import '../../models/retroarch_battery_route.dart';
+import '../../models/pcsx_save_layout.dart';
+import '../../models/game_item.dart';
+import '../library_store.dart';
+import '../owned_emulator_launcher.dart';
 import '../drive/drive_runtime.dart';
 import 'drive_save_backup_area.dart';
 import 'drive_save_backup_generation.dart';
@@ -23,6 +27,10 @@ class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
   final bool isMelon, isPpssppSavedata;
   final RetroArchBatteryRoute? retroArchRoute;
+  final PcsxSaveLayout? pcsxLayout;
+  final String? romRoot;
+  bool get isPcsx => pcsxLayout != null;
+  PcsxSaveCard? get pcsxCard => pcsxLayout?.cards.single;
   bool get isRetroArch => retroArchRoute != null;
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
@@ -31,6 +39,12 @@ class AutomaticSaveMapping {
             value['schema'] == 2 && value['route'] == 'ppsspp-savedata',
         retroArchRoute = value['schema'] == 3 && value['route'] == 'retroarch'
             ? RetroArchBatteryRoute.forPlatform(value['platform'] as String?)
+            : null,
+        pcsxLayout = value['schema'] == 4 && value['route'] == 'pcsx'
+            ? PcsxSaveLayout.decode(value['pcsx'] as Map<String, dynamic>?)
+            : null,
+        romRoot = value['schema'] == 4 && value['route'] == 'pcsx'
+            ? value['romRoot'] as String?
             : null,
         clientId = value['clientId'] as String,
         accountId = value['accountId'] as String,
@@ -44,34 +58,69 @@ class AutomaticSaveMapping {
     if (!(value['schema'] == 1 && !value.containsKey('route') ||
             isMelon ||
             isPpssppSavedata ||
-            isRetroArch) ||
+            isRetroArch ||
+            isPcsx) ||
+        (isPcsx &&
+            (pcsxLayout!.cards.length != 1 ||
+                pcsxCard!.name != slot ||
+                !{'libretro', 'shared'}.contains(pcsxCard!.mode) ||
+                romRoot == null ||
+                romRoot!.isEmpty ||
+                romRoot!.length > 4096 ||
+                RegExp(r'[\x00-\x1f\x7f]').hasMatch(romRoot!))) ||
         [clientId, accountId, areaId, editionId, title]
             .any((s) => s.trim().isEmpty || s.length > 1024) ||
         artifactId.providerId != 'drive' ||
         artifactId.accountId != accountId ||
-        !(isRetroArch
-            ? directory == retroArchRoute!.directory
-            : isMelon
-                ? SaveCapture.validMelonDirectory(directory)
-                : isPpssppSavedata
-                    ? SaveCapture.validPpssppSavedataDirectory(directory)
-                    : SaveCapture.validPpssppDirectory(directory)) ||
-        !(isRetroArch
-            ? SaveCapture.validName(slot)
-            : isMelon
-                ? SaveCapture.validMelonName(slot)
-                : isPpssppSavedata
-                    ? slot == directory.split('/').last &&
-                        SaveCapture.validPpssppSavedataMember(slot)
-                    : SaveCapture.validPpssppName(slot))) {
+        !(isPcsx
+            ? directory == pcsxLayout!.directory
+            : isRetroArch
+                ? directory == retroArchRoute!.directory
+                : isMelon
+                    ? SaveCapture.validMelonDirectory(directory)
+                    : isPpssppSavedata
+                        ? SaveCapture.validPpssppSavedataDirectory(directory)
+                        : SaveCapture.validPpssppDirectory(directory)) ||
+        !(isPcsx
+            ? slot == pcsxCard!.name
+            : isRetroArch
+                ? SaveCapture.validName(slot)
+                : isMelon
+                    ? SaveCapture.validMelonName(slot)
+                    : isPpssppSavedata
+                        ? slot == directory.split('/').last &&
+                            SaveCapture.validPpssppSavedataMember(slot)
+                        : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
   }
 
   factory AutomaticSaveMapping.fromJob(SaveBackupGameJob job,
-      {required String title, String? saveName}) {
+      {required String title, String? saveName, String? romRoot}) {
     if (job.isPcsx) {
-      throw const FormatException('PlayStation card watch is not integrated');
+      return AutomaticSaveMapping._({
+        'schema': 4,
+        'route': 'pcsx',
+        'romRoot': romRoot,
+        'pcsx': {
+          'directory': job.pcsxLayout!.directory,
+          'cards': [
+            {
+              'slot': job.pcsxCard!.slot,
+              'mode': job.pcsxCard!.mode,
+              'name': job.pcsxCard!.name
+            }
+          ]
+        },
+        'clientId': job.clientId,
+        'accountId': job.accountId,
+        'areaId': job.areaId,
+        'editionId': job.editionId,
+        'artifact': job.artifactId.toJson(),
+        'title': title,
+        'directory': job.pcsxLayout!.directory,
+        'slot': job.pcsxCard!.name,
+      });
     }
     if (!job.isStandalone &&
         (saveName == null || !SaveCapture.validName(saveName))) {
@@ -110,20 +159,29 @@ class AutomaticSaveMapping {
     });
   }
 
-  String get slotStorageKey => isRetroArch
-      ? 'save_retroarch_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+  String get slotStorageKey => isPcsx
+      ? 'save_pcsx_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
               clientId,
               accountId,
               editionId,
               artifactId.key,
-              retroArchRoute!.platformId
+              pcsxCard!.slot
             ])))}'
-      : isMelon
-          ? melonMappingKey(clientId, accountId, editionId, artifactId)
-          : isPpssppSavedata
-              ? ppssppSavedataMappingKey(
-                  clientId, accountId, editionId, artifactId)
-              : ppssppMappingKey(clientId, accountId, editionId, artifactId);
+      : isRetroArch
+          ? 'save_retroarch_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+                  clientId,
+                  accountId,
+                  editionId,
+                  artifactId.key,
+                  retroArchRoute!.platformId
+                ])))}'
+          : isMelon
+              ? melonMappingKey(clientId, accountId, editionId, artifactId)
+              : isPpssppSavedata
+                  ? ppssppSavedataMappingKey(
+                      clientId, accountId, editionId, artifactId)
+                  : ppssppMappingKey(
+                      clientId, accountId, editionId, artifactId);
   static String ppssppSavedataMappingKey(String clientId, String accountId,
           String editionId, RemoteArtifactId artifact) =>
       'save_ppsspp_savedata_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
@@ -157,23 +215,43 @@ class AutomaticSaveMapping {
         artifactId.key,
         directory,
         slot,
+        if (isPcsx) ...[pcsxCard!.slot, pcsxCard!.mode, romRoot],
         if (isRetroArch) retroArchRoute!.journalId,
         if (isMelon) 'melondualds-sram-v1',
         if (isPpssppSavedata) 'ppsspp-savedata-v1',
       ])))
       .toString();
+  Map<String, Object?> get selection => {
+        'directory': directory,
+        'name': slot,
+        if (isPcsx) ...{
+          'mode': pcsxCard!.mode,
+          'card': pcsxCard!.slot,
+          'romRoot': romRoot,
+        }
+      };
+  bool matchesSelection(Object? value) =>
+      value is Map &&
+      selection.entries.every((entry) => value[entry.key] == entry.value);
   String encode() => jsonEncode({
-        'schema': isRetroArch
-            ? 3
-            : isMelon || isPpssppSavedata
-                ? 2
-                : 1,
+        'schema': isPcsx
+            ? 4
+            : isRetroArch
+                ? 3
+                : isMelon || isPpssppSavedata
+                    ? 2
+                    : 1,
         if (isRetroArch) ...{
           'route': 'retroarch',
           'platform': retroArchRoute!.platformId
         },
         if (isMelon) 'route': 'melon',
         if (isPpssppSavedata) 'route': 'ppsspp-savedata',
+        if (isPcsx) ...{
+          'route': 'pcsx',
+          'pcsx': pcsxLayout!.toJson(),
+          'romRoot': romRoot,
+        },
         'clientId': clientId,
         'accountId': accountId,
         'areaId': areaId,
@@ -266,13 +344,11 @@ class AutomaticSaveBackups extends ChangeNotifier {
     final db = await _db();
     if (enabled) {
       await refreshConfiguration?.call();
-      if (mapping.isRetroArch) {
+      if (mapping.isRetroArch || mapping.isPcsx) {
         _requireConfiguration(mapping, requireSelection: false);
         final selected =
             jsonDecode(preferences.getString(mapping.slotStorageKey) ?? '{}');
-        if (selected is! Map ||
-            selected['directory'] != mapping.directory ||
-            selected['name'] != mapping.slot) {
+        if (!mapping.matchesSelection(selected)) {
           // This explicit opt-in commits the newly reviewed launch destination.
           // Retire the former association before changing its selection; old
           // journals and every local/cloud copy remain available for recovery.
@@ -309,9 +385,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
             }
           }
           if (!await preferences.setString(
-              mapping.slotStorageKey,
-              jsonEncode(
-                  {'directory': mapping.directory, 'name': mapping.slot}))) {
+              mapping.slotStorageKey, jsonEncode(mapping.selection))) {
             throw PlatformException(code: 'mapping_unavailable');
           }
         }
@@ -456,10 +530,12 @@ class AutomaticSaveBackups extends ChangeNotifier {
                 slot['directory'] != mapping.directory ||
                 slot[mapping.isMelon ||
                             mapping.isPpssppSavedata ||
-                            mapping.isRetroArch
+                            mapping.isRetroArch ||
+                            mapping.isPcsx
                         ? 'name'
                         : 'slot'] !=
-                    mapping.slot))) {
+                    mapping.slot ||
+                mapping.isPcsx && !mapping.matchesSelection(slot)))) {
       throw PlatformException(code: 'source_changed');
     }
   }
@@ -479,8 +555,13 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   SaveBackupGameJob _open(AutomaticSaveMapping mapping) {
-    Future<String> resolve() => _resolve(mapping);
-    if (createJob != null) return createJob!(mapping, resolve);
+    Future<String> resolve() async {
+      final name = await _resolve(mapping);
+      if (mapping.isPcsx) await _resolvePcsxGrant(mapping);
+      return name;
+    }
+
+    if (createJob != null) return createJob!(mapping, () => _resolve(mapping));
     final authorization =
         DriveRuntime.instance.authorizationFor(mapping.clientId);
     return SaveBackupGameJob(
@@ -495,20 +576,50 @@ class AutomaticSaveBackups extends ChangeNotifier {
         areaId: mapping.areaId,
         editionId: mapping.editionId,
         artifactId: mapping.artifactId,
-        ppssppDirectory:
-            mapping.isMelon || mapping.isPpssppSavedata || mapping.isRetroArch
-                ? null
-                : mapping.directory,
-        ppssppSlot:
-            mapping.isMelon || mapping.isPpssppSavedata || mapping.isRetroArch
-                ? null
-                : mapping.slot,
+        ppssppDirectory: mapping.isMelon ||
+                mapping.isPpssppSavedata ||
+                mapping.isRetroArch ||
+                mapping.isPcsx
+            ? null
+            : mapping.directory,
+        ppssppSlot: mapping.isMelon ||
+                mapping.isPpssppSavedata ||
+                mapping.isRetroArch ||
+                mapping.isPcsx
+            ? null
+            : mapping.slot,
         ppssppSavedataDirectory:
             mapping.isPpssppSavedata ? mapping.directory : null,
         melonDirectory: mapping.isMelon ? mapping.directory : null,
         melonName: mapping.isMelon ? mapping.slot : null,
         retroArchRoute: mapping.retroArchRoute ?? RetroArchBatteryRoute.mgba,
+        pcsxLayout: mapping.pcsxLayout,
+        pcsxCard: mapping.pcsxCard,
+        resolvePcsxGrant:
+            mapping.isPcsx ? () => _resolvePcsxGrant(mapping) : null,
         resolveSaveName: resolve);
+  }
+
+  Future<Map<String, Object>> _resolvePcsxGrant(
+      AutomaticSaveMapping mapping) async {
+    await _resolve(mapping);
+    final artifact = await LibraryStore(database).artifact(mapping.artifactId);
+    if (artifact == null) throw PlatformException(code: 'source_changed');
+    final grant = await OwnedEmulatorLauncher().resolveRetroArchPcsxGrant(
+        GameItem(
+            filename: artifact.displayName,
+            displayName: artifact.displayName,
+            url: '',
+            remoteArtifact: artifact),
+        mapping.romRoot!);
+    final current = PcsxSaveLayout.decode(
+        await const MethodChannel('com.retro.rshop/storage')
+            .invokeMapMethod<String, dynamic>(
+                'reviewOwnedRetroArchPcsxSaves', grant));
+    if (!current.containsSelection(mapping.pcsxLayout!, mapping.pcsxCard!)) {
+      throw PlatformException(code: 'source_changed');
+    }
+    return grant;
   }
 
   /// A watch acknowledges only after this exact enabled mapping is durably
@@ -546,8 +657,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
   Future<void> prepareLaunch(
       {required RemoteArtifactId artifactId,
       String? editionId,
-      Future<String> Function(RetroArchBatteryRoute)?
-          reviewRetroArchSave}) async {
+      Future<String> Function(RetroArchBatteryRoute)? reviewRetroArchSave,
+      Future<PcsxSaveLayout> Function()? reviewPcsxSaves}) async {
     final generation = _cancelGeneration;
     final db = await _db();
     final enabled = await db.query('automatic_save_backups',
@@ -589,6 +700,12 @@ class AutomaticSaveBackups extends ChangeNotifier {
         SaveBackupGameJob? job;
         String? failure;
         Future<void> reviewTarget() async {
+          if (mapping.isPcsx &&
+              (reviewPcsxSaves == null ||
+                  !(await reviewPcsxSaves()).containsSelection(
+                      mapping.pcsxLayout!, mapping.pcsxCard!))) {
+            throw PlatformException(code: 'source_changed');
+          }
           if (mapping.isRetroArch &&
               (reviewRetroArchSave == null ||
                   await reviewRetroArchSave(mapping.retroArchRoute!) !=

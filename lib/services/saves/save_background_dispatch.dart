@@ -26,6 +26,9 @@ class SaveBackgroundDispatch {
                 if (mapping.isPpssppSavedata) 'route': 'ppsspp-savedata',
                 if (mapping.isRetroArch)
                   'route': 'retroarch-${mapping.retroArchRoute!.platformId}',
+                if (mapping.isPcsx)
+                  'route':
+                      'pcsx-${mapping.pcsxCard!.mode}-${mapping.pcsxCard!.slot}',
               })
           .toList(),
     });

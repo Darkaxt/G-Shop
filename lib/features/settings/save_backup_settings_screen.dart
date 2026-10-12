@@ -21,6 +21,7 @@ import '../../models/game_item.dart';
 import '../../models/system_model.dart';
 import '../../models/save_emulator_coverage.dart';
 import '../../models/retroarch_battery_route.dart';
+import '../../models/pcsx_save_layout.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/save_backup_providers.dart';
@@ -78,6 +79,8 @@ class _SaveBackupSettingsScreenState
   String? _gameBinding;
   int _gameGeneration = 0;
   bool _pspSavedata = true;
+  int _pcsxSlot = 1;
+  PcsxSaveLayout? _pcsxLayout;
   bool _editingMapping = false;
   SaveBackupSection _section = SaveBackupSection.area;
   Future<List<SaveEmulatorCoverage>?>? _coverage;
@@ -215,6 +218,25 @@ class _SaveBackupSettingsScreenState
       DriveSourceConfig config, String areaId) async {
     final generation = ++_gameGeneration;
     _automatic = await ref.read(automaticSaveBackupsProvider.future);
+    PcsxSaveLayout? pcsx;
+    PcsxSaveCard? card;
+    final launcher = OwnedEmulatorLauncher();
+    if (widget.system?.id == 'psx') {
+      pcsx = await launcher.reviewRetroArchPcsxSaves(
+          widget.game!, widget.system!, widget.targetFolder!);
+      if (!mounted || generation != _gameGeneration) {
+        throw StateError('Closed save workflow');
+      }
+      _pcsxLayout = pcsx;
+      card = pcsx.cards.where((c) => c.slot == _pcsxSlot).firstOrNull;
+      if (card == null && pcsx.cards.isNotEmpty) {
+        card = pcsx.cards.first;
+        _pcsxSlot = card.slot;
+      }
+      if (card?.name == null) {
+        throw StateError('PlayStation card association unresolved');
+      }
+    }
     String? ppssppDirectory,
         ppssppSlot,
         ppssppSavedataDirectory,
@@ -274,31 +296,46 @@ class _SaveBackupSettingsScreenState
         ppssppSavedataDirectory: ppssppSavedataDirectory,
         melonDirectory: melonDirectory,
         melonName: melonName,
+        pcsxLayout: pcsx,
+        pcsxCard: card,
+        resolvePcsxGrant: pcsx == null
+            ? null
+            : () => launcher.resolveRetroArchPcsxGrant(
+                widget.game!, widget.targetFolder!),
         retroArchRoute: RetroArchBatteryRoute.forPlatform(widget.system?.id) ??
             RetroArchBatteryRoute.mgba,
-        resolveSaveName: !savedata && ppssppSlot == null && melonName == null
-            ? () => OwnedEmulatorLauncher().reviewRetroArchBatterySave(
-                widget.game!,
-                widget.system!,
-                widget.targetFolder!,
-                RetroArchBatteryRoute.forPlatform(widget.system?.id)!)
-            : () async {
-                final preferences = await SharedPreferences.getInstance();
-                final mapping =
-                    jsonDecode(preferences.getString(mappingKey) ?? '{}')
-                        as Map<String, dynamic>;
-                final name = savedata
-                    ? ppssppSavedataDirectory!.split('/').last
-                    : (melonName ?? ppssppSlot)!;
-                if (mapping['directory'] !=
-                        (melonDirectory ??
-                            ppssppSavedataDirectory ??
-                            ppssppDirectory) ||
-                    mapping[melon || savedata ? 'name' : 'slot'] != name) {
-                  throw StateError('Save mapping changed');
+        resolveSaveName: pcsx != null
+            ? () async {
+                final current = await launcher.reviewRetroArchPcsxSaves(
+                    widget.game!, widget.system!, widget.targetFolder!);
+                if (!current.containsSelection(pcsx!, card!)) {
+                  throw PlatformException(code: 'source_changed');
                 }
-                return name;
-              });
+                return card.name!;
+              }
+            : !savedata && ppssppSlot == null && melonName == null
+                ? () => OwnedEmulatorLauncher().reviewRetroArchBatterySave(
+                    widget.game!,
+                    widget.system!,
+                    widget.targetFolder!,
+                    RetroArchBatteryRoute.forPlatform(widget.system?.id)!)
+                : () async {
+                    final preferences = await SharedPreferences.getInstance();
+                    final mapping =
+                        jsonDecode(preferences.getString(mappingKey) ?? '{}')
+                            as Map<String, dynamic>;
+                    final name = savedata
+                        ? ppssppSavedataDirectory!.split('/').last
+                        : (melonName ?? ppssppSlot)!;
+                    if (mapping['directory'] !=
+                            (melonDirectory ??
+                                ppssppSavedataDirectory ??
+                                ppssppDirectory) ||
+                        mapping[melon || savedata ? 'name' : 'slot'] != name) {
+                      throw StateError('Save mapping changed');
+                    }
+                    return name;
+                  });
     try {
       await job.load();
       if (!mounted || generation != _gameGeneration) {
@@ -398,6 +435,13 @@ class _SaveBackupSettingsScreenState
   }
 
   Widget _mappingIssue(DriveSourceConfig config) {
+    if (widget.system?.id == 'psx') {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _pcsxCards(),
+        const Text(
+            'R-Shop could not link this memory card. Check that the game is downloaded and RetroArch’s card settings use a supported save location.'),
+      ]);
+    }
     if (_section == SaveBackupSection.area && !_editingMapping) {
       return const SizedBox.shrink();
     }
@@ -476,6 +520,44 @@ class _SaveBackupSettingsScreenState
       job.areas.close();
       job.generations.close();
     });
+  }
+
+  Widget _pcsxCards() {
+    final cards = _pcsxLayout?.cards ?? const <PcsxSaveCard>[];
+    if (cards.length < 2 ||
+        !{SaveBackupSection.backup, SaveBackupSection.restore}
+            .contains(_section)) {
+      return const SizedBox.shrink();
+    }
+    final job = _gameJob;
+    final changeable = job?.busy != true &&
+        job?.pendingName == null &&
+        job?.restorePending != true &&
+        job?.conflicts.isNotEmpty != true;
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: DropdownButtonFormField<int>(
+          key: ValueKey('pcsx-card-selection-$_pcsxSlot'),
+          initialValue: _pcsxSlot,
+          decoration: const InputDecoration(labelText: 'Memory card'),
+          items: [
+            for (final card in cards)
+              DropdownMenuItem(
+                  value: card.slot,
+                  child: Text(
+                      'Card ${card.slot} · ${card.isShared ? 'shared between games' : card.needsDiscSerial ? 'disc-based name' : 'this game'}'))
+          ],
+          onChanged: !changeable
+              ? null
+              : (slot) {
+                  if (slot != null && slot != _pcsxSlot) {
+                    setState(() {
+                      _pcsxSlot = slot;
+                      _closeGame();
+                    });
+                  }
+                },
+        ));
   }
 
   @override
@@ -688,6 +770,11 @@ class _SaveBackupSettingsScreenState
                                                                       if (widget
                                                                               .system
                                                                               ?.id ==
+                                                                          'psx')
+                                                                        _pcsxSlot,
+                                                                      if (widget
+                                                                              .system
+                                                                              ?.id ==
                                                                           'psp')
                                                                         _pspSavedata,
                                                                     ]);
@@ -785,7 +872,8 @@ class _SaveBackupSettingsScreenState
                                                                                               const Text('Changing the selection turns off automatic backups for the previous save. Your existing cloud backups are kept.'),
                                                                                               _mappingIssue(selected.drive!),
                                                                                             ]))),
-                                                                                  if (!_editingMapping || (_section != SaveBackupSection.backup && _section != SaveBackupSection.restore)) SaveBackupGamePanel(key: ObjectKey(game.data!), section: _section, job: game.data!, automatic: _automatic, title: widget.gameTitle ?? 'Selected game', onChangeMapping: () => setState(() => _editingMapping = true)),
+                                                                                  if (widget.system?.id == 'psx') _pcsxCards(),
+                                                                                  if (!_editingMapping || (_section != SaveBackupSection.backup && _section != SaveBackupSection.restore)) SaveBackupGamePanel(key: ObjectKey(game.data!), section: _section, job: game.data!, automatic: _automatic, romRoot: widget.targetFolder, title: widget.gameTitle ?? 'Selected game', onChangeMapping: () => setState(() => _editingMapping = true)),
                                                                                 ])),
                                                                 if (_gameLoading ==
                                                                         null &&
@@ -947,6 +1035,7 @@ class SaveBackupGamePanel extends StatefulWidget {
   final SaveBackupGameJob job;
   final AutomaticSaveBackups? automatic;
   final String title;
+  final String? romRoot;
   final SaveBackupSection section;
   final VoidCallback? onChangeMapping;
   const SaveBackupGamePanel(
@@ -954,6 +1043,7 @@ class SaveBackupGamePanel extends StatefulWidget {
       required this.job,
       required this.title,
       this.automatic,
+      this.romRoot,
       this.onChangeMapping,
       this.section = SaveBackupSection.backup});
   @override
@@ -1010,7 +1100,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     Widget panel(String? name) => AutomaticSaveBackupPanel(
         service: widget.automatic!,
         mapping: AutomaticSaveMapping.fromJob(job,
-            title: widget.title, saveName: name),
+            title: widget.title, saveName: name, romRoot: widget.romRoot),
         statusOnly: statusOnly,
         allowEnable: !job.busy && _selectedName != null);
     if (job.isStandalone) return panel(null);
@@ -1136,15 +1226,17 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               Text(widget.title, style: AppTheme.headlineMedium),
               const SizedBox(height: 12),
               Text(
-                  job.isMelon
-                      ? 'MelonDualDS · in-game save · 0.8.0.rc2'
-                      : job.isPpssppSavedata
-                          ? 'PPSSPP · in-game save folder · v1.20.4'
-                          : job.isPpsspp
-                              ? 'PPSSPP · published state slot · v1.20.4'
-                              : !job.retroArchRoute.includesRtc
-                                  ? 'RetroArch · ${job.retroArchRoute.coreLabel} · ${job.retroArchRoute.label} in-game saves'
-                                  : 'RetroArch · mGBA · battery saves only',
+                  job.isPcsx
+                      ? 'RetroArch · PlayStation · ${job.isSharedPcsx ? 'shared memory card' : 'private memory card'} ${job.pcsxCard!.slot}'
+                      : job.isMelon
+                          ? 'MelonDualDS · in-game save · 0.8.0.rc2'
+                          : job.isPpssppSavedata
+                              ? 'PPSSPP · in-game save folder · v1.20.4'
+                              : job.isPpsspp
+                                  ? 'PPSSPP · published state slot · v1.20.4'
+                                  : !job.retroArchRoute.includesRtc
+                                      ? 'RetroArch · ${job.retroArchRoute.coreLabel} · ${job.retroArchRoute.label} in-game saves'
+                                      : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (job.isStandalone &&
                   (widget.section == SaveBackupSection.backup ||
@@ -1170,15 +1262,19 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               if (widget.section == SaveBackupSection.backup) ...[
                 const SizedBox(height: 12),
                 Text(
-                    job.isMelon
-                        ? 'Backs up only this game’s selected .sav or .srm file in its configured save folder. ROMs, settings and save states are not included.'
-                        : job.isPpssppSavedata
-                            ? 'Backs up this game’s complete in-game save folder, including its companion files. ROMs, emulator settings and save states are not included.'
-                            : job.isPpsspp
-                                ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
-                                : !job.retroArchRoute.includesRtc
-                                    ? 'Backs up this ${job.retroArchRoute.label} game’s complete in-game save from RetroArch. ROMs, settings and save states are not included.'
-                                    : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
+                    job.isPcsx
+                        ? job.isSharedPcsx
+                            ? 'Backs up the complete shared memory card. It may contain saves from several games; those games use one backup history. ROMs, settings and save states are not included.'
+                            : 'Backs up this game’s complete PlayStation memory card. ROMs, settings and save states are not included.'
+                        : job.isMelon
+                            ? 'Backs up only this game’s selected .sav or .srm file in its configured save folder. ROMs, settings and save states are not included.'
+                            : job.isPpssppSavedata
+                                ? 'Backs up this game’s complete in-game save folder, including its companion files. ROMs, emulator settings and save states are not included.'
+                                : job.isPpsspp
+                                    ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
+                                    : !job.retroArchRoute.includesRtc
+                                        ? 'Backs up this ${job.retroArchRoute.label} game’s complete in-game save from RetroArch. ROMs, settings and save states are not included.'
+                                        : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 FutureBuilder<List<String>>(

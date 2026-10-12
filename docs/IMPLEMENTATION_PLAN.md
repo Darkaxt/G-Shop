@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 32.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 34.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 S12 planning addition (owner, 2026-10-12): reviewed "Identify AYN Thor Frontends"
@@ -16,6 +16,24 @@ Detect changes through file events and reconcile missed events on existing recov
 checks. Verify the captured bytes stayed consistent, preserve conflicts, and keep
 restore's protection against overwriting saves in use. This belongs to ACTIVE S10.
 
+S10 companion extension (owner, 2026-10-13): automatically associate related
+game-folder changes, including screenshots/caches/other derived companions,
+with the active ROM; reuse the existing verified backup pipeline and preserve
+separate save/state/companion restore semantics and conflicts. ROM/BIOS,
+credentials and unrelated shared app data remain excluded. This is ordinary
+unfinished S10 work, not a new ACTIVE stage or an S11 deferral. Verify associated
+companions round-trip without treating them as battery saves or overwriting
+current unrelated files. The live Drive MIME rejection is now resolved and its
+original pending PS1 publication verified; proceed with this companion extension.
+
+S10 cross-device direction (owner, 2026-10-13): one ROM identity, device-specific
+backup histories and default reconciliation. Suggest other-device data when the
+current device lacks validated data or another device offers newer data; require
+explicit per-file/required-group import or ignore choices, remembered per ROM and
+reopenable from its menu. Verify no silent cross-device restore, compatibility and
+conflict/rollback preservation, persistent choices and their revision. This remains
+unfinished work within S10; it does not change the ROM catalogue or activate S11.
+
 S10 save-association UX (owner, 2026-10-12): known exact ROM/emulator mappings
 select their save automatically, without a redundant file picker or ownership
 checkbox. Preserve backup opt-in, restore/conflict choices and custom/ambiguous
@@ -25,9 +43,10 @@ focused game-panel checks, then inspect the installed normal game menu.
 S10 PS1 checkpoint, 2026-10-13: exact owned/byte-bound CHD -> configured
 private/shared card capture, restore, retained rollback and interrupted-receipt
 recovery pass focused host/native and actual Thor checks. Shared-resource ancestry
-and cross-initiating-game restore pass host job checks. This is not yet normal
-watch/UI-to-Drive support. Finish automatic watch and normal game/pre-launch
-consumers within the same ACTIVE S10. Serial/content-URI
+and cross-initiating-game restore pass host job checks. Automatic watch and normal
+game/pre-launch consumers now pass focused checks; the normal panel/watch-to-real-
+Drive workflow completed with the original captured fixture and reserved IDs.
+Serial/content-URI
 policies remain unfinished coverage, not unsupported waivers. See
 S10_SAVE_BACKUP_DESIGN.md. S11 and proposed S12 remain NOT STARTED.
 

@@ -538,6 +538,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         await saves.prepareLaunch(
             artifactId: artifact,
             editionId: editionId,
+            reviewPcsxSaves: () => _emulatorLauncher.reviewRetroArchPcsxSaves(
+                game, widget.system, widget.targetFolder),
             reviewRetroArchSave: (route) =>
                 _emulatorLauncher.reviewRetroArchBatterySave(
                     game, widget.system, widget.targetFolder, route));
@@ -620,7 +622,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     return [
       if (editionId != null &&
           (RetroArchBatteryRoute.forPlatform(widget.system.id) != null ||
-              const {'psp', 'nds'}.contains(widget.system.id)) &&
+              const {'psp', 'nds', 'psx'}.contains(widget.system.id)) &&
           variant.remoteArtifact != null)
         QuickMenuItem(
             label: L.of(context).saveBackup_title,

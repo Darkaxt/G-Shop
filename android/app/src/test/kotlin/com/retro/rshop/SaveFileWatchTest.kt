@@ -7,6 +7,27 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class SaveFileWatchTest {
+    @Test fun pcsxWatchKeepsPrivateAndSharedCardsSeparate() {
+        val private = SaveFileWatch.Mapping("d".repeat(64),
+            "/storage/emulated/0/RetroArch/saves/PCSX-ReARMed", "owned%2FGame.srm", "pcsx-libretro-1")
+        val shared = SaveFileWatch.Mapping("e".repeat(64), private.directory, "pcsx-card2.mcd", "pcsx-shared-2")
+        val rows = listOf(private, shared)
+        for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO, FileObserver.DELETE)) {
+            assertEquals(listOf(private.key), SaveFileWatch.affected(rows, event, private.name))
+            assertEquals(listOf(shared.key), SaveFileWatch.affected(rows, event, shared.name))
+            for (leaf in listOf("Other.srm", "owned%2FGame.rtc", "Game.chd", "retroarch.cfg"))
+                assertTrue(SaveFileWatch.affected(rows, event, leaf).isEmpty())
+        }
+        for ((route, name) in listOf("pcsx-libretro-2" to private.name,
+                "pcsx-shared-2" to "pcsx-card1.mcd", "pcsx-serial-1" to "SLUS.mcd"))
+            assertThrows(IllegalArgumentException::class.java) {
+                SaveFileWatch.Mapping(private.key, private.directory, name, route)
+            }
+        assertThrows(IllegalArgumentException::class.java) {
+            SaveFileWatch.Mapping(private.key, "/storage/emulated/0/Android/data/other/files/saves",
+                private.name, private.route)
+        }
+    }
     @Test fun sameBoyWatchKeepsEachExactGameAndItsClock() {
         for (route in listOf("gb", "gbc")) {
             val mapping = SaveFileWatch.Mapping("b".repeat(64),

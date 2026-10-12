@@ -6,10 +6,55 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Actual Android file events in an exclusive fixture; no account, emulator,
  * user save, configuration, ROM or cloud operation. */
 internal object SaveFileWatchProof {
+    fun pcsx(context: Context): String {
+        check(context.packageName == "com.darkaxt.rshop.debug")
+        val directory = File("/storage/emulated/0/RetroArch/saves", "RShopPcsxWatch-${UUID.randomUUID()}")
+        check(directory.mkdir())
+        val mappings = listOf(
+            SaveFileWatch.Mapping("a".repeat(64), directory.path, "owned%2FGame.srm", "pcsx-libretro-1"),
+            SaveFileWatch.Mapping("b".repeat(64), directory.path, "pcsx-card2.mcd", "pcsx-shared-2"))
+        val delivered = CountDownLatch(2)
+        val events = linkedSetOf<String>()
+        val unavailable = AtomicBoolean(false)
+        val watch = SaveFileWatch(context, {
+            unavailable.set(true)
+            // A failed worker is an actual terminal event, not successful delivery.
+            while (delivered.count > 0) delivered.countDown()
+        }) { key ->
+            synchronized(events) { if (events.add(key)) delivered.countDown() }
+        }
+        val files = mutableListOf<File>()
+        fun allocate(name: String) = File(directory, name).also {
+            check(it.canonicalFile == it.absoluteFile && it.createNewFile()); files.add(it)
+        }
+        try {
+            val publications = mappings.map { mapping ->
+                Triple(allocate(mapping.name), allocate("${mapping.name}.tmp"), allocate("other-${mapping.name}"))
+            }
+            check(watch.replace(mappings).toSet() == mappings.map { it.key }.toSet())
+            for ((target, temporary, unrelated) in publications) {
+                FileOutputStream(unrelated).use { it.write(byteArrayOf(9)); it.fd.sync() }
+                FileOutputStream(temporary).use { it.write(ByteArray(131072) { 7 }); it.fd.sync() }
+                Os.rename(temporary.path, target.path)
+            }
+            delivered.await()
+            check(!unavailable.get()) { "PS1 root watch ended unexpectedly" }
+            synchronized(events) { check(events == mappings.map { it.key }.toSet()) }
+        } finally {
+            watch.close() // Joins root children even with no further file events.
+            for (file in files) if (file.exists()) {
+                check(file.isFile && file.canonicalFile == file.absoluteFile && file.delete())
+            }
+            check(directory.list()!!.isEmpty() && directory.delete())
+        }
+        return "PASS PS1 private/shared exact root watches: both card roles registered separately in one folder; atomic card publication delivered; temporary/unrelated leaves excluded; root children joined; exclusive fixture removed; no user cards/emulator/settings/Drive changes"
+    }
+
     fun retroArch(context: Context): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
         val suffix = UUID.randomUUID().toString()

@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 32, 2026-10-12.
+Authoritative specification, revision 34, 2026-10-13.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -1400,11 +1400,36 @@ the exact permission/export limitation for any unsupported route. An uninvestiga
 route is unfinished work, not a justified unsupported classification. Refresh the
 inventory at S10 entry and closure rather than freeze today's installed apps.
 
+Owner extension, 2026-10-13: include ROM companion backup, not only save files.
+Game-generated screenshots, caches and other related derived files may belong
+to the same ROM's recoverable backup. Files created or changed in its game folder
+during execution are automatic association evidence; do not reject a related
+file merely because it is not a battery save. Keep companions distinguishable
+from saves and version-sensitive states on restoration, and preserve conflict
+handling rather than blindly replacing current files. Reuse the existing
+bounded, coherent, digest-verified backup pipeline; do not create a second sync
+engine. This extends S10, not ROM/SD mirroring: ROM binaries, BIOS, credentials
+and unrelated/shared application data remain excluded. Exact configured naming
+and the active ROM association disambiguate shared console folders.
+
+Owner cross-device direction, 2026-10-13: retain one ROM identity with separate
+device-specific companion/save histories. Normal reconciliation uses the current
+device's validated history. When none is validated for this device, or another
+device offers more up-to-date data, suggest a cross-device import rather than
+silently applying it. Show the source device and selectable files or indivisible
+required groups, with choices to associate/import or ignore. Persist those
+choices per ROM/device and expose the same dialog from that ROM's menu whenever
+cross-device data is available, so the owner can revise mistakes or preferences.
+Recheck file identity/digests, destination and state/cache compatibility on import;
+timestamps are suggestion evidence, never conflict-resolution authority. Preserve
+both divergent versions and the existing rollback boundary. This changes the
+default cross-device reconciliation policy, not the shared ROM catalogue identity.
+
 Bind backups to the account, device, emulator/core, console and reviewed
 game/edition identity. Separate portable battery/in-game saves from save states;
 record emulator/core and state-format compatibility rather than restore an
 incompatible state into another emulator. Unknown associations remain unresolved.
-Include required related save files as a group, not ROMs, BIOS, shaders, arbitrary
+Include required related save files as a group, not ROMs, BIOS, shared shaders, arbitrary
 app data, credentials or emulator settings. Custom paths require explicit mapping
 and the same file/identity safeguards; never scan and upload the entire SD card.
 

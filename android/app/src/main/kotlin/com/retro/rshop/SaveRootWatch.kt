@@ -27,13 +27,15 @@ internal class SaveRootWatch(context: Context, entries: List<SaveFileWatch.Mappi
                 if (it.route == "ppsspp-savedata")
                     it.directory.substringBeforeLast('/') == entries.first().directory.substringBeforeLast('/') &&
                         PpssppSavedataBoundary.validDirectory(it.directory)
-                else it.directory == entries.first().directory && SaveSourceStorage.isProtectedDirectory(it.directory)
+                else it.directory == entries.first().directory &&
+                    (it.pcsx != null || SaveSourceStorage.isProtectedDirectory(it.directory))
         })
         val apk = context.applicationInfo.sourceDir
         fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
         val command = "CLASSPATH=${quote(apk)} /system/bin/app_process -Xmx64m /system/bin " +
             "com.retro.rshop.RootSaveProcess ${quote(apk)} watch"
-        child = ProcessBuilder("su", "-c", command).start()
+        child = ProcessBuilder(*(if (entries.first().pcsx != null)
+            arrayOf("su", "--mount-master", "-c", command) else arrayOf("su", "-c", command))).start()
         input = DataInputStream(child.inputStream.buffered())
         output = DataOutputStream(child.outputStream.buffered())
         diagnostics = Thread({ child.errorStream.use { stream ->
@@ -181,7 +183,8 @@ object RootSaveWatchWorker {
             "melon" -> MelonSaveBoundary.isProtectedDirectory(source)
             "ppsspp" -> PpssppSaveBoundary.isProtectedDirectory(source)
             "ppsspp-savedata" -> PpssppSavedataBoundary.validParent(source)
-            else -> false
+            else -> Regex("pcsx-(libretro|shared)-([12])").matches(route) &&
+                PcsxSaveSettings.storagePath(source) == source
         })
         val count = input.readInt()
         require(count in 1..4096)
@@ -190,7 +193,13 @@ object RootSaveWatchWorker {
             SaveFileWatch.Mapping(key, if (route == "ppsspp-savedata") "$source/$name" else source, name, route)
         }
         require(entries.map { it.key }.toSet().size == count)
-        val backing = SaveSourceStorage.backingDirectory(source)
+        val backing = if (entries.first().pcsx != null) {
+            // Same validated global-mount path as the configured card capture;
+            // do not broaden the generic standalone storage allowlist.
+            if (source.startsWith("/storage/emulated/0/"))
+                "/data/media/0/" + source.removePrefix("/storage/emulated/0/")
+            else "/mnt/media_rw/" + source.removePrefix("/storage/")
+        } else SaveSourceStorage.backingDirectory(source)
         val directory = OwnedStorageNative.openRoot(backing)
         try {
             if (route == "ppsspp-savedata") { savedata(source, directory, entries, output); return }

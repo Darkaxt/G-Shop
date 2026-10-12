@@ -16,6 +16,13 @@ internal class SaveFileWatch(private val context: Context? = null,
     private val unavailable: () -> Unit = {}, private val changed: (String) -> Unit) : Closeable {
     data class Mapping(val key: String, val directory: String, val name: String,
         val route: String = "ppsspp") {
+        val pcsx: PcsxSaveSettings.Selection? = if (route.startsWith("pcsx-")) {
+            val role = Regex("pcsx-(libretro|shared)-([12])").matchEntire(route)
+                ?: throw IllegalArgumentException("Invalid PlayStation card watch")
+            val slot = role.groupValues[2].toInt()
+            PcsxSaveSettings.select(PcsxSaveSettings.Layout(directory,
+                listOf(PcsxSaveSettings.Card(slot, role.groupValues[1], name))), slot)
+        } else null
         init {
             require(key.matches(Regex("[a-f0-9]{64}")))
             require(when (route) {
@@ -23,7 +30,7 @@ internal class SaveFileWatch(private val context: Context? = null,
                 "melon" -> MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(name)
                 "ppsspp-savedata" -> PpssppSavedataBoundary.validDirectory(directory) &&
                     directory.substringAfterLast('/') == name
-                else -> route.startsWith("retroarch-") &&
+                else -> pcsx != null || route.startsWith("retroarch-") &&
                     RetroArchSaveBoundary.saveDirectory(route.removePrefix("retroarch-")) == directory &&
                     RetroArchSaveBoundary.validName(name)
             })
@@ -85,12 +92,14 @@ internal class SaveFileWatch(private val context: Context? = null,
             }
         }
         val registered = mutableListOf<String>()
-        for ((directory, entries) in mappings.groupBy {
-            if (it.route == "ppsspp-savedata") it.directory.substringBeforeLast('/') else it.directory
+        for ((group, entries) in mappings.groupBy {
+            (if (it.route == "ppsspp-savedata") it.directory.substringBeforeLast('/') else it.directory) to
+                (if (it.pcsx != null) it.route else "")
         }) {
+            val directory = group.first
             var observer: FileObserver? = null
             try {
-                if (entries.first().route == "ppsspp-savedata" || SaveSourceStorage.isProtectedDirectory(directory)) {
+                if (entries.first().pcsx != null || entries.first().route == "ppsspp-savedata" || SaveSourceStorage.isProtectedDirectory(directory)) {
                     val root = SaveRootWatch(context ?: throw IllegalStateException(), entries,
                         { key -> enqueue(listOf(key)) }, { main.post {
                             if (generation == token) unavailable()

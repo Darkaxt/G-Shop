@@ -465,6 +465,14 @@ class DriveSaveBackupGenerationApi {
       int size, Map<String, String> properties) {
     final parents = data?['parents'];
     final markers = data?['appProperties'];
+    final mime = data?['mimeType'];
+    // Drive can classify opaque save bytes despite an octet-stream upload.
+    // Its MIME label is not a content/ownership identity. Require a regular
+    // byte-backed object, then verify its exact size, digest and head revision.
+    // Google-native objects (including folders/shortcuts) are never save media.
+    final binary = mime is String &&
+        mime.isNotEmpty &&
+        !mime.toLowerCase().startsWith('application/vnd.google-apps.');
     if (data == null ||
         data['id'] != id ||
         data['ownedByMe'] != true ||
@@ -472,7 +480,7 @@ class DriveSaveBackupGenerationApi {
         data['trashed'] != false ||
         data['shared'] != false ||
         data['driveId'] != null ||
-        data['mimeType'] != 'application/octet-stream' ||
+        !binary ||
         parents is! List ||
         parents.length != 1 ||
         parents.single != areaId ||
@@ -482,6 +490,29 @@ class DriveSaveBackupGenerationApi {
         data['headRevisionId'] is! String ||
         !RegExp(r'^[A-Za-z0-9_-]{1,256}$')
             .hasMatch(data['headRevisionId'] as String)) {
+      if (kDebugMode) {
+        // Predicate results only: never log account/file IDs, tokens, paths,
+        // app-property values or response bodies from the private backup area.
+        final mimeLabel = mime is String &&
+                RegExp(r'^[a-z][a-z0-9.+-]{0,63}/[a-z][a-z0-9.+-]{0,63}$')
+                    .hasMatch(mime)
+            ? mime
+            : 'invalid';
+        debugPrint('RShopSaveReadback: metadata_check '
+            'present=${data != null} id_equal=${data?['id'] == id} '
+            'owner=${data?['ownedByMe'] == true} '
+            'authorized=${data?['isAppAuthorized'] == true} '
+            'not_trashed=${data?['trashed'] == false} '
+            'not_shared=${data?['shared'] == false} '
+            'individual_drive=${data?['driveId'] == null} '
+            'binary=$binary '
+            'observed_mime=$mimeLabel '
+            'manifest=${properties['kind'] == 'generation'} '
+            'parent_equal=${parents is List && parents.length == 1 && parents.single == areaId} '
+            'markers_equal=${markers is Map && properties.entries.every((e) => markers[e.key] == e.value)} '
+            'size_equal=${data?['size'] == '$size'} '
+            'revision_valid=${data?['headRevisionId'] is String && RegExp(r'^[A-Za-z0-9_-]{1,256}$').hasMatch(data!['headRevisionId'] as String)}');
+      }
       throw const SaveBackupGenerationException(
           SaveBackupGenerationIssue.unownedObject);
     }

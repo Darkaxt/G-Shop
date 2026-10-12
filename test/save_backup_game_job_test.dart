@@ -377,6 +377,9 @@ class _UiJob extends SaveBackupGameJob {
             ppssppSlot: other.ppssppSlot,
             melonDirectory: other.melonDirectory,
             melonName: other.melonName,
+            pcsxLayout: other.pcsxLayout,
+            pcsxCard: other.pcsxCard,
+            resolvePcsxGrant: other.resolvePcsxGrant,
             resolveSaveName: other.resolveSaveName);
   @override
   Future<List<String>> reviewedNames() async {
@@ -657,9 +660,18 @@ void main() {
       expect(capture.restored, hasLength(2));
       expect(generations.downloads, downloads);
       expect(capture.restoreRoutes, isEmpty);
-      // Watch integration is still unfinished, never map PS1 as mGBA.
-      expect(() => AutomaticSaveMapping.fromJob(second, title: 'PS1'),
-          throwsFormatException);
+      // Automatic watch identity must remain a PS1 card, never mGBA.
+      final watched = AutomaticSaveMapping.fromJob(second,
+          title: 'PS1', romRoot: '/storage/1234-ABCD/Roms/psx');
+      expect(jsonDecode(watched.encode())['route'], 'pcsx');
+      expect(watched.directory, layout.directory);
+      expect(watched.slot, 'pcsx-card2.mcd');
+      expect(watched.retroArchRoute, isNull);
+      expect(
+          watched.key,
+          isNot(AutomaticSaveMapping.fromJob(first,
+                  title: 'Other', romRoot: '/storage/1234-ABCD/Roms/psx')
+              .key));
     } finally {
       await first.cancelAndJoin();
       await second.cancelAndJoin();
@@ -801,6 +813,58 @@ void main() {
     expect(find.text('Automatic save checks: enabled'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     ui.dispose();
+    automatic.dispose();
+  });
+  testWidgets(
+      'PS1 shared card panel names the resource and links without confirmation',
+      (tester) async {
+    final layout = PcsxSaveLayout.decode({
+      'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+      'cards': [
+        {'slot': 2, 'mode': 'shared', 'name': 'pcsx-card2.mcd'}
+      ]
+    });
+    SharedPreferences.setMockInitialValues({});
+    final automatic = _AutomaticUi(db, await SharedPreferences.getInstance());
+    final psx = _UiJob(SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        pcsxLayout: layout,
+        pcsxCard: layout.cards.single,
+        resolvePcsxGrant: () async =>
+            {'installationId': 'installation', 'filename': 'Game.chd'},
+        resolveSaveName: () async => 'pcsx-card2.mcd'))
+      ..refreshFixture = true;
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: psx,
+                title: 'Game',
+                automatic: automatic,
+                romRoot: '/storage/1234-ABCD/Roms/psx')))));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('PlayStation · shared memory card 2'),
+        findsOneWidget);
+    expect(find.textContaining('may contain saves from several games'),
+        findsOneWidget);
+    expect(find.text('Save linked automatically'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    final toggle = tester.widget<CheckboxListTile>(
+        find.byKey(const ValueKey('automatic-save-enable')));
+    expect(toggle.onChanged, isNotNull);
+    toggle.onChanged!(true);
+    await tester.pumpAndSettle();
+    expect(automatic.selected!.pcsxCard!.mode, 'shared');
+    expect(automatic.selected!.retroArchRoute, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    psx.dispose();
     automatic.dispose();
   });
   testWidgets('automatic completion refreshes an open restore panel',
@@ -1021,26 +1085,33 @@ void main() {
     bool savedata = false,
     String? ppssppDirectory,
     RetroArchBatteryRoute? retroArch,
+    PcsxSaveLayout? pcsx,
   }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
-        platformId: retroArch?.platformId ?? (melon ? 'nds' : 'psp'),
+        platformId: pcsx != null
+            ? 'psx'
+            : retroArch?.platformId ?? (melon ? 'nds' : 'psp'),
         title: 'Game',
         matchStatus: IdentityMatchStatus.manuallyMatched));
-    final directory = retroArch != null
-        ? retroArch.directory
-        : melon
-            ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
-            : savedata
-                ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
-                : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
-    final slot = retroArch != null
-        ? 'owned%2FGame.srm'
-        : melon
-            ? 'Game.sav'
-            : savedata
-                ? 'ULUS10041DATA00'
-                : 'ULUS10041_1.00_0.ppst';
+    final directory = pcsx != null
+        ? pcsx.directory
+        : retroArch != null
+            ? retroArch.directory
+            : melon
+                ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
+                : savedata
+                    ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
+                    : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final slot = pcsx != null
+        ? pcsx.cards.single.name!
+        : retroArch != null
+            ? 'owned%2FGame.srm'
+            : melon
+                ? 'Game.sav'
+                : savedata
+                    ? 'ULUS10041DATA00'
+                    : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
         capture: capture,
@@ -1051,21 +1122,32 @@ void main() {
         areaId: 'area',
         editionId: 'edition',
         artifactId: artifactId,
-        ppssppDirectory:
-            melon || savedata || retroArch != null ? null : directory,
-        ppssppSlot: melon || savedata || retroArch != null ? null : slot,
+        ppssppDirectory: melon || savedata || retroArch != null || pcsx != null
+            ? null
+            : directory,
+        ppssppSlot: melon || savedata || retroArch != null || pcsx != null
+            ? null
+            : slot,
         ppssppSavedataDirectory: savedata ? directory : null,
         melonDirectory: melon ? directory : null,
         melonName: melon ? slot : null,
         retroArchRoute: retroArch ?? RetroArchBatteryRoute.mgba,
+        pcsxLayout: pcsx,
+        pcsxCard: pcsx?.cards.single,
+        resolvePcsxGrant: pcsx == null
+            ? null
+            : () async =>
+                {'installationId': 'installation', 'filename': 'Game.chd'},
         resolveSaveName: () async => slot);
     final mapping = AutomaticSaveMapping.fromJob(psp,
-        title: 'Game', saveName: retroArch != null ? slot : null);
+        title: 'Game',
+        saveName: retroArch != null ? slot : null,
+        romRoot: pcsx == null ? null : '/storage/1234-ABCD/Roms/psx');
     psp.dispose();
     SharedPreferences.setMockInitialValues({
       SaveBackupSetup.storageKey('client', 'account'):
           jsonEncode({'ready': true, 'areaId': 'area'}),
-      if (retroArch == null)
+      if (retroArch == null && pcsx == null)
         mapping.slotStorageKey: jsonEncode({
           'directory': directory,
           melon || savedata || retroArch != null ? 'name' : 'slot': slot
@@ -1106,15 +1188,23 @@ void main() {
             areaId: mapped.areaId,
             editionId: mapped.editionId,
             artifactId: mapped.artifactId,
-            ppssppDirectory: melon || savedata || retroArch != null
+            ppssppDirectory:
+                melon || savedata || retroArch != null || pcsx != null
+                    ? null
+                    : mapped.directory,
+            ppssppSlot: melon || savedata || retroArch != null || pcsx != null
                 ? null
-                : mapped.directory,
-            ppssppSlot:
-                melon || savedata || retroArch != null ? null : mapped.slot,
+                : mapped.slot,
             ppssppSavedataDirectory: savedata ? mapped.directory : null,
             melonDirectory: melon ? mapped.directory : null,
             melonName: melon ? mapped.slot : null,
             retroArchRoute: retroArch ?? RetroArchBatteryRoute.mgba,
+            pcsxLayout: mapped.pcsxLayout,
+            pcsxCard: mapped.pcsxCard,
+            resolvePcsxGrant: pcsx == null
+                ? null
+                : () async =>
+                    {'installationId': 'installation', 'filename': 'Game.chd'},
             resolveSaveName: resolve));
     addTearDown(() async {
       service.dispose();
@@ -1122,6 +1212,62 @@ void main() {
     });
     await service.setEnabled(mapping, true);
     return (service: service, mapping: mapping, preferences: preferences);
+  }
+
+  for (final shared in [false, true]) {
+    test(
+        'automatic PS1 ${shared ? 'shared' : 'private'} card persists, backs up and arms before launch',
+        () async {
+      final layout = PcsxSaveLayout.decode({
+        'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+        'cards': [
+          {
+            'slot': shared ? 2 : 1,
+            'mode': shared ? 'shared' : 'libretro',
+            'name': shared ? 'pcsx-card2.mcd' : 'owned%2FGame.srm'
+          }
+        ]
+      });
+      final watches = <AutomaticSaveMapping>[];
+      final fixture = await automaticFixture(
+          pcsx: layout, watch: (rows) async => watches.addAll(rows));
+      await fixture.service.requestChanged(fixture.mapping.key);
+      await fixture.service.backupPending();
+      expect(
+          (await fixture.service.status(fixture.mapping)).outcome, 'verified');
+      expect(capture.pcsxSources.single,
+          '${layout.directory}/${layout.cards.single.name}');
+      expect(capture.batteryRoutes, isEmpty);
+      var reviews = 0;
+      await fixture.service.prepareLaunch(
+          artifactId: artifactId,
+          editionId: 'edition',
+          reviewPcsxSaves: () async {
+            reviews++;
+            return layout;
+          });
+      expect(reviews, 2);
+      expect(watches.last.pcsxCard!.mode, shared ? 'shared' : 'libretro');
+      expect(watches.last.romRoot, '/storage/1234-ABCD/Roms/psx');
+      await expectLater(
+          fixture.service.prepareLaunch(
+              artifactId: artifactId,
+              reviewPcsxSaves: () async => PcsxSaveLayout.decode(
+                  {'directory': layout.directory, 'cards': []})),
+          throwsA(isA<PlatformException>()
+              .having((e) => e.code, 'code', 'source_changed')));
+      final selection = jsonDecode(
+              fixture.preferences.getString(fixture.mapping.slotStorageKey)!)
+          as Map<String, dynamic>;
+      selection['mode'] = 'serial';
+      await fixture.preferences
+          .setString(fixture.mapping.slotStorageKey, jsonEncode(selection));
+      await fixture.service.requestChanged(fixture.mapping.key);
+      await fixture.service.backupPending();
+      expect((await fixture.service.status(fixture.mapping)).issue,
+          'source_changed');
+      expect(generations.uploads, 1);
+    });
   }
 
   for (final route in RetroArchBatteryRoute.values) {

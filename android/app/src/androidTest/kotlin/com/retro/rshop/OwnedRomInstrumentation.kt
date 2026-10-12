@@ -39,6 +39,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var pcsxSettingsProbe = false
     private var pcsxCaptureProbe = false
     private var pcsxRestoreProbe = false
+    private var pcsxWatchProbe = false
     private var protectedPpssppSaveProbe = false
     private var ppssppCachedExitProbe = false
     private var ppssppSavedataCaptureProbe = false
@@ -68,6 +69,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         pcsxSettingsProbe = arguments?.getString("pcsxSettingsProbe") == "true"
         pcsxCaptureProbe = arguments?.getString("pcsxCaptureProbe") == "true"
         pcsxRestoreProbe = arguments?.getString("pcsxRestoreProbe") == "true"
+        pcsxWatchProbe = arguments?.getString("pcsxWatchProbe") == "true"
         protectedPpssppSaveProbe = arguments?.getString("protectedPpssppSaveProbe") == "true"
         ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
@@ -116,6 +118,8 @@ class OwnedRomInstrumentation : Instrumentation() {
                 report.putString("result", MissingSaveProof.exercise(targetContext))
             } else if (retroArchSnapshotProbe) {
                 report.putString("result", RetroArchSnapshotProof.exercise(targetContext))
+            } else if (pcsxWatchProbe) {
+                report.putString("result", SaveFileWatchProof.pcsx(targetContext))
             } else if (retroArchWatchProbe) {
                 report.putString("result", SaveFileWatchProof.retroArch(targetContext))
             } else if (saveWatchProbe) {
