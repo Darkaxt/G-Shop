@@ -7,6 +7,55 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### PS1 private/shared card capture — verified checkpoint, 2026-10-12
+
+The exact owned or byte-bound CHD grant now feeds the existing capture journal
+through the launcher and Dart/native capture boundary. Current PCSX settings
+select the directory, slot, role and exact filename; the root worker independently
+resolves and pins that configuration, including absent higher-precedence overrides.
+Only the selected card is readable through this capture lane. Source writes and
+reads of another card are rejected. Complete 131,072-byte cards use distinct
+private/shared/slot formats and journal bindings; a capture ID cannot replay
+against a different card or ROM. Missing first-save baselines remain explicit.
+
+Capture reuses the writable-descriptor census and kernel mutation guard, bounded
+streaming IO, synced staging and sealed digest verification. It does not query
+RetroArch's status or require game closure. Settings or source changes before
+sealing reject the snapshot; the owned CHD grant is rechecked before publication
+and replay. This is capture staging, not save restore or cloud publication.
+
+Focused native selection/boundary contracts and Dart capture/layout/launcher
+checks pass, with scoped analysis and diff checks clean. The new contract failed
+before implementation (native request 830 and focused Dart reproduction), then
+passed requests 831/833. Final request 833 acquired the shared Gradle mutex and
+completed with observed two workers, no parallelism, 3 GiB Gradle and Kotlin
+in-process. Tests were configured for one 512 MiB fork. Native two-job hints are
+not independently measured concurrency; no memory failure or budget increase.
+Local supervisor log: `9cbf749f7ea94efebab25c15338a2be2.log`.
+
+Actual Thor `pcsxCaptureProbe` passes full-card bytes/digests, absent baseline,
+truncated-card rejection, writable-handle rejection/read-only-handle admission,
+overlapping mutation, newly created configuration override, stale role,
+cross-card journal rejection and read-only lane isolation. Its private card,
+override and journals are exclusive synthetic fixtures; the user's existing
+shared card is read only. The synthetic CHD establishes the provider grant, not
+game decoding. Existing RetroArch N64/GBA/NES/SNES/GB/GBC snapshot, PPSSPP settings
+and Melon settings probes also pass on the same installed artifact.
+
+Preserving installs independently match packaged APK SHA-256
+`2865ff1b766fb738c3accdf1fac2ab03e59d5cdac22ad0c83b3eeb048d95d32f`.
+All 31 existing save/settings preservation hashes match with no added/missing
+entries; exclusive device fixtures were removed. Both physical displays are
+committed OFF; wakefulness Asleep. No user save, ROM, settings or cloud generation
+was changed; no release occurred.
+
+PS1 normal backup jobs, watch, restore and shared-resource ancestry are still
+unfinished. A shared card must have resource-level ancestry, not independent
+exclusive per-game histories. Serial/content-URI policies, other accessible
+routes, states, required fault/reconnect checks and conditional handover remain
+unfinished S10 acceptance. S10 remains the sole ACTIVE stage; S11 and proposed
+S12 are NOT STARTED. The discovery checkpoint below is historical.
+
 ### PS1 configured memory-card discovery — verified, 2026-10-12
 
 The actual Thor PCSX-ReARMed settings select a per-game libretro first card and

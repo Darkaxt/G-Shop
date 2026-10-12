@@ -37,6 +37,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var melonSettingsProbe = false
     private var ppssppSettingsProbe = false
     private var pcsxSettingsProbe = false
+    private var pcsxCaptureProbe = false
     private var protectedPpssppSaveProbe = false
     private var ppssppCachedExitProbe = false
     private var ppssppSavedataCaptureProbe = false
@@ -64,6 +65,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
         ppssppSettingsProbe = arguments?.getString("ppssppSettingsProbe") == "true"
         pcsxSettingsProbe = arguments?.getString("pcsxSettingsProbe") == "true"
+        pcsxCaptureProbe = arguments?.getString("pcsxCaptureProbe") == "true"
         protectedPpssppSaveProbe = arguments?.getString("protectedPpssppSaveProbe") == "true"
         ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
@@ -83,6 +85,9 @@ class OwnedRomInstrumentation : Instrumentation() {
         try {
             if (automaticSaveDiagnosis) {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
+            } else if (pcsxCaptureProbe) {
+                exercise(psx = true)
+                report.putString("result", "PASS exact owned PS1 private/shared card capture; full-card bytes/digests, missing baseline, writer rejection, configuration revision, stale role and cross-card journal rejection; existing shared card read-only; exclusive fixture cleanup")
             } else if (pcsxSettingsProbe) {
                 exercise(psx = true)
                 report.putString("result", "PASS exact owned CHD grant to live read-only PCSX card mapping; encoded per-game card and shared card roles, ownership/identity/publication/removal rejection; exclusive fixture cleanup; no emulator launch or save mutation")
@@ -280,6 +285,7 @@ class OwnedRomInstrumentation : Instrumentation() {
                     check(cards == listOf(
                         mapOf("slot" to 1, "mode" to "libretro", "name" to "$id%2Fsynthetic.srm"),
                         mapOf("slot" to 2, "mode" to "shared", "name" to "pcsx-card2.mcd")))
+                    if (pcsxCaptureProbe) PcsxCaptureProof.exercise(targetContext, id, rom.name, uri.encodedPath!!.substringAfterLast('/'))
                 } finally { service.shutdown() }
             }
             if (ds) {

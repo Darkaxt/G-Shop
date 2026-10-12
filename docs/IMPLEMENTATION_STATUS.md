@@ -5,19 +5,22 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### PS1 card discovery — verified checkpoint, 2026-10-12
+### PS1 card capture — verified checkpoint, 2026-10-12
 
-S10 remains the sole ACTIVE stage. Exact owned CHD review now resolves the
-configured private/shared PCSX-ReARMed cards. Focused host contracts and actual
-Thor read-only discovery pass, along with PPSSPP/Melon settings regressions.
-All 31 preservation hashes match; both screens are OFF/Asleep. Gated requests
-827/828 completed: two workers, no parallelism, 3 GiB Gradle, Kotlin in-process,
-one configured 512 MiB test fork; no memory failure or budget increase. See
-S10_SAVE_BACKUP_DESIGN.md for artifact/source evidence and exact limitations.
+S10 remains the sole ACTIVE stage. Exact owned/byte-bound CHD grants now support
+configured private/shared PCSX card capture with complete-card validation,
+settings revision, writer/mutation guards and distinct card journal bindings.
+Focused host contracts and actual Thor capture pass, along with the existing
+RetroArch snapshot and PPSSPP/Melon settings regressions. All 31 preservation
+hashes match; exclusive fixtures are removed; both screens are OFF/Asleep.
+Final gated request 833 completed: shared mutex acquired, two workers, no
+parallelism, 3 GiB Gradle, Kotlin in-process, one configured 512 MiB test fork;
+no memory failure or budget increase. See S10_SAVE_BACKUP_DESIGN.md for
+artifact/source evidence and exact limitations.
 
-PS1 capture/watch/backup/restore and shared-resource ancestry remain unfinished,
+PS1 normal watch/backup/restore and shared-resource ancestry remain unfinished,
 as do other accessible routes, states, required fault/reconnect checks and
-conditional handover. Discovery is not PS1 save support or S10 completion.
+conditional handover. Capture alone is not integrated PS1 save support or S10 completion.
 S11 and proposed S12 remain NOT STARTED.
 
 ### GB/GBC SameBoy save routes — verified slice, 2026-10-12

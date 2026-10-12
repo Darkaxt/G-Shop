@@ -86,6 +86,36 @@ internal class SaveCaptureService(private val activity: Context) {
     private var cancelled = false
     private var closed = false
     private class Failure(val code: String) : Exception()
+    private data class PcsxSource(val uri: Uri, val leaf: String, val selection: PcsxSaveSettings.Selection) {
+        val journalKey: String get() = JSONArray(listOf(uri.toString(), selection.card.slot,
+            selection.card.mode, selection.card.name, selection.directory)).toString()
+    }
+    private fun pcsxSource(call: MethodCall): PcsxSource {
+        val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")
+        if (!filename.endsWith(".chd", true)) throw Failure("invalid_selection")
+        val observed = call.argument<Number>("observationId")
+        val uri = if (observed != null) {
+            if ((observed !is Long && observed !is Int) || observed.toLong() <= 0 ||
+                call.hasArgument("installationId") || call.argument<String>("platformId") != "psx")
+                throw Failure("invalid_selection")
+            OwnedRomContentProvider.localCopyUri(activity, observed.toLong(), "psx", filename, true)
+        } else OwnedRomContentProvider.gameGearUri(activity,
+            call.argument<String>("installationId") ?: throw Failure("invalid_selection"), filename)
+        OwnedRomContentProvider.openCommitted(activity, uri, requiredStandaloneChd = true).use { }
+        val leaf = uri.encodedPath!!.substringAfterLast('/')
+        val layout = SaveSourceStorage.pcsxSettings(activity, leaf)
+        val cards = layout.getJSONArray("cards")
+        val slot = call.argument<Int>("slot") ?: throw Failure("invalid_selection")
+        val selection = try { PcsxSaveSettings.select(PcsxSaveSettings.Layout(layout.getString("directory"),
+            (0 until cards.length()).map { i -> cards.getJSONObject(i).let {
+                PcsxSaveSettings.Card(it.getInt("slot"), it.getString("mode"),
+                    if (it.isNull("name")) null else it.getString("name"))
+            } }), slot) } catch (_: IllegalArgumentException) { throw Failure("save_settings_unresolved") }
+        if (selection.directory != call.argument<String>("directory") ||
+            selection.card.name != call.argument<String>("name") || selection.card.mode != call.argument<String>("mode"))
+            throw Failure("source_changed")
+        return PcsxSource(uri, leaf, selection)
+    }
     private fun check() = synchronized(guard) {
         if (cancelled || closed) throw Failure("cancelled")
     }
@@ -233,6 +263,9 @@ internal class SaveCaptureService(private val activity: Context) {
                         "captureRetroArch" -> capture(captureId!!,
                             call.argument<String>("name") ?: "", retroArchRoute = batteryRoute(call),
                             restoreBaseline = call.argument<Boolean>("restoreBaseline") == true)
+                        "capturePcsx" -> pcsxSource(call).let { source -> capture(captureId!!,
+                            source.selection.card.name!!, pcsx = source,
+                            restoreBaseline = call.argument<Boolean>("restoreBaseline") == true) }
                         "capturePpsspp" -> capture(captureId!!,
                             call.argument<String>("name") ?: "",
                             call.argument<String>("directory") ?: "",
@@ -334,7 +367,8 @@ internal class SaveCaptureService(private val activity: Context) {
                          retroArchRoute: String = "gba",
                          melonDirectory: String? = null,
                          restoreBaseline: Boolean = false,
-                         savedata: Boolean = false): Map<String, Any>? {
+                         savedata: Boolean = false,
+                         pcsx: PcsxSource? = null): Map<String, Any>? {
         val seal = File(directory, "capture.json")
         if (!seal.exists()) return null
         if (seal.length() !in 1..(if (savedata) 131072 else 16384)) throw Failure("invalid_capture")
@@ -344,18 +378,20 @@ internal class SaveCaptureService(private val activity: Context) {
         }
         // A capture ID cannot be replayed against another directory or format.
         // Older mGBA journals lack these fields and retain their original binding.
-        val expectedFormat = if (savedata) PpssppSavedataBoundary.FORMAT else if (melonDirectory != null) MelonSaveBoundary.FORMAT
+        val expectedFormat = pcsx?.selection?.format ?: if (savedata) PpssppSavedataBoundary.FORMAT else if (melonDirectory != null) MelonSaveBoundary.FORMAT
             else if (ppssppDirectory != null) "ppsspp-slot-v1"
             else batteryFormat(retroArchRoute)
-        val expectedSource = melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
+        val expectedSource = pcsx?.selection?.directory ?: melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
         if (record.optString("format", "mgba-battery") != expectedFormat ||
-            record.optString("source", MGBA_SOURCE) != expectedSource) {
+            record.optString("source", MGBA_SOURCE) != expectedSource ||
+            (pcsx != null && record.optString("pcsxSource") != pcsx.journalKey) ||
+            (pcsx == null && record.has("pcsxSource"))) {
             throw Failure("invalid_capture")
         }
         val members = record.getJSONArray("files")
-        val includesRtc = ppssppDirectory == null && melonDirectory == null && RetroArchSaveBoundary.includesRtc(retroArchRoute)
+        val includesRtc = pcsx == null && ppssppDirectory == null && melonDirectory == null && RetroArchSaveBoundary.includesRtc(retroArchRoute)
         val maxMembers = if (savedata) PpssppSavedataBoundary.MAX_MEMBERS else if (includesRtc) 2 else 1
-        val maxSize = if (savedata) PpssppSavedataBoundary.MAX_BYTES else if (melonDirectory != null) MelonSaveBoundary.MAX_BYTES
+        val maxSize = if (pcsx != null) 131072L else if (savedata) PpssppSavedataBoundary.MAX_BYTES else if (melonDirectory != null) MelonSaveBoundary.MAX_BYTES
             else if (ppssppDirectory != null) PpssppSaveBoundary.MAX_STATE_BYTES
             else batteryMaxBytes(retroArchRoute)
         val absent = record.optBoolean("localWasAbsent")
@@ -374,6 +410,7 @@ internal class SaveCaptureService(private val activity: Context) {
             }
             if (file.canonicalFile != file.absoluteFile || !file.isFile ||
                 file.length() !in (if (savedata) 0 else 1)..maxSize ||
+                (pcsx != null && !pcsx.selection.acceptsSize(file.length())) ||
                 (!savedata && ppssppDirectory == null && melonDirectory == null &&
                     retroArchRoute == "n64" && file.length() != maxSize) ||
                 file.length() != item.getLong("size")) throw Failure("changed_capture")
@@ -445,17 +482,19 @@ internal class SaveCaptureService(private val activity: Context) {
                         ppssppDirectory: String? = null,
                         retroArchRoute: String = "gba",
                         melonDirectory: String? = null,
-                        restoreBaseline: Boolean = false): Map<String, Any> {
+                        restoreBaseline: Boolean = false,
+                        pcsx: PcsxSource? = null): Map<String, Any> {
         val ppsspp = ppssppDirectory != null
         val melon = melonDirectory != null
         val standalone = ppsspp || melon
-        if ((ppsspp && melon) || (standalone && retroArchRoute != "gba")) throw Failure("invalid_selection")
+        if ((ppsspp && melon) || (pcsx != null && standalone) || ((standalone || pcsx != null) && retroArchRoute != "gba")) throw Failure("invalid_selection")
         if (if (melon) !MelonSaveBoundary.validName(name) || !MelonSaveBoundary.validDirectory(melonDirectory!!)
             else if (ppsspp) !PpssppSaveBoundary.validName(name) ||
                 !PpssppSaveBoundary.validDirectory(ppssppDirectory!!)
+            else if (pcsx != null) name != pcsx.selection.card.name
             else !RetroArchSaveBoundary.validName(name)) throw Failure("invalid_selection")
-        val sourceDirectory = melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
-        if (!SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
+        val sourceDirectory = pcsx?.selection?.directory ?: melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
+        if (pcsx == null && !SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
             File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_selection")
         val packageName = if (melon) MelonSaveBoundary.PACKAGE else if (ppsspp) "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
         @Suppress("DEPRECATION")
@@ -473,7 +512,10 @@ internal class SaveCaptureService(private val activity: Context) {
         val directory = File(root, captureId)
         if (directory.exists() && directory.canonicalFile != directory.absoluteFile) throw Failure("invalid_capture")
         if (!directory.isDirectory && !directory.mkdir()) throw Failure("capture_storage")
-        captured(directory, name, ppssppDirectory, retroArchRoute, melonDirectory, restoreBaseline)?.let { return it }
+        captured(directory, name, ppssppDirectory, retroArchRoute, melonDirectory, restoreBaseline, pcsx = pcsx)?.let {
+            if (pcsx != null) OwnedRomContentProvider.openCommitted(activity, pcsx.uri, requiredStandaloneChd = true).use { }
+            return it
+        }
         // Only these exact private files can be leftovers from this journaled
         // capture ID. An unexpected entry is preserved and blocks replay.
         val leftovers = directory.listFiles() ?: throw Failure("capture_storage")
@@ -487,29 +529,32 @@ internal class SaveCaptureService(private val activity: Context) {
         // Holding the opened no-follow descriptor captures that complete inode;
         // changing the selected entry or inode before sealing rejects the copy.
         // This does not authorize writes/restores while PPSSPP is running.
-        val sourceStorage = SaveSourceStorage.open(activity, sourceDirectory)
+        val sourceStorage = if (pcsx != null) SaveSourceStorage.openPcsxCapture(activity, pcsx.leaf, pcsx.selection)
+            else SaveSourceStorage.open(activity, sourceDirectory)
         val sourceDir = sourceStorage.root
         val stageDir = try { OwnedStorageNative.openRoot(directory.absolutePath) }
             catch (e: Exception) { sourceStorage.close(); throw e }
         val fds = mutableListOf<Int>()
         try {
-            if (melon) sourceStorage.beginMelonSnapshot(activity, name)
+            if (pcsx != null) sourceStorage.beginPcsxSnapshot(activity, name)
+            else if (melon) sourceStorage.beginMelonSnapshot(activity, name)
             else if (!standalone) sourceStorage.beginRetroArchSnapshot(activity, name)
             val absent = restoreBaseline && !sourceStorage.exists(name)
             val selected = if (absent) mutableListOf<String>() else mutableListOf(name)
             val rtc = name.dropLast(4) + ".rtc"
-            if (!standalone && !RetroArchSaveBoundary.includesRtc(retroArchRoute) && File(sourceDirectory, rtc).exists()) {
+            if (pcsx == null && !standalone && !RetroArchSaveBoundary.includesRtc(retroArchRoute) && File(sourceDirectory, rtc).exists()) {
                 throw Failure("related_group_unfinished")
             }
-            if (!standalone && File(sourceDirectory, rtc).exists()) {
+            if (pcsx == null && !standalone && File(sourceDirectory, rtc).exists()) {
                 if (absent) throw Failure("related_group_changed")
                 selected += rtc
             }
             for (member in selected) fds += sourceStorage.openFile(member, false, false)
             val identities = fds.map(sourceStorage::identity)
-            val maxSize = if (melon) MelonSaveBoundary.MAX_BYTES else if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES
+            val maxSize = if (pcsx != null) 131072L else if (melon) MelonSaveBoundary.MAX_BYTES else if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES
                 else batteryMaxBytes(retroArchRoute)
             if (identities.any { it[2] !in 1..maxSize }) throw Failure("invalid_save_size")
+            if (pcsx != null && identities.any { !pcsx.selection.acceptsSize(it[2]) }) throw Failure("invalid_save_size")
             if (!standalone && retroArchRoute == "n64" && identities.any { it[2] != maxSize }) {
                 throw Failure("invalid_save_size")
             }
@@ -537,7 +582,7 @@ internal class SaveCaptureService(private val activity: Context) {
             if (absent && sourceStorage.exists(name)) throw Failure("source_changed")
             // Compare the complete group after all copies, including the RTC
             // existence assertion. A changed/replaced source never gets a seal.
-            if (!standalone && File(sourceDirectory, rtc).exists() != selected.contains(rtc)) throw Failure("source_changed")
+            if (pcsx == null && !standalone && File(sourceDirectory, rtc).exists() != selected.contains(rtc)) throw Failure("source_changed")
             for (i in fds.indices) {
                 if (!same(identities[i], sourceStorage.identity(fds[i])) ||
                     !same(identities[i], sourceStorage.entryIdentity(selected[i]))) {
@@ -549,19 +594,21 @@ internal class SaveCaptureService(private val activity: Context) {
             if (sourceStorage.currentRootIdentity().take(2) !=
                 sourceStorage.identity(sourceDir).take(2)) throw Failure("source_changed")
             if (melon || !standalone) sourceStorage.verifySnapshot()
+            if (pcsx != null) OwnedRomContentProvider.openCommitted(activity, pcsx.uri, requiredStandaloneChd = true).use { }
             check()
             val record = JSONObject().put("captureId", captureId).put("name", name)
                 .put("deviceId", hash(device.toByteArray(Charsets.UTF_8)))
                 .put("emulatorVersion", version).put("files", members)
-                .put("format", if (melon) MelonSaveBoundary.FORMAT else if (ppsspp) "ppsspp-slot-v1"
+                .put("format", pcsx?.selection?.format ?: if (melon) MelonSaveBoundary.FORMAT else if (ppsspp) "ppsspp-slot-v1"
                     else batteryFormat(retroArchRoute))
                 .put("source", sourceDirectory).put("localWasAbsent", absent)
+            if (pcsx != null) record.put("pcsxSource", pcsx.journalKey)
             if (absent) record.put("sourceIdentity", JSONArray(sourceStorage.identity(sourceDir).take(2)))
             val part = File(directory, "capture.json.part")
             FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
             OwnedStorageNative.renameNoReplace(stageDir, part.name, stageDir, "capture.json")
             OwnedStorageNative.sync(stageDir)
-            return captured(directory, name, ppssppDirectory, retroArchRoute, melonDirectory, restoreBaseline) ?: throw Failure("capture_storage")
+            return captured(directory, name, ppssppDirectory, retroArchRoute, melonDirectory, restoreBaseline, pcsx = pcsx) ?: throw Failure("capture_storage")
         } finally {
             try { fds.forEach { runCatching { sourceStorage.closeFile(it) } } }
             finally { try { OwnedStorageNative.close(stageDir) } finally { sourceStorage.close() } }

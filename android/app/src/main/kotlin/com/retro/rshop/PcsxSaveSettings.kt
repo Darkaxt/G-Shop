@@ -6,6 +6,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
+import java.security.MessageDigest
 
 /** Exact installed PCSX-ReARMed card configuration, not title matching.
  * The owned CHD launch uses the document URI's encoded leaf and "document"
@@ -21,6 +22,23 @@ internal object PcsxSaveSettings {
         "pcsx_rearmed_memcard1", "pcsx_rearmed_memcard2")
     data class Card(val slot: Int, val mode: String, val name: String?)
     data class Layout(val directory: String, val cards: List<Card>)
+    data class Selection(val directory: String, val card: Card) {
+        val format: String get() = "pcsx-${card.mode}-card${card.slot}-v1"
+        fun acceptsSize(size: Long): Boolean = size == 131072L
+    }
+    fun select(layout: Layout, slot: Int): Selection {
+        require(slot in 1..2 && storagePath(layout.directory) == layout.directory)
+        require(layout.cards.map { it.slot }.toSet().size == layout.cards.size)
+        val card = requireNotNull(layout.cards.singleOrNull { it.slot == slot })
+        val name = requireNotNull(card.name)
+        require(name.length in 5..255 && name.none { it == '/' || it == '\\' || it.code < 32 || it.code == 127 })
+        require(when (card.mode) {
+            "libretro" -> slot == 1 && name.endsWith(".srm")
+            "shared" -> name == "pcsx-card$slot.mcd"
+            else -> false // Serial cards require disc evidence, not a title guess.
+        })
+        return Selection(layout.directory, card)
+    }
 
     fun validChdLeaf(value: String): Boolean = value.length in 5..255 &&
         value.endsWith(".chd", ignoreCase = true) &&
@@ -106,7 +124,20 @@ internal object PcsxSaveSettings {
     }
 
     /** One coherent, bounded settings read in the existing joined root lane. */
-    fun read(encodedLeaf: String): JSONObject {
+    fun read(encodedLeaf: String): JSONObject = inspect(encodedLeaf).first.let { layout ->
+        JSONObject().put("directory", layout.directory).put("cards", JSONArray().also { array ->
+            layout.cards.forEach { card -> array.put(JSONObject().put("slot", card.slot).put("mode", card.mode)
+                .put("name", card.name ?: JSONObject.NULL)) }
+        })
+    }
+
+    /** Revision pins every selected and absent override across a capture. */
+    fun readSelection(encodedLeaf: String, slot: Int): Pair<Selection, String> {
+        val (layout, revision) = inspect(encodedLeaf)
+        return select(layout, slot) to revision
+    }
+
+    private fun inspect(encodedLeaf: String): Pair<Layout, String> {
         require(Process.myUid() == 0 && validChdLeaf(encodedLeaf))
         data class Observation(val parent: List<Long>?, val entry: List<Long>?, val text: String?)
         val observations = linkedMapOf<String, Observation>()
@@ -158,10 +189,13 @@ internal object PcsxSaveSettings {
             val after = observe(path, false)
             if (before.parent != after.parent || before.entry != after.entry) throw IOException("source_changed")
         }
-        return JSONObject().put("directory", layout.directory).put("cards", JSONArray().also { array ->
-            layout.cards.forEach { card -> array.put(JSONObject().put("slot", card.slot).put("mode", card.mode)
-                .put("name", card.name ?: JSONObject.NULL)) }
-        })
+        val evidence = JSONArray()
+        for ((path, observation) in observations) evidence.put(JSONArray().put(path)
+            .put(observation.parent?.let(::JSONArray) ?: JSONObject.NULL)
+            .put(observation.entry?.let(::JSONArray) ?: JSONObject.NULL))
+        val revision = MessageDigest.getInstance("SHA-256").digest(evidence.toString().toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return layout to revision
     }
 
     private fun backing(path: String): String = if (path.startsWith("/storage/emulated/0/"))

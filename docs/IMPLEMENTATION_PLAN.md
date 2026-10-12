@@ -22,9 +22,10 @@ checkbox. Preserve backup opt-in, restore/conflict choices and custom/ambiguous
 mapping. Verify resolved, pending and unresolved association controls in the
 focused game-panel checks, then inspect the installed normal game menu.
 
-S10 PS1 checkpoint, 2026-10-12: exact owned CHD -> configured private/shared card
-discovery passes focused host and actual Thor checks. This is not yet
-capture/watch/backup/restore. Finish card IO and shared-resource ancestry, then
+S10 PS1 checkpoint, 2026-10-12: exact owned/byte-bound CHD -> configured
+private/shared card capture passes focused host and actual Thor checks, including
+complete-card bytes/digests, writer/settings guards and journal isolation. This
+is not yet normal watch/backup/restore. Finish shared-resource ancestry and
 normal job/pre-launch consumers within the same ACTIVE S10. Serial/content-URI
 policies remain unfinished coverage, not unsupported waivers. See
 S10_SAVE_BACKUP_DESIGN.md. S11 and proposed S12 remain NOT STARTED.

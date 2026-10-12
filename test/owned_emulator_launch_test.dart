@@ -90,6 +90,59 @@ void main() {
     await expectLater(launcher.reviewRetroArchPcsxSaves(item, system, '/owned'),
         throwsUnsupportedError);
     expect(calls, hasLength(1));
+    const saveChannel = MethodChannel('com.retro.rshop/save_capture');
+    final captureCalls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(saveChannel, (call) async {
+      captureCalls.add(call);
+      return {
+        'captureId': 'a' * 32,
+        'deviceId': 'device',
+        'emulatorVersion': '1.22.2_GIT',
+        'files': [
+          {
+            'name': mapping.cards.last.name,
+            'path': '/private/save-captures/${'a' * 32}/member-0',
+            'size': 131072,
+            'sha256': 'b' * 64
+          }
+        ]
+      };
+    });
+    try {
+      final capture = await launcher.captureRetroArchPcsxSave(
+          item, psx, '/owned',
+          captureId: 'a' * 32, layout: mapping, card: mapping.cards.last);
+      expect(capture.files.single.name, 'pcsx-card2.mcd');
+      expect(captureCalls.single.method, 'capturePcsx');
+      expect(captureCalls.single.arguments, {
+        'captureId': 'a' * 32,
+        'installationId': installed.id,
+        'filename': 'Game.chd',
+        'directory': mapping.directory,
+        'slot': 2,
+        'mode': 'shared',
+        'name': 'pcsx-card2.mcd',
+      });
+      await expectLater(
+          launcher.captureRetroArchPcsxSave(item, system, '/owned',
+              captureId: 'a' * 32, layout: mapping, card: mapping.cards.last),
+          throwsUnsupportedError);
+      final unavailable = OwnedEmulatorLauncher(
+          romManager: _RomManager(
+              () => Future.error(StateError('Installation removed'))),
+          channel: channel);
+      await expectLater(
+          unavailable.captureRetroArchPcsxSave(item, psx, '/owned',
+              captureId: 'a' * 32, layout: mapping, card: mapping.cards.last),
+          throwsStateError);
+      expect(captureCalls, hasLength(1));
+      expect(
+          calls, hasLength(1)); // No emulator launch or unrelated storage read.
+    } finally {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(saveChannel, null);
+    }
   });
   test(
       'hands off only a fresh exact manifest, never a filename path or source token',

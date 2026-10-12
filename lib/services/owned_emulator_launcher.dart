@@ -6,6 +6,7 @@ import '../models/retroarch_battery_route.dart';
 import '../models/pcsx_save_layout.dart';
 import 'rom_manager.dart';
 import 'owned_storage.dart';
+import 'saves/save_capture.dart';
 
 /// Exact local handoff through an owned installation or separately byte-bound
 /// read-only copy. No source access, ownership adoption or emulator setup mutation.
@@ -153,6 +154,25 @@ class OwnedEmulatorLauncher {
     final grant = await _grant(game, system, root);
     return PcsxSaveLayout.decode(await channel.invokeMapMethod<String, dynamic>(
         'reviewOwnedRetroArchPcsxSaves', grant));
+  }
+
+  /// Capture uses the same owned/byte-bound document as launch, never a title
+  /// lookup. The native boundary rechecks this grant and current card settings.
+  Future<CapturedSaveGroup> captureRetroArchPcsxSave(
+      GameItem game, SystemModel system, String root,
+      {required String captureId,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card,
+      bool restoreBaseline = false}) async {
+    if (system.id != 'psx' || !supports(game, system)) {
+      throw UnsupportedError('No reviewed PlayStation card route');
+    }
+    return SaveCapture().capturePcsx(
+        captureId: captureId,
+        grant: await _grant(game, system, root),
+        layout: layout,
+        card: card,
+        restoreBaseline: restoreBaseline);
   }
 
   Future<void> _open(GameItem game, SystemModel system, String root,

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../models/save_emulator_coverage.dart';
 import '../../models/retroarch_battery_route.dart';
+import '../../models/pcsx_save_layout.dart';
 
 class CapturedSaveFile {
   final String name, sha256;
@@ -107,6 +108,53 @@ class SaveCapture {
         restoreBaseline: restoreBaseline);
     if (group.files.any((file) => !route.acceptsSize(file.size))) {
       throw const FormatException('Invalid cartridge save size');
+    }
+    return group;
+  }
+
+  Future<CapturedSaveGroup> capturePcsx(
+      {required String captureId,
+      required Map<String, Object> grant,
+      required PcsxSaveLayout layout,
+      required PcsxSaveCard card,
+      bool restoreBaseline = false}) async {
+    final owned = grant.keys.toSet().length == 2 &&
+        grant.keys.toSet().containsAll({'installationId', 'filename'}) &&
+        grant['installationId'] is String &&
+        (grant['installationId'] as String).isNotEmpty;
+    final observed = grant.keys.toSet().length == 3 &&
+        grant.keys
+            .toSet()
+            .containsAll({'observationId', 'platformId', 'filename'}) &&
+        grant['observationId'] is int &&
+        (grant['observationId'] as int) > 0 &&
+        grant['platformId'] == 'psx';
+    if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) ||
+        !(owned || observed) ||
+        grant['filename'] is! String ||
+        !(grant['filename'] as String).toLowerCase().endsWith('.chd') ||
+        !layout.cards.contains(card) ||
+        card.name == null ||
+        !const {'libretro', 'shared'}.contains(card.mode)) {
+      throw const FormatException('Invalid PlayStation card selection');
+    }
+    final raw = await _channel.invokeMapMethod<String, dynamic>('capturePcsx', {
+      'captureId': captureId,
+      ...grant,
+      'directory': layout.directory,
+      'slot': card.slot,
+      'mode': card.mode,
+      'name': card.name,
+      if (restoreBaseline) 'restoreBaseline': true,
+    });
+    final group = _captured(raw,
+        captureId: captureId,
+        allowedNames: {card.name!},
+        requiredName: card.name!,
+        maxSize: 131072,
+        restoreBaseline: restoreBaseline);
+    if (group.files.any((file) => file.size != 131072)) {
+      throw const FormatException('Incomplete PlayStation memory card');
     }
     return group;
   }

@@ -17,7 +17,8 @@ import java.io.File
  * cross this channel; payloads use bounded binary frames, not shell commands or
  * per-chunk su processes. Ordinary shared save paths retain direct JNI access. */
 internal class SaveSourceStorage private constructor(
-    private val source: String, private val child: java.lang.Process?, private val snapshotOnly: Boolean = false
+    private val source: String, private val child: java.lang.Process?, private val snapshotOnly: Boolean = false,
+    private val pcsxLeaf: String? = null, private val pcsxCard: PcsxSaveSettings.Card? = null
 ) : Closeable {
     private val input = child?.let { DataInputStream(it.inputStream.buffered()) }
     private val output = child?.let { DataOutputStream(it.outputStream.buffered()) }
@@ -38,6 +39,8 @@ internal class SaveSourceStorage private constructor(
             root = if (child == null) OwnedStorageNative.openRoot(source) else {
                 call(JSONObject().put("source", source).also {
                     if (snapshotOnly) it.put("snapshotOnly", true)
+                    if (pcsxLeaf != null) it.put("pcsxLeaf", pcsxLeaf).put("pcsxSlot", pcsxCard!!.slot)
+                        .put("pcsxMode", pcsxCard.mode).put("pcsxName", pcsxCard.name)
                 }); 1
             }
         } catch (error: Exception) {
@@ -82,6 +85,12 @@ internal class SaveSourceStorage private constructor(
                 return SaveSourceStorage(source, null)
             return SaveSourceStorage(source, start(context, globalMountNamespace = true))
         }
+        fun openPcsxCapture(context: Context, encodedLeaf: String, selection: PcsxSaveSettings.Selection): SaveSourceStorage {
+            require(PcsxSaveSettings.validChdLeaf(encodedLeaf))
+            PcsxSaveSettings.select(PcsxSaveSettings.Layout(selection.directory, listOf(selection.card)), selection.card.slot)
+            return SaveSourceStorage(selection.directory, start(context, globalMountNamespace = true),
+                pcsxLeaf = encodedLeaf, pcsxCard = selection.card)
+        }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
         fun pcsxSettings(context: Context, encodedLeaf: String): JSONObject {
@@ -125,7 +134,7 @@ internal class SaveSourceStorage private constructor(
             return response
         } catch (error: IOException) {
             if (error.message?.matches(Regex("owned_storage:[0-9]+")) == true ||
-                error.message in setOf("source_changed", "emulator_running")) throw error
+                error.message in setOf("source_changed", "emulator_running", "save_settings_unresolved")) throw error
             throw IOException("root_unavailable", error)
         }
     }
@@ -234,6 +243,10 @@ internal class SaveSourceStorage private constructor(
         RetroArchSaveBoundary.snapshotNames(source, name)
         beginSnapshot(context, name)
     }
+    fun beginPcsxSnapshot(context: Context, name: String) {
+        require(rootAssisted && pcsxLeaf != null && name == pcsxCard!!.name)
+        beginSnapshot(context, name)
+    }
     private fun beginSnapshot(context: Context, name: String) {
         check(snapshotHelper == null)
         if (rootAssisted) call(request("snapshotBegin").put("name", name)) else {
@@ -329,17 +342,36 @@ object RootSaveSourceWorker {
                 return
             }
             val source = hello.getString("source")
-            val savedata = PpssppSavedataBoundary.validDirectory(source)
-            val savedataParent = PpssppSavedataBoundary.validParent(source)
-            val ppsspp = PpssppSaveBoundary.isProtectedDirectory(source)
-            val validName: (String) -> Boolean = if (savedata || savedataParent) PpssppSavedataBoundary::validMember
+            val pcsxLeaf = if (hello.has("pcsxLeaf")) hello.getString("pcsxLeaf") else null
+            val pcsx = pcsxLeaf?.let { leaf ->
+                require(hello.length() == 5)
+                val configured = try { PcsxSaveSettings.readSelection(leaf, hello.getInt("pcsxSlot")) }
+                    catch (error: Exception) {
+                        if (error is IOException && error.message == "source_changed") throw error
+                        throw IOException("save_settings_unresolved")
+                    }
+                val selected = configured.first
+                if (selected.directory != source || selected.card.mode != hello.getString("pcsxMode") ||
+                    selected.card.name != hello.getString("pcsxName")) throw IOException("source_changed")
+                configured
+            }
+            // Route identity comes from the reviewed selection, not a custom
+            // directory accidentally resembling another emulator's layout.
+            val savedata = pcsx == null && PpssppSavedataBoundary.validDirectory(source)
+            val savedataParent = pcsx == null && PpssppSavedataBoundary.validParent(source)
+            val ppsspp = pcsx == null && PpssppSaveBoundary.isProtectedDirectory(source)
+            val validName: (String) -> Boolean = if (pcsx != null) { leaf -> leaf == pcsx.first.card.name }
+                else if (savedata || savedataParent) PpssppSavedataBoundary::validMember
                 else if (ppsspp) PpssppSaveBoundary::validName else MelonSaveBoundary::validName
-            val maxBytes = if (savedata || savedataParent) PpssppSavedataBoundary.MAX_BYTES
+            val maxBytes = if (pcsx != null) 131072L else if (savedata || savedataParent) PpssppSavedataBoundary.MAX_BYTES
                 else if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES else MelonSaveBoundary.MAX_BYTES
             val snapshotOnly = hello.length() == 2 && hello.optBoolean("snapshotOnly") &&
                 (MelonSaveBoundary.validDirectory(source) || PpssppSaveBoundary.validDirectory(source))
-            require(snapshotOnly || hello.length() == 1 && (savedata || savedataParent || SaveSourceStorage.isProtectedDirectory(source)))
-            val backing = SaveSourceStorage.backingDirectory(source)
+            require(pcsx != null || snapshotOnly || hello.length() == 1 && (savedata || savedataParent || SaveSourceStorage.isProtectedDirectory(source)))
+            val backing = if (pcsx != null) {
+                if (source.startsWith("/storage/emulated/0/")) "/data/media/0/" + source.removePrefix("/storage/emulated/0/")
+                else "/mnt/media_rw/" + source.removePrefix("/storage/")
+            } else SaveSourceStorage.backingDirectory(source)
             parent = OwnedStorageNative.openRoot(backing)
             files[1] = parent
             reply(JSONObject().put("ready", true))
@@ -355,6 +387,10 @@ object RootSaveSourceWorker {
                 val row = JSONObject(encoded)
                 try {
                     val operation = row.getString("operation")
+                    // This card lane is capture-only. Restore will require its
+                    // independently reviewed rollback/publication contract.
+                    require(pcsx == null || operation in setOf("identity", "currentRoot", "entry", "open", "read", "close",
+                        "snapshotBegin", "snapshotVerify"))
                     require(!savedataParent || operation in setOf("names", "identity", "currentRoot", "emulatorClosed",
                         "savedataSnapshotBegin", "snapshotVerify", "groupOpen", "groupFile", "groupEntry", "groupNames",
                         "groupPublish", "groupProbe", "groupSnapshotBegin", "groupMemberRetire", "groupRetire", "read", "write", "sync", "close"))
@@ -372,6 +408,11 @@ object RootSaveSourceWorker {
                         } finally { OwnedStorageNative.close(fresh) }
                     }
                     fun verifySnapshot() {
+                        if (pcsx != null) {
+                            val current = try { PcsxSaveSettings.readSelection(pcsxLeaf, pcsx.first.card.slot) }
+                                catch (_: Exception) { throw IOException("source_changed") }
+                            if (current != pcsx) throw IOException("source_changed")
+                        }
                         if (snapshotInvalid) throw IOException("source_changed")
                         val leaf = snapshotName ?: throw IOException("source_changed")
                         if ((!savedata && !savedataParent && OwnedStorageNative.saveSnapshotHasWriter(parent, leaf, source, backing)) ||
@@ -394,10 +435,10 @@ object RootSaveSourceWorker {
                             JSONObject()
                         }
                         "snapshotBegin" -> {
-                            require(snapshot == -1 && MelonSaveBoundary.validDirectory(source))
+                            require(snapshot == -1 && (pcsx != null || MelonSaveBoundary.validDirectory(source)))
                             snapshotName = name(row)
                             snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
-                            if (source in listOf(RetroArchSaveBoundary.saveDirectory("gb"), RetroArchSaveBoundary.saveDirectory("gba"),
+                            if (pcsx == null && source in listOf(RetroArchSaveBoundary.saveDirectory("gb"), RetroArchSaveBoundary.saveDirectory("gba"),
                                     RetroArchSaveBoundary.saveDirectory("snes"))) {
                                 clockName = RetroArchSaveBoundary.snapshotNames(source, snapshotName!!).last()
                                 clockSnapshot = OwnedStorageNative.saveSnapshotOpen(parent)
@@ -561,13 +602,14 @@ object RootSaveSourceWorker {
                         }
                         "entry" -> {
                             val leaf = row.getString("name")
-                            require(validName(leaf) || leaf.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}")))
+                            require(validName(leaf) || (pcsx == null && leaf.matches(Regex("\\.rshop-save-restore-[a-f0-9]{32}"))))
                             identity(OwnedStorageNative.entryIdentity(parent, leaf))
                         }
                         "open" -> {
                             require(files.size < 5)
                             val create = row.getBoolean("create")
                             val write = row.getBoolean("writable")
+                            require(pcsx == null || (!create && !write))
                             val leaf = name(row, stage = write || create)
                             val opened = OwnedStorageNative.openFile(parent, leaf, create, write)
                             val handle = next++
@@ -634,7 +676,7 @@ object RootSaveSourceWorker {
                         (savedataParent && row.optString("operation") in setOf("groupOpen", "groupFile") &&
                             !row.optBoolean("create")))
                     if (snapshot >= 0 && !absentEntry) snapshotInvalid = true
-                    reply(JSONObject().put("error", if (message in setOf("source_changed", "emulator_running") ||
+                    reply(JSONObject().put("error", if (message in setOf("source_changed", "emulator_running", "save_settings_unresolved") ||
                         message?.matches(Regex("owned_storage:[0-9]+")) == true) message else "root_unavailable"))
                 }
             }

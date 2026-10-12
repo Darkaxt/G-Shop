@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/services/saves/save_capture.dart';
 import 'package:retro_eshop/models/retroarch_battery_route.dart';
+import 'package:retro_eshop/models/pcsx_save_layout.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,73 @@ void main() {
   tearDown(() => TestDefaultBinaryMessengerBinding
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));
+
+  test('PS1 capture keeps the owned ROM and private/shared card roles exact',
+      () async {
+    final layout = PcsxSaveLayout.decode({
+      'directory': '/storage/emulated/0/RetroArch/saves/PCSX-ReARMed',
+      'cards': [
+        {'slot': 1, 'mode': 'libretro', 'name': 'owned%2FGame.srm'},
+        {'slot': 2, 'mode': 'shared', 'name': 'pcsx-card2.mcd'},
+      ]
+    });
+    for (final card in layout.cards) {
+      calls.clear();
+      (response['files'] as List).single['name'] = card.name;
+      (response['files'] as List).single['size'] = 131072;
+      final group = await SaveCapture().capturePcsx(
+          captureId: 'a' * 32,
+          grant: {'installationId': 'owned', 'filename': 'Game.chd'},
+          layout: layout,
+          card: card);
+      expect(group.files.single.name, card.name);
+      expect(calls.single.method, 'capturePcsx');
+      expect(calls.single.arguments, {
+        'captureId': 'a' * 32,
+        'installationId': 'owned',
+        'filename': 'Game.chd',
+        'directory': layout.directory,
+        'slot': card.slot,
+        'mode': card.mode,
+        'name': card.name,
+      });
+      (response['files'] as List).single['size'] = 131071;
+      await expectLater(
+          SaveCapture().capturePcsx(
+              captureId: 'a' * 32,
+              grant: {'installationId': 'owned', 'filename': 'Game.chd'},
+              layout: layout,
+              card: card),
+          throwsFormatException);
+    }
+    calls.clear();
+    await expectLater(
+        SaveCapture().capturePcsx(
+            captureId: 'a' * 32,
+            grant: {
+              'installationId': 'owned',
+              'filename': 'Game.chd',
+              'directory': '/other'
+            },
+            layout: layout,
+            card: layout.cards.first),
+        throwsFormatException);
+    expect(calls, isEmpty);
+    final serial = PcsxSaveLayout.decode({
+      'directory': layout.directory,
+      'cards': [
+        {'slot': 1, 'mode': 'serial', 'name': null}
+      ]
+    });
+    await expectLater(
+        SaveCapture().capturePcsx(
+            captureId: 'a' * 32,
+            grant: {'installationId': 'owned', 'filename': 'Game.chd'},
+            layout: serial,
+            card: serial.cards.first),
+        throwsFormatException);
+    expect(calls, isEmpty);
+  });
 
   test('SNES battery route retains its Snes9x SRAM and optional clock contract',
       () {

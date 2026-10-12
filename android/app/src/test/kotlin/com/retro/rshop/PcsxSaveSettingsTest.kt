@@ -4,6 +4,37 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PcsxSaveSettingsTest {
+    @Test fun selectedCardsHaveDistinctRolesAndRequireCompleteMemoryCardBytes() {
+        val layout = PcsxSaveSettings.resolve(leaf, files()::get)
+        val privateCard = PcsxSaveSettings.select(layout, 1)
+        val sharedCard = PcsxSaveSettings.select(layout, 2)
+        assertEquals("pcsx-libretro-card1-v1", privateCard.format)
+        assertEquals("pcsx-shared-card2-v1", sharedCard.format)
+        assertEquals("pcsx-card2.mcd", sharedCard.card.name)
+        assertTrue(sharedCard.acceptsSize(131072))
+        assertFalse(sharedCard.acceptsSize(131071))
+        assertFalse(privateCard.acceptsSize(0))
+        for (slot in listOf(0, 3)) assertThrows(IllegalArgumentException::class.java) {
+            PcsxSaveSettings.select(layout, slot)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PcsxSaveSettings.select(PcsxSaveSettings.Layout(layout.directory,
+                listOf(PcsxSaveSettings.Card(2, "serial", null))), 2)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PcsxSaveSettings.select(PcsxSaveSettings.Layout(layout.directory, emptyList()), 1)
+        }
+        for (bad in listOf(PcsxSaveSettings.Card(2, "libretro", "other.srm"),
+            PcsxSaveSettings.Card(2, "shared", "pcsx-card1.mcd"),
+            PcsxSaveSettings.Card(1, "libretro", "../other.srm"))) {
+            assertThrows(IllegalArgumentException::class.java) {
+                PcsxSaveSettings.select(PcsxSaveSettings.Layout(layout.directory, listOf(bad)), bad.slot)
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PcsxSaveSettings.select(PcsxSaveSettings.Layout(layout.directory, listOf(layout.cards[0], layout.cards[0])), 1)
+        }
+    }
     private val core = "/storage/emulated/0/RetroArch/config/PCSX-ReARMed"
     private val leaf = "owned%2FGame%20(USA).chd"
     private fun files(options: String = "") = mutableMapOf(
