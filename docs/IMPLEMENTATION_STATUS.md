@@ -5,6 +5,58 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### PPSSPP normal Exit no longer requires process eviction — 2026-10-12
+
+S10 remains the sole ACTIVE stage; S11 is NOT STARTED. This resolves the cached-
+runtime caveat in the previous checkpoint, not the remaining SAVE-01 scope.
+
+Live investigation distinguishes Back (LAST_ACTIVITY, native PoolW workers still
+alive) from PPSSPP v1.20.4 Exit (same Android PID retained as CACHED_RECENT, native
+workers joined). The old protected restore regression reproduced
+`stop_ppsspp_required`. The reviewed normal-exit route now uses root-assisted
+bounded main-process/thread metadata, stable PID start identity and joined
+ActivityManager state queries around the thread census. It never treats a hidden
+activity, low CPU, delay or Android's stopped flag as native shutdown. Other live
+UID processes still block. No emulator signal, forced stop, settings mutation or
+debugger is used. The route is versioned with the reviewed runtime; actual-process
+exit remains supported for other versions. See S10_SAVE_BACKUP_DESIGN.md for the
+primary lifecycle references and boundaries.
+
+Focused native policy checks pass. Actual Thor checks pass for foreground and
+Back-to-background rejection, followed by normal Exit acceptance. The exclusive
+protected-file proof passes streamed capture/digest, exact watching, unrelated
+live UID-process rejection, recreated-service normal-exit restore, changed-local
+refusal and retained rollback. Protected Melon writer/mutation guards, watch,
+capture/digest, expected-location restore and rollback also pass. The PPSSPP
+fixture is independently absent. These proofs do not claim a new normal-UI cloud
+round trip, gameplay/save loading, SAVEDATA groups or complete emulator coverage.
+
+Gated requests 747/749/751 completed successfully; 749 ran the focused policy
+tests and 751 assembled the final API-compatible owner/test artifacts. Request
+751 (`293c176d1da44c19adafa3526cb69c6d`) has recorded mutex acquisition, build
+completion before release, exit 0 and `completion_verified=true`. Its original
+command handle was later absent; persisted supervisor completion, telemetry and
+the build log confirmed terminal success without relaunching it. Observed
+workers=2, parallel=false and Gradle heap=3 GiB; reviewed Kotlin 2.3.21 is configured
+in-process, sharing that heap. The executed policy test task uses one 512-MiB
+fail-fast fork. Current generated app compile/link pools have depth one on all
+three ABIs. No memory failure or budget increase occurred. Final log:
+`C:/Users/darka/AppData/Local/Tools/gradle-build-gate/logs/6df2a21656f14a728d91d4df4748588b.log`.
+
+Independent installed APK copies match built owner SHA-256
+`f45190dff3686615c5cfb908999bd263b7e3eafd250cce8a45d657d1b02f0cd9`
+and test SHA-256 `b3225ca8be0dbbbcdca6fd0a8db38fa2534c609d0fbe193b326ef5ce6cc402fc`.
+Signer SHA-256 remains
+`06197430e1a4ba85dca54f7a2ecf8a2db5cc2c2e76eb8f7516e8acf3d1e6a934`;
+all ten R-Shop preference digests match immediately before/after the preserving
+installation. No real saves, ROMs or Drive objects were mutated by the fixtures.
+No release or legacy-sync handover was performed.
+
+Remaining SAVEDATA groups, accessible installed-emulator routes, acceptance
+fault/reconnect evidence and conditional legacy handover remain ordinary S10
+work. No acceptance criterion is waived or reclassified as an external blocker.
+Both displays report actual and committed OFF after device checks.
+
 ### Root-assisted standalone restore exit evidence — 2026-10-12
 
 S10 remains the sole ACTIVE stage; S11 is NOT STARTED. Root is available

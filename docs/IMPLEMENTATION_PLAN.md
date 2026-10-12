@@ -40,6 +40,15 @@ focused persisted automatic-mapping/launch/conflict checks pass. Remaining
 PPSSPP SAVEDATA groups and other accessible emulator save/state routes still
 belong to ACTIVE S10; this slice does not close the stage or open S11.
 
+PPSSPP normal-exit correction, 2026-10-12: the cached native-runtime shutdown
+route is now verified on the actual Thor. Foreground/Back background still block
+restore; normal Exit permits expected-location restoration and retained rollback
+without requiring the cached Android process to die. Unrelated live UID processes
+and changed local bytes still block. Final preserving gated build 751, focused
+native policy checks and protected Melon regressions pass. This resolves the
+previous cached-runtime caveat; SAVEDATA groups, remaining emulator coverage,
+fault/reconnect criteria and conditional handover remain in sole ACTIVE S10.
+
 S10 verified capture slice, 2026-10-12: shared and protected Melon captures now
 use an armed mutation guard plus root writer-descriptor census instead of a
 stopped-app requirement. Native Thor fixtures pass with Melon at its ROM list

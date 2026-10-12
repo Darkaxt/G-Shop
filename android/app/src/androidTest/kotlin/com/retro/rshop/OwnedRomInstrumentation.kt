@@ -33,6 +33,8 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var melonSettingsProbe = false
     private var ppssppSettingsProbe = false
     private var protectedPpssppSaveProbe = false
+    private var ppssppCachedExitProbe = false
+    private var ppssppRuntimeProbe: String? = null
     private var dsProviderProbe = false
     private var dsArchiveProbe = false
     private var saveWatchProbe = false
@@ -49,6 +51,8 @@ class OwnedRomInstrumentation : Instrumentation() {
         melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
         ppssppSettingsProbe = arguments?.getString("ppssppSettingsProbe") == "true"
         protectedPpssppSaveProbe = arguments?.getString("protectedPpssppSaveProbe") == "true"
+        ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
+        ppssppRuntimeProbe = arguments?.getString("ppssppRuntimeProbe")
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
         dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
         saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
@@ -65,8 +69,10 @@ class OwnedRomInstrumentation : Instrumentation() {
             } else if (dsProviderProbe) {
                 exercise(ds = true)
                 report.putString("result", "PASS DS document leaf read/name/size and launch-bound live save-location review, read-only grant and native publication/identity/ownership/removal rejection; exclusive fixture cleanup; no emulator launch")
-            } else if (protectedPpssppSaveProbe) {
-                report.putString("result", PpssppProtectedSaveProof.exercise(targetContext))
+            } else if (ppssppRuntimeProbe != null) {
+                report.putString("result", PpssppProtectedSaveProof.runtime(targetContext, ppssppRuntimeProbe!!))
+            } else if (protectedPpssppSaveProbe || ppssppCachedExitProbe) {
+                report.putString("result", PpssppProtectedSaveProof.exercise(targetContext, ppssppCachedExitProbe))
             } else if (ppssppSettingsProbe) {
                 report.putString("result", PpssppSaveSettingsProof.exercise(targetContext))
             } else if (melonSettingsProbe) {

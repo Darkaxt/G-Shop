@@ -11,12 +11,26 @@ import java.util.concurrent.CountDownLatch
 
 /** Exclusive emulator-external-files fixture; no real Memory Stick or cloud IO. */
 internal object PpssppProtectedSaveProof {
-    fun exercise(context: Context): String {
+    fun runtime(context: Context, expected: String): String {
+        check(context.packageName == "com.darkaxt.rshop.debug" && expected in setOf("open", "closed"))
+        val directory = SaveSourceStorage.ppssppSettings(context).getString("directory")
+        SaveSourceStorage.open(context, directory).use { storage ->
+            var actual = "closed"
+            try { storage.verifyEmulatorClosed(context) } catch (error: java.io.IOException) {
+                check(error.message == "emulator_running"); actual = "open"
+            }
+            check(actual == expected) { "Expected $expected PPSSPP runtime, observed $actual" }
+        }
+        return "PASS PPSSPP actual installed runtime is $expected; joined root check; no save/ROM/settings/cloud mutation"
+    }
+
+    fun exercise(context: Context, cachedRuntime: Boolean = false): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
         @Suppress("DEPRECATION")
         val runtime = context.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0)
         check(runtime.versionName in setOf("1.20.4", "v1.20.4"))
-        check(runtime.applicationInfo!!.flags and ApplicationInfo.FLAG_STOPPED != 0)
+        val initiallyStopped = runtime.applicationInfo!!.flags and ApplicationInfo.FLAG_STOPPED != 0
+        check(initiallyStopped != cachedRuntime)
         fun id() = UUID.randomUUID().toString().replace("-", "")
         val leaf = "RShopFixture-${id()}"
         val source = "/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/$leaf/PSP/PPSSPP_STATE"
@@ -135,8 +149,8 @@ internal object PpssppProtectedSaveProof {
                 uidProcess.outputStream.write("rshop-owned-uid-process\n".toByteArray())
                 uidProcess.outputStream.flush()
                 check(uidProcess.inputStream.bufferedReader().readLine() == "rshop-owned-uid-process")
-                check(context.packageManager.getApplicationInfo(PpssppSaveSettings.PACKAGE, 0)
-                    .flags and ApplicationInfo.FLAG_STOPPED != 0)
+                check((context.packageManager.getApplicationInfo(PpssppSaveSettings.PACKAGE, 0)
+                    .flags and ApplicationInfo.FLAG_STOPPED != 0) == initiallyStopped)
                 call("publishRestore", mapOf("captureId" to restore,
                     "rollbackCaptureId" to rollback.first), "stop_ppsspp_required")
                 check(read().contentEquals(b))
@@ -169,6 +183,8 @@ internal object PpssppProtectedSaveProof {
                 }
             }
         }
-        return "PASS PPSSPP protected external-files app-UID/root listing, streamed capture/digest, exact publication watch, joined shutdown, real emulator-UID process refusal despite stopped=true, process-exit/recreated-service atomic restore, changed-local refusal and retained rollback; exclusive fixture removed; no emulator settings/real saves/ROM/cloud mutation"
+        return "PASS PPSSPP protected external-files app-UID/root listing, streamed capture/digest, exact publication watch, joined shutdown, live unrelated emulator-UID process refusal, " +
+            (if (cachedRuntime) "normal-exit cached-runtime" else "process-exit") +
+            "/recreated-service atomic restore, changed-local refusal and retained rollback; exclusive fixture removed; no real saves/ROM/cloud mutation"
     }
 }

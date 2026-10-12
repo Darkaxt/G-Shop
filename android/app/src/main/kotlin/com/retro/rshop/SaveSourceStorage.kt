@@ -189,9 +189,16 @@ internal class SaveSourceStorage private constructor(
     }
     fun verifyEmulatorClosed(context: Context) {
         require(MelonSaveBoundary.validDirectory(source) || PpssppSaveBoundary.validDirectory(source))
+        val packageName = if (PpssppSaveBoundary.validDirectory(source)) PpssppSaveSettings.PACKAGE
+            else MelonSaveBoundary.PACKAGE
+        @Suppress("DEPRECATION")
+        val runtime = context.packageManager.getPackageInfo(packageName, 0)
+        @Suppress("DEPRECATION")
+        val version = if (android.os.Build.VERSION.SDK_INT >= 28) runtime.longVersionCode
+            else runtime.versionCode.toLong()
         val helper = if (rootAssisted) this else emulatorHelper ?: SaveSourceStorage(
             source, start(context, globalMountNamespace = true), true).also { emulatorHelper = it }
-        helper.call(helper.request("emulatorClosed"))
+        helper.call(helper.request("emulatorClosed").put("versionCode", version))
     }
     override fun close() {
         if (closed) return
@@ -282,7 +289,8 @@ object RootSaveSourceWorker {
                     val result = when (operation) {
                         "emulatorClosed" -> {
                             SaveEmulatorProcess.requireClosed(if (PpssppSaveBoundary.validDirectory(source))
-                                PpssppSaveSettings.PACKAGE else MelonSaveBoundary.PACKAGE)
+                                PpssppSaveSettings.PACKAGE else MelonSaveBoundary.PACKAGE,
+                                row.getLong("versionCode"))
                             JSONObject()
                         }
                         "snapshotBegin" -> {

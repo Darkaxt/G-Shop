@@ -1168,10 +1168,12 @@ root-assisted exit boundary replaces that unnecessary Force-stop prerequisite
 for PPSSPP and MelonDualDS: a joined root helper reads bounded kernel process
 status for the exact installed emulator UID (including real/effective/saved/fs
 UID roles), before staging and again before namespace publication. Live or
-suspended processes block restore; exited/zombie processes cannot write and do
-not require Android's stopped-package flag. Missing/ambiguous process evidence
-is an access error, not fabricated completion. No command lines or user payloads
-are read by this census, and no process is signalled. One helper is reused during
+suspended processes block restore except for the reviewed, completed PPSSPP
+native-runtime shutdown below; exited/zombie processes cannot write and do not
+require Android's stopped-package flag. Missing/ambiguous process evidence is an
+access error, not fabricated completion. Only the cached-runtime check inspects
+the exact main-process argv[0] prefix; no launch arguments or user payloads are
+read, and no process is signalled. One helper is reused during
 the restore and joined on all exits; no per-PID/chunk su invocation or quiet delay.
 The existing full inode/digest/namespace checks remain mandatory. The user exits
 the emulator normally and keeps it closed during restore; App info is optional,
@@ -1184,14 +1186,45 @@ conflict criteria. Native compilation and the real destination/write checks are
 verified above; this does not assert universal exclusion of arbitrary external
 writers or authorize restarting PPSSPP during restore.
 
-This exit census is verified for actual process exit, not a completed cached
-Android runtime shutdown. PPSSPP v1.20.4's
-[`NativeShutdown`](https://github.com/hrydgard/ppsspp/blob/v1.20.4/UI/NativeApp.cpp#L1372-L1419) explicitly retains its
-Android process; the remaining normal-exit/cached-runtime completion route must
-be investigated and verified rather than assume that any closed activity means
-save completion. It remains ordinary unfinished S10 work alongside SAVEDATA
-groups, not a new specification limitation, waived criterion or external blocker.
-Do not claim the UID census alone delivers every normal-exit workflow.
+The original UID census falsely rejected PPSSPP's completed normal Exit because
+[`NativeShutdown`](https://github.com/hrydgard/ppsspp/blob/v1.20.4/UI/NativeApp.cpp#L1372-L1419) deliberately retains
+the Android process. The installed v1.20.4 runtime has an additional reviewed
+completion route: NativeInit eagerly creates its PoolW workers, and NativeShutdown
+joins them after emulator/render shutdown. Android must also classify the exact
+main package process as CACHED_RECENT or CACHED_EMPTY. Foreground, sleeping-top,
+last-activity and activity-bearing cached states are not completion evidence.
+Back/onStop leaves the native workers alive and does not satisfy this route.
+
+Root checks bounded kernel metadata (argv[0] only, thread names, PID start identity)
+and joins an ActivityManager UID-state query before/after the thread census.
+Other live processes under the emulator UID still block; the exception does not
+admit an arbitrary UID writer, an unknown version or incomplete evidence. Existing
+pre-publication checks, rollback and namespace/digest guards remain required.
+No signal, Force stop, quiet delay, polling loop, emulator debugger or settings
+change establishes completion. This route is versioned with the reviewed emulator
+implementation; other versions retain actual-process-exit support until their
+native lifecycle is reviewed. No runtime permission or manual-path prerequisite
+is added to proactive root use.
+
+Live investigation on 2026-10-12 observed PID 21934 retaining PoolW workers after
+Back (LAST_ACTIVITY), then retaining the same PID without those workers after
+Exit (CACHED_RECENT). The exclusive protected-file restore regression reproduced
+the old `stop_ppsspp_required` refusal. Focused host-native policy checks pass.
+Final gated assembly 751 and preserving owner/test installation pass, with the
+compiled older-Android version-code branch independently inspected. Actual Thor
+checks accept normal Exit and reject foreground/Back background. The exclusive
+protected-file proof passes completed restore after normal Exit, service
+recreation, changed-local refusal, unrelated live UID-process refusal and retained
+rollback with independently checked destination bytes. Protected Melon
+capture/watch/writer-refusal/restore/rollback also passes. These are actual native
+filesystem/channel proofs, not a new UI-to-Drive round trip or SAVEDATA support.
+The fixture is independently absent; both actual/committed screens are OFF.
+SAVEDATA groups and other S10 requirements are still ordinary unfinished work.
+
+Primary lifecycle references:
+[NativeInit](https://github.com/hrydgard/ppsspp/blob/v1.20.4/UI/NativeApp.cpp#L303-L316),
+[worker creation, lifetime and joined teardown](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Common/Thread/ThreadManager.cpp#L55-L215),
+[Android cached-process states](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-14.0.0_r1/core/java/android/app/ActivityManager.java#L695-L709).
 
 Primary references: [Android stopped-package flag](https://developer.android.com/reference/android/content/pm/ApplicationInfo#FLAG_STOPPED),
 [PPSSPP 1.20.4 slot publication](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/SaveState.cpp).
