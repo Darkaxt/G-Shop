@@ -75,9 +75,12 @@ class SaveEmulatorCoverage {
 
   bool get _retroArch => packageName == 'com.retroarch.aarch64';
   bool get _psp => packageName == 'org.ppsspp.ppsspp';
+  bool get _melon => packageName == 'me.magnum.melondualds';
   bool get _reviewed => _retroArch
       ? {'1.22.2', '1.22.2_GIT'}.contains(versionName)
-      : _psp && {'1.20.4', 'v1.20.4'}.contains(versionName);
+      : _psp
+          ? {'1.20.4', 'v1.20.4'}.contains(versionName)
+          : _melon && versionName == '0.8.0.rc2';
   bool get _launcher =>
       {'rip.moth.cocoonshell', 'org.es_de.frontend'}.contains(packageName);
 
@@ -87,9 +90,13 @@ class SaveEmulatorCoverage {
           ? _reviewed
               ? 'In-game saves · GBA (including paired clock data), Game Gear, Master System and Mega Drive.'
               : 'Needs review · installed RetroArch runtime is not verified'
-          : _psp
-              ? 'Unfinished · SAVEDATA groups not implemented'
-              : 'Unfinished · save mapping and restore not implemented';
+          : _melon
+              ? _reviewed
+                  ? 'In-game saves · selected shared .sav/.srm file; emulator must be closed.'
+                  : 'Needs review · installed MelonDualDS runtime is not verified'
+              : _psp
+                  ? 'Unfinished · SAVEDATA groups not implemented'
+                  : 'Unfinished · save mapping and restore not implemented';
   String get states => _launcher
       ? 'Not applicable · launcher; use the selected emulator'
       : _psp
@@ -107,8 +114,13 @@ class SaveEmulatorCoverage {
           : _psp
               ? 'Current route: explicitly selected shared PPSSPP_STATE folder and slot. '
                   'Restore requires user-mediated Android App info preparation.'
-              : _launcher
-                  ? 'This launcher does not own the emulator’s save files.'
-                  : 'Storage/export route not yet reviewed. This is unfinished work, '
-                      'not a claim that the emulator is unsupported.';
+              : _melon
+                  ? 'Current route: explicitly selected shared save folder and file. '
+                      'Exit safely, then use Android App info before capture or restore. '
+                      'Root-assisted discovery and access to the standard Android/data '
+                      'save location are still being integrated.'
+                  : _launcher
+                      ? 'This launcher does not own the emulator’s save files.'
+                      : 'Storage/export route not yet reviewed. This is unfinished work, '
+                          'not a claim that the emulator is unsupported.';
 }

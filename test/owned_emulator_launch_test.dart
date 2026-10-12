@@ -83,6 +83,40 @@ void main() {
     await Future.wait([first, second]);
     expect(calls, hasLength(1));
   });
+  test('pre-launch save preparation finishes before a single emulator handoff',
+      () async {
+    final entered = Completer<void>();
+    final ready = Completer<void>();
+    var preparations = 0;
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => manifest), channel: channel);
+    Future<void> prepare() async {
+      preparations++;
+      entered.complete();
+      await ready.future;
+    }
+
+    final first = launcher.open(game, system, '/owned', prepareSave: prepare);
+    final second = launcher.open(game, system, '/owned', prepareSave: prepare);
+    await entered.future;
+    expect(calls, isEmpty);
+    ready.complete();
+    await Future.wait([first, second]);
+    expect(preparations, 1);
+    expect(calls, hasLength(1));
+  });
+  test('pre-launch save conflict prevents emulator and companion handoff',
+      () async {
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => manifest), channel: channel);
+    await expectLater(
+        launcher.open(game, system, '/owned',
+            companionComponent: 'com.example.reader/.MainActivity',
+            prepareSave: () async =>
+                throw PlatformException(code: 'save_conflict')),
+        throwsA(isA<PlatformException>()));
+    expect(calls, isEmpty);
+  });
   test('rejects missing ownership before any emulator call', () async {
     final launcher = OwnedEmulatorLauncher(
         romManager: _RomManager(() async => throw StateError('not installed')),

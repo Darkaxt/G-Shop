@@ -24,19 +24,37 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var companionProbe = false
     private var saveRouteProbe = false
     private var saveGroupProbe = false
+    private var melonSaveProbe = false
+    private var protectedMelonSaveProbe = false
+    private var melonSettingsProbe = false
+    private var saveWatchProbe = false
+    private var missingSaveProbe = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         mountProbe = arguments?.getString("mountProbe") == "true"
         companionProbe = arguments?.getString("companionProbe") == "true"
         saveRouteProbe = arguments?.getString("saveRouteProbe") == "true"
         saveGroupProbe = arguments?.getString("saveGroupProbe") == "true"
+        melonSaveProbe = arguments?.getString("melonSaveProbe") == "true"
+        protectedMelonSaveProbe = arguments?.getString("protectedMelonSaveProbe") == "true"
+        melonSettingsProbe = arguments?.getString("melonSettingsProbe") == "true"
+        saveWatchProbe = arguments?.getString("saveWatchProbe") == "true"
+        missingSaveProbe = arguments?.getString("missingSaveProbe") == "true"
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
         try {
-            if (saveGroupProbe) {
+            if (melonSettingsProbe) {
+                report.putString("result", MelonSaveSettingsProof.exercise(targetContext))
+            } else if (missingSaveProbe) {
+                report.putString("result", MissingSaveProof.exercise(targetContext))
+            } else if (saveWatchProbe) {
+                report.putString("result", SaveFileWatchProof.exercise(targetContext))
+            } else if (melonSaveProbe) {
+                report.putString("result", MelonSaveProof.exercise(targetContext, protectedMelonSaveProbe))
+            } else if (saveGroupProbe) {
                 report.putString("result", MgbaGroupSaveProof.exercise(targetContext))
             } else if (saveRouteProbe) {
                 report.putString("result", SegaSaveRouteProof.exercise(targetContext))

@@ -114,6 +114,26 @@ internal object MgbaGroupSaveProof {
             val undo = stage(after)
             call("publishRestoreGroup", mapOf("captureId" to undo, "rollbackCaptureId" to current))
             check(names.all { File(source, it).readBytes().contentEquals(after.getValue(it)) })
+            // Missing both members is a sealed baseline, not an empty backup.
+            // Exercise the same root-assisted per-member publication as scalar
+            // restore, including a restart after only the first member commits.
+            for (member in names) check(File(source, member).delete())
+            val absent = id().also(captures::add)
+            @Suppress("UNCHECKED_CAST")
+            val absence = call("captureRetroArch", mapOf("captureId" to absent,
+                "name" to name, "restoreBaseline" to true)) as Map<String, Any>
+            check(absence["localWasAbsent"] == true && (absence["files"] as List<*>).isEmpty())
+            val missing = stage(before)
+            val missingJournal = File(context.filesDir.canonicalFile, "save-restores/$missing/group.json")
+            val missingRecord = JSONObject(missingJournal.readText()).put("rollbackId", absent).put("phase", "publishing")
+            write(missingJournal, missingRecord.toString().toByteArray())
+            publish.invoke(service, child(missing, 0), absent, missing)
+            check(File(source, names[0]).readBytes().contentEquals(before.getValue(names[0])))
+            check(!File(source, names[1]).exists())
+            close(); service = SaveCaptureService(context)
+            call("publishRestoreGroup", mapOf("captureId" to missing, "rollbackCaptureId" to absent))
+            check(names.all { File(source, it).readBytes().contentEquals(before.getValue(it)) })
+            check(!SaveCaptureService.groupRestorePending(context.filesDir, name))
         } catch (error: Exception) {
             val state = restores.filterIndexed { index, _ -> index % 3 == 0 }.map { group ->
                 (0..1).map { index ->
@@ -147,6 +167,6 @@ internal object MgbaGroupSaveProof {
             remove("save-restores", restores, setOf("group.json", "group.json.next", "restore.json", "restore.json.next", "member"))
             check(source.list()!!.toSet() == initial)
         }
-        return "PASS mGBA SRAM/RTC app-UID capture/digests, whole-group seal, scalar-bypass rejection, changed-byte and replacement-inode rejection, interrupted-prefix recovery after service recreation, expected-location group restore and retained-byte rollback; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
+        return "PASS mGBA SRAM/RTC app-UID capture/digests, whole-group seal, scalar-bypass rejection, changed-byte and replacement-inode rejection, interrupted-prefix recovery after service recreation, expected-location group restore and retained-byte rollback, absent-group root publication with interrupted-prefix recovery; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
     }
 }

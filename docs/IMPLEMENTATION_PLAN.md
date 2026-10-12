@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 23.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 24.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current scope correction (2026-10-11): the owner never required exhaustive
@@ -22,6 +22,14 @@ Current scheduling (2026-10-11): S0-S9 COMPLETE; S10 ACTIVE, the sole active
 stage; S11 NOT STARTED. Completing S7 resolves S10's sequencing hold. Resume only
 the remaining SAVE-01 acceptance work; no exhaustive scrape or repeated cleanup.
 Older dated stage statuses below are historical; this current schedule wins.
+
+S10 owner clarification, 2026-10-12: root-assisted emulator discovery, save
+tracking, access and restore are authorized where useful. Do not restrict these
+routes to manual mappings or call protected storage unsupported without reviewing
+root access. Standard paths should resolve from emulator/package/configuration
+evidence; custom or ambiguous paths remain configurable. This extends the active
+SAVE-01 implementation, not another stage. Preserve coherent snapshots, game/state
+compatibility, both conflict versions and the save-only transfer boundary.
 
 Implementation is already authorized (2026-09-08, "go ahead then"). Execute S1-S11
 without new routine approval gates. Provider account setup is new; fixtures do
@@ -1593,6 +1601,17 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
+Current checkpoint, 2026-10-12: protected save discovery, capture/restore and
+kernel-backed exact-file watching are verified on the Thor. DS watch requests
+now enter the durable automatic lane in focused host verification; platform
+delivery is bounded and acknowledges durable admission rather than upload.
+Final gated build 698 and protected/shared/PSP native watch probes pass, with
+configuration/jobs/preferences unchanged and both screens OFF. The normal DS
+UI/launch association and writer-completion route, real watch-to-Drive proof,
+remaining installed-emulator coverage/fault cases and conditional legacy handover
+remain ordinary unfinished S10 work. S11 remains NOT STARTED. See the current
+ledger; older pause/checkpoint notes below are historical, not current holds.
+
 Latest checkpoint, 2026-10-10: persisted Android scheduled execution and
 journal-aware exact retirement of redundant local captures have native Thor
 evidence. Current build 559 retained the last-good cloud backup across repeated
@@ -1652,6 +1671,12 @@ S10; no other implementation stage is ACTIVE.
 - Add game/edition/emulator-bound save-group identities and persistent bounded
   backup work through existing settings/emulator return and legitimate Android
   background work. Separate battery saves from version-sensitive save states.
+- Complete the mapped enabled game's launch path: reconcile local/cloud ancestry
+  and bytes, restore only an unambiguous compatible cloud generation, require a
+  choice for divergence, arm the exact file watch, then hand off to the emulator.
+  Watch events persist pending work, never assert writer completion. Verify
+  existing local/cloud equality, safe cloud advancement, divergence, missing
+  local save, watch admission before launch and recovery of missed events.
 - Keep ROM Drive access read-only. Request/verify backup-only write authorization
   separately; enforce exact backup-area/file ownership. No ROM/SD mirroring,
   archive mutations or cloud deletion. No external sync job changes before

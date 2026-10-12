@@ -23,6 +23,7 @@ import '../../providers/ra_providers.dart';
 import '../../providers/rom_status_providers.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/shelf_providers.dart';
+import '../../providers/save_backup_providers.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/input_debouncer.dart';
 import '../../services/owned_emulator_launcher.dart';
@@ -522,23 +523,38 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final game = _controller?.selectedVariant;
     if (game == null) return;
     try {
-      final metadata = withoutCompanion
-          ? null
-          : await ref.read(gameMetadataProvider(
-                  (filename: game.selectionKey, systemSlug: widget.system.id))
-              .future);
+      final metadata = await ref.read(gameMetadataProvider(
+          (filename: game.selectionKey, systemSlug: widget.system.id)).future);
       if (!mounted) return;
       final editionId = metadata?.editionId;
-      final companion = editionId == null
+      final companion = withoutCompanion || editionId == null
           ? null
           : ref.read(storageServiceProvider).getCompanion(editionId);
       await _emulatorLauncher.open(game, widget.system, widget.targetFolder,
-          companionComponent: companion);
+          companionComponent: companion, prepareSave: () async {
+        final artifact = game.remoteArtifact?.id;
+        if (artifact == null) return;
+        final saves = await ref.read(automaticSaveBackupsProvider.future);
+        await saves.prepareLaunch(artifactId: artifact, editionId: editionId);
+      });
     } catch (error) {
       if (!mounted) return;
       final code =
           error is PlatformException ? error.code : 'installation_unavailable';
       final message = switch (code) {
+        'save_conflict' ||
+        'conflict_changed' =>
+          'Choose which save to use in Save backups before opening this game.',
+        'watch_unavailable' =>
+          'Save monitoring could not start. Check the mapped folder in Save backups.',
+        'stop_ppsspp_required' ||
+        'stop_melon_required' ||
+        'close_content_required' =>
+          'Close the emulator safely, then finish the save restore in Save backups.',
+        'source_changed' =>
+          'The saved game mapping changed. Review it in Save backups.',
+        'pending_restore' =>
+          'Finish the pending save restore in Save backups before opening this game.',
         'save_restore_pending' =>
           'Finish the pending save restore in Save backups before opening this game.',
         'companion_missing' =>
@@ -599,7 +615,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     return [
       if (editionId != null &&
           (RetroArchBatteryRoute.forPlatform(widget.system.id) != null ||
-              widget.system.id == 'psp') &&
+              const {'psp', 'nds'}.contains(widget.system.id)) &&
           variant.remoteArtifact != null)
         QuickMenuItem(
             label: L.of(context).saveBackup_title,

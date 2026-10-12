@@ -19,9 +19,11 @@ import 'save_capture.dart';
 /// RetroArch's closed-content handshake is not yet an unattended capture route.
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
+  final bool isMelon;
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
-      : clientId = value['clientId'] as String,
+      : isMelon = value['schema'] == 2 && value['route'] == 'melon',
+        clientId = value['clientId'] as String,
         accountId = value['accountId'] as String,
         areaId = value['areaId'] as String,
         editionId = value['editionId'] as String,
@@ -30,38 +32,52 @@ class AutomaticSaveMapping {
         title = value['title'] as String,
         artifactId = RemoteArtifactId.fromJson(
             value['artifact'] as Map<String, dynamic>) {
-    if (value['schema'] != 1 ||
+    if (!(value['schema'] == 1 && !value.containsKey('route') || isMelon) ||
         [clientId, accountId, areaId, editionId, title]
             .any((s) => s.trim().isEmpty || s.length > 1024) ||
         artifactId.providerId != 'drive' ||
         artifactId.accountId != accountId ||
-        !SaveCapture.validPpssppDirectory(directory) ||
-        !SaveCapture.validPpssppName(slot)) {
+        !(isMelon
+            ? SaveCapture.validMelonDirectory(directory)
+            : SaveCapture.validPpssppDirectory(directory)) ||
+        !(isMelon
+            ? SaveCapture.validMelonName(slot)
+            : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
   }
 
   factory AutomaticSaveMapping.fromJob(SaveBackupGameJob job,
       {required String title}) {
-    if (!job.isPpsspp) {
+    if (!job.isStandalone) {
       throw UnsupportedError(
           'Unattended capture is not reviewed for this route');
     }
     return AutomaticSaveMapping._({
-      'schema': 1,
+      'schema': job.isMelon ? 2 : 1,
+      if (job.isMelon) 'route': 'melon',
       'clientId': job.clientId,
       'accountId': job.accountId,
       'areaId': job.areaId,
       'editionId': job.editionId,
-      'directory': job.ppssppDirectory,
-      'slot': job.ppssppSlot,
+      'directory': job.isMelon ? job.melonDirectory : job.ppssppDirectory,
+      'slot': job.isMelon ? job.melonName : job.ppssppSlot,
       'artifact': job.artifactId.toJson(),
       'title': title,
     });
   }
 
-  String get slotStorageKey =>
-      ppssppMappingKey(clientId, accountId, editionId, artifactId);
+  String get slotStorageKey => isMelon
+      ? melonMappingKey(clientId, accountId, editionId, artifactId)
+      : ppssppMappingKey(clientId, accountId, editionId, artifactId);
+  static String melonMappingKey(String clientId, String accountId,
+          String editionId, RemoteArtifactId artifact) =>
+      'save_melon_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+            clientId,
+            accountId,
+            editionId,
+            artifact.key
+          ])))}';
   static String ppssppMappingKey(String clientId, String accountId,
           String editionId, RemoteArtifactId artifact) =>
       'save_ppsspp_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
@@ -78,11 +94,13 @@ class AutomaticSaveMapping {
         editionId,
         artifactId.key,
         directory,
-        slot
+        slot,
+        if (isMelon) 'melondualds-sram-v1',
       ])))
       .toString();
   String encode() => jsonEncode({
-        'schema': 1,
+        'schema': isMelon ? 2 : 1,
+        if (isMelon) 'route': 'melon',
         'clientId': clientId,
         'accountId': accountId,
         'areaId': areaId,
@@ -101,7 +119,7 @@ class AutomaticSaveStatus {
 }
 
 /// One process-owned serial lane, with durable opt-in and event requests.
-/// No timers, recursive file scans, automatic restore or conflict choices.
+/// No timers, recursive file scans or automatic conflict choices.
 /// Android dispatch shares this lane or acquires the native cross-engine gate.
 class AutomaticSaveBackups extends ChangeNotifier {
   final Future<Database> database;
@@ -109,6 +127,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
   final List<Source> Function() sources;
   final Future<void> Function()? refreshConfiguration;
   final Future<void> Function(bool enabled)? scheduleBackground;
+  final Future<Set<String>> Function(List<AutomaticSaveMapping>)?
+      configureWatches;
   final SaveBackupGameJob Function(
       AutomaticSaveMapping, Future<String> Function())? createJob;
   Future<void>? _operation;
@@ -116,6 +136,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
   SaveBackupGameJob? _active;
   String? _activeKey;
   String? _backgroundIssue;
+  String? _watchIssue;
+  Set<String> _watchedKeys = {};
   bool _disposed = false;
   int _cancelGeneration = 0;
   AutomaticSaveBackups(
@@ -124,10 +146,18 @@ class AutomaticSaveBackups extends ChangeNotifier {
       required this.sources,
       this.refreshConfiguration,
       this.scheduleBackground,
+      this.configureWatches,
       this.createJob});
   bool get busy => _operation != null;
   String? get activeMappingKey => _activeKey;
   String? get backgroundIssue => _backgroundIssue;
+  String? get watchIssue => _watchIssue;
+
+  void watchUnavailable() {
+    _watchedKeys = {};
+    _watchIssue = 'watch_unavailable';
+    _notify();
+  }
 
   void backgroundUnavailable() {
     _backgroundIssue = 'schedule_unavailable';
@@ -192,6 +222,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   Future<void> reconcileSchedule() async {
+    await reconcileWatches();
     if (scheduleBackground == null) return;
     final db = await _db();
     final enabled = (Sqflite.firstIntValue(await db.rawQuery(
@@ -206,6 +237,65 @@ class AutomaticSaveBackups extends ChangeNotifier {
     } on MissingPluginException {
       backgroundUnavailable();
     }
+  }
+
+  /// Arm only saved, enabled associations. Serialize configuration with durable
+  /// event admission so a delayed opt-in cannot reinstall an opted-out watch.
+  /// This is process-lifetime observation, with periodic/return recovery below.
+  Future<void> reconcileWatches() {
+    if (configureWatches == null) return Future.value();
+    final generation = _cancelGeneration;
+    final event = _events.then((_) async {
+      if (_disposed || generation != _cancelGeneration) return;
+      final db = await _db();
+      final mappings = <AutomaticSaveMapping>[];
+      var invalid = false;
+      try {
+        await refreshConfiguration?.call();
+        final rows = await db.query('automatic_save_backups',
+            where: 'enabled = 1', limit: 4097);
+        if (rows.length > 4096) {
+          throw const FormatException('Too many mappings');
+        }
+        for (final row in rows) {
+          try {
+            final raw = row['record_json'] as String;
+            if (raw.length > 16384) {
+              throw const FormatException('Invalid mapping');
+            }
+            final mapping =
+                AutomaticSaveMapping._(jsonDecode(raw) as Map<String, dynamic>);
+            if (mapping.key != row['mapping_key']) {
+              throw const FormatException('Changed mapping');
+            }
+            _requireConfiguration(mapping);
+            mappings.add(mapping);
+          } catch (_) {
+            invalid = true;
+          }
+        }
+        if (_disposed || generation != _cancelGeneration) return;
+        final watched = await configureWatches!(mappings);
+        final expected = mappings.map((mapping) => mapping.key).toSet();
+        if (!expected.containsAll(watched)) {
+          throw const FormatException('Invalid watch receipt');
+        }
+        _watchedKeys = Set.unmodifiable(watched);
+        _watchIssue = invalid || watched.length != expected.length
+            ? 'watch_unavailable'
+            : null;
+      } catch (_) {
+        // Stop old associations too when current configuration is unavailable.
+        try {
+          await configureWatches!([]);
+        } catch (_) {}
+        _watchedKeys = {};
+        _watchIssue = 'watch_unavailable';
+      }
+      _notify();
+    });
+    _events = event.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return event;
   }
 
   /// Aggregate receipt for Android dispatch; identities and save data stay in
@@ -239,7 +329,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
         setup['areaId'] != mapping.areaId ||
         slot is! Map ||
         slot['directory'] != mapping.directory ||
-        slot['slot'] != mapping.slot) {
+        slot[mapping.isMelon ? 'name' : 'slot'] != mapping.slot) {
       throw PlatformException(code: 'source_changed');
     }
   }
@@ -275,29 +365,174 @@ class AutomaticSaveBackups extends ChangeNotifier {
         areaId: mapping.areaId,
         editionId: mapping.editionId,
         artifactId: mapping.artifactId,
-        ppssppDirectory: mapping.directory,
-        ppssppSlot: mapping.slot,
+        ppssppDirectory: mapping.isMelon ? null : mapping.directory,
+        ppssppSlot: mapping.isMelon ? null : mapping.slot,
+        melonDirectory: mapping.isMelon ? mapping.directory : null,
+        melonName: mapping.isMelon ? mapping.slot : null,
         resolveSaveName: resolve);
   }
 
-  /// Called by real app startup/resume events; repeated events join the lane.
-  /// A crash leaves requested > handled, while the existing game job retains
-  /// its exact sealed capture/reserved remote objects for idempotent resume.
-  Future<void> checkEnabled() {
+  /// A watch acknowledges only after this exact enabled mapping is durably
+  /// pending. Unknown/disabled keys cannot implicitly enable a game. Keeping
+  /// request transactions separate from IO also records events received while
+  /// an earlier capture/upload is still running.
+  Future<void> requestChanged(String mappingKey) async {
+    if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(mappingKey)) {
+      throw const FormatException('Invalid save watch identity');
+    }
+    await _request(mappingKey);
+  }
+
+  Future<void> _request(String? mappingKey) {
     final generation = _cancelGeneration;
     final event = _events.then((_) async {
       if (_disposed || generation != _cancelGeneration) return;
       final db = await _db();
       await db.rawUpdate(
-          'UPDATE automatic_save_backups SET requested = requested + 1 WHERE enabled = 1');
-      await _drain();
+          'UPDATE automatic_save_backups SET requested = requested + 1 WHERE enabled = 1'
+          '${mappingKey == null ? '' : ' AND mapping_key = ?'}',
+          mappingKey == null ? [] : [mappingKey]);
     });
     _events = event.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return event;
   }
 
+  /// Drain recorded watch/background requests through the same serial lane as
+  /// manual operations. A crash leaves requested > handled and the game journal
+  /// retains its exact sealed capture/reserved remote IDs for idempotent resume.
+  Future<void> backupPending() => _drain();
+
+  /// Only an explicitly enabled, exact artifact/edition association participates.
+  /// Launch waits on the existing serial lane and on native watch registration.
+  Future<void> prepareLaunch(
+      {required RemoteArtifactId artifactId, String? editionId}) async {
+    final generation = _cancelGeneration;
+    final db = await _db();
+    final enabled = await db.query('automatic_save_backups',
+        where: 'enabled = 1', limit: 4097);
+    if (enabled.length > 4096) throw const FormatException('Too many mappings');
+    final rows = <Map<String, Object?>>[];
+    for (final row in enabled) {
+      try {
+        final raw = row['record_json'] as String;
+        if (raw.length > 16384) throw const FormatException('Invalid mapping');
+        final value = jsonDecode(raw) as Map<String, dynamic>;
+        final saved = RemoteArtifactId.fromJson(
+            value['artifact'] as Map<String, dynamic>);
+        if (saved.key == artifactId.key) rows.add(row);
+      } catch (_) {
+        // An unidentifiable association stays visibly unresolved; it must not
+        // turn an unrelated, unconfigured game into a cloud/backup operation.
+        watchUnavailable();
+      }
+    }
+    // Unconfigured games do not wait behind another game's network transfer.
+    if (rows.isEmpty) return;
+    final previous = _operation;
+    return _track(Future<void>.microtask(() async {
+      try {
+        await previous;
+      } catch (_) {
+        // Its original caller and durable status own that result. This queued
+        // game's distinct operation must still run after actual completion.
+      }
+      if (_disposed || generation != _cancelGeneration) {
+        throw PlatformException(code: 'cancelled');
+      }
+      for (final row in rows) {
+        final raw = row['record_json'] as String;
+        if (raw.length > 16384) throw const FormatException('Invalid mapping');
+        final mapping =
+            AutomaticSaveMapping._(jsonDecode(raw) as Map<String, dynamic>);
+        SaveBackupGameJob? job;
+        String? failure;
+        try {
+          if (mapping.key != row['mapping_key'] ||
+              (editionId != null && mapping.editionId != editionId)) {
+            throw PlatformException(code: 'source_changed');
+          }
+          await _resolve(mapping);
+          if (_disposed || generation != _cancelGeneration) {
+            throw PlatformException(code: 'cancelled');
+          }
+          _activeKey = mapping.key;
+          job = _active = _open(mapping);
+          job.addListener(_notify);
+          await job.reconcileBeforeLaunch(mapping.slot);
+          await _resolve(mapping);
+          failure = job.issue ??
+              (job.restorePending ? 'pending_restore' : null) ??
+              (job.conflicts.isNotEmpty ? 'save_conflict' : null);
+          if (failure == null &&
+              !{'verified', 'unchanged', 'restored', 'no_save'}
+                  .contains(job.phase)) {
+            failure = 'backup_unavailable';
+          }
+          if (failure != null) throw PlatformException(code: failure);
+        } on PlatformException catch (error) {
+          failure = error.code;
+          rethrow;
+        } catch (_) {
+          failure = 'backup_unavailable';
+          rethrow;
+        } finally {
+          final outcome = job?.phase;
+          if (job != null) {
+            await job.cancelAndJoin();
+            job.removeListener(_notify);
+            job.dispose();
+            job.areas.close();
+            job.generations.close();
+          }
+          _active = null;
+          _activeKey = null;
+          await db.update(
+              'automatic_save_backups', {'outcome': outcome, 'issue': failure},
+              where: 'mapping_key = ? AND record_json = ?',
+              whereArgs: [mapping.key, mapping.encode()]);
+          _notify();
+        }
+      }
+      await reconcileWatches();
+      if (_disposed || generation != _cancelGeneration) {
+        throw PlatformException(code: 'cancelled');
+      }
+      if (configureWatches == null ||
+          !rows.every((row) => _watchedKeys.contains(row['mapping_key']))) {
+        throw PlatformException(code: 'watch_unavailable');
+      }
+    }));
+  }
+
+  Future<void> _track(Future<void> operation) {
+    late final Future<void> tracked;
+    tracked = operation.whenComplete(() {
+      if (identical(_operation, tracked)) _operation = null;
+    });
+    _operation = tracked;
+    return tracked;
+  }
+
+  /// Called by actual startup/resume/background events, also recovering changes
+  /// missed while Android had no live watcher process.
+  Future<void> checkEnabled() async {
+    final generation = _cancelGeneration;
+    await reconcileWatches();
+    await _request(null);
+    if (_disposed || generation != _cancelGeneration) return;
+    await backupPending();
+  }
+
   Future<void> _drain() {
-    if (_operation != null) return _operation!;
+    final generation = _cancelGeneration;
+    if (_operation case final pending?) {
+      return pending
+          .then<void>((_) {}, onError: (Object _, StackTrace __) {})
+          .then<void>((_) async {
+        if (_disposed || generation != _cancelGeneration) return;
+        await _drain();
+      });
+    }
     final operation = Future<void>.microtask(() async {
       final db = await _db();
       final generation = _cancelGeneration;
@@ -370,8 +605,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
         _notify();
       }
     });
-    _operation = operation.whenComplete(() => _operation = null);
-    return _operation!;
+    return _track(operation);
   }
 
   Future<void> cancelAndJoin() async {

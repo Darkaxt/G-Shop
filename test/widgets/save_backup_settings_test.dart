@@ -206,48 +206,149 @@ void main() {
     expect(find.byKey(const ValueKey('save-content-status')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  for (final melon in [false, true]) {
+    testWidgets(
+        '${melon ? 'MelonDualDS' : 'PPSSPP'} mapping requires file selection and edition confirmation',
+        (tester) async {
+      final prefix = melon ? 'melon' : 'ppsspp';
+      final directory = melon
+          ? '/storage/emulated/0/Saves/MelonDualDS'
+          : '/storage/emulated/0/PSP/PPSSPP_STATE';
+      final name = melon ? 'Game.sav' : 'ULUS10041_1.00_0.ppst';
+      const channel = MethodChannel('com.retro.rshop/save_capture');
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        if (call.method == 'melonSaveSettings') {
+          return {'mode': 'rom', 'directory': null, 'extension': 'sav'};
+        }
+        return [name];
+      });
+      addTearDown(() => TestDefaultBinaryMessengerBinding
+          .instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null));
+      final mapped = <String>[];
+      await tester.pumpWidget(createTestApp(Scaffold(
+          body: SingleChildScrollView(
+              child: StandaloneSaveMappingPanel(
+                  melon: melon,
+                  title: 'Reviewed edition',
+                  capture: SaveCapture(),
+                  chooseDirectory: () async => directory,
+                  onMapped: (directory, slot) async =>
+                      mapped.add('$directory/$slot'))))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('$prefix-map-folder')));
+      await tester.pumpAndSettle();
+      expect(calls.last.method, melon ? 'melonNames' : 'ppssppNames');
+      final save = find.byKey(ValueKey('$prefix-map-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+      await tester.tap(find.byKey(ValueKey('$prefix-map-slot')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(name).last);
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+      await tester.ensureVisible(find.byKey(ValueKey('$prefix-map-confirm')));
+      await tester.tap(find.byKey(ValueKey('$prefix-map-confirm')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(mapped, ['$directory/$name']);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets(
-      'PPSSPP mapping requires a selected slot and edition confirmation',
+      'Melon standard folder is available without the Android folder picker',
       (tester) async {
     const channel = MethodChannel('com.retro.rshop/save_capture');
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
-      return ['ULUS10041_1.00_0.ppst'];
+      if (call.method == 'melonSaveSettings') {
+        return {'mode': 'rom', 'directory': null, 'extension': 'sav'};
+      }
+      return ['Game.sav'];
     });
     addTearDown(() => TestDefaultBinaryMessengerBinding
         .instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null));
-    final mapped = <String>[];
+    var pickerCalled = false;
     await tester.pumpWidget(createTestApp(Scaffold(
         body: SingleChildScrollView(
-            child: PpssppSaveMappingPanel(
-                title: 'Reviewed PSP edition',
+            child: StandaloneSaveMappingPanel(
+                melon: true,
+                title: 'Reviewed DS edition',
                 capture: SaveCapture(),
-                chooseDirectory: () async =>
-                    '/storage/emulated/0/PSP/PPSSPP_STATE',
-                onMapped: (directory, slot) async =>
-                    mapped.add('$directory/$slot'))))));
-    await tester.tap(find.byKey(const ValueKey('ppsspp-map-folder')));
+                chooseDirectory: () async {
+                  pickerCalled = true;
+                  return null;
+                },
+                onMapped: (_, __) async {})))));
     await tester.pumpAndSettle();
-    expect(calls.single.method, 'ppssppNames');
-    final save = find.byKey(const ValueKey('ppsspp-map-save'));
-    expect(tester.widget<FilledButton>(save).onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('ppsspp-map-slot')));
+    await tester.tap(find.byKey(const ValueKey('melon-map-standard')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ULUS10041_1.00_0.ppst').last);
-    await tester.pumpAndSettle();
-    expect(tester.widget<FilledButton>(save).onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('ppsspp-map-confirm')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(save);
-    await tester.tap(save);
-    await tester.pumpAndSettle();
+    expect(pickerCalled, isFalse);
+    expect(calls.last.method, 'melonNames');
+    expect(calls.last.arguments['directory'],
+        '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves');
     expect(
-        mapped, ['/storage/emulated/0/PSP/PPSSPP_STATE/ULUS10041_1.00_0.ppst']);
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('melon-map-save')))
+            .onPressed,
+        isNull);
     expect(tester.takeException(), isNull);
   });
+  testWidgets(
+      'Melon discovers its configured folder without opening the picker',
+      (tester) async {
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    const directory = '/storage/75D7-DC5F/Saves/DS';
+    final calls = <MethodCall>[];
+    var pickerCalls = 0, mappingCalls = 0;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'melonSaveSettings') {
+        return {'mode': 'custom', 'directory': directory, 'extension': 'srm'};
+      }
+      if (call.method == 'melonNames') return ['Game.srm'];
+      return null;
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SingleChildScrollView(
+                child: StandaloneSaveMappingPanel(
+                    melon: true,
+                    title: 'Reviewed DS edition',
+                    capture: SaveCapture(),
+                    chooseDirectory: () async {
+                      pickerCalls++;
+                      return null;
+                    },
+                    onMapped: (_, __) async {
+                      mappingCalls++;
+                    }))))));
+    await tester.pumpAndSettle();
+    expect(
+        calls.map((call) => call.method), ['melonSaveSettings', 'melonNames']);
+    expect(calls.last.arguments['directory'], directory);
+    expect(pickerCalls, 0);
+    expect(mappingCalls, 0); // Location discovery is not edition evidence.
+    expect(find.text(directory), findsOneWidget);
+    expect(
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('melon-map-save')))
+            .onPressed,
+        isNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('save settings has persistent independent left-hand sections',
       (tester) async {
     SharedPreferences.setMockInitialValues({});

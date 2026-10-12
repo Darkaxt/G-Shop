@@ -6,6 +6,9 @@
 #include <new>
 #include <string>
 #include <system_error>
+#include <poll.h>
+#include <sys/inotify.h>
+#include <unistd.h>
 
 namespace {
 namespace owned = rshop::owned;
@@ -104,6 +107,51 @@ owned::Identity identityValue(JNIEnv* env, jlongArray value) {
             fields[2], fields[3], fields[4]};
 }
 }  // namespace
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveWatchOpen(JNIEnv* env, jobject, jint directory) {
+    return guarded<jint>(env, -1, [&] {
+        // The directory is already pinned by the no-follow storage boundary.
+        // Follow only our proc descriptor link, never an unverified caller path.
+        std::string path = "/proc/self/fd/" + std::to_string(directory);
+        int fd = ::inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
+        if (fd < 0) throw std::system_error(errno, std::generic_category());
+        constexpr uint32_t events = IN_CLOSE_WRITE | IN_MOVED_TO | IN_MOVED_FROM |
+            IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT | IN_ONLYDIR;
+        if (::inotify_add_watch(fd, path.c_str(), events) < 0) {
+            int error = errno;
+            ::close(fd);
+            throw std::system_error(error, std::generic_category());
+        }
+        return fd;
+    });
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveWatchRead(JNIEnv* env, jobject, jint watch) {
+    return guarded<jbyteArray>(env, nullptr, [&]() -> jbyteArray {
+        for (;;) {
+            pollfd sources[] = {{STDIN_FILENO, POLLIN, 0}, {watch, POLLIN, 0}};
+            int result;
+            do { result = ::poll(sources, 2, -1); } while (result < 0 && errno == EINTR);
+            if (result < 0) throw std::system_error(errno, std::generic_category());
+            // EOF or any unexpected control input ends the exact owned child.
+            if (sources[0].revents != 0) return nullptr;
+            if (sources[1].revents & (POLLERR | POLLHUP | POLLNVAL))
+                throw std::system_error(EIO, std::generic_category());
+            if (!(sources[1].revents & POLLIN)) continue;
+            char bytes[65536];
+            ssize_t size;
+            do { size = ::read(watch, bytes, sizeof(bytes)); } while (size < 0 && errno == EINTR);
+            if (size < 0 && errno == EAGAIN) continue;
+            if (size <= 0) throw std::system_error(size < 0 ? errno : EIO, std::generic_category());
+            auto output = env->NewByteArray(static_cast<jsize>(size));
+            if (output != nullptr) env->SetByteArrayRegion(output, 0, static_cast<jsize>(size),
+                reinterpret_cast<const jbyte*>(bytes));
+            return output;
+        }
+    });
+}
 
 extern "C" JNIEXPORT jint JNICALL
 Java_com_retro_rshop_OwnedStorageNative_openRoot(JNIEnv* env, jobject, jstring path) {

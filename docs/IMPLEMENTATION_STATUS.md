@@ -5,6 +5,299 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Protected save watching — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. Protected MelonDualDS save watching now uses
+kernel-confirmed inotify registration on the pinned backing directory through
+one root child, with bounded binary frames and EOF-driven joined shutdown. It
+uses neither ADB nor a polling/quiet-period timer at runtime. Ordinary shared
+folders retain the existing FileObserver route. Exact DS mappings now enter the
+existing durable automatic-backup lane with separate SRAM identity; existing
+schema-1 PSP associations retain their encoding and key. Registration/close
+work runs off the platform thread. Events are coalesced until Dart acknowledges
+durable admission; loss of registration cannot be overwritten by an early
+successful receipt. Events do not claim writer completion or choose conflicts.
+
+The focused Melon lane regression first reproduced the missing route and now
+passes, together with the affected backup-job checks and scoped Dart analysis.
+Gated requests 697 and 698 passed native watch/delivery tests and APK assembly;
+698 (`894307bd5222447a944cef729e37dbdf`) is the final verified build. The gate was
+acquired through confirmed completion, with observed workers=2, parallel=false,
+Gradle heap=3 GiB and reviewed Kotlin in-process compilation sharing that heap.
+One 512-MiB fail-fast test fork executed. Actual generated Ninja compile/link
+rules use a depth-one pool per app ABI; this is not a universal host memory cap.
+No memory failure or budget increase occurred.
+
+Preserving installation independently matches owner SHA-256
+`e73ba68d4a9654cfb1d0c5425cdfe8b4f391938abb4c0e8ab8cd44323f73b80d`
+and test SHA-256
+`a9695acdf230e31e2e59710476b076e24d639c3ccff92d4a2d734244f06f6982`.
+Real app-UID Thor probes pass for protected and shared Melon exact-file events,
+joined shutdown, capture/digest, changed-local rejection, recreated-service
+restore and retained-byte rollback. The ordinary PSP file-watch probe also
+passes. Exclusive fixtures are removed. Fresh configuration/jobs and all private
+and emulator preference digests are unchanged; both displays are OFF.
+
+This verifies watching and the durable-lane integration separately, not a new
+real watch-to-Drive workflow. Automatic DS UI/launch association and the normal
+writer-completion route remain unfinished: current capture/publication still
+requires the stopped-runtime boundary. Remaining installed-emulator routes,
+fault/reconnect cases and conditional legacy handover remain S10 work. S11 is
+NOT STARTED; no acceptance criterion has been waived.
+
+### Current save-settings discovery — verified slice, 2026-10-12
+
+The normal DS mapping view now automatically inspects the selected emulator save
+settings through root. It resolves selected internal/SD external-storage custom
+trees and lists their saves without a folder picker, while retaining explicit
+game association and manual/custom/standard-folder controls. ROM-relative mode
+does not silently substitute the fallback or a stale custom preference. Focused
+Dart/UI discovery checks pass. Gated request 691 passed focused native tests and
+owner/instrumentation assembly, but the real app-UID discovery probe failed with
+`save_settings_unresolved`. Read-only namespace inspection traced the failure:
+the app's inherited mount namespace hides the emulator's private preferences even
+from UID 0; Magisk `--mount-master` exposes the same existing file. The settings
+child now selects that namespace, leaving verified save IO unchanged. Corrected
+build request 694 (`9b8be05b0b10438cb04ebc628141ec81`) completed with exit 0:
+focused native settings tests executed/passed and owner/instrumentation assembly
+passed. The shared gate was acquired through confirmed completion. Observed
+workers=2, parallel=false, Gradle heap=3 GiB; reviewed Kotlin in-process shares
+that heap. One 512-MiB fail-fast test fork was configured/executed. Native code
+was unchanged; existing app compile/link pools remain depth one per ABI, not a
+claimed universal host cap. No memory failure or budget increase occurred.
+Preserving installation independently matches owner SHA-256
+`6025367cb191c14d212a2e4b696166fc45417c57c6602f12fe0c88d02e958239`
+and test SHA-256
+`bdff6b521a60fb6178a76f0b80df933e5d5671bb2f6826ff554ea08ea93ac6fe`;
+the existing signing identity is retained. The actual app-UID/root settings probe
+now passes, including Android XML parser rejection cases and the normal channel's
+live settings result. The protected save capture/restore/rollback regression also
+passes and removes its exclusive fixture. Fresh schema, catalogue configuration,
+saved jobs, all ten private preference digests and the emulator preference digest
+are unchanged. Both actual and committed display states are OFF. This verifies
+the discovery slice, not a second ACTIVE stage or all SAVE-01 acceptance.
+Protected watching, automatic launch association, the normal watch-to-Drive
+workflow and remaining installed-emulator routes/handover are still unfinished.
+S11 remains NOT STARTED.
+
+### Protected standard save-folder integration — ACTIVE, 2026-10-12
+
+MelonDualDS's standard Android/data save folder now has a root-backed source
+channel connected to the existing capture, rollback and atomic restore journals.
+One joined child per operation streams bounded binary chunks; private journals
+remain app-owned. The mapping view can inspect the standard folder without the
+Android folder picker, while retaining custom-folder selection. Focused host
+path/capture/restore and settings checks pass, scoped Dart analysis is clean, and
+whitespace checks pass. Gated request 688
+(`22bb09c9d425404389d2835a8ef23f8f`), original supervisor session 52646,
+completed with exit 0: affected native storage/watch unit tests executed and
+passed, followed by owner/instrumentation assembly. The shared mutex was
+acquired and held through confirmed completion. Observed workers=2,
+parallel=false and Gradle heap=3 GiB; reviewed Kotlin in-process shares that
+heap. One 512-MiB fail-fast test fork was configured. App native compile/link
+pools remain depth one per ABI; plugin environment budget two is not proof of
+a universal native cap. No memory failure or budget increase occurred.
+Signer-preserving installation independently matches owner SHA-256
+`1a902a90323261bca94ad3888be2da94e96c42ac8ed87b429d7d1b8feeacc589`
+and instrumentation SHA-256
+`63610a9b31a0bba39def89ce4f7fc21b411392198922af131a1e3a4feab4fb48`.
+The real app-UID/root protected-folder probe passed 131,073-byte multi-chunk
+capture, exact binding/digest checks, changed-local rejection, service recreation,
+lost publication acknowledgement and retained-byte rollback. The shared Melon,
+missing-save, paired mGBA SRAM/RTC and native exact-file-watch regressions also
+passed against this installed build. RetroArch reported CONTENTLESS before its
+fixture checks. All exclusive fixtures were removed; fresh schema/configuration,
+saved jobs and all ten private preference digests match the pre-install baseline.
+Both actual and committed display states are OFF. These are synthetic native
+save-byte checks, not a new Drive round trip or gameplay proof.
+Automatic configured-path/name discovery, protected watching, the normal
+watch-to-Drive proof and remaining installed-emulator coverage/handover still
+belong to ACTIVE S10. S11 remains NOT STARTED; no release or legacy handover.
+
+### S10 root-assisted coverage — authorized, 2026-10-12
+
+S10 remains ACTIVE; S11 NOT STARTED. Specification revision 24 incorporates the
+owner's authorization to use root for emulator save discovery, tracking, access
+and restoration without a blanket manual-mapping requirement. Root-assisted
+atomic no-overwrite publication on the Thor's backing F2FS filesystem passed a
+bounded installed-JNI probe; the equivalent shared FUSE operation is unsupported.
+The verified R-Shop debug UID had a stored Magisk DENY policy. Only that policy
+was changed to ALLOW under the owner's root authorization, retaining logging and
+notifications; its application-UID root check now passes. Restore-only absence
+receipts and root-backed no-replace publication are implemented and connected to
+explicit single/paired restore. Focused host behavior and scoped analysis pass,
+including absence retries and no fake rollback/status. Gated request 673
+(`bd1d814ff35e4267b15fabd6ede3778d`) passed focused native storage tests and owner/
+instrumentation assembly: gate acquired through completion, workers=2,
+parallel=false, observed Gradle heap=3 GiB, reviewed Kotlin in-process and one
+configured 512-MiB fail-fast test fork. No memory failure or increase occurred.
+Preserving installation independently matches owner SHA-256
+`2cde946d860caddbd83af8ae37b9a0e9232f8b9b7de98edade0385e5c9327d9c`.
+The actual app-UID/root proof passed missing-save publication, competing-local
+preservation, service recreation and lost-ack recovery; all exclusive fixtures
+were cleaned. Configuration/jobs/private preferences are unchanged; both screens
+are OFF. This is native synthetic save-byte evidence, not a Drive round trip.
+None of this closes
+SAVE-01 or waives its remaining acceptance, including on-demand cloud discovery,
+real launch/watch-to-cloud behavior and broader emulator coverage/handover.
+
+Automatic pre-launch missing-save discovery now passes focused host integration:
+reinstall-style job receipt loss, absent local/cloud first launch, durable failed
+download resume, divergent cloud choices and changed-head rejection. No empty
+backup/upload allocation or premature last-good receipt is created. Missing-copy
+UI hides the nonexistent device-copy choice and exposes pending restore without
+requiring a prior last-good receipt. Scoped analysis/whitespace checks pass.
+Gated request 677 (`0107f36fa2284079933e136405ba851e`) completed with exit 0,
+the shared mutex held through verified completion, observed workers=2,
+parallel=false and Gradle heap=3 GiB; Kotlin used the reviewed in-process mode.
+One 512-MiB fail-fast test fork was configured (assembly did not execute JVM tests).
+App native compile/link pools remain depth one per ABI; plugin environment budget
+is two, not a claimed host-wide native cap. No memory failure or increase occurred.
+The preserving installed owner independently matches SHA-256
+`b8485a71a78b163a5b2ff669a0a232fe760d9f00d4f54a79835ddcce5da55f10`.
+Both actual app-UID proofs pass: missing-save/absence-receipt retirement and paired
+SRAM/RTC root absence publication with interrupted-prefix recovery. RetroArch
+reported CONTENTLESS, exclusive fixtures were removed, and the fresh before/after
+configuration, saved jobs and private-preference baseline matches. Both screens
+are OFF. Automatic PSP pre-launch host integration also verifies restore-before-
+watch registration and first launch without a fabricated save or cloud upload.
+
+A focused regression then exposed premature last-good promotion on explicit cloud
+conflict choice: a failed download incorrectly recorded the selected cloud version
+before local publication. The corrected durable restore intent retains the old
+receipt and exact preserved local capture until publication; focused red/green
+reproduction passes, including reload/resume without another preservation upload.
+The affected job, capture and coverage integration checks and scoped analysis now
+pass. A failed database transaction retains both cloud branches and the prior
+receipt without pretending the rejected choice committed; fresh review can resume.
+Coverage text no longer misclassifies protected Melon storage as inaccessible.
+Gated request 682 (`d86156fe863f4525abe8b20b53ffd13f`) subsequently completed
+with exit 0: the affected native storage/watch tests executed and passed, followed
+by owner assembly. The shared mutex was acquired and retained through confirmed
+completion. Observed workers=2, parallel=false, Gradle heap=3 GiB, reviewed Kotlin
+in-process, one 512-MiB fail-fast test fork; no memory failure or increase.
+App native compile/link pools remain depth one per ABI; the plugin environment
+budget is two, not a verified universal native concurrency cap. The preserving
+installed APK independently matches SHA-256
+`9d72df6123cc23998b1bd18ec8512f572c0ed7e46c67cf2ff806a642601111ba` and the
+existing signer. Fresh before/after schema, source configuration, saved metadata
+jobs and all ten private preference digests match. This installs the later Dart
+ordering/copy correction; it does not claim a new live conflict or watch-to-Drive
+round trip. Original supervisor session 61472 is terminal, not still queued.
+S10 remains ACTIVE, S11 NOT STARTED; no release or legacy-sync handover performed.
+
+### S10 MelonDualDS shared-save route — verification in progress, 2026-10-11
+
+S10 remains ACTIVE and S11 NOT STARTED. The DS game's normal save action now
+supports an explicitly selected MelonDualDS shared `.sav`/`.srm` file, with
+account/edition/artifact/directory binding, stopped-writer capture and restore,
+the existing Drive generation/conflict transport and retained rollback. No
+emulator configuration or real save has been changed. The protected default
+Android/data folder is not bypassed and unattended in-place capture is not enabled.
+
+Focused host capture/job/reopen/retry checks passed; the shared standalone mapping
+view passes selection and edition-confirmation checks for both runtimes. Scoped
+Dart analysis and whitespace checks pass. Shared-gate request 650,
+`366abc162b274a19abda4ad4f9577ea8`, completed with exit 1 before compilation:
+PowerShell split the unquoted target property and Gradle rejected task `.dart`.
+Gate acquisition/completion, two workers, no parallel projects, 3-GiB Gradle
+and one 512-MiB fail-fast test-fork configuration were verified. No memory
+failure occurred. Corrected quoted request 653
+(`6d513c67fe174c26aac191fb8b36bb14`) completed exit 0 with the gate acquired
+through verified completion: two workers, no parallel projects, 3-GiB Gradle,
+Kotlin in-process and one executed 512-MiB fail-fast test fork. Native app
+compile/link pools remain depth one per ABI. No memory failure or budget increase.
+Signer-preserving installation passed; the independently read installed owner
+APK SHA-256 is `b3c379bdc8124e69361d86a55f742191cbc476d544baef149a6ccd66762ae509`.
+The actual Thor app-UID proof passes exact shared-file capture/digest, format and
+directory replay rejection, changed-local rejection, restore after service
+recreation and retained-byte rollback. Exclusive fixtures were removed;
+configuration, schema/root, saved jobs and all private preferences are unchanged.
+Both displays are OFF. This fixture proof is not actual configured-folder UI,
+gameplay or a new Drive round-trip evidence.
+
+SAVE-01's remaining work includes configured-destination verification for
+this route, installed-emulator coverage, changed-group reconciliation, the requested
+pre-launch generation check/save watch, wider live recovery/conflict/contention
+cases and the exact-target legacy handover. These are ordinary unfinished S10
+requirements, not waived acceptance criteria or deferrals to S11. Details are in
+S10_SAVE_BACKUP_DESIGN.md. The overall objective remains ACTIVE and incomplete.
+
+### S10 exact save-file watchdog — native event delivery verified, 2026-10-11
+
+An exact-file Android observer is now connected to enabled PPSSPP state mappings.
+Publication/removal events persist a request in the existing serial backup lane;
+temporary/unrelated files are excluded and file events do not bypass coherent
+capture checks. Focused host checks pass explicit opt-in/opt-out, configuration
+changes, unknown mappings and durable second-event admission during an upload.
+Scoped Dart analysis and whitespace checks pass. The observer's lifetime is the
+application process; startup/return and existing six-hour Android checks recover
+missed events. No permanent service, quiet-period guess or general folder sync.
+Gated request 658 (`55f9d11110eb4f1cacb26d64f79a03a4`) completed exit 0, with
+the gate acquired through verified completion: observed workers=2, parallel=false,
+Gradle=3 GiB; Kotlin in-process; one executed 512-MiB fail-fast test fork. App
+native compile/link pools remain depth one per ABI. No memory failure or budget
+increase occurred. Focused native watcher/storage checks passed. Signer-preserving
+owner/test updates succeeded; independently read installed owner APK SHA-256 is
+`28df69b6d5890e5f74b1d2afdab5acb831fcd0ddb2e1bee7854bdf715991767c`.
+The actual app-UID Android event proof passed exact mapped rename delivery on
+the main thread and temporary/unrelated-file exclusion. Exclusive fixtures were
+removed; configuration, schema/root, saved jobs and all private preference digests
+are unchanged. Both actual/committed display states remain OFF. This is native
+event proof plus host durable admission, not a watch-to-cloud round trip.
+The normal owned-game launch path now waits for reconciliation of an explicitly
+enabled, exact artifact/edition mapping and that mapping's native watch receipt
+before companion or emulator handoff. Host verification passes proven transitive
+cloud advancement, divergent-byte conflict preservation, missing-ancestry
+rejection, failed-download last-good preservation and resumable restore IDs.
+The automatic restore reuses the exact pre-review rollback capture; it does not
+recapture a potentially changed local save after cloud IO. Last-good ancestry
+advances only after acknowledged native publication. Unknown/disabled games do
+not implicitly enable backups or wait behind another game's cloud transfer.
+
+A focused regression reproduced an unrelated malformed mapping blocking a valid
+game with `watch_unavailable`. Watch registration now returns exact registered
+keys, isolates missing/revoked folders and requires the current game's receipt,
+while retaining visible errors for other mappings. Host tests pass both isolated
+failure and refusal to launch without the current game's watch. The affected
+job, launch, capture, coverage and settings workload passes; scoped Dart analysis
+and whitespace checks pass. Android verification request 664
+(`3f0a996487f34bc3a7bee1a8ac2a7a86`) completed exit 0 with actual gate acquisition
+and release verified. Observed workers=2, parallel=false, Gradle=3 GiB; reviewed
+Kotlin in-process and one executed 512-MiB fail-fast test fork, native app pools
+depth one per ABI. No memory failure or increase. Signer-preserving owner/test
+updates succeeded; independent installed owner APK SHA-256 is
+`ed2acbea26a3864f713875e6d68e3d04d74d667fdae87cd188e6950a96230eb9`.
+Actual app-UID native proof passes missing-folder isolation, exact registered-key
+receipt, mapped rename delivery, unrelated-file exclusion and exclusive fixture
+cleanup. Configuration/schema/root, saved jobs and every private preference
+digest match the pre-update baseline. Both displays' actual/committed states
+are OFF. This proves native observer isolation, not a real watch-to-cloud round trip.
+
+The next regression reproduced stale automatic restore after a cloud head
+advanced during download. The automatic pre-launch path now reviews cloud heads
+again immediately before native publication. A changed head preserves the sealed
+restore/rollback, leaves last-good ancestry unchanged and refuses launch.
+Automatic retries retain that same intent; explicitly confirmed manual resume
+can publish the previously selected copy without altering other cloud versions.
+The confirmation warns that this copy may no longer be newest. Focused current
+restore/launch/settings checks and scoped analysis pass. Integrated assembly
+request 667 (`4d7be660bd56471696c3c18b20a92685`) completed exit 0 with actual
+gate acquisition and verified completion. Observed workers=2, parallel=false,
+Gradle=3 GiB; reviewed Kotlin in-process; tests configured for one 512-MiB
+fail-fast fork (not executed by assembly). Native code was unchanged from 664;
+no new native-concurrency claim. No memory failure or budget increase. The owner
+signer matches, preserving update succeeded, and independent installed APK SHA-256
+is `718939850caf4705c786c1b9ad846d70bee7ecbc82fbdaf143d34c9118198520`.
+Configuration/schema/root, saved jobs and all private preference hashes are
+unchanged. Both actual/committed displays are OFF. This does not establish the
+still-unverified real launch/watch-to-cloud workflow.
+
+Remaining ordinary S10 work includes absent-local destination restore,
+the real launch/watch-to-cloud round trip,
+broader accessible-emulator coverage and verified legacy handover. S10 remains
+ACTIVE; none of these requirements is waived or moved to S11.
+
 ### S10 related-save publication — native proof verified, 2026-10-11
 
 S10 remains ACTIVE, the only ACTIVE stage. The mGBA SRAM/RTC host implementation

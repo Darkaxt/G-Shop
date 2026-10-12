@@ -71,6 +71,21 @@ void main() {
     expect(row.storage, isNot(contains('unsupported')));
   });
 
+  test('Melon coverage describes shared stopped-writer SRAM, not states', () {
+    final current = SaveEmulatorCoverage.decode(
+        [_row('me.magnum.melondualds', '0.8.0.rc2')]).single;
+    expect(current.saves, contains('shared'));
+    expect(current.saves, contains('closed'));
+    expect(current.storage, contains('Android/data'));
+    expect(current.storage, contains('Root'));
+    expect(current.storage, isNot(contains('not accessible')));
+    expect(current.states, startsWith('Unfinished'));
+    final changed =
+        SaveEmulatorCoverage.decode([_row('me.magnum.melondualds', '0.9.0')])
+            .single;
+    expect(changed.saves, startsWith('Needs review'));
+  });
+
   test('launchers and unreviewed emulators are not falsely unsupported', () {
     final rows = SaveEmulatorCoverage.decode([
       _row('org.es_de.frontend', '3.4.1'),

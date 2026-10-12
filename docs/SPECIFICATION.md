@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 23, 2026-10-11.
+Authoritative specification, revision 24, 2026-10-12.
 
 Owner clarification, 2026-10-11: fresh metadata is a supported workflow, not a
 requirement to scrape every ROM in the owner's collection. Neither S7 closure,
@@ -1336,12 +1336,23 @@ the metadata settings' responsive/controller navigation pattern. Verify narrow
 and handheld layouts, touch/controller section changes and operation continuity.
 At stage entry, audit the emulators installed on the Thor and their supported save-memory
 and save-state locations, formats and permission routes. Provide a visible
-per-emulator coverage matrix and explicit user-selected path mappings; do not
+per-emulator coverage matrix and resolved save-path associations; do not
 claim RetroArch-only coverage is sufficient. Start with a real RetroArch plus
 standalone-emulator vertical slice, then implement the remaining accessible
-installed-emulator routes. Protected or unidentifiable storage is visibly
-unsupported until a legitimate export/import or user-granted route is available;
-do not bypass Android storage protections or require root/ADB for normal use.
+installed-emulator routes. Use deterministic emulator configuration and installed
+package evidence to discover standard save locations automatically; allow explicit
+mapping for custom or ambiguous locations, not as a blanket setup requirement.
+Owner authorization, 2026-10-12: the Thor is rooted and root access may be used
+where it improves save tracking, access, restoration, reliability or performance.
+Do not classify protected emulator saves as unsupported merely because ordinary
+Android access fails, or restrict root to manually mapped paths. Implement the
+appropriate root-assisted route, including emulator-aware discovery and watching,
+while retaining ordinary access where it works and reporting actual root-grant
+failures. ADB is a development tool, not a normal-use runtime dependency.
+Root access does not waive coherent snapshots, edition/format association,
+conflict preservation, completed-write verification or the save-only boundary.
+Protected or unidentifiable storage remains unresolved only after investigating
+the available ordinary, root and export/import routes; record the concrete reason.
 The user's coverage target is most installed emulators, not just the initial
 pair. Reconcile the full installed package inventory, including differently named
 forks and multi-core/embedded emulators. Every accessible installed-emulator route
@@ -1370,6 +1381,16 @@ implementing the replacement.
 
 After explicit enablement, back up changed saves through persistent bounded work,
 including emulator-return and Android-supported background synchronization.
+For a mapped, enabled game launched through R-Shop, reconcile compatible local
+and cloud generations before launch: restore the cloud version only when the
+local/cloud ancestry and bytes permit it, and require a choice for divergence.
+Arm the exact mapped save-file watch before handing off to the emulator. File
+changes mark that game's backup pending; they do not by themselves prove a
+coherent snapshot or authorize restore while the emulator is writing. Upload
+the complete group at its reviewed writer-completion boundary during gameplay
+when supported, otherwise after safe completion. Persist pending work and use
+startup/return and Android-supported background checks to recover missed events
+or process death. Do not describe the periodic check alone as a file watchdog.
 Expose per-emulator/game progress, last verified backup and permission/offline/
 quota errors. Capture stable file identities and complete coherent groups without
 killing an emulator or using an arbitrary delay as proof that writing finished.

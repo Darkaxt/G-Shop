@@ -22,4 +22,7 @@ internal object OwnedStorageNative {
     /** App-exclusive private stage entries only; never public installation paths. */
     external fun retirePrivateFile(dir: Int, name: String, expected: LongArray)
     external fun close(fd: Int)
+    /** Kernel-confirmed directory registration and EOF-driven watch shutdown. */
+    external fun saveWatchOpen(directory: Int): Int
+    external fun saveWatchRead(watch: Int): ByteArray?
 }

@@ -1,7 +1,10 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -209,17 +212,28 @@ class _SaveBackupSettingsScreenState
       DriveSourceConfig config, String areaId) async {
     final generation = ++_gameGeneration;
     _automatic = await ref.read(automaticSaveBackupsProvider.future);
-    String? ppssppDirectory, ppssppSlot;
-    if (widget.system?.id == 'psp') {
+    String? ppssppDirectory, ppssppSlot, melonDirectory, melonName;
+    final melon = widget.system?.id == 'nds';
+    if (widget.system?.id == 'psp' || melon) {
       final preferences = await SharedPreferences.getInstance();
-      final raw = preferences.getString(_ppssppMappingKey(config));
-      if (raw == null) throw StateError('PPSSPP mapping required');
+      final raw = preferences.getString(
+          melon ? _melonMappingKey(config) : _ppssppMappingKey(config));
+      if (raw == null) throw StateError('Save mapping required');
       final mapping = jsonDecode(raw) as Map<String, dynamic>;
-      ppssppDirectory = mapping['directory'] as String;
-      ppssppSlot = mapping['slot'] as String;
-      if (!SaveCapture.validPpssppDirectory(ppssppDirectory) ||
-          !SaveCapture.validPpssppName(ppssppSlot)) {
-        throw const FormatException('Invalid PPSSPP mapping');
+      if (melon) {
+        melonDirectory = mapping['directory'] as String;
+        melonName = mapping['name'] as String;
+        if (!SaveCapture.validMelonDirectory(melonDirectory) ||
+            !SaveCapture.validMelonName(melonName)) {
+          throw const FormatException('Invalid MelonDualDS mapping');
+        }
+      } else {
+        ppssppDirectory = mapping['directory'] as String;
+        ppssppSlot = mapping['slot'] as String;
+        if (!SaveCapture.validPpssppDirectory(ppssppDirectory) ||
+            !SaveCapture.validPpssppName(ppssppSlot)) {
+          throw const FormatException('Invalid PPSSPP mapping');
+        }
       }
     }
     final authorization =
@@ -240,9 +254,11 @@ class _SaveBackupSettingsScreenState
         artifactId: widget.game!.remoteArtifact!.id,
         ppssppDirectory: ppssppDirectory,
         ppssppSlot: ppssppSlot,
+        melonDirectory: melonDirectory,
+        melonName: melonName,
         retroArchRoute: RetroArchBatteryRoute.forPlatform(widget.system?.id) ??
             RetroArchBatteryRoute.mgba,
-        resolveSaveName: ppssppSlot == null
+        resolveSaveName: ppssppSlot == null && melonName == null
             ? () => OwnedEmulatorLauncher().reviewRetroArchBatterySave(
                 widget.game!,
                 widget.system!,
@@ -250,14 +266,17 @@ class _SaveBackupSettingsScreenState
                 RetroArchBatteryRoute.forPlatform(widget.system?.id)!)
             : () async {
                 final preferences = await SharedPreferences.getInstance();
-                final mapping = jsonDecode(
-                    preferences.getString(_ppssppMappingKey(config)) ??
-                        '{}') as Map<String, dynamic>;
-                if (mapping['directory'] != ppssppDirectory ||
-                    mapping['slot'] != ppssppSlot) {
-                  throw StateError('PPSSPP mapping changed');
+                final mapping = jsonDecode(preferences.getString(melon
+                        ? _melonMappingKey(config)
+                        : _ppssppMappingKey(config)) ??
+                    '{}') as Map<String, dynamic>;
+                if (mapping['directory'] !=
+                        (melonDirectory ?? ppssppDirectory) ||
+                    mapping[melon ? 'name' : 'slot'] !=
+                        (melonName ?? ppssppSlot)) {
+                  throw StateError('Save mapping changed');
                 }
-                return ppssppSlot!;
+                return (melonName ?? ppssppSlot)!;
               });
     try {
       await job.load();
@@ -279,6 +298,31 @@ class _SaveBackupSettingsScreenState
       AutomaticSaveMapping.ppssppMappingKey(config.serverClientId,
           config.accountId, widget.editionId!, widget.game!.remoteArtifact!.id);
 
+  String _melonMappingKey(DriveSourceConfig config) =>
+      'save_melon_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+            config.serverClientId,
+            config.accountId,
+            widget.editionId!,
+            widget.game!.remoteArtifact!.id.key
+          ])))}';
+
+  Future<void> _mapMelon(
+      DriveSourceConfig config, String directory, String name) async {
+    if (!SaveCapture.validMelonDirectory(directory) ||
+        !SaveCapture.validMelonName(name)) {
+      throw const FormatException('Invalid MelonDualDS mapping');
+    }
+    final binding = _binding;
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted || binding != _binding || _gameJob?.busy == true) return;
+    if (!await preferences.setString(_melonMappingKey(config),
+        jsonEncode({'directory': directory, 'name': name}))) {
+      throw StateError('Mapping could not be saved');
+    }
+    if (!mounted || binding != _binding) return;
+    setState(_closeGame);
+  }
+
   Future<void> _mapPpsspp(
       DriveSourceConfig config, String directory, String slot) async {
     if (!SaveCapture.validPpssppDirectory(directory) ||
@@ -298,8 +342,18 @@ class _SaveBackupSettingsScreenState
 
   Widget _mappingIssue(DriveSourceConfig config) {
     if (_section == SaveBackupSection.area) return const SizedBox.shrink();
+    if (widget.system?.id == 'nds' && _section == SaveBackupSection.backup) {
+      return StandaloneSaveMappingPanel(
+          melon: true,
+          title: widget.gameTitle ?? 'Selected DS edition',
+          capture: SaveCapture(),
+          chooseDirectory: () => FilePicker.platform.getDirectoryPath(
+              dialogTitle:
+                  'Choose the shared save folder configured in MelonDualDS'),
+          onMapped: (directory, name) => _mapMelon(config, directory, name));
+    }
     if (widget.system?.id == 'psp' && _section == SaveBackupSection.backup) {
-      return PpssppSaveMappingPanel(
+      return StandaloneSaveMappingPanel(
           title: widget.gameTitle ?? 'Selected PSP edition',
           capture: SaveCapture(),
           chooseDirectory: () => FilePicker.platform.getDirectoryPath(
@@ -751,6 +805,15 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
   late final Future<List<String>> _names = widget.job.reviewedNames();
   String? _name;
   bool _confirmed = false;
+  Widget _appInfoButton(SaveBackupGameJob job) => ConsoleFocusable(
+      focusScale: 1,
+      onSelect: job.busy ? null : job.openAppInfo,
+      child: OutlinedButton.icon(
+          key: ValueKey(
+              job.isMelon ? 'save-melon-app-info' : 'save-ppsspp-app-info'),
+          onPressed: job.busy ? null : job.openAppInfo,
+          icon: const Icon(Icons.settings_applications_outlined),
+          label: Text('${job.emulatorLabel} App info')));
   Future<void> _resolveConflict({String? cloudId}) async {
     final job = widget.job;
     if (job.busy) return;
@@ -765,9 +828,9 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   ? 'Upload the saved copy from this device as the version to use. '
                       'Older cloud backups are kept. The current local save is not replaced.'
                   : 'Restore the selected cloud version to this game’s configured save location. '
-                      'Copies of your local saves are kept so you can undo the restore. '
+                      '${job.localCopyAvailable ? 'Copies of your local saves are kept so you can undo the restore. ' : 'There is no device copy to replace. '}'
                       'No cloud version is overwritten or deleted. '
-                      '${job.isPpsspp ? 'Exit the game, then use Force stop in PPSSPP App info. Keep PPSSPP closed during restore.' : 'Close the game in RetroArch first.'}'),
+                      '${job.isStandalone ? 'Exit the game, then use Force stop in ${job.emulatorLabel} App info. Keep ${job.emulatorLabel} closed during restore.' : 'Close the game in RetroArch first.'}'),
               actions: [
                 TextButton(
                     key: const ValueKey('save-conflict-cancel'),
@@ -793,23 +856,24 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
 
   Future<void> _restore({bool rollback = false}) async {
     if (widget.job.busy) return;
-    final writerInstruction = widget.job.isPpsspp
-        ? 'Exit the game, then use Force stop in PPSSPP App info. '
-            'Keep PPSSPP closed during restore. R-Shop never stops it automatically.'
+    final writerInstruction = widget.job.isStandalone
+        ? 'Exit the game, then use Force stop in ${widget.job.emulatorLabel} App info. '
+            'Keep ${widget.job.emulatorLabel} closed during restore. R-Shop never stops it automatically.'
         : 'Close the game in RetroArch before continuing.';
     final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
               title: Text(rollback
                   ? 'Undo the last restore?'
-                  : 'Replace local save with cloud backup?'),
+                  : widget.job.localCopyAvailable
+                      ? 'Replace local save with cloud backup?'
+                      : 'Restore the cloud save?'),
               content: Text(rollback
                   ? 'Restore the copy of ${widget.title}’s save kept before the last cloud restore. '
                       'A copy of the current save will also be kept. '
                       '$writerInstruction ROMs and settings are untouched.'
-                  : 'Replace ${widget.title}’s selected save with its last checked cloud backup, '
-                      'even if the local save is different. '
-                      'A copy of the current save is kept so you can undo this. '
+                  : '${widget.job.restorePending ? 'Resume the cloud copy already selected for this restore. It may not be the newest copy; other cloud copies are kept. ' : ''}'
+                      '${widget.job.localCopyAvailable ? 'Replace ${widget.title}’s selected save with its last checked cloud backup, even if the local save is different. A copy of the current save is kept so you can undo this. ' : 'Restore ${widget.title}’s selected cloud save to its configured location. There is no device copy to replace. '}'
                       '$writerInstruction '
                       'No other save, ROM or emulator setting is selected.'),
               actions: [
@@ -849,20 +913,24 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               Text(widget.title, style: AppTheme.headlineMedium),
               const SizedBox(height: 12),
               Text(
-                  job.isPpsspp
-                      ? 'PPSSPP · published state slot · v1.20.4'
-                      : !job.retroArchRoute.includesRtc
-                          ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
-                          : 'RetroArch · mGBA · battery saves only',
+                  job.isMelon
+                      ? 'MelonDualDS · in-game save · 0.8.0.rc2'
+                      : job.isPpsspp
+                          ? 'PPSSPP · published state slot · v1.20.4'
+                          : !job.retroArchRoute.includesRtc
+                              ? 'RetroArch · Genesis Plus GX · ${job.retroArchRoute.label} battery saves'
+                              : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (widget.section == SaveBackupSection.backup) ...[
                 const SizedBox(height: 12),
                 Text(
-                    job.isPpsspp
-                        ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
-                        : !job.retroArchRoute.includesRtc
-                            ? 'Backs up this ${job.retroArchRoute.label} game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
-                            : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
+                    job.isMelon
+                        ? 'Backs up only this game’s selected .sav or .srm file in your configured shared save folder. ROMs, settings and save states are not included.'
+                        : job.isPpsspp
+                            ? 'Backs up only the save-state slot you selected for this game. In-game saves, thumbnails, ROMs and settings are not included.'
+                            : !job.retroArchRoute.includesRtc
+                                ? 'Backs up this ${job.retroArchRoute.label} game’s in-game save from RetroArch. CD saves, ROMs, settings and save states are not included.'
+                                : 'Backs up this game’s in-game save from RetroArch, including its clock data if present. ROMs, settings and save states are not included.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 FutureBuilder<List<String>>(
@@ -909,9 +977,11 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                         : (value) =>
                             setState(() => _confirmed = value ?? false)),
                 Text(
-                    job.isPpsspp
-                        ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
-                        : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
+                    job.isMelon
+                        ? 'Exit the game safely, then use Force stop in MelonDualDS App info before backing up. Keep it closed until the backup finishes.'
+                        : job.isPpsspp
+                            ? 'Finish saving in PPSSPP before backing up. R-Shop will not upload a save that changes while it is being copied.'
+                            : 'Close the game in RetroArch first. If it is still running, use Open RetroArch below, close the game, then return here. You can cancel while R-Shop waits.',
                     style: TextStyle(fontSize: 18, height: 1.4)),
                 const SizedBox(height: 16),
                 ConsoleFocusable(
@@ -938,6 +1008,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : 'Resume this backup'))),
                 if (conflicts.isNotEmpty)
                   const Text('Conflict needs review in Restore & conflicts.'),
+                if (job.isMelon) _appInfoButton(job),
                 if (job.isPpsspp && widget.automatic != null)
                   AutomaticSaveBackupPanel(
                       service: widget.automatic!,
@@ -948,21 +1019,12 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                           (job.pendingName ?? _name) != null),
               ],
               if (widget.section == SaveBackupSection.restore) ...[
-                if (job.isPpsspp) ...[
-                  const Text(
-                      'Exit the game safely, then use Force stop in PPSSPP App info. '
-                      'Return here without reopening PPSSPP. R-Shop checks Android’s stopped state '
-                      'before replacing the selected slot; it never stops the emulator automatically.'),
-                  ConsoleFocusable(
-                      focusScale: 1,
-                      onSelect: job.busy ? null : job.capture.openPpssppAppInfo,
-                      child: OutlinedButton.icon(
-                          key: const ValueKey('save-ppsspp-app-info'),
-                          onPressed:
-                              job.busy ? null : job.capture.openPpssppAppInfo,
-                          icon:
-                              const Icon(Icons.settings_applications_outlined),
-                          label: const Text('PPSSPP App info'))),
+                if (job.isStandalone) ...[
+                  Text(
+                      'Exit the game safely, then use Force stop in ${job.emulatorLabel} App info. '
+                      'Return here without reopening ${job.emulatorLabel}. R-Shop checks Android’s stopped state '
+                      'before replacing the selected save; it never stops the emulator automatically.'),
+                  _appInfoButton(job),
                 ],
                 const SizedBox(height: 16),
                 const Text(
@@ -971,18 +1033,22 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   const SizedBox(height: 16),
                   Semantics(
                       liveRegion: true,
-                      child: const Text(
-                          'Save conflict: local and cloud versions differ. Both are preserved. '
-                          'Choose which one to use; R-Shop will not choose based on the date.',
+                      child: Text(
+                          job.localCopyAvailable
+                              ? 'Save conflict: local and cloud versions differ. Both are preserved. '
+                                  'Choose which one to use; R-Shop will not choose based on the date.'
+                              : 'More than one cloud save is available. Choose which one to restore. '
+                                  'All cloud copies are kept.',
                           style: TextStyle(fontSize: 18, height: 1.4))),
-                  ConsoleFocusable(
-                      focusScale: 1,
-                      onSelect: job.busy ? null : _resolveConflict,
-                      child: FilledButton(
-                          key: const ValueKey('save-conflict-local'),
-                          style: AppTheme.primaryButtonStyle,
-                          onPressed: job.busy ? null : _resolveConflict,
-                          child: const Text('Use device copy'))),
+                  if (job.localCopyAvailable)
+                    ConsoleFocusable(
+                        focusScale: 1,
+                        onSelect: job.busy ? null : _resolveConflict,
+                        child: FilledButton(
+                            key: const ValueKey('save-conflict-local'),
+                            style: AppTheme.primaryButtonStyle,
+                            onPressed: job.busy ? null : _resolveConflict,
+                            child: const Text('Use device copy'))),
                   for (final cloud in conflicts)
                     ConsoleFocusable(
                         focusScale: 1,
@@ -1003,7 +1069,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                               '${cloud.createdAt.toLocal()} · ${cloud.generationId}'),
                         )),
                 ],
-                if (job.lastVerified != null)
+                if (job.lastVerified != null || job.restorePending)
                   ConsoleFocusable(
                       focusScale: 1,
                       onSelect: !job.busy &&
@@ -1040,6 +1106,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             : 'Undo last restore'),
                       )),
                 if (job.lastVerified == null &&
+                    !job.restorePending &&
                     conflicts.isEmpty &&
                     !job.rollbackAvailable)
                   const Text(
@@ -1048,19 +1115,13 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               if (widget.section != SaveBackupSection.status || job.busy)
                 ConsoleFocusable(
                     focusScale: 1,
-                    onSelect: job.isPpsspp && job.busy
-                        ? null
-                        : job.isPpsspp
-                            ? job.capture.openPpsspp
-                            : job.capture.openRetroArch,
+                    onSelect:
+                        job.isStandalone && job.busy ? null : job.openEmulator,
                     child: TextButton(
-                        onPressed: job.isPpsspp && job.busy
+                        onPressed: job.isStandalone && job.busy
                             ? null
-                            : job.isPpsspp
-                                ? job.capture.openPpsspp
-                                : job.capture.openRetroArch,
-                        child: Text(
-                            job.isPpsspp ? 'Open PPSSPP' : 'Open RetroArch'))),
+                            : job.openEmulator,
+                        child: Text('Open ${job.emulatorLabel}'))),
               if (job.busy) ...[
                 const LinearProgressIndicator(),
                 Text(
@@ -1102,6 +1163,11 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   const Text(
                       'Save unchanged. The existing verified cloud backup was retained.',
                       style: TextStyle(fontSize: 18)),
+                if (job.phase == 'no_save')
+                  const Text(
+                      'No device save or compatible cloud backup yet. '
+                      'You can start the game to create one.',
+                      style: TextStyle(fontSize: 18)),
                 if (job.isPpsspp && widget.automatic != null)
                   AutomaticSaveBackupPanel(
                       service: widget.automatic!,
@@ -1111,9 +1177,11 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 if (job.phase == 'restored')
                   Semantics(
                       liveRegion: true,
-                      child: const Text(
-                          'Cloud save restored. Your previous local save is kept in case you want to undo this.',
-                          style: TextStyle(fontSize: 18))),
+                      child: Text(
+                          job.rollbackAvailable
+                              ? 'Cloud save restored. Your previous local save is kept in case you want to undo this.'
+                              : 'Cloud save restored and ready to use.',
+                          style: const TextStyle(fontSize: 18))),
                 if (job.phase == 'rolled_back')
                   Semantics(
                       liveRegion: true,
@@ -1125,6 +1193,13 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       liveRegion: true,
                       child: Text(
                           switch (job.issue) {
+                            'conflict_changed' => job.restorePending
+                                ? 'The cloud save changed while it was being checked. Automatic restore stopped. You can review and explicitly resume the previously selected copy in Restore & conflicts; other cloud copies are kept.'
+                                : 'The cloud saves changed while you were choosing. Review the current choices in Restore & conflicts. No copy was replaced.',
+                            'stop_melon_required' =>
+                              'Exit the game safely, then use Force stop in MelonDualDS App info. Return here without reopening it, then resume. Your existing saves and cloud backups are kept.',
+                            'root_unavailable' =>
+                              'Allow R-Shop root access in your root manager, then resume the restore. Your cloud backup and staged save are kept.',
                             'related_group_changed' =>
                               'This backup and the local save contain different files. Nothing was replaced; both copies are kept.',
                             'pending_restore' ||
@@ -1246,7 +1321,7 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       title: const Text('Automatically back up this slot',
                           style: TextStyle(fontSize: 18)),
                       subtitle: const Text(
-                          'Only for this version of the game. Checks when R-Shop opens, when you return to it, and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
+                          'Only for this version of the game. Watches this slot while R-Shop is running, including while you play. Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(
@@ -1273,6 +1348,9 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                 if (status.enabled && widget.service.backgroundIssue != null)
                   const Text(
                       'Android could not schedule background backups. Backups can still run when you return to R-Shop or start one yourself.'),
+                if (status.enabled && widget.service.watchIssue != null)
+                  const Text(
+                      'Live save monitoring is unavailable. Check the selected folder. Backups can still run when you return to R-Shop or start one yourself.'),
               ],
               if (_issue != null) Text(_issue!),
             ]);
@@ -1281,38 +1359,88 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
 
 /// A focused mapping view within Back up save, not another settings scroll.
 /// Selecting a directory never changes the application's ROM destination.
-class PpssppSaveMappingPanel extends StatefulWidget {
+class StandaloneSaveMappingPanel extends StatefulWidget {
   final String title;
+  final bool melon;
   final SaveCapture capture;
   final Future<String?> Function() chooseDirectory;
   final Future<void> Function(String directory, String slot) onMapped;
-  const PpssppSaveMappingPanel(
+  const StandaloneSaveMappingPanel(
       {super.key,
+      this.melon = false,
       required this.title,
       required this.capture,
       required this.chooseDirectory,
       required this.onMapped});
   @override
-  State<PpssppSaveMappingPanel> createState() => _PpssppSaveMappingPanelState();
+  State<StandaloneSaveMappingPanel> createState() =>
+      _StandaloneSaveMappingPanelState();
 }
 
-class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
-  String? _directory, _slot, _issue;
+class _StandaloneSaveMappingPanelState
+    extends State<StandaloneSaveMappingPanel> {
+  String? _directory, _slot, _issue, _locationInfo;
   List<String> _names = const [];
   bool _confirmed = false, _busy = false;
-  Future<void> _choose() async {
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.melon) _discover();
+  }
+
+  Future<void> _discover() async {
     setState(() {
       _busy = true;
       _issue = null;
     });
     try {
-      final directory = await widget.chooseDirectory();
+      final settings = await widget.capture.melonSaveSettings();
+      if (!mounted) return;
+      if (settings.directory == null) {
+        setState(() => _locationInfo =
+            'MelonDualDS saves beside each game when its folder is available. Otherwise it uses the standard save folder. Choose the folder used for this game below.');
+      } else {
+        final names = await widget.capture.melonNames(settings.directory!);
+        if (!mounted) return;
+        setState(() {
+          _directory = settings.directory;
+          _names = names;
+          _slot = null;
+          _confirmed = false;
+          _locationInfo =
+              'Found the save folder selected in MelonDualDS. New saves use .${settings.extension}.';
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _issue = error is PlatformException &&
+                error.code == 'root_unavailable'
+            ? 'Allow R-Shop root access in Magisk to find MelonDualDS’s save folder, or choose the folder yourself.'
+            : 'MelonDualDS’s save location could not be resolved. Choose the folder configured in the emulator. Your saves and mapping are unchanged.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _choose([String? standardDirectory]) async {
+    setState(() {
+      _busy = true;
+      _issue = null;
+    });
+    try {
+      final directory = standardDirectory ?? await widget.chooseDirectory();
       if (directory == null || !mounted) return;
-      if (!SaveCapture.validPpssppDirectory(directory)) {
+      if (!(widget.melon
+          ? SaveCapture.validMelonDirectory(directory)
+          : SaveCapture.validPpssppDirectory(directory))) {
         throw const FormatException(
             'Choose the configured PPSSPP_STATE folder');
       }
-      final names = await widget.capture.ppssppNames(directory);
+      final names = widget.melon
+          ? await widget.capture.melonNames(directory)
+          : await widget.capture.ppssppNames(directory);
       if (!mounted) return;
       setState(() {
         _directory = directory;
@@ -1320,10 +1448,13 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
         _slot = null;
         _confirmed = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        setState(() => _issue =
-            'Choose an accessible PPSSPP_STATE folder from PPSSPP’s configured shared PSP folder. No mapping was changed.');
+        setState(() => _issue = widget.melon
+            ? error is PlatformException && error.code == 'root_unavailable'
+                ? 'Root access was not available. Allow R-Shop in Magisk, then try again. Your saves and mapping are unchanged.'
+                : 'The save folder could not be opened. Check root access for the standard folder, or choose the custom folder configured in MelonDualDS. Your mapping is unchanged.'
+            : 'Choose an accessible PPSSPP_STATE folder from PPSSPP’s configured shared PSP folder. No mapping was changed.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1353,33 +1484,69 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
       Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(widget.title, style: AppTheme.headlineMedium),
         const SizedBox(height: 12),
-        const Text('Choose a PPSSPP save state',
+        Text(
+            widget.melon
+                ? 'Choose a MelonDualDS save'
+                : 'Choose a PPSSPP save state',
             style: TextStyle(fontSize: 20)),
         const SizedBox(height: 12),
-        const Text(
-            'Open PPSSPP_STATE inside the PSP folder you use in PPSSPP, then choose a save-state slot for this game. This does not change PPSSPP’s settings or start a backup.',
+        Text(
+            widget.melon
+                ? 'R-Shop checks MelonDualDS’s save settings using root. Select this game’s .sav or .srm file from the detected folder, or choose another folder below. Emulator settings and existing saves are not changed.'
+                : 'Open PPSSPP_STATE inside the PSP folder you use in PPSSPP, then choose a save-state slot for this game. This does not change PPSSPP’s settings or start a backup.',
             style: TextStyle(fontSize: 18, height: 1.4)),
         const SizedBox(height: 16),
+        if (_locationInfo != null)
+          Text(_locationInfo!, style: const TextStyle(fontSize: 18)),
+        if (widget.melon)
+          ConsoleFocusable(
+              focusScale: 1,
+              onSelect: _busy ? null : _discover,
+              child: OutlinedButton.icon(
+                  key: const ValueKey('melon-map-discover'),
+                  onPressed: _busy ? null : _discover,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Find configured save folder'))),
+        if (widget.melon)
+          ConsoleFocusable(
+              focusScale: 1,
+              onSelect: _busy
+                  ? null
+                  : () => _choose(SaveCapture.melonStandardDirectory),
+              child: OutlinedButton.icon(
+                  key: const ValueKey('melon-map-standard'),
+                  onPressed: _busy
+                      ? null
+                      : () => _choose(SaveCapture.melonStandardDirectory),
+                  icon: const Icon(Icons.manage_search),
+                  label: const Text('Check standard save folder'))),
         ConsoleFocusable(
             focusScale: 1,
             onSelect: _busy ? null : _choose,
             child: OutlinedButton.icon(
-                key: const ValueKey('ppsspp-map-folder'),
+                key: ValueKey(
+                    widget.melon ? 'melon-map-folder' : 'ppsspp-map-folder'),
                 onPressed: _busy ? null : _choose,
                 icon: const Icon(Icons.folder_open),
-                label: const Text('Choose PPSSPP_STATE folder'))),
+                label: Text(widget.melon
+                    ? 'Choose shared save folder'
+                    : 'Choose PPSSPP_STATE folder'))),
         if (_directory != null) ...[
           Text(_directory!, style: const TextStyle(fontSize: 18)),
           const SizedBox(height: 16),
           if (_names.isEmpty)
-            const Text(
-                'No finished save states were found. Save a state in PPSSPP, then choose this folder again.'),
+            Text(widget.melon
+                ? 'No in-game saves were found. Save in MelonDualDS, then choose this folder again.'
+                : 'No finished save states were found. Save a state in PPSSPP, then choose this folder again.'),
           DropdownButtonFormField<String>(
-              key: const ValueKey('ppsspp-map-slot'),
+              key:
+                  ValueKey(widget.melon ? 'melon-map-slot' : 'ppsspp-map-slot'),
               initialValue: _slot,
               isExpanded: true,
-              decoration: const InputDecoration(
-                  labelText: 'Save-state slot for this game'),
+              decoration: InputDecoration(
+                  labelText: widget.melon
+                      ? 'In-game save for this game'
+                      : 'Save-state slot for this game'),
               items: _names
                   .map((name) => DropdownMenuItem(
                       value: name,
@@ -1392,10 +1559,12 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
                         _confirmed = false;
                       })),
           CheckboxListTile(
-              key: const ValueKey('ppsspp-map-confirm'),
+              key: ValueKey(
+                  widget.melon ? 'melon-map-confirm' : 'ppsspp-map-confirm'),
               contentPadding: EdgeInsets.zero,
               value: _confirmed,
-              title: Text('I confirm this slot belongs to ${widget.title}',
+              title: Text(
+                  'I confirm this ${widget.melon ? 'save' : 'slot'} belongs to ${widget.title}',
                   style: const TextStyle(fontSize: 18)),
               onChanged: _busy
                   ? null
@@ -1405,10 +1574,12 @@ class _PpssppSaveMappingPanelState extends State<PpssppSaveMappingPanel> {
             focusScale: 1,
             onSelect: !_busy && _confirmed && _slot != null ? _save : null,
             child: FilledButton(
-                key: const ValueKey('ppsspp-map-save'),
+                key: ValueKey(
+                    widget.melon ? 'melon-map-save' : 'ppsspp-map-save'),
                 style: AppTheme.primaryButtonStyle,
                 onPressed: !_busy && _confirmed && _slot != null ? _save : null,
-                child: const Text('Use this save state'))),
+                child: Text(
+                    widget.melon ? 'Use this save' : 'Use this save state'))),
         if (_busy) const LinearProgressIndicator(),
         if (_issue != null) Text(_issue!, style: const TextStyle(fontSize: 18)),
       ]);

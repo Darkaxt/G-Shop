@@ -76,6 +76,7 @@
             <package android:name="org.dolphinemu.dolphinemu"/>
             <package android:name="com.retroarch.aarch64"/>
             <package android:name="org.ppsspp.ppsspp"/>
+            <package android:name="me.magnum.melondualds"/>
             <package android:name="xyz.aethersx2.android"/>
             <package android:name="info.cemu.cemu"/>
             <intent>

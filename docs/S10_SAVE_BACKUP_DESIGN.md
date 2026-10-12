@@ -7,6 +7,354 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Protected watch and durable admission — verified 2026-10-12
+
+The exact protected Melon SRAM mapping now follows the existing automatic lane,
+not a separate cloud-sync implementation. Schema 2 records the Melon route and
+format in its mapping identity; schema-1 PPSSPP keys/encodings stay unchanged.
+Native registration pins the protected backing directory, installs an inotify
+watch, rechecks the namespace identity and only then acknowledges registration.
+One joined root child per protected directory handles bounded kernel/binary
+frames. Shared-folder watches stay ordinary Android FileObservers. There is no
+recursive scan, arbitrary shell save-path interpolation or runtime ADB dependency.
+
+The native owner serializes replacement and joined close off the UI thread.
+Closing its input wakes kernel poll by EOF; child and stream readers are joined.
+Kernel overflow, unmount, ignored watch or directory replacement invalidates
+registration. Platform delivery retains only one in-flight event and one dirty
+bit per mapped key until Dart acknowledges durable pending work. Early watch
+failure is reported after the registration reply, avoiding false healthy state.
+This acknowledgement does not wait for cloud IO and does not assert a coherent
+snapshot. Existing source identity, complete-byte, conflict and rollback rules
+remain in the backup lane.
+
+Requests 697/698 passed focused native watch/delivery verification and assembly.
+Actual protected and shared Thor probes now prove exact registration/publication,
+joined shutdown and the existing capture/restore/rollback path with expendable
+fixtures. The PSP watch regression also passes. Configuration/jobs/preferences
+are unchanged and both screens are OFF. Full evidence/profile/digests are in the
+current implementation ledger. The normal DS automatic UI/launch and reviewed
+active/closed-writer route are still required; the current stopped-runtime
+capture boundary has not been presented as completed unattended integration.
+
+Protocol references: Linux's [inotify event ABI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/inotify.h)
+and [poll readiness/EOF behavior](https://github.com/mkerrisk/man-pages/blob/master/man2/poll.2).
+
+### Root-assisted save access — authorized 2026-10-12
+
+The owner confirmed root on the Thor and explicitly rejected a blanket restriction
+to manually mapped paths. SAVE-01 revision 24 now includes root-assisted discovery,
+tracking and restoration wherever it improves coverage, reliability or performance.
+Standard locations should be resolved from emulator/package/configuration evidence;
+manual mapping is for custom or ambiguous locations. Existing save-only, coherent
+snapshot, edition/format and conflict safeguards remain requirements, not reasons
+to exclude accessible emulators. Root-backed missing-save publication is now
+integrated and verified; wider protected-path discovery/tracking remains ACTIVE.
+
+Protected-source implementation slice (2026-10-12): reuse the existing app-owned
+capture/restore journals and native descriptor primitives through a single joined
+root child per operation. The source channel currently serves MelonDualDS's
+standard Android/data save folder on its backing filesystem; this is the first
+implemented protected route, not a restriction on required emulator coverage.
+Private journal/capture IO stays in the app process. Save payloads travel in
+bounded 64-KiB binary frames without per-chunk process creation, shell path/data
+interpolation, delays or detached writers. Descriptor and namespace identities,
+complete digests, stopped-writer admission and rollback remain the existing
+contract. Root-created public stages take their emulator directory's owner/group
+before publication. The mapping UI can inspect the standard folder without an
+Android folder picker; custom-folder selection remains available. Automatic
+configuration/name discovery and protected live watching are still ordinary
+unfinished SAVE-01 work, not waived or classified as unsupported. Focused host
+checks, gated native storage/watch unit tests and the real app-UID protected
+capture/restore probe now pass on build request 688. The protected probe streams
+131,073 bytes across multiple frames, verifies binding/digests, rejects changed
+local data, recreates the service before restore, recognizes a lost publication
+acknowledgement and rolls back retained bytes. Shared Melon, missing-save,
+paired mGBA SRAM/RTC and exact-file-watch native regressions pass against the
+same installed owner/test APKs. Fresh configuration/jobs/preferences are unchanged
+and both displays are OFF. This verifies protected IO, not automatic discovery,
+protected watching or a new watch-to-Drive workflow. See IMPLEMENTATION_STATUS.md
+for installed digests and the effective gated build profile.
+
+Configured-location discovery (2026-10-12, verified slice): the normal
+DS mapping view now reads the installed MelonDualDS runtime's `use_rom_dir`,
+`sram_dir` and `save_file_use_srm_extension` through the app-UID root channel.
+Only these parsed save preferences leave the root child; the private XML is not
+exported or logged. The bounded no-follow descriptor read checks file and parent
+identities. XML DTDs, duplicate selected keys, unexpected selected value types
+and ambiguous configured trees are rejected. The pinned emulator resolver above
+is the authority for precedence/defaults: a stale custom tree is ignored when
+save-beside-ROM is enabled; a selected external-storage tree is resolved without
+requiring another folder-picker operation. Internal and SD volumes are supported.
+An unrecognized custom provider is unresolved, not a reason to silently use the
+fallback. Root denial leaves manual selection available without changing data.
+The view automatically lists a resolved custom folder, but location discovery
+alone never invents game/edition association. ROM-relative settings stay explicit
+until the actual ROM-parent/launch evidence resolves their destination. The
+protected standard folder remains available without a picker. Focused Dart/UI
+discovery checks pass, including no picker and no automatic edition confirmation;
+native parser/root-channel and Android assembly verification now pass on gated
+request 694. The first actual app-UID probe failed because Android's inherited
+app mount namespace hides the other package's private preferences even from a
+UID-0 child. Read-only `nsenter` inspection reproduced that absence; Magisk
+`--mount-master` exposed the existing file. Only the settings child now explicitly
+uses the global mount namespace. The actual app-UID settings probe subsequently
+passed, as did protected save capture/restore/retained rollback against the same
+preserving install. Source configuration, saved jobs and all private/emulator
+preferences are unchanged; both displays are OFF. See IMPLEMENTATION_STATUS.md
+for installed digests and the observed build profile. Protected watching and
+actual-launch association remain unfinished S10 work, not discovery proof.
+
+Measured device evidence: ADB `su -c id` returned UID 0 with Magisk context.
+The installed JNI `renameNoReplace` rejected shared FUSE publication with errno 95;
+shared-storage hard-link publication also rejected errno 38. Running the same
+bounded installed-JNI probe against `/data/media/0/RShopLiveTest` under root passed
+atomic absent-target publication and EEXIST preservation of both competing files.
+The backing filesystem reports F2FS magic `0xf2f52010`. Probe fixtures were removed
+and both screens switched off. This proves the backing operation, not an R-Shop
+application root grant or an integrated missing-save restore yet. The root-backed
+route can preserve the atomic-publication criterion without accepting a partial
+visible save. The prior optional question about weakening absent-file publication
+is therefore not the selected implementation approach.
+
+The separate application-UID check initially returned permission denied. Magisk
+held a persistent DENY policy for the verified R-Shop debug UID. Under the owner's
+root authorization, only that UID's policy was changed to ALLOW; logging and
+notifications remain enabled, other policies unchanged. Repeating the same
+application-UID check returned UID 0/Magisk context. This resolves the grant for
+live testing, not root integration acceptance by itself. Normal installs still
+request root through `su` and report a denied/unavailable grant without hiding it.
+
+### Missing local save — explicit restore verified on Thor
+
+The explicit restore path required an existing local group before downloading.
+A missing group failed as `related_group_changed`, even when this exact job had
+a verified compatible cloud generation. The focused
+`restore can create a missing local save without offering a fake rollback`
+regression reproduced that rejection (RED), and now passes after implementing
+restore-only sealed absence receipts. Affected host checks pass single and paired
+SRAM/clock absence, durable retry identities, no invented rollback, normal-backup
+rejection of empty captures and truthful restored-status messaging. This is still
+verified for the explicit native destination workflow, not SAVE-01 as a whole.
+
+The implemented baseline distinguishes a sealed absence receipt from an ordinary
+nonempty backup capture. Only restore accepts it. Native publication rechecks the
+captured source parent and rejects a newly appeared destination. The root-backed
+commit reviews and seals separate backing-FS parent/staged-inode identities,
+streams digest verification, and uses kernel no-replace rename; it never deletes
+the destination or substitutes ordinary overwriting rename. Durable per-file
+receipts permit lost-ack recovery. Paired groups retain their existing recoverable
+per-member publication model. Existing-save replacement/rollback is unchanged.
+Only the fixed root entrypoint and APK path enter the shell; all save paths and
+metadata are bounded JSON input. No detached child, timeout or bulk sync is added.
+Cloud discovery without an existing local job receipt and related-group membership
+changes remain separate unfinished portions of the same S10 acceptance scope.
+Focused host checks and scoped analysis pass. Gated request 673
+(`bd1d814ff35e4267b15fabd6ede3778d`) completed exit 0 through the original live
+supervisor: gate acquired, two workers, no parallel projects, observed 3-GiB
+Gradle heap, reviewed Kotlin in-process, one configured 512-MiB fail-fast test
+fork with focused storage tests executed. Existing app native compile/link pools
+remain depth one per ABI. No memory failure or budget increase occurred.
+Signer-preserving owner/test installation passed; independently read installed
+owner SHA-256 is `2cde946d860caddbd83af8ae37b9a0e9232f8b9b7de98edade0385e5c9327d9c`.
+The actual application-UID/root missing-save proof PASSED: sealed absence,
+empty-backup rejection, competing-local preservation, verified destination bytes,
+service-recreation publication, lost-ack recovery and exclusive fixture cleanup.
+Configuration, schema/root, saved metadata jobs and all private preferences
+match the fresh pre-update baseline. Both actual/committed display states are OFF.
+This uses synthetic save-only bytes, not gameplay or a new Drive round trip.
+Automatic pre-launch absence/cloud discovery is now implemented and host-verified,
+but its new native integration/update is pending below.
+
+### Automatic missing-save discovery — integrated host path, native update pending
+
+Pre-launch capture requests the restore-only absence baseline. A missing local
+group queries compatible cloud generations using current package/runtime and
+reviewed game/edition evidence, without allocating upload objects or inventing an
+empty manifest/last-good receipt. A sole compatible head becomes a durable restore
+intent; multiple heads require explicit cloud selection and never fabricate a
+device-copy choice. No local or remote save permits first launch without claiming
+a backup exists. Interrupted downloads retain the exact absence/restore identities,
+including after local job receipts are lost. Automatic publication rechecks heads
+after download; a changed cloud branch stays pending for review. A verified receipt
+is recorded only after download verification and native publication complete.
+
+The focused regression reproduced the previous `backup_unavailable` result.
+Affected job/capture/UI checks now pass fresh, including reinstall-style receipt
+loss, absence with no cloud copy, interrupted download, divergent cloud choice,
+changed heads and truthful no-device-copy controls. Scoped Dart analysis and
+whitespace checks pass. Gated request 677 (`0107f36fa2284079933e136405ba851e`)
+completed owner/instrumentation assembly with exit 0 and confirmed gate ownership
+through completion. Observed profile: workers=2, no parallelism, 3-GiB Gradle,
+reviewed Kotlin in-process and one configured 512-MiB fail-fast test fork; no JVM
+test execution was requested. No memory failure or budget increase occurred.
+Preserving installed owner SHA-256 independently matches
+`b8485a71a78b163a5b2ff669a0a232fe760d9f00d4f54a79835ddcce5da55f10`.
+Actual app-UID proofs pass native absence receipt retirement and paired absent-
+group root publication/recovery after the first member was committed. Real
+RetroArch reported CONTENTLESS; all exclusive fixtures were removed. Fresh
+configuration/jobs/private-preference baseline matches and both screens are OFF.
+Automatic PSP launch host integration separately passes restore-before-watch and
+no-save first launch without an empty cloud backup. No broader SAVE-01 or real
+watch-to-Drive completion is claimed.
+
+### Explicit conflict selection — last-good ordering correction
+
+The focused failed-download regression demonstrated that selecting a cloud branch
+prematurely replaced `lastVerified` before local publication. The corrected branch
+first publishes the captured local conflict copy for independent recovery, then
+persists a separate restore intent referencing that same sealed capture. It keeps
+the previous verified receipt until native publication acknowledges. Interrupted
+download/reload resumes the same intent without uploading the preserved branch
+again. Red/green reproduction and affected job/capture/coverage integration pass;
+scoped Dart analysis and whitespace checks pass. The fault-injection check also
+verifies that rejection of the atomic choice+intent database write retains both
+recoverable cloud branches, the pending local capture and the prior receipt;
+it does not fabricate an accepted choice, and a fresh review can resume.
+Request 682 (`d86156fe863f4525abe8b20b53ffd13f`) completed the affected native
+storage/watch unit tests and owner assembly with exit 0. The mutex was acquired
+through confirmed completion; observed workers=2, no parallel projects, 3-GiB
+Gradle heap, reviewed Kotlin in-process and one 512-MiB fail-fast test fork.
+App native compile/link pools remain depth one per ABI; the plugin environment
+budget of two is not a universal native-cap verification. No memory failure or
+budget increase occurred. Signer-preserving installation independently matches
+SHA-256 `9d72df6123cc23998b1bd18ec8512f572c0ed7e46c67cf2ff806a642601111ba`.
+Fresh schema/source configuration, saved metadata jobs and all ten private
+preference digests match the pre-install baseline. Supervisor session 61472 is
+terminal. This fixes SAVE-01 ordering, not wider coverage or a new live conflict/
+watch-to-Drive round trip.
+
+### MelonDualDS shared SRAM route — ACTIVE implementation
+
+Root-enabled discovery investigation (2026-10-12): read-only actual package
+preferences show `use_rom_dir=true`, `.sav` extension and `save_state_location=save_dir`.
+The configured custom SRAM tree exists as a preference but is not selected while
+`use_rom_dir` is true. The pinned runtime's
+[settings implementation](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/java/me/magnum/melonds/impl/SharedPreferencesSettingsRepository.kt#L1382)
+uses the ROM parent only when the launched ROM supplies a parent tree; otherwise
+it resolves the app's external-files `saves` directory. The actual protected
+`/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves` directory
+exists. Therefore R-Shop's document-provider launch must not infer that the stale
+custom tree or an arbitrary shared `.sav` is the emulator's expected destination.
+Automatic discovery must combine current settings with the actual launch URI and
+its parent-tree evidence, and route the protected fallback through root. This is
+unfinished ACTIVE-stage work, not an unsupported-storage classification or a
+reason to require a manual mapping for standard settings. Inspection made no
+configuration/save changes; root publication verification remains separate.
+
+The installed package is `me.magnum.melondualds`, version `0.8.0.rc2`.
+Its exact source revision `6f716d78527490623ea773356f074bb6a51a853d`
+([RomSaveFileManager](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/java/me/magnum/melonds/impl/RomSaveFileManager.kt),
+[save settings](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/res/xml/pref_save_files.xml),
+[SaveManager](https://github.com/SapphireRhodonite/WatermelonDS/blob/6f716d78527490623ea773356f074bb6a51a853d/app/src/main/cpp/SaveManager.cpp))
+supports a configured shared save folder or saves beside the ROM. The actual
+fallback is protected Android/data; no document-tree provider is advertised.
+Revision 24 authorizes a root-assisted route to that fallback; the existing shared
+route below remains implemented while root integration is unfinished. Select the same shared
+folder and the exact `.sav` or `.srm` file in the existing Back up save section.
+The mapping is isolated by account, source client, reviewed edition and artifact;
+the backup/restore journal additionally binds the directory and selected file.
+No emulator settings or real saves are automatically moved or rewritten.
+
+This runtime flushes SRAM in place, so a file change/quiet interval is not proof
+of a finished snapshot. Capture and restore require Android's stopped flag,
+with instructions to exit safely before user-mediated App info preparation.
+R-Shop does not terminate the emulator. Reuse streaming sealed captures, the
+existing Drive generation/conflict transport, atomic local publication and
+retained rollback. Record DS/save/core/runtime compatibility independently from
+RetroArch and PPSSPP state streams. States and unattended Melon capture remain
+unfinished S10 work; this route must not silently enable unsafe background reads.
+
+Focused host capture/job/mapping checks pass. Gated request 653 completed exit 0;
+the signer-preserving installed owner digest is
+`b3c379bdc8124e69361d86a55f742191cbc476d544baef149a6ccd66762ae509`.
+Actual Thor app-UID proof passes shared-file capture/digest, format/directory
+replay rejection, changed-local rejection, service-recreation restore and retained
+rollback. Exclusive fixtures were removed, configuration/preferences/jobs are
+unchanged and both displays are OFF. Normal installed UI verification remains:
+do not report verification against the actual configured emulator destination yet.
+
+The normal owned-game launch now passes a save-preparation callback before any
+companion/emulator handoff. Only an enabled exact artifact/edition association
+participates. It joins the existing serial lane, captures local bytes, discovers
+cloud ancestry, safely restores a proven descendant when local bytes still match
+the verified ancestor, and waits for that mapping's watch registration. Divergent
+bytes, missing ancestry and pending failures prevent handoff rather than select
+a timestamp winner. Unknown/disabled games remain unchanged.
+
+Automatic restore seals its intent with the exact pre-review local capture as
+rollback; native publication checks against those bytes. The verified ancestry
+receipt stays at the last-good generation until publication succeeds. Failed
+downloads retain the same restore/rollback IDs for resume. Focused current host
+checks pass these cases plus duplicate activation joining one handoff.
+Request 664 passed integrated assembly and the actual isolated-watch proof. Its
+preserving installed owner SHA-256 is
+`ed2acbea26a3864f713875e6d68e3d04d74d667fdae87cd188e6950a96230eb9`;
+configuration/preferences/jobs are unchanged and both displays are OFF.
+Absent-local restore and the real launch/watch-to-cloud workflow remain ordinary
+unfinished S10 acceptance work.
+Upload still requires the runtime's reviewed writer-completion boundary; no
+timestamp-only overwrite or unsafe in-place gameplay capture is authorized.
+
+Exact file-event implementation, 2026-10-11: saved enabled PPSSPP mappings now
+configure process-lifetime Android FileObservers, grouped by exact shared
+PPSSPP_STATE directory with strong observer references. Only mapped published
+slot names and publication/removal events request work; temporary/thumbnail/ROM
+files and MODIFY events do not. Main-thread delivery carries only the mapping key.
+The Dart acknowledgement means the request is durably recorded, not that upload
+has completed. Existing serialized capture/Drive work checks writer coherence,
+mapping/account/edition and generation conflicts. A second event is recorded
+while a prior capture/upload is running; opt-out and changed associations remove
+watches. No indefinite foreground service, recursive scan, arbitrary delay or
+automatic deletion is added. Startup/return and existing Android periodic passes
+recover missed events/process death. Focused host admission/configuration checks
+pass. Gated request 658 completed exit 0 with the shared mutex acquired through
+verified completion, observed workers=2/parallel=false/3-GiB Gradle, in-process
+Kotlin and one executed 512-MiB fail-fast test fork; no memory failure or increase.
+The signer-preserving installed owner digest is
+`28df69b6d5890e5f74b1d2afdab5acb831fcd0ddb2e1bee7854bdf715991767c`.
+Actual app-UID Android event proof passes mapped rename delivery on the main
+thread, temporary/unrelated-file exclusion and exclusive fixture removal.
+Configuration/preferences/jobs are unchanged and both displays remain OFF.
+This does not claim a fully verified watch-to-cloud workflow or coverage beyond
+the currently enabled PPSSPP published-state route.
+
+Watch isolation correction, 2026-10-12: the previous all-or-none native replace
+and global Dart error gate let an unrelated missing folder/malformed mapping
+block a valid game's launch. The reproduced host regression now passes. Native
+registration preserves successful directory observers and returns only their
+exact mapping keys; Dart validates that receipt against the requested mappings.
+Launch requires its own key rather than a globally error-free collection. A
+failed current-game registration still blocks handoff, and unrelated failures
+remain visible. Registration is the Android FileObserver API's process-lifetime
+request, not a promise against subsequent permission changes or process death;
+durable return/background comparisons remain required.
+
+Final automatic-restore cloud review, 2026-10-12: the host regression reproduced
+publication of an automatically selected generation after the cloud advanced
+during download. The pre-launch path now discovers compatible heads again after
+staging and immediately before publication; it requires the single exact selected
+manifest. A changed head reports `conflict_changed`, keeps staged bytes/rollback
+and last-good ancestry, and refuses handoff. Repeated automatic preparation does
+not silently retarget that pending intent. The existing confirmed manual resume
+deliberately means that previously selected cloud copy; the dialog warns it may
+not be newest and other cloud copies remain intact. Host checks pass rejection,
+intent preservation, explicit resume and unchanged advanced cloud bytes. This
+is a fresh boundary review, not a distributed lock preventing another device
+from publishing after that review. Assembly request 667 completed exit 0 with
+actual mutex acquisition and verified completion, workers=2, parallel=false,
+3-GiB Gradle and reviewed Kotlin in-process. Tests were configured for one
+512-MiB fail-fast fork; assembly did not execute that fork. No memory failure or
+budget increase occurred. Owner signer matches and preserving installation
+succeeded; independent installed SHA-256 is
+`718939850caf4705c786c1b9ad846d70bee7ecbc82fbdaf143d34c9118198520`.
+Configuration/schema/root, saved jobs and all private preference digests are
+unchanged. Both actual/committed display states are OFF. The normal real
+cloud/launch workflow remains unverified. Exact disposable root-probe output
+was removed through transaction `8120488356317ebb180226bfa896cf09`; only its
+pre-existing empty enclosing scratch directory was protected/preserved. The
+two exact task-owned device probe files were also removed.
+
 ### Related SRAM/clock restore — ACTIVE implementation
 
 The existing backup already captures mGBA SRAM plus its paired RTC file. Restore

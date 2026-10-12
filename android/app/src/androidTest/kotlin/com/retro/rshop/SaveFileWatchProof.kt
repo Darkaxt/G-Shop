@@ -1,0 +1,56 @@
+package com.retro.rshop
+
+import android.content.Context
+import android.system.Os
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
+import java.util.concurrent.CountDownLatch
+
+/** Actual Android file events in an exclusive fixture; no account, emulator,
+ * user save, configuration, ROM or cloud operation. */
+internal object SaveFileWatchProof {
+    fun exercise(context: Context): String {
+        check(context.packageName == "com.darkaxt.rshop.debug")
+        val parent = File("/storage/emulated/0/RShopLiveTest")
+        val createdParent = if (!parent.exists()) { check(parent.mkdir()); true } else false
+        check(parent.isDirectory && parent.canonicalFile == parent.absoluteFile)
+        val root = File(parent, "save-watch-${UUID.randomUUID()}")
+        check(root.mkdir())
+        val directory = File(root, "PPSSPP_STATE")
+        check(directory.mkdir())
+        val mapping = SaveFileWatch.Mapping("a".repeat(64), directory.path, "ULUS10041_1.00_0.ppst")
+        val publication = CountDownLatch(1)
+        val events = mutableListOf<String>()
+        val watch = SaveFileWatch { key ->
+            synchronized(events) { events.add(key) }
+            publication.countDown()
+        }
+        val temp = File(directory, "${mapping.name}.tmp")
+        val other = File(directory, "Other.iso")
+        val target = File(directory, mapping.name)
+        try {
+            val missing = SaveFileWatch.Mapping("b".repeat(64),
+                File(root, "missing/PPSSPP_STATE").path, mapping.name)
+            check(watch.replace(listOf(missing, mapping)) == listOf(mapping.key))
+            check(temp.createNewFile() && other.createNewFile())
+            FileOutputStream(other).use { it.write(byteArrayOf(1)); it.fd.sync() }
+            FileOutputStream(temp).use { it.write(ByteArray(50) { 7 }); it.fd.sync() }
+            // The same temp-to-published-leaf event as the reviewed PPSSPP
+            // writer. Event delivery, not a quiet-period guess, releases us.
+            Os.rename(temp.path, target.path)
+            publication.await()
+            synchronized(events) { check(events == listOf(mapping.key)) }
+            check(target.length() == 50L)
+        } finally {
+            watch.close()
+            val allowed = setOf(temp.name, other.name, target.name)
+            val files = directory.listFiles()!!
+            check(files.all { it.name in allowed && it.isFile && it.canonicalFile == it.absoluteFile })
+            files.forEach { check(it.delete()) }
+            check(directory.delete() && root.delete())
+            if (createdParent) check(parent.delete())
+        }
+        return "PASS native exact-file watch: missing-folder mapping isolated; exact registered-key receipt; atomic published-slot rename delivered on main thread; temporary/unrelated files excluded; stopped observers and exclusive fixture cleanup; no emulator/user-save/ROM/account/cloud access"
+    }
+}

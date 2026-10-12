@@ -7,6 +7,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun melonSaveBindingUsesSharedOrItsStandardRootAssistedSramAndItsOwnFormat() {
+        val path = "/storage/emulated/0/Saves/MelonDualDS"
+        for (name in listOf("Game.sav", "Game.srm")) {
+            assertTrue(SaveCaptureService.validRestoreBinding(name, 4, MelonSaveBoundary.FORMAT, path))
+            assertTrue(SaveCaptureService.validRestoreBinding(name, 4, MelonSaveBoundary.FORMAT,
+                MelonSaveBoundary.PROTECTED_SOURCE))
+        }
+        for (name in listOf("../Game.sav", ".sav", "Game.nds", "Game.ml1", "Game.sav.tmp", "Game\\save.sav")) {
+            assertFalse(MelonSaveBoundary.validName(name))
+        }
+        for (source in listOf("/storage/emulated/0", "$path/..", "$path//child",
+                "/storage/emulated/0/Android/data/me.magnum.melondualds/files",
+                "/storage/emulated/0/Android/data/another.emulator/files/saves", "/data/user/0/me.magnum.melondualds")) {
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.sav", 4, MelonSaveBoundary.FORMAT, source))
+        }
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.sav", MelonSaveBoundary.MAX_BYTES + 1, MelonSaveBoundary.FORMAT, path))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.sav", 4, "mgba-battery", path))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.sav", 4, "mgba-battery", MelonSaveBoundary.PROTECTED_SOURCE))
+    }
     @Test fun relatedRestoreAcceptsOnlyTheSramAndItsExactClockCompanion() {
         assertTrue(SaveCaptureService.validGroupNames("Game.srm", listOf("Game.rtc", "Game.srm")))
         for (names in listOf(listOf("Game.srm"), listOf("Game.srm", "Other.rtc"),

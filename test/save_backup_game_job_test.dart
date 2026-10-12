@@ -41,6 +41,7 @@ class _Driver implements DriveAuthorizationDriver {
 class _Capture extends SaveCapture {
   int captures = 0;
   bool includeRtc = false;
+  bool localAbsent = false;
   String digest = 'b' * 64;
   final staged = <String>[];
   final stagedNames = <String>[];
@@ -51,6 +52,7 @@ class _Capture extends SaveCapture {
   Completer<void>? held;
   Map<String, CapturedSaveGroup> sealed = {};
   final ppssppSources = <String>[];
+  final melonSources = <String>[];
   final batteryRoutes = <RetroArchBatteryRoute>[];
   final restoreRoutes = <RetroArchBatteryRoute>[];
   final stagedGroups = <List<String>>[];
@@ -77,38 +79,68 @@ class _Capture extends SaveCapture {
   Future<CapturedSaveGroup> capturePpsspp(
       {required String captureId,
       required String directory,
-      required String name}) async {
+      required String name,
+      bool restoreBaseline = false}) async {
     if (sealed[captureId] case final previous?) return previous;
     captures++;
     ppssppSources.add('$directory/$name');
     if (!started.isCompleted) started.complete();
     await held?.future;
     return sealed[captureId] = CapturedSaveGroup(
-        captureId, 'device', 'v1.20.4', [
-      CapturedSaveFile(name, File('/private/$captureId/member-0'), 4, digest)
-    ]);
+        captureId,
+        'device',
+        'v1.20.4',
+        [
+          if (!localAbsent)
+            CapturedSaveFile(
+                name, File('/private/$captureId/member-0'), 4, digest)
+        ],
+        localWasAbsent: localAbsent && restoreBaseline);
   }
 
   @override
   Future<List<String>> retroArchNames() async => ['Game.srm'];
   @override
+  Future<CapturedSaveGroup> captureMelon(
+      {required String captureId,
+      required String directory,
+      required String name,
+      bool restoreBaseline = false}) async {
+    if (captureIssue != null) throw PlatformException(code: captureIssue!);
+    if (sealed[captureId] case final previous?) return previous;
+    captures++;
+    melonSources.add('$directory/$name');
+    return sealed[captureId] = CapturedSaveGroup(
+        captureId, 'device', '0.8.0.rc2', [
+      CapturedSaveFile(name, File('/private/$captureId/member-0'), 4, digest)
+    ]);
+  }
+
+  @override
   Future<CapturedSaveGroup> captureRetroArch(
       {required String captureId,
       required String name,
-      RetroArchBatteryRoute route = RetroArchBatteryRoute.mgba}) async {
+      RetroArchBatteryRoute route = RetroArchBatteryRoute.mgba,
+      bool restoreBaseline = false}) async {
     batteryRoutes.add(route);
     if (captureIssue != null) throw PlatformException(code: captureIssue!);
     if (sealed[captureId] case final previous?) return previous;
     captures++;
     if (!started.isCompleted) started.complete();
     await held?.future;
-    return sealed[captureId] =
-        CapturedSaveGroup(captureId, 'device', '1.22.2_GIT', [
-      CapturedSaveFile(name, File('/private/$captureId/member-0'), 4, digest),
-      if (includeRtc)
-        CapturedSaveFile(name.replaceFirst(RegExp(r'\.srm$'), '.rtc'),
-            File('/private/$captureId/member-1'), 4, 'd' * 64)
-    ]);
+    return sealed[captureId] = CapturedSaveGroup(
+        captureId,
+        'device',
+        '1.22.2_GIT',
+        [
+          if (!localAbsent)
+            CapturedSaveFile(
+                name, File('/private/$captureId/member-0'), 4, digest),
+          if (includeRtc && !localAbsent)
+            CapturedSaveFile(name.replaceFirst(RegExp(r'\.srm$'), '.rtc'),
+                File('/private/$captureId/member-1'), 4, 'd' * 64)
+        ],
+        localWasAbsent: localAbsent && restoreBaseline);
   }
 
   @override
@@ -125,12 +157,13 @@ class _Capture extends SaveCapture {
       required int size,
       required String sha256,
       String? ppssppDirectory,
+      String? melonDirectory,
       RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
       required Stream<Uint8List> bytes}) async {
     await bytes.drain<void>(); // final transport verification must finish
     staged.add(restoreId);
     stagedNames.add(name);
-    stagedDirectories.add(ppssppDirectory);
+    stagedDirectories.add(melonDirectory ?? ppssppDirectory);
     restoreRoutes.add(retroArchRoute);
   }
 
@@ -243,7 +276,7 @@ class _Generations extends DriveSaveBackupGenerationApi {
   int downloads = 0;
   SaveBackupManifest? uploaded;
   final cloud = <String, SaveBackupManifest>{};
-  void Function()? onPublish, onDiscover;
+  void Function()? onPublish, onDiscover, onDownload;
   _Generations(DriveAuthorization auth, this.db)
       : super(authorization: auth, accountId: 'account');
   @override
@@ -269,6 +302,7 @@ class _Generations extends DriveSaveBackupGenerationApi {
       required String memberId,
       CancelToken? cancellation}) async* {
     downloads++;
+    onDownload?.call();
     final record = jsonDecode((await db.query('save_backup_game_jobs'))
         .single['record_json'] as String);
     expect(record['restore']['generationId'], generation.generationId);
@@ -460,6 +494,24 @@ void main() {
     expect(capture.restored, isEmpty);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+  testWidgets(
+      'missing-save restore status does not invent a previous local copy',
+      (tester) async {
+    await tester.runAsync(() async {
+      await job.backup(currentName);
+      capture.localAbsent = true;
+      await job.restoreLatest();
+    });
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SaveBackupGamePanel(
+                job: job, title: 'Game', section: SaveBackupSection.status)))));
+    await tester.pumpAndSettle();
+    expect(find.text('Cloud save restored and ready to use.'), findsOneWidget);
+    expect(find.textContaining('previous local save is kept'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('pending restore directs the user to resume before backing up',
       (tester) async {
     await tester.runAsync(() async {
@@ -483,6 +535,34 @@ void main() {
     expect(generations.uploads, 1);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+  testWidgets(
+      'pending restore confirmation identifies the previously chosen copy',
+      (tester) async {
+    final ui = _UiJob(job);
+    await tester.runAsync(() async {
+      await job.backup(currentName);
+      generations.failDownload = true;
+      await job.restoreLatest();
+      await ui.load();
+    });
+    expect(ui.restorePending, isTrue);
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SaveBackupGamePanel(
+                job: ui, title: 'Game', section: SaveBackupSection.restore)))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-backup-game-restore')));
+    await tester.pumpAndSettle();
+    expect(
+        find.textContaining(
+            'It may not be the newest copy; other cloud copies are kept.'),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('save-restore-cancel')));
+    await tester.pumpAndSettle();
+    expect(ui.restores, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+    ui.dispose();
+  });
   Future<
       ({
         AutomaticSaveBackups service,
@@ -491,14 +571,19 @@ void main() {
       })> automaticFixture({
     Future<void> Function(bool)? schedule,
     Future<void> Function()? refresh,
+    Future<void> Function(List<AutomaticSaveMapping>)? watch,
+    Set<String> watchFailures = const {},
+    bool melon = false,
   }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
-        platformId: 'psp',
+        platformId: melon ? 'nds' : 'psp',
         title: 'Game',
         matchStatus: IdentityMatchStatus.manuallyMatched));
-    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
-    const slot = 'ULUS10041_1.00_0.ppst';
+    final directory = melon
+        ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
+        : '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final slot = melon ? 'Game.sav' : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
         capture: capture,
@@ -509,8 +594,10 @@ void main() {
         areaId: 'area',
         editionId: 'edition',
         artifactId: artifactId,
-        ppssppDirectory: directory,
-        ppssppSlot: slot,
+        ppssppDirectory: melon ? null : directory,
+        ppssppSlot: melon ? null : slot,
+        melonDirectory: melon ? directory : null,
+        melonName: melon ? slot : null,
         resolveSaveName: () async => slot);
     final mapping = AutomaticSaveMapping.fromJob(psp, title: 'Game');
     psp.dispose();
@@ -518,13 +605,22 @@ void main() {
       SaveBackupSetup.storageKey('client', 'account'):
           jsonEncode({'ready': true, 'areaId': 'area'}),
       mapping.slotStorageKey:
-          jsonEncode({'directory': directory, 'slot': slot}),
+          jsonEncode({'directory': directory, melon ? 'name' : 'slot': slot}),
     });
     final preferences = await SharedPreferences.getInstance();
     final service = AutomaticSaveBackups(
         database: Future.value(db),
         preferences: preferences,
         scheduleBackground: schedule,
+        configureWatches: watch == null
+            ? null
+            : (mappings) async {
+                await watch(mappings);
+                return mappings
+                    .map((mapping) => mapping.key)
+                    .toSet()
+                    .difference(watchFailures);
+              },
         refreshConfiguration: refresh,
         sources: () => [
               const Source(
@@ -546,8 +642,10 @@ void main() {
             areaId: mapped.areaId,
             editionId: mapped.editionId,
             artifactId: mapped.artifactId,
-            ppssppDirectory: mapped.directory,
-            ppssppSlot: mapped.slot,
+            ppssppDirectory: melon ? null : mapped.directory,
+            ppssppSlot: melon ? null : mapped.slot,
+            melonDirectory: melon ? mapped.directory : null,
+            melonName: melon ? mapped.slot : null,
             resolveSaveName: resolve));
     addTearDown(() async {
       service.dispose();
@@ -568,6 +666,220 @@ void main() {
     await fixture.service.setEnabled(fixture.mapping, false);
     expect(scheduled.last, isFalse);
     expect((await fixture.service.status(fixture.mapping)).enabled, isFalse);
+  });
+
+  test('pre-launch waits for reconciliation and its enabled file watch',
+      () async {
+    var hold = false;
+    final entered = Completer<void>();
+    final armed = Completer<void>();
+    final fixture = await automaticFixture(watch: (mappings) async {
+      if (hold) {
+        expect(mappings, hasLength(1));
+        entered.complete();
+        await armed.future;
+      }
+    });
+    hold = true;
+    var finished = false;
+    final opening = fixture.service
+        .prepareLaunch(artifactId: artifactId, editionId: 'edition')
+        .then((_) => finished = true);
+    await entered.future;
+    expect(generations.uploads, 1);
+    expect(finished, isFalse);
+    armed.complete();
+    await opening;
+    expect(finished, isTrue);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+  });
+  test('pre-launch never implicitly enables an unmapped or disabled game',
+      () async {
+    final fixture = await automaticFixture(watch: (_) async {});
+    await fixture.service.prepareLaunch(
+        artifactId: RemoteArtifactId(
+            providerId: 'drive',
+            sourceId: 'source',
+            accountId: 'account',
+            providerFileId: 'other'));
+    await fixture.service.setEnabled(fixture.mapping, false);
+    await fixture.service
+        .prepareLaunch(artifactId: artifactId, editionId: 'edition');
+    expect(capture.captures, 0);
+    expect(generations.uploads, 0);
+  });
+  test('automatic launch restores a missing PSP slot before arming its watch',
+      () async {
+    var preparingLaunch = false;
+    var watchArmed = false;
+    final fixture = await automaticFixture(watch: (mappings) async {
+      if (preparingLaunch) {
+        expect(capture.restored, hasLength(1));
+        expect(mappings.single.slot, 'ULUS10041_1.00_0.ppst');
+        watchArmed = true;
+      }
+    });
+    await fixture.service.checkEnabled();
+    final remote = generations.uploaded!;
+    await db.delete('save_backup_game_jobs');
+    capture.localAbsent = true;
+    preparingLaunch = true;
+    await fixture.service
+        .prepareLaunch(artifactId: artifactId, editionId: 'edition');
+    expect(watchArmed, isTrue);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'restored');
+    expect(generations.uploads, 1,
+        reason: 'Missing local saves must not allocate empty cloud backups');
+    expect(capture.stagedNames, ['ULUS10041_1.00_0.ppst']);
+    expect(capture.stagedDirectories, ['/storage/emulated/0/PSP/PPSSPP_STATE']);
+    final record = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String);
+    expect(record['lastVerified']['generationId'], remote.generationId);
+    expect(record['rollback'], isNull);
+  });
+  test('automatic first PSP launch arms its watch without fabricating a save',
+      () async {
+    capture.localAbsent = true;
+    var watchArmed = false;
+    final fixture = await automaticFixture(watch: (mappings) async {
+      watchArmed = mappings.isNotEmpty;
+    });
+    await fixture.service
+        .prepareLaunch(artifactId: artifactId, editionId: 'edition');
+    expect(watchArmed, isTrue);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'no_save');
+    expect(generations.uploads, 0);
+    expect(generations.downloads, 0);
+    expect(capture.restored, isEmpty);
+    expect(areas.reserved, 0);
+  });
+  test('an invalid unrelated mapping does not block a valid watched launch',
+      () async {
+    final watched = <String>[];
+    final fixture = await automaticFixture(watch: (mappings) async {
+      watched.addAll(mappings.map((mapping) => mapping.key));
+    });
+    await db.insert('automatic_save_backups', {
+      'mapping_key': 'f' * 64,
+      'record_json': '{}',
+      'enabled': 1,
+    });
+    await fixture.service
+        .prepareLaunch(artifactId: artifactId, editionId: 'edition');
+    expect(watched, contains(fixture.mapping.key));
+    expect(fixture.service.watchIssue, 'watch_unavailable',
+        reason: 'The unrelated broken mapping must remain visible');
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+  });
+  test('pre-launch surfaces divergence without arming a successful launch',
+      () async {
+    final fixture = await automaticFixture(watch: (_) async {});
+    await fixture.service.checkEnabled();
+    final base = generations.uploaded!;
+    final head = _branch(base, 'peer-head');
+    generations.cloud[head.generationId] = head;
+    capture.digest = 'd' * 64;
+    await expectLater(
+        fixture.service
+            .prepareLaunch(artifactId: artifactId, editionId: 'edition'),
+        throwsA(isA<PlatformException>()
+            .having((error) => error.code, 'code', 'save_conflict')));
+    expect(capture.restored, isEmpty);
+    expect(generations.uploads, 1);
+    expect(
+        (await fixture.service.status(fixture.mapping)).issue, 'save_conflict');
+  });
+
+  test('a missing watch receipt for this game still blocks its launch',
+      () async {
+    final failures = <String>{};
+    final fixture =
+        await automaticFixture(watch: (_) async {}, watchFailures: failures);
+    failures.add(fixture.mapping.key);
+    await expectLater(
+        fixture.service.prepareLaunch(artifactId: artifactId),
+        throwsA(isA<PlatformException>()
+            .having((error) => error.code, 'code', 'watch_unavailable')));
+    expect(fixture.service.watchIssue, 'watch_unavailable');
+  });
+
+  test('file watch requests only an explicitly enabled mapping', () async {
+    final fixture = await automaticFixture();
+    await fixture.service.requestChanged('f' * 64);
+    await fixture.service.backupPending();
+    expect(capture.captures, 0);
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(generations.uploads, 1);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    await fixture.service.setEnabled(fixture.mapping, false);
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(generations.uploads, 1);
+    await expectLater(
+        fixture.service.requestChanged('../other'), throwsFormatException);
+  });
+
+  test(
+      'protected Melon watch enters the durable backup lane without borrowing PSP identity',
+      () async {
+    final watched = <AutomaticSaveMapping>[];
+    final fixture = await automaticFixture(
+        melon: true,
+        watch: (rows) async {
+          watched.addAll(rows);
+        });
+    expect(watched.single.key, fixture.mapping.key);
+    expect(jsonDecode(fixture.mapping.encode())['route'], 'melon');
+    expect(
+        fixture.mapping.slotStorageKey, startsWith('save_melon_mapping_v1_'));
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(capture.ppssppSources, isEmpty);
+    expect(capture.melonSources, [
+      '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves/Game.sav'
+    ]);
+    expect(generations.uploads, 1);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    await fixture.preferences.remove(fixture.mapping.slotStorageKey);
+    await fixture.service.reconcileWatches();
+    expect(fixture.service.watchIssue, 'watch_unavailable');
+  });
+
+  test('watch registration follows opt-in and rejects a changed association',
+      () async {
+    final watched = <List<AutomaticSaveMapping>>[];
+    final fixture = await automaticFixture(watch: (mappings) async {
+      watched.add(mappings);
+    });
+    expect(watched.single.single.key, fixture.mapping.key);
+    await fixture.preferences.remove(fixture.mapping.slotStorageKey);
+    await fixture.service.reconcileWatches();
+    expect(watched.last, isEmpty);
+    await fixture.service.setEnabled(fixture.mapping, false);
+    expect(watched.last, isEmpty);
+  });
+
+  test('watch event is durable before the in-flight backup finishes', () async {
+    final fixture = await automaticFixture();
+    capture.held = Completer<void>();
+    await fixture.service.requestChanged(fixture.mapping.key);
+    final first = fixture.service.backupPending();
+    await capture.started.future;
+    await fixture.service.requestChanged(fixture.mapping.key);
+    final second = fixture.service.backupPending();
+    final row = (await db.query('automatic_save_backups',
+            where: 'mapping_key = ?', whereArgs: [fixture.mapping.key]))
+        .single;
+    expect(row['requested'], 2);
+    expect(row['handled'], 0);
+    expect(capture.captures, 1);
+    capture.held!.complete();
+    await Future.wait([first, second]);
+    expect(generations.uploads, 1,
+        reason: 'The second identical capture must not duplicate publication');
+    expect(
+        (await fixture.service.status(fixture.mapping)).outcome, 'unchanged');
   });
 
   test('successful and unchanged checks retire only redundant local captures',
@@ -726,6 +1038,62 @@ void main() {
     expect(capture.sealed.keys, [rollbackId]);
     expect(capture.retired, isNot(contains(rollbackId)));
     expect(job.rollbackAvailable, isTrue);
+  });
+
+  test(
+      'restore can create a missing local save without offering a fake rollback',
+      () async {
+    await job.backup(currentName);
+    final verified = job.lastVerified!;
+    capture.localAbsent = true;
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(capture.restored, hasLength(1));
+    expect(job.lastVerified!.encode(), verified.encode());
+    expect(job.rollbackAvailable, isFalse);
+    expect(generations.uploads, 1);
+    final record = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String);
+    expect(record['restore']['localWasAbsent'], isTrue);
+    await job.rollbackLast();
+    expect(job.issue, 'no_retained_rollback');
+    expect(capture.restored, hasLength(1));
+  });
+
+  test(
+      'missing local restore keeps its absence receipt across failed publication',
+      () async {
+    await job.backup(currentName);
+    capture.localAbsent = true;
+    capture.publicationIssue = 'source_changed';
+    await job.restoreLatest();
+    expect(job.issue, 'source_changed');
+    expect(job.rollbackAvailable, isFalse);
+    final before = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String)['restore'];
+    expect(before['localWasAbsent'], isTrue);
+    capture.publicationIssue = null;
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    final after = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String)['restore'];
+    expect(after['id'], before['id']);
+    expect(after['rollbackId'], before['rollbackId']);
+    expect(job.rollbackAvailable, isFalse);
+  });
+
+  test(
+      'an absent related SRAM and clock group restores both roles without rollback',
+      () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    capture.localAbsent = true;
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(capture.stagedGroups.single, ['Game.rtc', 'Game.srm']);
+    expect(job.rollbackAvailable, isFalse);
+    expect(generations.uploads, 1);
   });
 
   test(
@@ -1008,6 +1376,254 @@ void main() {
     expect(job.lastVerified!.generationId, first.generationId);
     expect(job.conflicts.single.generationId, peer.generationId);
   });
+  test('pre-launch restores a proven cloud descendant of unchanged local bytes',
+      () async {
+    await job.backup(currentName);
+    final base = job.lastVerified!;
+    final middle = _branch(base, 'peer-middle');
+    final head = _branch(middle, 'peer-head');
+    generations.cloud[middle.generationId] = middle;
+    generations.cloud[head.generationId] = head;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(job.lastVerified!.generationId, head.generationId);
+    expect(capture.restored, hasLength(1));
+    expect(capture.stagedNames, [currentName]);
+    expect(generations.uploads, 1,
+        reason: 'The unchanged ancestor is already recoverable in cloud');
+    expect(capture.captures, 2,
+        reason: 'Restore must reuse the exact pre-review rollback capture');
+    expect(job.rollbackAvailable, isTrue);
+    expect(job.restorePending, isFalse);
+  });
+  test('pre-launch discovers a missing save after local job receipts are lost',
+      () async {
+    await job.backup(currentName);
+    final remote = job.lastVerified!;
+    final reserved = areas.reserved;
+    await db
+        .delete('save_backup_game_jobs'); // Model reinstall, not cloud loss.
+    job.dispose();
+    job = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => currentName);
+    capture.localAbsent = true;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(job.lastVerified!.encode(), remote.encode());
+    expect(job.rollbackAvailable, isFalse);
+    expect(capture.restored, hasLength(1));
+    expect(generations.uploads, 1);
+    expect(areas.reserved, reserved, reason: 'No empty backup is reserved');
+  });
+  test('pre-launch missing save with no cloud history does not invent a backup',
+      () async {
+    capture.localAbsent = true;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.phase, 'no_save');
+    expect(job.lastVerified, isNull);
+    expect(job.pendingName, isNull);
+    expect(job.restorePending, isFalse);
+    expect(generations.uploads, 0);
+    expect(areas.reserved, 0);
+    expect(capture.retired, hasLength(1));
+    await job.load();
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.phase, 'no_save');
+    expect(generations.uploads, 0);
+  });
+  test(
+      'missing pre-launch cloud download resumes without a fake last-good receipt',
+      () async {
+    await job.backup(currentName);
+    final remote = job.lastVerified!;
+    await db.delete('save_backup_game_jobs');
+    job.dispose();
+    job = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => currentName);
+    capture.localAbsent = true;
+    generations.failDownload = true;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'digestMismatch');
+    expect(job.lastVerified, isNull);
+    expect(job.restorePending, isTrue);
+    final intent = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String)['restore'];
+    generations.failDownload = false;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.lastVerified!.generationId, remote.generationId);
+    expect(capture.restored.single.id, intent['id']);
+    expect(capture.restored.single.rollback, intent['rollbackId']);
+    expect(generations.uploads, 1);
+  });
+  test('missing local save preserves divergent cloud heads for explicit choice',
+      () async {
+    await job.backup(currentName);
+    final base = job.lastVerified!;
+    final left = _branch(base, 'left');
+    final right = _branch(base, 'right');
+    generations.cloud.addAll({'left': left, 'right': right});
+    capture.localAbsent = true;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'save_conflict');
+    expect(job.conflicts.map((m) => m.generationId).toSet(), {'left', 'right'});
+    expect(capture.restored, isEmpty);
+    await job.restoreConflict('left', {'left', 'right'});
+    expect(job.issue, isNull);
+    expect(job.lastVerified!.generationId, 'left');
+    expect(job.rollbackAvailable, isFalse);
+    expect(generations.uploads, 1,
+        reason: 'There is no local branch to upload');
+    expect(generations.cloud['right']!.encode(), right.encode());
+  });
+  test('missing pre-launch restore rechecks cloud heads before publication',
+      () async {
+    await job.backup(currentName);
+    final selected = job.lastVerified!;
+    capture.localAbsent = true;
+    generations.onDownload = () {
+      generations.cloud['advanced'] = _branch(selected, 'advanced');
+    };
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'conflict_changed');
+    expect(job.restorePending, isTrue);
+    expect(capture.restored, isEmpty);
+    expect(job.lastVerified!.generationId, selected.generationId);
+    expect(generations.uploads, 1);
+  });
+  testWidgets(
+      'absent-save conflicts offer cloud choices, not an invented device copy',
+      (tester) async {
+    await tester.runAsync(() async {
+      await job.backup(currentName);
+      final base = job.lastVerified!;
+      generations.cloud.addAll(
+          {'left': _branch(base, 'left'), 'right': _branch(base, 'right')});
+      capture.localAbsent = true;
+      await job.reconcileBeforeLaunch(currentName);
+    });
+    await tester.pumpWidget(ProviderScope(
+        child: createTestApp(Scaffold(
+            body: SaveBackupGamePanel(
+                job: job,
+                title: 'Game',
+                section: SaveBackupSection.restore)))));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('save-conflict-local')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('save-conflict-cloud-left')), findsOneWidget);
+    expect(find.byKey(const ValueKey('save-conflict-cloud-right')),
+        findsOneWidget);
+    expect(find.textContaining('More than one cloud save is available'),
+        findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  test('pre-launch preserves divergent local and cloud saves for a choice',
+      () async {
+    await job.backup(currentName);
+    final base = job.lastVerified!;
+    final head = _branch(base, 'peer-head');
+    generations.cloud[head.generationId] = head;
+    capture.digest = 'd' * 64;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'save_conflict');
+    expect(job.lastVerified!.generationId, base.generationId);
+    expect(job.conflicts.single.generationId, head.generationId);
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+    expect(generations.uploads, 1);
+    expect(generations.cloud[head.generationId]!.encode(), head.encode());
+  });
+  test('pre-launch failed cloud download retains last-good receipt and resumes',
+      () async {
+    await job.backup(currentName);
+    final base = job.lastVerified!;
+    final head = _branch(base, 'peer-head');
+    generations.cloud[head.generationId] = head;
+    generations.failDownload = true;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'digestMismatch');
+    expect(job.lastVerified!.generationId, base.generationId);
+    expect(job.restorePending, isTrue);
+    expect(capture.restored, isEmpty);
+    final intent = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String)['restore'];
+    generations.failDownload = false;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(job.lastVerified!.generationId, head.generationId);
+    expect(capture.restored.single.id, intent['id']);
+    expect(capture.restored.single.rollback, intent['rollbackId']);
+    expect(generations.uploads, 1);
+  });
+  test('pre-launch does not infer ancestry through a missing cloud generation',
+      () async {
+    await job.backup(currentName);
+    final base = job.lastVerified!;
+    final missing = _branch(base, 'missing-parent');
+    final head = _branch(missing, 'peer-head');
+    generations.cloud[head.generationId] = head;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'save_conflict');
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+    expect(generations.uploads, 1);
+    expect(job.lastVerified!.generationId, base.generationId);
+  });
+
+  test('automatic restore rechecks cloud heads after downloading', () async {
+    await job.backup(currentName);
+    final base = job.lastVerified!;
+    final selected = _branch(base, 'peer-selected');
+    final advanced = _branch(selected, 'peer-advanced');
+    generations.cloud[selected.generationId] = selected;
+    generations.onDownload = () {
+      generations.cloud[advanced.generationId] = advanced;
+    };
+    await job.reconcileBeforeLaunch(currentName);
+    expect(capture.restored, isEmpty,
+        reason: 'The automatically selected generation is no longer current');
+    expect(job.issue, 'conflict_changed');
+    expect(job.lastVerified!.generationId, base.generationId);
+    expect(generations.uploads, 1);
+    expect(job.restorePending, isTrue);
+    final staged = capture.staged.single;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, 'conflict_changed');
+    expect(capture.restored, isEmpty);
+    expect(capture.staged, [staged],
+        reason:
+            'Automatic retry must retain, not replace, the reviewed intent');
+    await job
+        .restoreLatest(); // Explicitly confirmed resume of the chosen copy.
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(job.lastVerified!.generationId, selected.generationId);
+    expect(
+        generations.cloud[advanced.generationId]!.encode(), advanced.encode());
+  });
   test('unchanged completion rechecks the current launch target after cloud IO',
       () async {
     await job.backup(currentName);
@@ -1115,6 +1731,71 @@ void main() {
       }
     });
   }
+
+  test('Melon save binds DS edition and shared folder, preserves stopped retry',
+      () async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'nds',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    const directory = '/storage/emulated/0/Saves/MelonDualDS';
+    SaveBackupGameJob dsJob(String path) => SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        melonDirectory: path,
+        melonName: 'Game.sav',
+        resolveSaveName: () async => 'Game.sav');
+    final ds = dsJob(directory);
+    addTearDown(ds.dispose);
+    capture.captureIssue = 'stop_melon_required';
+    await ds.backup('Game.sav');
+    expect(ds.issue, 'stop_melon_required');
+    expect(generations.cloud, isEmpty);
+    capture.captureIssue = null;
+    await ds.backup('Game.sav');
+    expect(ds.issue, isNull);
+    final binding = ds.lastVerified!.binding;
+    expect(binding.platformId, 'nds');
+    expect(binding.emulatorPackage, 'me.magnum.melondualds');
+    expect(binding.emulatorVersion, '0.8.0.rc2');
+    expect(binding.coreId, 'melonds');
+    expect(binding.kind, SaveBackupKind.save);
+    expect(binding.formatId, 'melondualds-sram-v1');
+    final reopened = dsJob(directory);
+    addTearDown(reopened.dispose);
+    await reopened.load();
+    expect(reopened.lastVerified!.generationId, ds.lastVerified!.generationId);
+    final elsewhere = dsJob('/storage/75D7-DC5F/Saves/DS');
+    addTearDown(elsewhere.dispose);
+    await elsewhere.load();
+    expect(elsewhere.lastVerified, isNull);
+    capture.publicationIssue = 'stop_melon_required';
+    await reopened.restoreLatest();
+    expect(reopened.issue, 'stop_melon_required');
+    expect(reopened.restorePending, isTrue);
+    final pending = dsJob(directory);
+    addTearDown(pending.dispose);
+    await pending.load();
+    expect(pending.restorePending, isTrue);
+    capture.publicationIssue = null;
+    await pending.restoreLatest();
+    expect(pending.issue, isNull);
+    expect(pending.phase, 'restored');
+    expect(pending.rollbackAvailable, isTrue);
+    expect(capture.stagedNames, ['Game.sav']);
+    expect(capture.stagedDirectories, [directory]);
+    expect(capture.melonSources, hasLength(2));
+    expect(capture.batteryRoutes, isEmpty);
+    expect(capture.ppssppSources, isEmpty);
+  });
 
   test('PPSSPP slot uses reviewed state identity and survives reload',
       () async {
@@ -1649,6 +2330,34 @@ void main() {
     expect(generations.uploaded!.generationId, retainedId);
     expect(capture.restored, hasLength(1));
   });
+  test('failed chosen-cloud download retains the last verified local receipt',
+      () async {
+    await job.backup('Game.srm');
+    final base = job.lastVerified!;
+    final remote = _branch(base, 'other-device');
+    generations.cloud[remote.generationId] = remote;
+    capture.digest = 'd' * 64;
+    await job.backup('Game.srm');
+    final reviewed = job.conflicts.map((h) => h.generationId).toSet();
+    generations.failDownload = true;
+    await job.restoreConflict(remote.generationId, reviewed);
+    expect(job.issue, 'digestMismatch');
+    expect(job.lastVerified!.generationId, base.generationId,
+        reason: 'A cloud choice is not completed local publication');
+    expect(job.restorePending, isTrue);
+    expect(capture.restored, isEmpty);
+    final selected = jsonDecode((await db.query('save_backup_game_jobs'))
+        .single['record_json'] as String)['restore'];
+    await job.load();
+    generations.failDownload = false;
+    await job.restoreLatest();
+    expect(job.issue, isNull);
+    expect(job.lastVerified!.generationId, remote.generationId);
+    expect(capture.restored.single.id, selected['id']);
+    expect(capture.restored.single.rollback, selected['rollbackId']);
+    expect(generations.uploads, 2,
+        reason: 'Resume must not duplicate preservation of the local branch');
+  });
   test('pending captures from before resolution ancestry still resume',
       () async {
     await job.backup('Game.srm');
@@ -1713,10 +2422,11 @@ void main() {
     expect(job.conflicts, hasLength(2));
     expect(generations.cloud, hasLength(3));
   });
-  test('cloud choice survives failure to persist the first restore intent',
+  test('rejected atomic cloud choice retains both branches for a fresh choice',
       () async {
     await job.backup('Game.srm');
-    final remote = _branch(job.lastVerified!, 'other-device');
+    final base = job.lastVerified!;
+    final remote = _branch(base, 'other-device');
     generations.cloud[remote.generationId] = remote;
     await job.backup('Game.srm');
     await db.execute(
@@ -1725,13 +2435,27 @@ void main() {
       BEGIN SELECT RAISE(ABORT, 'fixture storage failure'); END''');
     await job.restoreConflict(
         remote.generationId, job.conflicts.map((h) => h.generationId).toSet());
+    expect(job.issue, 'backup_unavailable');
     await job.load();
-    expect(job.restorePending, isTrue);
-    await job.backup('Game.srm');
-    expect(job.issue, 'pending_restore');
+    // The choice and restore intent now commit together. A rejected write is
+    // not a durable accepted choice and must not fabricate pending restore or
+    // replace last-good evidence with the uninstalled cloud generation.
+    expect(job.restorePending, isFalse);
+    expect(job.lastVerified!.generationId, base.generationId);
+    expect(job.pendingName, 'Game.srm');
+    expect(job.conflicts, isNotEmpty);
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
     expect(generations.uploads, 2);
+    expect(generations.cloud[remote.generationId]!.encode(), remote.encode());
+    expect(generations.cloud[generations.uploaded!.generationId], isNotNull);
     await db.execute('DROP TRIGGER reject_restore');
-    await job.restoreLatest();
+    // Refresh the head set: the preserved local branch is now independently
+    // recoverable even though the local choice transaction did not commit.
+    await job.backup('Game.srm');
+    expect(job.issue, 'save_conflict');
+    await job.restoreConflict(
+        remote.generationId, job.conflicts.map((h) => h.generationId).toSet());
     expect(job.issue, isNull);
     expect(job.phase, 'restored');
   });

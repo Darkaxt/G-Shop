@@ -35,6 +35,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   // Explicitly reviewed mapping, never inferred from a game title. One slot is
   // one state stream; another directory/slot must have a separate durable job.
   final String? ppssppDirectory, ppssppSlot;
+  final String? melonDirectory, melonName;
   final RetroArchBatteryRoute retroArchRoute;
   Map<String, dynamic>? _record;
   Future<void>? _operation;
@@ -57,6 +58,8 @@ class SaveBackupGameJob extends ChangeNotifier {
       SaveOperationAdmission? admission,
       this.ppssppDirectory,
       this.ppssppSlot,
+      this.melonDirectory,
+      this.melonName,
       this.retroArchRoute = RetroArchBatteryRoute.mgba})
       : admission = admission ?? SaveOperationAdmission() {
     if ([clientId, accountId, areaId, editionId].any((s) => s.trim().isEmpty) ||
@@ -71,19 +74,58 @@ class SaveBackupGameJob extends ChangeNotifier {
                 !SaveCapture.validPpssppName(ppssppSlot!)))) {
       throw ArgumentError('Invalid PPSSPP mapping');
     }
+    if ((melonDirectory == null) != (melonName == null) ||
+        (isMelon &&
+            (isPpsspp ||
+                retroArchRoute != RetroArchBatteryRoute.mgba ||
+                !SaveCapture.validMelonDirectory(melonDirectory!) ||
+                !SaveCapture.validMelonName(melonName!)))) {
+      throw ArgumentError('Invalid MelonDualDS mapping');
+    }
   }
 
   bool get isPpsspp => ppssppDirectory != null;
-  String get _platform => isPpsspp ? 'psp' : retroArchRoute.platformId;
-  String get _emulator =>
-      isPpsspp ? 'org.ppsspp.ppsspp' : 'com.retroarch.aarch64';
-  String get _core => isPpsspp ? 'ppsspp' : retroArchRoute.coreId;
-  String get _format => isPpsspp ? 'ppsspp-slot-v1' : retroArchRoute.formatId;
+  bool get isMelon => melonDirectory != null;
+  bool get isStandalone => isPpsspp || isMelon;
+  String get emulatorLabel => isMelon
+      ? 'MelonDualDS'
+      : isPpsspp
+          ? 'PPSSPP'
+          : 'RetroArch';
+  Future<void> openEmulator() => isMelon
+      ? capture.openMelon()
+      : isPpsspp
+          ? capture.openPpsspp()
+          : capture.openRetroArch();
+  Future<void> openAppInfo() =>
+      isMelon ? capture.openMelonAppInfo() : capture.openPpssppAppInfo();
+  String get _platform => isMelon
+      ? 'nds'
+      : isPpsspp
+          ? 'psp'
+          : retroArchRoute.platformId;
+  String get _emulator => isMelon
+      ? 'me.magnum.melondualds'
+      : isPpsspp
+          ? 'org.ppsspp.ppsspp'
+          : 'com.retroarch.aarch64';
+  String get _core => isMelon
+      ? 'melonds'
+      : isPpsspp
+          ? 'ppsspp'
+          : retroArchRoute.coreId;
+  String get _format => isMelon
+      ? 'melondualds-sram-v1'
+      : isPpsspp
+          ? 'ppsspp-slot-v1'
+          : retroArchRoute.formatId;
   SaveBackupKind get _kind =>
       isPpsspp ? SaveBackupKind.state : SaveBackupKind.save;
-  bool _validName(String name) => isPpsspp
-      ? name == ppssppSlot && SaveCapture.validPpssppName(name)
-      : SaveCapture.validName(name);
+  bool _validName(String name) => isMelon
+      ? name == melonName && SaveCapture.validMelonName(name)
+      : isPpsspp
+          ? name == ppssppSlot && SaveCapture.validPpssppName(name)
+          : SaveCapture.validName(name);
   bool _bindingMatches(SaveBackupBinding binding) =>
       binding.accountId == accountId &&
       binding.platformId == _platform &&
@@ -93,7 +135,28 @@ class SaveBackupGameJob extends ChangeNotifier {
       binding.coreId == _core &&
       binding.kind == _kind &&
       binding.formatId == _format &&
-      (!isPpsspp || {'v1.20.4', '1.20.4'}.contains(binding.emulatorVersion));
+      (!isPpsspp || {'v1.20.4', '1.20.4'}.contains(binding.emulatorVersion)) &&
+      (!isMelon || binding.emulatorVersion == '0.8.0.rc2');
+
+  Future<CapturedSaveGroup> _capture(String id, String name,
+          {bool restoreBaseline = false}) =>
+      isMelon
+          ? capture.captureMelon(
+              captureId: id,
+              directory: melonDirectory!,
+              name: name,
+              restoreBaseline: restoreBaseline)
+          : isPpsspp
+              ? capture.capturePpsspp(
+                  captureId: id,
+                  directory: ppssppDirectory!,
+                  name: name,
+                  restoreBaseline: restoreBaseline)
+              : capture.captureRetroArch(
+                  captureId: id,
+                  name: name,
+                  route: retroArchRoute,
+                  restoreBaseline: restoreBaseline);
 
   String get _key => sha256
       .convert(utf8.encode(jsonEncode([
@@ -101,7 +164,15 @@ class SaveBackupGameJob extends ChangeNotifier {
         accountId,
         areaId,
         editionId,
-        if (isPpsspp) ...[_format, ppssppDirectory, ppssppSlot] else
+        if (isMelon) ...[
+          _format,
+          melonDirectory,
+          melonName
+        ] else if (isPpsspp) ...[
+          _format,
+          ppssppDirectory,
+          ppssppSlot
+        ] else
           retroArchRoute.journalId
       ])))
       .toString();
@@ -146,7 +217,9 @@ class SaveBackupGameJob extends ChangeNotifier {
       _record?['selectedCloudRestore'] == null &&
       _record?['restore'] != null &&
       (_record!['restore'] as Map)['state'] == 'complete' &&
+      (_record!['restore'] as Map)['localWasAbsent'] != true &&
       (_record?['rollback'] as Map?)?['state'] != 'complete';
+  bool get localCopyAvailable => _record?['localWasAbsent'] != true;
   SaveBackupManifest? get lastVerified {
     final raw = _record?['lastVerified'];
     return raw == null
@@ -198,7 +271,8 @@ class SaveBackupGameJob extends ChangeNotifier {
       }
       if (record['retireCaptureId'] != null &&
           (record['state'] != 'complete' ||
-              record['lastVerified'] == null ||
+              (record['lastVerified'] == null &&
+                  record['localWasAbsent'] != true) ||
               record['captures'] != null ||
               record['retireCaptureId'] != record['captureId'])) {
         throw const FormatException('Invalid capture retirement intent');
@@ -331,6 +405,18 @@ class SaveBackupGameJob extends ChangeNotifier {
 
   Future<void> backup(String name) => _backup(name);
 
+  /// Reconcile before an owned launch, without treating a newer clock as a
+  /// replacement decision. Existing restore intents resume through the same
+  /// publication/rollback path; no emulator is opened or stopped here.
+  Future<void> reconcileBeforeLaunch(String name) async {
+    await _backup(name, beforeLaunch: true);
+    if (!_disposed &&
+        ((issue == null && phase == 'cloud_selected') ||
+            issue == 'pending_restore')) {
+      await _restore(beforeLaunch: true);
+    }
+  }
+
   Future<void> keepLocalConflict(Set<String> reviewedHeads) {
     final name = pendingName;
     if (name == null || conflicts.isEmpty || busy) return Future.value();
@@ -345,7 +431,8 @@ class SaveBackupGameJob extends ChangeNotifier {
         reviewedHeads: Set.unmodifiable(reviewedHeads), useCloud: generationId);
     if (_issue == null &&
         phase == 'cloud_selected' &&
-        lastVerified?.generationId == generationId) {
+        (lastVerified?.generationId == generationId ||
+            (_record?['restore'] as Map?)?['generationId'] == generationId)) {
       await _restore();
     }
   }
@@ -390,20 +477,48 @@ class SaveBackupGameJob extends ChangeNotifier {
         conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
-  Future<List<SaveBackupManifest>> _cloudHeads(
-      SaveBackupManifest manifest, CancelToken cancellation) async {
+  Future<List<SaveBackupManifest>> _cloudHistory(
+          SaveBackupManifest manifest, CancelToken cancellation) =>
+      _cloudHistoryForBinding(manifest.binding, cancellation);
+
+  Future<List<SaveBackupManifest>> _cloudHistoryForBinding(
+      SaveBackupBinding binding, CancelToken cancellation) async {
     final compatible = await generations.discoverGenerations(
-        areaId: areaId, target: manifest.binding, cancellation: cancellation);
+        areaId: areaId, target: binding, cancellation: cancellation);
     // PPSSPP slots are independent state streams within one game/edition.
     // Transport compatibility covers emulator/format; exact member selection
     // supplies slot identity without borrowing ancestry from another slot.
-    return _heads(isPpsspp
+    return isPpsspp
         ? compatible
             .where((item) =>
                 item.members.length == 1 &&
                 item.members.single.relativePath == ppssppSlot)
             .toList()
-        : compatible);
+        : compatible;
+  }
+
+  Future<List<SaveBackupManifest>> _cloudHeads(
+          SaveBackupManifest manifest, CancelToken cancellation) async =>
+      _heads(await _cloudHistory(manifest, cancellation));
+
+  /// Every ancestry link must be present in this current cloud review. A
+  /// remembered base or an unknown parent ID alone cannot authorize restore.
+  bool _verifiedAncestor(SaveBackupManifest head, SaveBackupManifest base,
+      List<SaveBackupManifest> history) {
+    final byId = {for (final item in history) item.generationId: item};
+    final cloudBase = byId[base.generationId];
+    if (cloudBase == null || !listEquals(cloudBase.encode(), base.encode())) {
+      return false;
+    }
+    final pending = <String>[head.generationId];
+    final visited = <String>{};
+    while (pending.isNotEmpty) {
+      final id = pending.removeLast();
+      if (!visited.add(id)) continue;
+      if (id == base.generationId) return true;
+      pending.addAll(byId[id]?.parentGenerationIds ?? const []);
+    }
+    return false;
   }
 
   /// This reviewed format is one SRAM and an optional same-stem RTC. Transport
@@ -411,6 +526,18 @@ class SaveBackupGameJob extends ChangeNotifier {
   /// make identical logical save bytes diverge. Do not generalize this to other
   /// formats, whose directory/member names may carry actual game-save meaning.
   String _contents(SaveBackupManifest manifest) {
+    if (isMelon) {
+      if (!_bindingMatches(manifest.binding) ||
+          manifest.members.length != 1 ||
+          !SaveCapture.validMelonName(manifest.members.single.relativePath) ||
+          manifest.members.single.sizeBytes > 64 * 1024 * 1024) {
+        throw const FormatException('Invalid MelonDualDS save');
+      }
+      // One reviewed SRAM role. A reinstall may change the ROM-derived stem;
+      // retain the remote name as provenance, publish to the current mapping.
+      final member = manifest.members.single;
+      return jsonEncode(['sram', member.sizeBytes, member.sha256]);
+    }
     if (isPpsspp) {
       if (!_bindingMatches(manifest.binding) ||
           manifest.members.length != 1 ||
@@ -445,10 +572,18 @@ class SaveBackupGameJob extends ChangeNotifier {
   }
 
   Future<void> _backup(String name,
-      {Set<String>? reviewedHeads, String? useCloud}) {
+      {Set<String>? reviewedHeads,
+      String? useCloud,
+      bool beforeLaunch = false}) {
     if (_disposed) return Future.value();
-    if (_operation case final pending?) return pending;
-    if (_running[_key] case final pending?) return pending;
+    final pending = _operation ?? _running[_key];
+    if (pending != null) {
+      // Joining a backup is not a pre-launch reconciliation result. Wait for
+      // its actual completion, then perform this distinct required operation.
+      return beforeLaunch
+          ? pending.then((_) => _backup(name, beforeLaunch: true))
+          : pending;
+    }
     final cancellation = CancelToken();
     _cancellation = cancellation;
     final operation = Future<void>.microtask(() async {
@@ -511,14 +646,110 @@ class SaveBackupGameJob extends ChangeNotifier {
         if (record['generation'] == null) {
           phase = 'capture';
           _changed();
-          final group = isPpsspp
-              ? await capture.capturePpsspp(
-                  captureId: _captureId!,
-                  directory: ppssppDirectory!,
-                  name: name)
-              : await capture.captureRetroArch(
-                  captureId: _captureId!, name: name, route: retroArchRoute);
+          final group = await _capture(_captureId!, name,
+              restoreBaseline:
+                  beforeLaunch || record['localWasAbsent'] == true);
           _check(cancellation);
+          final binding = SaveBackupBinding(
+              accountId: accountId,
+              deviceId: group.deviceId,
+              emulatorPackage: _emulator,
+              emulatorVersion: group.emulatorVersion,
+              coreId: _core,
+              coreVersion: 'unreported',
+              platformId: _platform,
+              editions: [
+                SaveBackupEdition(gameId: game!.id, editionId: editionId)
+              ],
+              kind: _kind,
+              formatId: _format);
+          if (group.localWasAbsent) {
+            // Absence is a restore baseline, never a zero-member backup or
+            // a fabricated last-good receipt. Discover using runtime/edition
+            // evidence even after local job receipts have been lost.
+            if (group.files.isNotEmpty) {
+              throw const FormatException('Invalid absence');
+            }
+            record = {...record, 'localWasAbsent': true};
+            await _persist(record);
+            phase = 'cloud_review';
+            _changed();
+            final heads =
+                _heads(await _cloudHistoryForBinding(binding, cancellation));
+            for (final head in heads) {
+              if (!_bindingMatches(head.binding) ||
+                  head.binding.editions.single.gameId != game.id) {
+                throw const FormatException('Changed restore binding');
+              }
+              _contents(head);
+            }
+            _check(cancellation);
+            await _requireName(name, gameId: game.id);
+            _check(cancellation);
+            final headIds = heads.map((h) => h.generationId).toSet();
+            if ((reviewedHeads != null &&
+                    (!setEquals(headIds, reviewedHeads) ||
+                        conflicts.isEmpty)) ||
+                (useCloud != null && !headIds.contains(useCloud))) {
+              await _persist({
+                ...record,
+                'conflictHeads': heads
+                    .map((h) => jsonDecode(utf8.decode(h.encode())))
+                    .toList()
+              });
+              _issue = 'conflict_changed';
+              return;
+            }
+            if (heads.isEmpty) {
+              await _persist({
+                ...record,
+                'state': 'complete',
+                'captures': null,
+                'retireCaptureId': record['captureId'],
+                'conflictHeads': null
+              });
+              phase = 'no_save';
+              await _retireCompletedCapture();
+              return;
+            }
+            if ((heads.length > 1 && useCloud == null) ||
+                (reviewedHeads != null && useCloud == null)) {
+              await _persist({
+                ...record,
+                'conflictHeads': heads
+                    .map((h) => jsonDecode(utf8.decode(h.encode())))
+                    .toList()
+              });
+              _issue = 'save_conflict';
+              return;
+            }
+            final chosen = useCloud == null
+                ? heads.single
+                : heads.singleWhere((h) => h.generationId == useCloud);
+            final restoreId =
+                List.generate(16, (_) => Random.secure().nextInt(256))
+                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                    .join();
+            await _persist({
+              ...record,
+              'state': 'complete',
+              'captures': null,
+              'selectedCloudRestore': null,
+              'conflictHeads': null,
+              'rollback': null,
+              'restore': {
+                'id': restoreId,
+                'rollbackId': record['captureId'],
+                'generationId': chosen.generationId,
+                'name': name,
+                'manifest': jsonDecode(utf8.decode(chosen.encode())),
+                'state': 'download',
+                'localWasAbsent': true
+              }
+            });
+            phase = 'cloud_selected';
+            return;
+          }
           phase = 'reserve';
           _changed();
           final generationId =
@@ -537,19 +768,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           }
           final manifest = SaveBackupManifest(
               generationId: generationId,
-              binding: SaveBackupBinding(
-                  accountId: accountId,
-                  deviceId: group.deviceId,
-                  emulatorPackage: _emulator,
-                  emulatorVersion: group.emulatorVersion,
-                  coreId: _core,
-                  coreVersion: 'unreported',
-                  platformId: _platform,
-                  editions: [
-                    SaveBackupEdition(gameId: game!.id, editionId: editionId)
-                  ],
-                  kind: _kind,
-                  formatId: _format),
+              binding: binding,
               parentGenerationIds:
                   (record['parentGenerationIds'] as List?)?.cast<String>() ??
                       [if (lastVerified != null) lastVerified!.generationId],
@@ -557,6 +776,7 @@ class SaveBackupGameJob extends ChangeNotifier {
               members: members);
           record = {
             ...record,
+            'localWasAbsent': false,
             'generation': jsonDecode(utf8.decode(manifest.encode())),
             'captures': files
           };
@@ -578,10 +798,63 @@ class SaveBackupGameJob extends ChangeNotifier {
         }
         phase = 'cloud_review';
         _changed();
-        final heads = await _cloudHeads(manifest, cancellation);
+        final history = await _cloudHistory(manifest, cancellation);
+        final heads = _heads(history);
         _check(cancellation);
         final headIds = heads.map((item) => item.generationId).toSet();
         final localContents = _contents(manifest);
+        final verified = lastVerified;
+        if (beforeLaunch &&
+            verified != null &&
+            heads.length == 1 &&
+            localContents == _contents(verified) &&
+            _verifiedAncestor(heads.single, verified, history)) {
+          final chosen = heads.single;
+          final encoded = jsonDecode(utf8.decode(chosen.encode()));
+          await _requireName(name, gameId: game.id);
+          _check(cancellation);
+          if (_contents(chosen) == localContents) {
+            await _persist({
+              ...record,
+              'state': 'complete',
+              'generation': encoded,
+              'lastVerified': encoded,
+              'captures': null,
+              'retireCaptureId': record['captureId'],
+              'conflictHeads': null
+            });
+            phase = 'unchanged';
+            await _retireCompletedCapture();
+          } else {
+            final restoreId =
+                List.generate(16, (_) => Random.secure().nextInt(256))
+                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                    .join();
+            await _persist({
+              ...record,
+              'state': 'complete',
+              // The chosen manifest is a restore intent, not a verified
+              // replacement receipt until download and native publication pass.
+              'generation': record['lastVerified'],
+              'captures': null,
+              'selectedCloudRestore': null,
+              'conflictHeads': null,
+              'rollback': null,
+              'restore': {
+                'id': restoreId,
+                // Native publication must still match the exact bytes captured
+                // before cloud review, not recapture a later changed local save.
+                'rollbackId': record['captureId'],
+                'generationId': chosen.generationId,
+                'name': name,
+                'manifest': encoded,
+                'state': 'download'
+              }
+            });
+            phase = 'cloud_selected';
+          }
+          return;
+        }
         final needsChoice = heads.any((item) =>
             item.generationId != manifest.generationId &&
             !manifest.parentGenerationIds.contains(item.generationId) &&
@@ -605,7 +878,6 @@ class SaveBackupGameJob extends ChangeNotifier {
           _issue = 'save_conflict';
           return;
         }
-        final verified = lastVerified;
         if (reviewedHeads == null &&
             verified != null &&
             heads.length == 1 &&
@@ -666,11 +938,28 @@ class SaveBackupGameJob extends ChangeNotifier {
               _issue = 'conflict_changed';
               return;
             }
+            final restoreId =
+                List.generate(16, (_) => Random.secure().nextInt(256))
+                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                    .join();
             await _persist({
               ...record,
               'state': 'complete',
-              'lastVerified': jsonDecode(utf8.decode(chosen.encode())),
-              'selectedCloudRestore': chosen.generationId,
+              // Selection is an intent, not a completed local restore. Keep
+              // the previous receipt until verified native publication.
+              'captures': null,
+              'selectedCloudRestore': null,
+              'rollback': null,
+              'restore': {
+                'id': restoreId,
+                'rollbackId': record['captureId'],
+                'generationId': chosen.generationId,
+                'name': name,
+                'manifest': jsonDecode(utf8.decode(chosen.encode())),
+                // Replay the exact preserved local capture, including the
+                // existing related-member validation before downloading.
+                'state': 'capture'
+              },
               'resolvedHeadIds': preservedIds.toList(),
               'conflictHeads': null
             });
@@ -746,6 +1035,7 @@ class SaveBackupGameJob extends ChangeNotifier {
       } on PlatformException catch (error) {
         _issue = const {
           'close_content_required',
+          'stop_melon_required',
           'storage_permission',
           'runtime_unreviewed',
           'source_changed',
@@ -793,7 +1083,7 @@ class SaveBackupGameJob extends ChangeNotifier {
 
   Future<void> rollbackLast() => _restore(rollback: true);
 
-  Future<void> _restore({bool rollback = false}) {
+  Future<void> _restore({bool rollback = false, bool beforeLaunch = false}) {
     if (_disposed) return Future.value();
     if (_operation case final pending?) return pending;
     if (_running[_key] case final pending?) return pending;
@@ -810,7 +1100,8 @@ class SaveBackupGameJob extends ChangeNotifier {
         await _retireCompletedCapture();
         _check(cancellation);
         var record = _record;
-        if (record == null || lastVerified == null) {
+        if (record == null ||
+            (lastVerified == null && (rollback || record['restore'] == null))) {
           _issue = 'no_verified_backup';
           return;
         }
@@ -883,20 +1174,20 @@ class SaveBackupGameJob extends ChangeNotifier {
           phase = 'rollback_capture';
           _captureId = rollbackId;
           _changed();
-          final local = isPpsspp
-              ? await capture.capturePpsspp(
-                  captureId: rollbackId,
-                  directory: ppssppDirectory!,
-                  name: name)
-              : await capture.captureRetroArch(
-                  captureId: rollbackId, name: name, route: retroArchRoute);
+          final local =
+              await _capture(rollbackId, name, restoreBaseline: !rollback);
           _check(cancellation);
-          if (local.files.length != selected.members.length ||
-              !local.files.any((file) => file.name == name)) {
+          if (!(local.localWasAbsent && local.files.isEmpty && !rollback) &&
+              (local.files.length != selected.members.length ||
+                  !local.files.any((file) => file.name == name))) {
             _issue = 'related_group_changed';
             return;
           }
-          restore = {...restore, 'state': 'download'};
+          restore = {
+            ...restore,
+            'state': 'download',
+            'localWasAbsent': local.localWasAbsent
+          };
           record = {...record, operationKey: restore};
           await _persist(record);
         }
@@ -920,13 +1211,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           CapturedSaveGroup? retained;
           if (rollback) {
             _captureId = restore['sourceCaptureId'] as String;
-            final group = isPpsspp
-                ? await capture.capturePpsspp(
-                    captureId: _captureId!,
-                    directory: ppssppDirectory!,
-                    name: name)
-                : await capture.captureRetroArch(
-                    captureId: _captureId!, name: name, route: retroArchRoute);
+            final group = await _capture(_captureId!, name);
             _check(cancellation);
             if (group.files.length != selected.members.length ||
                 !group.files.any((file) => file.name == name)) {
@@ -968,6 +1253,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                 size: retainedFile?.size ?? member.sizeBytes,
                 sha256: retainedFile?.sha256 ?? member.sha256,
                 ppssppDirectory: ppssppDirectory,
+                melonDirectory: melonDirectory,
                 retroArchRoute: retroArchRoute,
                 bytes: retainedFile != null
                     ? retainedFile.file.openRead().map((chunk) {
@@ -991,6 +1277,19 @@ class SaveBackupGameJob extends ChangeNotifier {
         await _requireName(name,
             gameId: selected.binding.editions.single.gameId);
         _check(cancellation);
+        if (beforeLaunch && !rollback) {
+          final currentHeads = await _cloudHeads(selected, cancellation);
+          _check(cancellation);
+          if (currentHeads.length != 1 ||
+              !listEquals(currentHeads.single.encode(), selected.encode())) {
+            // Keep the sealed restore and exact rollback for explicit review.
+            // Never silently publish an automatically selected stale copy. A
+            // confirmed manual resume still means that particular cloud copy,
+            // not an implicit choice of whichever generation arrived later.
+            _issue = 'conflict_changed';
+            return;
+          }
+        }
         if (selected.members.length > 1) {
           await capture.publishRestoreGroup(
               restoreId: restoreId, rollbackCaptureId: rollbackId);
@@ -1003,6 +1302,10 @@ class SaveBackupGameJob extends ChangeNotifier {
         // Cancellation after that receipt must not discard the completed result.
         await _persist({
           ...record,
+          if (!rollback) ...{
+            'lastVerified': jsonDecode(utf8.decode(selected.encode())),
+            'generation': jsonDecode(utf8.decode(selected.encode()))
+          },
           operationKey: {...restore, 'state': 'complete'}
         });
         phase = rollback ? 'rolled_back' : 'restored';
@@ -1010,6 +1313,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         _issue = const {
           'close_content_required',
           'stop_ppsspp_required',
+          'stop_melon_required',
           'capture_cleanup_unavailable',
           'storage_permission',
           'runtime_unreviewed',
@@ -1021,7 +1325,8 @@ class SaveBackupGameJob extends ChangeNotifier {
           'changed_capture',
           'related_group_unfinished',
           'related_group_changed',
-          'restore_stage_conflict'
+          'restore_stage_conflict',
+          'root_unavailable'
         }.contains(error.code)
             ? error.code
             : 'restore_unavailable';

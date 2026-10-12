@@ -30,7 +30,7 @@ class OwnedEmulatorLauncher {
           TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
   Future<void> open(GameItem game, SystemModel system, String root,
-      {String? companionComponent}) {
+      {String? companionComponent, Future<void> Function()? prepareSave}) {
     if (!supports(game, system)) {
       return Future.error(
           UnsupportedError('No verified emulator handoff for this format'));
@@ -38,7 +38,8 @@ class OwnedEmulatorLauncher {
     final key = game.selectionKey;
     final current = _opening[key];
     if (current != null) return current;
-    final operation = _open(game, system, root, companionComponent);
+    final operation =
+        _open(game, system, root, companionComponent, prepareSave);
     _opening[key] = operation;
     // Clear after acknowledgement, retaining the original error on the caller.
     operation.then<void>((_) => _opening.remove(key),
@@ -105,8 +106,9 @@ class OwnedEmulatorLauncher {
   }
 
   Future<void> _open(GameItem game, SystemModel system, String root,
-      String? companionComponent) async {
+      String? companionComponent, Future<void> Function()? prepareSave) async {
     final grant = await _grant(game, system, root);
+    await prepareSave?.call();
     if (companionComponent != null) {
       grant['companionComponent'] = companionComponent;
     }
