@@ -5,7 +5,7 @@ import org.junit.Test
 
 class RetroArchSaveBoundaryTest {
     @Test fun filesystemSnapshotsBindTheExactCoreAndIncludeTheAbsentClockCompanion() {
-        for (platform in listOf("gba", "n64", "gamegear", "mastersystem", "megadrive")) {
+        for (platform in listOf("gba", "nes", "n64", "gamegear", "mastersystem", "megadrive")) {
             val source = requireNotNull(RetroArchSaveBoundary.saveDirectory(platform))
             assertEquals(if (platform == "gba") listOf("encoded%2FGame.srm", "encoded%2FGame.rtc")
                 else listOf("encoded%2FGame.srm"),

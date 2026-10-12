@@ -3,6 +3,8 @@
 enum RetroArchBatteryRoute {
   mgba('gba', 'mgba', 'libretro-mgba-sram-v1', 16 * 1024 * 1024, 'mgba-battery',
       'mGBA'),
+  nes('nes', 'fceumm', 'libretro-fceumm-sram-v1', 16 * 1024 * 1024,
+      'nes-battery', 'NES'),
   gameGear('gamegear', 'genesis_plus_gx', 'libretro-genesis-plus-gx-sram-v1',
       65536, 'gamegear-battery', 'Game Gear'),
   masterSystem(
@@ -40,6 +42,7 @@ enum RetroArchBatteryRoute {
 
   String get coreLabel => switch (this) {
         mgba => 'mGBA',
+        nes => 'FCEUmm',
         n64 => 'Mupen64Plus-Next',
         _ => 'Genesis Plus GX',
       };

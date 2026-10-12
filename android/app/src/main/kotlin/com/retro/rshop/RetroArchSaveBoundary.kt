@@ -7,12 +7,13 @@ package com.retro.rshop
 internal object RetroArchSaveBoundary {
     fun saveDirectory(platform: String): String? = when (platform) {
         "gba" -> "/storage/emulated/0/RetroArch/saves/mGBA"
+        "nes" -> "/storage/emulated/0/RetroArch/saves/FCEUmm"
         "gamegear", "mastersystem", "megadrive" -> "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         "n64" -> "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         else -> null
     }
     fun snapshotNames(directory: String, name: String): List<String> {
-        require(directory in listOf(saveDirectory("gba"), saveDirectory("gamegear"), saveDirectory("n64")))
+        require(directory in listOf(saveDirectory("gba"), saveDirectory("nes"), saveDirectory("gamegear"), saveDirectory("n64")))
         require(validName(name))
         // Watch the clock even when absent so creation during SRAM capture
         // cannot produce a falsely complete group.

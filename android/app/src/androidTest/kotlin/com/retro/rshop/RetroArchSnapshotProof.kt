@@ -37,7 +37,7 @@ internal object RetroArchSnapshotProof {
         fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
         try {
-            for (route in listOf("n64", "gba")) {
+            for (route in listOf("n64", "gba", "nes")) {
                 val directory = File(requireNotNull(RetroArchSaveBoundary.saveDirectory(route)))
                 check(directory.isDirectory && directory.canonicalFile == directory.absoluteFile)
                 val initialNames = directory.list()!!.toSet()
@@ -102,6 +102,6 @@ internal object RetroArchSnapshotProof {
                 members.forEach { check(it.delete()) }; check(directory.delete())
             }
         }
-        return "PASS root filesystem RetroArch N64/GBA capture without frontend replies; writable handles rejected, read-only handles admitted, overlapping writes and newly created RTC rejected, paired digests verified; exclusive fixtures removed"
+        return "PASS root filesystem RetroArch N64/GBA/NES capture without frontend replies; writable handles rejected, read-only handles admitted, overlapping writes and newly created RTC rejected, paired digests verified; exclusive fixtures removed"
     }
 }

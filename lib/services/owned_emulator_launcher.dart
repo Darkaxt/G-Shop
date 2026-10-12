@@ -123,6 +123,7 @@ class OwnedEmulatorLauncher {
     }
     final method = switch (route) {
       RetroArchBatteryRoute.mgba => 'reviewOwnedRetroArchGameBoyAdvanceSave',
+      RetroArchBatteryRoute.nes => 'reviewOwnedRetroArchNesSave',
       RetroArchBatteryRoute.gameGear => 'reviewOwnedRetroArchGameGearSave',
       RetroArchBatteryRoute.masterSystem =>
         'reviewOwnedRetroArchMasterSystemSave',

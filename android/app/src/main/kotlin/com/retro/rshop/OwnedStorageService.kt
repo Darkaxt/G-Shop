@@ -60,13 +60,15 @@ internal class OwnedStorageService(private val context: Context) {
                         call.method == "reviewOwnedRetroArchGameGearSave" ||
                         call.method == "reviewOwnedRetroArchMasterSystemSave" ||
                         call.method == "reviewOwnedRetroArchMegaDriveSave" ||
+                        call.method == "reviewOwnedRetroArchNesSave" ||
                         call.method == "reviewOwnedRetroArchN64Save") {
                         val reviewGbaSave = call.method == "reviewOwnedRetroArchGameBoyAdvanceSave"
                         val reviewGameGearSave = call.method == "reviewOwnedRetroArchGameGearSave"
                         val reviewSegaSave = call.method == "reviewOwnedRetroArchMasterSystemSave" ||
                             call.method == "reviewOwnedRetroArchMegaDriveSave"
                         val reviewN64Save = call.method == "reviewOwnedRetroArchN64Save"
-                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave || reviewN64Save
+                        val reviewNesSave = call.method == "reviewOwnedRetroArchNesSave"
+                        val reviewSave = reviewGbaSave || reviewGameGearSave || reviewSegaSave || reviewN64Save || reviewNesSave
                         val gameGear = call.method == "launchOwnedRetroArchGameGear" || reviewGameGearSave
                         val segaPlatform = when (call.method) {
                             "launchOwnedRetroArchMegaDrive", "reviewOwnedRetroArchMegaDriveSave" -> "megadrive"
@@ -77,7 +79,7 @@ internal class OwnedStorageService(private val context: Context) {
                         val gameBoy = call.method == "launchOwnedRetroArchGameBoy"
                         val gameBoyColor = call.method == "launchOwnedRetroArchGameBoyColor"
                         val gameBoyAdvance = call.method == "launchOwnedRetroArchGameBoyAdvance" || reviewGbaSave
-                        val nes = call.method == "launchOwnedRetroArchNes"
+                        val nes = call.method == "launchOwnedRetroArchNes" || reviewNesSave
                         val snes = call.method == "launchOwnedRetroArchSnes"
                         val handheld = gameBoy || gameBoyColor || gameBoyAdvance
                         val handheldPlatform = if (gameBoyAdvance) "gba" else if (gameBoyColor) "gbc" else "gb"

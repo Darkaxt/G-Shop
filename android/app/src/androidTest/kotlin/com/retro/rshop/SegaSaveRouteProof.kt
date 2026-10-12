@@ -13,10 +13,11 @@ import java.util.concurrent.CountDownLatch
  * save bytes. Requires the real installed RetroArch's CONTENTLESS reply. Does not
  * mock its UDP endpoint, run gameplay, access Drive or alter an existing save. */
 internal object SegaSaveRouteProof {
-    fun exercise(context: Context, n64: Boolean = false): String {
+    fun exercise(context: Context, n64: Boolean = false, nes: Boolean = false): String {
         check(context.packageName == "com.darkaxt.rshop.debug")
+        check(!n64 || !nes)
         val source = File("/storage/emulated/0/RetroArch/saves/" +
-            if (n64) "Mupen64Plus-Next" else "Genesis Plus GX")
+            if (n64) "Mupen64Plus-Next" else if (nes) "FCEUmm" else "Genesis Plus GX")
         check(source.isDirectory && source.canonicalFile == source.absoluteFile)
         val initialNames = source.list()!!.toSet()
         val service = SaveCaptureService(context)
@@ -77,11 +78,11 @@ internal object SegaSaveRouteProof {
             check(File(source, name).readBytes().contentEquals(bytes))
         }
         try {
-            for (route in if (n64) listOf("n64") else listOf("mastersystem", "megadrive")) {
+            for (route in if (n64) listOf("n64") else if (nes) listOf("nes") else listOf("mastersystem", "megadrive")) {
                 val name = "rshop-$route-proof-${id()}.srm".also(names::add)
                 val file = File(source, name)
                 check(file.createNewFile()) // Never replace a pre-existing entry.
-                val before = ByteArray(if (n64) 296960 else 50) { (it + 11).toByte() }
+                val before = ByteArray(if (n64) 296960 else if (nes) 8192 else 50) { (it + 11).toByte() }
                 val after = ByteArray(before.size) { (it + 71).toByte() }
                 write(file, before)
                 val original = capture(route, name)
@@ -122,6 +123,6 @@ internal object SegaSaveRouteProof {
             removePrivate("save-restores", ownedRestores, setOf("restore.json", "restore.json.part", "member"))
             check(source.list()!!.toSet() == initialNames)
         }
-        return "PASS ${if (n64) "n64 complete 296960-byte memory" else "mastersystem/megadrive"} app-UID capture/digest, cross-console capture/restore replay rejection, atomic expected-location restore and retained-byte rollback; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
+        return "PASS ${if (n64) "n64 complete 296960-byte memory" else if (nes) "NES FCEUmm" else "mastersystem/megadrive"} app-UID capture/digest, cross-console capture/restore replay rejection, atomic expected-location restore and retained-byte rollback; real RetroArch CONTENTLESS; exclusive fixtures removed; no Drive/gameplay/settings/ROM access"
     }
 }

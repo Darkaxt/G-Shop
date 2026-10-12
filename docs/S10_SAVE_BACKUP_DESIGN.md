@@ -7,6 +7,57 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### NES/FCEUmm battery route — 2026-10-12
+
+The existing owned NES 7z launch now exposes its identity-validated encoded save
+name through the same review path as other cartridge routes. The normal game
+backup job, automatic pre-launch mapping, native capture, exact-file watch,
+restore and rollback use the `nes` route with `libretro-fceumm-sram-v1`, a distinct
+`nes-battery` journal and `RetroArch/saves/FCEUmm`. No new capture engine, title
+guess, manual ownership confirmation or emulator-status capture dependency was
+introduced. Save states, RTC files and other core directories are not this route.
+
+[FCEUmm's libretro memory interface](https://github.com/libretro/libretro-fceumm/blob/master/src/drivers/libretro/libretro.c)
+exposes mapper-specific SaveGameLen[0], not one universal NES save size. The
+existing bounded 16 MiB capture envelope is an IO limit, not a fixed-size format
+claim or a claim that the installed core equals upstream master.
+
+Focused host regressions pass for exact 7z linkage, wrong-console rejection,
+route/format isolation, backup/restore/rollback persistence and automatic
+pre-launch mapping/watch admission. Scoped Dart analysis reports no issues.
+The native regression first reproduced the missing NES directory binding,
+then passed with the implementation; focused capture/boundary/watch checks pass.
+Gated request 819, ticket `90390c5bcd824739a63ac74099586cac`, completed the focused
+native tests plus debug/instrumentation assembly with exit 0 and confirmed gate
+release. The shared mutex was acquired; observed profile was two workers,
+no parallelism, 3 GiB Gradle, Kotlin in-process, one configured 512 MiB test fork.
+No memory failure or budget increase occurred. Native tasks were up-to-date;
+this result does not newly measure native compiler concurrency.
+
+The preserving APK update has SHA-256
+`cc95025b5658f4469244f67862d9e2c9bcf11ca13b14db2b4a33320ac2b78891`.
+Actual Thor app-UID instrumentation passed, serially:
+
+- `retroArchSnapshotProbe`: N64/GBA/NES capture/digest without frontend replies,
+  idle writable-handle rejection, read-only-handle admission and persistent
+  overlapping-write rejection; mGBA RTC creation/group guards still pass.
+- `retroArchWatchProbe`: exact NES/N64 SRM and mGBA clock events delivered;
+  unrelated/temporary leaves excluded and observers joined on cleanup.
+- `nesSaveProbe`: NES capture/digest, cross-console capture/restore replay
+  rejection, atomic expected-location restore and retained-byte rollback using
+  the installed RetroArch's contentless main menu for restore protection.
+
+Exclusive synthetic files/private probe rows were removed by their owning
+probes. All 30 before/after preservation hashes match: 28 existing saves/sidecars,
+RetroArch configuration and R-Shop Flutter preferences. FCEUmm's folder returned
+to its original empty membership. No ROM, BIOS, user save or Drive generation was
+changed by these probes. Both physical displays committed OFF; wakefulness Asleep.
+The native proofs are not a new NES-specific UI-to-Drive round trip; the common
+Drive publication lane has the separate real N64/standalone evidence below.
+S10 remains ACTIVE: other accessible installed-emulator routes, separate state
+coverage, required recovery/fault evidence and conditional handover are unfinished.
+S11 and the proposed S12 remain NOT STARTED; no release occurred.
+
 ### Exact association and live automatic publication — 2026-10-12
 
 The normal per-game panel now selects its single identity-validated save

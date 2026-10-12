@@ -863,7 +863,7 @@ void main() {
         title: 'Game',
         matchStatus: IdentityMatchStatus.manuallyMatched));
     final directory = retroArch != null
-        ? '/storage/emulated/0/RetroArch/saves/${retroArch == RetroArchBatteryRoute.n64 ? 'Mupen64Plus-Next' : retroArch == RetroArchBatteryRoute.mgba ? 'mGBA' : 'Genesis Plus GX'}'
+        ? retroArch.directory
         : melon
             ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
             : savedata
@@ -2127,7 +2127,7 @@ void main() {
     expect(job.lastVerified!.generationId, verified);
     expect(generations.uploads, uploads);
   });
-  for (final platform in ['gamegear', 'mastersystem', 'megadrive', 'n64']) {
+  for (final platform in ['gamegear', 'mastersystem', 'megadrive', 'n64', 'nes']) {
     test(
         '$platform route persists distinct binding through backup restore and rollback',
         () async {

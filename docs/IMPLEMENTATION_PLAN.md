@@ -1701,7 +1701,17 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
-Latest verified slice, 2026-10-12: exact per-game save association no longer asks
+Latest verified slice, 2026-10-12: NES/FCEUmm now joins the existing exact owned
+7z save review and common backup/automatic-watch/restore paths. Focused host and
+native contracts pass; real Thor probes verify filesystem-only coherent capture,
+exact-file event delivery, expected-location restore, cross-console rejection and
+rollback. Request 819 completed through the shared gate/profile. All 30 save/config/
+preference preservation hashes match, disposable fixtures are removed and both
+screens are OFF. No NES-specific UI-to-Drive round trip is claimed. Other accessible
+emulator routes, state coverage, required faults/reconnect and conditional handover
+remain unfinished S10 work. See S10_SAVE_BACKUP_DESIGN.md for bounded evidence.
+
+Earlier verified slice, 2026-10-12: exact per-game save association no longer asks
 for redundant selection/ownership confirmation. Focused unresolved-association
 and section contracts pass. The normal Thor file watch automatically published a
 changed exclusive N64 save to Drive; its completed generation's full 296,960-byte

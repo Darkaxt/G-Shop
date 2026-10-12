@@ -7,6 +7,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveCaptureStorageTest {
+    @Test fun nesBindingKeepsFceummBatteryMemorySeparateFromStatesAndOtherCores() {
+        val source = "/storage/emulated/0/RetroArch/saves/FCEUmm"
+        assertEquals(source, RetroArchSaveBoundary.saveDirectory("nes"))
+        assertTrue(SaveCaptureService.validRestoreBinding("encoded%2FGame.srm", 8192,
+            "nes-battery", source))
+        assertEquals(listOf("encoded%2FGame.srm"),
+            RetroArchSaveBoundary.snapshotNames(source, "encoded%2FGame.srm"))
+        for (size in listOf(0L, 16L * 1024 * 1024 + 1)) {
+            assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", size, "nes-battery", source))
+        }
+        for (name in listOf("Game.state", "Game.nes", "Game.rtc", "../Game.srm")) {
+            assertFalse(SaveCaptureService.validRestoreBinding(name, 8192, "nes-battery", source))
+        }
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 8192, "nes-battery",
+            "/storage/emulated/0/RetroArch/saves/mGBA"))
+        assertFalse(SaveCaptureService.validRestoreBinding("Game.srm", 8192, "mgba-battery", source))
+    }
     @Test fun n64BindingRequiresTheCompletePackedMemoryAndItsOwnCoreDirectory() {
         val source = "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         assertTrue(SaveCaptureService.validRestoreBinding("encoded%2FGame.srm", 296960,

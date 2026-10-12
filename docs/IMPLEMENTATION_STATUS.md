@@ -5,6 +5,28 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### NES/FCEUmm save route — verified slice, 2026-10-12
+
+S10 remains the sole ACTIVE stage. NES uses its exact owned 7z launch association
+and the existing battery-save job, automatic mapping/watch, capture, restore and
+rollback paths, with a separate FCEUmm format/directory/journal. Focused contracts
+and scoped analysis pass. Real Thor probes verify filesystem-only capture,
+writable-handle/mutation guards, exact-file watch delivery, cross-console replay
+rejection, atomic expected-location restore and retained-byte rollback. These
+native probes are not a fresh NES-specific UI-to-Drive round trip.
+
+Gated request 819 completed focused native checks and debug/instrumentation APKs:
+mutex acquired, two workers, no parallelism, 3 GiB Gradle, Kotlin in-process and
+one configured 512 MiB test fork; no memory failure/budget increase. The preserving
+APK SHA-256 is `cc95025b5658f4469244f67862d9e2c9bcf11ca13b14db2b4a33320ac2b78891`.
+All 28 existing save/sidecar hashes plus RetroArch configuration and R-Shop
+preferences match the fresh baseline. Exclusive fixtures are removed; FCEUmm is
+empty again; both displays OFF and wakefulness Asleep. No user save or cloud
+generation was removed. Evidence: S10_SAVE_BACKUP_DESIGN.md.
+Remaining accessible routes, state coverage, required fault/reconnect checks and
+conditional legacy handover remain unfinished S10 work. S11 and proposed S12 are
+NOT STARTED. No release occurred.
+
 ### Exact association and automatic Drive backup — verified slice, 2026-10-12
 
 S10 remains the sole ACTIVE stage. The normal game save panel resolves the exact
@@ -37,7 +59,7 @@ S11 is NOT STARTED; S12 remains a NOT STARTED proposal. No release occurred.
 
 ### S12 frontend proposal — review recorded, 2026-10-12
 
-Reviewed all six turns of the owner's "Identify AYN Thor Frontends"
+Reviewed all five available turns of the owner's "Identify AYN Thor Frontends"
 conversation. The owner distinguishes actual 3D cartridge models/animations
 from scraped physical-media images and wants to retain the red theme while
 considering a Socket-inspired frontend. Assistant recommendations and technical

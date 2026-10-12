@@ -33,6 +33,7 @@ internal class SaveCaptureService(private val activity: Context) {
         // remain no-follow, canonical-equality checked descendants of this root.
         internal fun stagingRoot(filesDir: File): File = File(filesDir.canonicalFile, "save-captures")
         private const val MGBA_SOURCE = "/storage/emulated/0/RetroArch/saves/mGBA"
+        private const val NES_SOURCE = "/storage/emulated/0/RetroArch/saves/FCEUmm"
         private const val GAMEGEAR_SOURCE = "/storage/emulated/0/RetroArch/saves/Genesis Plus GX"
         private const val N64_SOURCE = "/storage/emulated/0/RetroArch/saves/Mupen64Plus-Next"
         internal fun validGroupNames(name: String, members: List<String>): Boolean =
@@ -53,6 +54,8 @@ internal class SaveCaptureService(private val activity: Context) {
         internal fun validRestoreBinding(name: String, size: Long, format: String, source: String): Boolean =
             when (format) {
                 "mgba-battery" -> source == MGBA_SOURCE && RetroArchSaveBoundary.validName(name) &&
+                    size in 1..(16L * 1024 * 1024)
+                "nes-battery" -> source == NES_SOURCE && RetroArchSaveBoundary.validName(name) &&
                     size in 1..(16L * 1024 * 1024)
                 "gamegear-battery", "mastersystem-battery", "megadrive-battery" ->
                     source == GAMEGEAR_SOURCE && RetroArchSaveBoundary.validName(name) &&
@@ -88,6 +91,7 @@ internal class SaveCaptureService(private val activity: Context) {
     private fun same(a: LongArray, b: LongArray) = a.contentEquals(b)
     private fun batterySource(route: String): String = when (route) {
         "gba" -> MGBA_SOURCE
+        "nes" -> NES_SOURCE
         "gamegear", "mastersystem", "megadrive" -> GAMEGEAR_SOURCE
         "n64" -> N64_SOURCE
         else -> throw Failure("invalid_selection")
@@ -96,6 +100,7 @@ internal class SaveCaptureService(private val activity: Context) {
         (call.argument<String>("retroArchRoute") ?: "gba").also { batterySource(it) }
     private fun batteryFormat(route: String): String = when (route) {
         "gba" -> "mgba-battery"
+        "nes" -> "nes-battery"
         "gamegear", "mastersystem", "megadrive" -> "$route-battery"
         "n64" -> "n64-battery"
         else -> throw Failure("invalid_selection")
@@ -106,11 +111,12 @@ internal class SaveCaptureService(private val activity: Context) {
         "mastersystem-battery" -> "mastersystem"
         "megadrive-battery" -> "megadrive"
         "n64-battery" -> "n64"
+        "nes-battery" -> "nes"
         else -> throw Failure("invalid_restore")
     }
 
     private fun batteryMaxBytes(route: String): Long = when (route) {
-        "gba" -> 16L * 1024 * 1024
+        "gba", "nes" -> 16L * 1024 * 1024
         "gamegear", "mastersystem", "megadrive" -> 65536L
         "n64" -> 296960L // Complete EEPROM + 4 Controller Paks + SRAM + FlashRAM.
         else -> throw Failure("invalid_selection")

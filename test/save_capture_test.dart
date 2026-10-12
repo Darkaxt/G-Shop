@@ -163,11 +163,11 @@ void main() {
     expect(calls, isEmpty);
   });
 
-  for (final platform in ['mastersystem', 'megadrive']) {
+  for (final platform in ['mastersystem', 'megadrive', 'nes']) {
     test('$platform capture and restore retain the console route', () async {
       final route = RetroArchBatteryRoute.values
           .singleWhere((route) => route.platformId == platform);
-      expect(route.coreId, 'genesis_plus_gx');
+      expect(route.coreId, platform == 'nes' ? 'fceumm' : 'genesis_plus_gx');
       expect(route.includesRtc, isFalse);
       await SaveCapture().captureRetroArch(
           captureId: 'a' * 32, name: 'Game.srm', route: route);
@@ -191,7 +191,7 @@ void main() {
           SaveCapture().stageRestore(
               restoreId: 'a' * 32,
               name: 'Game.srm',
-              size: 65537,
+              size: route.maxBytes + 1,
               sha256: 'b' * 64,
               retroArchRoute: route,
               bytes: const Stream.empty()),

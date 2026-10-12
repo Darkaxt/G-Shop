@@ -7,6 +7,21 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class SaveFileWatchTest {
+    @Test fun nesWatchBindsOnlyFceummAndTheExactSrm() {
+        val mapping = SaveFileWatch.Mapping("f".repeat(64),
+            "/storage/emulated/0/RetroArch/saves/FCEUmm", "owned%2FGame.srm", "retroarch-nes")
+        assertEquals(listOf(mapping), SaveFileWatch.decode(listOf(mapOf("key" to mapping.key,
+            "directory" to mapping.directory, "name" to mapping.name, "route" to mapping.route))))
+        for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO, FileObserver.DELETE)) {
+            assertEquals(listOf(mapping.key), SaveFileWatch.affected(listOf(mapping), event, mapping.name))
+            for (other in listOf("Other.srm", "owned%2FGame.rtc", "owned%2FGame.state", "../${mapping.name}")) {
+                assertTrue(SaveFileWatch.affected(listOf(mapping), event, other).isEmpty())
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            SaveFileWatch.Mapping(mapping.key, "/storage/emulated/0/RetroArch/saves/mGBA", mapping.name, mapping.route)
+        }
+    }
     @Test fun retroArchWatchKeepsCoreAndExactSavePlusRequiredClock() {
         val gba = SaveFileWatch.Mapping("d".repeat(64),
             "/storage/emulated/0/RetroArch/saves/mGBA", "owned%2FGame.srm", "retroarch-gba")
