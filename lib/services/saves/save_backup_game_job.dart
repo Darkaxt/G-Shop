@@ -43,6 +43,9 @@ class SaveBackupGameJob extends ChangeNotifier {
   final PcsxSaveCard? pcsxCard;
   final Future<Map<String, Object>> Function()? resolvePcsxGrant;
   Map<String, dynamic>? _record;
+  SaveBackupBinding? _deviceBinding;
+  List<SaveBackupManifest> _otherDeviceHeads = const [];
+  Map<String, String> _deviceImportChoices = {};
   Future<void>? _operation;
   CancelToken? _cancellation;
   String? _captureId, _issue;
@@ -362,6 +365,26 @@ class SaveBackupGameJob extends ChangeNotifier {
       (_record!['restore'] as Map)['localWasAbsent'] != true &&
       (_record?['rollback'] as Map?)?['state'] != 'complete';
   bool get localCopyAvailable => _record?['localWasAbsent'] != true;
+  List<SaveBackupManifest> get otherDeviceBackups =>
+      List.unmodifiable(_otherDeviceHeads);
+  String _deviceChoiceKey(SaveBackupManifest manifest) => sha256
+      .convert(utf8.encode(jsonEncode([
+        _deviceBinding?.deviceId,
+        sha256.convert(manifest.encode()).toString()
+      ])))
+      .toString();
+  bool deviceBackupIgnored(SaveBackupManifest manifest) =>
+      _deviceImportChoices[_deviceChoiceKey(manifest)] == 'ignore';
+  List<SaveBackupManifest> get suggestedDeviceBackups {
+    final current = lastVerified;
+    return List.unmodifiable(_otherDeviceHeads.where((item) =>
+        !_deviceImportChoices.containsKey(_deviceChoiceKey(item)) &&
+        (!localCopyAvailable ||
+            current == null ||
+            current.binding.deviceId != _deviceBinding?.deviceId ||
+            item.createdAt.isAfter(current.createdAt))));
+  }
+
   SaveBackupManifest? get lastVerified {
     final raw = _record?['lastVerified'];
     return raw == null
@@ -404,6 +427,31 @@ class SaveBackupGameJob extends ChangeNotifier {
         throw const FormatException('Invalid save job');
       }
       final record = jsonDecode(raw) as Map<String, dynamic>;
+      _deviceImportChoices = Map<String, String>.from(
+          (record['deviceImportChoices'] as Map?) ?? const {});
+      if (_deviceImportChoices.entries.any((entry) =>
+          !RegExp(r'^[a-f0-9]{64}$').hasMatch(entry.key) ||
+          !{'ignore', 'import'}.contains(entry.value))) {
+        throw const FormatException('Invalid device import choice');
+      }
+      _deviceBinding = record['deviceBinding'] == null
+          ? null
+          : SaveBackupBinding.fromJson(record['deviceBinding']);
+      if (_deviceBinding != null && !_bindingMatches(_deviceBinding!)) {
+        throw const FormatException('Changed current-device save binding');
+      }
+      _otherDeviceHeads = ((record['otherDeviceHeads'] as List?) ?? const [])
+          .map((raw) => SaveBackupManifest.decode(utf8.encode(jsonEncode(raw))))
+          .toList();
+      for (final head in _otherDeviceHeads) {
+        if (!_bindingMatches(head.binding) ||
+            _deviceBinding == null ||
+            head.binding.deviceId == _deviceBinding!.deviceId ||
+            head.binding.restoreIssue(_deviceBinding!) != null) {
+          throw const FormatException('Changed other-device save binding');
+        }
+        _contents(head);
+      }
       if (record['key'] != _key ||
           record['schema'] != 1 ||
           !{'pending', 'complete'}.contains(record['state']) ||
@@ -468,6 +516,11 @@ class SaveBackupGameJob extends ChangeNotifier {
         throw const FormatException('Changed cloud restore choice');
       }
       _record = record;
+    } else {
+      _record = null;
+      _deviceBinding = null;
+      _otherDeviceHeads = const [];
+      _deviceImportChoices = {};
     }
     _changed();
   }
@@ -509,6 +562,14 @@ class SaveBackupGameJob extends ChangeNotifier {
 
   Future<void> _persist(Map<String, dynamic> record) async {
     final db = await database;
+    record = {
+      ...record,
+      if (_deviceBinding != null) 'deviceBinding': _deviceBinding!.toJson(),
+      'otherDeviceHeads': _otherDeviceHeads
+          .map((item) => jsonDecode(utf8.decode(item.encode())))
+          .toList(),
+      'deviceImportChoices': _deviceImportChoices,
+    };
     final encoded = jsonEncode(record);
     if (encoded.length > 3 * SaveBackupManifest.maxEncodedBytes) {
       throw const FormatException('Save job exceeds durable record limit');
@@ -581,6 +642,77 @@ class SaveBackupGameJob extends ChangeNotifier {
   }
 
   Future<void> backup(String name) => _backup(name);
+
+  /// Remember a decision about this exact immutable publication, not a title,
+  /// filename or clock. Ignored copies remain available for a revised choice.
+  Future<void> setDeviceBackupIgnored(
+      SaveBackupManifest candidate, bool ignored) {
+    if (_disposed) return Future.value();
+    final pending = _operation ?? _running[_key];
+    if (pending != null) {
+      return pending.then((_) => setDeviceBackupIgnored(candidate, ignored));
+    }
+    final cancellation = CancelToken();
+    _cancellation = cancellation;
+    final operation = Future<void>.microtask(() async {
+      Future<void> Function()? release;
+      Map<String, String>? previousChoices;
+      try {
+        release = await admission.acquire(cancellation);
+        _check(cancellation);
+        _issue = null;
+        await load();
+        if (_record == null ||
+            !_otherDeviceHeads
+                .any((head) => listEquals(head.encode(), candidate.encode()))) {
+          _issue = 'device_import_changed';
+          return;
+        }
+        final key = _deviceChoiceKey(candidate);
+        previousChoices = _deviceImportChoices;
+        _deviceImportChoices = Map.of(_deviceImportChoices);
+        if (ignored) {
+          _deviceImportChoices[key] = 'ignore';
+        } else {
+          _deviceImportChoices.remove(key);
+        }
+        await _persist(_record!);
+      } catch (_) {
+        if (previousChoices != null) _deviceImportChoices = previousChoices;
+        _issue = cancellation.isCancelled
+            ? 'cancelled'
+            : 'device_choice_unavailable';
+      } finally {
+        try {
+          await release?.call();
+        } finally {
+          _running.remove(_key);
+          _operation = null;
+          _cancellation = null;
+          _changed();
+        }
+      }
+    });
+    _operation = operation;
+    _running[_key] = operation;
+    _changed();
+    return operation;
+  }
+
+  Future<void> importDeviceBackup(SaveBackupManifest candidate) async {
+    if (_disposed || busy) return;
+    // Preserve the current device branch first. Foreign heads cannot interfere
+    // with this reconciliation or become an implicit restore selection.
+    try {
+      await reconcileBeforeLaunch(await _reviewName());
+    } on PlatformException catch (error) {
+      _issue = error.code;
+      _changed();
+      return;
+    }
+    if (_issue != null || restorePending || pendingName != null) return;
+    await _restore(deviceImport: candidate);
+  }
 
   /// Reconcile before an owned launch, without treating a newer clock as a
   /// replacement decision. Existing restore intents resume through the same
@@ -660,13 +792,13 @@ class SaveBackupGameJob extends ChangeNotifier {
 
   Future<List<SaveBackupManifest>> _cloudHistoryForBinding(
       SaveBackupBinding binding, CancelToken cancellation) async {
-    final compatible = await generations.discoverGenerations(
+    var compatible = await generations.discoverGenerations(
         areaId: areaId, target: binding, cancellation: cancellation);
     // PPSSPP slots are independent state streams within one game/edition.
     // Transport compatibility covers emulator/format; exact member selection
     // supplies slot identity without borrowing ancestry from another slot.
     if (isPpssppSavedata) {
-      return compatible
+      compatible = compatible
           .where((item) =>
               _bindingMatches(item.binding) &&
               item.members.isNotEmpty &&
@@ -674,13 +806,30 @@ class SaveBackupGameJob extends ChangeNotifier {
                   (member) => _savedataLeaf(member.relativePath) != null))
           .toList();
     }
-    return isPpssppState
-        ? compatible
-            .where((item) =>
-                item.members.length == 1 &&
-                item.members.single.relativePath == ppssppSlot)
-            .toList()
-        : compatible;
+    if (isPpssppState) {
+      compatible = compatible
+          .where((item) =>
+              item.members.length == 1 &&
+              item.members.single.relativePath == ppssppSlot)
+          .toList();
+    }
+    // Compatibility permits an explicit portable import, never automatic
+    // reconciliation across devices. A missing local save follows this rule too.
+    _deviceBinding ??= binding;
+    final device = _deviceBinding!.deviceId;
+    final other = <String, List<SaveBackupManifest>>{};
+    for (final item in compatible) {
+      if (item.binding.deviceId != device &&
+          _bindingMatches(item.binding) &&
+          item.binding.restoreIssue(_deviceBinding!) == null) {
+        _contents(item);
+        other.putIfAbsent(item.binding.deviceId, () => []).add(item);
+      }
+    }
+    _otherDeviceHeads = [
+      for (final history in other.values) ..._heads(history)
+    ];
+    return compatible.where((item) => item.binding.deviceId == device).toList();
   }
 
   Future<List<SaveBackupManifest>> _cloudHeads(
@@ -882,6 +1031,25 @@ class SaveBackupGameJob extends ChangeNotifier {
               formatId: _format,
               sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
               sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);
+          final priorDevice =
+              _deviceBinding?.deviceId ?? lastVerified?.binding.deviceId;
+          if (priorDevice != null && priorDevice != binding.deviceId) {
+            // Restored app data is not authority to inherit another device's
+            // history or import preferences. Start a separate local history.
+            record = {...record, 'parentGenerationIds': <String>[]};
+          } else if (lastVerified != null &&
+              lastVerified!.binding.deviceId != binding.deviceId) {
+            // An explicitly imported copy is provenance, not our device's head.
+            // Keep the preserved local branch as the new local ancestry base.
+            record = {
+              ...record,
+              'parentGenerationIds':
+                  ((record['parentGenerationIds'] as List?) ?? const [])
+                      .where((id) => id != lastVerified!.generationId)
+                      .toList()
+            };
+          }
+          _deviceBinding = binding;
           if (group.localWasAbsent) {
             // Absence is a restore baseline, never a zero-member backup or
             // a fabricated last-good receipt. Discover using runtime/edition
@@ -1307,7 +1475,10 @@ class SaveBackupGameJob extends ChangeNotifier {
 
   Future<void> rollbackLast() => _restore(rollback: true);
 
-  Future<void> _restore({bool rollback = false, bool beforeLaunch = false}) {
+  Future<void> _restore(
+      {bool rollback = false,
+      bool beforeLaunch = false,
+      SaveBackupManifest? deviceImport}) {
     if (_disposed) return Future.value();
     if (_operation case final pending?) return pending;
     if (_running[_key] case final pending?) return pending;
@@ -1325,7 +1496,9 @@ class SaveBackupGameJob extends ChangeNotifier {
         _check(cancellation);
         var record = _record;
         if (record == null ||
-            (lastVerified == null && (rollback || record['restore'] == null))) {
+            (lastVerified == null &&
+                deviceImport == null &&
+                (rollback || record['restore'] == null))) {
           _issue = 'no_verified_backup';
           return;
         }
@@ -1349,13 +1522,35 @@ class SaveBackupGameJob extends ChangeNotifier {
         final operationKey = rollback ? 'rollback' : 'restore';
         final currentName = await _reviewName();
         _check(cancellation);
+        if (deviceImport != null) {
+          final target = _deviceBinding;
+          if (target == null ||
+              deviceImport.binding.deviceId == target.deviceId ||
+              deviceImport.binding.restoreIssue(target) != null ||
+              !_otherDeviceHeads.any(
+                  (head) => listEquals(head.encode(), deviceImport.encode()))) {
+            _issue = 'device_import_changed';
+            return;
+          }
+          final reviewed = await generations.loadGeneration(
+              areaId: areaId,
+              generationId: deviceImport.generationId,
+              target: target,
+              cancellation: cancellation);
+          _check(cancellation);
+          if (!listEquals(reviewed.encode(), deviceImport.encode())) {
+            _issue = 'device_import_changed';
+            return;
+          }
+        }
         Map<String, dynamic>? restore =
             (record[operationKey] as Map?)?.cast<String, dynamic>();
         if (restore == null || restore['state'] == 'complete') {
-          final manifest = rollback
-              ? SaveBackupManifest.decode(
-                  utf8.encode(jsonEncode(record['restore']['manifest'])))
-              : lastVerified!;
+          final manifest = deviceImport ??
+              (rollback
+                  ? SaveBackupManifest.decode(
+                      utf8.encode(jsonEncode(record['restore']['manifest'])))
+                  : lastVerified!);
           if (!isSharedPcsx &&
               manifest.binding.editions.single.gameId != game.id) {
             throw const FormatException('Changed restore game');
@@ -1371,7 +1566,16 @@ class SaveBackupGameJob extends ChangeNotifier {
             'generationId': manifest.generationId,
             'name': rollback ? record['restore']['name'] : currentName,
             'manifest': jsonDecode(utf8.decode(manifest.encode())),
-            'state': 'capture'
+            'state': 'capture',
+            if (deviceImport != null) ...{
+              'deviceImport': true,
+              'deviceParentGenerationIds': [
+                if (lastVerified?.binding.deviceId ==
+                        _deviceBinding?.deviceId &&
+                    lastVerified != null)
+                  lastVerified!.generationId,
+              ],
+            },
           };
           if (rollback) {
             restore['sourceCaptureId'] = record['restore']['rollbackId'];
@@ -1581,8 +1785,13 @@ class SaveBackupGameJob extends ChangeNotifier {
         // receipt. PSP folders use one namespace exchange; legacy related
         // cartridge files retain their existing recoverable group journal.
         // Cancellation after that receipt must not discard the completed result.
+        if (!rollback && restore['deviceImport'] == true) {
+          _deviceImportChoices[_deviceChoiceKey(selected)] = 'import';
+        }
         await _persist({
           ...record,
+          if (!rollback && restore['deviceImport'] == true)
+            'resolvedHeadIds': restore['deviceParentGenerationIds'],
           if (!rollback) ...{
             'lastVerified': jsonDecode(utf8.decode(selected.encode())),
             'generation': jsonDecode(utf8.decode(selected.encode()))

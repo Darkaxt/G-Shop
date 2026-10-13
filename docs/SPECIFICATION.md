@@ -1,6 +1,10 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 34, 2026-10-13.
+Authoritative specification, revision 35, 2026-10-13.
+
+Owner scope update, 2026-10-13: implement all 12 plan stages. This authorizes
+S12's existing FRONTEND-01 contract after S10/S11; it does not open concurrent
+implementation or authorize a release. S10 remains the sole ACTIVE stage.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -999,6 +1003,10 @@ navigation with independently scrollable focused content, following the metadata
 settings pattern. This applies to SAVE-01 and subsequent CACHE-01 controls as
 they are implemented; it does not open another ACTIVE stage. Preserve operation
 state when changing sections and keep inactive controls out of focus traversal.
+Owner reaffirmation, 2026-10-13: use concise action labels with recognizable
+icons where useful; place explanations in the focused section, not inside long
+sentence-buttons. Small decision dialogs may use named icon sections (for
+example Source and Files); they must not recreate the long settings roll.
 
 S7 navigation refinement (2026-10-08, user-authorized): replace the metadata
 settings' single long scrolling form with persistent left-hand section navigation.
@@ -1584,7 +1592,7 @@ test destinations; restore owner configuration and switch both screens off.
 Do not count manual deletion, unit fixtures or a displayed Settings form as proof
 of automatic native rotation. Reconcile S1-S11 before overall completion.
 
-## 6f. Proposed 3D physical-media frontend (S12)
+## 6f. 3D physical-media frontend (S12)
 
 Planning request, 2026-10-12: review the owner's conversation "Identify AYN
 Thor Frontends" and consider an S12 task. Record the candidate in
@@ -1592,13 +1600,13 @@ Thor Frontends" and consider an S12 task. Record the candidate in
 modern, Socket-inspired frontend retaining R-Shop's red theme, using actual 3D
 physical-media models and animations rather than scraped cartridge pictures.
 
-S12 is NOT STARTED. This request authorizes review and planning, not renderer
-implementation, toolchain changes, APK extraction or a frontend replacement.
-Assistant suggestions in the source conversation are design candidates, not
-automatically approved requirements or verified technical facts. FRONTEND-01
-in the proposal is a candidate contract, not an added S10/S11 acceptance gate.
-S10 remains the sole ACTIVE stage; the existing authorized S1-S11 completion
-scope is unchanged. Do not implement S12 without an implementation instruction.
+S12 is NOT STARTED. The owner's 2026-10-13 objective update authorizes
+implementation of the recorded FRONTEND-01 contract after S10/S11. Assistant
+suggestions in the source conversation remain design candidates, not verified
+technical facts or blanket authority for proprietary asset extraction. Select
+the renderer from the required real vertical slice and use independently sourced
+licensed assets. S10 remains the sole ACTIVE stage; S12 does not add acceptance
+gates to S10/S11. Overall completion now requires S1-S12 reconciliation.
 
 ## 7. Quality and delivery requirements
 

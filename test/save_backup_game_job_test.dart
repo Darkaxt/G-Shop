@@ -40,6 +40,7 @@ class _Driver implements DriveAuthorizationDriver {
 }
 
 class _Capture extends SaveCapture {
+  String deviceId = 'device';
   int captures = 0;
   bool includeRtc = false;
   bool localAbsent = false;
@@ -193,7 +194,7 @@ class _Capture extends SaveCapture {
     await held?.future;
     return sealed[captureId] = CapturedSaveGroup(
         captureId,
-        'device',
+        deviceId,
         '1.22.2_GIT',
         [
           if (!localAbsent)
@@ -573,6 +574,227 @@ void main() {
     generations.close();
     await db.close();
   });
+  SaveBackupManifest otherDevice(SaveBackupManifest base) => SaveBackupManifest(
+      generationId: 'other-device-copy',
+      binding: SaveBackupBinding.fromJson(
+          {...base.binding.toJson(), 'deviceId': 'second-device'}),
+      parentGenerationIds: [],
+      createdAt: DateTime.utc(2090),
+      members: [
+        SaveBackupMember(
+            relativePath: base.members.single.relativePath,
+            cloudFileId: 'other-device-member',
+            sizeBytes: base.members.single.sizeBytes,
+            sha256: 'c' * 64)
+      ]);
+
+  test('another device never becomes an automatic restore or conflict',
+      () async {
+    await job.backup(currentName);
+    final peer = otherDevice(job.lastVerified!);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.conflicts, isEmpty);
+    expect(capture.restored, isEmpty);
+    capture.localAbsent = true;
+    generations.cloud.remove(job.lastVerified!.generationId);
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.phase, 'no_save');
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+  });
+
+  test(
+      'device import suggestions are durable and ignore choices are reversible',
+      () async {
+    await job.backup(currentName);
+    final peer = otherDevice(job.lastVerified!);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.suggestedDeviceBackups.single.encode(), peer.encode());
+    await job.setDeviceBackupIgnored(peer, true);
+    await job.load();
+    expect(job.suggestedDeviceBackups, isEmpty);
+    expect(job.otherDeviceBackups.single.encode(), peer.encode());
+    await job.setDeviceBackupIgnored(peer, false);
+    expect(job.suggestedDeviceBackups.single.encode(), peer.encode());
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+  });
+
+  test('device choices and ancestry do not leak into another device', () async {
+    await job.backup(currentName);
+    final original = job.lastVerified!;
+    final peer = otherDevice(original);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    await job.setDeviceBackupIgnored(peer, true);
+    capture.deviceId = 'third-device';
+    await job.reconcileBeforeLaunch(currentName);
+    expect(job.issue, isNull);
+    expect(job.lastVerified!.binding.deviceId, 'third-device');
+    expect(job.lastVerified!.parentGenerationIds, isEmpty);
+    expect(job.suggestedDeviceBackups.map((m) => m.generationId),
+        contains(peer.generationId));
+    expect(capture.restored, isEmpty);
+  });
+
+  test('failed ignore persistence stays visible and does not hide a suggestion',
+      () async {
+    await job.backup(currentName);
+    final peer = otherDevice(job.lastVerified!);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    await db.execute('''CREATE TRIGGER reject_device_choice BEFORE INSERT ON
+      save_backup_game_jobs BEGIN SELECT RAISE(ABORT, 'fixture failure'); END''');
+    await job.setDeviceBackupIgnored(peer, true);
+    expect(job.issue, 'device_choice_unavailable');
+    expect(job.deviceBackupIgnored(peer), isFalse);
+    expect(job.suggestedDeviceBackups.single.encode(), peer.encode());
+    expect(job.busy, isFalse);
+    expect(capture.restored, isEmpty);
+    await db.execute('DROP TRIGGER reject_device_choice');
+    await job.setDeviceBackupIgnored(peer, true);
+    expect(job.issue, isNull);
+    expect(job.suggestedDeviceBackups, isEmpty);
+  });
+
+  test(
+      'explicit device import restores the required group and retains rollback',
+      () async {
+    await job.backup(currentName);
+    final local = job.lastVerified!;
+    final peer = otherDevice(local);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    await job.importDeviceBackup(peer);
+    expect(job.issue, isNull);
+    expect(job.phase, 'restored');
+    expect(job.lastVerified!.encode(), peer.encode());
+    expect(job.rollbackAvailable, isTrue);
+    expect(capture.restored, hasLength(1));
+    expect(generations.cloud[local.generationId]!.encode(), local.encode());
+    expect(generations.cloud[peer.generationId]!.encode(), peer.encode());
+    expect(job.suggestedDeviceBackups, isEmpty);
+    capture.digest = 'c' * 64;
+    await job.backup(currentName);
+    expect(job.issue, isNull);
+    expect(job.lastVerified!.binding.deviceId, 'device');
+    expect(job.lastVerified!.parentGenerationIds, contains(local.generationId));
+    expect(job.lastVerified!.parentGenerationIds,
+        isNot(contains(peer.generationId)));
+    final retainedId = capture.restored.single.rollback;
+    capture.sealed[retainedId] =
+        CapturedSaveGroup(retainedId, 'device', '1.22.2_GIT', [
+      CapturedSaveFile(
+          currentName,
+          _MemorySaveFile('/private/$retainedId/member-0', [1, 2, 3, 4]),
+          4,
+          'b' * 64)
+    ]);
+    await job.rollbackLast();
+    expect(job.issue, isNull);
+    expect(job.phase, 'rolled_back');
+    expect(capture.restored, hasLength(2));
+  });
+
+  test('changed other-device manifest invalidates the reviewed import',
+      () async {
+    await job.backup(currentName);
+    final peer = otherDevice(job.lastVerified!);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    generations.cloud[peer.generationId] = SaveBackupManifest(
+        generationId: peer.generationId,
+        binding: peer.binding,
+        parentGenerationIds: [],
+        createdAt: peer.createdAt,
+        members: [
+          SaveBackupMember(
+              relativePath: peer.members.single.relativePath,
+              cloudFileId: 'changed-member',
+              sizeBytes: 4,
+              sha256: 'd' * 64)
+        ]);
+    await job.importDeviceBackup(peer);
+    expect(job.issue, 'device_import_changed');
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+  });
+
+  testWidgets(
+      'other-device chooser lists a required group without auto-selecting',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.runAsync(() async {
+      await job.backup(currentName);
+      final peer = otherDevice(job.lastVerified!);
+      generations.cloud[peer.generationId] = peer;
+      await job.reconcileBeforeLaunch(currentName);
+    });
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: job,
+                title: 'Game',
+                section: SaveBackupSection.restore)))));
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey('save-other-devices'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.text('Import from another device'), findsOneWidget);
+    expect(find.byIcon(Icons.devices_outlined), findsWidgets);
+    expect(find.text('Source'), findsWidgets);
+    expect(find.textContaining('Game.srm'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('save-device-files-section')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Game.srm'), findsOneWidget);
+    expect(
+        tester
+            .widget<CheckboxListTile>(
+                find.byKey(const ValueKey('save-device-group')))
+            .value,
+        isFalse);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('save-device-import')))
+            .onPressed,
+        isNull);
+    expect(capture.restored, isEmpty);
+    await tester.tap(find.byKey(const ValueKey('save-device-group')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-device-source-section')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Game.srm'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('save-device-files-section')));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<CheckboxListTile>(
+                find.byKey(const ValueKey('save-device-group')))
+            .value,
+        isTrue);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('save-device-import')))
+            .onPressed,
+        isNotNull);
+    expect(find.text('Cancel'), findsWidgets);
+    expect(find.text('Ignore'), findsOneWidget);
+    expect(find.text('Import'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const ValueKey('save-device-cancel')));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   test('PS1 shared card uses one durable history across reviewed games',
       () async {
     final store = LibraryStore(Future.value(db));
@@ -1473,6 +1695,37 @@ void main() {
         .prepareLaunch(artifactId: artifactId, editionId: 'edition');
     expect(capture.captures, 0);
     expect(generations.uploads, 0);
+  });
+  test('launch offers other-device data before arming and remembers ignore',
+      () async {
+    final fixture = await automaticFixture(
+        retroArch: RetroArchBatteryRoute.mgba, watch: (_) async {});
+    await fixture.service.prepareLaunch(
+        artifactId: artifactId,
+        editionId: 'edition',
+        reviewRetroArchSave: (_) async => fixture.mapping.slot);
+    final own = generations.cloud.values.single;
+    final peer = otherDevice(own);
+    generations.cloud[peer.generationId] = peer;
+    var offered = 0;
+    Future<void> review(SaveBackupGameJob pending) async {
+      offered++;
+      expect(pending.suggestedDeviceBackups.single.encode(), peer.encode());
+      expect(pending.busy, isFalse);
+      await pending.setDeviceBackupIgnored(peer, true);
+    }
+
+    for (var i = 0; i < 2; i++) {
+      await fixture.service.prepareLaunch(
+          artifactId: artifactId,
+          editionId: 'edition',
+          reviewRetroArchSave: (_) async => fixture.mapping.slot,
+          reviewDeviceBackups: review);
+    }
+    expect(offered, 1);
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+    expect((await fixture.service.status(fixture.mapping)).issue, isNull);
   });
   test('automatic launch restores a missing PSP slot before arming its watch',
       () async {

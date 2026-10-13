@@ -22,6 +22,7 @@ import '../../models/system_model.dart';
 import '../../models/save_emulator_coverage.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
+import '../../models/save_backup_manifest.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/save_backup_providers.dart';
@@ -45,6 +46,8 @@ enum SaveBackupSection {
   final IconData icon;
   const SaveBackupSection(this.label, this.icon);
 }
+
+enum _DeviceImportSection { source, files }
 
 /// Normal explicit setup. It neither changes ROM sources nor enables unmapped
 /// folder scanning. Save-group mapping and backup execution follow this gate.
@@ -1046,6 +1049,9 @@ class SaveBackupGamePanel extends StatefulWidget {
       this.romRoot,
       this.onChangeMapping,
       this.section = SaveBackupSection.backup});
+  static Future<void> reviewOtherDevices(
+          BuildContext context, SaveBackupGameJob job) =>
+      _SaveBackupGamePanelState.reviewOtherDevices(context, job);
   @override
   State<SaveBackupGamePanel> createState() => _SaveBackupGamePanelState();
 }
@@ -1211,6 +1217,146 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     }
   }
 
+  Future<void> _reviewOtherDevices() => reviewOtherDevices(context, widget.job);
+
+  static Future<void> reviewOtherDevices(
+      BuildContext context, SaveBackupGameJob job) async {
+    final copies = job.otherDeviceBackups;
+    if (job.busy || copies.isEmpty) return;
+    final suggested = job.suggestedDeviceBackups;
+    var selected = suggested.isEmpty ? copies.first : suggested.first;
+    var includeGroup = false;
+    var section = _DeviceImportSection.source;
+    final choice = await showDialog<({SaveBackupManifest copy, String action})>(
+        context: context,
+        builder: (context) => StatefulBuilder(builder: (context, update) {
+              final ignored = job.deviceBackupIgnored(selected);
+              final device = selected.binding.deviceId;
+              final shortDevice =
+                  device.length > 12 ? '${device.substring(0, 12)}…' : device;
+              return AlertDialog(
+                icon: const Icon(Icons.devices_outlined),
+                title: const Text('Import from another device'),
+                content: SizedBox(
+                  width: 600,
+                  height: MediaQuery.sizeOf(context).height * .48,
+                  child: Column(
+                    children: [
+                      SegmentedButton<_DeviceImportSection>(
+                        segments: const [
+                          ButtonSegment(
+                              value: _DeviceImportSection.source,
+                              icon: Icon(Icons.devices_outlined),
+                              label: Text('Source',
+                                  key: ValueKey('save-device-source-section'))),
+                          ButtonSegment(
+                              value: _DeviceImportSection.files,
+                              icon: Icon(Icons.folder_open_outlined),
+                              label: Text('Files',
+                                  key: ValueKey('save-device-files-section'))),
+                        ],
+                        selected: {section},
+                        onSelectionChanged: (value) =>
+                            update(() => section = value.single),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                          child: ListView(children: [
+                        if (section == _DeviceImportSection.source) ...[
+                          DropdownButtonFormField<SaveBackupManifest>(
+                            key: const ValueKey('save-device-source'),
+                            initialValue: selected,
+                            isExpanded: true,
+                            decoration:
+                                const InputDecoration(labelText: 'Source'),
+                            items: [
+                              for (final copy in copies)
+                                DropdownMenuItem(
+                                    value: copy,
+                                    child: Text(
+                                        'Device ${copy.binding.deviceId.length > 12 ? '${copy.binding.deviceId.substring(0, 12)}…' : copy.binding.deviceId} · ${MaterialLocalizations.of(context).formatShortDate(copy.createdAt.toLocal())}',
+                                        overflow: TextOverflow.ellipsis))
+                            ],
+                            onChanged: (copy) {
+                              if (copy == null) return;
+                              update(() {
+                                selected = copy;
+                                includeGroup = false;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(
+                                  ignored ? Icons.block : Icons.cloud_outlined),
+                              title: Text('Device $shortDevice'),
+                              subtitle: Text(
+                                  '${selected.binding.kind == SaveBackupKind.state ? 'Save state' : 'In-game save'} · ${selected.members.length} files${ignored ? ' · Ignored' : ''}')),
+                          const Text(
+                              'A newer date is only a suggestion. Open Files to choose what to import.'),
+                          const SizedBox(height: 12),
+                          const Text(
+                              'Close the game first. Your current copy is kept for Undo; cloud copies are kept too.'),
+                        ] else ...[
+                          CheckboxListTile(
+                            key: const ValueKey('save-device-group'),
+                            contentPadding: EdgeInsets.zero,
+                            value: includeGroup,
+                            title: const Text('Complete save group'),
+                            subtitle: const Text(
+                                'These files need to stay together.'),
+                            onChanged: (value) =>
+                                update(() => includeGroup = value ?? false),
+                          ),
+                          for (final member in selected.members)
+                            ListTile(
+                                dense: true,
+                                leading: const Icon(
+                                    Icons.insert_drive_file_outlined),
+                                title: Text(member.relativePath),
+                                subtitle: Text('${member.sizeBytes} bytes')),
+                        ],
+                      ])),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton.icon(
+                      key: const ValueKey('save-device-cancel'),
+                      autofocus: true,
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Cancel')),
+                  TextButton.icon(
+                      key: const ValueKey('save-device-ignore'),
+                      onPressed: () => Navigator.pop(context, (
+                            copy: selected,
+                            action: ignored ? 'suggest' : 'ignore'
+                          )),
+                      icon: Icon(
+                          ignored ? Icons.notifications_outlined : Icons.block),
+                      label: Text(ignored ? 'Suggest' : 'Ignore')),
+                  FilledButton.icon(
+                      key: const ValueKey('save-device-import'),
+                      style: AppTheme.primaryButtonStyle,
+                      onPressed: includeGroup
+                          ? () => Navigator.pop(
+                              context, (copy: selected, action: 'import'))
+                          : null,
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Import')),
+                ],
+              );
+            }));
+    if (choice == null || !context.mounted || job.busy) return;
+    if (choice.action == 'import') {
+      await job.importDeviceBackup(choice.copy);
+    } else {
+      await job.setDeviceBackupIgnored(choice.copy, choice.action == 'ignore');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
       animation: widget.job,
@@ -1330,6 +1476,19 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                 if (widget.automatic != null) _automaticPanel(job),
               ],
               if (widget.section == SaveBackupSection.restore) ...[
+                if (job.otherDeviceBackups.isNotEmpty) ...[
+                  if (job.suggestedDeviceBackups.isNotEmpty)
+                    const Text(
+                        'Another device has a backup you may want to use. Nothing will be imported unless you choose it.'),
+                  ConsoleFocusable(
+                      focusScale: 1,
+                      onSelect: job.busy ? null : _reviewOtherDevices,
+                      child: OutlinedButton.icon(
+                          key: const ValueKey('save-other-devices'),
+                          onPressed: job.busy ? null : _reviewOtherDevices,
+                          icon: const Icon(Icons.devices_outlined),
+                          label: const Text('Other devices'))),
+                ],
                 if (job.isStandalone) ...[
                   Text(
                       'Exit ${job.emulatorLabel} safely and keep it closed during restore. '
@@ -1500,6 +1659,10 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       liveRegion: true,
                       child: Text(
                           switch (job.issue) {
+                            'device_choice_unavailable' =>
+                              'That choice could not be saved. Your files are unchanged; try again.',
+                            'device_import_changed' =>
+                              'That backup changed or is no longer available for this game. Open Other devices and choose again. Your files were not replaced.',
                             'conflict_changed' => job.restorePending
                                 ? 'The cloud save changed while it was being checked. Automatic restore stopped. You can review and explicitly resume the previously selected copy in Restore & conflicts; other cloud copies are kept.'
                                 : 'The cloud saves changed while you were choosing. Review the current choices in Restore & conflicts. No copy was replaced.',

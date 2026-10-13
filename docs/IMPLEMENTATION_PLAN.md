@@ -1,12 +1,12 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 34.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 35.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-S12 planning addition (owner, 2026-10-12): reviewed "Identify AYN Thor Frontends"
-and recorded the proposed 3D physical-media frontend below. S12 is NOT STARTED;
-review/planning only is authorized. S10 remains the sole ACTIVE stage and S11
-remains NOT STARTED. This proposal does not delay existing stage acceptance.
+S12 authorization update (owner, 2026-10-13): implement all 12 plan stages,
+including the recorded 3D physical-media frontend contract. S12 remains NOT
+STARTED until S10/S11 close; S10 remains the sole ACTIVE stage. This does not
+delay existing stage acceptance or authorize publication.
 
 Root-use direction (owner, 2026-10-12): use root to simplify features and improve
 performance, not to add emulator handshakes or unnecessary lifecycle requirements.
@@ -33,6 +33,11 @@ explicit per-file/required-group import or ignore choices, remembered per ROM an
 reopenable from its menu. Verify no silent cross-device restore, compatibility and
 conflict/rollback preservation, persistent choices and their revision. This remains
 unfinished work within S10; it does not change the ROM catalogue or activate S11.
+
+Settings UX reaffirmation (owner, 2026-10-13): use focused named sections and
+icons, concise action labels and separate explanatory text. Apply this to S10's
+cross-device chooser and subsequent settings, not a new single scrolling form.
+Verify section isolation, preserved selection and compact-layout usability.
 
 S10 save-association UX (owner, 2026-10-12): known exact ROM/emulator mappings
 select their save automatically, without a redundant file picker or ownership
@@ -1950,11 +1955,11 @@ both scope modes, identical emulator-usable restore, preserved pins/offline
 sample/saves/metadata/cloud originals, restored owner configuration and final
 S1-S11 reconciliation. A settings-only implementation does not close S11.
 
-## S12 — Proposed 3D physical-media frontend
+## S12 — 3D physical-media frontend
 
 Status: NOT STARTED.
-Authorization: review and planning only; no implementation instruction yet.
-Candidate requirement: FRONTEND-01 in
+Authorization: implement all 12 stages, owner objective update 2026-10-13.
+Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
 Dependency: close S10/S11 before implementation; do not open another ACTIVE stage.
 
@@ -1962,7 +1967,7 @@ Objective: modernize presentation while keeping R-Shop's red identity and its
 existing catalogue, on-demand installation and emulator workflows. Use actual
 console-specific 3D media, not a new dependency on scraped cartridge images.
 
-Proposed execution order within S12, if implementation is authorized:
+Execution order within S12:
 
 1. Study the reference's observable navigation, physical-media rendering,
    animation and two-display behavior. Record findings and asset provenance;
@@ -2069,4 +2074,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | ART-01 | S9 | Complete supported cartridge/legacy-format asset matrix; consistent accurate shapes, raster provenance, bundled mapping checks and Thor visual/cover-state proof |
 | SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and restore to expected emulator locations; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
 | CACHE-01 | S11 | Persisted Settings duration/queue/order/budget and unified/per-console scope; protected sample/pins; actual automatic expiry/capacity rotation through exact owned/cloud-verified removal and identical usable restore |
-| FRONTEND-01 (proposed, not implementation-authorized) | S12 | Actual 3D media and animation on Thor; retained red identity; scalable browsing, normal launch and existing-feature regression evidence; contract in S12_FRONTEND_PROPOSAL.md |
+| FRONTEND-01 | S12 | Actual 3D media and animation on Thor; retained red identity; scalable browsing, normal launch and existing-feature regression evidence; contract in S12_FRONTEND_PROPOSAL.md |

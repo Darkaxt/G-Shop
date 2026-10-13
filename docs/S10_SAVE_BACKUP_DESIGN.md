@@ -7,6 +7,25 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Device-specific companion direction — owner approved, 2026-10-13
+
+Keep one ROM identity and the existing immutable generation/restore coordinator.
+Partition normal cloud history by the current capture's device identity, including
+the missing-local-save path. A portable foreign save is compatible for an explicit
+import, not permission for automatic reconciliation. Keep other-device heads
+separate from current-device conflicts. Group required SRAM/RTC pairs, memory
+cards and emulator save folders indivisibly; the import view lists their files.
+Persist import/ignore choices against the exact immutable generation and manifest
+digest in the existing durable job. A changed generation needs a new choice.
+Ignored copies remain available in the per-ROM Restore & conflicts view.
+Import rechecks the chosen manifest, current edition/runtime/destination and
+complete payload digests, using the existing retained-local restore journal.
+Clock comparisons only decide which foreign copies to suggest. They never select
+an import, override a conflict, or merge device histories automatically.
+Game-generated companion capture and independently selectable companion groups
+remain required implementation in this same ACTIVE S10; this design note does
+not claim that their native filesystem route is implemented.
+
 ### PS1 automatic card backups — ACTIVE work, 2026-10-13
 
 The normal game-menu and automatic-work consumers now carry the explicit PCSX

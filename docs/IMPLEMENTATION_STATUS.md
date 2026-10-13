@@ -5,6 +5,45 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Device-specific history and sectioned import — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. Normal reconciliation now partitions history
+by capture device; compatible foreign heads cannot trigger automatic restoration
+or local-device conflicts, even when the local save is absent. Explicit import
+rechecks the immutable manifest and reuses the retained-local restore/rollback
+journal. Subsequent publication preserves the current device's own ancestry.
+Exact-publication import/ignore decisions are durable, device-scoped and
+reversible from the same ROM's Restore & conflicts section. Launch preparation
+offers available suggestions through that same chooser without a second launch
+or sync engine.
+
+The chooser separates Source and Files into named icon sections. Required save
+groups remain indivisible and initially unselected; Cancel, Ignore/Suggest and
+Import are short icon actions with explanation outside buttons. Focused job,
+launch and settings checks pass, including manifest-change rejection, failed
+decision persistence, device changes, retained rollback and section isolation.
+Scoped Dart analysis reports no issues. Android assembly request 870 failed
+before compilation because PowerShell split an unquoted target argument; no
+memory failure was reported. Correctly quoted request 872 acquired the shared
+gate and passed assembly; the supervisor confirmed daemon exit before release.
+Observed profile: two workers, no parallelism, 3 GiB Gradle; Kotlin in-process
+requested and configured, one 512 MiB test fork configured but not executed by
+assembly. Native two-job hints are not a verified global native concurrency cap.
+There was no memory failure or heap increase. The narrow 400-pixel chooser check
+also passes selection preservation across sections and short action labels.
+The preserving debug update was installed with `-r`; its installed SHA-256 is
+`d2517c4441d93e135c2e5da4530aebedfd1991f0882663d73224593ad631d7e4`,
+matching the host APK. Preferences and both secure-storage files have unchanged
+digests at the update boundary. Normal Android startup returns success with an
+app process and no AndroidRuntime error in the bounded observation.
+Both physical displays are committed OFF and the device is Asleep afterward.
+
+Native discovery/capture of general game-generated companions and independently
+selectable optional companion groups remain unfinished S10 work. This slice
+does not close S10 or imply a live foreign-device import has been tested.
+S11 and authorized S12 are NOT STARTED. Specification revision 35 records the
+owner's objective to implement all 12 stages, without concurrent stage work.
+
 ### PS1 automatic card backups — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. The normal PS1 game menu now opens Save

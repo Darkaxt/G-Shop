@@ -658,7 +658,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
       {required RemoteArtifactId artifactId,
       String? editionId,
       Future<String> Function(RetroArchBatteryRoute)? reviewRetroArchSave,
-      Future<PcsxSaveLayout> Function()? reviewPcsxSaves}) async {
+      Future<PcsxSaveLayout> Function()? reviewPcsxSaves,
+      Future<void> Function(SaveBackupGameJob)? reviewDeviceBackups}) async {
     final generation = _cancelGeneration;
     final db = await _db();
     final enabled = await db.query('automatic_save_backups',
@@ -728,6 +729,12 @@ class AutomaticSaveBackups extends ChangeNotifier {
           job = _active = _open(mapping);
           job.addListener(_notify);
           await job.reconcileBeforeLaunch(mapping.slot);
+          if (job.issue == null &&
+              !job.restorePending &&
+              job.suggestedDeviceBackups.isNotEmpty &&
+              reviewDeviceBackups != null) {
+            await reviewDeviceBackups(job);
+          }
           await _resolve(mapping);
           await reviewTarget();
           failure = job.issue ??

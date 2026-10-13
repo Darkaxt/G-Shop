@@ -1,9 +1,9 @@
-# S12 — Proposed 3D physical-media frontend
+# S12 — 3D physical-media frontend
 
 Status: NOT STARTED.
-Authority: SPECIFICATION.md, revision 32, section 6f.
-Authorization: owner requested conversation review and consideration of S12 on
-2026-10-12. Planning only; no frontend implementation has been authorized here.
+Authority: SPECIFICATION.md, revision 35, section 6f.
+Authorization: owner requested review on 2026-10-12 and authorized implementation
+through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
 
 ## Owner direction and source boundary
@@ -26,10 +26,10 @@ behavioral description; distributed code/assets need suitable provenance and
 reuse rights. Use original or appropriately licensed assets, not recovered
 proprietary models, scripts, textures or sounds.
 
-## FRONTEND-01 — Candidate behavior and acceptance
+## FRONTEND-01 — Required behavior and acceptance
 
-These are proposed engineering criteria for the owner's direction, not a silent
-extension of the already-authorized S1-S11 contract:
+These criteria implement the owner's direction under the authorized S1-S12
+contract. They do not change S10/S11 acceptance:
 
 - Preserve the recognizable red/dark identity and existing R-Shop game identity,
   catalogue, installation, metadata, save and companion workflows. Do not create

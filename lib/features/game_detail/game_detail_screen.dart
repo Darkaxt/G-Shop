@@ -538,6 +538,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         await saves.prepareLaunch(
             artifactId: artifact,
             editionId: editionId,
+            reviewDeviceBackups: (job) async {
+              if (!mounted) throw PlatformException(code: 'cancelled');
+              await SaveBackupGamePanel.reviewOtherDevices(context, job);
+            },
             reviewPcsxSaves: () => _emulatorLauncher.reviewRetroArchPcsxSaves(
                 game, widget.system, widget.targetFolder),
             reviewRetroArchSave: (route) =>
