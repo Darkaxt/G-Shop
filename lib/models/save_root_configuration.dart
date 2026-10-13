@@ -82,6 +82,11 @@ class SaveRootConfiguration {
           row['core'] == 'flycast' &&
           resourceId == 'vmu-cards' &&
           row['format'] == 'dreamcast-vmu-v1',
+      'dolphin-gci-cards-v1' =>
+        row['emulator'] == 'org.dolphinemu.dolphinemu' &&
+            row['core'] == 'dolphin' &&
+            resourceId == 'gc-memory-cards' &&
+            row['format'] == 'gamecube-gci-cards-v1',
       _ => false,
     };
     if (profile != null && (!standard || row['kind'] != 'save')) {

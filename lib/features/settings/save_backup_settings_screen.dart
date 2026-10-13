@@ -201,7 +201,7 @@ class _SaveBackupSettingsScreenState
             Map<String, dynamic>.from(jsonDecode(raw) as Map));
         _romCompanions = true;
       }
-      if ({'ps2', 'dreamcast'}.contains(widget.system?.id) &&
+      if ({'ps2', 'dreamcast', 'gc'}.contains(widget.system?.id) &&
           (_saveRootConfiguration == null ||
               _saveRootConfiguration!.profile != null)) {
         SaveRootConfiguration? standard;

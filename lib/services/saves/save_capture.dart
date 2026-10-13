@@ -171,7 +171,7 @@ class MelonSaveSettings {
 class SaveCapture {
   Future<SaveRootConfiguration?> standardSaveRoot(
       {required String platformId}) async {
-    if (!{'ps2', 'dreamcast'}.contains(platformId)) return null;
+    if (!{'ps2', 'dreamcast', 'gc'}.contains(platformId)) return null;
     final row = await _channel.invokeMapMethod<String, dynamic>(
         'standardSaveRoot', {'platformId': platformId});
     return row == null ? null : SaveRootConfiguration.decode(row);

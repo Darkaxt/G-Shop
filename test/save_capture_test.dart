@@ -90,6 +90,31 @@ void main() {
     expect(config.acceptsFile('dc_boot.bin'), isFalse);
     expect(calls.single.arguments, {'platformId': 'dreamcast'});
   });
+  test(
+      'Dolphin virtual card folders resolve as shared resources, not game names',
+      () async {
+    response = {
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/GC',
+      'emulator': 'org.dolphinemu.dolphinemu',
+      'core': 'dolphin',
+      'kind': 'save',
+      'format': 'gamecube-gci-cards-v1',
+      'profile': 'dolphin-gci-cards-v1',
+      'resourceId': 'gc-memory-cards',
+      'files': <String>[],
+      'folders': ['EUR/Card A', 'JAP/Card A', 'USA/Card A', 'DEV/Card A'],
+      'required': <String>[]
+    };
+    final config = await SaveCapture().standardSaveRoot(platformId: 'gc');
+    expect(config!.logicalRomName, 'shared-gc-memory-cards.save');
+    expect(config.acceptsFile('USA/Card A/8P-GFZE-f_zero.dat.gci'), isTrue);
+    expect(config.acceptsFile('USA/Card A/MC_SYSTEM_AREA'), isTrue);
+    expect(config.acceptsFile('USA/Card B/Other.gci'), isFalse);
+    expect(config.acceptsFile('SRAM.raw'), isFalse);
+    expect(calls.single.arguments, {'platformId': 'gc'});
+  });
   tearDown(() => TestDefaultBinaryMessengerBinding
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));

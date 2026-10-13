@@ -4,6 +4,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StandardSaveRootsTest {
+    @Test fun dolphinFolderCardsShareHistoryWithoutSelectingSystemData() {
+        val config = StandardSaveRoots.dolphinConfiguration(emptyMap())!!
+        assertEquals("shared-gc-memory-cards.save", config.logicalRomName)
+        assertTrue(config.acceptsFile("USA/Card A/8P-GFZE-f_zero.dat.gci"))
+        assertTrue(config.acceptsFile("USA/Card A/MC_SYSTEM_AREA"))
+        assertFalse(config.acceptsFile("USA/Card B/Other.gci"))
+        assertFalse(config.acceptsFile("SRAM.raw"))
+        assertFalse(config.acceptsFile("USA/IPL.bin"))
+        assertEquals(8, StandardSaveRoots.dolphinConfiguration(mapOf("SlotB" to "8"))!!.folders.size)
+        assertNull(StandardSaveRoots.dolphinConfiguration(mapOf("SlotA" to "255")))
+        assertThrows(IllegalArgumentException::class.java) {
+            StandardSaveRoots.dolphinConfiguration(mapOf("GCIFolderAPathOverride" to "/storage/emulated/0/Other"))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            StandardSaveRoots.dolphinConfiguration(mapOf("SlotA" to "1"))
+        }
+    }
     @Test fun flycastSelectsOnlyEnabledSharedVirtualCards() {
         val ini = """
             [config]

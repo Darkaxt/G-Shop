@@ -7,17 +7,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current S10 work — ACTIVE, 2026-10-13
 
-Current verification request: shared Dreamcast virtual VMUs now resolve from
-Flycast's configured home/VMU path and enabled card slots into the same root
-configuration/history lane. Focused host checks pass decoded selection, BIOS
-exclusion and resolved/unresolved normal settings; they exposed and corrected a
-save-menu guard tied to launch support. Native verification/packaging remains
-pending in gated FIFO request 995. Request 992 acquired the gate and verified
-daemon exit but failed a JVM assertion against Android's stubbed JSON API, not
-memory. That assertion now belongs to the existing native probe. No shared-card backup is claimed from
-the Thor's currently empty VMU inventory. Per-game/legacy/network/custom-location
-resolution, other installed-emulator standard mappings and conditional handover
-remain current-stage work; this is not S10 closure.
+Shared-card configuration is verified for Flycast's enabled shared virtual VMUs
+and Dolphin's enabled default GCI card folders, in addition to NetherSX2. They
+reuse the existing root/history lane, with settings revalidation and exact file
+or folder selection rather than ROM-title guessing. Host channel/menu checks and
+scoped analysis pass resolved/unresolved persistence and excluded-file boundaries;
+they corrected a save-menu guard incorrectly tied to launch support. Original
+gated request 995 passes focused native contracts and app/test packaging: gate
+acquired, build/helper exit 0, daemon exit verified, observed workers=2,
+parallel=false and Gradle heap=3 GiB. Kotlin in-process was configured/requested;
+one 512 MiB fail-fast test fork ran. Native environment budget two is not proof
+that every plugin honors it. No memory failure or heap increase. Request 992's
+Android JSON JVM-stub failure was corrected by moving serialization verification
+to the actual native probe, not by weakening production behavior.
+
+Preserving install and installed-APK SHA-256 match
+`b3f35442feecff81779efb740e5765cbd609f422c8f76b180894e6d1a85aed03`.
+Both real Thor production-channel probes pass settings resolution, typed JSON
+round-trip and root inventory/profile revalidation. This is read-only configuration
+evidence: no save capture, emulator launch or cloud write. No real backup is
+claimed from Flycast's empty VMU inventory. Six app/emulator settings and secure
+storage hashes are unchanged and both displays are OFF. Dolphin's BIOS, SRAM,
+Wii NAND and disabled cards are excluded; raw/custom/overridden cards retain exact
+custom mappings. Other standard-location reconciliation and conditional legacy
+handover remain required; S10 is not COMPLETE. The reference-only Dolphin clone
+at `8d2ad1a6` was removed by its fully applied exact-root cleanup ticket, reclaiming
+6,444,533 bytes; the path is absent and the public source is independently recoverable.
 
 Owner correction (specification revision 39): remaining installed-emulator
 coverage is declarative root/path/game/group/compatibility configuration through

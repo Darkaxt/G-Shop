@@ -121,7 +121,7 @@ internal class SaveSourceStorage private constructor(
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
         fun standardSaveRoot(context: Context, packageName: String = StandardSaveRoots.NETHER): JSONObject {
-            require(packageName in setOf(StandardSaveRoots.NETHER, StandardSaveRoots.FLYCAST))
+            require(packageName in setOf(StandardSaveRoots.NETHER, StandardSaveRoots.FLYCAST, StandardSaveRoots.DOLPHIN))
             return settings(context, packageName)
         }
         fun pcsxSettings(context: Context, encodedLeaf: String): JSONObject {
@@ -386,13 +386,15 @@ object RootSaveSourceWorker {
                 return
             }
             if (hello.length() == 1 && hello.optString("settings") in
-                setOf(MelonSaveBoundary.PACKAGE, PpssppSaveSettings.PACKAGE, StandardSaveRoots.NETHER, StandardSaveRoots.FLYCAST)) {
+                setOf(MelonSaveBoundary.PACKAGE, PpssppSaveSettings.PACKAGE, StandardSaveRoots.NETHER, StandardSaveRoots.FLYCAST, StandardSaveRoots.DOLPHIN)) {
                 val settings = try {
                     if (hello.getString("settings") == MelonSaveBoundary.PACKAGE) MelonSaveSettings.read()
                     else if (hello.getString("settings") == StandardSaveRoots.NETHER)
                         JSONObject().put("saveRoot", StandardSaveRoots.nether()?.json() ?: JSONObject.NULL)
                     else if (hello.getString("settings") == StandardSaveRoots.FLYCAST)
                         JSONObject().put("saveRoot", StandardSaveRoots.flycast()?.json() ?: JSONObject.NULL)
+                    else if (hello.getString("settings") == StandardSaveRoots.DOLPHIN)
+                        JSONObject().put("saveRoot", StandardSaveRoots.dolphin()?.json() ?: JSONObject.NULL)
                     else JSONObject().put("directory", PpssppSaveSettings.read())
                 } catch (error: Exception) {
                     if (error is IOException && error.message == "source_changed") throw error

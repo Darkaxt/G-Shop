@@ -96,7 +96,8 @@ class _Sources extends SourcesNotifier {
 }
 
 void main() {
-  for (final platform in ['ps2', 'dreamcast']) {
+  for (final platform in ['ps2', 'dreamcast', 'gc']) {
+    final filename = platform == 'gc' ? 'Game.rvz' : 'Game.chd';
     for (final resolved in [false, true]) {
       testWidgets(
           resolved
@@ -131,7 +132,23 @@ void main() {
                         ? ['Mcd001.ps2', 'Mcd002.ps2']
                         : ['vmu_save_A1.bin', 'vmu_save_A2.bin'],
                     'folders': <String>[],
-                    'required': <String>[]
+                    'required': <String>[],
+                    if (platform == 'gc') ...{
+                      'directory':
+                          '/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files/GC',
+                      'emulator': 'org.dolphinemu.dolphinemu',
+                      'core': 'dolphin',
+                      'format': 'gamecube-gci-cards-v1',
+                      'profile': 'dolphin-gci-cards-v1',
+                      'resourceId': 'gc-memory-cards',
+                      'files': <String>[],
+                      'folders': [
+                        'EUR/Card A',
+                        'JAP/Card A',
+                        'USA/Card A',
+                        'DEV/Card A'
+                      ],
+                    }
                   }
                 : throw PlatformException(code: 'save_settings_unresolved');
           }
@@ -144,7 +161,7 @@ void main() {
         await sources.ready;
         sources.publish('account');
         final game = GameItem(
-            filename: 'Game.chd',
+            filename: filename,
             displayName: 'Game',
             url: 'drive:fixture',
             remoteArtifact: RemoteArtifact(
@@ -153,8 +170,8 @@ void main() {
                     sourceId: 'same-source',
                     accountId: 'account',
                     providerFileId: 'file'),
-                displayPath: 'Game.chd',
-                displayName: 'Game.chd'));
+                displayPath: filename,
+                displayName: filename));
         await tester.pumpWidget(ProviderScope(
             overrides: [sourcesProvider.overrideWith((_) => sources)],
             child: createTestApp(SaveBackupSettingsScreen(
@@ -163,10 +180,18 @@ void main() {
                 game: game,
                 system: SystemModel(
                     id: platform,
-                    name: platform == 'ps2' ? 'PlayStation 2' : 'Dreamcast',
-                    manufacturer: platform == 'ps2' ? 'Sony' : 'Sega',
+                    name: platform == 'gc'
+                        ? 'GameCube'
+                        : platform == 'ps2'
+                            ? 'PlayStation 2'
+                            : 'Dreamcast',
+                    manufacturer: platform == 'gc'
+                        ? 'Nintendo'
+                        : platform == 'ps2'
+                            ? 'Sony'
+                            : 'Sega',
                     releaseYear: 2000),
-                targetFolder: '/storage/1234-ABCD/Roms/ps2'))));
+                targetFolder: '/storage/1234-ABCD/Roms/$platform'))));
         await tester.pumpAndSettle();
         expect(
             find.byKey(const ValueKey('save-import-mapping')), findsOneWidget);
@@ -174,13 +199,20 @@ void main() {
           final preferences = await SharedPreferences.getInstance();
           final saved = jsonDecode(preferences.getString(
               SaveRootConfiguration.storageKey(game.remoteArtifact!.id.key))!);
-          expect(saved['profile'],
-              platform == 'ps2' ? 'nether-cards-v1' : 'flycast-shared-vmus-v1');
+          expect(
+              saved['profile'],
+              platform == 'gc'
+                  ? 'dolphin-gci-cards-v1'
+                  : platform == 'ps2'
+                      ? 'nether-cards-v1'
+                      : 'flycast-shared-vmus-v1');
           expect(
               saved['files'],
-              platform == 'ps2'
-                  ? ['Mcd001.ps2', 'Mcd002.ps2']
-                  : ['vmu_save_A1.bin', 'vmu_save_A2.bin']);
+              platform == 'gc'
+                  ? <String>[]
+                  : platform == 'ps2'
+                      ? ['Mcd001.ps2', 'Mcd002.ps2']
+                      : ['vmu_save_A1.bin', 'vmu_save_A2.bin']);
           expect(
               tester
                   .widget<DropdownButtonFormField<bool>>(
@@ -271,7 +303,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls.single.method, 'installedSaveEmulators');
     expect(find.text('Dolphin'), findsOneWidget);
-    expect(find.textContaining('Document picker provider advertised'),
+    expect(find.textContaining('GameCube card folders share one history'),
         findsOneWidget);
     expect(find.text('States: Verified · reviewed PPSSPP state slot'),
         findsOneWidget);

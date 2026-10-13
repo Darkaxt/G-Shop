@@ -232,15 +232,20 @@ class OwnedRomInstrumentation : Instrumentation() {
             val config = SaveRootConfiguration.decode(JSONObject(value as Map<*, *>))
             check(SaveRootConfiguration.decode(config.json()) == config)
             val ps2 = standardSaveRootPlatform == "ps2"
-            check(ps2 || standardSaveRootPlatform == "dreamcast")
-            check(config.profile == if (ps2) StandardSaveRoots.NETHER_PROFILE else StandardSaveRoots.FLYCAST_PROFILE)
-            check(config.logicalRomName == if (ps2) "shared-memory-cards.save" else "shared-vmu-cards.save")
-            check(config.files == if (ps2) listOf("Mcd001.ps2", "Mcd002.ps2") else listOf("vmu_save_A1.bin", "vmu_save_A2.bin"))
+            val gc = standardSaveRootPlatform == "gc"
+            check(ps2 || gc || standardSaveRootPlatform == "dreamcast")
+            check(config.profile == when { ps2 -> StandardSaveRoots.NETHER_PROFILE; gc -> StandardSaveRoots.DOLPHIN_PROFILE; else -> StandardSaveRoots.FLYCAST_PROFILE })
+            check(config.logicalRomName == when { ps2 -> "shared-memory-cards.save"; gc -> "shared-gc-memory-cards.save"; else -> "shared-vmu-cards.save" })
+            check(config.files == when { ps2 -> listOf("Mcd001.ps2", "Mcd002.ps2"); gc -> emptyList(); else -> listOf("vmu_save_A1.bin", "vmu_save_A2.bin") })
             SaveSourceStorage.openRomCompanions(targetContext, config.directory, config.logicalRomName!!,
                 emptyList(), configuration = config).use { storage ->
                 val names = storage.companionInventory().files.keys
-                check(config.files.containsAll(names))
+                check(names.all(config::acceptsFile))
                 if (ps2) check(names == config.files.toSet())
+                if (gc) {
+                    check(names.any { it.endsWith(".gci") })
+                    check(!config.acceptsFile("SRAM.raw") && !config.acceptsFile("USA/IPL.bin"))
+                }
             }
             return "PASS production settings channel resolves $standardSaveRootPlatform shared cards; source worker revalidates the profile and excludes unrelated files; read-only settings/metadata, no save capture, emulator launch or cloud write"
         } finally {

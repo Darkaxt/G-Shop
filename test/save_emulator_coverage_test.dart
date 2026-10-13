@@ -107,8 +107,8 @@ void main() {
   test('advertised provider is neither a grant nor implemented restore support',
       () {
     final row = SaveEmulatorCoverage.decode([
-      _row('org.dolphinemu.dolphinemu', '2606',
-          ['org.dolphinemu.dolphinemu.user'])
+      _row('io.github.lime3ds.android', '2606',
+          ['io.github.lime3ds.android.user'])
     ]).single;
     expect(row.storage, contains('does not select'));
     expect(row.saves, startsWith('Automatic mapping pending'));
@@ -148,6 +148,15 @@ void main() {
     expect(rows.last.storage, contains('not BIOS'));
   });
 
+  test('Dolphin card coverage does not claim Wii NAND or raw-card discovery',
+      () {
+    final row =
+        SaveEmulatorCoverage.decode([_row('org.dolphinemu.dolphinemu', '2606')])
+            .single;
+    expect(row.saves, contains('shared GCI memory-card folders'));
+    expect(row.storage, contains('Wii NAND'));
+    expect(row.storage, contains('Raw cards'));
+  });
   test('malformed or substituted inventory fails as a whole', () {
     final good = _row('org.ppsspp.ppsspp', 'v1.20.4');
     for (final rows in <List<dynamic>?>[

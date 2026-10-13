@@ -13,16 +13,77 @@ internal object StandardSaveRoots {
     const val NETHER_PROFILE = "nether-cards-v1"
     const val FLYCAST = "com.flycast.emulator"
     const val FLYCAST_PROFILE = "flycast-shared-vmus-v1"
+    const val DOLPHIN = "org.dolphinemu.dolphinemu"
+    const val DOLPHIN_PROFILE = "dolphin-gci-cards-v1"
     fun packageFor(platformId: String): String? = when (platformId) {
         "ps2" -> NETHER
         "dreamcast" -> FLYCAST
+        "gc" -> DOLPHIN
         else -> null
     }
     fun validProfile(profile: String, emulator: String, core: String, kind: String,
         resourceId: String?, format: String): Boolean = kind == "save" && when (profile) {
         NETHER_PROFILE -> emulator == NETHER && core == "pcsx2" && resourceId == "memory-cards" && format == "ps2-shared-memory-cards-v1"
         FLYCAST_PROFILE -> emulator == FLYCAST && core == "flycast" && resourceId == "vmu-cards" && format == "dreamcast-vmu-v1"
+        DOLPHIN_PROFILE -> emulator == DOLPHIN && core == "dolphin" && resourceId == "gc-memory-cards" && format == "gamecube-gci-cards-v1"
         else -> false
+    }
+    private val dolphinKeys = setOf("SlotA", "SlotB", "GCIFolderAPath", "GCIFolderBPath",
+        "GCIFolderAPathOverride", "GCIFolderBPathOverride")
+    /** Dolphin MainSettings::GetGCIFolderPath: the folders are virtual cards,
+     * not one unrelated per-game save history for each .gci member. */
+    internal fun dolphinConfiguration(settings: Map<String, String>): SaveRootConfiguration? {
+        val folders = listOf('A', 'B').flatMap { slot ->
+            val raw = settings["Slot$slot"]
+            require(raw == null || raw.toIntOrNull() in 0..14 || raw == "255")
+            when (raw?.toInt() ?: if (slot == 'A') 8 else 255) {
+                8 -> {
+                    require(settings["GCIFolder${slot}Path"].isNullOrEmpty() &&
+                        settings["GCIFolder${slot}PathOverride"].isNullOrEmpty()) { "save_settings_unresolved" }
+                    listOf("EUR", "JAP", "USA", "DEV").map { "$it/Card $slot" }
+                }
+                1 -> throw IllegalArgumentException("save_settings_unresolved") // raw/custom card: exact mapping
+                else -> emptyList()
+            }
+        }
+        if (folders.isEmpty()) return null
+        return SaveRootConfiguration("/storage/emulated/0/Android/data/$DOLPHIN/files/GC",
+            DOLPHIN, "dolphin", "save", "gamecube-gci-cards-v1", emptyList(), folders, emptyList(),
+            resourceId = "gc-memory-cards", profile = DOLPHIN_PROFILE)
+    }
+    private fun dolphinCore(ini: String): Map<String, String> {
+        val values = mutableMapOf<String, String>(); var section = ""
+        for (raw in ini.lineSequence()) {
+            val line = raw.trim()
+            if (line.startsWith('[')) { require(line.endsWith(']')); section = line.drop(1).dropLast(1); continue }
+            if (section != "Core" || '=' !in line || line.startsWith('#') || line.startsWith(';')) continue
+            val key = line.substringBefore('=').trim()
+            if (key in dolphinKeys) { require(key !in values); values[key] = line.substringAfter('=').trim() }
+        }
+        return values
+    }
+    fun dolphin(): SaveRootConfiguration? {
+        require(Process.myUid() == 0)
+        val home = "/storage/emulated/0/Android/data/$DOLPHIN/files"
+        // An initialized external-files directory takes precedence in Dolphin's
+        // DirectoryInitialization. No fallback to a stale legacy tree.
+        val ini = read("$home/Config", "Dolphin.ini", 512 * 1024).toString(Charsets.UTF_8)
+        val gameRoot = "$home/GameSettings"
+        val root = OwnedStorageNative.openRoot(gameRoot)
+        try {
+            val identity = OwnedStorageNative.identity(root).take(2)
+            val names = File(gameRoot).list() ?: error("Unreadable settings")
+            require(names.size <= 1024)
+            for (name in names.filter { it.endsWith(".ini", true) }) {
+                require(RomCompanionBoundary.validLeaf(name))
+                if (dolphinCore(read(gameRoot, name, 65536).toString(Charsets.UTF_8)).isNotEmpty())
+                    throw IOException("save_settings_unresolved")
+            }
+            val fresh = OwnedStorageNative.openRoot(gameRoot)
+            try { if (identity != OwnedStorageNative.identity(fresh).take(2)) throw IOException("source_changed") }
+            finally { OwnedStorageNative.close(fresh) }
+        } finally { OwnedStorageNative.close(root) }
+        return dolphinConfiguration(dolphinCore(ini))
     }
     /** Flycast oslib.cpp::getVmuPath, cfg/option.cpp. No filename/title guessing. */
     internal fun flycastConfiguration(home: String, ini: String): SaveRootConfiguration? {
@@ -194,6 +255,7 @@ internal object StandardSaveRoots {
             null -> return
             NETHER_PROFILE -> nether()
             FLYCAST_PROFILE -> flycast()
+            DOLPHIN_PROFILE -> dolphin()
             else -> throw IOException("source_changed")
         }
         if (current?.json()?.toString() != configuration.json().toString()) throw IOException("source_changed")

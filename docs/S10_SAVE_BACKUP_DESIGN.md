@@ -212,11 +212,51 @@ Request 992 acquired the shared gate and verified daemon exit, with observed
 workers=2, parallel=false, Gradle heap=3 GiB and one 512 MiB fail-fast test fork;
 Kotlin in-process was configured/requested. It failed a JVM test calling Android's
 stubbed JSON API, not memory. The round-trip assertion is moved to the existing
-native probe, and corrected focused verification/packaging is pending in original
-request 995. No S10 closure or emulator-family campaign is claimed by host checks.
+native probe. Original request 995 now passes corrected focused verification and
+app/test packaging, with the acquired shared gate, observed workers=2,
+parallel=false, Gradle heap=3 GiB, configured/requested Kotlin in-process, one
+512 MiB fail-fast test fork and verified daemon exit. No memory failure or heap
+increase. The installed preserving APK matches packaged SHA-256
+`b3f35442feecff81779efb740e5765cbd609f422c8f76b180894e6d1a85aed03`.
+Real Thor production-channel probes pass Flycast and Dolphin settings resolution,
+JSON round-trip and shared-reader profile/inventory revalidation. All six protected
+settings/credential hashes match and both displays are OFF. The probes are read-only
+and do not claim an emulator launch, save backup, restoration or cloud write.
+Current host channel/menu/coverage checks and scoped analysis pass. The old generic
+document-provider coverage assertion was updated for Dolphin's implemented card
+route; generic provider-not-a-grant coverage remains for an unresolved emulator.
+This closes these shared-card mapping outcomes, not all S10 acceptance.
 
 Shared save identity follows the actual resource, not a common parent directory.
 A PS1/PS2 card image can contain several games and must have one resource history.
+The same applies to Dolphin's GameCube GCI-directory memory-card backend:
+`MAIN_SLOT_A` defaults to `EXIDeviceType::MemoryCardFolder`; `GetGCIFolderPath`
+resolves an emulated card folder beneath `GC/<region>/Card A` (or B). Several
+games write that logical card, so the configured card folder can share one
+resource history through the existing folder-selection lane. Do not introduce
+per-game GCI-header matching merely to split a shared card into competing histories.
+The current installed Dolphin has an initialized external app-files user directory,
+an empty GameSettings override directory and a USA/Card A save. The
+`dolphin-gci-cards-v1` configuration now resolves enabled default folder-card slots
+from the actual Core settings into exact regional Card A/B folder selections,
+including their card header. Normal settings persistence and root source/watch
+revalidation reuse the existing lane. Raw cards, custom paths and game-specific
+overrides remain exact custom mappings rather than a global-card guess. Native
+contracts, host settings/channel checks and the real read-only Thor mapping/source
+probe pass against the installed package noted above.
+The mapping does not back up all of GC;
+`GC/SRAM.raw`, Wii NAND, BIOS and other app data are not that memory card.
+Primary references: Dolphin `Source/Core/Core/Config/MainSettings.cpp`
+(`MAIN_SLOT_A`, `GetGCIFolderPath`), `HW/GCMemcard/GCMemcardDirectory.cpp`
+(directory-backed memory card), and Android `utils/DirectoryInitialization.kt`
+(initialized app-files user directory takes precedence over legacy storage).
+The task-owned shallow sparse source clone was pinned to
+`8d2ad1a662472955497e5bb79d7b9ec6999e1f0d`. It is reference material only, not a
+runtime/build dependency. The registered exact-root cleanup transaction
+`5b5c62d7a4fdf7d58d5d1a9eb7b94ce3` is fully applied: its complete signed manifest
+was inspected before ticketing, 6,444,533 bytes were reclaimed with no exclusions
+or residuals, and the source-clone path is absent. It is recoverable from the
+recorded public Git commit, not a user-source deletion.
 Switch saves under a common NAND/save root remain separate title/user groups;
 do not merge the entire root into one backup history. Eden's current source
 (`src/core/file_sys/savedata_factory.cpp` in its official GitHub mirror) supports
@@ -228,10 +268,11 @@ to that acceptance. This is standard-configuration work in S10, not a new stage.
 
 Specification revision 39 supersedes historical per-family/input closure language
 below. The implemented filesystem watch/capture/publication/conflict/restore lane
-is shared. The current generic companion resolver still derives its root from
-the installed ROM's parent; protected external emulator save directories need
-the same engine's declarative root/association/group/compatibility configuration.
-Connect that path rather than add separate emulator sync engines. Preserve the
+is shared. The generic companion resolver derives its root from the installed
+ROM's parent unless explicit or standard configuration supplies the emulator's
+external/private save location. That configuration path is connected to the same
+engine; remaining standard-location reconciliation must not add separate sync
+engines. Preserve the
 most-installed-ROM-emulator coverage target and truthful resolved/unresolved
 configuration status. Specialized parsing is justified only by an actual layout.
 

@@ -102,7 +102,9 @@ class SaveEmulatorCoverage {
                       ? 'In-game saves · enabled shared memory cards from emulator settings; custom mappings remain available.'
                       : packageName == 'com.flycast.emulator'
                           ? 'In-game saves · shared virtual VMU cards from emulator settings; per-game cards need an exact mapping.'
-                          : 'Automatic mapping pending · exact save-folder mapping is available';
+                          : packageName == 'org.dolphinemu.dolphinemu'
+                              ? 'GameCube saves · enabled shared GCI memory-card folders; Wii and custom/raw cards use exact mappings.'
+                              : 'Automatic mapping pending · exact save-folder mapping is available';
   String get states => _launcher
       ? 'Not applicable · launcher; use the selected emulator'
       : _psp
@@ -127,22 +129,25 @@ class SaveEmulatorCoverage {
           : packageName == 'xyz.aethersx2.android'
               ? 'Current memory-card settings supply the watched folder and enabled card files. '
                   'Cards share one backup history across games. Game-specific card overrides need an exact custom mapping.'
-              : packageName == 'com.flycast.emulator'
-                  ? 'The configured home and VMU folder supply enabled shared virtual cards. '
-                      'Only those card files are backed up, not BIOS or the whole data folder. '
-                      'Per-game, network and legacy-location cards need an exact mapping.'
-                  : packageName.contains('eden_emulator')
-                      ? 'Automatic location resolution is pending. Map the exact title and user/profile save folder, not the entire NAND save root.'
-                      : documentAuthorities.isNotEmpty
-                          ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
-                              'It does not select this game’s saves; an exact root-folder mapping is available.'
-                          : _retroArch
-                              ? 'Current routes: shared RetroArch/saves/SameBoy GB/GBC SRAM and optional RTC, FCEUmm NES battery memory, Snes9x SNES SRAM and optional RTC, mGBA and Genesis Plus GX '
-                                  'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
-                                  'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
-                                  'Other cores and custom paths use explicit folder mappings.'
-                              : _launcher
-                                  ? 'This launcher does not own the emulator’s save files.'
-                                  : 'Automatic save-folder selection is pending; an exact custom mapping '
-                                      'uses the shared root pipeline. This is not a claim of automatic support.';
+              : packageName == 'org.dolphinemu.dolphinemu'
+                  ? 'GameCube card folders share one history across games. Current Core slot settings select only enabled GCI cards. '
+                      'SRAM, BIOS, Wii NAND and disabled cards are not included. Raw cards, custom paths and game-specific overrides need an exact mapping.'
+                  : packageName == 'com.flycast.emulator'
+                      ? 'The configured home and VMU folder supply enabled shared virtual cards. '
+                          'Only those card files are backed up, not BIOS or the whole data folder. '
+                          'Per-game, network and legacy-location cards need an exact mapping.'
+                      : packageName.contains('eden_emulator')
+                          ? 'Automatic location resolution is pending. Map the exact title and user/profile save folder, not the entire NAND save root.'
+                          : documentAuthorities.isNotEmpty
+                              ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
+                                  'It does not select this game’s saves; an exact root-folder mapping is available.'
+                              : _retroArch
+                                  ? 'Current routes: shared RetroArch/saves/SameBoy GB/GBC SRAM and optional RTC, FCEUmm NES battery memory, Snes9x SNES SRAM and optional RTC, mGBA and Genesis Plus GX '
+                                      'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
+                                      'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
+                                      'Other cores and custom paths use explicit folder mappings.'
+                                  : _launcher
+                                      ? 'This launcher does not own the emulator’s save files.'
+                                      : 'Automatic save-folder selection is pending; an exact custom mapping '
+                                          'uses the shared root pipeline. This is not a claim of automatic support.';
 }
