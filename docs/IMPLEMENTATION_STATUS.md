@@ -7,6 +7,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current S10 work — ACTIVE, 2026-10-13
 
+Current verification request: shared Dreamcast virtual VMUs now resolve from
+Flycast's configured home/VMU path and enabled card slots into the same root
+configuration/history lane. Focused host checks pass decoded selection, BIOS
+exclusion and resolved/unresolved normal settings; they exposed and corrected a
+save-menu guard tied to launch support. Native verification/packaging remains
+pending in gated FIFO request 995. Request 992 acquired the gate and verified
+daemon exit but failed a JVM assertion against Android's stubbed JSON API, not
+memory. That assertion now belongs to the existing native probe. No shared-card backup is claimed from
+the Thor's currently empty VMU inventory. Per-game/legacy/network/custom-location
+resolution, other installed-emulator standard mappings and conditional handover
+remain current-stage work; this is not S10 closure.
+
 Owner correction (specification revision 39): remaining installed-emulator
 coverage is declarative root/path/game/group/compatibility configuration through
 the existing shared filesystem/Drive pipeline, not eight separate sync engines

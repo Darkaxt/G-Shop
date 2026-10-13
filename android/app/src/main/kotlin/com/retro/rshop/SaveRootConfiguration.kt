@@ -30,8 +30,7 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
             val resourceId = if (row.has("resourceId")) row.getString("resourceId") else null
             require(resourceId == null || resourceId.matches(Regex("[A-Za-z0-9_-]{1,128}")) && kind == "save")
             val profile = if (row.has("profile")) row.getString("profile") else null
-            require(profile == null || profile == StandardSaveRoots.NETHER_PROFILE && emulator == StandardSaveRoots.NETHER &&
-                core == "pcsx2" && kind == "save" && resourceId == "memory-cards" && format == "ps2-shared-memory-cards-v1")
+            require(profile == null || StandardSaveRoots.validProfile(profile, emulator, core, kind, resourceId, format))
             require(files.size + folders.size in 1..128 && files.containsAll(required))
             val runtime = row.optJSONArray("runtimeFiles") ?: JSONArray()
             require(!row.has("runtimeFiles") || row.optJSONArray("runtimeFiles") != null)

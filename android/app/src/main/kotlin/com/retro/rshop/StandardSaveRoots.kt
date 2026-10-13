@@ -11,6 +11,99 @@ import java.io.IOException
 internal object StandardSaveRoots {
     const val NETHER = "xyz.aethersx2.android"
     const val NETHER_PROFILE = "nether-cards-v1"
+    const val FLYCAST = "com.flycast.emulator"
+    const val FLYCAST_PROFILE = "flycast-shared-vmus-v1"
+    fun packageFor(platformId: String): String? = when (platformId) {
+        "ps2" -> NETHER
+        "dreamcast" -> FLYCAST
+        else -> null
+    }
+    fun validProfile(profile: String, emulator: String, core: String, kind: String,
+        resourceId: String?, format: String): Boolean = kind == "save" && when (profile) {
+        NETHER_PROFILE -> emulator == NETHER && core == "pcsx2" && resourceId == "memory-cards" && format == "ps2-shared-memory-cards-v1"
+        FLYCAST_PROFILE -> emulator == FLYCAST && core == "flycast" && resourceId == "vmu-cards" && format == "dreamcast-vmu-v1"
+        else -> false
+    }
+    /** Flycast oslib.cpp::getVmuPath, cfg/option.cpp. No filename/title guessing. */
+    internal fun flycastConfiguration(home: String, ini: String): SaveRootConfiguration? {
+        require(SaveRootConfiguration.validDirectory("$home/data", FLYCAST) && ini.toByteArray().size <= 512 * 1024)
+        val values = mutableMapOf<String, String>()
+        val relevant = setOf("PerGameVmu", "Dreamcast.VMUPath") + (1..4).flatMap { port ->
+            listOf("device$port", "device$port.1", "device$port.2", "device$port.1.net", "device$port.2.net", "device$port.UseNetworkExpansionDevices")
+        }
+        var section = ""
+        for (raw in ini.lineSequence()) {
+            val line = raw.trim()
+            if (line.isEmpty() || line.startsWith(';') || line.startsWith('#')) continue
+            if (line.startsWith('[')) { require(line.endsWith(']')); section = line.drop(1).dropLast(1); continue }
+            if ('=' !in line) continue
+            val key = line.substringBefore('=').trim()
+            // Per-game options are stored as section.name beneath the game ID.
+            require(relevant.none { option -> key == "${if (option.startsWith("device")) "input" else "config"}.$option" }) {
+                "save_settings_unresolved"
+            }
+            if (key !in relevant) continue
+            val expected = if (key.startsWith("device")) "input" else "config"
+            require(section == expected && key !in values) { "save_settings_unresolved" }
+            values[key] = line.substringAfter('=').trim()
+        }
+        fun boolean(key: String, default: Boolean): Boolean = when (values[key]?.lowercase()) {
+            null -> default
+            "yes", "true", "1" -> true
+            "no", "false", "0" -> false
+            else -> throw IllegalArgumentException("save_settings_unresolved")
+        }
+        require(!boolean("PerGameVmu", true)) { "save_settings_unresolved" }
+        val directory = values["Dreamcast.VMUPath"].orEmpty().ifEmpty { "$home/data" }.trimEnd('/')
+        require(SaveRootConfiguration.validDirectory(directory, FLYCAST))
+        val files = (1..4).flatMap { port ->
+            val rawParent = values["device$port"]
+            require(rawParent == null || rawParent.toIntOrNull() in 0..19)
+            val parent = rawParent?.toInt() ?: if (port == 1) 0 else 10
+            if (parent == 10) emptyList() else {
+                require(!boolean("device$port.UseNetworkExpansionDevices", false)) { "save_settings_unresolved" }
+                (1..2).filter { slot ->
+                    val key = "device$port.$slot"
+                    val value = values[key]
+                    require(value == null || value.toIntOrNull() != null)
+                    val network = values["$key.net"]
+                    require(network == null || network.toIntOrNull() == 0) { "save_settings_unresolved" }
+                    (value?.toInt() ?: if (port == 1) 1 else 10) == 1
+                }.map { slot -> "vmu_save_${('A'.code + port - 1).toChar()}$slot.bin" }
+            }
+        }
+        if (files.isEmpty()) return null
+        return SaveRootConfiguration(directory, FLYCAST, "flycast", "save", "dreamcast-vmu-v1",
+            files, emptyList(), emptyList(), resourceId = "vmu-cards", profile = FLYCAST_PROFILE)
+    }
+    fun flycast(): SaveRootConfiguration? {
+        require(Process.myUid() == 0)
+        val parser = Xml.newPullParser()
+        parser.setInput(ByteArrayInputStream(read("/data/user/0/$FLYCAST/shared_prefs", "${FLYCAST}_preferences.xml", 512 * 1024)), "UTF-8")
+        var home: String? = null; var map = false
+        while (true) {
+            when (parser.nextToken()) {
+                XmlPullParser.DOCDECL -> throw IOException("save_settings_unresolved")
+                XmlPullParser.START_TAG -> {
+                    if (parser.depth == 1) { require(!map && parser.name == "map"); map = true }
+                    else if (parser.depth == 2 && parser.getAttributeValue(null, "name") == "home_directory") {
+                        require(home == null && parser.name == "string"); home = parser.nextText().trimEnd('/')
+                    }
+                }
+                XmlPullParser.END_DOCUMENT -> break
+            }
+        }
+        require(map && home != null && SaveRootConfiguration.validDirectory("$home/data", FLYCAST))
+        val selectedHome = home
+        val config = flycastConfiguration(selectedHome, read(selectedHome, "emu.cfg", 512 * 1024).toString(Charsets.UTF_8)) ?: return null
+        // Existing older cards outside the write location need an exact mapping;
+        // do not silently back up an empty destination instead of their bytes.
+        for (name in config.files) {
+            if (!File(config.directory, name).exists() && File(selectedHome, name).exists())
+                throw IOException("save_settings_unresolved")
+        }
+        return config
+    }
     private val slots = listOf("Slot1", "Slot2") + (1..2).flatMap { port ->
         (2..4).map { slot -> "Multitap${port}_Slot$slot" }
     }
@@ -97,8 +190,12 @@ internal object StandardSaveRoots {
             resourceId = "memory-cards", profile = NETHER_PROFILE)
     }
     fun verify(configuration: SaveRootConfiguration) {
-        if (configuration.profile != null &&
-            (configuration.profile != NETHER_PROFILE || nether()?.json()?.toString() != configuration.json().toString()))
-            throw IOException("source_changed")
+        val current = when (configuration.profile) {
+            null -> return
+            NETHER_PROFILE -> nether()
+            FLYCAST_PROFILE -> flycast()
+            else -> throw IOException("source_changed")
+        }
+        if (current?.json()?.toString() != configuration.json().toString()) throw IOException("source_changed")
     }
 }

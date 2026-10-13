@@ -96,87 +96,105 @@ class _Sources extends SourcesNotifier {
 }
 
 void main() {
-  for (final resolved in [false, true]) {
-    testWidgets(
-        resolved
-            ? 'resolved standard save folder is persisted without manual mapping'
-            : 'unresolved standard save folder keeps custom mapping and backup setup available',
-        (tester) async {
-      SharedPreferences.setMockInitialValues({});
-      const channel = MethodChannel('com.retro.rshop/save_capture');
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) async {
-        if (call.method == 'standardSaveRoot') {
-          return resolved
-              ? {
-                  'schema': 1,
-                  'directory':
-                      '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
-                  'emulator': 'xyz.aethersx2.android',
-                  'core': 'pcsx2',
-                  'kind': 'save',
-                  'format': 'ps2-shared-memory-cards-v1',
-                  'profile': 'nether-cards-v1',
-                  'resourceId': 'memory-cards',
-                  'files': ['Mcd001.ps2', 'Mcd002.ps2'],
-                  'folders': <String>[],
-                  'required': <String>[]
-                }
-              : throw PlatformException(code: 'save_settings_unresolved');
-        }
-        return null;
-      });
-      addTearDown(() => TestDefaultBinaryMessengerBinding
-          .instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, null));
-      final sources = _Sources();
-      await sources.ready;
-      sources.publish('account');
-      final game = GameItem(
-          filename: 'Game.chd',
-          displayName: 'Game',
-          url: 'drive:fixture',
-          remoteArtifact: RemoteArtifact(
-              id: RemoteArtifactId(
-                  providerId: 'drive',
-                  sourceId: 'same-source',
-                  accountId: 'account',
-                  providerFileId: 'file'),
-              displayPath: 'Game.chd',
-              displayName: 'Game.chd'));
-      await tester.pumpWidget(ProviderScope(
-          overrides: [sourcesProvider.overrideWith((_) => sources)],
-          child: createTestApp(SaveBackupSettingsScreen(
-              editionId: 'edition',
-              gameTitle: 'Game',
-              game: game,
-              system: const SystemModel(
-                  id: 'ps2',
-                  name: 'PlayStation 2',
-                  manufacturer: 'Sony',
-                  releaseYear: 2000),
-              targetFolder: '/storage/1234-ABCD/Roms/ps2'))));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('save-import-mapping')), findsOneWidget);
-      if (resolved) {
-        final preferences = await SharedPreferences.getInstance();
-        final saved = jsonDecode(preferences.getString(
-            SaveRootConfiguration.storageKey(game.remoteArtifact!.id.key))!);
-        expect(saved['profile'], 'nether-cards-v1');
-        expect(saved['files'], ['Mcd001.ps2', 'Mcd002.ps2']);
+  for (final platform in ['ps2', 'dreamcast']) {
+    for (final resolved in [false, true]) {
+      testWidgets(
+          resolved
+              ? '$platform resolved standard save folder is persisted without manual mapping'
+              : '$platform unresolved standard save folder keeps custom mapping and backup setup available',
+          (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        const channel = MethodChannel('com.retro.rshop/save_capture');
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'standardSaveRoot') {
+            return resolved
+                ? {
+                    'schema': 1,
+                    'directory': platform == 'ps2'
+                        ? '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards'
+                        : '/storage/emulated/0/Android/data/com.flycast.emulator/files/data',
+                    'emulator': platform == 'ps2'
+                        ? 'xyz.aethersx2.android'
+                        : 'com.flycast.emulator',
+                    'core': platform == 'ps2' ? 'pcsx2' : 'flycast',
+                    'kind': 'save',
+                    'format': platform == 'ps2'
+                        ? 'ps2-shared-memory-cards-v1'
+                        : 'dreamcast-vmu-v1',
+                    'profile': platform == 'ps2'
+                        ? 'nether-cards-v1'
+                        : 'flycast-shared-vmus-v1',
+                    'resourceId':
+                        platform == 'ps2' ? 'memory-cards' : 'vmu-cards',
+                    'files': platform == 'ps2'
+                        ? ['Mcd001.ps2', 'Mcd002.ps2']
+                        : ['vmu_save_A1.bin', 'vmu_save_A2.bin'],
+                    'folders': <String>[],
+                    'required': <String>[]
+                  }
+                : throw PlatformException(code: 'save_settings_unresolved');
+          }
+          return null;
+        });
+        addTearDown(() => TestDefaultBinaryMessengerBinding
+            .instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null));
+        final sources = _Sources();
+        await sources.ready;
+        sources.publish('account');
+        final game = GameItem(
+            filename: 'Game.chd',
+            displayName: 'Game',
+            url: 'drive:fixture',
+            remoteArtifact: RemoteArtifact(
+                id: RemoteArtifactId(
+                    providerId: 'drive',
+                    sourceId: 'same-source',
+                    accountId: 'account',
+                    providerFileId: 'file'),
+                displayPath: 'Game.chd',
+                displayName: 'Game.chd'));
+        await tester.pumpWidget(ProviderScope(
+            overrides: [sourcesProvider.overrideWith((_) => sources)],
+            child: createTestApp(SaveBackupSettingsScreen(
+                editionId: 'edition',
+                gameTitle: 'Game',
+                game: game,
+                system: SystemModel(
+                    id: platform,
+                    name: platform == 'ps2' ? 'PlayStation 2' : 'Dreamcast',
+                    manufacturer: platform == 'ps2' ? 'Sony' : 'Sega',
+                    releaseYear: 2000),
+                targetFolder: '/storage/1234-ABCD/Roms/ps2'))));
+        await tester.pumpAndSettle();
         expect(
-            tester
-                .widget<DropdownButtonFormField<bool>>(
-                    find.byKey(const ValueKey('game-backup-scope')))
-                .initialValue,
-            isTrue);
-      }
-      await tester.tap(find.byKey(const ValueKey('save-nav-area')));
-      await tester.pumpAndSettle();
-      expect(find.byType(SaveBackupSetupPanel), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
+            find.byKey(const ValueKey('save-import-mapping')), findsOneWidget);
+        if (resolved) {
+          final preferences = await SharedPreferences.getInstance();
+          final saved = jsonDecode(preferences.getString(
+              SaveRootConfiguration.storageKey(game.remoteArtifact!.id.key))!);
+          expect(saved['profile'],
+              platform == 'ps2' ? 'nether-cards-v1' : 'flycast-shared-vmus-v1');
+          expect(
+              saved['files'],
+              platform == 'ps2'
+                  ? ['Mcd001.ps2', 'Mcd002.ps2']
+                  : ['vmu_save_A1.bin', 'vmu_save_A2.bin']);
+          expect(
+              tester
+                  .widget<DropdownButtonFormField<bool>>(
+                      find.byKey(const ValueKey('game-backup-scope')))
+                  .initialValue,
+              isTrue);
+        }
+        await tester.tap(find.byKey(const ValueKey('save-nav-area')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SaveBackupSetupPanel), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+    }
   }
   testWidgets(
       'coverage keeps the existing save workspace mounted but unfocusable',

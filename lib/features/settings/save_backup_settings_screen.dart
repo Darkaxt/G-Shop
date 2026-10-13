@@ -201,12 +201,13 @@ class _SaveBackupSettingsScreenState
             Map<String, dynamic>.from(jsonDecode(raw) as Map));
         _romCompanions = true;
       }
-      if (widget.system?.id == 'ps2' &&
+      if ({'ps2', 'dreamcast'}.contains(widget.system?.id) &&
           (_saveRootConfiguration == null ||
               _saveRootConfiguration!.profile != null)) {
         SaveRootConfiguration? standard;
         try {
-          standard = await SaveCapture().standardSaveRoot(platformId: 'ps2');
+          standard = await SaveCapture()
+              .standardSaveRoot(platformId: widget.system!.id);
           _standardMappingIssue =
               standard == null ? 'save_settings_unresolved' : null;
         } on PlatformException catch (error) {
@@ -1012,11 +1013,13 @@ class _SaveBackupSettingsScreenState
                                                                 if (widget.game != null &&
                                                                     widget.system !=
                                                                         null &&
-                                                                    OwnedEmulatorLauncher.supports(
-                                                                        widget
-                                                                            .game!,
-                                                                        widget
-                                                                            .system!) &&
+                                                                    (_saveRootConfiguration !=
+                                                                            null ||
+                                                                        OwnedEmulatorLauncher.supports(
+                                                                            widget
+                                                                                .game!,
+                                                                            widget
+                                                                                .system!)) &&
                                                                     _section !=
                                                                         SaveBackupSection
                                                                             .area &&

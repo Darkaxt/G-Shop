@@ -183,6 +183,38 @@ or conditional legacy handover. S10 remains ACTIVE; S11/S12 NOT STARTED.
 
 ### Owner execution correction — configuration distinctions
 
+Dreamcast shared-VMU configuration uses Flycast's `home_directory` preference,
+`emu.cfg` controller/VMU selection and `Dreamcast.VMUPath` (default `home/data`).
+The `flycast-shared-vmus-v1` profile selects only enabled `vmu_save_A1.bin` through
+`vmu_save_D2.bin` files and feeds the existing shared resource history, root watch,
+capture and restore lane. BIOS and unrelated files beside the VMUs are not selected.
+Source/watch revalidation resolves the current profile before access; the normal
+settings workspace persists the resolved mapping without requiring JSON import.
+Explicit custom mappings remain available when per-game cards, game overrides,
+network VMUs, non-filesystem locations or legacy card locations need resolution.
+This does not claim physical hardware VMU synchronization or automatic per-game
+VMU title resolution. The current installed configuration has shared A1/A2 enabled
+and no card images yet; an empty inventory is not evidence of a real save backup.
+Companion grants accept currently revalidated Dreamcast CHD observations without
+adding a new emulator launch route or weakening installation/copy provenance.
+
+Primary layout/configuration references:
+- `flyinghead/flycast/core/oslib/oslib.cpp` (`getVmuPath`)
+- `core/cfg/option.cpp` (VMU paths, per-game default and controller devices)
+- `core/cfg/option.h` (game-specific `section.name` overrides)
+- `shell/android-studio/flycast/src/main/jni/src/Android.cpp` (home/data)
+- `shell/android-studio/flycast/src/main/java/com/flycast/emulator/Emulator.java`
+  (`home_directory` preference).
+Focused host verification passes configuration-channel decoding, exact-file
+exclusion and resolved/unresolved settings persistence. It first reproduced the
+missing channel route and a save-menu guard incorrectly tied to launch support.
+Request 992 acquired the shared gate and verified daemon exit, with observed
+workers=2, parallel=false, Gradle heap=3 GiB and one 512 MiB fail-fast test fork;
+Kotlin in-process was configured/requested. It failed a JVM test calling Android's
+stubbed JSON API, not memory. The round-trip assertion is moved to the existing
+native probe, and corrected focused verification/packaging is pending in original
+request 995. No S10 closure or emulator-family campaign is claimed by host checks.
+
 Shared save identity follows the actual resource, not a common parent directory.
 A PS1/PS2 card image can contain several games and must have one resource history.
 Switch saves under a common NAND/save root remain separate title/user groups;

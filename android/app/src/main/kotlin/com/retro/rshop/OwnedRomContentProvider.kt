@@ -278,7 +278,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
                 (platform in setOf("n64", "nds") && (filename.endsWith(".7z") || filename.endsWith(".zip")))
             val supported = archive ||
-                (platform in setOf("psx", "psp", "ps2") && filename.endsWith(".chd")) ||
+                (platform in setOf("psx", "psp", "ps2", "dreamcast") && filename.endsWith(".chd")) ||
                 (platform == "wiiu" && filename.endsWith(".wua")) ||
                 (platform == "nds" && filename.endsWith(".nds")) ||
                 (platform in setOf("gc", "wii") && listOf(".rvz", ".iso", ".gcm", ".wbfs").any(filename::endsWith))

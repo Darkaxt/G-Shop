@@ -73,13 +73,18 @@ class SaveRootConfiguration {
     final directory = expand(row['directory']);
     final resourceId = row['resourceId'];
     final profile = row['profile'];
-    if (profile != null &&
-        (profile != 'nether-cards-v1' ||
-            row['emulator'] != 'xyz.aethersx2.android' ||
-            row['core'] != 'pcsx2' ||
-            row['kind'] != 'save' ||
-            resourceId != 'memory-cards' ||
-            row['format'] != 'ps2-shared-memory-cards-v1')) {
+    final standard = switch (profile) {
+      'nether-cards-v1' => row['emulator'] == 'xyz.aethersx2.android' &&
+          row['core'] == 'pcsx2' &&
+          resourceId == 'memory-cards' &&
+          row['format'] == 'ps2-shared-memory-cards-v1',
+      'flycast-shared-vmus-v1' => row['emulator'] == 'com.flycast.emulator' &&
+          row['core'] == 'flycast' &&
+          resourceId == 'vmu-cards' &&
+          row['format'] == 'dreamcast-vmu-v1',
+      _ => false,
+    };
+    if (profile != null && (!standard || row['kind'] != 'save')) {
       throw const FormatException('Invalid standard save profile');
     }
     if (resourceId != null &&

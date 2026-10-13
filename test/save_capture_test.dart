@@ -65,6 +65,31 @@ void main() {
       return response;
     });
   });
+  test(
+      'shared Dreamcast VMUs resolve through the existing configuration channel',
+      () async {
+    response = {
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Android/data/com.flycast.emulator/files/data',
+      'emulator': 'com.flycast.emulator',
+      'core': 'flycast',
+      'kind': 'save',
+      'format': 'dreamcast-vmu-v1',
+      'profile': 'flycast-shared-vmus-v1',
+      'resourceId': 'vmu-cards',
+      'files': ['vmu_save_A1.bin', 'vmu_save_A2.bin'],
+      'folders': <String>[],
+      'required': <String>[]
+    };
+    final config =
+        await SaveCapture().standardSaveRoot(platformId: 'dreamcast');
+    expect(config, isNotNull);
+    expect(config!.files, ['vmu_save_A1.bin', 'vmu_save_A2.bin']);
+    expect(config.logicalRomName, 'shared-vmu-cards.save');
+    expect(config.acceptsFile('dc_boot.bin'), isFalse);
+    expect(calls.single.arguments, {'platformId': 'dreamcast'});
+  });
   tearDown(() => TestDefaultBinaryMessengerBinding
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));

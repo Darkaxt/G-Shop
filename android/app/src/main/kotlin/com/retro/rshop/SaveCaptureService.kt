@@ -342,10 +342,11 @@ internal class SaveCaptureService(private val activity: Context) {
                 val complete: () -> Unit = try {
                     val value = when (call.method) {
                         "standardSaveRoot" -> {
-                            require(call.argument<String>("platformId") == "ps2")
-                            val installed = try { activity.packageManager.getPackageInfo(StandardSaveRoots.NETHER, 0); true }
+                            val packageName = StandardSaveRoots.packageFor(call.argument<String>("platformId") ?: "")
+                                ?: throw Failure("invalid_selection")
+                            val installed = try { activity.packageManager.getPackageInfo(packageName, 0); true }
                                 catch (_: PackageManager.NameNotFoundException) { false }
-                            if (!installed) null else SaveSourceStorage.standardSaveRoot(activity).optJSONObject("saveRoot")?.let { row ->
+                            if (!installed) null else SaveSourceStorage.standardSaveRoot(activity, packageName).optJSONObject("saveRoot")?.let { row ->
                                 row.keys().asSequence().associateWith { key -> val item = row.get(key)
                                     if (item is JSONArray) (0 until item.length()).map(item::getString) else item }
                             }

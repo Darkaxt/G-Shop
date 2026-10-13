@@ -144,8 +144,8 @@ void main() {
       _row('com.flycast.emulator', 'v2.6'),
     ]);
     expect(rows.first.saves, startsWith('Not applicable'));
-    expect(rows.last.saves, startsWith('Automatic mapping pending'));
-    expect(rows.last.storage, contains('not a claim'));
+    expect(rows.last.saves, contains('shared virtual VMU cards'));
+    expect(rows.last.storage, contains('not BIOS'));
   });
 
   test('malformed or substituted inventory fails as a whole', () {
