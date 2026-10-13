@@ -7,10 +7,10 @@ import org.json.JSONObject
 internal data class SaveRootConfiguration(val directory: String, val emulator: String,
     val core: String, val kind: String, val format: String, val files: List<String>,
     val folders: List<String>, val required: List<String>, val runtimeFiles: List<String> = emptyList(),
-    val resourceId: String? = null) {
+    val resourceId: String? = null, val profile: String? = null) {
     companion object {
         fun decode(row: JSONObject): SaveRootConfiguration {
-            require(row.keys().asSequence().toSet() - setOf("runtimeFiles", "resourceId") == setOf("schema", "directory", "emulator", "core",
+            require(row.keys().asSequence().toSet() - setOf("runtimeFiles", "resourceId", "profile") == setOf("schema", "directory", "emulator", "core",
                 "kind", "format", "files", "folders", "required") && row.getInt("schema") == 1)
             val emulator = row.getString("emulator")
             require(emulator.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+")))
@@ -29,6 +29,9 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
             val files = paths("files", true); val folders = paths("folders"); val required = paths("required", true)
             val resourceId = if (row.has("resourceId")) row.getString("resourceId") else null
             require(resourceId == null || resourceId.matches(Regex("[A-Za-z0-9_-]{1,128}")) && kind == "save")
+            val profile = if (row.has("profile")) row.getString("profile") else null
+            require(profile == null || profile == StandardSaveRoots.NETHER_PROFILE && emulator == StandardSaveRoots.NETHER &&
+                core == "pcsx2" && kind == "save" && resourceId == "memory-cards" && format == "ps2-shared-memory-cards-v1")
             require(files.size + folders.size in 1..128 && files.containsAll(required))
             val runtime = row.optJSONArray("runtimeFiles") ?: JSONArray()
             require(!row.has("runtimeFiles") || row.optJSONArray("runtimeFiles") != null)
@@ -41,7 +44,7 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
                     path.split('/').drop(1).all(RomCompanionBoundary::validLeaf)
             })
             require(emulator != "com.retroarch.aarch64" || kind == "save" || runtimeFiles.isNotEmpty())
-            return SaveRootConfiguration(directory, emulator, core, kind, format, files, folders, required, runtimeFiles, resourceId)
+            return SaveRootConfiguration(directory, emulator, core, kind, format, files, folders, required, runtimeFiles, resourceId, profile)
         }
         fun validDirectory(path: String, emulator: String): Boolean = path.length <= 4096 &&
             (RomCompanionBoundary.validDirectory(path) ||
@@ -65,6 +68,7 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
         .put("folders", JSONArray(folders)).put("required", JSONArray(required)).also {
             if (runtimeFiles.isNotEmpty()) it.put("runtimeFiles", JSONArray(runtimeFiles))
             if (resourceId != null) it.put("resourceId", resourceId)
+            if (profile != null) it.put("profile", profile)
         }
     val logicalRomName: String? get() = resourceId?.let { "shared-$it.save" }
 }

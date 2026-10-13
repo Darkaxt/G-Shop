@@ -9,6 +9,50 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ### Configured external/private roots — 2026-10-13
 
+### Standard PS2 configuration — 2026-10-13
+
+NetherSX2's current enabled memory-card filenames now resolve automatically into
+the existing `SaveRootConfiguration` and shared-resource job. The normal Game
+backup section persists and selects that configuration without a JSON import;
+backup still requires opt-in. Disabled slots are excluded and repeated references
+to one physical card are deduplicated. The root source/watch workers revalidate
+the standard profile against current settings rather than keep using an old card
+selection. This is settings resolution, not another emulator sync engine.
+Global settings are automatic; a game-specific MemoryCards override requires an
+exact custom mapping instead of guessing which override applies to the ROM.
+
+Standard-location failure is independent of Drive backup-area setup. The host
+regression reproduced the custom-mapping action disappearing when native settings
+resolution failed; both resolved-default persistence and unresolved/custom setup
+now pass through the actual settings widget. Unknown save routes cannot fall
+through to a GBA job. Input/layout acceptance remains S12, not this functional
+settings-wiring check. The coverage view distinguishes automatic PS2 cards from
+explicit mappings and unresolved automatic locations, including Eden title/user
+groups; it does not claim automatic Eden support.
+
+Affected configuration/channel/job/coverage checks and scoped analysis pass.
+Request 986 passes selected native contracts and app/test packaging, with shared
+gate acquired, build/helper exits 0 and verified daemon exit. Observed workers=2,
+parallel=false and Gradle heap=3 GiB; Kotlin in-process configured/requested,
+one 512 MiB fail-fast test fork configured and selected tests executed. Native
+environment budget two is not universal concurrency proof. No memory failure.
+The actual Thor production settings channel resolves both current enabled cards;
+the shared source worker verifies the standard profile and exact card inventory.
+This check reads configuration/file identities only, without save capture, ROM
+launch, cloud writes or another sync-recovery campaign. Both card SHA-256 values
+remain `47ebe237a3987f843fc19b0f801ce1edc1690768ef6b18e4b03a12ca6b298358`;
+R-Shop's secure/key/preferences hashes are unchanged and both screens are OFF.
+Request 986 APK SHA-256:
+`dd131d17b4efcbb53abf885608c096035fbec2af7eaab5186e826d75e1c4b27e`.
+
+The final Dart custom-mapping recovery correction is host-verified; its packaging
+remains queued in original request 988 (ticket `2ce22374bff64f6584bb54beedbec4dd`).
+Do not relaunch that request, claim the corrected final APK installed, or close
+S10 from this source checkpoint. Remaining standard-location resolution and
+conditional legacy handover still block S10 completion; S11/S12 NOT STARTED.
+
+### Generic configured roots
+
 `SaveRootConfiguration` is selection data consumed by the existing companion
 pipeline: one directory, emulator/core, save/state/companion kind, format,
 explicit files, per-game subdirectories and required file roles. It is not a

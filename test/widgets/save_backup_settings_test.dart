@@ -11,6 +11,10 @@ import 'package:retro_eshop/features/settings/save_backup_settings_screen.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/config/source.dart';
 import 'package:retro_eshop/models/config/drive_source_config.dart';
+import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/system_model.dart';
+import 'package:retro_eshop/models/save_root_configuration.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/services/config_storage_service.dart';
 import 'package:retro_eshop/services/sources_notifier.dart';
@@ -92,6 +96,88 @@ class _Sources extends SourcesNotifier {
 }
 
 void main() {
+  for (final resolved in [false, true]) {
+    testWidgets(
+        resolved
+            ? 'resolved standard save folder is persisted without manual mapping'
+            : 'unresolved standard save folder keeps custom mapping and backup setup available',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      const channel = MethodChannel('com.retro.rshop/save_capture');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'standardSaveRoot') {
+          return resolved
+              ? {
+                  'schema': 1,
+                  'directory':
+                      '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
+                  'emulator': 'xyz.aethersx2.android',
+                  'core': 'pcsx2',
+                  'kind': 'save',
+                  'format': 'ps2-shared-memory-cards-v1',
+                  'profile': 'nether-cards-v1',
+                  'resourceId': 'memory-cards',
+                  'files': ['Mcd001.ps2', 'Mcd002.ps2'],
+                  'folders': <String>[],
+                  'required': <String>[]
+                }
+              : throw PlatformException(code: 'save_settings_unresolved');
+        }
+        return null;
+      });
+      addTearDown(() => TestDefaultBinaryMessengerBinding
+          .instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null));
+      final sources = _Sources();
+      await sources.ready;
+      sources.publish('account');
+      final game = GameItem(
+          filename: 'Game.chd',
+          displayName: 'Game',
+          url: 'drive:fixture',
+          remoteArtifact: RemoteArtifact(
+              id: RemoteArtifactId(
+                  providerId: 'drive',
+                  sourceId: 'same-source',
+                  accountId: 'account',
+                  providerFileId: 'file'),
+              displayPath: 'Game.chd',
+              displayName: 'Game.chd'));
+      await tester.pumpWidget(ProviderScope(
+          overrides: [sourcesProvider.overrideWith((_) => sources)],
+          child: createTestApp(SaveBackupSettingsScreen(
+              editionId: 'edition',
+              gameTitle: 'Game',
+              game: game,
+              system: const SystemModel(
+                  id: 'ps2',
+                  name: 'PlayStation 2',
+                  manufacturer: 'Sony',
+                  releaseYear: 2000),
+              targetFolder: '/storage/1234-ABCD/Roms/ps2'))));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('save-import-mapping')), findsOneWidget);
+      if (resolved) {
+        final preferences = await SharedPreferences.getInstance();
+        final saved = jsonDecode(preferences.getString(
+            SaveRootConfiguration.storageKey(game.remoteArtifact!.id.key))!);
+        expect(saved['profile'], 'nether-cards-v1');
+        expect(saved['files'], ['Mcd001.ps2', 'Mcd002.ps2']);
+        expect(
+            tester
+                .widget<DropdownButtonFormField<bool>>(
+                    find.byKey(const ValueKey('game-backup-scope')))
+                .initialValue,
+            isTrue);
+      }
+      await tester.tap(find.byKey(const ValueKey('save-nav-area')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SaveBackupSetupPanel), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
   testWidgets(
       'coverage keeps the existing save workspace mounted but unfocusable',
       (tester) async {

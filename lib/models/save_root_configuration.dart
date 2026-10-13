@@ -13,6 +13,7 @@ class SaveRootConfiguration {
   final List<String> files, folders, requiredFiles;
   final List<String> runtimeFiles;
   final String? resourceId;
+  final String? profile;
   SaveRootConfiguration._(
       this.directory,
       this.emulator,
@@ -23,7 +24,8 @@ class SaveRootConfiguration {
       this.folders,
       this.requiredFiles,
       this.runtimeFiles,
-      this.resourceId);
+      this.resourceId,
+      this.profile);
 
   factory SaveRootConfiguration.decode(Map<String, dynamic> row,
       {String? romName}) {
@@ -39,7 +41,7 @@ class SaveRootConfiguration {
       'required'
     };
     final baseKeys = row.keys.toSet()
-      ..removeAll({'runtimeFiles', 'resourceId'});
+      ..removeAll({'runtimeFiles', 'resourceId', 'profile'});
     if (baseKeys.length != keys.length ||
         !baseKeys.every(keys.contains) ||
         row['schema'] != 1 ||
@@ -70,6 +72,16 @@ class SaveRootConfiguration {
 
     final directory = expand(row['directory']);
     final resourceId = row['resourceId'];
+    final profile = row['profile'];
+    if (profile != null &&
+        (profile != 'nether-cards-v1' ||
+            row['emulator'] != 'xyz.aethersx2.android' ||
+            row['core'] != 'pcsx2' ||
+            row['kind'] != 'save' ||
+            resourceId != 'memory-cards' ||
+            row['format'] != 'ps2-shared-memory-cards-v1')) {
+      throw const FormatException('Invalid standard save profile');
+    }
     if (resourceId != null &&
         (resourceId is! String ||
             !RegExp(r'^[A-Za-z0-9_-]{1,128}$').hasMatch(resourceId) ||
@@ -145,7 +157,8 @@ class SaveRootConfiguration {
         folders,
         required,
         List<String>.unmodifiable(runtime.cast<String>()),
-        resourceId as String?);
+        resourceId as String?,
+        profile as String?);
   }
 
   static bool _safe(String path, {bool binary = false}) {
@@ -180,6 +193,7 @@ class SaveRootConfiguration {
         'required': requiredFiles,
         if (runtimeFiles.isNotEmpty) 'runtimeFiles': runtimeFiles,
         if (resourceId != null) 'resourceId': resourceId!,
+        if (profile != null) 'profile': profile!,
       };
   String get identity => jsonEncode(toJson());
   String? get logicalRomName =>

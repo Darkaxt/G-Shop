@@ -263,6 +263,7 @@ object RootSaveWatchWorker {
             val key = input.readUTF(); val name = input.readUTF()
             val configuration = if (route == "rom-companion") input.readUTF().takeIf(String::isNotEmpty)
                 ?.let { SaveRootConfiguration.decode(org.json.JSONObject(it)) } else null
+            if (configuration != null) StandardSaveRoots.verify(configuration)
             SaveFileWatch.Mapping(key, if (route == "ppsspp-savedata") "$source/$name" else source, name, route, configuration)
         }
         require(entries.map { it.key }.toSet().size == count)

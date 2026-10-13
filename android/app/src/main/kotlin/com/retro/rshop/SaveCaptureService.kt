@@ -331,7 +331,7 @@ internal class SaveCaptureService(private val activity: Context) {
                 result.success(null)
                 return
             }
-            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "ppssppSavedataFolders", "melonNames", "melonSaveSettings", "ppssppSaveSettings", "romCompanionSnapshot")) id(call) else null
+            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "ppssppSavedataFolders", "melonNames", "melonSaveSettings", "ppssppSaveSettings", "romCompanionSnapshot", "standardSaveRoot")) id(call) else null
             synchronized(guard) {
                 if (closed) throw Failure("closed")
                 if (active != null) throw Failure("capture_busy")
@@ -341,6 +341,15 @@ internal class SaveCaptureService(private val activity: Context) {
             worker.execute {
                 val complete: () -> Unit = try {
                     val value = when (call.method) {
+                        "standardSaveRoot" -> {
+                            require(call.argument<String>("platformId") == "ps2")
+                            val installed = try { activity.packageManager.getPackageInfo(StandardSaveRoots.NETHER, 0); true }
+                                catch (_: PackageManager.NameNotFoundException) { false }
+                            if (!installed) null else SaveSourceStorage.standardSaveRoot(activity).optJSONObject("saveRoot")?.let { row ->
+                                row.keys().asSequence().associateWith { key -> val item = row.get(key)
+                                    if (item is JSONArray) (0 until item.length()).map(item::getString) else item }
+                            }
+                        }
                         "retroArchNames" -> names()
                         "romCompanionSnapshot" -> OwnedRomContentProvider.companionSnapshot(activity,
                             romCompanionUri(call), call.argument<Map<*, *>>("before"), ::check,

@@ -120,6 +120,7 @@ internal class SaveSourceStorage private constructor(
         }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
+        fun standardSaveRoot(context: Context): JSONObject = settings(context, StandardSaveRoots.NETHER)
         fun pcsxSettings(context: Context, encodedLeaf: String): JSONObject {
             require(PcsxSaveSettings.validChdLeaf(encodedLeaf))
             return settings(context, PcsxSaveSettings.PACKAGE, encodedLeaf)
@@ -382,9 +383,11 @@ object RootSaveSourceWorker {
                 return
             }
             if (hello.length() == 1 && hello.optString("settings") in
-                setOf(MelonSaveBoundary.PACKAGE, PpssppSaveSettings.PACKAGE)) {
+                setOf(MelonSaveBoundary.PACKAGE, PpssppSaveSettings.PACKAGE, StandardSaveRoots.NETHER)) {
                 val settings = try {
                     if (hello.getString("settings") == MelonSaveBoundary.PACKAGE) MelonSaveSettings.read()
+                    else if (hello.getString("settings") == StandardSaveRoots.NETHER)
+                        JSONObject().put("saveRoot", StandardSaveRoots.nether()?.json() ?: JSONObject.NULL)
                     else JSONObject().put("directory", PpssppSaveSettings.read())
                 } catch (error: Exception) {
                     if (error is IOException && error.message == "source_changed") throw error
@@ -396,6 +399,7 @@ object RootSaveSourceWorker {
             val source = hello.getString("source")
             val configuration = hello.optJSONObject("saveRoot")?.let(SaveRootConfiguration::decode)
             require(configuration == null || configuration.directory == source)
+            if (configuration != null) StandardSaveRoots.verify(configuration)
             val companionRom = hello.optString("companionRom").takeIf { it.isNotEmpty() }
             val companionRestore = if (hello.has("companionRestoreId")) hello.getString("companionRestoreId").also {
                 require(hello.has("companionNames") && it.matches(Regex("[a-f0-9]{32}")))

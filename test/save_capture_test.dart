@@ -7,6 +7,9 @@ import 'package:retro_eshop/models/save_root_configuration.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const channel = MethodChannel('com.retro.rshop/save_capture');
+  final calls = <MethodCall>[];
+  late Map<String, Object> response;
   test('GB and GBC expose separate SameBoy battery routes with clock groups',
       () {
     for (final platform in ['gb', 'gbc']) {
@@ -18,9 +21,29 @@ void main() {
       expect(route.includesRtc, isTrue);
     }
   });
-  const channel = MethodChannel('com.retro.rshop/save_capture');
-  final calls = <MethodCall>[];
-  late Map<String, Object> response;
+  test(
+      'standard PS2 save settings resolve through the shared configuration channel',
+      () async {
+    response = {
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
+      'emulator': 'xyz.aethersx2.android',
+      'core': 'pcsx2',
+      'kind': 'save',
+      'format': 'ps2-shared-memory-cards-v1',
+      'profile': 'nether-cards-v1',
+      'resourceId': 'memory-cards',
+      'files': ['Mcd001.ps2', 'Mcd002.ps2'],
+      'folders': <String>[],
+      'required': <String>[]
+    };
+    final config = await SaveCapture().standardSaveRoot(platformId: 'ps2');
+    expect(config!.files, ['Mcd001.ps2', 'Mcd002.ps2']);
+    expect(config.logicalRomName, 'shared-memory-cards.save');
+    expect(calls.single.method, 'standardSaveRoot');
+    expect(calls.single.arguments, {'platformId': 'ps2'});
+  });
   setUp(() {
     calls.clear();
     response = {

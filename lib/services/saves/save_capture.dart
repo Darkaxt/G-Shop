@@ -169,6 +169,14 @@ class MelonSaveSettings {
 /// Explicit mGBA/Sega cartridge battery or PPSSPP published-slot capture, not a general
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
+  Future<SaveRootConfiguration?> standardSaveRoot(
+      {required String platformId}) async {
+    if (platformId != 'ps2') return null;
+    final row = await _channel.invokeMapMethod<String, dynamic>(
+        'standardSaveRoot', {'platformId': platformId});
+    return row == null ? null : SaveRootConfiguration.decode(row);
+  }
+
   static const _channel = MethodChannel('com.retro.rshop/save_capture');
   static bool validRomCompanionDirectory(String path) =>
       RegExp(r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/.+$')

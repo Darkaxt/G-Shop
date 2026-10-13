@@ -9,6 +9,9 @@ class SaveEmulatorCoverage {
     'me.magnum.melondualds': 'MelonDualDS',
     'dev.twilitrealm.dusk': 'Dusk',
     'org.kenjinx.android': 'KenjiNX',
+    'dev.eden.eden_emulator': 'Eden',
+    'dev.eden.eden_emulator.nightly': 'Eden Nightly',
+    'dev.legacy.eden_emulator': 'Eden Legacy',
     'com.flycast.emulator': 'Flycast',
     'com.neogamelab.neostation': 'NeoStation',
     'xyz.aethersx2.android': 'NetherSX2',
@@ -95,14 +98,16 @@ class SaveEmulatorCoverage {
                   ? _reviewed
                       ? 'In-game saves · complete PPSSPP SAVEDATA folders.'
                       : 'Needs review · installed PPSSPP runtime is not verified'
-                  : 'Unfinished · save mapping and restore not implemented';
+                  : packageName == 'xyz.aethersx2.android'
+                      ? 'In-game saves · enabled shared memory cards from emulator settings; custom mappings remain available.'
+                      : 'Automatic mapping pending · exact save-folder mapping is available';
   String get states => _launcher
       ? 'Not applicable · launcher; use the selected emulator'
       : _psp
           ? _reviewed
               ? 'Verified · reviewed PPSSPP state slot'
               : 'Needs review · installed PPSSPP runtime is not verified'
-          : 'Unfinished · state mapping and restore not implemented';
+          : 'Custom mapping · exact state files and runtime identity required';
   String get storage => _melon
       ? 'Root-assisted discovery automatically resolves the downloaded game’s save '
           'from MelonDualDS settings, including its standard Android/data folder. '
@@ -117,16 +122,21 @@ class SaveEmulatorCoverage {
                   'save folder or state slot. Close the game using PPSSPP’s '
                   'Exit command before restoring.'
               : 'Needs review · installed PPSSPP runtime is not verified'
-          : documentAuthorities.isNotEmpty
-              ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
-                  'A user grant and save-specific read/write review are still required.'
-              : _retroArch
-                  ? 'Current routes: shared RetroArch/saves/SameBoy GB/GBC SRAM and optional RTC, FCEUmm NES battery memory, Snes9x SNES SRAM and optional RTC, mGBA and Genesis Plus GX '
-                      'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
-                      'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
-                      'Other cores and custom paths are unfinished.'
-                  : _launcher
-                      ? 'This launcher does not own the emulator’s save files.'
-                      : 'Storage/export route not yet reviewed. This is unfinished work, '
-                          'not a claim that the emulator is unsupported.';
+          : packageName == 'xyz.aethersx2.android'
+              ? 'Current memory-card settings supply the watched folder and enabled card files. '
+                  'Cards share one backup history across games. Game-specific card overrides need an exact custom mapping.'
+              : packageName.contains('eden_emulator')
+                  ? 'Automatic location resolution is pending. Map the exact title and user/profile save folder, not the entire NAND save root.'
+                  : documentAuthorities.isNotEmpty
+                      ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
+                          'It does not select this game’s saves; an exact root-folder mapping is available.'
+                      : _retroArch
+                          ? 'Current routes: shared RetroArch/saves/SameBoy GB/GBC SRAM and optional RTC, FCEUmm NES battery memory, Snes9x SNES SRAM and optional RTC, mGBA and Genesis Plus GX '
+                              'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
+                              'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
+                              'Other cores and custom paths use explicit folder mappings.'
+                          : _launcher
+                              ? 'This launcher does not own the emulator’s save files.'
+                              : 'Automatic save-folder selection is pending; an exact custom mapping '
+                                  'uses the shared root pipeline. This is not a claim of automatic support.';
 }

@@ -46,6 +46,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var ppssppSavedataCaptureProbe = false
     private var ppssppCompanionProbe = false
     private var romCompanionProbe = false
+    private var standardSaveRootProbe = false
     private var ppssppRuntimeProbe: String? = null
     private var dsProviderProbe = false
     private var dsArchiveProbe = false
@@ -78,6 +79,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
         ppssppCompanionProbe = arguments?.getString("ppssppCompanionProbe") == "true"
         romCompanionProbe = arguments?.getString("romCompanionProbe") == "true"
+        standardSaveRootProbe = arguments?.getString("standardSaveRootProbe") == "true"
         ppssppRuntimeProbe = arguments?.getString("ppssppRuntimeProbe")
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
         dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
@@ -92,7 +94,9 @@ class OwnedRomInstrumentation : Instrumentation() {
     override fun onStart() {
         val report = Bundle()
         try {
-            if (automaticSaveDiagnosis) {
+            if (standardSaveRootProbe) {
+                report.putString("result", reviewStandardSaveRoot())
+            } else if (automaticSaveDiagnosis) {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
             } else if (romCompanionProbe) {
                 exercise()
@@ -210,6 +214,30 @@ class OwnedRomInstrumentation : Instrumentation() {
             }
         }
         return results.joinToString("; ")
+    }
+
+    private fun reviewStandardSaveRoot(): String {
+        check(targetContext.packageName == "com.darkaxt.rshop.debug")
+        val service = SaveCaptureService(targetContext)
+        try {
+            val done = CountDownLatch(1); var value: Any? = null; var failure: String? = null
+            service.handle(MethodCall("standardSaveRoot", mapOf("platformId" to "ps2")), object : MethodChannel.Result {
+                override fun success(result: Any?) { value = result; done.countDown() }
+                override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+            })
+            done.await(); check(failure == null) { failure ?: "No settings" }
+            val config = SaveRootConfiguration.decode(JSONObject(value as Map<*, *>))
+            check(config.profile == StandardSaveRoots.NETHER_PROFILE && config.logicalRomName == "shared-memory-cards.save")
+            check(config.files == listOf("Mcd001.ps2", "Mcd002.ps2"))
+            SaveSourceStorage.openRomCompanions(targetContext, config.directory, config.logicalRomName!!,
+                emptyList(), configuration = config).use { storage ->
+                check(storage.companionInventory().files.keys == config.files.toSet())
+            }
+            return "PASS production settings channel resolves enabled PS2 cards; shared source worker revalidates the profile and exact card inventory; read-only settings/metadata, no save capture, emulator launch or cloud write"
+        } finally {
+            val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
+        }
     }
 
     private fun exercise(ds: Boolean = false, dsZip: Boolean = false, psx: Boolean = false) {

@@ -27,6 +27,7 @@ void main() {
       'org.dolphinemu.dolphinemu',
       'xyz.aethersx2.android',
       'me.magnum.melondualds',
+      'dev.eden.eden_emulator',
     ]) {
       expect(SaveEmulatorCoverage.knownPackages, contains(package));
     }
@@ -67,7 +68,7 @@ void main() {
     expect(rows.singleWhere((r) => r.label == 'RetroArch').storage,
         contains('Genesis Plus GX'));
     expect(rows.singleWhere((r) => r.label == 'RetroArch').states,
-        startsWith('Unfinished'));
+        startsWith('Custom mapping'));
     expect(rows.singleWhere((r) => r.label == 'PPSSPP').states,
         startsWith('Verified'));
     expect(rows.singleWhere((r) => r.label == 'PPSSPP').saves,
@@ -109,10 +110,9 @@ void main() {
       _row('org.dolphinemu.dolphinemu', '2606',
           ['org.dolphinemu.dolphinemu.user'])
     ]).single;
-    expect(row.storage, contains('user grant'));
-    expect(row.storage, contains('read/write review'));
-    expect(row.saves, startsWith('Unfinished'));
-    expect(row.states, startsWith('Unfinished'));
+    expect(row.storage, contains('does not select'));
+    expect(row.saves, startsWith('Automatic mapping pending'));
+    expect(row.states, startsWith('Custom mapping'));
     expect(row.storage, isNot(contains('unsupported')));
   });
 
@@ -131,7 +131,7 @@ void main() {
     expect(current.storage, isNot(contains('before capture')));
     expect(current.storage, isNot(contains('still being integrated')));
     expect(current.storage, isNot(contains('not accessible')));
-    expect(current.states, startsWith('Unfinished'));
+    expect(current.states, startsWith('Custom mapping'));
     final changed =
         SaveEmulatorCoverage.decode([_row('me.magnum.melondualds', '0.9.0')])
             .single;
@@ -144,7 +144,7 @@ void main() {
       _row('com.flycast.emulator', 'v2.6'),
     ]);
     expect(rows.first.saves, startsWith('Not applicable'));
-    expect(rows.last.saves, startsWith('Unfinished'));
+    expect(rows.last.saves, startsWith('Automatic mapping pending'));
     expect(rows.last.storage, contains('not a claim'));
   });
 

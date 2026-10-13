@@ -86,6 +86,7 @@ class _SaveBackupSettingsScreenState
   bool _pspCompanion = false;
   bool _romCompanions = false;
   SaveRootConfiguration? _saveRootConfiguration;
+  String? _standardMappingIssue;
   int _pcsxSlot = 1;
   PcsxSaveLayout? _pcsxLayout;
   bool _editingMapping = false;
@@ -200,6 +201,30 @@ class _SaveBackupSettingsScreenState
             Map<String, dynamic>.from(jsonDecode(raw) as Map));
         _romCompanions = true;
       }
+      if (widget.system?.id == 'ps2' &&
+          (_saveRootConfiguration == null ||
+              _saveRootConfiguration!.profile != null)) {
+        SaveRootConfiguration? standard;
+        try {
+          standard = await SaveCapture().standardSaveRoot(platformId: 'ps2');
+          _standardMappingIssue =
+              standard == null ? 'save_settings_unresolved' : null;
+        } on PlatformException catch (error) {
+          _standardMappingIssue = error.code;
+        } on FormatException {
+          _standardMappingIssue = 'save_settings_unresolved';
+        }
+        _saveRootConfiguration = standard;
+        _romCompanions = standard != null;
+        if (standard != null) {
+          if (!await preferences.setString(
+              SaveRootConfiguration.storageKey(artifactKey),
+              jsonEncode(standard.toJson()))) {
+            throw StateError('Mapping was not saved');
+          }
+          _romCompanions = true;
+        }
+      }
     }
     final authorization =
         DriveRuntime.instance.authorizationFor(config.serverClientId);
@@ -234,6 +259,11 @@ class _SaveBackupSettingsScreenState
   Future<SaveBackupGameJob> _openGame(
       DriveSourceConfig config, String areaId) async {
     final generation = ++_gameGeneration;
+    if (!_romCompanions &&
+        !{'psx', 'psp', 'nds'}.contains(widget.system?.id) &&
+        RetroArchBatteryRoute.forPlatform(widget.system?.id) == null) {
+      throw PlatformException(code: 'save_settings_unresolved');
+    }
     _automatic = await ref.read(automaticSaveBackupsProvider.future);
     PcsxSaveLayout? pcsx;
     PcsxSaveCard? card;
@@ -483,6 +513,7 @@ class _SaveBackupSettingsScreenState
       setState(() {
         _closeGame();
         _saveRootConfiguration = configured;
+        _standardMappingIssue = null;
         _romCompanions = true;
       });
     } catch (_) {
@@ -942,6 +973,20 @@ class _SaveBackupSettingsScreenState
                                                                   CrossAxisAlignment
                                                                       .stretch,
                                                               children: [
+                                                                if (_standardMappingIssue !=
+                                                                        null &&
+                                                                    _section ==
+                                                                        SaveBackupSection
+                                                                            .backup)
+                                                                  Padding(
+                                                                      padding: const EdgeInsets
+                                                                          .only(
+                                                                          bottom:
+                                                                              12),
+                                                                      child: Text(_standardMappingIssue ==
+                                                                              'root_unavailable'
+                                                                          ? 'Root access is needed to read the save folder.'
+                                                                          : 'Save folder could not be resolved. Import a custom mapping.')),
                                                                 if (widget.game
                                                                             ?.remoteArtifact !=
                                                                         null &&

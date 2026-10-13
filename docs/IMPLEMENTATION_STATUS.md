@@ -23,6 +23,17 @@ exit. No memory failure. The Thor production-channel probe passes using exclusiv
 private-root/core fixtures, without changing actual emulator saves or cloud data.
 Standard-location configuration reconciliation remains unfinished; generic access
 alone is not proof that an installed emulator's correct files are configured.
+PS2's ordinary enabled memory cards now resolve from NetherSX2 settings into the
+shared configuration/job, with exact profile revalidation in source/watch workers.
+Actual Thor settings-channel and source-inventory verification pass read-only;
+card and protected preference hashes are unchanged. Host checks pass default
+persistence and custom-mapping availability after unresolved settings; the latter
+first reproduced a hidden mapping action. Request 986 passes native contracts and
+packaging through the shared gate, observed two-worker/nonparallel/3 GiB profile,
+Kotlin in-process configured, one 512 MiB fail-fast test fork and verified daemon
+exit, without memory failure. The final Dart menu correction's package remains
+in original queued request 988; this checkpoint is not a final installed-APK or
+S10 closure claim. Other standard locations and conditional handover remain.
 Optional configured shared resources now have one history across initiating ROMs,
 without merging ordinary per-title/profile folders. Host history/restore/rollback
 checks pass; request 984 passes native contracts and packaging. The real Thor
