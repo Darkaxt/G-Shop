@@ -281,6 +281,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 (platform in setOf("psx", "psp", "ps2", "dreamcast") && filename.endsWith(".chd")) ||
                 (platform == "wiiu" && filename.endsWith(".wua")) ||
                 (platform == "nds" && filename.endsWith(".nds")) ||
+                (platform == "n3ds" && listOf(".3ds", ".cci", ".cxi", ".app").any(filename::endsWith)) ||
                 (platform in setOf("gc", "wii") && listOf(".rvz", ".iso", ".gcm", ".wbfs").any(filename::endsWith))
             if (!supported) throw FileNotFoundException("Unsupported copy format")
             return JSONObject().put("id", grant.installationId).put("destinationRoot", root)
@@ -363,6 +364,9 @@ class OwnedRomContentProvider : ContentProvider() {
         internal fun companionSnapshot(context: Context, uri: Uri, before: Map<*, *>?,
             check: () -> Unit, configuration: SaveRootConfiguration? = null): Map<String, Any> {
             val saved = manifest(context, uri)
+            if (configuration?.profile == StandardSaveRoots.AZAHAR_PROFILE &&
+                n3dsProgramId(context, uri) != "00040000" + configuration.files.single().substringBefore('/'))
+                throw IOException("source_changed")
             return openCommitted(context, uri).use { rom ->
                 check()
                 val relative = saved.getString("relativePath")
@@ -434,6 +438,21 @@ class OwnedRomContentProvider : ContentProvider() {
                     check()
                     snapshot.apply { put("changed", changed) }
                 } finally { OwnedStorageNative.close(parent) }
+            }
+        }
+
+        internal fun n3dsProgramId(context: Context, uri: Uri): String {
+            val saved = manifest(context, uri)
+            require(listOf(".3ds", ".cci", ".cxi", ".app").any(saved.getString("relativePath").lowercase(Locale.ROOT)::endsWith))
+            return openCommitted(context, uri).use { rom ->
+                val identity = OwnedStorageNative.identity(rom.fd)
+                val id = N3dsSaveIdentity.programId(identity[2]) { offset, count -> OwnedStorageNative.read(rom.fd, offset, count) }
+                openCommitted(context, uri).use { current ->
+                    if (!identity.contentEquals(OwnedStorageNative.identity(current.fd)) ||
+                        !identity.contentEquals(OwnedStorageNative.identity(rom.fd)) || !sameJson(saved, manifest(context, uri)))
+                        throw IOException("source_changed")
+                }
+                id
             }
         }
 

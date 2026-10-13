@@ -15,10 +15,13 @@ internal object StandardSaveRoots {
     const val FLYCAST_PROFILE = "flycast-shared-vmus-v1"
     const val DOLPHIN = "org.dolphinemu.dolphinemu"
     const val DOLPHIN_PROFILE = "dolphin-gci-cards-v1"
+    const val AZAHAR = "io.github.lime3ds.android"
+    const val AZAHAR_PROFILE = "azahar-title-save-v1"
     fun packageFor(platformId: String): String? = when (platformId) {
         "ps2" -> NETHER
         "dreamcast" -> FLYCAST
         "gc" -> DOLPHIN
+        "n3ds" -> AZAHAR
         else -> null
     }
     fun validProfile(profile: String, emulator: String, core: String, kind: String,
@@ -26,7 +29,44 @@ internal object StandardSaveRoots {
         NETHER_PROFILE -> emulator == NETHER && core == "pcsx2" && resourceId == "memory-cards" && format == "ps2-shared-memory-cards-v1"
         FLYCAST_PROFILE -> emulator == FLYCAST && core == "flycast" && resourceId == "vmu-cards" && format == "dreamcast-vmu-v1"
         DOLPHIN_PROFILE -> emulator == DOLPHIN && core == "dolphin" && resourceId == "gc-memory-cards" && format == "gamecube-gci-cards-v1"
+        AZAHAR_PROFILE -> emulator == AZAHAR && core == "azahar" && resourceId == null && format == AZAHAR_PROFILE
         else -> false
+    }
+    internal fun azaharConfiguration(home: String, programId: String): SaveRootConfiguration {
+        require(SaveRootConfiguration.validDirectory(home, AZAHAR) && programId.matches(Regex("00040000[0-9a-f]{8}")))
+        val low = programId.takeLast(8)
+        val root = "$home/sdmc/Nintendo 3DS/${"0".repeat(32)}/${"0".repeat(32)}/title/00040000"
+        val metadata = "$low/data/00000001.metadata"
+        return SaveRootConfiguration(root, AZAHAR, "azahar", "save", AZAHAR_PROFILE,
+            listOf(metadata), listOf("$low/data/00000001"), listOf(metadata), profile = AZAHAR_PROFILE)
+    }
+    fun azahar(programId: String): SaveRootConfiguration {
+        require(Process.myUid() == 0)
+        val parser = Xml.newPullParser()
+        // Azahar keeps its per-game library cache in this same preference file.
+        // The current Thor file is 1,632,041 bytes, unlike the small card settings.
+        parser.setInput(ByteArrayInputStream(read("/data/user/0/$AZAHAR/shared_prefs", "${AZAHAR}_preferences.xml", 4 * 1024 * 1024)), "UTF-8")
+        var uri: String? = null; var map = false
+        while (true) when (parser.nextToken()) {
+            XmlPullParser.DOCDECL -> throw IOException("save_settings_unresolved")
+            XmlPullParser.START_TAG -> {
+                if (parser.depth == 1) { require(!map && parser.name == "map"); map = true }
+                else if (parser.depth == 2 && parser.getAttributeValue(null, "name") == "CITRA_DIRECTORY") {
+                    require(uri == null && parser.name == "string"); uri = parser.nextText()
+                }
+            }
+            XmlPullParser.END_DOCUMENT -> break
+        }
+        require(map && uri != null)
+        val parsed = android.net.Uri.parse(uri)
+        require(parsed.scheme == "content" && parsed.authority == "com.android.externalstorage.documents")
+        val document = android.provider.DocumentsContract.getTreeDocumentId(parsed)
+        val volume = document.substringBefore(':'); val relative = document.substringAfter(':', "")
+        require(relative.isNotEmpty())
+        val base = if (volume == "primary") "/storage/emulated/0" else {
+            require(volume.matches(Regex("[a-fA-F0-9]{4}-[a-fA-F0-9]{4}"))); "/storage/$volume"
+        }
+        return azaharConfiguration("$base/$relative", programId)
     }
     private val dolphinKeys = setOf("SlotA", "SlotB", "GCIFolderAPath", "GCIFolderBPath",
         "GCIFolderAPathOverride", "GCIFolderBPathOverride")
@@ -256,6 +296,7 @@ internal object StandardSaveRoots {
             NETHER_PROFILE -> nether()
             FLYCAST_PROFILE -> flycast()
             DOLPHIN_PROFILE -> dolphin()
+            AZAHAR_PROFILE -> azahar("00040000" + configuration.files.single().substringBefore('/'))
             else -> throw IOException("source_changed")
         }
         if (current?.json()?.toString() != configuration.json().toString()) throw IOException("source_changed")

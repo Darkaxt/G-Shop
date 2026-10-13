@@ -97,7 +97,10 @@ class OwnedRomInstrumentation : Instrumentation() {
         val report = Bundle()
         try {
             if (standardSaveRootProbe) {
-                report.putString("result", reviewStandardSaveRoot())
+                if (standardSaveRootPlatform == "n3ds") {
+                    ObservedCopyProviderProof.azahar(targetContext)
+                    report.putString("result", "PASS exact synthetic ROM grant -> NCCH program ID -> live Azahar configured title save group; source worker revalidates current profile and excludes other titles/content; grant/version/path invalidation; exclusive fixtures removed; no save writes or cloud writes")
+                } else report.putString("result", reviewStandardSaveRoot())
             } else if (automaticSaveDiagnosis) {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
             } else if (romCompanionProbe) {

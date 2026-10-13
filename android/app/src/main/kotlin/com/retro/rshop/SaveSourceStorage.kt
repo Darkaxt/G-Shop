@@ -120,15 +120,16 @@ internal class SaveSourceStorage private constructor(
         }
         fun melonSettings(context: Context): JSONObject = settings(context, MelonSaveBoundary.PACKAGE)
         fun ppssppSettings(context: Context): JSONObject = settings(context, PpssppSaveSettings.PACKAGE)
-        fun standardSaveRoot(context: Context, packageName: String = StandardSaveRoots.NETHER): JSONObject {
-            require(packageName in setOf(StandardSaveRoots.NETHER, StandardSaveRoots.FLYCAST, StandardSaveRoots.DOLPHIN))
-            return settings(context, packageName)
+        fun standardSaveRoot(context: Context, packageName: String = StandardSaveRoots.NETHER, programId: String? = null): JSONObject {
+            require(packageName in setOf(StandardSaveRoots.NETHER, StandardSaveRoots.FLYCAST, StandardSaveRoots.DOLPHIN, StandardSaveRoots.AZAHAR))
+            require((packageName == StandardSaveRoots.AZAHAR) == (programId != null))
+            return settings(context, packageName, programId = programId)
         }
         fun pcsxSettings(context: Context, encodedLeaf: String): JSONObject {
             require(PcsxSaveSettings.validChdLeaf(encodedLeaf))
             return settings(context, PcsxSaveSettings.PACKAGE, encodedLeaf)
         }
-        private fun settings(context: Context, packageName: String, encodedLeaf: String? = null): JSONObject {
+        private fun settings(context: Context, packageName: String, encodedLeaf: String? = null, programId: String? = null): JSONObject {
             val child = start(context, globalMountNamespace = true)
             val input = DataInputStream(child.inputStream.buffered())
             val output = DataOutputStream(child.outputStream.buffered())
@@ -139,6 +140,7 @@ internal class SaveSourceStorage private constructor(
             try {
                 output.writeUTF(JSONObject().put("settings", packageName).also {
                     if (encodedLeaf != null) it.put("encodedLeaf", encodedLeaf)
+                    if (programId != null) it.put("programId", programId)
                 }.toString()); output.flush()
                 val reply = JSONObject(input.readUTF())
                 reply.optString("error").takeIf(String::isNotEmpty)?.let { throw IOException(it) }
@@ -375,6 +377,14 @@ object RootSaveSourceWorker {
         fun reply(value: JSONObject) { output.writeUTF(value.toString()); output.flush() }
         try {
             val hello = JSONObject(input.readUTF())
+            if (hello.length() == 2 && hello.optString("settings") == StandardSaveRoots.AZAHAR && hello.has("programId")) {
+                val config = try { StandardSaveRoots.azahar(hello.getString("programId")) }
+                    catch (error: Exception) {
+                        if (error is IOException && error.message == "source_changed") throw error
+                        throw IOException("save_settings_unresolved")
+                    }
+                reply(JSONObject().put("saveRoot", config.json())); return
+            }
             if (hello.length() == 2 && hello.optString("settings") == PcsxSaveSettings.PACKAGE &&
                 hello.has("encodedLeaf")) {
                 val settings = try { PcsxSaveSettings.read(hello.getString("encodedLeaf")) }

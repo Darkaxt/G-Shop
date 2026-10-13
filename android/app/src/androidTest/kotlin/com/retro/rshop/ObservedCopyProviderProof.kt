@@ -18,6 +18,13 @@ import java.util.UUID
 /** Exclusive synthetic bytes/rows only. Tests real SQLite, provider and pinned
  * native reads, never an emulator boot or ownership of an existing ROM. */
 internal object ObservedCopyProviderProof {
+    fun azahar(context: Context) {
+        val bytes = ByteArray(512)
+        "NCCH".toByteArray().copyInto(bytes, 0x100)
+        byteArrayOf(0, 0x57, 0x4c, 0, 0, 0, 4, 0).copyInto(bytes, 0x118)
+        bytes[0x18f] = 4
+        exercise(context, "n3ds", "cxi", bytes)
+    }
     fun exercise(context: Context) {
         exercise(context, "gc", "rvz", byteArrayOf(4, 8, 15, 16, 23, 42))
         for ((platform, member) in listOf("megadrive" to "md", "mastersystem" to "sms", "sg1000" to "sg")) {
@@ -80,6 +87,42 @@ internal object ObservedCopyProviderProof {
                 catch (_: FileNotFoundException) { }
             }
             check(read().contentEquals(bytes))
+            if (platform == "n3ds") {
+                check(OwnedRomContentProvider.n3dsProgramId(context, uri) == "00040000004c5700")
+                val service = SaveCaptureService(context)
+                try {
+                    val done = java.util.concurrent.CountDownLatch(1)
+                    var result: Any? = null; var failure: String? = null
+                    service.handle(io.flutter.plugin.common.MethodCall("standardSaveRoot", mapOf(
+                        "platformId" to platform, "observationId" to first, "filename" to file.name)),
+                        object : io.flutter.plugin.common.MethodChannel.Result {
+                            override fun success(value: Any?) { result = value; done.countDown() }
+                            override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                            override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+                        })
+                    done.await(); check(failure == null) { failure ?: "Missing title mapping" }
+                    val config = SaveRootConfiguration.decode(JSONObject(result as Map<*, *>))
+                    check(SaveRootConfiguration.decode(config.json()) == config)
+                    check(config.profile == StandardSaveRoots.AZAHAR_PROFILE && config.resourceId == null)
+                    check(config.folders == listOf("004c5700/data/00000001"))
+                    val snapshot = OwnedRomContentProvider.companionSnapshot(context, uri, null, {}, config)
+                    check((snapshot["files"] as Map<*, *>).keys == setOf("004c5700/data/00000001.metadata"))
+                    try {
+                        val other = StandardSaveRoots.azaharConfiguration(config.directory.substringBefore("/sdmc/"), "0004000000934200")
+                        OwnedRomContentProvider.companionSnapshot(context, uri, null, {}, other)
+                        error("Another title's mapping was accepted")
+                    } catch (error: java.io.IOException) { check(error.message == "source_changed") }
+                    SaveSourceStorage.openRomCompanions(context, config.directory, file.name,
+                        emptyList(), configuration = config).use { source ->
+                        val names = source.companionInventory().files.keys
+                        check(names == setOf("004c5700/data/00000001.metadata"))
+                        check(!config.acceptsFile("00934200/data/00000001/hime00.sav"))
+                    }
+                } finally {
+                    val closed = java.util.concurrent.CountDownLatch(1)
+                    service.shutdown { closed.countDown() }; closed.await()
+                }
+            }
             denied { context.contentResolver.openFileDescriptor(uri, "rw")?.close() }
             val wrongConsole = OwnedRomContentProvider.localCopyUri(context, first, "wii", file.name, false)
             denied { context.contentResolver.openFileDescriptor(wrongConsole, "r")?.close() }

@@ -66,6 +66,36 @@ void main() {
     });
   });
   test(
+      'Azahar configuration requests the exact installed ROM grant, not a title string',
+      () async {
+    final grant = <String, Object>{
+      'observationId': 17,
+      'platformId': 'n3ds',
+      'filename': 'Game.cci'
+    };
+    response = {
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Azahar/sdmc/Nintendo 3DS/${'0' * 32}/${'0' * 32}/title/00040000',
+      'emulator': 'io.github.lime3ds.android',
+      'core': 'azahar',
+      'kind': 'save',
+      'format': 'azahar-title-save-v1',
+      'profile': 'azahar-title-save-v1',
+      'files': ['004c5700/data/00000001.metadata'],
+      'folders': ['004c5700/data/00000001'],
+      'required': ['004c5700/data/00000001.metadata'],
+    };
+    await expectLater(SaveCapture().standardSaveRoot(platformId: 'n3ds'),
+        throwsFormatException);
+    expect(calls, isEmpty);
+    final config =
+        await SaveCapture().standardSaveRoot(platformId: 'n3ds', grant: grant);
+    expect(config!.resourceId, isNull);
+    expect(calls.single.arguments, grant);
+    expect(config.acceptsFile('004c5700/data/00000001/main'), isTrue);
+  });
+  test(
       'shared Dreamcast VMUs resolve through the existing configuration channel',
       () async {
     response = {

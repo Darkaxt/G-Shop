@@ -7,6 +7,34 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current S10 work — ACTIVE, 2026-10-13
 
+Azahar raw NCCH/NCSD ROMs now resolve one title's save data plus format metadata
+from the validated local ROM header and current configured user directory. The
+normal settings path persists that configuration; source snapshots recheck the
+program ID, and root IO/watch revalidates its location. Different titles, content,
+DLC and system trees are excluded. Compressed/CIA/extdata/state layouts remain
+explicit mappings, not falsely automatic. The native probe first exposed a real
+settings-file bound: Azahar's library-cached preferences are 1,632,041 bytes and
+exceeded 512 KiB. The Azahar-only bound is corrected to 4 MiB; the repeated real
+production-channel probe passes with an exclusive synthetic ROM grant and live
+read-only settings/save inventory, including wrong-title and invalid-grant rejection.
+Six pre/post save/settings/secure-storage hashes are unchanged and both screens
+are OFF. Preserving installed APK independently matches
+`1016170c59cefe2172dc272e231cdd82296913d87663c6740c8b786c235b5a9e`.
+Affected host checks/scoped analysis pass. Gated requests 998/999 both exit 0,
+acquire the shared gate and verify daemon exit: observed two workers, no parallel
+projects, 3 GiB Gradle heap; Kotlin in-process configured/requested, one 512 MiB
+fail-fast test fork executed. No memory failure/increase; native environment
+budget two is not universal plugin concurrency proof.
+
+Legacy targets are now identified read-only: device package
+`dk.tacit.android.foldersync.lite`, and task `\RetroBat Save Sync`, whose hidden
+VBS action invokes `sync-retrobat-saves.ps1`. Neither is changed before replacement
+acceptance. Remaining standard-location reconciliation and handover keep S10
+ACTIVE. Discovery currently checks known package IDs, not arbitrary emulator
+capabilities; an unknown fork needs an exact custom mapping and is absent from
+the coverage list. Eden Duo's main package is one concrete example; this is not
+automatic fork compatibility or a claim that the filesystem engine rejects it.
+
 Shared-card configuration is verified for Flycast's enabled shared virtual VMUs
 and Dolphin's enabled default GCI card folders, in addition to NetherSX2. They
 reuse the existing root/history lane, with settings revalidation and exact file

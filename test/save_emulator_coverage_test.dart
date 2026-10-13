@@ -107,13 +107,21 @@ void main() {
   test('advertised provider is neither a grant nor implemented restore support',
       () {
     final row = SaveEmulatorCoverage.decode([
-      _row('io.github.lime3ds.android', '2606',
-          ['io.github.lime3ds.android.user'])
+      _row('info.cemu.cemu', '0.5.2', ['info.cemu.cemu.user'])
     ]).single;
     expect(row.storage, contains('does not select'));
     expect(row.saves, startsWith('Automatic mapping pending'));
     expect(row.states, startsWith('Custom mapping'));
     expect(row.storage, isNot(contains('unsupported')));
+  });
+  test('Azahar coverage distinguishes raw title saves from compressed/custom layouts', () {
+    final row = SaveEmulatorCoverage.decode([
+      _row('io.github.lime3ds.android', '263745c1d-vanilla')
+    ]).single;
+    expect(row.saves, contains('validated raw ROM header'));
+    expect(row.storage, contains('Compressed ROMs'));
+    expect(row.storage, contains('other titles are excluded'));
+    expect(row.states, startsWith('Custom mapping'));
   });
 
   test(

@@ -2,6 +2,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/save_root_configuration.dart';
 
 void main() {
+  test(
+      'Azahar title save profile keeps each title separate and includes its binary saves',
+      () {
+    final config = SaveRootConfiguration.decode({
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Azahar/sdmc/Nintendo 3DS/${'0' * 32}/${'0' * 32}/title/00040000',
+      'emulator': 'io.github.lime3ds.android',
+      'core': 'azahar',
+      'kind': 'save',
+      'format': 'azahar-title-save-v1',
+      'profile': 'azahar-title-save-v1',
+      'files': ['004c5700/data/00000001.metadata'],
+      'folders': ['004c5700/data/00000001'],
+      'required': ['004c5700/data/00000001.metadata'],
+    });
+    expect(config.sharedResourceKey, isNull);
+    expect(config.acceptsFile('004c5700/data/00000001/main.bin'), isTrue);
+    expect(config.acceptsFile('00934200/data/00000001/hime00.sav'), isFalse);
+    expect(config.acceptsFile('004c5700/content/game.app'), isFalse);
+    expect(config.acceptsFile('004c5700/data/00000001/bios.bin'), isFalse);
+    expect(config.completeGroup({'004c5700/data/00000001/main.bin'}), isFalse);
+    expect(SaveRootConfiguration.decode(config.toJson()).identity,
+        config.identity);
+  });
   final mapping = <String, dynamic>{
     'schema': 1,
     'directory':

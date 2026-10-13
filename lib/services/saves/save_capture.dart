@@ -170,10 +170,13 @@ class MelonSaveSettings {
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
   Future<SaveRootConfiguration?> standardSaveRoot(
-      {required String platformId}) async {
-    if (!{'ps2', 'dreamcast', 'gc'}.contains(platformId)) return null;
+      {required String platformId, Map<String, Object>? grant}) async {
+    if (!{'ps2', 'dreamcast', 'gc', 'n3ds'}.contains(platformId)) return null;
+    if (platformId == 'n3ds' && grant == null) {
+      throw const FormatException('The installed ROM is required');
+    }
     final row = await _channel.invokeMapMethod<String, dynamic>(
-        'standardSaveRoot', {'platformId': platformId});
+        'standardSaveRoot', {...?grant, 'platformId': platformId});
     return row == null ? null : SaveRootConfiguration.decode(row);
   }
 

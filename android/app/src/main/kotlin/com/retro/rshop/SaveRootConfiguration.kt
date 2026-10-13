@@ -56,7 +56,7 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
                 RomCompanionBoundary.associated("scope.rom", "scope.$leaf")
             }
     }
-    fun acceptsFile(path: String): Boolean = safe(path, path in files) &&
+    fun acceptsFile(path: String): Boolean = safe(path, path in files || profile == StandardSaveRoots.AZAHAR_PROFILE) &&
         (path in files || folders.any { path.startsWith("$it/") })
     fun acceptsDirectory(path: String): Boolean = safe(path) &&
         (folders.any { it == path || it.startsWith("$path/") || path.startsWith("$it/") } ||

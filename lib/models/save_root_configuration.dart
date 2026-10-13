@@ -87,6 +87,11 @@ class SaveRootConfiguration {
             row['core'] == 'dolphin' &&
             resourceId == 'gc-memory-cards' &&
             row['format'] == 'gamecube-gci-cards-v1',
+      'azahar-title-save-v1' =>
+        row['emulator'] == 'io.github.lime3ds.android' &&
+            row['core'] == 'azahar' &&
+            resourceId == null &&
+            row['format'] == 'azahar-title-save-v1',
       _ => false,
     };
     if (profile != null && (!standard || row['kind'] != 'save')) {
@@ -179,7 +184,8 @@ class SaveRootConfiguration {
   }
 
   bool acceptsFile(String path) =>
-      _safe(path, binary: files.contains(path)) &&
+      _safe(path,
+          binary: files.contains(path) || profile == 'azahar-title-save-v1') &&
       (files.contains(path) ||
           folders.any((folder) => path.startsWith('$folder/')));
   bool acceptsDirectory(String path) =>

@@ -7,6 +7,54 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Title-specific Azahar configuration — 2026-10-14
+
+The same configured-root lane now resolves ordinary raw `.3ds`/`.cci`/`.cxi`/`.app`
+NCCH/NCSD data. Bounded header reads follow NCSD partition zero and use its NCCH
+program ID, never a display title or filename guess. The original owned/byte-bound
+copy grant, file identity and current catalogue/version are rechecked. The current
+Azahar `CITRA_DIRECTORY` document-tree setting selects the user root. One title's
+`data/00000001` and `data/00000001.metadata` form the save group; format metadata
+is required when the group is nonempty. It is not a shared NAND/card history.
+Binary members inside this resolved save group are allowed; BIOS/settings/ROMs,
+other titles and installed content remain excluded. Source snapshots reject a
+different program ID, even when its save folder is accessible. Source/watch workers
+revalidate the current standard profile. Explicit custom mappings remain available
+when the standard location cannot resolve. Compressed ZCCI, CIA installers, extdata
+and states are not claimed as automatically resolved by this raw-header path.
+
+Primary path/header references:
+[NCCH/NCSD definitions](https://github.com/azahar-emu/azahar/blob/master/src/core/file_sys/ncch_container.h),
+[partition resolution](https://github.com/azahar-emu/azahar/blob/master/src/core/file_sys/ncch_container.cpp),
+[title save and metadata paths](https://github.com/azahar-emu/azahar/blob/master/src/core/file_sys/archive_source_sd_savedata.cpp),
+[configured Android user root](https://github.com/azahar-emu/azahar/blob/master/src/android/app/src/main/java/org/citra/citra_emu/utils/DirectoryInitialization.kt).
+This uses format/path facts in the shared pipeline, not a copied sync engine.
+
+The first actual Thor probe failed at settings resolution: the preference file
+also contains Azahar's library cache, and its measured 1,632,041 bytes exceeded
+the small-card resolver's 512 KiB read bound. The corrected Azahar-specific 4 MiB
+bound retains pinned/identity-checked reads. No delay, retry, new emulator handshake
+or Gradle heap increase was added. The repeated production-channel probe passes:
+exclusive synthetic raw ROM/copy evidence -> header ID -> live configured title
+group -> root profile/inventory revalidation. A different title mapping is rejected;
+grant changes, ownership reservation, newer observation, changed bytes and missing
+source are rejected by the existing proof. Exclusive fixture files/rows are removed.
+This is configuration/binding evidence, not a new save-upload/restore campaign or
+an emulator-launch proof. Six pre/post save/metadata/settings/secure-store hashes
+match; both screens are OFF. The preserving installed APK independently matches
+SHA-256 `1016170c59cefe2172dc272e231cdd82296913d87663c6740c8b786c235b5a9e`.
+
+Focused host configuration/channel/menu/coverage checks and scoped analysis pass.
+Gated requests 998 and 999 pass affected native contracts and app/test packaging;
+both acquired the shared gate, returned build/helper exit 0 and verified daemon
+exit. Observed two workers/nonparallel/3 GiB Gradle heap; Kotlin in-process
+configured/requested, one 512 MiB fail-fast test fork executed. Native environment
+budget two is not universal concurrency proof. No memory failure/budget increase.
+Current remaining installed-location reconciliation and the conditional legacy
+handover still prevent S10 closure. Read-only handover identification now binds
+FolderSync Lite `dk.tacit.android.foldersync.lite` and exact `\RetroBat Save Sync`
+task -> hidden VBS -> preserved `sync-retrobat-saves.ps1`; neither was changed.
+
 ### Standard PS2 configuration — 2026-10-13
 
 NetherSX2's current enabled memory-card filenames now resolve automatically into

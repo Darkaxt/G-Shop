@@ -25,6 +25,7 @@ import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
 import '../../models/save_backup_manifest.dart';
 import '../../services/owned_emulator_launcher.dart';
+import '../../services/owned_storage.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/save_backup_providers.dart';
 import '../../services/drive/drive_runtime.dart';
@@ -201,18 +202,24 @@ class _SaveBackupSettingsScreenState
             Map<String, dynamic>.from(jsonDecode(raw) as Map));
         _romCompanions = true;
       }
-      if ({'ps2', 'dreamcast', 'gc'}.contains(widget.system?.id) &&
+      if ({'ps2', 'dreamcast', 'gc', 'n3ds'}.contains(widget.system?.id) &&
           (_saveRootConfiguration == null ||
               _saveRootConfiguration!.profile != null)) {
         SaveRootConfiguration? standard;
         try {
+          final grant = widget.system!.id == 'n3ds'
+              ? await OwnedEmulatorLauncher().resolveRomCompanionGrant(
+                  widget.game!, widget.system!.id, widget.targetFolder!)
+              : null;
           standard = await SaveCapture()
-              .standardSaveRoot(platformId: widget.system!.id);
+              .standardSaveRoot(platformId: widget.system!.id, grant: grant);
           _standardMappingIssue =
               standard == null ? 'save_settings_unresolved' : null;
         } on PlatformException catch (error) {
           _standardMappingIssue = error.code;
         } on FormatException {
+          _standardMappingIssue = 'save_settings_unresolved';
+        } on OwnedStorageException {
           _standardMappingIssue = 'save_settings_unresolved';
         }
         _saveRootConfiguration = standard;

@@ -7,7 +7,7 @@ import java.util.Locale;
 /** Decodes only one committed installation leaf, never a public directory tree. */
 final class OwnedRomGrantPath {
     private static final java.util.Set<String> COPY_PLATFORMS = new java.util.HashSet<>(java.util.Arrays.asList(
-        "gamegear", "megadrive", "mastersystem", "sg1000", "n64", "gb", "gbc", "gba", "nes", "snes", "psx", "psp", "ps2", "wiiu", "gc", "wii", "nds", "dreamcast"));
+        "gamegear", "megadrive", "mastersystem", "sg1000", "n64", "gb", "gbc", "gba", "nes", "snes", "psx", "psp", "ps2", "wiiu", "gc", "wii", "nds", "dreamcast", "n3ds"));
     final String installationId;
     final String filename;
     final boolean document;
