@@ -7,6 +7,44 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Folder capture writer boundary — ACTIVE work, 2026-10-13
+
+The former PPSSPP complete-folder route captured save data and accompanying
+media/cache files, but required every emulator-UID process to exit before capture.
+The native regression reproduced `stop_ppsspp_required` with an alive emulator
+UID that held no save writer. Capture now uses the existing root descriptor
+census and whole-folder mutation guard. Inspect all bounded flat members in one
+process/descriptor traversal, using inode and exact public/backing path evidence;
+an idle writable descriptor must reject capture even without a timestamp change.
+An alive emulator UID with no writable save handle must not reject a coherent
+snapshot. Keep pinned directory/member identity, bounded streaming, whole-group
+digests and service-recreation recovery. Restore's overwrite-in-use guards remain
+unchanged. Gated request 877 passed the affected JVM boundary/watch checks,
+native compilation and debug/test packaging. The completed helper/support record
+and telemetry show acquired gate, exit 0 and lifecycle completion; no duplicate
+build was launched when the original managed-session handle later disappeared.
+Build log `2e36d74847d04367bc825dece4d8037e.log` verifies two workers,
+parallel=false, 3221225472-byte Gradle maximum heap and one 512 MiB fail-fast
+test fork. Kotlin in-process is configured/requested; app-native compile/link
+pools have depth one. No memory failure or budget increase occurred. The existing
+Flutter embedded-Kotlin compatibility and Gradle-10 deprecation warnings remain.
+The preserving app/test update has installed app SHA-256
+`a6d39205955a19ffd8de44305112f7d3f9001d392c7b31de28803e2d1b18c8cb`,
+independently matching the host APK. Preferences and both secure-storage files
+have unchanged digests at the update boundary. The actual Thor fixture passes:
+alive emulator UID admitted, idle writable handle and overlapping mutation
+refused, full streamed member/empty-file digests, recreated-service replay,
+restore/rollback, missing-folder creation and lost-receipt recovery. Exact
+synthetic fixtures/captures are retired by the fixture; no real saves, ROMs,
+settings or Drive objects are mutated. Both physical displays remain OFF and
+the device is Asleep after that observation.
+The shared JNI single-file path also passes its existing Thor filesystem-only
+regression for N64/GBA/NES/SNES/GB/GBC: writable descriptors rejected, read-only
+descriptors admitted, overlapping writes/new RTC creation rejected and complete
+paired digests verified. That fixture removes its exclusive files afterward.
+This is current S10 capture work, not completion of general companion discovery
+or independently selectable optional companion groups.
+
 ### Device-specific companion direction — owner approved, 2026-10-13
 
 Keep one ROM identity and the existing immutable generation/restore coordinator.

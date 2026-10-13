@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 35, 2026-10-13.
+Authoritative specification, revision 36, 2026-10-13.
 
 Owner scope update, 2026-10-13: implement all 12 plan stages. This authorizes
 S12's existing FRONTEND-01 contract after S10/S11; it does not open concurrent
@@ -1603,9 +1603,21 @@ physical-media models and animations rather than scraped cartridge pictures.
 S12 is NOT STARTED. The owner's 2026-10-13 objective update authorizes
 implementation of the recorded FRONTEND-01 contract after S10/S11. Assistant
 suggestions in the source conversation remain design candidates, not verified
-technical facts or blanket authority for proprietary asset extraction. Select
-the renderer from the required real vertical slice and use independently sourced
-licensed assets. S10 remains the sole ACTIVE stage; S12 does not add acceptance
+technical facts. Owner update, 2026-10-13: use the supplied Socket August APK
+(`D:/Downloads/Android/socket_release_0.3.2.apk`) as the concrete reference and
+reverse engineer its relevant rendering/assets/animations as far as needed to
+reproduce the physical-media experience. Models and animations must match the
+reference, not merely depict the same media type. Private inspection/extraction
+is authorized; public redistribution still needs appropriate asset/code rights.
+An independent adaptation is allowed, provided visual and motion fidelity is
+verified against the APK. Version 0.7 is a possible later reference if the
+supplied version lacks necessary evidence; assess that need before purchasing.
+Missing or not-yet-scraped artwork uses the same 3D media with a handwritten
+game-title sticker, resembling a homemade/knock-off label. Vary sticker colors
+across games using a stable readable palette; do not flicker on rebuild or
+change the underlying game identity. Replace the fallback when artwork resolves.
+Select the renderer from the required real vertical slice. S10 remains the
+sole ACTIVE stage; S12 does not add acceptance
 gates to S10/S11. Overall completion now requires S1-S12 reconciliation.
 
 ## 7. Quality and delivery requirements

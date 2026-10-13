@@ -10,6 +10,7 @@
 #include <new>
 #include <string>
 #include <system_error>
+#include <vector>
 #include <poll.h>
 #include <sys/inotify.h>
 #include <sys/stat.h>
@@ -235,11 +236,12 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
         const std::string leaf = utf8(env, name);
         const std::string publicPath = utf8(env, source) + "/" + leaf;
         const std::string backingPath = utf8(env, backing) + "/" + leaf;
+        const bool group = leaf.empty();
         struct stat pinned{}, publicFile{};
-        if (::fstatat(directory, leaf.c_str(), &pinned, AT_SYMLINK_NOFOLLOW) < 0) {
+        if (!group && ::fstatat(directory, leaf.c_str(), &pinned, AT_SYMLINK_NOFOLLOW) < 0) {
             if (errno != ENOENT) throw std::system_error(errno, std::generic_category());
-        } else if (!S_ISREG(pinned.st_mode) || pinned.st_nlink != 1) invalid();
-        if (::stat(publicPath.c_str(), &publicFile) < 0 && errno != ENOENT && errno != EACCES)
+        } else if (!group && (!S_ISREG(pinned.st_mode) || pinned.st_nlink != 1)) invalid();
+        if (!group && ::stat(publicPath.c_str(), &publicFile) < 0 && errno != ENOENT && errno != EACCES)
             throw std::system_error(errno, std::generic_category());
         auto exited = [](int error) { return error == ENOENT || error == ESRCH; };
         auto numeric = [](const char* text) {
@@ -254,6 +256,29 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
             return entry;
         };
         auto closeDir = [](DIR* dir) { ::closedir(dir); };
+        // One bounded member inventory and one /proc traversal for a complete
+        // flat save folder, not one root process or process scan per member.
+        // The already armed inotify guard rejects membership/mutation races.
+        std::vector<struct stat> groupFiles;
+        if (group) {
+            int fd = ::openat(directory, ".", O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+            if (fd < 0) throw std::system_error(errno, std::generic_category());
+            std::unique_ptr<DIR, decltype(closeDir)> members(::fdopendir(fd), closeDir);
+            if (!members) { int error = errno; ::close(fd); throw std::system_error(error, std::generic_category()); }
+            size_t count = 0;
+            while (auto* member = next(members.get())) {
+                if (std::strcmp(member->d_name, ".") == 0 || std::strcmp(member->d_name, "..") == 0) continue;
+                if (++count > 128) invalid(); // PPSSPP SAVEDATA's existing member bound.
+                struct stat backingMember{}, publicMember{};
+                if (::fstatat(directory, member->d_name, &backingMember, AT_SYMLINK_NOFOLLOW) < 0)
+                    throw std::system_error(errno, std::generic_category());
+                if (!S_ISREG(backingMember.st_mode) || backingMember.st_nlink != 1) invalid();
+                groupFiles.push_back(backingMember);
+                const std::string path = publicPath + member->d_name;
+                if (::stat(path.c_str(), &publicMember) == 0) groupFiles.push_back(publicMember);
+                else if (errno != ENOENT && errno != EACCES) throw std::system_error(errno, std::generic_category());
+            }
+        }
         std::unique_ptr<DIR, decltype(closeDir)> processes(::opendir("/proc"), closeDir);
         if (!processes) throw std::system_error(errno, std::generic_category());
         while (auto* process = next(processes.get())) {
@@ -274,6 +299,9 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
                 if (!S_ISREG(candidate.st_mode)) continue;
                 bool matched = (pinned.st_ino != 0 && candidate.st_dev == pinned.st_dev && candidate.st_ino == pinned.st_ino) ||
                     (publicFile.st_ino != 0 && candidate.st_dev == publicFile.st_dev && candidate.st_ino == publicFile.st_ino);
+                if (group) for (const auto& member : groupFiles) {
+                    if (candidate.st_dev == member.st_dev && candidate.st_ino == member.st_ino) { matched = true; break; }
+                }
                 if (!matched) {
                     // FUSE and backing inode numbers differ. Also recognize the
                     // exact descriptor path in the writer's mount namespace.
@@ -285,7 +313,11 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
                     }
                     if (static_cast<size_t>(size) == sizeof(path)) throw std::system_error(ENAMETOOLONG, std::generic_category());
                     std::string actual(path, static_cast<size_t>(size));
-                    matched = actual == publicPath || actual == backingPath;
+                    auto inGroup = [&](const std::string& prefix) {
+                        return actual.compare(0, prefix.size(), prefix) == 0 && actual.size() > prefix.size() &&
+                            actual.find('/', prefix.size()) == std::string::npos;
+                    };
+                    matched = group ? inGroup(publicPath) || inGroup(backingPath) : actual == publicPath || actual == backingPath;
                 }
                 if (!matched) continue;
                 auto closeFile = [](FILE* file) { ::fclose(file); };

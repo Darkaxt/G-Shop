@@ -1,7 +1,7 @@
 # S12 — 3D physical-media frontend
 
 Status: NOT STARTED.
-Authority: SPECIFICATION.md, revision 35, section 6f.
+Authority: SPECIFICATION.md, revision 36, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -20,11 +20,22 @@ a lower-screen insertion destination.
 
 The conversation's assistant proposed rendering frameworks and described other
 products. Those claims have not been independently verified. No renderer,
-framework upgrade, APK extraction or proprietary asset reuse is approved by
-this document. Reference study should produce an independently implementable
-behavioral description; distributed code/assets need suitable provenance and
-reuse rights. Use original or appropriately licensed assets, not recovered
-proprietary models, scripts, textures or sounds.
+framework upgrade or unrestricted public asset reuse follows from those claims.
+The owner's subsequent 2026-10-13 direction explicitly authorizes private APK
+inspection and reverse engineering of the supplied August reference. Models and
+animations in our adaptation must match the APK, not just its general concept.
+Reference study must capture geometry/proportions, material/label placement,
+motion paths/timing/easing and upper/lower-display sequencing with comparison
+evidence. Distribution still requires suitable provenance and reuse rights;
+independently recreated or appropriately licensed assets are valid adaptations.
+
+Concrete supplied file resolved locally: `D:/Downloads/Android/socket_release_0.3.2.apk`
+(144362294 bytes; SHA-256
+`ba00e36c189f9f8f024af6aac94c68913652d07bd7204aa9a385e7b332a4d0b1`).
+This records the inspected file identity, not a rendering study or S12 start.
+Do not commit the APK or private extraction outputs. The owner offered to pay
+for version 0.7 if needed. Start with this reference and establish a concrete
+missing requirement before recommending a purchase or newer reference.
 
 ## FRONTEND-01 — Required behavior and acceptance
 
@@ -36,8 +47,15 @@ contract. They do not change S10/S11 acceptance:
   a parallel catalogue or launch pipeline for the visual frontend.
 - Render real physical-media geometry with rotation and insertion transitions.
   Reuse a model per console/media format with optional cached game-label artwork;
-  a missing cover must still yield a recognizable physical object. Do not require
-  a cartridge photograph or fresh network scraping per game.
+  a missing cover must still yield a recognizable physical object. Use a
+  handwritten game-title sticker on that model for missing or pending artwork,
+  with stable per-game variation from a readable sticker-color palette to evoke
+  a homemade/knock-off label. Long titles remain readable. Do not show a black
+  square, flickering random colors, or a different media model while scraping;
+  transition to the actual label when resolved. Verify missing, pending, failed
+  and offline artwork cases. Do not require a cartridge photograph or fresh
+  network scraping per game. Compare models and animations against the supplied
+  APK with reproducible reference captures, not only screenshots of our own app.
 - First demonstrate one cartridge's normal selection -> optional existing Drive
   installation -> animation -> real emulator launch on Thor. Only then expand to
   representative N64/Game Boy cartridge and PlayStation disc formats. Record how

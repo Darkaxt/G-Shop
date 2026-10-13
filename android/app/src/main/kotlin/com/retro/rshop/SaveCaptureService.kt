@@ -617,8 +617,8 @@ internal class SaveCaptureService(private val activity: Context) {
         }
     }
 
-    /** Capture every member at PPSSPP's reviewed native-exit boundary. Root
-     * handles source IO and one whole-directory inotify guard; payloads remain
+    /** Capture every member at a coherent filesystem boundary. Root handles
+     * the descriptor census, source IO and whole-directory inotify guard; payloads remain
      * streamed through the existing app-owned capture journal. */
     private fun capturePpssppSavedata(captureId: String, sourceDirectory: String,
                                     restoreBaseline: Boolean): Map<String, Any> {
@@ -646,15 +646,8 @@ internal class SaveCaptureService(private val activity: Context) {
             return captureAbsentPpssppSavedata(captureId, directory, sourceDirectory, version!!, device)
         }
         opened.use { storage ->
-            fun closed() {
-                check()
-                try { storage.verifyEmulatorClosed(activity) } catch (error: java.io.IOException) {
-                    if (error.message != "emulator_running") throw error
-                    throw Failure("stop_ppsspp_required")
-                }
-            }
+            check()
             storage.beginPpssppSavedataSnapshot()
-            closed()
             val selected = storage.names()
             val absent = restoreBaseline && selected.isEmpty()
             if (!absent && !PpssppSavedataBoundary.validMembers(selected)) throw Failure("invalid_selection")
@@ -691,7 +684,7 @@ internal class SaveCaptureService(private val activity: Context) {
                             .put("sha256", digest.digest().joinToString("") { "%02x".format(it) }))
                     } finally { storage.closeFile(fd) }
                 }
-                closed()
+                check()
                 if (storage.names() != selected || storage.currentRootIdentity().take(2) != parentIdentity.take(2))
                     throw Failure("source_changed")
                 for (index in selected.indices) if (!same(identities[index], storage.entryIdentity(selected[index])))
@@ -717,10 +710,6 @@ internal class SaveCaptureService(private val activity: Context) {
                                            version: String, device: String): Map<String, Any> {
         SaveSourceStorage.open(activity, sourceDirectory.substringBeforeLast('/')).use { storage ->
             storage.beginPpssppSavedataSnapshot()
-            try { storage.verifyEmulatorClosed(activity) } catch (error: java.io.IOException) {
-                if (error.message != "emulator_running") throw error
-                throw Failure("stop_ppsspp_required")
-            }
             val name = sourceDirectory.substringAfterLast('/')
             try {
                 val existing = storage.openSaveGroup(name)

@@ -81,7 +81,7 @@ internal class SaveSourceStorage private constructor(
         }
         fun open(context: Context, source: String): SaveSourceStorage {
             // SAVEDATA uses one root lane for the whole-folder mutation guard,
-            // runtime census and streaming IO, avoiding FUSE and per-file su.
+            // descriptor census and streaming IO, avoiding FUSE and per-file su.
             if (!isProtectedDirectory(source) && !PpssppSavedataBoundary.validDirectory(source) &&
                 !PpssppSavedataBoundary.validParent(source))
                 return SaveSourceStorage(source, null)
@@ -441,7 +441,7 @@ object RootSaveSourceWorker {
                         verifyPcsxSettings()
                         if (snapshotInvalid) throw IOException("source_changed")
                         val leaf = snapshotName ?: throw IOException("source_changed")
-                        if ((!savedata && !savedataParent && OwnedStorageNative.saveSnapshotHasWriter(parent, leaf, source, backing)) ||
+                        if ((!savedataParent && OwnedStorageNative.saveSnapshotHasWriter(parent, leaf, source, backing)) ||
                             OwnedStorageNative.saveSnapshotChanged(snapshot, leaf)) throw IOException("source_changed")
                         clockName?.let { clock ->
                             if (OwnedStorageNative.saveSnapshotHasWriter(parent, clock, source, backing) ||

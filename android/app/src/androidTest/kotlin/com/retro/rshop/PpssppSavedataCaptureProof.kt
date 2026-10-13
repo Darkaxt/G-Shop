@@ -108,16 +108,32 @@ internal object PpssppSavedataCaptureProof {
             check(missing["localWasAbsent"] == true && missing["savedataGroupPresent"] == false &&
                 (missing["files"] as List<*>).isEmpty() && (missing["sourceIdentity"] as List<*>).size == 2)
 
+            // An alive emulator UID without a writable save descriptor does not
+            // prevent a coherent read. This is not gameplay or emulator IPC.
             val writer = ProcessBuilder("su", uid.toString(), "-c", "/system/bin/cat").redirectErrorStream(true).start()
             try {
                 writer.outputStream.write("rshop-save-group-writer\n".toByteArray()); writer.outputStream.flush()
                 check(writer.inputStream.bufferedReader().readLine() == "rshop-save-group-writer")
                 call("capturePpssppSavedata", mapOf("captureId" to id().also(captures::add),
-                    "directory" to source), "stop_ppsspp_required")
+                    "directory" to source))
             } finally {
                 writer.outputStream.close()
                 writer.inputStream.use { input -> val buffer = ByteArray(1024); while (input.read(buffer) >= 0) {} }
                 check(writer.waitFor() == 0)
+            }
+            // A writable descriptor is enough to refuse capture even when its
+            // holder hasn't changed the file's size or timestamps yet.
+            val openWriter = ProcessBuilder("su", "--mount-master", "-c",
+                "exec 9<> '$backing/CUSTOM.SAV'; echo rshop-open-writer; /system/bin/cat")
+                .redirectErrorStream(true).start()
+            try {
+                check(openWriter.inputStream.bufferedReader().readLine() == "rshop-open-writer")
+                call("capturePpssppSavedata", mapOf("captureId" to id().also(captures::add),
+                    "directory" to source), "source_changed")
+            } finally {
+                openWriter.outputStream.close()
+                openWriter.inputStream.use { input -> val buffer = ByteArray(1024); while (input.read(buffer) >= 0) {} }
+                check(openWriter.waitFor() == 0)
             }
             shell("mkdir '$backing/nested'")
             try {
@@ -369,6 +385,6 @@ internal object PpssppSavedataCaptureProof {
                 shell("rmdir '$backing' && rmdir '$fixture/PSP/SAVEDATA' && rmdir '$fixture/PSP' && rmdir '$fixture'")
             }
         }
-        return "PASS complete protected PPSSPP SAVEDATA capture and journaled restore: root member/folder-replacement/first-folder watch delivery and joined shutdown; streamed empty companions; mutation/runtime refusal; recreated-service publication/replay and rollback; changed-local refusal; first-folder restore; recovery after actual atomic commit without receipt and empty allocation without inode receipt; exact exchanged-stage/fixture/capture retirement; no real save/ROM/settings/Drive mutation"
+        return "PASS complete protected PPSSPP SAVEDATA capture and journaled restore: root member/folder-replacement/first-folder watch delivery and joined shutdown; streamed empty companions; filesystem-only capture with alive emulator UID, idle writable-handle and mutation refusal; recreated-service publication/replay and rollback; changed-local refusal; first-folder restore; recovery after actual atomic commit without receipt and empty allocation without inode receipt; exact exchanged-stage/fixture/capture retirement; no real save/ROM/settings/Drive mutation"
     }
 }

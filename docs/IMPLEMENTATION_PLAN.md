@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 35.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 36.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 S12 authorization update (owner, 2026-10-13): implement all 12 plan stages,
@@ -1969,17 +1969,22 @@ console-specific 3D media, not a new dependency on scraped cartridge images.
 
 Execution order within S12:
 
-1. Study the reference's observable navigation, physical-media rendering,
-   animation and two-display behavior. Record findings and asset provenance;
-   do not import proprietary code/models or assume claims in the chat are true.
+1. Inspect/reverse engineer the supplied `socket_release_0.3.2.apk` reference,
+   including physical-media geometry, labels, animations and two-display behavior.
+   Record reproducible visual/motion findings and asset provenance. Private
+   extraction is authorized; resolve redistribution rights before publishing
+   recovered code/assets. Assess 0.7 only if the supplied reference is insufficient.
 2. Prove one real cartridge-to-emulator workflow on Thor using independently
-   sourced assets and existing R-Shop identity/launch logic before broadening
+   sourced or appropriately licensed assets matching the reference models and
+   animation, and existing R-Shop identity/launch logic before broadening
    renderer support. Choose the renderer from measured compatibility/lifecycle
    evidence, not a speculative framework rewrite.
 3. Integrate the proven view with controller/touch browsing, cloud/local states,
    metadata and filters, plus scalable large-library navigation. Check disc and
    additional cartridge representations only after the first real slice works.
-4. Verify the candidate acceptance contract, including missing artwork, cancelled
+4. Implement/verify missing-artwork 3D media with a handwritten game-title sticker
+   and stable varied readable sticker colors, transitioning to resolved artwork.
+   Verify reference geometry and animation fidelity, plus cancelled
    or failed downloads/launches, lifecycle recovery and companion handoff;
    reconcile the specification and commit. No release is implied.
 

@@ -5,6 +5,26 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Complete-folder filesystem capture — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. The PPSSPP capture-only process-exit gate
+is replaced by the root writable-descriptor census and whole-folder mutation
+guard; restore's protection against overwriting files in use is unchanged.
+The regression first reproduced `stop_ppsspp_required` for an idle emulator UID.
+Request 877 then passed affected native/JVM checks and debug/test assembly through
+the shared gate. Actual Thor verification passes idle-process capture, open-writer
+and mutation refusal, streamed complete-folder/empty-member digests, restore,
+rollback and recreated-service/lost-receipt recovery. Preferences/secure storage
+are unchanged across the preserving install, and installed/host APK digests match.
+The existing scalar RetroArch native regression also passes writer/read-only
+handle distinction, mutation/RTC refusal and complete digests across its reviewed
+cartridge routes. Both native fixtures remove their exclusive test files.
+Both screens are OFF. General game-folder companion discovery and independently
+selectable optional groups remain unfinished S10 work, not a later-stage deferral.
+S11/S12 remain NOT STARTED. Specification revision 36 records the owner-supplied
+Socket APK reference, required matching models/animations and handwritten-title
+sticker fallback for missing artwork; no S12 implementation was opened.
+
 ### Device-specific history and sectioned import — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. Normal reconciliation now partitions history
