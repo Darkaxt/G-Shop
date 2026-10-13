@@ -217,6 +217,10 @@ internal class SaveSourceStorage private constructor(
         }
         return OwnedRomContentProvider.Companion.CompanionInventory(identities("files"), identities("directories"))
     }
+    fun runtimeIdentity(): String {
+        require(companionConfiguration != null && companionConfiguration.runtimeFiles.isNotEmpty() && rootAssisted)
+        return call(request("runtimeIdentity")).getString("identity")
+    }
     fun openSaveGroup(name: String, createExclusive: Boolean = false, anchor: LongArray? = null,
                       recoverEmpty: Boolean = false): Int {
         require(PpssppSavedataBoundary.validParent(source) && rootAssisted)
@@ -492,7 +496,7 @@ object RootSaveSourceWorker {
                 try {
                     val operation = row.getString("operation")
                     require(companions == null || operation in (setOf("names", "identity", "currentRoot", "entry",
-                        "open", "read", "close", "snapshotBegin", "snapshotVerify", "companionInventory") +
+                        "open", "read", "close", "snapshotBegin", "snapshotVerify", "companionInventory", "runtimeIdentity") +
                         if (companionRestore == null) emptySet() else setOf("write", "sync", "rename", "replace")))
                     // Capture stays read-only. Restore can write only its exact
                     // private stage and publish only the configured card.
@@ -564,6 +568,48 @@ object RootSaveSourceWorker {
                         } finally { OwnedStorageNative.close(fresh) }
                     }
                     val result = when (operation) {
+                        "runtimeIdentity" -> {
+                            require(configuration != null && configuration.runtimeFiles.isNotEmpty() && companionRestore == null)
+                            val identities = JSONArray()
+                            var total = 0L
+                            for (path in configuration.runtimeFiles.sorted()) {
+                                val actual = if (path.startsWith("/storage/emulated/0/"))
+                                    "/data/media/0/" + path.removePrefix("/storage/emulated/0/")
+                                    else if (path.startsWith("/storage/")) "/mnt/media_rw/" + path.removePrefix("/storage/") else path
+                                val parentPath = actual.substringBeforeLast('/')
+                                val leaf = actual.substringAfterLast('/')
+                                val coreParent = OwnedStorageNative.openRoot(parentPath)
+                                try {
+                                    val core = OwnedStorageNative.openFile(coreParent, leaf, false, false)
+                                    try {
+                                        val before = OwnedStorageNative.identity(core)
+                                        if (OwnedStorageNative.saveSnapshotHasWriter(coreParent, leaf,
+                                                path.substringBeforeLast('/'), parentPath)) throw IOException("source_changed")
+                                        require(before[2] in 1..(64L * 1024 * 1024) && total <= 64L * 1024 * 1024 - before[2])
+                                        total += before[2]
+                                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                                        var offset = 0L
+                                        while (offset < before[2]) {
+                                            val bytes = OwnedStorageNative.read(core, offset, minOf(65536L, before[2] - offset).toInt())
+                                            if (bytes.isEmpty()) throw IOException("source_changed")
+                                            digest.update(bytes); offset += bytes.size
+                                        }
+                                        if (OwnedStorageNative.saveSnapshotHasWriter(coreParent, leaf,
+                                                path.substringBeforeLast('/'), parentPath) ||
+                                            !before.contentEquals(OwnedStorageNative.identity(core)) ||
+                                            !before.contentEquals(OwnedStorageNative.entryIdentity(coreParent, leaf)))
+                                            throw IOException("source_changed")
+                                        val fresh = OwnedStorageNative.openRoot(parentPath)
+                                        try { if (!before.contentEquals(OwnedStorageNative.entryIdentity(fresh, leaf))) throw IOException("source_changed") }
+                                        finally { OwnedStorageNative.close(fresh) }
+                                        identities.put(JSONArray(listOf(path, digest.digest().joinToString("") { "%02x".format(it) })))
+                                    } finally { OwnedStorageNative.close(core) }
+                                } finally { OwnedStorageNative.close(coreParent) }
+                            }
+                            val digest = java.security.MessageDigest.getInstance("SHA-256")
+                                .digest(identities.toString().toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+                            JSONObject().put("identity", "files-$digest")
+                        }
                         "companionInventory" -> {
                             require(companions != null && companionRestore == null)
                             pinnedParent()

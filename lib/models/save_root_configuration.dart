@@ -11,8 +11,17 @@ class SaveRootConfiguration {
   final String directory, emulator, core, format;
   final SaveBackupKind kind;
   final List<String> files, folders, requiredFiles;
-  SaveRootConfiguration._(this.directory, this.emulator, this.core, this.kind,
-      this.format, this.files, this.folders, this.requiredFiles);
+  final List<String> runtimeFiles;
+  SaveRootConfiguration._(
+      this.directory,
+      this.emulator,
+      this.core,
+      this.kind,
+      this.format,
+      this.files,
+      this.folders,
+      this.requiredFiles,
+      this.runtimeFiles);
 
   factory SaveRootConfiguration.decode(Map<String, dynamic> row,
       {String? romName}) {
@@ -27,8 +36,9 @@ class SaveRootConfiguration {
       'folders',
       'required'
     };
-    if (row.length != keys.length ||
-        !row.keys.every(keys.contains) ||
+    final baseKeys = row.keys.toSet()..remove('runtimeFiles');
+    if (baseKeys.length != keys.length ||
+        !baseKeys.every(keys.contains) ||
         row['schema'] != 1 ||
         ['directory', 'emulator', 'core', 'kind', 'format']
             .any((k) => row[k] is! String) ||
@@ -87,6 +97,27 @@ class SaveRootConfiguration {
     final files = paths('files', binary: true);
     final folders = paths('folders');
     final required = paths('required', binary: true);
+    final runtime = row['runtimeFiles'] ?? <String>[];
+    if (runtime is! List ||
+        runtime.length > 16 ||
+        runtime.toSet().length != runtime.length ||
+        runtime.any((value) =>
+            value is! String ||
+            value.length > 4096 ||
+            !value.endsWith('.so') ||
+            !(SaveCapture.validRomCompanionDirectory(value) ||
+                ['/data/user/0/$emulator/', '/data/data/$emulator/']
+                    .any(value.startsWith)) ||
+            !value
+                .split('/')
+                .skip(1)
+                .every(SaveCapture.validPpssppSavedataMember)) ||
+        emulator == 'com.retroarch.aarch64' &&
+            row['kind'] != 'save' &&
+            runtime.isEmpty) {
+      throw const FormatException(
+          'The core library is required for this mapping');
+    }
     if (files.isEmpty && folders.isEmpty ||
         files.length + folders.length > 128 ||
         required.any((v) => !files.contains(v)) ||
@@ -101,7 +132,8 @@ class SaveRootConfiguration {
         row['format'],
         files,
         folders,
-        required);
+        required,
+        List<String>.unmodifiable(runtime.cast<String>()));
   }
 
   static bool _safe(String path, {bool binary = false}) {
@@ -133,7 +165,8 @@ class SaveRootConfiguration {
         'format': format,
         'files': files,
         'folders': folders,
-        'required': requiredFiles
+        'required': requiredFiles,
+        if (runtimeFiles.isNotEmpty) 'runtimeFiles': runtimeFiles,
       };
   String get identity => jsonEncode(toJson());
 }

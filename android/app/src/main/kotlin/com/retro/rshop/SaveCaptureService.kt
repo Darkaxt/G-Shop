@@ -93,7 +93,7 @@ internal class SaveCaptureService(private val activity: Context) {
     }
     private data class RomCompanionSource(val uri: Uri, val binding: String, val directory: String,
         val romName: String, val members: List<String>, val emulatorPackage: String, val version: String,
-        val configuration: SaveRootConfiguration? = null) {
+        val configuration: SaveRootConfiguration? = null, val coreVersion: String? = null) {
         val journalKey: String get() = JSONArray(listOf(uri.toString(), binding, members, emulatorPackage, version)).toString()
     }
     private fun romCompanionUri(call: MethodCall): Uri {
@@ -131,14 +131,38 @@ internal class SaveCaptureService(private val activity: Context) {
         @Suppress("DEPRECATION")
         val version = activity.packageManager.getPackageInfo(packageName, 0).versionName
         if (version.isNullOrEmpty()) throw Failure("runtime_unreviewed")
-        return RomCompanionSource(uri, binding, row["directory"] as String, romName,
+        val source = RomCompanionSource(uri, binding, row["directory"] as String, romName,
             members.sorted(), packageName, version, configuration)
+        val expected = call.argument<Map<*, *>>("expectedRuntime")
+        if (selectedMembers != null && configuration != null && configuration.kind != "save" && expected == null)
+            throw Failure("invalid_restore")
+        if (expected != null) {
+            if (configuration == null || expected.keys != setOf("emulatorVersion", "coreVersion") ||
+                expected["emulatorVersion"] != version) throw Failure("incompatible_state")
+            val core = configuredCoreIdentity(source)
+            if (expected["coreVersion"] != core) throw Failure("incompatible_state")
+            return source.copy(coreVersion = core)
+        }
+        return source
+    }
+    private fun configuredCoreIdentity(source: RomCompanionSource, storage: SaveSourceStorage? = null): String {
+        val config = source.configuration ?: throw Failure("runtime_unreviewed")
+        if (config.runtimeFiles.isNotEmpty()) {
+            if (storage != null) return storage.runtimeIdentity()
+            return SaveSourceStorage.openRomCompanions(activity, source.directory, source.romName,
+                emptyList(), configuration = config).use { it.runtimeIdentity() }
+        }
+        @Suppress("DEPRECATION")
+        val runtime = activity.packageManager.getPackageInfo(source.emulatorPackage, 0)
+        val code = if (android.os.Build.VERSION.SDK_INT >= 28) runtime.longVersionCode else runtime.versionCode.toLong()
+        return "package-$code"
     }
     private fun companionRecord(source: RomCompanionSource): JSONObject = JSONObject()
         .put("uri", source.uri.toString()).put("binding", source.binding).put("directory", source.directory)
         .put("romName", source.romName).put("members", JSONArray(source.members))
         .put("emulatorPackage", source.emulatorPackage).put("version", source.version).also {
             if (source.configuration != null) it.put("saveRoot", source.configuration.json())
+            if (source.coreVersion != null) it.put("coreVersion", source.coreVersion)
         }
     private fun restoreCompanions(record: JSONObject, revalidate: Boolean = false): RomCompanionSource? {
         val row = record.optJSONObject("romCompanions") ?: return null
@@ -146,8 +170,9 @@ internal class SaveCaptureService(private val activity: Context) {
         val names = row.getJSONArray("members").let { items -> (0 until items.length()).map(items::getString) }
         val value = RomCompanionSource(uri, row.getString("binding"), row.getString("directory"),
             row.getString("romName"), names, row.getString("emulatorPackage"), row.getString("version"),
-            row.optJSONObject("saveRoot")?.let(SaveRootConfiguration::decode))
-        if (row.length() != (if (value.configuration == null) 7 else 8) || uri.scheme != "content" || uri.authority != "${activity.packageName}.owned-roms" ||
+            row.optJSONObject("saveRoot")?.let(SaveRootConfiguration::decode),
+            row.optString("coreVersion").takeIf(String::isNotEmpty))
+        if (row.length() != 7 + (if (value.configuration == null) 0 else 1) + (if (value.coreVersion == null) 0 else 1) || uri.scheme != "content" || uri.authority != "${activity.packageName}.owned-roms" ||
             uri.query != null || uri.fragment != null || !value.binding.matches(Regex("[a-f0-9]{64}")) ||
             !(value.configuration?.let { it.directory == value.directory && it.emulator == value.emulatorPackage }
                 ?: RomCompanionBoundary.validDirectory(value.directory)) || names.size !in 1..RomCompanionBoundary.MAX_MEMBERS ||
@@ -162,6 +187,7 @@ internal class SaveCaptureService(private val activity: Context) {
             @Suppress("DEPRECATION")
             val version = activity.packageManager.getPackageInfo(value.emulatorPackage, 0).versionName
             if (version != value.version) throw Failure("runtime_changed")
+            if (value.coreVersion != null && configuredCoreIdentity(value) != value.coreVersion) throw Failure("incompatible_state")
         }
         return value
     }
@@ -531,7 +557,10 @@ internal class SaveCaptureService(private val activity: Context) {
             "emulatorVersion" to record.getString("emulatorVersion"), "files" to output,
             "localWasAbsent" to absent,
             "sourceIdentity" to if (absent || savedata) (0..1).map { record.getJSONArray("sourceIdentity").getLong(it) } else emptyList<Long>()).let {
-                if (savedata && companions == null) it + ("savedataGroupPresent" to record.optBoolean("savedataGroupPresent", true)) else it
+                if (companions?.configuration != null) it + ("coreVersion" to
+                    (record.optString("coreVersion").takeIf(String::isNotEmpty) ?:
+                        if (companions.configuration.kind == "save") "legacy-save" else throw Failure("runtime_unreviewed")))
+                else if (savedata && companions == null) it + ("savedataGroupPresent" to record.optBoolean("savedataGroupPresent", true)) else it
             }
     }
 
@@ -745,6 +774,7 @@ internal class SaveCaptureService(private val activity: Context) {
         opened.use { storage ->
             check()
             if (companions == null) storage.beginPpssppSavedataSnapshot() else storage.beginRomCompanionSnapshot()
+            val coreIdentity = if (companions?.configuration != null) configuredCoreIdentity(companions, storage) else null
             val selected = storage.names()
             val absent = restoreBaseline && selected.isEmpty()
             if (companions == null && !absent && !PpssppSavedataBoundary.validMembers(selected)) throw Failure("invalid_selection")
@@ -789,6 +819,7 @@ internal class SaveCaptureService(private val activity: Context) {
                     throw Failure("source_changed")
                 if (companions == null) storage.verifyPpssppSavedataSnapshot() else {
                     storage.verifySnapshot()
+                    if (coreIdentity != null && configuredCoreIdentity(companions, storage) != coreIdentity) throw Failure("runtime_changed")
                     if (OwnedRomContentProvider.companionSnapshot(activity, companions.uri, null, ::check, companions.configuration)["binding"] != companions.binding)
                         throw Failure("source_changed")
                 }
@@ -799,6 +830,7 @@ internal class SaveCaptureService(private val activity: Context) {
                     .put("source", sourceDirectory).put("localWasAbsent", absent).put("savedataGroupPresent", true)
                 record.put("sourceIdentity", JSONArray(parentIdentity.take(2)))
                 if (companions != null) record.put("romCompanionSource", companions.journalKey)
+                if (coreIdentity != null) record.put("coreVersion", coreIdentity)
                 val part = File(directory, "capture.json.part")
                 FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
                 OwnedStorageNative.renameNoReplace(stage, part.name, stage, "capture.json")

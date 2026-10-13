@@ -6,10 +6,10 @@ import org.json.JSONObject
 /** Exact opt-in game selection, consumed by the existing root IO/watch lane. */
 internal data class SaveRootConfiguration(val directory: String, val emulator: String,
     val core: String, val kind: String, val format: String, val files: List<String>,
-    val folders: List<String>, val required: List<String>) {
+    val folders: List<String>, val required: List<String>, val runtimeFiles: List<String> = emptyList()) {
     companion object {
         fun decode(row: JSONObject): SaveRootConfiguration {
-            require(row.keys().asSequence().toSet() == setOf("schema", "directory", "emulator", "core",
+            require(row.keys().asSequence().toSet() - "runtimeFiles" == setOf("schema", "directory", "emulator", "core",
                 "kind", "format", "files", "folders", "required") && row.getInt("schema") == 1)
             val emulator = row.getString("emulator")
             require(emulator.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+")))
@@ -27,7 +27,18 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
             }
             val files = paths("files", true); val folders = paths("folders"); val required = paths("required", true)
             require(files.size + folders.size in 1..128 && files.containsAll(required))
-            return SaveRootConfiguration(directory, emulator, core, kind, format, files, folders, required)
+            val runtime = row.optJSONArray("runtimeFiles") ?: JSONArray()
+            require(!row.has("runtimeFiles") || row.optJSONArray("runtimeFiles") != null)
+            require(runtime.length() <= 16)
+            val runtimeFiles = (0 until runtime.length()).map(runtime::getString)
+            require(runtimeFiles.toSet().size == runtimeFiles.size && runtimeFiles.all { path ->
+                path.length <= 4096 && path.endsWith(".so") &&
+                    (RomCompanionBoundary.validDirectory(path) ||
+                        listOf("/data/user/0/$emulator/", "/data/data/$emulator/").any(path::startsWith)) &&
+                    path.split('/').drop(1).all(RomCompanionBoundary::validLeaf)
+            })
+            require(emulator != "com.retroarch.aarch64" || kind == "save" || runtimeFiles.isNotEmpty())
+            return SaveRootConfiguration(directory, emulator, core, kind, format, files, folders, required, runtimeFiles)
         }
         fun validDirectory(path: String, emulator: String): Boolean = path.length <= 4096 &&
             (RomCompanionBoundary.validDirectory(path) ||
@@ -48,5 +59,7 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
     fun completeGroup(present: Set<String>): Boolean = present.isEmpty() || present.containsAll(required)
     fun json(): JSONObject = JSONObject().put("schema", 1).put("directory", directory).put("emulator", emulator)
         .put("core", core).put("kind", kind).put("format", format).put("files", JSONArray(files))
-        .put("folders", JSONArray(folders)).put("required", JSONArray(required))
+        .put("folders", JSONArray(folders)).put("required", JSONArray(required)).also {
+            if (runtimeFiles.isNotEmpty()) it.put("runtimeFiles", JSONArray(runtimeFiles))
+        }
 }

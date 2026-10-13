@@ -60,6 +60,7 @@ class _Capture extends SaveCapture {
   final pcsxRestores = <String>[];
   bool companionNested = false;
   SaveRootConfiguration? configuredRoot;
+  String runtimeFingerprint = 'd' * 64;
   @override
   Future<RomCompanionSnapshot> reviewRomCompanions(
           {required Map<String, Object> grant,
@@ -108,6 +109,7 @@ class _Capture extends SaveCapture {
                   4,
                   digest),
         ],
+        coreVersion: runtimeFingerprint,
         localWasAbsent: localAbsent && restoreBaseline);
   }
 
@@ -117,6 +119,7 @@ class _Capture extends SaveCapture {
       required Map<String, Object> grant,
       required RomCompanionSnapshot snapshot,
       required String emulatorPackage,
+      Map<String, String>? expectedRuntime,
       required List<RestoreSaveMember> members}) async {
     for (final member in members) {
       var received = 0;
@@ -2708,6 +2711,10 @@ void main() {
         'core': 'mgba',
         'kind': kind.name,
         'format': 'configured-${kind.name}-v1',
+        if (kind != SaveBackupKind.save)
+          'runtimeFiles': [
+            '/data/user/0/com.retroarch.aarch64/cores/mgba_libretro_android.so'
+          ],
         'files': ['Game.sav', 'Game.rtc'],
         'folders': <String>[],
         'required': ['Game.sav', 'Game.rtc'],
@@ -2743,6 +2750,10 @@ void main() {
       expect(configured.issue, isNull);
       expect(configured.lastVerified!.binding.kind, kind);
       expect(configured.lastVerified!.binding.formatId, config.format);
+      if (kind == SaveBackupKind.state) {
+        expect(configured.lastVerified!.binding.coreVersion,
+            capture.runtimeFingerprint);
+      }
       expect(
           configured.lastVerified!.binding.companionCompatibility,
           kind == SaveBackupKind.companion
@@ -2753,6 +2764,20 @@ void main() {
       expect(configured.issue, isNull);
       expect(capture.stagedGroups.last.toSet(), {'Game.sav', 'Game.rtc'});
       expect(configured.rollbackAvailable, isTrue);
+      if (kind == SaveBackupKind.state) {
+        final staged = capture.stagedGroups.length;
+        capture.runtimeFingerprint = 'e' * 64;
+        final uploads = generations.uploads;
+        await configured.backup('Game.7z');
+        expect(configured.issue, 'incompatible_state');
+        expect(generations.uploads, uploads,
+            reason:
+                'unchanged old state must not be relabelled as a new-core state');
+        expect(configured.lastVerified!.binding.coreVersion, 'd' * 64);
+        await configured.restoreLatest();
+        expect(configured.issue, 'incompatible_state');
+        expect(capture.stagedGroups.length, staged);
+      }
     });
   }
 

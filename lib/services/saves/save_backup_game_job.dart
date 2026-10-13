@@ -1209,7 +1209,11 @@ class SaveBackupGameJob extends ChangeNotifier {
               emulatorPackage: _emulator,
               emulatorVersion: group.emulatorVersion,
               coreId: _core,
-              coreVersion: 'unreported',
+              coreVersion: saveRootConfiguration != null
+                  ? group.coreVersion ??
+                      (throw const FormatException(
+                          'Missing configured runtime'))
+                  : 'unreported',
               platformId: _platform,
               editions: [
                 SaveBackupEdition(gameId: game.id, editionId: editionId)
@@ -1224,6 +1228,31 @@ class SaveBackupGameJob extends ChangeNotifier {
               formatId: _format,
               sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
               sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);
+          final priorState = lastVerified;
+          if (saveRootConfiguration != null &&
+              _kind == SaveBackupKind.state &&
+              priorState != null &&
+              (priorState.binding.coreVersion != binding.coreVersion ||
+                  priorState.binding.emulatorVersion !=
+                      binding.emulatorVersion) &&
+              priorState.members.length == group.files.length &&
+              priorState.members.every((member) => group.files.any((file) =>
+                  file.name == member.relativePath &&
+                  file.size == member.sizeBytes &&
+                  file.sha256 == member.sha256))) {
+            // A core update is not evidence that unchanged old state bytes were
+            // produced by the new core. Retain their original runtime identity.
+            await _persist({
+              ...record,
+              'state': 'complete',
+              'generation': record['lastVerified'],
+              'captures': null,
+              'retireCaptureId': record['captureId']
+            });
+            await _retireCompletedCapture();
+            _issue = 'incompatible_state';
+            return;
+          }
           final priorDevice =
               _deviceBinding?.deviceId ?? lastVerified?.binding.deviceId;
           if (priorDevice != null && priorDevice != binding.deviceId) {
@@ -1634,7 +1663,8 @@ class SaveBackupGameJob extends ChangeNotifier {
           'related_group_unfinished',
           'emulator_missing',
           'changed_capture',
-          'root_unavailable'
+          'root_unavailable',
+          'incompatible_state'
         }.contains(error.code)
             ? error.code
             : 'capture_unavailable';
@@ -1820,6 +1850,14 @@ class SaveBackupGameJob extends ChangeNotifier {
           final local = await _capture(rollbackId, name,
               restoreBaseline: !rollback, companionMembers: companionPaths);
           _check(cancellation);
+          if (saveRootConfiguration != null &&
+              _kind != SaveBackupKind.save &&
+              (selected.binding.emulatorVersion != local.emulatorVersion ||
+                  local.coreVersion == null ||
+                  selected.binding.coreVersion != local.coreVersion)) {
+            _issue = 'incompatible_state';
+            return;
+          }
           if (!isRomCompanion &&
               !isPpssppSavedata &&
               !(local.localWasAbsent && local.files.isEmpty && !rollback) &&
@@ -1917,6 +1955,13 @@ class SaveBackupGameJob extends ChangeNotifier {
                 grant: grant,
                 snapshot: snapshot,
                 emulatorPackage: romCompanionEmulator!,
+                expectedRuntime: saveRootConfiguration != null &&
+                        _kind != SaveBackupKind.save
+                    ? {
+                        'emulatorVersion': cloud.binding.emulatorVersion,
+                        'coreVersion': cloud.binding.coreVersion
+                      }
+                    : null,
                 members: members);
           } else if (isPpssppSavedata) {
             final members = retained != null
@@ -2094,7 +2139,8 @@ class SaveBackupGameJob extends ChangeNotifier {
           'related_group_unfinished',
           'related_group_changed',
           'restore_stage_conflict',
-          'root_unavailable'
+          'root_unavailable',
+          'incompatible_state'
         }.contains(error.code)
             ? error.code
             : 'restore_unavailable';

@@ -328,6 +328,7 @@ class OwnedRomInstrumentation : Instrumentation() {
                 val mappedCard = File(mappedRoot, "card.bin")
                 val mappedChild = File(mappedFolder, "progress.dat")
                 val mappedOther = File(mappedRoot, "Other.sav")
+                val mappedRuntime = File(mappedRoot, "fixture-core.so")
                 fun invoke(method: String, args: Map<String, Any>, expected: String? = null): Any? {
                     val done = CountDownLatch(1)
                     var value: Any? = null; var failure: String? = null
@@ -472,12 +473,15 @@ class OwnedRomInstrumentation : Instrumentation() {
                     check(mappedCard.createNewFile()); mappedCard.writeBytes(byteArrayOf(10, 11))
                     check(mappedChild.createNewFile()); mappedChild.writeBytes(byteArrayOf(12))
                     check(mappedOther.createNewFile()); mappedOther.writeBytes(byteArrayOf(13))
+                    check(mappedRuntime.createNewFile()); mappedRuntime.writeBytes(byteArrayOf(31, 32))
                     val configuration = SaveRootConfiguration(mappedRoot.path, targetContext.packageName,
-                        "fixture", "save", "fixture-card-v1", listOf("card.bin"), listOf("TITLE123"), listOf("card.bin"))
+                        "fixture", "state", "fixture-state-v1", listOf("card.bin"), listOf("TITLE123"), listOf("card.bin"),
+                        listOf(mappedRuntime.path))
                     val configurationMap = mapOf<String, Any>("schema" to 1, "directory" to mappedRoot.path,
-                        "emulator" to targetContext.packageName, "core" to "fixture", "kind" to "save",
-                        "format" to "fixture-card-v1", "files" to listOf("card.bin"),
-                        "folders" to listOf("TITLE123"), "required" to listOf("card.bin"))
+                        "emulator" to targetContext.packageName, "core" to "fixture", "kind" to "state",
+                        "format" to "fixture-state-v1", "files" to listOf("card.bin"),
+                        "folders" to listOf("TITLE123"), "required" to listOf("card.bin"),
+                        "runtimeFiles" to listOf(mappedRuntime.path))
                     val configuredGrant = mapOf<String, Any>("installationId" to id, "filename" to rom.name,
                         "saveRoot" to configurationMap, "emulatorPackage" to targetContext.packageName)
                     val configuredSnapshot = invoke("romCompanionSnapshot", configuredGrant) as Map<*, *>
@@ -503,13 +507,23 @@ class OwnedRomInstrumentation : Instrumentation() {
                     val configuredCapture = invoke("captureRomCompanions", configuredBinding + mapOf(
                         "captureId" to configuredCaptureId, "members" to configuredNames)) as Map<*, *>
                     check((configuredCapture["files"] as List<*>).map { (it as Map<*, *>)["name"] } == configuredNames)
+                    val runtimeFiles = org.json.JSONArray().put(org.json.JSONArray(listOf(mappedRuntime.path, sha(mappedRuntime.readBytes()))))
+                    val expectedCore = "files-" + sha(runtimeFiles.toString().toByteArray(Charsets.UTF_8))
+                    check(configuredCapture["coreVersion"] == expectedCore)
+                    val expectedRuntime = mapOf("emulatorVersion" to configuredCapture["emulatorVersion"]!!,
+                        "coreVersion" to expectedCore)
                     val configuredRestoreId = UUID.randomUUID().toString().replace("-", "")
                     restoreIds[configuredRestoreId] = configuredNames
                     val configuredBytes = listOf(byteArrayOf(21, 22), byteArrayOf(23, 24))
-                    invoke("beginRestoreGroup", configuredBinding + mapOf("captureId" to configuredRestoreId,
+                    val configuredRestore = configuredBinding + mapOf("captureId" to configuredRestoreId,
+                        "expectedRuntime" to expectedRuntime,
                         "name" to rom.name, "members" to configuredNames.indices.map { index ->
                             mapOf("name" to configuredNames[index], "size" to configuredBytes[index].size,
-                                "sha256" to sha(configuredBytes[index])) }))
+                                "sha256" to sha(configuredBytes[index])) })
+                    mappedRuntime.writeBytes(byteArrayOf(41, 42))
+                    invoke("beginRestoreGroup", configuredRestore, "incompatible_state")
+                    mappedRuntime.writeBytes(byteArrayOf(31, 32))
+                    invoke("beginRestoreGroup", configuredRestore)
                     for (index in configuredBytes.indices) invoke("appendRestoreGroup", mapOf(
                         "captureId" to configuredRestoreId, "member" to index, "offset" to 0L, "bytes" to configuredBytes[index]))
                     invoke("sealRestoreGroup", mapOf("captureId" to configuredRestoreId))
@@ -529,7 +543,7 @@ class OwnedRomInstrumentation : Instrumentation() {
                     companionWatch?.close()
                     captures.forEach { captureId -> invoke("retireCapture", mapOf("captureId" to captureId)) }
                     val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
-                    for (fixture in listOf(mappedChild, mappedCard, mappedOther, mappedFolder, mappedRoot)) {
+                    for (fixture in listOf(mappedChild, mappedCard, mappedOther, mappedRuntime, mappedFolder, mappedRoot)) {
                         if (fixture.exists()) check(fixture.delete())
                     }
                     // Exact disposable fixture journals only; no user captures,

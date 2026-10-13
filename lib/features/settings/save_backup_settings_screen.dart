@@ -1948,6 +1948,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                               'Allow R-Shop root access in your root manager, then resume the restore. Your cloud backup and staged save are kept.',
                             'related_group_changed' =>
                               'This backup and the local save contain different files. Nothing was replaced; both copies are kept.',
+                            'incompatible_state' =>
+                              'The emulator or core changed. This state is still backed up, but needs the matching version to restore it. Nothing was replaced.',
                             'pending_restore' ||
                             'save_restore_pending' =>
                               'Finish the pending restore in Restore & conflicts before backing up or opening this game.',

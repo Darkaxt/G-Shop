@@ -13,6 +13,14 @@ the existing shared filesystem/Drive pipeline, not eight separate sync engines
 or live test campaigns. External/private-root configuration now feeds that same
 engine, normal mapping import, durable background records and root watch. Host
 publication/restore and an actual private-root capture/watch/restore check pass.
+Configured state runtime identity is now verified through actual native capture
+and restore: a changed runtime fingerprint rejects restore, unchanged old state
+bytes retain their original identity, and matching runtime restores the selected
+group. Request 981 passes focused native verification and app/test packaging,
+shared gate acquired with two observed workers, no parallel projects, 3 GiB heap,
+Kotlin in-process configured, one 512 MiB fail-fast test fork and verified daemon
+exit. No memory failure. The Thor production-channel probe passes using exclusive
+private-root/core fixtures, without changing actual emulator saves or cloud data.
 Standard-location configuration reconciliation remains unfinished; generic access
 alone is not proof that an installed emulator's correct files are configured.
 Remaining touch/controller and responsive-layout acceptance belongs to S12 by
@@ -78,7 +86,7 @@ Current SAVE-01 advancement blockers are internal and actionable:
 
 | Required criterion | Concrete remaining gap | Resolution / dependent completion |
 | --- | --- | --- |
-| Standard configuration and state-runtime identity | Declarative external/private roots are wired through the existing lane and normal mapping import; host workflow, native packaging and actual private-root capture/watch/restore pass. Standard-location mappings and independently updated core identity for configured states still need reconciliation; `unreported` core version is not proof of compatible core bytes | Resolve the standard configuration and actual state-runtime evidence using the same engine; do not build per-family sync engines or claim all configured states compatible |
+| Standard configuration | Declarative external/private roots are wired through the existing lane and normal mapping import; host workflow, native packaging, actual private-root capture/watch/restore and independently updated configured-core identity pass. Standard-location mappings still need reconciliation | Resolve the standard configuration using the same engine; do not build per-family sync engines or claim unconfigured paths resolved |
 | Legacy sync handover | Replacement acceptance has not passed, so retirement must not begin | After acceptance, join the exact old writer, retire only the authorized app/task and prove replacement backup/restore |
 
 These block advancement, not continued implementation. No external execution

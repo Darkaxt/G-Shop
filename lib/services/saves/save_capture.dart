@@ -18,11 +18,12 @@ class CapturedSaveFile {
 
 class CapturedSaveGroup {
   final String captureId, deviceId, emulatorVersion;
+  final String? coreVersion;
   final List<CapturedSaveFile> files;
   final bool localWasAbsent;
   CapturedSaveGroup(this.captureId, this.deviceId, this.emulatorVersion,
       List<CapturedSaveFile> files,
-      {this.localWasAbsent = false})
+      {this.localWasAbsent = false, this.coreVersion})
       : files = List.unmodifiable(files);
 }
 
@@ -817,6 +818,14 @@ class SaveCapture {
         raw['files'] is! List) {
       throw const FormatException('Invalid captured group');
     }
+    if (raw['coreVersion'] != null &&
+        (raw['coreVersion'] is! String ||
+            (raw['coreVersion'] as String).isEmpty ||
+            (raw['coreVersion'] as String).length > 512 ||
+            RegExp(r'[\x00-\x1f\x7f]')
+                .hasMatch(raw['coreVersion'] as String))) {
+      throw const FormatException('Invalid captured runtime');
+    }
     final files = <CapturedSaveFile>[];
     final seen = <String>{};
     final paths = <String>{};
@@ -854,7 +863,7 @@ class SaveCapture {
     }
     return CapturedSaveGroup(captureId, raw['deviceId'] as String,
         raw['emulatorVersion'] as String, files,
-        localWasAbsent: absent);
+        localWasAbsent: absent, coreVersion: raw['coreVersion'] as String?);
   }
 
   Future<void> cancel(String captureId) =>
@@ -1065,6 +1074,7 @@ class SaveCapture {
       required Map<String, Object> grant,
       required RomCompanionSnapshot snapshot,
       required String emulatorPackage,
+      Map<String, String>? expectedRuntime,
       required List<RestoreSaveMember> members}) async {
     final keys = grant.keys.toSet()..remove('saveRoot');
     final owned = setEquals(keys, {'installationId', 'filename'}) &&
@@ -1114,7 +1124,8 @@ class SaveCapture {
         romCompanion: {
           ...grant,
           'binding': snapshot.binding,
-          'emulatorPackage': emulatorPackage
+          'emulatorPackage': emulatorPackage,
+          if (expectedRuntime != null) 'expectedRuntime': expectedRuntime,
         });
   }
 

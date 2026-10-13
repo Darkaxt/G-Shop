@@ -66,6 +66,33 @@ field cannot prove those bytes compatible. Resolve this with the standard
 configuration/runtime evidence before S10 closure; do not treat the synthetic
 state job as verification of every installed core's state compatibility.
 
+### Configured runtime compatibility — 2026-10-13
+
+Configured groups now record the installed package version code, or streamed
+fingerprints of explicitly configured runtime libraries when the core can change
+independently of the APK. RetroArch state/companion mappings require those library
+paths. Capture seals the identity alongside the files; restore rechecks it before
+staging and publication. Unchanged old state bytes retain their original runtime
+identity after a core update rather than being relabelled as newly compatible.
+This uses the same root worker and restore coordinator, with no emulator status
+handshake or separate sync service.
+
+Affected host job/configuration/capture checks and scoped analysis pass. Gated
+request 981 passes focused native contracts and app/test packaging; shared mutex
+acquired, build/helper exits 0 and daemon exit verified. Observed workers=2,
+parallel=false, Gradle heap=3 GiB; Kotlin in-process configured/requested. One
+512 MiB fail-fast test fork is configured and selected tests ran. Native environment
+budget two is not proof of every plugin's concurrency. No memory failure occurred.
+Preserving installed debug APK SHA-256:
+`f5409a3d607d9bc97fc5246aa3428e51255edaa79b41fac3f46b65b1f306259e`.
+The actual Thor production-channel probe verifies the configured private-root
+capture receipt's independent fixture-library fingerprint, mismatch rejection and
+successful complete publication after restoring that fingerprint. It also verifies
+unselected-file preservation, watch admission and retained rollback. Exclusive
+fixtures are removed; no real emulator/core/save or cloud data is changed.
+Standard-location configuration and conditional legacy handover remain unfinished
+S10 acceptance; S11/S12 remain NOT STARTED.
+
 ### Owner execution correction — 2026-10-13
 
 Specification revision 39 supersedes historical per-family/input closure language
