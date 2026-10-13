@@ -6,18 +6,21 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import java.util.concurrent.Executors
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 
-/** Android owns periodic admission. No timer, exact alarm or screen wake. */
+/** Android owns network/periodic admission. No app timer, alarm or screen wake. */
 internal object SaveBackgroundChannel {
     const val JOB_ID = 0x525342
+    const val PENDING_JOB_ID = 0x525343
     const val PERIOD_MS = 6L * 60 * 60 * 1000
     const val NAME = "com.retro.rshop/save_background"
     var foreground: MethodChannel? = null
         private set
-    private var detached: (() -> Unit)? = null
+    private val detached = mutableSetOf<() -> Unit>()
     private var watch: SaveFileWatch? = null
     // Joining root children must never block Flutter's platform/UI thread.
     private val watchLane = Executors.newSingleThreadExecutor { work -> Thread(work, "rshop-save-watch-owner") }
@@ -76,6 +79,8 @@ internal object SaveBackgroundChannel {
                         schedule(context, enabled)
                         result.success(null)
                     }
+                    "pending" -> { schedulePending(context); result.success(null) }
+                    "networkAvailable" -> result.success(networkAvailable(context))
                     else -> result.notImplemented()
                 }
             } catch (_: Exception) {
@@ -87,7 +92,7 @@ internal object SaveBackgroundChannel {
 
     fun schedule(context: Context, enabled: Boolean) {
         val scheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
-        if (!enabled) { scheduler.cancel(JOB_ID); return }
+        if (!enabled) { scheduler.cancel(JOB_ID); scheduler.cancel(PENDING_JOB_ID); return }
         val component = ComponentName(context, SaveBackupJobService::class.java)
         val old = scheduler.getPendingJob(JOB_ID)
         if (old?.service == component && old.isPeriodic && old.isPersisted &&
@@ -98,10 +103,30 @@ internal object SaveBackgroundChannel {
         check(scheduler.schedule(info) == JobScheduler.RESULT_SUCCESS)
     }
 
-    fun watchDetach(channel: MethodChannel, callback: () -> Unit) {
-        if (foreground === channel) detached = callback else callback()
+    fun networkAvailable(context: Context): Boolean {
+        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
-    fun unwatchDetach() { detached = null }
+
+    fun schedulePending(context: Context) {
+        val scheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+        val component = ComponentName(context, PendingSaveBackupJobService::class.java)
+        val old = scheduler.getPendingJob(PENDING_JOB_ID)
+        // Never replace/cancel an admitted pass. Its receipt reschedules any
+        // still-pending work; Android waits for the network constraint itself.
+        if (old?.service == component && !old.isPeriodic && old.isPersisted &&
+            old.networkType == JobInfo.NETWORK_TYPE_ANY) return
+        val info = JobInfo.Builder(PENDING_JOB_ID, component)
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true).build()
+        check(scheduler.schedule(info) == JobScheduler.RESULT_SUCCESS)
+    }
+
+    fun watchDetach(channel: MethodChannel, callback: () -> Unit): () -> Unit {
+        if (foreground === channel) detached.add(callback) else callback()
+        return { detached.remove(callback) }
+    }
     private fun stopWatch() {
         watchGeneration++
         watchLane.execute { watch?.close(); watch = null }
@@ -110,9 +135,9 @@ internal object SaveBackgroundChannel {
         if (channel != null && foreground === channel) {
             stopWatch()
             foreground = null
-            val notify = detached
-            detached = null
-            notify?.invoke()
+            val notify = detached.toList()
+            detached.clear()
+            notify.forEach { it() }
         }
     }
 }

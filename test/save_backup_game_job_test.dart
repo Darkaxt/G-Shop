@@ -57,6 +57,73 @@ class _Capture extends SaveCapture {
   final melonSources = <String>[];
   final pcsxSources = <String>[];
   final pcsxRestores = <String>[];
+  bool companionNested = false;
+  @override
+  Future<RomCompanionSnapshot> reviewRomCompanions(
+          {required Map<String, Object> grant,
+          RomCompanionSnapshot? before}) async =>
+      RomCompanionSnapshot.decode({
+        'binding': 'a' * 64,
+        'directory': '/storage/emulated/0/Roms/gba',
+        'romName': 'Game.7z',
+        'directoryIdentity': [1, 2],
+        'files': {
+          for (final name in [
+            'Game.png',
+            'Game.cache',
+            if (companionNested) 'Game/images/shot.png'
+          ])
+            name: [1, 3, 4, 100, 0]
+        },
+        'changed': <String>[],
+      });
+
+  @override
+  Future<CapturedSaveGroup> captureRomCompanions(
+      {required String captureId,
+      required Map<String, Object> grant,
+      required RomCompanionSnapshot snapshot,
+      required Set<String> members,
+      required String emulatorPackage,
+      bool restoreBaseline = false}) async {
+    if (captureIssue != null) throw PlatformException(code: captureIssue!);
+    if (sealed[captureId] case final previous?) return previous;
+    captures++;
+    final names = members.toList()..sort();
+    return sealed[captureId] = CapturedSaveGroup(
+        captureId,
+        deviceId,
+        '1.22.2_GIT',
+        [
+          if (!localAbsent)
+            for (final name in names)
+              CapturedSaveFile(
+                  name,
+                  _MemorySaveFile('/private/$captureId/$name', [1, 2, 3, 4]),
+                  4,
+                  digest),
+        ],
+        localWasAbsent: localAbsent && restoreBaseline);
+  }
+
+  @override
+  Future<void> stageRomCompanionRestore(
+      {required String restoreId,
+      required Map<String, Object> grant,
+      required RomCompanionSnapshot snapshot,
+      required String emulatorPackage,
+      required List<RestoreSaveMember> members}) async {
+    for (final member in members) {
+      var received = 0;
+      await for (final chunk in member.bytes) {
+        received += chunk.length;
+      }
+      expect(received, member.size);
+    }
+    stagedGroups.add(members.map((member) => member.name).toList());
+    staged.add(restoreId);
+  }
+
   @override
   Future<CapturedSaveGroup> capturePcsx(
       {required String captureId,
@@ -1357,43 +1424,53 @@ void main() {
         SharedPreferences preferences
       })> automaticFixture({
     Future<void> Function(bool)? schedule,
+    Future<void> Function()? pending,
+    Future<bool> Function()? network,
     Future<void> Function()? refresh,
     Future<void> Function(List<AutomaticSaveMapping>)? watch,
     Set<String> watchFailures = const {},
     bool melon = false,
     bool savedata = false,
     bool companion = false,
+    bool romCompanion = false,
     String? ppssppDirectory,
     RetroArchBatteryRoute? retroArch,
     PcsxSaveLayout? pcsx,
   }) async {
     await LibraryStore(Future.value(db)).putGame(GameIdentity(
         id: 'game',
-        platformId: pcsx != null
-            ? 'psx'
-            : retroArch?.platformId ?? (melon ? 'nds' : 'psp'),
+        platformId: romCompanion
+            ? 'gba'
+            : pcsx != null
+                ? 'psx'
+                : retroArch?.platformId ?? (melon ? 'nds' : 'psp'),
         title: 'Game',
         matchStatus: IdentityMatchStatus.manuallyMatched));
-    final directory = pcsx != null
-        ? pcsx.directory
-        : retroArch != null
-            ? retroArch.directory
-            : melon
-                ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
-                : savedata
-                    ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
-                    : ppssppDirectory ?? '/storage/emulated/0/PSP/PPSSPP_STATE';
-    final slot = pcsx != null
-        ? pcsx.cards.single.name!
-        : retroArch != null
-            ? 'owned%2FGame.srm'
-            : melon
-                ? 'Game.sav'
-                : savedata
-                    ? 'ULUS10041DATA00'
-                    : companion
-                        ? 'ULUS10041_1.00_0.jpg'
-                        : 'ULUS10041_1.00_0.ppst';
+    final directory = romCompanion
+        ? '/storage/emulated/0/Roms/gba'
+        : pcsx != null
+            ? pcsx.directory
+            : retroArch != null
+                ? retroArch.directory
+                : melon
+                    ? '/storage/emulated/0/Android/data/me.magnum.melondualds/files/saves'
+                    : savedata
+                        ? '/storage/emulated/0/PSP/SAVEDATA/ULUS10041DATA00'
+                        : ppssppDirectory ??
+                            '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final slot = romCompanion
+        ? 'Game.7z'
+        : pcsx != null
+            ? pcsx.cards.single.name!
+            : retroArch != null
+                ? 'owned%2FGame.srm'
+                : melon
+                    ? 'Game.sav'
+                    : savedata
+                        ? 'ULUS10041DATA00'
+                        : companion
+                            ? 'ULUS10041_1.00_0.jpg'
+                            : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
         capture: capture,
@@ -1404,10 +1481,18 @@ void main() {
         areaId: 'area',
         editionId: 'edition',
         artifactId: artifactId,
-        ppssppDirectory: melon || savedata || retroArch != null || pcsx != null
+        ppssppDirectory: romCompanion ||
+                melon ||
+                savedata ||
+                retroArch != null ||
+                pcsx != null
             ? null
             : directory,
-        ppssppSlot: melon || savedata || retroArch != null || pcsx != null
+        ppssppSlot: romCompanion ||
+                melon ||
+                savedata ||
+                retroArch != null ||
+                pcsx != null
             ? null
             : slot,
         ppssppSavedataDirectory: savedata ? directory : null,
@@ -1421,11 +1506,23 @@ void main() {
             ? null
             : () async =>
                 {'installationId': 'installation', 'filename': 'Game.chd'},
+        resolveRomCompanionGrant: romCompanion
+            ? () async => {'installationId': 'owned', 'filename': 'Game.7z'}
+            : null,
+        romCompanionName: romCompanion ? slot : null,
+        romCompanionDirectory: romCompanion ? directory : null,
+        romCompanionPlatform: romCompanion ? 'gba' : null,
+        romCompanionEmulator: romCompanion ? 'com.retroarch.aarch64' : null,
+        romCompanionCore: romCompanion ? 'mgba' : null,
         resolveSaveName: () async => slot);
     final mapping = AutomaticSaveMapping.fromJob(psp,
         title: 'Game',
         saveName: retroArch != null ? slot : null,
-        romRoot: pcsx == null ? null : '/storage/1234-ABCD/Roms/psx');
+        romRoot: romCompanion
+            ? directory
+            : pcsx == null
+                ? null
+                : '/storage/1234-ABCD/Roms/psx');
     psp.dispose();
     SharedPreferences.setMockInitialValues({
       SaveBackupSetup.storageKey('client', 'account'):
@@ -1442,6 +1539,8 @@ void main() {
         database: Future.value(db),
         preferences: preferences,
         scheduleBackground: schedule,
+        schedulePending: pending,
+        networkAvailable: network,
         configureWatches: watch == null
             ? null
             : (mappings) async {
@@ -1472,11 +1571,18 @@ void main() {
             areaId: mapped.areaId,
             editionId: mapped.editionId,
             artifactId: mapped.artifactId,
-            ppssppDirectory:
-                melon || savedata || retroArch != null || pcsx != null
-                    ? null
-                    : mapped.directory,
-            ppssppSlot: melon || savedata || retroArch != null || pcsx != null
+            ppssppDirectory: romCompanion ||
+                    melon ||
+                    savedata ||
+                    retroArch != null ||
+                    pcsx != null
+                ? null
+                : mapped.directory,
+            ppssppSlot: romCompanion ||
+                    melon ||
+                    savedata ||
+                    retroArch != null ||
+                    pcsx != null
                 ? null
                 : mapped.slot,
             ppssppSavedataDirectory: savedata ? mapped.directory : null,
@@ -1490,6 +1596,14 @@ void main() {
                 ? null
                 : () async =>
                     {'installationId': 'installation', 'filename': 'Game.chd'},
+            resolveRomCompanionGrant: romCompanion
+                ? () async => {'installationId': 'owned', 'filename': 'Game.7z'}
+                : null,
+            romCompanionName: romCompanion ? mapped.slot : null,
+            romCompanionDirectory: romCompanion ? mapped.directory : null,
+            romCompanionPlatform: mapped.companionPlatform,
+            romCompanionEmulator: mapped.companionEmulator,
+            romCompanionCore: mapped.companionCore,
             resolveSaveName: resolve));
     addTearDown(() async {
       service.dispose();
@@ -1821,6 +1935,32 @@ void main() {
     expect(generations.downloads, 0);
     expect((await fixture.service.status(fixture.mapping)).issue, isNull);
   });
+  test(
+      'ROM companion automatic work persists opt-in, admits changes and restores before watched launch',
+      () async {
+    capture.companionNested = true;
+    final watched = <AutomaticSaveMapping>[];
+    final fixture = await automaticFixture(
+        romCompanion: true, watch: (rows) async => watched.addAll(rows));
+    await fixture.service.checkEnabled();
+    expect(generations.uploads, 1);
+    expect(watched.last.isRomCompanion, isTrue);
+    capture.digest = 'd' * 64;
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    expect(generations.uploads, 2);
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    await db.delete('save_backup_game_jobs');
+    capture.localAbsent = true;
+    await fixture.service
+        .prepareLaunch(artifactId: artifactId, editionId: 'edition');
+    expect(capture.stagedGroups.last.toSet(),
+        {'Game.png', 'Game.cache', 'Game/images/shot.png'});
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'restored');
+    expect(generations.uploads, 2,
+        reason: 'Absence must not publish an empty cloud generation');
+  });
+
   test('automatic launch restores a missing PSP slot before arming its watch',
       () async {
     var preparingLaunch = false;
@@ -2268,6 +2408,7 @@ void main() {
     expect(await fixture.service.passSummary(), {
       'enabled': 1,
       'pending': 0,
+      'retryable': 0,
       'verified': 1,
       'unchanged': 0,
       'attention': 0
@@ -2330,6 +2471,68 @@ void main() {
         'pending_restore');
     expect(generations.uploads, uploads);
     manual.dispose();
+  });
+  test('queued offline upload rechecks remote conflicts on late syncing',
+      () async {
+    final fixture = await automaticFixture();
+    await fixture.service.checkEnabled();
+    final base = generations.cloud.values.single;
+    capture.digest = 'd' * 64;
+    generations.fail = true;
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.backupPending();
+    final reserved = generations.uploaded!.generationId;
+    expect((await fixture.service.passSummary())['pending'], 1,
+        reason: 'An unsuccessful upload is still queued');
+    final peer = _branch(base, 'late-peer');
+    generations.cloud[peer.generationId] = peer;
+    generations.fail = false;
+    final attempts = generations.uploads;
+    await fixture.service.cancelAndJoin();
+    final resumed = AutomaticSaveBackups(
+        database: Future.value(db),
+        preferences: fixture.preferences,
+        sources: fixture.service.sources,
+        createJob: fixture.service.createJob);
+    addTearDown(() async {
+      await resumed.cancelAndJoin();
+      resumed.dispose();
+    });
+    await resumed.backupPending();
+    expect((await resumed.status(fixture.mapping)).issue, 'save_conflict');
+    expect(generations.uploads, attempts,
+        reason: 'Reconnect must review the remote folder before publication');
+    expect(generations.uploaded!.generationId, reserved);
+    expect(
+        generations.cloud.keys.toSet(), {base.generationId, peer.generationId});
+    expect(capture.sealed, isNotEmpty,
+        reason: 'The unpublished local branch remains recoverable');
+  });
+  test('offline play arms the watch and queues without cloud IO', () async {
+    var online = false;
+    var scheduled = 0;
+    final watched = <AutomaticSaveMapping>[];
+    final fixture = await automaticFixture(
+        network: () async => online,
+        pending: () async {
+          scheduled++;
+        },
+        watch: (mappings) async => watched.addAll(mappings));
+    await fixture.service.prepareLaunch(artifactId: artifactId);
+    expect(
+        watched.map((mapping) => mapping.key), contains(fixture.mapping.key));
+    expect(scheduled, greaterThan(0));
+    expect((await fixture.service.status(fixture.mapping)).issue, 'offline');
+    await fixture.service.backupPending();
+    expect(capture.captures, 0);
+    expect(areas.reserved, 0);
+    expect(generations.uploads, 0);
+    expect((await fixture.service.passSummary())['pending'], 1);
+    online = true;
+    await fixture.service.backupPending();
+    expect((await fixture.service.status(fixture.mapping)).outcome, 'verified');
+    expect((await fixture.service.passSummary())['pending'], 0);
+    expect(generations.uploads, 1);
   });
   test(
       'disabling automatic capture joins cancellation and persists the opt-out',
@@ -2442,6 +2645,76 @@ void main() {
     expect(capture.stagedNames, [name]);
     expect(capture.stagedDirectories, [directory]);
     expect(capture.restored, hasLength(1));
+  });
+
+  test(
+      'ROM companion job publishes runtime-bound files and imports only selected members',
+      () async {
+    capture.companionNested = true;
+    final companion = SaveBackupGameJob(
+        database: job.database,
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => 'Game.7z',
+        resolveRomCompanionGrant: () async =>
+            {'installationId': 'owned', 'filename': 'Game.7z'},
+        romCompanionName: 'Game.7z',
+        romCompanionDirectory: '/storage/emulated/0/Roms/gba',
+        romCompanionPlatform: 'gba',
+        romCompanionEmulator: 'com.retroarch.aarch64',
+        romCompanionCore: 'mgba');
+    addTearDown(companion.dispose);
+    final mapping = AutomaticSaveMapping.fromJob(companion,
+        title: 'Game', romRoot: '/storage/emulated/0/Roms/gba');
+    expect(mapping.isRomCompanion, isTrue);
+    expect(mapping.directory, '/storage/emulated/0/Roms/gba');
+    await companion.backup('Game.7z');
+    expect(companion.issue, isNull);
+    final local = companion.lastVerified!;
+    expect(local.binding.kind, SaveBackupKind.companion);
+    expect(local.binding.companionCompatibility,
+        SaveCompanionCompatibility.runtime);
+    expect(local.members.map((member) => member.relativePath).toSet(),
+        {'Game.cache', 'Game.png', 'Game/images/shot.png'});
+    final peer = SaveBackupManifest(
+        generationId: 'other-device-copy',
+        binding: SaveBackupBinding.fromJson(
+            {...local.binding.toJson(), 'deviceId': 'second-device'}),
+        parentGenerationIds: [],
+        createdAt: DateTime.utc(2090),
+        members: [
+          for (var index = 0; index < local.members.length; index++)
+            SaveBackupMember(
+                relativePath: local.members[index].relativePath,
+                cloudFileId: 'peer-member-$index',
+                sizeBytes: local.members[index].sizeBytes,
+                sha256: 'c' * 64),
+        ]);
+    generations.cloud[peer.generationId] = peer;
+    await companion.reconcileBeforeLaunch('Game.7z');
+    await companion.importDeviceBackup(peer,
+        memberPaths: {'Game.png', 'Game/images/shot.png'});
+    expect(companion.issue, isNull);
+    expect(capture.stagedGroups.map((group) => group.toSet()), [
+      {'Game.png', 'Game/images/shot.png'}
+    ]);
+    expect(capture.restored, hasLength(1));
+    expect(companion.rollbackAvailable, isTrue);
+    await companion.load();
+    expect(companion.deviceBackupMemberSelected(peer, 'Game.png'), isTrue);
+    expect(companion.deviceBackupMemberSelected(peer, 'Game.cache'), isFalse);
+    await companion.rollbackLast();
+    expect(companion.issue, isNull);
+    expect(capture.stagedGroups.map((group) => group.toSet()), [
+      {'Game.png', 'Game/images/shot.png'},
+      {'Game.png', 'Game/images/shot.png'}
+    ]);
   });
 
   test('companion file import rejects unrelated paths and remembers the choice',

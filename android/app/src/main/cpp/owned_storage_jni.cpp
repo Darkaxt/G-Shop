@@ -1,6 +1,7 @@
 #include "owned_storage.h"
 
 #include <cerrno>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <dirent.h>
@@ -228,14 +229,12 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotChanged(JNIEnv* env, jobject
     });
 }
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobject, jint directory,
-    jstring name, jstring source, jstring backing) {
-    return guarded<jboolean>(env, JNI_TRUE, [&]() -> jboolean {
+static jboolean snapshotHasWriter(int directory, const std::string& leaf,
+    const std::string& publicSource, const std::string& backingSource,
+    const std::vector<std::string>* selection = nullptr) {
         if (::geteuid() != 0) throw std::system_error(EACCES, std::generic_category());
-        const std::string leaf = utf8(env, name);
-        const std::string publicPath = utf8(env, source) + "/" + leaf;
-        const std::string backingPath = utf8(env, backing) + "/" + leaf;
+        const std::string publicPath = publicSource + "/" + leaf;
+        const std::string backingPath = backingSource + "/" + leaf;
         const bool group = leaf.empty();
         struct stat pinned{}, publicFile{};
         if (!group && ::fstatat(directory, leaf.c_str(), &pinned, AT_SYMLINK_NOFOLLOW) < 0) {
@@ -260,7 +259,31 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
         // flat save folder, not one root process or process scan per member.
         // The already armed inotify guard rejects membership/mutation races.
         std::vector<struct stat> groupFiles;
-        if (group) {
+        if (group && selection != nullptr) {
+            // One /proc traversal for only the reviewed companion members, not
+            // a scan of every ROM or unrelated save in the console directory.
+            for (const auto& member : *selection) {
+                struct stat backingMember{}, publicMember{};
+                const auto split = member.find_last_of('/');
+                const auto leafName = split == std::string::npos ? member : member.substr(split + 1);
+                int folder;
+                try { folder = owned::openDirectory(directory,
+                    split == std::string::npos ? "" : member.substr(0, split), false); }
+                catch (const std::system_error& error) { if (error.code().value() == ENOENT) continue; throw; }
+                const int result = ::fstatat(folder, leafName.c_str(), &backingMember, AT_SYMLINK_NOFOLLOW);
+                const int failure = errno;
+                ::close(folder);
+                if (result < 0) {
+                    if (failure == ENOENT) continue;
+                    throw std::system_error(failure, std::generic_category());
+                }
+                if (!S_ISREG(backingMember.st_mode) || backingMember.st_nlink != 1) invalid();
+                groupFiles.push_back(backingMember);
+                const std::string path = publicPath + member;
+                if (::stat(path.c_str(), &publicMember) == 0) groupFiles.push_back(publicMember);
+                else if (errno != ENOENT && errno != EACCES) throw std::system_error(errno, std::generic_category());
+            }
+        } else if (group) {
             int fd = ::openat(directory, ".", O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
             if (fd < 0) throw std::system_error(errno, std::generic_category());
             std::unique_ptr<DIR, decltype(closeDir)> members(::fdopendir(fd), closeDir);
@@ -314,6 +337,8 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
                     if (static_cast<size_t>(size) == sizeof(path)) throw std::system_error(ENAMETOOLONG, std::generic_category());
                     std::string actual(path, static_cast<size_t>(size));
                     auto inGroup = [&](const std::string& prefix) {
+                        if (selection != nullptr) return std::any_of(selection->begin(), selection->end(),
+                            [&](const std::string& member) { return actual == prefix + member; });
                         return actual.compare(0, prefix.size(), prefix) == 0 && actual.size() > prefix.size() &&
                             actual.find('/', prefix.size()) == std::string::npos;
                     };
@@ -347,6 +372,42 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobje
             }
         }
         return JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriter(JNIEnv* env, jobject, jint directory,
+    jstring name, jstring source, jstring backing) {
+    return guarded<jboolean>(env, JNI_TRUE, [&]() -> jboolean {
+        return snapshotHasWriter(directory, utf8(env, name), utf8(env, source), utf8(env, backing));
+    });
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriters(JNIEnv* env, jobject, jint directory,
+    jobjectArray names, jstring source, jstring backing) {
+    return guarded<jboolean>(env, JNI_TRUE, [&]() -> jboolean {
+        if (names == nullptr) invalid();
+        const auto count = env->GetArrayLength(names);
+        if (count < 0 || count > 128) invalid();
+        std::vector<std::string> members;
+        for (jsize i = 0; i < count; ++i) {
+            const auto raw = static_cast<jstring>(env->GetObjectArrayElement(names, i));
+            const auto member = utf8(env, raw);
+            env->DeleteLocalRef(raw);
+            if (member.empty() || member.size() > 4096 || member.find('\\') != std::string::npos ||
+                std::find(members.begin(), members.end(), member) != members.end()) invalid();
+            size_t begin = 0; int depth = 0;
+            while (begin < member.size()) {
+                const auto end = member.find('/', begin);
+                const auto part = member.substr(begin, end == std::string::npos ? end : end - begin);
+                if (part.empty() || part == "." || part == ".." || part.size() > 255 || ++depth > 16) invalid();
+                if (end == std::string::npos) break;
+                begin = end + 1;
+                if (begin == member.size()) invalid();
+            }
+            members.push_back(member);
+        }
+        return snapshotHasWriter(directory, "", utf8(env, source), utf8(env, backing), &members);
     });
 }
 

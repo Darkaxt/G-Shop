@@ -26,6 +26,7 @@ internal class SaveFileWatch(private val context: Context? = null,
         init {
             require(key.matches(Regex("[a-f0-9]{64}")))
             require(when (route) {
+                "rom-companion" -> RomCompanionBoundary.validDirectory(directory) && RomCompanionBoundary.validLeaf(name) && name.lastIndexOf('.') > 0
                 "ppsspp" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validName(name)
                 "ppsspp-companion" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validCompanionName(name)
                 "melon" -> MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(name)
@@ -44,7 +45,9 @@ internal class SaveFileWatch(private val context: Context? = null,
         fun affected(mappings: List<Mapping>, event: Int, name: String?): List<String> =
             if (event and SELF_EVENTS != 0) mappings.map { it.key }
             else mappings.filter {
-                if (it.route == "ppsspp-savedata") event and (FILE_EVENTS or FileObserver.CREATE) != 0 &&
+                if (it.route == "rom-companion") event and FILE_EVENTS != 0 && name != null &&
+                    RomCompanionBoundary.associated(it.name, name, RomCompanionBoundary.isolated(it.name, it.directory))
+                else if (it.route == "ppsspp-savedata") event and (FILE_EVENTS or FileObserver.CREATE) != 0 &&
                     name != null && PpssppSavedataBoundary.validMember(name)
                 else event and FILE_EVENTS != 0 && (it.name == name ||
                     (RetroArchSaveBoundary.includesRtc(it.route.removePrefix("retroarch-")) &&
@@ -95,12 +98,12 @@ internal class SaveFileWatch(private val context: Context? = null,
         val registered = mutableListOf<String>()
         for ((group, entries) in mappings.groupBy {
             (if (it.route == "ppsspp-savedata") it.directory.substringBeforeLast('/') else it.directory) to
-                (if (it.pcsx != null || it.route == "ppsspp-companion") it.route else "")
+                (if (it.pcsx != null || it.route in setOf("ppsspp-companion", "rom-companion")) it.route else "")
         }) {
             val directory = group.first
             var observer: FileObserver? = null
             try {
-                if (entries.first().pcsx != null || entries.first().route == "ppsspp-savedata" || SaveSourceStorage.isProtectedDirectory(directory)) {
+                if (entries.first().pcsx != null || entries.first().route in setOf("ppsspp-savedata", "rom-companion") || SaveSourceStorage.isProtectedDirectory(directory)) {
                     val root = SaveRootWatch(context ?: throw IllegalStateException(), entries,
                         { key -> enqueue(listOf(key)) }, { main.post {
                             if (generation == token) unavailable()

@@ -17,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
+import java.security.MessageDigest
 import java.util.concurrent.CountDownLatch
 
 /** Real provider/SQLite/native-descriptor contract. No application bootstrap,
@@ -95,7 +96,7 @@ class OwnedRomInstrumentation : Instrumentation() {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
             } else if (romCompanionProbe) {
                 exercise()
-                report.putString("result", "PASS exact owned-ROM companion snapshots, changed/new files, unchanged/removal exclusion, ROM/settings/neighbour exclusion, changed binding and revoked owner rejection; exclusive fixtures removed; no emulator launch or cloud write")
+                report.putString("result", "PASS exact owned-ROM companion discovery, coherent multi-file capture, writer rejection, selective group restore, retained rollback, retry and binding/revocation isolation; exclusive fixtures removed; no emulator launch or cloud write")
             } else if (pcsxRestoreProbe) {
                 exercise(psx = true)
                 report.putString("result", "PASS exact PS1 private/shared restore, retained rollback, missing-card recovery, changed settings, wrong-card/generic publication rejection and lost-ack service recreation; isolated override/cards removed; real RetroArch CONTENTLESS")
@@ -161,6 +162,8 @@ class OwnedRomInstrumentation : Instrumentation() {
             finish(Activity.RESULT_OK, report)
         } catch (error: Throwable) {
             report.putString("result", "FAIL ${error.javaClass.simpleName}: ${error.message}")
+            report.putString("frames", error.stackTrace.filter { it.className.startsWith("com.retro.rshop.") }
+                .take(4).joinToString { "${it.methodName}:${it.lineNumber}" })
             finish(Activity.RESULT_CANCELED, report)
         }
     }
@@ -312,6 +315,25 @@ class OwnedRomInstrumentation : Instrumentation() {
                     .map { File(root, it) }
                 val newSidecar = File(root, "synthetic.cache")
                 val service = SaveCaptureService(targetContext)
+                val captures = mutableListOf<String>()
+                val restoreIds = linkedMapOf<String, List<String>>()
+                var companionWatch: SaveFileWatch? = null
+                val nestedRoot = File(root, "synthetic")
+                val nestedFolder = File(nestedRoot, "images")
+                val nestedFile = File(nestedFolder, "shot.png")
+                val isolatedSave = File(nestedRoot, "progress.sav")
+                val isolatedRom = File(nestedRoot, rom.name)
+                fun invoke(method: String, args: Map<String, Any>, expected: String? = null): Any? {
+                    val done = CountDownLatch(1)
+                    var value: Any? = null; var failure: String? = null
+                    service.handle(MethodCall(method, args), object : MethodChannel.Result {
+                        override fun success(result: Any?) { value = result; done.countDown() }
+                        override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                        override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+                    })
+                    done.await(); check(failure == expected) { "$method: $failure, expected $expected" }
+                    return value
+                }
                 fun snapshot(before: Map<*, *>? = null, expected: String? = null): Map<*, *>? {
                     val done = CountDownLatch(1)
                     var value: Any? = null; var failure: String? = null
@@ -327,17 +349,117 @@ class OwnedRomInstrumentation : Instrumentation() {
                 }
                 fun baseline(row: Map<*, *>) = row.filterKeys { it != "changed" }
                 try {
+                    val empty = snapshot()!!
+                    val absentId = UUID.randomUUID().toString().replace("-", ""); captures.add(absentId)
+                    val absent = invoke("captureRomCompanions", mapOf("captureId" to absentId,
+                        "installationId" to id, "filename" to rom.name, "binding" to empty["binding"]!!,
+                        "members" to emptyList<String>(), "emulatorPackage" to "com.retroarch.aarch64",
+                        "restoreBaseline" to true)) as Map<*, *>
+                    check(absent["localWasAbsent"] == true && (absent["files"] as List<*>).isEmpty())
                     sidecars.forEach { check(it.createNewFile()); it.writeBytes(byteArrayOf(1)) }
                     val before = snapshot()!!
                     check((before["files"] as Map<*, *>).keys == setOf("synthetic.png", "synthetic.sav"))
                     check((before["changed"] as List<*>).isEmpty())
+                    val changedEvent = CountDownLatch(1)
+                    companionWatch = SaveFileWatch(targetContext, changed = { key ->
+                        check(key == "a".repeat(64)); changedEvent.countDown()
+                    })
+                    check(companionWatch.replace(listOf(SaveFileWatch.Mapping("a".repeat(64), root.path,
+                        rom.name, "rom-companion"))) == listOf("a".repeat(64)))
                     sidecars.first().appendBytes(byteArrayOf(2))
+                    changedEvent.await()
                     check(newSidecar.createNewFile())
                     val changed = snapshot(baseline(before))!!
                     check(changed["changed"] == listOf("synthetic.cache", "synthetic.sav"))
                     check(snapshot(baseline(changed))!!["changed"] == emptyList<String>())
+                    val grant = mapOf<String, Any>("installationId" to id, "filename" to rom.name,
+                        "binding" to changed["binding"]!!, "emulatorPackage" to "com.retroarch.aarch64")
+                    fun capture(names: List<String>, baseline: Boolean = false, expected: String? = null): Pair<String, Map<*, *>?> {
+                        val captureId = UUID.randomUUID().toString().replace("-", ""); captures.add(captureId)
+                        return captureId to (invoke("captureRomCompanions", grant + mapOf("captureId" to captureId,
+                            "members" to names, "restoreBaseline" to baseline), expected) as? Map<*, *>)
+                    }
+                    val all = listOf("synthetic.cache", "synthetic.png", "synthetic.sav")
+                    val captured = capture(all)
+                    val capturedFiles = captured.second!!["files"] as List<*>
+                    check(capturedFiles.map { (it as Map<*, *>)["name"] } == all)
+                    for (member in capturedFiles) {
+                        val row = member as Map<*, *>
+                        check(File(row["path"] as String).readBytes().contentEquals(File(root, row["name"] as String).readBytes()))
+                    }
+                    invoke("captureRomCompanions", grant + mapOf("captureId" to captured.first,
+                        "members" to listOf("synthetic.png")), "invalid_capture")
+                    java.io.FileOutputStream(sidecars.first(), true).use {
+                        capture(all, expected = "source_changed")
+                    }
+                    val selected = listOf("synthetic.cache", "synthetic.png")
+                    val rollback = capture(selected, baseline = true)
+                    val restoreId = UUID.randomUUID().toString().replace("-", ""); restoreIds[restoreId] = selected
+                    fun sha(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+                    val desired = listOf(byteArrayOf(), byteArrayOf(7, 8, 9))
+                    invoke("beginRestoreGroup", grant + mapOf("captureId" to restoreId, "name" to rom.name,
+                        "members" to selected.indices.map { index -> mapOf("name" to selected[index],
+                            "size" to desired[index].size, "sha256" to sha(desired[index])) }))
+                    invoke("appendRestoreGroup", mapOf("captureId" to restoreId, "member" to 1,
+                        "offset" to 0L, "bytes" to desired[1]))
+                    invoke("sealRestoreGroup", mapOf("captureId" to restoreId))
+                    java.io.FileOutputStream(sidecars[1], true).use {
+                        invoke("publishRestoreGroup", mapOf("captureId" to restoreId,
+                            "rollbackCaptureId" to rollback.first), "source_changed")
+                    }
+                    invoke("publishRestoreGroup", mapOf("captureId" to restoreId, "rollbackCaptureId" to rollback.first))
+                    check(newSidecar.readBytes().isEmpty() && sidecars[1].readBytes().contentEquals(desired[1]))
+                    check(sidecars.first().readBytes().contentEquals(byteArrayOf(1, 2)))
+                    val retained = (rollback.second!!["files"] as List<*>).map { it as Map<*, *> }
+                    check(File(retained.single { it["name"] == "synthetic.png" }["path"] as String).readBytes().contentEquals(byteArrayOf(1)))
+                    invoke("publishRestoreGroup", mapOf("captureId" to restoreId, "rollbackCaptureId" to rollback.first))
+                    val afterRestore = snapshot()!!
                     check(sidecars[1].delete())
-                    check(snapshot(baseline(changed))!!["changed"] == emptyList<String>())
+                    check(snapshot(baseline(afterRestore))!!["changed"] == emptyList<String>()) { "removal became an upload" }
+                    companionWatch.close(); companionWatch = null
+                    check(nestedRoot.mkdir()); check(nestedFolder.mkdir())
+                    check(nestedFile.createNewFile()); nestedFile.writeBytes(byteArrayOf(3))
+                    check(isolatedSave.createNewFile()); isolatedSave.writeBytes(byteArrayOf(4))
+                    check(isolatedRom.createNewFile()); isolatedRom.writeBytes(bytes)
+                    check(OwnedRomContentProvider.companionInventory(nestedRoot.path, rom.name, {}).files.keys ==
+                        setOf("images/shot.png", "progress.sav"))
+                    val firstWatchEvent = CountDownLatch(1)
+                    val deepWatchEvent = CountDownLatch(1)
+                    val initial = java.util.concurrent.atomic.AtomicBoolean(true)
+                    companionWatch = SaveFileWatch(targetContext, changed = { key ->
+                        check(key == "a".repeat(64))
+                        if (initial.getAndSet(false)) firstWatchEvent.countDown() else deepWatchEvent.countDown()
+                    })
+                    check(companionWatch.replace(listOf(SaveFileWatch.Mapping("a".repeat(64), root.path,
+                        rom.name, "rom-companion"))) == listOf("a".repeat(64)))
+                    firstWatchEvent.await()
+                    nestedFile.appendBytes(byteArrayOf(5)); deepWatchEvent.await()
+                    val nestedPath = "synthetic/images/shot.png"
+                    val nestedSnapshot = snapshot()!!
+                    check((nestedSnapshot["files"] as Map<*, *>).keys.contains(nestedPath))
+                    java.io.FileOutputStream(nestedFile, true).use {
+                        capture(listOf(nestedPath), expected = "source_changed")
+                    }
+                    companionWatch.close(); companionWatch = null
+                    val nestedRollback = capture(listOf(nestedPath), baseline = true)
+                    fun restoreNested(baselineId: String) {
+                        val nextId = UUID.randomUUID().toString().replace("-", "")
+                        restoreIds[nextId] = listOf(nestedPath)
+                        invoke("beginRestoreGroup", grant + mapOf("captureId" to nextId, "name" to rom.name,
+                            "members" to listOf(mapOf("name" to nestedPath, "size" to 3, "sha256" to sha(byteArrayOf(6, 7, 8))))))
+                        invoke("appendRestoreGroup", mapOf("captureId" to nextId, "member" to 0,
+                            "offset" to 0L, "bytes" to byteArrayOf(6, 7, 8)))
+                        invoke("sealRestoreGroup", mapOf("captureId" to nextId))
+                        invoke("publishRestoreGroup", mapOf("captureId" to nextId, "rollbackCaptureId" to baselineId))
+                        check(nestedFile.readBytes().contentEquals(byteArrayOf(6, 7, 8)))
+                    }
+                    restoreNested(nestedRollback.first)
+                    check(isolatedSave.readBytes().contentEquals(byteArrayOf(4)) && isolatedRom.readBytes().contentEquals(bytes))
+                    check(nestedFile.delete()); check(isolatedSave.delete()); check(isolatedRom.delete())
+                    check(nestedFolder.delete()); check(nestedRoot.delete())
+                    val missing = capture(listOf(nestedPath), baseline = true)
+                    check(missing.second!!["localWasAbsent"] == true)
+                    restoreNested(missing.first)
                     snapshot(baseline(changed) + mapOf("binding" to "0".repeat(64)), "capture_unavailable")
                     db.delete("transfer_target_owners", "transfer_id=?", arrayOf(id))
                     snapshot(expected = "capture_unavailable")
@@ -346,9 +468,31 @@ class OwnedRomInstrumentation : Instrumentation() {
                         put("destination_root", root.path); put("relative_path", rom.name)
                     })
                 } finally {
+                    companionWatch?.close()
+                    captures.forEach { captureId -> invoke("retireCapture", mapOf("captureId" to captureId)) }
                     val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
+                    // Exact disposable fixture journals only; no user captures,
+                    // rollback history or shared saves are included.
+                    for ((restoreId, targets) in restoreIds) {
+                        val privateRoot = File(targetContext.filesDir.canonicalFile, "save-restores")
+                        val ids = listOf(restoreId) + targets.indices.map { index ->
+                            MessageDigest.getInstance("SHA-256").digest("$restoreId/$index".toByteArray())
+                                .joinToString("") { "%02x".format(it) }.take(32)
+                        }
+                        ids.forEach { child -> File(privateRoot, child).let { directory ->
+                            check(directory.canonicalFile == directory.absoluteFile)
+                            directory.listFiles().orEmpty().forEach { check(it.isFile && it.delete()) }
+                            check(!directory.exists() || directory.delete())
+                        } }
+                        ids.drop(1).forEachIndexed { index, child -> File(File(root, targets[index]).parentFile!!, ".rshop-save-restore-$child").let { stage ->
+                            check(!stage.exists() || stage.isFile && stage.delete())
+                        } }
+                    }
                     sidecars.forEach { check(!it.exists() || it.delete()) }
                     check(!newSidecar.exists() || newSidecar.delete())
+                    for (file in listOf(nestedFile, isolatedSave, isolatedRom)) check(!file.exists() || file.delete())
+                    check(!nestedFolder.exists() || nestedFolder.delete())
+                    check(!nestedRoot.exists() || nestedRoot.delete())
                 }
             }
             if (ds) {

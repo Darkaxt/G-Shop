@@ -5,6 +5,76 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current S10 work — ACTIVE, 2026-10-13
+
+S10 is the sole ACTIVE stage; S11/S12 are NOT STARTED. The current
+patch connects ROM-bound companion capture, selective restoration/rollback,
+the existing automatic backup lane and the normal Game files menu. Component
+checks are implementation diagnostics, not feature acceptance or stage closure.
+Nested and isolated-folder association, directory watching, coherent capture,
+selective publication and recreation of missing destination folders are now wired
+through the same backup pipeline. The affected Dart capture/job/automatic-lane
+checks pass. Native packaging found and corrected integer-versus-object descriptor
+calls, then an obsolete flat-only test expectation. Request 953 passes packaging
+and focused native contracts. The Thor production-channel probe passes nested
+watch/capture, selective restore, missing-folder recreation, writer rejection,
+retained rollback and binding isolation; fixtures are removed and all five
+preservation hashes match. Real production APIs subsequently verify a two-member
+Patapon fixture in Drive, an actual watch-triggered changed-member upload and
+explicit nested-member restoration with both expected hashes matching. This is
+debug-session production-boundary evidence, not a UI-button claim. The owner
+reports Wi-Fi disappears on lock: offline changes now remain durably queued, with
+Android network-constrained admission and fresh remote conflict review. Its
+regression first reproduced erroneous handled work, then passes with offline
+launch/watch checks. Affected Dart tests and scoped analysis pass. Native
+scheduling packages in gated request 968 (build/helper 0, shared mutex acquired,
+daemon exit verified). Observed profile remains two workers, no parallel projects
+and 3 GiB Gradle heap with Kotlin in-process; one 512 MiB fail-fast test fork is
+configured (assembly only), native environment budget two is not universal
+concurrency proof, and no memory failure occurred. Preserving installation keeps
+both secure-store hashes. Real Thor offline launch arms its watch, records
+changed companion work as pending, and a persisted Android one-shot waits with
+CONNECTIVITY unsatisfied. After a normal background-process kill, reconnect
+restarts the headless service. That test exposed missing storage-inspection
+registration: ROM-bound headless jobs could not revalidate their installed/local
+copy. The existing read-only inspection handler is wired in request 972. That
+build/helper exits 0, acquires the shared gate, verifies daemon exit and retains
+the same observed resource profile, without memory failure. Preserving APK
+SHA-256: `99d3a497a3746c1410a488405e3ca6e9152c28cd4cbc7b75ed48549504a824a1`.
+The repeated cold-process reconnect now completes without opening an Activity or
+requesting sign-in: native receipt reports pending=0, retryable=0, verified=1,
+unchanged=1 and attention=0; Android finishes/removes the one-shot job. The
+reopened durable companion mapping has requested=handled=11 and the verified
+manifest matches both independent local hashes (changed flat member
+`094d297b8446738a96b9ceaa6cf579a25e7fccc02196f33ef92058d447dc8a25`, nested member
+`110230bd225898784cc739bb41e4927fe4eea2ff22c3f3f44203640a03b174dc`). The fixture
+mapping is disabled again; the other enabled mapping is preserved. The original
+debug observer sessions are terminal, their owned forwards removed, and both
+screens are confirmed OFF. The screenshot cleanup ticket removes only 17
+expendable task captures (8,385,064 bytes); the exact small companion fixtures and
+VM helpers remain for S10's required fault/recovery checks, not user data cleanup.
+
+Request 953 acquired the shared mutex; build/helper exits are 0 and daemon exit
+is verified. Observed workers=2, parallel=false, Gradle maximum heap=3 GiB;
+Kotlin in-process is configured/requested. One 512 MiB fail-fast test fork is
+configured and selected JVM tests ran. Existing app-native pool depth one remains;
+the native environment budget two does not prove every plugin's concurrency.
+No memory failure or heap increase occurred. Requests 951/952 failed compilation
+and an obsolete test expectation respectively, not memory; both verified daemon exit.
+
+Current SAVE-01 advancement blockers are internal and actionable:
+
+| Required criterion | Concrete remaining gap | Resolution / dependent completion |
+| --- | --- | --- |
+| Normal companion controls | Native and real watch/Drive/restore/offline headless integration pass; remaining normal-control acceptance is not reconciled | Reconcile applicable touch/controller controls with the integrated feature; S10 cannot close before this |
+| Accessible installed-emulator saves/states | Remaining route/state coverage and refreshed closure inventory are not reconciled | Implement accessible routes and verify the installed coverage matrix; S10 cannot claim coverage before this |
+| Preservation and recovery | Required fault/reconnect/reinstall cases are not all finished | Complete the specified recovery checks with expendable fixtures; replacement acceptance remains open |
+| Legacy sync handover | Replacement acceptance has not passed, so retirement must not begin | After acceptance, join the exact old writer, retire only the authorized app/task and prove replacement backup/restore |
+
+These block advancement, not continued implementation. No external execution
+impediment is currently established; none is deferred to S11/S12. Historical
+diagnostic/checkpoint evidence below must not be read as current feature closure.
+
 ### Bound game-folder discovery — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. The existing save-capture channel can now

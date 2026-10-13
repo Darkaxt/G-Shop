@@ -83,6 +83,7 @@ class _SaveBackupSettingsScreenState
   int _gameGeneration = 0;
   bool _pspSavedata = true;
   bool _pspCompanion = false;
+  bool _romCompanions = false;
   int _pcsxSlot = 1;
   PcsxSaveLayout? _pcsxLayout;
   bool _editingMapping = false;
@@ -225,6 +226,58 @@ class _SaveBackupSettingsScreenState
     PcsxSaveLayout? pcsx;
     PcsxSaveCard? card;
     final launcher = OwnedEmulatorLauncher();
+    if (_romCompanions) {
+      Future<Map<String, Object>> grant() => launcher.resolveRomCompanionGrant(
+          widget.game!, widget.system!.id, widget.targetFolder!);
+      final snapshot =
+          await SaveCapture().reviewRomCompanions(grant: await grant());
+      final runtime =
+          OwnedEmulatorLauncher.romCompanionRuntime(widget.system!.id);
+      final authorization =
+          DriveRuntime.instance.authorizationFor(config.serverClientId);
+      final areas = DriveSaveBackupAreaApi(
+          authorization: authorization, accountId: config.accountId);
+      final api = DriveSaveBackupGenerationApi(
+          authorization: authorization, accountId: config.accountId);
+      final job = SaveBackupGameJob(
+          database: DatabaseService().database,
+          capture: SaveCapture(),
+          areas: areas,
+          generations: api,
+          clientId: config.serverClientId,
+          accountId: config.accountId,
+          areaId: areaId,
+          editionId: widget.editionId!,
+          artifactId: widget.game!.remoteArtifact!.id,
+          resolveRomCompanionGrant: grant,
+          romCompanionDirectory: snapshot.directory,
+          romCompanionName: snapshot.romName,
+          romCompanionPlatform: widget.system!.id,
+          romCompanionEmulator: runtime.packageName,
+          romCompanionCore: runtime.coreId,
+          resolveSaveName: () async {
+            final current =
+                await SaveCapture().reviewRomCompanions(grant: await grant());
+            if (!snapshot.sameTarget(current)) {
+              throw PlatformException(code: 'source_changed');
+            }
+            return current.romName;
+          });
+      try {
+        await job.load();
+        if (!mounted || generation != _gameGeneration) {
+          throw StateError('Closed save workflow');
+        }
+        _gameJob = job;
+        job.addListener(_setupChanged);
+        return job;
+      } catch (_) {
+        job.dispose();
+        areas.close();
+        api.close();
+        rethrow;
+      }
+    }
     if (widget.system?.id == 'psx') {
       pcsx = await launcher.reviewRetroArchPcsxSaves(
           widget.game!, widget.system!, widget.targetFolder!);
@@ -784,6 +837,7 @@ class _SaveBackupSettingsScreenState
                                                                       area,
                                                                       widget
                                                                           .editionId,
+                                                                      _romCompanions,
                                                                       if (widget
                                                                               .system
                                                                               ?.id ==
@@ -814,9 +868,60 @@ class _SaveBackupSettingsScreenState
                                                                   CrossAxisAlignment
                                                                       .stretch,
                                                               children: [
+                                                                if (widget.game != null &&
+                                                                    widget.system !=
+                                                                        null &&
+                                                                    OwnedEmulatorLauncher.supports(
+                                                                        widget
+                                                                            .game!,
+                                                                        widget
+                                                                            .system!) &&
+                                                                    _section !=
+                                                                        SaveBackupSection
+                                                                            .area &&
+                                                                    _section !=
+                                                                        SaveBackupSection
+                                                                            .emulators)
+                                                                  Padding(
+                                                                      padding: const EdgeInsets
+                                                                          .only(
+                                                                          bottom:
+                                                                              16),
+                                                                      child: DropdownButtonFormField<
+                                                                          bool>(
+                                                                        key: const ValueKey(
+                                                                            'game-backup-scope'),
+                                                                        initialValue:
+                                                                            _romCompanions,
+                                                                        decoration: const InputDecoration(
+                                                                            labelText:
+                                                                                'Back up',
+                                                                            prefixIcon:
+                                                                                Icon(Icons.folder_copy_outlined)),
+                                                                        items: const [
+                                                                          DropdownMenuItem(
+                                                                              value: false,
+                                                                              child: Text('Save data')),
+                                                                          DropdownMenuItem(
+                                                                              value: true,
+                                                                              child: Text('Game files')),
+                                                                        ],
+                                                                        onChanged: _gameJob?.busy ==
+                                                                                true
+                                                                            ? null
+                                                                            : (value) {
+                                                                                if (value != null) {
+                                                                                  setState(() {
+                                                                                    _romCompanions = value;
+                                                                                    _closeGame();
+                                                                                  });
+                                                                                }
+                                                                              },
+                                                                      )),
                                                                 if (widget.system
                                                                             ?.id ==
                                                                         'psp' &&
+                                                                    !_romCompanions &&
                                                                     _section !=
                                                                         SaveBackupSection
                                                                             .area &&
@@ -1438,19 +1543,21 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               Text(widget.title, style: AppTheme.headlineMedium),
               const SizedBox(height: 12),
               Text(
-                  job.isPcsx
-                      ? 'RetroArch · PlayStation · ${job.isSharedPcsx ? 'shared memory card' : 'private memory card'} ${job.pcsxCard!.slot}'
-                      : job.isMelon
-                          ? 'MelonDualDS · in-game save · 0.8.0.rc2'
-                          : job.isPpssppSavedata
-                              ? 'PPSSPP · in-game save folder · v1.20.4'
-                              : job.isPpsspp
-                                  ? job.ppssppCompanion
-                                      ? 'PPSSPP · slot screenshot · v1.20.4'
-                                      : 'PPSSPP · published state slot · v1.20.4'
-                                  : !job.retroArchRoute.includesRtc
-                                      ? 'RetroArch · ${job.retroArchRoute.coreLabel} · ${job.retroArchRoute.label} in-game saves'
-                                      : 'RetroArch · mGBA · battery saves only',
+                  job.isRomCompanion
+                      ? '${job.emulatorLabel} · Game files'
+                      : job.isPcsx
+                          ? 'RetroArch · PlayStation · ${job.isSharedPcsx ? 'shared memory card' : 'private memory card'} ${job.pcsxCard!.slot}'
+                          : job.isMelon
+                              ? 'MelonDualDS · in-game save · 0.8.0.rc2'
+                              : job.isPpssppSavedata
+                                  ? 'PPSSPP · in-game save folder · v1.20.4'
+                                  : job.isPpsspp
+                                      ? job.ppssppCompanion
+                                          ? 'PPSSPP · slot screenshot · v1.20.4'
+                                          : 'PPSSPP · published state slot · v1.20.4'
+                                      : !job.retroArchRoute.includesRtc
+                                          ? 'RetroArch · ${job.retroArchRoute.coreLabel} · ${job.retroArchRoute.label} in-game saves'
+                                          : 'RetroArch · mGBA · battery saves only',
                   style: TextStyle(fontSize: 18)),
               if (job.isStandalone &&
                   (widget.section == SaveBackupSection.backup ||
@@ -1866,7 +1973,7 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                       title: const Text('Automatically back up this save',
                           style: TextStyle(fontSize: 18)),
                       subtitle: Text(
-                          'Only for this version of the game. Watches this save while R-Shop is running, including while you play. Also checks when you return and in the background about every 6 hours when online. Unchanged saves are not uploaded again. If saves conflict, you choose which to use.'),
+                          'Watches this game while you play. Offline changes wait for a connection, then check for cloud conflicts before uploading. Also checks when you return and about every 6 hours when online. Unchanged files are not uploaded again.'),
                     ))),
               if (widget.statusOnly) ...[
                 Text(
@@ -1879,7 +1986,10 @@ class _AutomaticSaveBackupPanelState extends State<AutomaticSaveBackupPanel> {
                 if (status.outcome == 'unchanged')
                   const Text(
                       'Last automatic check: unchanged; verified backup retained.'),
-                if (status.issue != null)
+                if (status.issue == 'offline')
+                  const Text(
+                      'Backup queued. It will continue when a connection is available.'),
+                if (status.issue != null && status.issue != 'offline')
                   Semantics(
                       liveRegion: true,
                       child: Text(

@@ -7,6 +7,15 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class SaveFileWatchTest {
+    @Test fun romCompanionWatchAssociatesOnlyItsRomSidecars() {
+        val mapping = SaveFileWatch.Mapping("c".repeat(64), "/storage/emulated/0/Roms/gba", "Game.7z", "rom-companion")
+        for (event in listOf(FileObserver.CLOSE_WRITE, FileObserver.MOVED_TO, FileObserver.DELETE)) {
+            for (name in listOf("Game.png", "Game.sav", "Game.cache"))
+                assertEquals(listOf(mapping.key), SaveFileWatch.affected(listOf(mapping), event, name))
+            for (name in listOf("Other.sav", "Game2.png", "Game.7z", "Game.cfg", "Game.token.json"))
+                assertTrue(SaveFileWatch.affected(listOf(mapping), event, name).isEmpty())
+        }
+    }
     @Test fun pcsxWatchKeepsPrivateAndSharedCardsSeparate() {
         val private = SaveFileWatch.Mapping("d".repeat(64),
             "/storage/emulated/0/RetroArch/saves/PCSX-ReARMed", "owned%2FGame.srm", "pcsx-libretro-1")

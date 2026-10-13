@@ -83,6 +83,37 @@ class OwnedEmulatorLauncher {
     return grant;
   }
 
+  Future<Map<String, Object>> resolveRomCompanionGrant(
+      GameItem game, String platformId, String root) {
+    if (game.isFolder || game.remoteArtifact == null) {
+      throw UnsupportedError('No installed ROM companion target');
+    }
+    return _grant(game, platformId, root);
+  }
+
+  static ({String packageName, String coreId}) romCompanionRuntime(
+          String platform) =>
+      switch (platform) {
+        'nds' => (packageName: 'me.magnum.melondualds', coreId: 'melonds'),
+        'psp' => (packageName: 'org.ppsspp.ppsspp', coreId: 'ppsspp'),
+        'ps2' => (packageName: 'xyz.aethersx2.android', coreId: 'pcsx2'),
+        'wiiu' => (packageName: 'info.cemu.cemu', coreId: 'cemu'),
+        'gc' || 'wii' => (
+            packageName: 'org.dolphinemu.dolphinemu',
+            coreId: 'dolphin'
+          ),
+        'psx' => (packageName: 'com.retroarch.aarch64', coreId: 'pcsx_rearmed'),
+        'sg1000' => (
+            packageName: 'com.retroarch.aarch64',
+            coreId: 'genesis_plus_gx'
+          ),
+        _ => (
+            packageName: 'com.retroarch.aarch64',
+            coreId: RetroArchBatteryRoute.forPlatform(platform)?.coreId ??
+                (throw UnsupportedError('No configured ROM runtime'))
+          ),
+      };
+
   /// Resolves the save for the very same validated external URI as DS launch,
   /// using Melon's current settings and actual filename, without opening it.
   Future<({String directory, String name})> reviewMelonSave(

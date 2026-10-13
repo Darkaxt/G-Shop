@@ -18,6 +18,8 @@ final automaticSaveBackupsProvider =
       preferences: preferences,
       refreshConfiguration: preferences.reload,
       scheduleBackground: SaveBackgroundDispatch.schedule,
+      schedulePending: SaveBackgroundDispatch.schedulePending,
+      networkAvailable: SaveBackgroundDispatch.networkAvailable,
       configureWatches: SaveBackgroundDispatch.configureWatches,
       sources: () => ref.read(sourcesProvider).sources);
   ref.onDispose(service.dispose);

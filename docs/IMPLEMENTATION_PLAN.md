@@ -1739,9 +1739,16 @@ has focused host and native Thor evidence. It detects new/changed sidecars and
 replacement identities, refuses changed/revoked grants and excludes neighbouring
 games, ROMs and settings. The existing single-JPEG companion has a completed real
 Drive upload/readback/expected-location restore; per-file import choices persist.
-Discovery-to-watch/capture/upload, nested/isolated folders, selective multi-file
-native restore and remaining SAVE-01 acceptance still belong to this ACTIVE
-stage. No S11/S12 implementation has started. See the current status/design ledger.
+The current connected patch adds nested/isolated inventory, directory watches,
+coherent capture, selective group restoration and missing-folder recreation.
+Affected Dart checks, gated native contracts/packaging (request 953) and Thor
+production-channel integration pass. Real watch/Drive/group restoration and
+offline launch -> persisted queue -> process exit -> network return -> headless
+verified publication now pass, including correction of headless ROM-binding
+inspection wiring (requests 968/972). Remaining normal-control reconciliation,
+installed-emulator coverage, required faults and conditional handover stay in S10.
+No S11/S12
+implementation has started. See the current status/design ledger.
 
 Latest verified slice, 2026-10-12: GB/GBC SameBoy now joins exact owned save
 review, normal backup/watch, capture and paired restore/rollback with distinct
@@ -1981,6 +1988,20 @@ existing catalogue, on-demand installation and emulator workflows. Use actual
 console-specific 3D media, not a new dependency on scraped cartridge images.
 
 Execution order within S12:
+
+Use the installed `ui-diagnostics-first` skill for S12, as requested on
+2026-10-13. Read its current platform routing and adapt its diagnostic contract
+into these existing frontend notes when S12 starts. Reuse Flutter's real
+widget/semantics, measured render tree and authorized debug/test transport;
+add only missing debug-only hooks alongside the first complete frontend slice.
+Stable actions must use the real UI event path, with instance/build/display and
+revision binding. Collect scoped rendered bounds/states, dataset versus visible
+item/asset counts, monotonic loading/layout/resolution milestones and named
+event-driven readiness. Report unsupported measurements explicitly. Backend
+calls are not UI-action evidence. Use targeted screenshots/recordings for visual
+and motion fidelity, not screenshot polling. Keep hooks bounded, private and
+disabled/absent in release; no general RPC framework or retroactive mature-layout
+instrumentation. This is S12 preparation only; S12 remains NOT STARTED.
 
 1. Inspect/reverse engineer the supplied `socket_release_0.7.0.apk` reference,
    including main-screen physical-media geometry, labels and animations; retain

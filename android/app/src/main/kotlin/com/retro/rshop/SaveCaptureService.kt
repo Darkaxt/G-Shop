@@ -91,6 +91,68 @@ internal class SaveCaptureService(private val activity: Context) {
     private data class PcsxSource(val uri: Uri, val leaf: String, val selection: PcsxSaveSettings.Selection) {
         val journalKey: String get() = JSONArray(selection.captureKey(uri.toString())).toString()
     }
+    private data class RomCompanionSource(val uri: Uri, val binding: String, val directory: String,
+        val romName: String, val members: List<String>, val emulatorPackage: String, val version: String) {
+        val journalKey: String get() = JSONArray(listOf(uri.toString(), binding, members, emulatorPackage, version)).toString()
+    }
+    private fun romCompanionUri(call: MethodCall): Uri {
+        val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")
+        val observed = call.argument<Number>("observationId")
+        return if (observed != null) {
+            if (observed !is Int && observed !is Long || observed.toLong() <= 0 ||
+                call.hasArgument("installationId")) throw Failure("invalid_selection")
+            OwnedRomContentProvider.localCopyUri(activity, observed.toLong(),
+                call.argument<String>("platformId") ?: throw Failure("invalid_selection"), filename, false)
+        } else OwnedRomContentProvider.uri(activity,
+            call.argument<String>("installationId") ?: throw Failure("invalid_selection"), filename)
+    }
+    private fun romCompanionSource(call: MethodCall, selectedMembers: List<String>? = null): RomCompanionSource {
+        val uri = romCompanionUri(call)
+        val row = OwnedRomContentProvider.companionSnapshot(activity, uri, null, ::check)
+        val binding = call.argument<String>("binding") ?: throw Failure("invalid_selection")
+        if (row["binding"] != binding) throw Failure("source_changed")
+        val romName = row["romName"] as String
+        val members = selectedMembers ?: call.argument<List<String>>("members") ?: throw Failure("invalid_selection")
+        if (members.size !in 0..RomCompanionBoundary.MAX_MEMBERS ||
+            members.isEmpty() && call.argument<Boolean>("restoreBaseline") != true || members.toSet().size != members.size ||
+            !members.all { RomCompanionBoundary.associated(romName, it,
+                RomCompanionBoundary.isolated(romName, row["directory"] as String)) }) throw Failure("invalid_selection")
+        if (JSONArray(members).toString().toByteArray(Charsets.UTF_8).size > 32768) throw Failure("invalid_selection")
+        val packageName = call.argument<String>("emulatorPackage") ?: throw Failure("invalid_selection")
+        if (!packageName.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+"))) throw Failure("invalid_selection")
+        @Suppress("DEPRECATION")
+        val version = activity.packageManager.getPackageInfo(packageName, 0).versionName
+        if (version.isNullOrEmpty()) throw Failure("runtime_unreviewed")
+        return RomCompanionSource(uri, binding, row["directory"] as String, romName,
+            members.sorted(), packageName, version)
+    }
+    private fun companionRecord(source: RomCompanionSource): JSONObject = JSONObject()
+        .put("uri", source.uri.toString()).put("binding", source.binding).put("directory", source.directory)
+        .put("romName", source.romName).put("members", JSONArray(source.members))
+        .put("emulatorPackage", source.emulatorPackage).put("version", source.version)
+    private fun restoreCompanions(record: JSONObject, revalidate: Boolean = false): RomCompanionSource? {
+        val row = record.optJSONObject("romCompanions") ?: return null
+        val uri = Uri.parse(row.getString("uri"))
+        val names = row.getJSONArray("members").let { items -> (0 until items.length()).map(items::getString) }
+        val value = RomCompanionSource(uri, row.getString("binding"), row.getString("directory"),
+            row.getString("romName"), names, row.getString("emulatorPackage"), row.getString("version"))
+        if (row.length() != 7 || uri.scheme != "content" || uri.authority != "${activity.packageName}.owned-roms" ||
+            uri.query != null || uri.fragment != null || !value.binding.matches(Regex("[a-f0-9]{64}")) ||
+            !RomCompanionBoundary.validDirectory(value.directory) || names.size !in 1..RomCompanionBoundary.MAX_MEMBERS ||
+            names != names.sorted() || names.toSet().size != names.size ||
+            !names.all { RomCompanionBoundary.associated(value.romName, it,
+                RomCompanionBoundary.isolated(value.romName, value.directory)) } || value.version.isEmpty())
+            throw Failure("invalid_restore")
+        if (revalidate) {
+            val current = OwnedRomContentProvider.companionSnapshot(activity, uri, null, ::check)
+            if (current["binding"] != value.binding || current["directory"] != value.directory || current["romName"] != value.romName)
+                throw Failure("source_changed")
+            @Suppress("DEPRECATION")
+            val version = activity.packageManager.getPackageInfo(value.emulatorPackage, 0).versionName
+            if (version != value.version) throw Failure("runtime_changed")
+        }
+        return value
+    }
     private fun pcsxSource(call: MethodCall): PcsxSource {
         val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")
         if (!filename.endsWith(".chd", true)) throw Failure("invalid_selection")
@@ -240,17 +302,11 @@ internal class SaveCaptureService(private val activity: Context) {
                 val complete: () -> Unit = try {
                     val value = when (call.method) {
                         "retroArchNames" -> names()
-                        "romCompanionSnapshot" -> {
-                            val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")
-                            val observed = call.argument<Number>("observationId")
-                            val uri = if (observed != null) {
-                                if (observed !is Int && observed !is Long || observed.toLong() <= 0 ||
-                                    call.hasArgument("installationId")) throw Failure("invalid_selection")
-                                OwnedRomContentProvider.localCopyUri(activity, observed.toLong(),
-                                    call.argument<String>("platformId") ?: throw Failure("invalid_selection"), filename, false)
-                            } else OwnedRomContentProvider.uri(activity,
-                                call.argument<String>("installationId") ?: throw Failure("invalid_selection"), filename)
-                            OwnedRomContentProvider.companionSnapshot(activity, uri, call.argument<Map<*, *>>("before"), ::check)
+                        "romCompanionSnapshot" -> OwnedRomContentProvider.companionSnapshot(activity,
+                            romCompanionUri(call), call.argument<Map<*, *>>("before"), ::check)
+                        "captureRomCompanions" -> romCompanionSource(call).let { source ->
+                            capturePpssppSavedata(captureId!!, source.directory,
+                                restoreBaseline = call.argument<Boolean>("restoreBaseline") == true, companions = source)
                         }
                         "ppssppNames" -> ppssppNames(call.argument<String>("directory") ?: "")
                         "ppssppSavedataFolders" -> {
@@ -389,7 +445,8 @@ internal class SaveCaptureService(private val activity: Context) {
                          melonDirectory: String? = null,
                          restoreBaseline: Boolean = false,
                          savedata: Boolean = false,
-                         pcsx: PcsxSource? = null): Map<String, Any>? {
+                         pcsx: PcsxSource? = null,
+                         companions: RomCompanionSource? = null): Map<String, Any>? {
         val seal = File(directory, "capture.json")
         if (!seal.exists()) return null
         if (seal.length() !in 1..(if (savedata) 131072 else 16384)) throw Failure("invalid_capture")
@@ -399,14 +456,16 @@ internal class SaveCaptureService(private val activity: Context) {
         }
         // A capture ID cannot be replayed against another directory or format.
         // Older mGBA journals lack these fields and retain their original binding.
-        val expectedFormat = pcsx?.selection?.format ?: if (savedata) PpssppSavedataBoundary.FORMAT else if (melonDirectory != null) MelonSaveBoundary.FORMAT
+        val expectedFormat = if (companions != null) RomCompanionBoundary.FORMAT else pcsx?.selection?.format ?: if (savedata) PpssppSavedataBoundary.FORMAT else if (melonDirectory != null) MelonSaveBoundary.FORMAT
             else if (ppssppDirectory != null) if (PpssppSaveBoundary.validCompanionName(name)) PpssppSaveBoundary.COMPANION_FORMAT else "ppsspp-slot-v1"
             else batteryFormat(retroArchRoute)
         val expectedSource = pcsx?.selection?.directory ?: melonDirectory ?: ppssppDirectory ?: batterySource(retroArchRoute)
         if (record.optString("format", "mgba-battery") != expectedFormat ||
             record.optString("source", MGBA_SOURCE) != expectedSource ||
             (pcsx != null && record.optString("pcsxSource") != pcsx.journalKey) ||
-            (pcsx == null && record.has("pcsxSource"))) {
+            (pcsx == null && record.has("pcsxSource")) ||
+            (companions != null && record.optString("romCompanionSource") != companions.journalKey) ||
+            (companions == null && record.has("romCompanionSource"))) {
             throw Failure("invalid_capture")
         }
         val members = record.getJSONArray("files")
@@ -425,7 +484,8 @@ internal class SaveCaptureService(private val activity: Context) {
             check()
             val item = members.getJSONObject(i)
             val file = File(directory, "member-$i")
-            if (if (savedata) !PpssppSavedataBoundary.validMember(item.getString("name")) else item.getString("name") != name &&
+            if (if (companions != null) item.getString("name") !in companions.members
+                else if (savedata) !PpssppSavedataBoundary.validMember(item.getString("name")) else item.getString("name") != name &&
                 (!includesRtc || item.getString("name") != name.dropLast(4) + ".rtc")) {
                 throw Failure("invalid_capture")
             }
@@ -452,12 +512,13 @@ internal class SaveCaptureService(private val activity: Context) {
         }
         if ((!absent && !savedata && output.count { it["name"] == name } != 1) ||
             (savedata && output.sumOf { (it["size"] as Number).toLong() } > maxSize) ||
+            (companions != null && !restoreBaseline && output.map { it["name"] }.toSet() != companions.members.toSet()) ||
             output.map { it["name"] }.toSet().size != output.size) throw Failure("invalid_capture")
         return mapOf("captureId" to directory.name, "deviceId" to record.getString("deviceId"),
             "emulatorVersion" to record.getString("emulatorVersion"), "files" to output,
             "localWasAbsent" to absent,
             "sourceIdentity" to if (absent || savedata) (0..1).map { record.getJSONArray("sourceIdentity").getLong(it) } else emptyList<Long>()).let {
-                if (savedata) it + ("savedataGroupPresent" to record.optBoolean("savedataGroupPresent", true)) else it
+                if (savedata && companions == null) it + ("savedataGroupPresent" to record.optBoolean("savedataGroupPresent", true)) else it
             }
     }
 
@@ -642,12 +703,12 @@ internal class SaveCaptureService(private val activity: Context) {
      * the descriptor census, source IO and whole-directory inotify guard; payloads remain
      * streamed through the existing app-owned capture journal. */
     private fun capturePpssppSavedata(captureId: String, sourceDirectory: String,
-                                    restoreBaseline: Boolean): Map<String, Any> {
-        if (!PpssppSavedataBoundary.validDirectory(sourceDirectory)) throw Failure("invalid_selection")
-        val name = sourceDirectory.substringAfterLast('/')
+                                    restoreBaseline: Boolean, companions: RomCompanionSource? = null): Map<String, Any> {
+        if (companions == null && !PpssppSavedataBoundary.validDirectory(sourceDirectory)) throw Failure("invalid_selection")
+        val name = companions?.romName ?: sourceDirectory.substringAfterLast('/')
         @Suppress("DEPRECATION")
-        val version = activity.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0).versionName
-        if (version !in setOf("v1.20.4", "1.20.4")) throw Failure("runtime_unreviewed")
+        val version = companions?.version ?: activity.packageManager.getPackageInfo(PpssppSaveSettings.PACKAGE, 0).versionName
+        if (companions == null && version !in setOf("v1.20.4", "1.20.4")) throw Failure("runtime_unreviewed")
         val device = Settings.Secure.getString(activity.contentResolver, Settings.Secure.ANDROID_ID)
             ?: throw Failure("device_identity_unavailable")
         if (!root.isDirectory && !root.mkdir()) throw Failure("capture_storage")
@@ -655,23 +716,25 @@ internal class SaveCaptureService(private val activity: Context) {
         val directory = File(root, captureId)
         if (directory.exists() && directory.canonicalFile != directory.absoluteFile) throw Failure("invalid_capture")
         if (!directory.isDirectory && !directory.mkdir()) throw Failure("capture_storage")
-        captured(directory, name, sourceDirectory, restoreBaseline = restoreBaseline, savedata = true)?.let { return it }
+        captured(directory, name, sourceDirectory, restoreBaseline = restoreBaseline, savedata = true, companions = companions)?.let { return it }
         val leftovers = directory.listFiles() ?: throw Failure("capture_storage")
         val allowed = (0 until PpssppSavedataBoundary.MAX_MEMBERS).map { "member-$it" }.toSet() + "capture.json.part"
         if (leftovers.any { it.name !in allowed || it.canonicalFile != it.absoluteFile || !it.isFile })
             throw Failure("invalid_capture")
         leftovers.forEach { if (!it.delete()) throw Failure("capture_storage") }
-        val opened = try { SaveSourceStorage.open(activity, sourceDirectory) }
+        val opened = try { if (companions == null) SaveSourceStorage.open(activity, sourceDirectory)
+            else SaveSourceStorage.openRomCompanions(activity, sourceDirectory, companions.romName, companions.members) }
         catch (error: java.io.IOException) {
-            if (!restoreBaseline || error.message != "owned_storage:2") throw error
+            if (companions != null || !restoreBaseline || error.message != "owned_storage:2") throw error
             return captureAbsentPpssppSavedata(captureId, directory, sourceDirectory, version!!, device)
         }
         opened.use { storage ->
             check()
-            storage.beginPpssppSavedataSnapshot()
+            if (companions == null) storage.beginPpssppSavedataSnapshot() else storage.beginRomCompanionSnapshot()
             val selected = storage.names()
             val absent = restoreBaseline && selected.isEmpty()
-            if (!absent && !PpssppSavedataBoundary.validMembers(selected)) throw Failure("invalid_selection")
+            if (companions == null && !absent && !PpssppSavedataBoundary.validMembers(selected)) throw Failure("invalid_selection")
+            if (companions != null && !restoreBaseline && selected != companions.members) throw Failure("source_changed")
             val parentIdentity = storage.identity(storage.root)
             val members = JSONArray()
             val identities = mutableListOf<LongArray>()
@@ -710,18 +773,23 @@ internal class SaveCaptureService(private val activity: Context) {
                     throw Failure("source_changed")
                 for (index in selected.indices) if (!same(identities[index], storage.entryIdentity(selected[index])))
                     throw Failure("source_changed")
-                storage.verifyPpssppSavedataSnapshot()
+                if (companions == null) storage.verifyPpssppSavedataSnapshot() else {
+                    storage.verifySnapshot()
+                    if (OwnedRomContentProvider.companionSnapshot(activity, companions.uri, null, ::check)["binding"] != companions.binding)
+                        throw Failure("source_changed")
+                }
                 check()
                 val record = JSONObject().put("captureId", captureId).put("name", name)
                     .put("deviceId", hash(device.toByteArray(Charsets.UTF_8))).put("emulatorVersion", version)
-                    .put("files", members).put("format", PpssppSavedataBoundary.FORMAT)
+                    .put("files", members).put("format", if (companions == null) PpssppSavedataBoundary.FORMAT else RomCompanionBoundary.FORMAT)
                     .put("source", sourceDirectory).put("localWasAbsent", absent).put("savedataGroupPresent", true)
                 record.put("sourceIdentity", JSONArray(parentIdentity.take(2)))
+                if (companions != null) record.put("romCompanionSource", companions.journalKey)
                 val part = File(directory, "capture.json.part")
                 FileOutputStream(part).use { it.write(record.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
                 OwnedStorageNative.renameNoReplace(stage, part.name, stage, "capture.json")
                 OwnedStorageNative.sync(stage)
-                return captured(directory, name, sourceDirectory, restoreBaseline = restoreBaseline, savedata = true)
+                return captured(directory, name, sourceDirectory, restoreBaseline = restoreBaseline, savedata = true, companions = companions)
                     ?: throw Failure("capture_storage")
             } finally { OwnedStorageNative.close(stage) }
         }
@@ -961,6 +1029,7 @@ internal class SaveCaptureService(private val activity: Context) {
         if (record.optString("groupId").takeIf { it.isNotEmpty() } != groupId ||
             restorePcsx(record)?.journalKey != pcsx?.journalKey) throw Failure("invalid_restore")
         val group = groupId?.let { groupRecord(restoreDirectory(it)) }
+        val companions = group?.let { restoreCompanions(it, revalidate = true) }
         if (record.optString("format") == PpssppSavedataBoundary.FORMAT) throw Failure("invalid_restore")
         if (group != null && group.getString("phase") != "publishing") throw Failure("invalid_restore")
         if (record.getString("phase") == "downloading") throw Failure("invalid_restore")
@@ -972,27 +1041,28 @@ internal class SaveCaptureService(private val activity: Context) {
         val name = record.getString("name")
         val ppsspp = record.optString("format", "mgba-battery") in setOf("ppsspp-slot-v1", PpssppSaveBoundary.COMPANION_FORMAT)
         val melon = record.optString("format") == MelonSaveBoundary.FORMAT
-        val standalone = ppsspp || melon
+        val standalone = ppsspp || melon || companions != null
         val sourceDirectory = record.optString("source", source)
         if (pcsx == null && !SaveSourceStorage.isProtectedDirectory(sourceDirectory) &&
             File(sourceDirectory).canonicalPath != sourceDirectory) throw Failure("invalid_restore")
         val rollbackDirectory = File(root, rollbackId)
         if (rollbackDirectory.canonicalFile != rollbackDirectory.absoluteFile) throw Failure("invalid_restore")
-        val batteryRoute = if (pcsx != null) "gba" else routeForFormat(record.optString("format", "mgba-battery"))
+        val batteryRoute = if (pcsx != null || companions != null) "gba" else routeForFormat(record.optString("format", "mgba-battery"))
         val rollback = captured(rollbackDirectory, group?.getString("name") ?: name,
-            sourceDirectory.takeIf { ppsspp }, batteryRoute, sourceDirectory.takeIf { melon }, true, pcsx = pcsx)
+            sourceDirectory.takeIf { ppsspp || companions != null }, batteryRoute, sourceDirectory.takeIf { melon }, true,
+            savedata = companions != null, pcsx = pcsx, companions = companions)
             ?: throw Failure("invalid_restore")
-        val absent = rollback["localWasAbsent"] == true
         @Suppress("UNCHECKED_CAST")
         val oldMembers = (rollback["files"] as List<Map<String, Any>>).filter {
             group == null || it["name"] == name
         }
+        val absent = if (companions != null) oldMembers.isEmpty() else rollback["localWasAbsent"] == true
         if (oldMembers.size != if (absent) 0 else 1) throw Failure("related_group_unfinished")
         @Suppress("DEPRECATION")
-        val packageName = if (melon) MelonSaveBoundary.PACKAGE else if (ppsspp) "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
+        val packageName = companions?.emulatorPackage ?: if (melon) MelonSaveBoundary.PACKAGE else if (ppsspp) "org.ppsspp.ppsspp" else "com.retroarch.aarch64"
         val version = activity.packageManager.getPackageInfo(packageName, 0).versionName
         val versions = if (melon) setOf(MelonSaveBoundary.VERSION) else if (ppsspp) setOf("v1.20.4", "1.20.4") else setOf("1.22.2", "1.22.2_GIT")
-        if (version !in versions ||
+        if ((companions == null && version !in versions) ||
             rollback["emulatorVersion"] != version) throw Failure("runtime_unreviewed")
         val rtc = name.dropLast(4) + ".rtc"
         if (group == null && !standalone && pcsx == null && File(sourceDirectory, rtc).exists()) throw Failure("related_group_unfinished")
@@ -1003,11 +1073,18 @@ internal class SaveCaptureService(private val activity: Context) {
         }
         connection?.connect(InetAddress.getByName("127.0.0.1"), 55355)
         val sourceStorage = if (pcsx != null) SaveSourceStorage.openPcsxRestore(activity, pcsx.leaf, pcsx.selection, id)
+            else if (companions != null) SaveSourceStorage.openRomCompanions(activity, sourceDirectory, companions.romName,
+                companions.members, id, name)
             else SaveSourceStorage.open(activity, sourceDirectory)
+        if (companions != null) try { sourceStorage.beginRomCompanionSnapshot(name) }
+            catch (error: Exception) { sourceStorage.close(); throw error }
         fun writerClosed() {
             check()
             if (pcsx != null) OwnedRomContentProvider.openCommitted(activity, pcsx.uri, requiredStandaloneChd = true).use { }
-            if (connection != null) contentClosed(connection) else {
+            if (companions != null) {
+                restoreCompanions(group!!, revalidate = true)
+                sourceStorage.verifySnapshot()
+            } else if (connection != null) contentClosed(connection) else {
                 try { sourceStorage.verifyEmulatorClosed(activity) }
                 catch (error: java.io.IOException) {
                     if (error.message != "emulator_running") throw error
@@ -1143,19 +1220,22 @@ internal class SaveCaptureService(private val activity: Context) {
         val members = record.getJSONArray("members")
         val names = (0 until members.length()).map { members.getJSONObject(it).getString("name") }
         val savedata = record.optString("format", "mgba-battery") == PpssppSavedataBoundary.FORMAT
-        val valid = if (savedata) PpssppSavedataBoundary.validDirectory(record.getString("source")) &&
+        val companions = restoreCompanions(record)
+        val valid = if (companions != null) record.getString("format") == RomCompanionBoundary.FORMAT &&
+            record.getString("source") == companions.directory && record.getString("name") == companions.romName && names == companions.members
+            else if (savedata) PpssppSavedataBoundary.validDirectory(record.getString("source")) &&
             record.getString("source").substringAfterLast('/') == record.getString("name") && PpssppSavedataBoundary.validMembers(names)
             else record.optString("format", "mgba-battery") in setOf("gb-battery", "gbc-battery", "mgba-battery", "snes-battery") &&
                 record.optString("source", MGBA_SOURCE) == batterySource(routeForFormat(record.optString("format", "mgba-battery"))) &&
                 validGroupNames(record.getString("name"), names)
-        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(routeForFormat(record.optString("format", "mgba-battery")))
+        val max = if (savedata || companions != null) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(routeForFormat(record.optString("format", "mgba-battery")))
         if (record.getString("id") != directory.name || !valid || names != names.sorted() ||
             record.getString("phase") !in (if (savedata) setOf("downloading", "ready", "staging", "publishing", "retiring", "published")
                 else setOf("downloading", "ready", "publishing", "published")) ||
             (0 until members.length()).any { val m = members.getJSONObject(it)
-                m.getLong("size") !in (if (savedata) 0 else 1)..max || !m.getString("sha256").matches(Regex("[a-f0-9]{64}")) ||
+                m.getLong("size") !in (if (savedata || companions != null) 0 else 1)..max || !m.getString("sha256").matches(Regex("[a-f0-9]{64}")) ||
                     (m.getLong("size") == 0L && m.getString("sha256") != hash(byteArrayOf())) } ||
-            (savedata && (0 until members.length()).sumOf { members.getJSONObject(it).getLong("size") } > max)) {
+            ((savedata || companions != null) && (0 until members.length()).sumOf { members.getJSONObject(it).getLong("size") } > max)) {
             throw Failure("invalid_restore")
         }
         return record
@@ -1166,23 +1246,25 @@ internal class SaveCaptureService(private val activity: Context) {
         val name = call.argument<String>("name") ?: ""
         val savedataDirectory = call.argument<String>("ppssppSavedataDirectory")
         val savedata = savedataDirectory != null
-        val route = batteryRoute(call)
-        if (if (savedata) route != "gba" else !RetroArchSaveBoundary.includesRtc(route)) throw Failure("invalid_restore")
-        val format = if (savedata) PpssppSavedataBoundary.FORMAT else batteryFormat(route)
-        val sourceDirectory = savedataDirectory ?: batterySource(route)
         val raw = call.argument<List<Map<String, Any>>>("members") ?: throw Failure("invalid_restore")
         val names = raw.map { it["name"] as? String ?: "" }
-        if (if (savedata) !PpssppSavedataBoundary.validDirectory(sourceDirectory) ||
+        val companions = if (call.hasArgument("binding")) romCompanionSource(call, names) else null
+        val route = batteryRoute(call)
+        if (if (savedata || companions != null) route != "gba" else !RetroArchSaveBoundary.includesRtc(route)) throw Failure("invalid_restore")
+        if (companions != null && (savedata || name != companions.romName)) throw Failure("invalid_restore")
+        val format = if (companions != null) RomCompanionBoundary.FORMAT else if (savedata) PpssppSavedataBoundary.FORMAT else batteryFormat(route)
+        val sourceDirectory = companions?.directory ?: savedataDirectory ?: batterySource(route)
+        if (if (companions != null) false else if (savedata) !PpssppSavedataBoundary.validDirectory(sourceDirectory) ||
                 sourceDirectory.substringAfterLast('/') != name || !PpssppSavedataBoundary.validMembers(names)
             else !validGroupNames(name, names)) throw Failure("invalid_restore")
         val members = JSONArray()
-        val max = if (savedata) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(route)
+        val max = if (savedata || companions != null) PpssppSavedataBoundary.MAX_BYTES else batteryMaxBytes(route)
         var total = 0L
         for (item in raw.sortedBy { it["name"] as String }) {
             val size = (item["size"] as? Number)?.toLong() ?: 0L
             val digest = item["sha256"] as? String ?: ""
-            if (size !in (if (savedata) 0 else 1)..max || !digest.matches(Regex("[a-f0-9]{64}")) ||
-                (size == 0L && digest != hash(byteArrayOf())) || (savedata && total > max - size)) throw Failure("invalid_restore")
+            if (size !in (if (savedata || companions != null) 0 else 1)..max || !digest.matches(Regex("[a-f0-9]{64}")) ||
+                (size == 0L && digest != hash(byteArrayOf())) || ((savedata || companions != null) && total > max - size)) throw Failure("invalid_restore")
             total += size
             members.put(JSONObject().put("name", item["name"]).put("size", size).put("sha256", digest))
         }
@@ -1191,11 +1273,14 @@ internal class SaveCaptureService(private val activity: Context) {
             val old = groupRecord(directory)
             if (old.getString("name") != name || old.optString("format", "mgba-battery") != format ||
                 old.optString("source", MGBA_SOURCE) != sourceDirectory ||
+                restoreCompanions(old)?.journalKey != companions?.journalKey ||
                 old.getJSONArray("members").toString() != members.toString()) throw Failure("invalid_restore")
         } else {
             if (directory.list()?.isNotEmpty() != false) throw Failure("invalid_restore")
             writeRestoreRecord(directory, JSONObject().put("id", id).put("name", name)
-                .put("members", members).put("format", format).put("source", sourceDirectory).put("phase", "downloading"), "group.json")
+                .put("members", members).put("format", format).put("source", sourceDirectory).put("phase", "downloading").also {
+                    if (companions != null) it.put("romCompanions", companionRecord(companions))
+                }, "group.json")
         }
         for (index in 0 until members.length()) {
             val member = members.getJSONObject(index)
@@ -1436,34 +1521,46 @@ internal class SaveCaptureService(private val activity: Context) {
             (record.has("rollbackId") && record.getString("rollbackId") != rollbackId)) throw Failure("invalid_restore")
         sealRestoreGroup(id)
         val name = record.getString("name")
-        val route = routeForFormat(record.optString("format", "mgba-battery"))
-        val sourceDirectory = batterySource(route)
-        val rollback = captured(File(root, rollbackId), name, retroArchRoute = route, restoreBaseline = true) ?: throw Failure("invalid_restore")
+        val companions = restoreCompanions(record, revalidate = true)
+        val route = if (companions == null) routeForFormat(record.optString("format", "mgba-battery")) else "gba"
+        val sourceDirectory = companions?.directory ?: batterySource(route)
+        val rollback = captured(File(root, rollbackId), name, companions?.directory,
+            retroArchRoute = route, restoreBaseline = true, savedata = companions != null, companions = companions) ?: throw Failure("invalid_restore")
         val absent = rollback["localWasAbsent"] == true
         @Suppress("UNCHECKED_CAST") val old = rollback["files"] as List<Map<String, Any>>
-        if (!(absent && old.isEmpty()) && !validGroupNames(name, old.map { it["name"] as String })) throw Failure("related_group_changed")
+        if (companions == null && !(absent && old.isEmpty()) && !validGroupNames(name, old.map { it["name"] as String })) throw Failure("related_group_changed")
         val members = record.getJSONArray("members")
         fun verifyCurrentGroup() {
             check()
-            val parent = OwnedStorageNative.openRoot(sourceDirectory)
+            if (companions != null) restoreCompanions(record, revalidate = true)
+            val storage = companions?.let { SaveSourceStorage.openRomCompanions(activity, sourceDirectory, it.romName, it.members) }
+            val parent = storage?.root ?: OwnedStorageNative.openRoot(sourceDirectory)
             try {
+                if (storage != null) {
+                    storage.beginRomCompanionSnapshot()
+                    if (storage.currentRootIdentity().take(2) != rollback["sourceIdentity"]) throw Failure("source_changed")
+                }
                 for (index in 0 until members.length()) {
                     val next = members.getJSONObject(index)
                     val child = restoreRecord(restoreDirectory(childId(id, index)))
                     val targetName = next.getString("name")
                     val stage = File(sourceDirectory, ".rshop-save-restore-${childId(id, index)}")
-                    val placed = child.getString("phase") == "published" ||
-                        (child.getString("phase") == "publishing" && !stage.exists())
-                    if (absent && !placed) {
-                        if (!entryAbsent(parent, targetName)) throw Failure("source_changed")
+                    val committed = child.optJSONArray("staged")
+                    val destination = if (storage == null) null else try { storage.entryIdentity(targetName) }
+                        catch (error: java.io.IOException) { if (error.message != "owned_storage:2") throw error; null }
+                    val placed = child.getString("phase") == "published" || (child.getString("phase") == "publishing" &&
+                        if (storage == null) !stage.exists() else destination != null && committed != null &&
+                            (0..2).all { destination[it] == committed.getLong(it) })
+                    val before = old.singleOrNull { it["name"] == targetName }
+                    if ((absent || companions != null && before == null) && !placed) {
+                        if (if (storage == null) !entryAbsent(parent, targetName) else destination != null) throw Failure("source_changed")
                         continue
                     }
-                    val before = old.singleOrNull { it["name"] == targetName }
                     val size = if (placed) next.getLong("size") else (before!!["size"] as Number).toLong()
                     val digest = if (placed) next.getString("sha256") else before!!["sha256"] as String
-                    val fd = OwnedStorageNative.openFile(parent, targetName, false, false)
+                    val fd = storage?.openFile(targetName, false, false) ?: OwnedStorageNative.openFile(parent, targetName, false, false)
                     try {
-                        val identity = OwnedStorageNative.identity(fd)
+                        val identity = storage?.identity(fd) ?: OwnedStorageNative.identity(fd)
                         // Before replacement, require the complete stable stat
                         // snapshot. After replacement, the durable child receipt
                         // anchors the committed inode/size and desired digest.
@@ -1471,23 +1568,24 @@ internal class SaveCaptureService(private val activity: Context) {
                         // rename, even for our closed, fsynced file. Mtime is not
                         // the identity of a committed save. Do not retry hashing
                         // or accept a different inode because its bytes match.
-                        val committed = if (placed) child.getJSONArray("staged") else null
                         fun matchesCommitted(actual: LongArray): Boolean =
-                            committed != null && (0..2).all { actual[it] == committed.getLong(it) }
+                            placed && committed != null && (0..2).all { actual[it] == committed.getLong(it) }
                         if (identity[2] != size || (placed && !matchesCommitted(identity)) ||
-                            digestFd(fd, size) != digest) throw Failure("source_changed")
-                        val reviewedIdentity = OwnedStorageNative.identity(fd)
-                        val entry = OwnedStorageNative.entryIdentity(parent, targetName)
+                            digestFd(fd, size, sourceStorage = storage) != digest) throw Failure("source_changed")
+                        val reviewedIdentity = storage?.identity(fd) ?: OwnedStorageNative.identity(fd)
+                        val entry = storage?.entryIdentity(targetName) ?: OwnedStorageNative.entryIdentity(parent, targetName)
                         if (if (placed) !matchesCommitted(reviewedIdentity) || !matchesCommitted(entry)
                             else !same(identity, reviewedIdentity) || !same(identity, entry)) throw Failure("source_changed")
-                    } finally { OwnedStorageNative.close(fd) }
+                    } finally { if (storage == null) OwnedStorageNative.close(fd) else storage.closeFile(fd) }
                 }
-                val currentParent = OwnedStorageNative.openRoot(sourceDirectory)
-                try {
-                    if (OwnedStorageNative.identity(parent).take(2) !=
-                        OwnedStorageNative.identity(currentParent).take(2)) throw Failure("source_changed")
-                } finally { OwnedStorageNative.close(currentParent) }
-            } finally { OwnedStorageNative.close(parent) }
+                if (storage != null) storage.verifySnapshot() else {
+                    val currentParent = OwnedStorageNative.openRoot(sourceDirectory)
+                    try {
+                        if (OwnedStorageNative.identity(parent).take(2) !=
+                            OwnedStorageNative.identity(currentParent).take(2)) throw Failure("source_changed")
+                    } finally { OwnedStorageNative.close(currentParent) }
+                }
+            } finally { if (storage == null) OwnedStorageNative.close(parent) else storage.close() }
         }
         verifyCurrentGroup() // Validate every rollback/committed member before any further mutation.
         writeRestoreRecord(directory, record.put("rollbackId", rollbackId).put("phase", "publishing"), "group.json")

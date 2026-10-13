@@ -25,7 +25,8 @@ import 'save_capture.dart';
 /// bytes are safe. RetroArch uses root writer checks and a mutation guard.
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
-  final bool isMelon, isPpssppSavedata, isPpssppCompanion;
+  final bool isMelon, isPpssppSavedata, isPpssppCompanion, isRomCompanion;
+  final String? companionPlatform, companionEmulator, companionCore;
   final RetroArchBatteryRoute? retroArchRoute;
   final PcsxSaveLayout? pcsxLayout;
   final String? romRoot;
@@ -40,6 +41,13 @@ class AutomaticSaveMapping {
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
       : isMelon = value['schema'] == 2 && value['route'] == 'melon',
+        isRomCompanion =
+            value['schema'] == 6 && value['route'] == 'rom-companion',
+        companionPlatform =
+            value['schema'] == 6 ? value['platform'] as String? : null,
+        companionEmulator =
+            value['schema'] == 6 ? value['emulator'] as String? : null,
+        companionCore = value['schema'] == 6 ? value['core'] as String? : null,
         isPpssppCompanion =
             value['schema'] == 5 && value['route'] == 'ppsspp-companion',
         isPpssppSavedata =
@@ -50,7 +58,8 @@ class AutomaticSaveMapping {
         pcsxLayout = value['schema'] == 4 && value['route'] == 'pcsx'
             ? PcsxSaveLayout.decode(value['pcsx'] as Map<String, dynamic>?)
             : null,
-        romRoot = value['schema'] == 4 && value['route'] == 'pcsx'
+        romRoot = value['schema'] == 4 && value['route'] == 'pcsx' ||
+                value['schema'] == 6 && value['route'] == 'rom-companion'
             ? value['romRoot'] as String?
             : null,
         clientId = value['clientId'] as String,
@@ -66,8 +75,16 @@ class AutomaticSaveMapping {
             isMelon ||
             isPpssppSavedata ||
             isPpssppCompanion ||
+            isRomCompanion ||
             isRetroArch ||
             isPcsx) ||
+        (isRomCompanion &&
+            (romRoot == null ||
+                romRoot!.isEmpty ||
+                romRoot!.length > 4096 ||
+                !SaveCapture.validRomCompanionDirectory(directory) ||
+                [companionPlatform, companionEmulator, companionCore]
+                    .any((value) => value == null || value.isEmpty))) ||
         (isPcsx &&
             (pcsxLayout!.cards.length != 1 ||
                 pcsxCard!.name != slot ||
@@ -80,33 +97,57 @@ class AutomaticSaveMapping {
             .any((s) => s.trim().isEmpty || s.length > 1024) ||
         artifactId.providerId != 'drive' ||
         artifactId.accountId != accountId ||
-        !(isPcsx
-            ? directory == pcsxLayout!.directory
-            : isRetroArch
-                ? directory == retroArchRoute!.directory
-                : isMelon
-                    ? SaveCapture.validMelonDirectory(directory)
-                    : isPpssppSavedata
-                        ? SaveCapture.validPpssppSavedataDirectory(directory)
-                        : SaveCapture.validPpssppDirectory(directory)) ||
-        !(isPcsx
-            ? slot == pcsxCard!.name
-            : isRetroArch
-                ? SaveCapture.validName(slot)
-                : isMelon
-                    ? SaveCapture.validMelonName(slot)
-                    : isPpssppSavedata
-                        ? slot == directory.split('/').last &&
-                            SaveCapture.validPpssppSavedataMember(slot)
-                        : isPpssppCompanion
-                            ? SaveCapture.validPpssppCompanionName(slot)
-                            : SaveCapture.validPpssppName(slot))) {
+        !(isRomCompanion
+            ? SaveCapture.validRomCompanionDirectory(directory)
+            : isPcsx
+                ? directory == pcsxLayout!.directory
+                : isRetroArch
+                    ? directory == retroArchRoute!.directory
+                    : isMelon
+                        ? SaveCapture.validMelonDirectory(directory)
+                        : isPpssppSavedata
+                            ? SaveCapture.validPpssppSavedataDirectory(
+                                directory)
+                            : SaveCapture.validPpssppDirectory(directory)) ||
+        !(isRomCompanion
+            ? SaveCapture.validPpssppSavedataMember(slot) &&
+                slot.lastIndexOf('.') > 0
+            : isPcsx
+                ? slot == pcsxCard!.name
+                : isRetroArch
+                    ? SaveCapture.validName(slot)
+                    : isMelon
+                        ? SaveCapture.validMelonName(slot)
+                        : isPpssppSavedata
+                            ? slot == directory.split('/').last &&
+                                SaveCapture.validPpssppSavedataMember(slot)
+                            : isPpssppCompanion
+                                ? SaveCapture.validPpssppCompanionName(slot)
+                                : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
   }
 
   factory AutomaticSaveMapping.fromJob(SaveBackupGameJob job,
       {required String title, String? saveName, String? romRoot}) {
+    if (job.isRomCompanion) {
+      return AutomaticSaveMapping._({
+        'schema': 6,
+        'route': 'rom-companion',
+        'romRoot': romRoot,
+        'platform': job.romCompanionPlatform,
+        'emulator': job.romCompanionEmulator,
+        'core': job.romCompanionCore,
+        'clientId': job.clientId,
+        'accountId': job.accountId,
+        'areaId': job.areaId,
+        'editionId': job.editionId,
+        'artifact': job.artifactId.toJson(),
+        'title': title,
+        'directory': job.romCompanionDirectory,
+        'slot': job.romCompanionName,
+      });
+    }
     if (job.isPcsx) {
       return AutomaticSaveMapping._({
         'schema': 4,
@@ -172,29 +213,39 @@ class AutomaticSaveMapping {
     });
   }
 
-  String get slotStorageKey => isPcsx
-      ? 'save_pcsx_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+  String get slotStorageKey => isRomCompanion
+      ? 'save_rom_companion_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
               clientId,
               accountId,
               editionId,
               artifactId.key,
-              pcsxCard!.slot
+              companionPlatform,
+              companionEmulator,
+              companionCore
             ])))}'
-      : isRetroArch
-          ? 'save_retroarch_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+      : isPcsx
+          ? 'save_pcsx_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
                   clientId,
                   accountId,
                   editionId,
                   artifactId.key,
-                  retroArchRoute!.platformId
+                  pcsxCard!.slot
                 ])))}'
-          : isMelon
-              ? melonMappingKey(clientId, accountId, editionId, artifactId)
-              : isPpssppSavedata
-                  ? ppssppSavedataMappingKey(
-                      clientId, accountId, editionId, artifactId)
-                  : ppssppMappingKey(
-                      clientId, accountId, editionId, artifactId);
+          : isRetroArch
+              ? 'save_retroarch_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
+                      clientId,
+                      accountId,
+                      editionId,
+                      artifactId.key,
+                      retroArchRoute!.platformId
+                    ])))}'
+              : isMelon
+                  ? melonMappingKey(clientId, accountId, editionId, artifactId)
+                  : isPpssppSavedata
+                      ? ppssppSavedataMappingKey(
+                          clientId, accountId, editionId, artifactId)
+                      : ppssppMappingKey(
+                          clientId, accountId, editionId, artifactId);
   static String ppssppSavedataMappingKey(String clientId, String accountId,
           String editionId, RemoteArtifactId artifact) =>
       'save_ppsspp_savedata_mapping_v1_${sha256.convert(utf8.encode(jsonEncode([
@@ -233,6 +284,13 @@ class AutomaticSaveMapping {
         if (isMelon) 'melondualds-sram-v1',
         if (isPpssppSavedata) 'ppsspp-savedata-v1',
         if (isPpssppCompanion) 'ppsspp-screenshot-jpeg-v1',
+        if (isRomCompanion) ...[
+          'rom-companion-files-v1',
+          romRoot,
+          companionPlatform,
+          companionEmulator,
+          companionCore
+        ],
       ])))
       .toString();
   Map<String, Object?> get selection => {
@@ -248,15 +306,17 @@ class AutomaticSaveMapping {
       value is Map &&
       selection.entries.every((entry) => value[entry.key] == entry.value);
   String encode() => jsonEncode({
-        'schema': isPpssppCompanion
-            ? 5
-            : isPcsx
-                ? 4
-                : isRetroArch
-                    ? 3
-                    : isMelon || isPpssppSavedata
-                        ? 2
-                        : 1,
+        'schema': isRomCompanion
+            ? 6
+            : isPpssppCompanion
+                ? 5
+                : isPcsx
+                    ? 4
+                    : isRetroArch
+                        ? 3
+                        : isMelon || isPpssppSavedata
+                            ? 2
+                            : 1,
         if (isRetroArch) ...{
           'route': 'retroarch',
           'platform': retroArchRoute!.platformId
@@ -264,6 +324,13 @@ class AutomaticSaveMapping {
         if (isMelon) 'route': 'melon',
         if (isPpssppSavedata) 'route': 'ppsspp-savedata',
         if (isPpssppCompanion) 'route': 'ppsspp-companion',
+        if (isRomCompanion) ...{
+          'route': 'rom-companion',
+          'romRoot': romRoot,
+          'platform': companionPlatform,
+          'emulator': companionEmulator,
+          'core': companionCore
+        },
         if (isPcsx) ...{
           'route': 'pcsx',
           'pcsx': pcsxLayout!.toJson(),
@@ -295,6 +362,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
   final List<Source> Function() sources;
   final Future<void> Function()? refreshConfiguration;
   final Future<void> Function(bool enabled)? scheduleBackground;
+  final Future<void> Function()? schedulePending;
+  final Future<bool> Function()? networkAvailable;
   final Future<Set<String>> Function(List<AutomaticSaveMapping>)?
       configureWatches;
   final SaveBackupGameJob Function(
@@ -314,6 +383,8 @@ class AutomaticSaveBackups extends ChangeNotifier {
       required this.sources,
       this.refreshConfiguration,
       this.scheduleBackground,
+      this.schedulePending,
+      this.networkAvailable,
       this.configureWatches,
       this.createJob});
   bool get busy => _operation != null;
@@ -518,6 +589,9 @@ class AutomaticSaveBackups extends ChangeNotifier {
     final db = await _db();
     final row = (await db.rawQuery('''SELECT COUNT(*) AS enabled,
       COALESCE(SUM(requested > handled), 0) AS pending,
+      COALESCE(SUM(requested > handled AND (issue IS NULL OR issue IN
+        ('offline', 'unavailable', 'authorization_unavailable', 'backup_unavailable',
+         'cancelled', 'manual_operation_joined'))), 0) AS retryable,
       COALESCE(SUM(issue IS NULL AND outcome = 'verified'), 0) AS verified,
       COALESCE(SUM(issue IS NULL AND outcome = 'unchanged'), 0) AS unchanged,
       COALESCE(SUM(issue IS NOT NULL), 0) AS attention
@@ -543,6 +617,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
         setup['ready'] != true ||
         setup['areaId'] != mapping.areaId ||
         (requireSelection &&
+            !mapping.isRomCompanion &&
             (slot is! Map ||
                 slot['directory'] != mapping.directory ||
                 !mapping.matchesStoredSlot(slot[mapping.isMelon ||
@@ -593,12 +668,14 @@ class AutomaticSaveBackups extends ChangeNotifier {
         editionId: mapping.editionId,
         artifactId: mapping.artifactId,
         ppssppDirectory: mapping.isMelon ||
+                mapping.isRomCompanion ||
                 mapping.isPpssppSavedata ||
                 mapping.isRetroArch ||
                 mapping.isPcsx
             ? null
             : mapping.directory,
         ppssppSlot: mapping.isMelon ||
+                mapping.isRomCompanion ||
                 mapping.isPpssppSavedata ||
                 mapping.isRetroArch ||
                 mapping.isPcsx
@@ -614,7 +691,37 @@ class AutomaticSaveBackups extends ChangeNotifier {
         pcsxCard: mapping.pcsxCard,
         resolvePcsxGrant:
             mapping.isPcsx ? () => _resolvePcsxGrant(mapping) : null,
+        resolveRomCompanionGrant: mapping.isRomCompanion
+            ? () => _resolveRomCompanionGrant(mapping)
+            : null,
+        romCompanionName: mapping.isRomCompanion ? mapping.slot : null,
+        romCompanionDirectory:
+            mapping.isRomCompanion ? mapping.directory : null,
+        romCompanionPlatform: mapping.companionPlatform,
+        romCompanionEmulator: mapping.companionEmulator,
+        romCompanionCore: mapping.companionCore,
         resolveSaveName: resolve);
+  }
+
+  Future<Map<String, Object>> _resolveRomCompanionGrant(
+      AutomaticSaveMapping mapping) async {
+    await _resolve(mapping);
+    final artifact = await LibraryStore(database).artifact(mapping.artifactId);
+    if (artifact == null) throw PlatformException(code: 'source_changed');
+    final grant = await OwnedEmulatorLauncher().resolveRomCompanionGrant(
+        GameItem(
+            filename: artifact.displayName,
+            displayName: artifact.displayName,
+            url: '',
+            remoteArtifact: artifact),
+        mapping.companionPlatform!,
+        mapping.romRoot!);
+    final snapshot = await SaveCapture().reviewRomCompanions(grant: grant);
+    if (snapshot.romName != mapping.slot ||
+        snapshot.directory != mapping.directory) {
+      throw PlatformException(code: 'source_changed');
+    }
+    return grant;
   }
 
   Future<Map<String, Object>> _resolvePcsxGrant(
@@ -655,10 +762,15 @@ class AutomaticSaveBackups extends ChangeNotifier {
     final event = _events.then((_) async {
       if (_disposed || generation != _cancelGeneration) return;
       final db = await _db();
-      await db.rawUpdate(
+      final changed = await db.rawUpdate(
           'UPDATE automatic_save_backups SET requested = requested + 1 WHERE enabled = 1'
           '${mappingKey == null ? '' : ' AND mapping_key = ?'}',
           mappingKey == null ? [] : [mappingKey]);
+      try {
+        if (changed > 0) await schedulePending?.call();
+      } catch (_) {
+        backgroundUnavailable();
+      }
     });
     _events = event.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return event;
@@ -743,10 +855,18 @@ class AutomaticSaveBackups extends ChangeNotifier {
             throw PlatformException(code: 'cancelled');
           }
           _activeKey = mapping.key;
-          job = _active = _open(mapping);
-          job.addListener(_notify);
-          await job.reconcileBeforeLaunch(mapping.slot);
-          if (job.issue == null &&
+          if (networkAvailable != null && !await networkAvailable!()) {
+            // No cloud decision is possible offline. Keep the local copy and
+            // record work before handing off; never invent a successful sync.
+            await requestChanged(mapping.key);
+            failure = 'offline';
+          } else {
+            job = _active = _open(mapping);
+            job.addListener(_notify);
+            await job.reconcileBeforeLaunch(mapping.slot);
+          }
+          if (job != null &&
+              job.issue == null &&
               !job.restorePending &&
               job.suggestedDeviceBackups.isNotEmpty &&
               reviewDeviceBackups != null) {
@@ -754,15 +874,18 @@ class AutomaticSaveBackups extends ChangeNotifier {
           }
           await _resolve(mapping);
           await reviewTarget();
-          failure = job.issue ??
-              (job.restorePending ? 'pending_restore' : null) ??
-              (job.conflicts.isNotEmpty ? 'save_conflict' : null);
+          failure = failure ??
+              job?.issue ??
+              (job?.restorePending == true ? 'pending_restore' : null) ??
+              (job?.conflicts.isNotEmpty == true ? 'save_conflict' : null);
           if (failure == null &&
               !{'verified', 'unchanged', 'restored', 'no_save'}
-                  .contains(job.phase)) {
+                  .contains(job?.phase)) {
             failure = 'backup_unavailable';
           }
-          if (failure != null) throw PlatformException(code: failure);
+          if (failure != null && failure != 'offline') {
+            throw PlatformException(code: failure);
+          }
         } on PlatformException catch (error) {
           failure = error.code;
           rethrow;
@@ -830,13 +953,20 @@ class AutomaticSaveBackups extends ChangeNotifier {
     final operation = Future<void>.microtask(() async {
       final db = await _db();
       final generation = _cancelGeneration;
+      final attempted = <String>{};
       while (!_disposed && generation == _cancelGeneration) {
         final rows = await db.query('automatic_save_backups',
             where: 'enabled = 1 AND requested > handled',
             orderBy: 'mapping_key',
-            limit: 1);
-        if (rows.isEmpty) break;
-        final row = rows.single;
+            limit: 4097);
+        if (rows.length > 4096) {
+          throw const FormatException('Too many mappings');
+        }
+        final remaining =
+            rows.where((row) => !attempted.contains(row['mapping_key']));
+        if (remaining.isEmpty) break;
+        final row = remaining.first;
+        attempted.add(row['mapping_key'] as String);
         String? outcome, issue;
         SaveBackupGameJob? job;
         try {
@@ -850,6 +980,13 @@ class AutomaticSaveBackups extends ChangeNotifier {
             throw const FormatException('Changed mapping');
           }
           await _resolve(mapping);
+          if (networkAvailable != null && !await networkAvailable!()) {
+            await db.update('automatic_save_backups', {'issue': 'offline'},
+                where: 'mapping_key = ? AND record_json = ?',
+                whereArgs: [mapping.key, mapping.encode()]);
+            _notify();
+            break;
+          }
           _activeKey = mapping.key;
           job = _active = _open(mapping);
           job.addListener(_notify);
@@ -890,7 +1027,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
         await db.update(
             'automatic_save_backups',
             {
-              'handled': row['requested'],
+              if (issue == null) 'handled': row['requested'],
               'outcome': outcome,
               'issue': issue,
             },

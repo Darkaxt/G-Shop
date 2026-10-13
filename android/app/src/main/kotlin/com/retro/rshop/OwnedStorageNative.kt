@@ -39,4 +39,6 @@ internal object OwnedStorageNative {
     external fun saveSnapshotChanged(watch: Int, name: String): Boolean
     /** Root-only read-only /proc census; no emulator signals or data writes. */
     external fun saveSnapshotHasWriter(directory: Int, name: String, source: String, backing: String): Boolean
+    /** Same census, one traversal for the exact optional companion selection. */
+    external fun saveSnapshotHasWriters(directory: Int, names: Array<String>, source: String, backing: String): Boolean
 }

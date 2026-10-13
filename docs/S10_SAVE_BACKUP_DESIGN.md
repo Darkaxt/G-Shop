@@ -7,7 +7,7 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
-### Game-folder companion discovery — ACTIVE work, 2026-10-13
+### Game-folder companion pipeline — ACTIVE work, 2026-10-13
 
 Reuse the currently byte-bound installation/local-copy grant to resolve the ROM's
 actual parent directory; a caller-supplied arbitrary directory is not a discovery
@@ -20,20 +20,61 @@ mtime is association/pending-work evidence, never writer completion or a conflic
 winner. Deleted entries never become cloud deletions. Changed roots/ROM ownership
 invalidate the comparison; oversized inventories fail visibly rather than truncate.
 
-This is the current discovery implementation slice, not a claim that general
-game-folder backup/restore is connected. Isolated/nested game-folder discovery,
-coherent multi-file capture, launch/watch admission, selected-file native
-publication and the required real workflow still belong to this ACTIVE stage.
+The normal game backup panel now offers Save data or Game files. Game files
+reuses the existing durable serial backup lane and Drive generation protocol,
+with device/runtime-specific history and independently selectable companion
+members. Shared folders allow exact-stem sidecars and exact-stem subdirectories;
+a folder named for the ROM also permits its related descendants. Native no-follow
+directory/file identities and bounded recursive inventories preserve the binding.
+The root watcher arms those directories before launch, records the registration
+gap as pending work and re-arms on directory changes. Coherent capture uses the
+existing filesystem mutation guards and writer-handle census, not emulator replies.
+Selective restore reuses the durable group journal, preserves rollback and
+unselected files, and creates missing destination parents only during explicit
+restoration. Local removals never propagate deletion to Drive.
 
-Verification: focused association/storage JVM contracts and Dart channel checks
-pass, including a RED/GREEN incomplete-change-receipt regression. Gated request
-933 packages the real channel and synthetic instrumentation. The Thor probe
-passes changed/new/unchanged/deleted observations, neighbour/ROM/settings
-exclusion, binding changes and ownership revocation, with its synthetic files and
-rows removed. Preferences/key material and existing PSP fixture digests are
-unchanged; both screens are OFF. This proves the discovery boundary only; the
-automatic multi-file pipeline remains unfinished. See IMPLEMENTATION_STATUS.md
-for resource-profile qualifications and the unchanged stage status.
+Verification: affected Dart capture/job/automatic-lane checks and focused native
+association/watch/storage contracts pass. Gated request 953 packages the current
+implementation after correcting descriptor API calls and the obsolete flat-only
+test expectation. The Thor production-channel probe passes coherent multi-file
+capture, nested/isolated discovery, deep watch events, writer rejection,
+selective restore, retry/replay, missing-folder recreation, retained rollback,
+unselected-file preservation and binding/revocation rejection. Exclusive fixture
+files/rows are removed; all five protected preference/key-store/PSP hashes match.
+This is native integration evidence, not real Drive/UI acceptance or S10 closure.
+The real production job now verifies a two-member Patapon fixture in Drive;
+the kernel watcher detects a modified member and publishes its changed digest.
+Explicit restoration replaces a deliberately changed nested member with its
+verified cloud bytes; both expected destination hashes match. These calls use
+the existing production job/watch APIs through the authorized Dart debug session,
+not simulated UI clicks. They prove real transport and filesystem integration,
+not touch/controller acceptance for the menu.
+
+Offline execution retains `requested > handled` until a successful pass. A failed
+mapping is attempted once per pass rather than hot-looped. A durable Android
+one-shot job requires network access and drains only recorded work; the existing
+six-hour periodic job recovers missed file events. Separate JobService components
+preserve independent lifecycle/parameters, sharing the same save operation gate.
+Android owns constraint-loss readmission and its scheduler's retry policy; there
+is no app timer, sleep or screen wake. The headless entrypoint uses the same lane.
+Offline launch keeps the local copy, records pending work and arms the mapped
+watch without requesting a token. Every resumed upload still rediscovers remote
+history before publication and afterward to preserve concurrent divergent heads.
+The queued/late-conflict regression and offline launch/watch host checks pass;
+native offline launch/watch admission and persisted network-constrained waiting
+pass on Thor with package 968. A normal background-process kill preserves the
+pending job; reconnect starts the headless service. The first headless pass exposes
+an omitted owned-storage inspection channel, not evidence of a lost token.
+Headless boot now registers the existing read-only installed/local-copy inspection
+and PS1 save review operations; no ROM transfer/removal/launch operations are
+exposed. Request 972 packages that fix with the shared gate/profile and verified
+daemon exit, without a memory failure. The repeated cold-process network return
+starts the existing pending job without an Activity/sign-in and verifies the
+changed group in Drive. Native completion reports no pending/retryable work or
+attention; the reopened durable journal's two member digests match independent
+destination hashes. The fixture mapping returns to disabled, the other enabled
+mapping remains unchanged, and both screens are OFF. Required broader emulator,
+fault/recovery and conditional handover acceptance still belongs to ACTIVE S10.
 
 ### Explicit companion-file import choices — 2026-10-13
 

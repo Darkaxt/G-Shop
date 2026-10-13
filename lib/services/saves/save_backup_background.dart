@@ -31,6 +31,8 @@ void saveBackupBackground() async {
         database: DatabaseService.openSaveBackgroundDatabase(),
         preferences: preferences,
         sources: () => sources,
+        schedulePending: SaveBackgroundDispatch.schedulePending,
+        networkAvailable: SaveBackgroundDispatch.networkAvailable,
         refreshConfiguration: refresh);
   } catch (error) {
     startupFailure = error;
@@ -45,7 +47,11 @@ void saveBackupBackground() async {
     if (startupFailure != null || current == null) {
       throw PlatformException(code: 'background_setup_unavailable');
     }
-    await current.checkEnabled();
+    if (call.arguments == 'pending') {
+      await current.backupPending();
+    } else {
+      await current.checkEnabled();
+    }
     return current.passSummary();
   });
   await SaveBackgroundDispatch.channel.invokeMethod<void>('ready');

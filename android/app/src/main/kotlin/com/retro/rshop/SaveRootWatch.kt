@@ -28,13 +28,13 @@ internal class SaveRootWatch(context: Context, entries: List<SaveFileWatch.Mappi
                     it.directory.substringBeforeLast('/') == entries.first().directory.substringBeforeLast('/') &&
                         PpssppSavedataBoundary.validDirectory(it.directory)
                 else it.directory == entries.first().directory &&
-                    (it.pcsx != null || SaveSourceStorage.isProtectedDirectory(it.directory))
+                    (it.pcsx != null || it.route == "rom-companion" && RomCompanionBoundary.validDirectory(it.directory) || SaveSourceStorage.isProtectedDirectory(it.directory))
         })
         val apk = context.applicationInfo.sourceDir
         fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
         val command = "CLASSPATH=${quote(apk)} /system/bin/app_process -Xmx64m /system/bin " +
             "com.retro.rshop.RootSaveProcess ${quote(apk)} watch"
-        child = ProcessBuilder(*(if (entries.first().pcsx != null)
+        child = ProcessBuilder(*(if (entries.first().pcsx != null || entries.first().route == "rom-companion")
             arrayOf("su", "--mount-master", "-c", command) else arrayOf("su", "-c", command))).start()
         input = DataInputStream(child.inputStream.buffered())
         output = DataOutputStream(child.outputStream.buffered())
@@ -173,6 +173,72 @@ object RootSaveWatchWorker {
         } finally { OwnedStorageNative.close(watch) }
     }
 
+    private fun companions(source: String, backing: String, directory: Int,
+        entries: List<SaveFileWatch.Mapping>, output: DataOutputStream) {
+        val rootIdentity = OwnedStorageNative.identity(directory).take(2)
+        val watch = OwnedStorageNative.saveWatchOpen(directory)
+        val folders = linkedMapOf<Int, String>()
+        fun arm() {
+            val selected = linkedSetOf("")
+            for (entry in entries) {
+                selected.addAll(OwnedRomContentProvider.companionInventory(backing, entry.name, {}).directories.keys)
+                require(selected.size <= 4096)
+            }
+            folders.keys.toList().forEach { OwnedStorageNative.saveWatchRemove(watch, it) }
+            folders.clear()
+            for (relative in selected) {
+                val folder = OwnedStorageNative.openDirectory(directory, relative, false)
+                try {
+                    val identity = OwnedStorageNative.identity(folder).take(2)
+                    val descriptor = OwnedStorageNative.saveWatchAdd(watch, folder)
+                    val fresh = OwnedStorageNative.openDirectory(directory, relative, false)
+                    try { check(OwnedStorageNative.identity(fresh).take(2) == identity) }
+                    finally { OwnedStorageNative.close(fresh) }
+                    folders[descriptor] = relative
+                } finally { OwnedStorageNative.close(folder) }
+            }
+            val fresh = OwnedStorageNative.openRoot(backing)
+            try { check(OwnedStorageNative.identity(fresh).take(2) == rootIdentity) }
+            finally { OwnedStorageNative.close(fresh) }
+        }
+        try {
+            arm()
+            output.writeInt(1)
+            // Reconcile the registration gap through durable pending work,
+            // rather than assuming the pre-watch local snapshot is still current.
+            entries.forEach { output.writeUTF(it.key) }; output.flush()
+            while (true) {
+                val bytes = OwnedStorageNative.saveWatchRead(watch) ?: break
+                val keys = linkedSetOf<String>()
+                var rearm = false
+                var invalid = false
+                for (event in frames(bytes)) {
+                    if (event.mask and (0x4000 or 0x2000) != 0) {
+                        invalid = true; keys.addAll(entries.map { it.key }); continue
+                    }
+                    val prefix = folders[event.descriptor] ?: continue
+                    if (event.mask and (0x8000 or 0x400 or 0x800) != 0) {
+                        if (prefix.isEmpty()) invalid = true else rearm = true
+                        keys.addAll(entries.map { it.key }); continue
+                    }
+                    val leaf = event.name ?: continue
+                    val relative = if (prefix.isEmpty()) leaf else "$prefix/$leaf"
+                    if (event.mask and 0x40000000 != 0) {
+                        val affected = entries.filter { RomCompanionBoundary.associatedDirectory(it.name, relative,
+                            RomCompanionBoundary.isolated(it.name, source)) }
+                        if (affected.isNotEmpty()) { rearm = true; keys.addAll(affected.map { it.key }) }
+                    } else keys.addAll(SaveFileWatch.affected(entries, event.mask, relative))
+                }
+                if (rearm && !invalid) {
+                    arm()
+                    keys.addAll(entries.map { it.key })
+                }
+                keys.forEach(output::writeUTF); output.flush()
+                if (invalid) break
+            }
+        } finally { OwnedStorageNative.close(watch) }
+    }
+
     @JvmStatic fun serve() {
         require(Process.myUid() == 0)
         val input = DataInputStream(System.`in`)
@@ -180,6 +246,7 @@ object RootSaveWatchWorker {
         val source = input.readUTF()
         val route = input.readUTF()
         require(when (route) {
+            "rom-companion" -> RomCompanionBoundary.validDirectory(source)
             "melon" -> MelonSaveBoundary.isProtectedDirectory(source)
             "ppsspp" -> PpssppSaveBoundary.isProtectedDirectory(source)
             "ppsspp-companion" -> PpssppSaveBoundary.isProtectedDirectory(source)
@@ -194,7 +261,7 @@ object RootSaveWatchWorker {
             SaveFileWatch.Mapping(key, if (route == "ppsspp-savedata") "$source/$name" else source, name, route)
         }
         require(entries.map { it.key }.toSet().size == count)
-        val backing = if (entries.first().pcsx != null) {
+        val backing = if (entries.first().pcsx != null || route == "rom-companion") {
             // Same validated global-mount path as the configured card capture;
             // do not broaden the generic standalone storage allowlist.
             if (source.startsWith("/storage/emulated/0/"))
@@ -203,6 +270,7 @@ object RootSaveWatchWorker {
         } else SaveSourceStorage.backingDirectory(source)
         val directory = OwnedStorageNative.openRoot(backing)
         try {
+            if (route == "rom-companion") { companions(source, backing, directory, entries, output); return }
             if (route == "ppsspp-savedata") { savedata(source, directory, entries, output); return }
             val pinned = OwnedStorageNative.identity(directory)
             val watch = OwnedStorageNative.saveWatchOpen(directory)

@@ -126,6 +126,147 @@ void main() {
         throwsFormatException);
   });
 
+  test('ROM companion capture keeps the exact reviewed optional member set',
+      () async {
+    response = {
+      'binding': 'a' * 64,
+      'directory': '/storage/75D7-DC5F/Roms/gba',
+      'romName': 'Game.7z',
+      'directoryIdentity': [1, 2],
+      'files': {
+        'Game.png': [1, 3, 4, 100, 0],
+        'Game.cache': [1, 4, 0, 100, 0],
+      },
+      'changed': <String>[],
+    };
+    final grant = {'installationId': 'owned', 'filename': 'Game.7z'};
+    final snapshot = await SaveCapture().reviewRomCompanions(grant: grant);
+    calls.clear();
+    response = {
+      'captureId': 'a' * 32,
+      'deviceId': 'device',
+      'emulatorVersion': '1.22.2_GIT',
+      'files': [
+        for (final name in ['Game.cache', 'Game.png'])
+          {
+            'name': name,
+            'path': '/private/save-captures/${'a' * 32}/$name',
+            'size': name.endsWith('.cache') ? 0 : 4,
+            'sha256': 'b' * 64,
+          }
+      ],
+    };
+    final group = await SaveCapture().captureRomCompanions(
+        captureId: 'a' * 32,
+        grant: grant,
+        snapshot: snapshot,
+        members: {'Game.cache', 'Game.png'},
+        emulatorPackage: 'com.retroarch.aarch64');
+    expect(group.files.map((file) => file.name), ['Game.cache', 'Game.png']);
+    expect(calls.single.method, 'captureRomCompanions');
+    expect((calls.single.arguments as Map)['binding'], snapshot.binding);
+    expect(
+        (calls.single.arguments as Map)['members'], ['Game.cache', 'Game.png']);
+    calls.clear();
+    await expectLater(
+        SaveCapture().captureRomCompanions(
+            captureId: 'a' * 32,
+            grant: grant,
+            snapshot: snapshot,
+            members: {'Other.png'},
+            emulatorPackage: 'com.retroarch.aarch64'),
+        throwsFormatException);
+    expect(calls, isEmpty);
+  });
+
+  test(
+      'ROM companion restore streams only the selected files through the group journal',
+      () async {
+    final snapshot = RomCompanionSnapshot.decode({
+      'binding': 'a' * 64,
+      'directory': '/storage/75D7-DC5F/Roms/gba',
+      'romName': 'Game.7z',
+      'directoryIdentity': [1, 2],
+      'files': <String, List<int>>{},
+      'changed': <String>[],
+    });
+    await SaveCapture().stageRomCompanionRestore(
+      restoreId: 'c' * 32,
+      grant: {'installationId': 'owned', 'filename': 'Game.7z'},
+      snapshot: snapshot,
+      emulatorPackage: 'com.retroarch.aarch64',
+      members: [
+        RestoreSaveMember(
+            'Game.png',
+            0,
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            const Stream<Uint8List>.empty())
+      ],
+    );
+    expect(calls.map((call) => call.method),
+        ['beginRestoreGroup', 'sealRestoreGroup']);
+    expect((calls.first.arguments as Map)['binding'], snapshot.binding);
+    expect((calls.first.arguments as Map)['members'], [
+      {
+        'name': 'Game.png',
+        'size': 0,
+        'sha256':
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+      },
+    ]);
+    calls.clear();
+    await expectLater(
+        SaveCapture().stageRomCompanionRestore(
+          restoreId: 'c' * 32,
+          grant: {'installationId': 'owned', 'filename': 'Game.7z'},
+          snapshot: snapshot,
+          emulatorPackage: 'com.retroarch.aarch64',
+          members: [
+            RestoreSaveMember(
+                'Other.png', 1, 'b' * 64, const Stream<Uint8List>.empty())
+          ],
+        ),
+        throwsFormatException);
+    expect(calls, isEmpty);
+  });
+
+  test('ROM companion absence is a restore baseline, never an empty backup',
+      () async {
+    final snapshot = RomCompanionSnapshot.decode({
+      'binding': 'a' * 64,
+      'directory': '/storage/75D7-DC5F/Roms/gba',
+      'romName': 'Game.7z',
+      'directoryIdentity': [1, 2],
+      'files': <String, List<int>>{},
+      'changed': <String>[],
+    });
+    response = {
+      'captureId': 'a' * 32,
+      'deviceId': 'device',
+      'emulatorVersion': '1.22.2_GIT',
+      'files': <Object>[],
+      'localWasAbsent': true
+    };
+    final result = await SaveCapture().captureRomCompanions(
+        captureId: 'a' * 32,
+        grant: {'installationId': 'owned', 'filename': 'Game.7z'},
+        snapshot: snapshot,
+        members: {},
+        emulatorPackage: 'com.retroarch.aarch64',
+        restoreBaseline: true);
+    expect(result.localWasAbsent, isTrue);
+    calls.clear();
+    await expectLater(
+        SaveCapture().captureRomCompanions(
+            captureId: 'a' * 32,
+            grant: {'installationId': 'owned', 'filename': 'Game.7z'},
+            snapshot: snapshot,
+            members: {},
+            emulatorPackage: 'com.retroarch.aarch64'),
+        throwsFormatException);
+    expect(calls, isEmpty);
+  });
+
   test('PS1 capture keeps the owned ROM and private/shared card roles exact',
       () async {
     final layout = PcsxSaveLayout.decode({

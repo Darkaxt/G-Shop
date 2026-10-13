@@ -12,6 +12,7 @@ import '../../models/save_backup_manifest.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
 import '../../models/library_identity.dart';
+import '../../models/save_emulator_coverage.dart';
 import '../drive/drive_authorization.dart';
 import '../library_store.dart';
 import 'drive_save_backup_area.dart';
@@ -43,6 +44,12 @@ class SaveBackupGameJob extends ChangeNotifier {
   final PcsxSaveLayout? pcsxLayout;
   final PcsxSaveCard? pcsxCard;
   final Future<Map<String, Object>> Function()? resolvePcsxGrant;
+  final Future<Map<String, Object>> Function()? resolveRomCompanionGrant;
+  final String? romCompanionDirectory,
+      romCompanionName,
+      romCompanionPlatform,
+      romCompanionEmulator,
+      romCompanionCore;
   Map<String, dynamic>? _record;
   SaveBackupBinding? _deviceBinding;
   List<SaveBackupManifest> _otherDeviceHeads = const [];
@@ -74,6 +81,12 @@ class SaveBackupGameJob extends ChangeNotifier {
       this.pcsxLayout,
       this.pcsxCard,
       this.resolvePcsxGrant,
+      this.resolveRomCompanionGrant,
+      this.romCompanionName,
+      this.romCompanionDirectory,
+      this.romCompanionPlatform,
+      this.romCompanionEmulator,
+      this.romCompanionCore,
       this.retroArchRoute = RetroArchBatteryRoute.mgba})
       : admission = admission ?? SaveOperationAdmission() {
     if ([clientId, accountId, areaId, editionId].any((s) => s.trim().isEmpty) ||
@@ -113,8 +126,27 @@ class SaveBackupGameJob extends ChangeNotifier {
                 !{'libretro', 'shared'}.contains(pcsxCard!.mode)))) {
       throw ArgumentError('Invalid PlayStation card mapping');
     }
+    final companionFields = [
+      romCompanionDirectory,
+      romCompanionName,
+      romCompanionPlatform,
+      romCompanionEmulator,
+      romCompanionCore
+    ];
+    if (isRomCompanion !=
+            companionFields
+                .every((value) => value != null && value.trim().isNotEmpty) ||
+        !isRomCompanion && companionFields.any((value) => value != null) ||
+        isRomCompanion &&
+            (isStandalone ||
+                isPcsx ||
+                !SaveCapture.validPpssppSavedataMember(romCompanionName!) ||
+                romCompanionName!.lastIndexOf('.') <= 0)) {
+      throw ArgumentError('Invalid ROM companion binding');
+    }
   }
 
+  bool get isRomCompanion => resolveRomCompanionGrant != null;
   bool get isPcsx => pcsxLayout != null;
   bool get isSharedPcsx => isPcsx && pcsxCard!.isShared;
   String? get _sharedCardKey =>
@@ -124,11 +156,13 @@ class SaveBackupGameJob extends ChangeNotifier {
   bool get isPpsspp => ppssppDirectory != null || isPpssppSavedata;
   bool get isMelon => melonDirectory != null;
   bool get isStandalone => isPpsspp || isMelon;
-  String get emulatorLabel => isMelon
-      ? 'MelonDualDS'
-      : isPpsspp
-          ? 'PPSSPP'
-          : 'RetroArch';
+  String get emulatorLabel => isRomCompanion
+      ? SaveEmulatorCoverage.knownPackages[_emulator] ?? 'Emulator'
+      : isMelon
+          ? 'MelonDualDS'
+          : isPpsspp
+              ? 'PPSSPP'
+              : 'RetroArch';
   Future<void> openEmulator() => isMelon
       ? capture.openMelon()
       : isPpsspp
@@ -136,54 +170,64 @@ class SaveBackupGameJob extends ChangeNotifier {
           : capture.openRetroArch();
   Future<void> openAppInfo() =>
       isMelon ? capture.openMelonAppInfo() : capture.openPpssppAppInfo();
-  String get _platform => isPcsx
-      ? 'psx'
-      : isMelon
-          ? 'nds'
-          : isPpsspp
-              ? 'psp'
-              : retroArchRoute.platformId;
-  String get _emulator => isMelon
-      ? 'me.magnum.melondualds'
-      : isPpsspp
-          ? 'org.ppsspp.ppsspp'
-          : 'com.retroarch.aarch64';
-  String get _core => isPcsx
-      ? 'pcsx_rearmed'
-      : isMelon
-          ? 'melonds'
-          : isPpsspp
-              ? 'ppsspp'
-              : retroArchRoute.coreId;
-  String get _format => isPcsx
-      ? 'pcsx-${pcsxCard!.mode}-card${pcsxCard!.slot}-v1'
-      : isMelon
-          ? 'melondualds-sram-v1'
-          : isPpssppSavedata
-              ? 'ppsspp-savedata-v1'
+  String get _platform => isRomCompanion
+      ? romCompanionPlatform!
+      : isPcsx
+          ? 'psx'
+          : isMelon
+              ? 'nds'
               : isPpsspp
-                  ? (ppssppCompanion
-                      ? 'ppsspp-screenshot-jpeg-v1'
-                      : 'ppsspp-slot-v1')
-                  : retroArchRoute.formatId;
-  SaveBackupKind get _kind => ppssppCompanion
+                  ? 'psp'
+                  : retroArchRoute.platformId;
+  String get _emulator => isRomCompanion
+      ? romCompanionEmulator!
+      : isMelon
+          ? 'me.magnum.melondualds'
+          : isPpsspp
+              ? 'org.ppsspp.ppsspp'
+              : 'com.retroarch.aarch64';
+  String get _core => isRomCompanion
+      ? romCompanionCore!
+      : isPcsx
+          ? 'pcsx_rearmed'
+          : isMelon
+              ? 'melonds'
+              : isPpsspp
+                  ? 'ppsspp'
+                  : retroArchRoute.coreId;
+  String get _format => isRomCompanion
+      ? 'rom-companion-files-v1'
+      : isPcsx
+          ? 'pcsx-${pcsxCard!.mode}-card${pcsxCard!.slot}-v1'
+          : isMelon
+              ? 'melondualds-sram-v1'
+              : isPpssppSavedata
+                  ? 'ppsspp-savedata-v1'
+                  : isPpsspp
+                      ? (ppssppCompanion
+                          ? 'ppsspp-screenshot-jpeg-v1'
+                          : 'ppsspp-slot-v1')
+                      : retroArchRoute.formatId;
+  SaveBackupKind get _kind => isRomCompanion || ppssppCompanion
       ? SaveBackupKind.companion
       : isPpssppState
           ? SaveBackupKind.state
           : SaveBackupKind.save;
   String get _savedataName => ppssppSavedataDirectory!.split('/').last;
-  bool _validName(String name) => isPcsx
-      ? name == pcsxCard!.name
-      : isMelon
-          ? name == melonName && SaveCapture.validMelonName(name)
-          : isPpssppSavedata
-              ? name == _savedataName
-              : isPpsspp
-                  ? name == ppssppSlot &&
-                      (ppssppCompanion
-                          ? SaveCapture.validPpssppCompanionName(name)
-                          : SaveCapture.validPpssppName(name))
-                  : SaveCapture.validName(name);
+  bool _validName(String name) => isRomCompanion
+      ? name == romCompanionName
+      : isPcsx
+          ? name == pcsxCard!.name
+          : isMelon
+              ? name == melonName && SaveCapture.validMelonName(name)
+              : isPpssppSavedata
+                  ? name == _savedataName
+                  : isPpsspp
+                      ? name == ppssppSlot &&
+                          (ppssppCompanion
+                              ? SaveCapture.validPpssppCompanionName(name)
+                              : SaveCapture.validPpssppName(name))
+                      : SaveCapture.validName(name);
   bool _bindingMatches(SaveBackupBinding binding) =>
       binding.accountId == accountId &&
       binding.platformId == _platform &&
@@ -195,44 +239,67 @@ class SaveBackupGameJob extends ChangeNotifier {
       binding.coreId == _core &&
       binding.kind == _kind &&
       binding.companionCompatibility ==
-          (ppssppCompanion ? SaveCompanionCompatibility.portable : null) &&
+          (isRomCompanion
+              ? SaveCompanionCompatibility.runtime
+              : ppssppCompanion
+                  ? SaveCompanionCompatibility.portable
+                  : null) &&
       binding.formatId == _format &&
       (!isPpsspp || {'v1.20.4', '1.20.4'}.contains(binding.emulatorVersion)) &&
       (!isMelon || binding.emulatorVersion == '0.8.0.rc2');
 
   Future<CapturedSaveGroup> _capture(String id, String name,
-          {bool restoreBaseline = false}) async =>
-      isPcsx
-          ? capture.capturePcsx(
-              captureId: id,
-              grant: await resolvePcsxGrant!(),
-              layout: pcsxLayout!,
-              card: pcsxCard!,
-              restoreBaseline: restoreBaseline)
-          : isMelon
-              ? capture.captureMelon(
-                  captureId: id,
-                  directory: melonDirectory!,
-                  name: name,
-                  restoreBaseline: restoreBaseline)
-              : isPpssppSavedata
-                  ? capture.capturePpssppSavedata(
-                      captureId: id,
-                      directory: ppssppSavedataDirectory!,
-                      restoreBaseline: restoreBaseline)
-                  : isPpsspp
-                      ? (ppssppCompanion
-                              ? capture.capturePpssppCompanion
-                              : capture.capturePpsspp)(
-                          captureId: id,
-                          directory: ppssppDirectory!,
-                          name: name,
-                          restoreBaseline: restoreBaseline)
-                      : capture.captureRetroArch(
-                          captureId: id,
-                          name: name,
-                          route: retroArchRoute,
-                          restoreBaseline: restoreBaseline);
+      {bool restoreBaseline = false, Set<String>? companionMembers}) async {
+    if (isRomCompanion) {
+      final grant = await resolveRomCompanionGrant!();
+      final snapshot = await capture.reviewRomCompanions(grant: grant);
+      if (snapshot.romName != romCompanionName) {
+        throw PlatformException(code: 'source_changed');
+      }
+      if (snapshot.directory != romCompanionDirectory) {
+        throw PlatformException(code: 'source_changed');
+      }
+      final members = companionMembers ?? snapshot.files.keys.toSet();
+      return capture.captureRomCompanions(
+          captureId: id,
+          grant: grant,
+          snapshot: snapshot,
+          members: members,
+          emulatorPackage: romCompanionEmulator!,
+          restoreBaseline: restoreBaseline || members.isEmpty);
+    }
+    return isPcsx
+        ? capture.capturePcsx(
+            captureId: id,
+            grant: await resolvePcsxGrant!(),
+            layout: pcsxLayout!,
+            card: pcsxCard!,
+            restoreBaseline: restoreBaseline)
+        : isMelon
+            ? capture.captureMelon(
+                captureId: id,
+                directory: melonDirectory!,
+                name: name,
+                restoreBaseline: restoreBaseline)
+            : isPpssppSavedata
+                ? capture.capturePpssppSavedata(
+                    captureId: id,
+                    directory: ppssppSavedataDirectory!,
+                    restoreBaseline: restoreBaseline)
+                : isPpsspp
+                    ? (ppssppCompanion
+                            ? capture.capturePpssppCompanion
+                            : capture.capturePpsspp)(
+                        captureId: id,
+                        directory: ppssppDirectory!,
+                        name: name,
+                        restoreBaseline: restoreBaseline)
+                    : capture.captureRetroArch(
+                        captureId: id,
+                        name: name,
+                        route: retroArchRoute,
+                        restoreBaseline: restoreBaseline);
+  }
 
   String get _key => sha256
       .convert(utf8.encode(jsonEncode([
@@ -240,7 +307,14 @@ class SaveBackupGameJob extends ChangeNotifier {
         accountId,
         areaId,
         if (isSharedPcsx) _sharedCardKey else editionId,
-        if (isPcsx) ...[
+        if (isRomCompanion) ...[
+          _format,
+          romCompanionName,
+          romCompanionDirectory,
+          romCompanionPlatform,
+          romCompanionEmulator,
+          romCompanionCore,
+        ] else if (isPcsx) ...[
           _format,
           pcsxLayout!.directory,
           pcsxCard!.slot,
@@ -548,7 +622,8 @@ class SaveBackupGameJob extends ChangeNotifier {
           _contents(manifest);
           if (restore.containsKey('memberPaths')) {
             final paths = restore['memberPaths'];
-            if (restore['deviceImport'] != true ||
+            if (!(restore['deviceImport'] == true ||
+                    operationKey == 'rollback' && isRomCompanion) ||
                 paths is! List ||
                 paths.any((path) => path is! String) ||
                 paths.toSet().length != paths.length ||
@@ -932,6 +1007,25 @@ class SaveBackupGameJob extends ChangeNotifier {
   /// make identical logical save bytes diverge. Do not generalize this to other
   /// formats, whose directory/member names may carry actual game-save meaning.
   String _contents(SaveBackupManifest manifest) {
+    if (isRomCompanion) {
+      if (!_bindingMatches(manifest.binding) ||
+          manifest.members.isEmpty ||
+          manifest.members.length > 128 ||
+          manifest.members.any((member) => !SaveCapture.validRomCompanionName(
+              romCompanionName!, member.relativePath,
+              directory: romCompanionDirectory)) ||
+          manifest.members
+                  .fold<int>(0, (total, member) => total + member.sizeBytes) >
+              512 * 1024 * 1024) {
+        throw const FormatException('Invalid ROM companion generation');
+      }
+      final ordered = manifest.members.toList()
+        ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
+      return jsonEncode([
+        for (final member in ordered)
+          [member.relativePath, member.sizeBytes, member.sha256]
+      ]);
+    }
     if (isPcsx) {
       if (!_bindingMatches(manifest.binding) ||
           manifest.members.length != 1 ||
@@ -1099,8 +1193,11 @@ class SaveBackupGameJob extends ChangeNotifier {
                 SaveBackupEdition(gameId: game.id, editionId: editionId)
               ],
               kind: _kind,
-              companionCompatibility:
-                  ppssppCompanion ? SaveCompanionCompatibility.portable : null,
+              companionCompatibility: isRomCompanion
+                  ? SaveCompanionCompatibility.runtime
+                  : ppssppCompanion
+                      ? SaveCompanionCompatibility.portable
+                      : null,
               formatId: _format,
               sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
               sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);
@@ -1200,11 +1297,15 @@ class SaveBackupGameJob extends ChangeNotifier {
               'rollback': null,
               'restore': {
                 'id': restoreId,
-                'rollbackId': record['captureId'],
+                'rollbackId': isRomCompanion
+                    ? List.generate(16, (_) => Random.secure().nextInt(256))
+                        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                        .join()
+                    : record['captureId'],
                 'generationId': chosen.generationId,
                 'name': name,
                 'manifest': jsonDecode(utf8.decode(chosen.encode())),
-                'state': 'download',
+                'state': isRomCompanion ? 'capture' : 'download',
                 'localWasAbsent': true
               }
             });
@@ -1656,6 +1757,14 @@ class SaveBackupGameJob extends ChangeNotifier {
           };
           if (rollback) {
             restore['sourceCaptureId'] = record['restore']['rollbackId'];
+            if (isRomCompanion) {
+              restore['memberPaths'] = record['restore']
+                      ['retainedCompanionPaths'] ??
+                  record['restore']['memberPaths'] ??
+                  manifest.members
+                      .map((member) => member.relativePath)
+                      .toList();
+            }
           }
           record = {
             ...record,
@@ -1672,6 +1781,10 @@ class SaveBackupGameJob extends ChangeNotifier {
           throw const FormatException('Changed restore game');
         }
         _contents(selected);
+        final companionPaths = isRomCompanion
+            ? ((restore['memberPaths'] as List?)?.cast<String>().toSet() ??
+                selected.members.map((member) => member.relativePath).toSet())
+            : null;
         final restoreId = restore['id'] as String;
         final rollbackId = restore['rollbackId'] as String;
         final name = restore['name'] as String;
@@ -1681,10 +1794,11 @@ class SaveBackupGameJob extends ChangeNotifier {
           phase = 'rollback_capture';
           _captureId = rollbackId;
           _changed();
-          final local =
-              await _capture(rollbackId, name, restoreBaseline: !rollback);
+          final local = await _capture(rollbackId, name,
+              restoreBaseline: !rollback, companionMembers: companionPaths);
           _check(cancellation);
-          if (!isPpssppSavedata &&
+          if (!isRomCompanion &&
+              !isPpssppSavedata &&
               !(local.localWasAbsent && local.files.isEmpty && !rollback) &&
               (local.files.length != selected.members.length ||
                   !local.files.any((file) => file.name == name))) {
@@ -1694,6 +1808,9 @@ class SaveBackupGameJob extends ChangeNotifier {
           restore = {
             ...restore,
             'state': 'download',
+            if (isRomCompanion)
+              'retainedCompanionPaths':
+                  local.files.map((file) => file.name).toList()..sort(),
             'localWasAbsent': local.localWasAbsent
           };
           record = {...record, operationKey: restore};
@@ -1719,9 +1836,19 @@ class SaveBackupGameJob extends ChangeNotifier {
           CapturedSaveGroup? retained;
           if (rollback) {
             _captureId = restore['sourceCaptureId'] as String;
-            final group = await _capture(_captureId!, name);
+            final group = await _capture(_captureId!, name,
+                restoreBaseline: isRomCompanion,
+                companionMembers: isRomCompanion
+                    ? (record['restore']['memberPaths'] as List?)
+                            ?.cast<String>()
+                            .toSet() ??
+                        selected.members
+                            .map((member) => member.relativePath)
+                            .toSet()
+                    : null);
             _check(cancellation);
-            if (!isPpssppSavedata &&
+            if (!isRomCompanion &&
+                !isPpssppSavedata &&
                 (group.files.length != selected.members.length ||
                     !group.files.any((file) => file.name == name))) {
               throw const FormatException('Changed retained rollback group');
@@ -1729,7 +1856,46 @@ class SaveBackupGameJob extends ChangeNotifier {
             retained = group;
             _captureId = restoreId;
           }
-          if (isPpssppSavedata) {
+          if (isRomCompanion) {
+            final grant = await resolveRomCompanionGrant!();
+            final snapshot = await capture.reviewRomCompanions(grant: grant);
+            if (snapshot.romName != romCompanionName) {
+              throw PlatformException(code: 'source_changed');
+            }
+            if (snapshot.directory != romCompanionDirectory) {
+              throw PlatformException(code: 'source_changed');
+            }
+            final members = <RestoreSaveMember>[];
+            for (final member in cloud.members.where(
+                (member) => companionPaths!.contains(member.relativePath))) {
+              final local = retained?.files
+                  .where((file) => file.name == member.relativePath)
+                  .firstOrNull;
+              // Rollback restores only files actually retained. It never turns
+              // prior absence into a deletion of a newly restored companion.
+              if (rollback && local == null) continue;
+              members.add(RestoreSaveMember(
+                  member.relativePath,
+                  local?.size ?? member.sizeBytes,
+                  local?.sha256 ?? member.sha256,
+                  local != null
+                      ? local.file.openRead().map((chunk) {
+                          _check(cancellation);
+                          return Uint8List.fromList(chunk);
+                        })
+                      : generations.memberBytes(
+                          areaId: areaId,
+                          generation: cloud,
+                          memberId: member.cloudFileId,
+                          cancellation: cancellation)));
+            }
+            await capture.stageRomCompanionRestore(
+                restoreId: restoreId,
+                grant: grant,
+                snapshot: snapshot,
+                emulatorPackage: romCompanionEmulator!,
+                members: members);
+          } else if (isPpssppSavedata) {
             final members = retained != null
                 ? retained.files
                     .map((file) => RestoreSaveMember(
@@ -1852,7 +2018,9 @@ class SaveBackupGameJob extends ChangeNotifier {
               grant: grant,
               layout: pcsxLayout!,
               card: pcsxCard!);
-        } else if (isPpssppSavedata || selected.members.length > 1) {
+        } else if (isRomCompanion ||
+            isPpssppSavedata ||
+            selected.members.length > 1) {
           await capture.publishRestoreGroup(
               restoreId: restoreId, rollbackCaptureId: rollbackId);
         } else {

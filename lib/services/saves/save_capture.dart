@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -83,9 +84,8 @@ class RomCompanionSnapshot {
       final leaf = entry.key;
       final value = entry.value;
       if (leaf is! String ||
-          !SaveCapture.validPpssppSavedataMember(leaf) ||
-          leaf == name ||
-          !leaf.startsWith('${name.substring(0, split)}.') ||
+          !SaveCapture.validRomCompanionName(name, leaf,
+              directory: raw['directory'] as String) ||
           value is! List ||
           value.length != 5 ||
           value.any((part) => part is! int) ||
@@ -152,6 +152,128 @@ class MelonSaveSettings {
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
   static const _channel = MethodChannel('com.retro.rshop/save_capture');
+  static bool validRomCompanionDirectory(String path) =>
+      RegExp(r'^/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/.+$')
+          .hasMatch(path) &&
+      !RegExp(r'[\\\x00-\x1f\x7f]').hasMatch(path) &&
+      path
+          .split('/')
+          .skip(1)
+          .every((part) => part.isNotEmpty && part != '.' && part != '..');
+
+  static bool validRomCompanionPath(String path) =>
+      path.length <= 1024 &&
+      path.split('/').length <= 16 &&
+      path.split('/').every(
+          (part) => validPpssppSavedataMember(part) && !part.startsWith('.'));
+  static bool isolatedRomCompanionDirectory(String romName, String directory) =>
+      romName.lastIndexOf('.') > 0 &&
+      directory.split('/').last ==
+          romName.substring(0, romName.lastIndexOf('.'));
+  static bool validRomCompanionName(String romName, String name,
+      {String? directory}) {
+    final split = romName.lastIndexOf('.');
+    if (split <= 0 || !validRomCompanionPath(name) || name == romName) {
+      return false;
+    }
+    final stem = romName.substring(0, split);
+    final isolated =
+        directory != null && isolatedRomCompanionDirectory(romName, directory);
+    final parts = name.split('/');
+    if (!isolated &&
+        (parts.length == 1
+            ? !name.startsWith('$stem.')
+            : parts.first != stem && !parts.first.startsWith('$stem.'))) {
+      return false;
+    }
+    final leaf = parts.last;
+    final suffix =
+        (leaf.startsWith('$stem.') ? leaf.substring(stem.length + 1) : leaf)
+            .toLowerCase();
+    if (const {
+      '7z',
+      'zip',
+      'rar',
+      'gba',
+      'gb',
+      'gbc',
+      'nes',
+      'sfc',
+      'smc',
+      'n64',
+      'z64',
+      'v64',
+      'nds',
+      '3ds',
+      'cia',
+      'iso',
+      'cso',
+      'chd',
+      'cue',
+      'bin',
+      'img',
+      'pbp',
+      'rvz',
+      'gcm',
+      'wbfs',
+      'wua',
+      'wad',
+      'xci',
+      'nsp',
+      'sms',
+      'gg',
+      'md',
+      'gen',
+      'rom',
+      'bios',
+      'cfg',
+      'ini',
+      'conf',
+      'config',
+      'key',
+      'pem',
+      'p12',
+      'pfx',
+      'jks',
+      'tmp',
+      'part',
+      'lock'
+    }.contains(suffix.split('.').last)) {
+      return false;
+    }
+    const excluded = {
+      'credential',
+      'credentials',
+      'password',
+      'passwords',
+      'token',
+      'tokens',
+      'secret',
+      'secrets',
+      'bios',
+      'settings',
+      'config',
+      'auth'
+    };
+    return !suffix.split(RegExp(r'[.\-_ ]')).any(excluded.contains) &&
+        (isolated ||
+            parts.length == 1 ||
+            parts.first == stem ||
+            !parts.first
+                .substring(stem.length + 1)
+                .toLowerCase()
+                .split(RegExp(r'[.\-_ ]'))
+                .any(excluded.contains)) &&
+        !(parts.length == 1
+                ? const Iterable<String>.empty()
+                : isolated
+                    ? parts.take(parts.length - 1)
+                    : parts.skip(1).take(parts.length - 2))
+            .any((part) => part
+                .toLowerCase()
+                .split(RegExp(r'[.\-_ ]'))
+                .any(excluded.contains));
+  }
 
   Future<RomCompanionSnapshot> reviewRomCompanions(
       {required Map<String, Object> grant,
@@ -191,6 +313,74 @@ class SaveCapture {
       throw const FormatException('Unbound ROM companion changes');
     }
     return result;
+  }
+
+  Future<CapturedSaveGroup> captureRomCompanions(
+      {required String captureId,
+      required Map<String, Object> grant,
+      required RomCompanionSnapshot snapshot,
+      required Set<String> members,
+      required String emulatorPackage,
+      bool restoreBaseline = false}) async {
+    final owned =
+        setEquals(grant.keys.toSet(), {'installationId', 'filename'}) &&
+            grant['installationId'] is String &&
+            (grant['installationId'] as String).trim().isNotEmpty;
+    final observed = setEquals(
+            grant.keys.toSet(), {'observationId', 'platformId', 'filename'}) &&
+        grant['observationId'] is int &&
+        (grant['observationId'] as int) > 0 &&
+        grant['platformId'] is String &&
+        (grant['platformId'] as String).isNotEmpty;
+    final filename = grant['filename'];
+    if (!(owned || observed) ||
+        filename is! String ||
+        filename.length > 4096 ||
+        filename.split('/').any((part) => !validPpssppSavedataMember(part)) ||
+        filename.split('/').last != snapshot.romName ||
+        !RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) ||
+        !RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$')
+            .hasMatch(emulatorPackage) ||
+        members.isEmpty && !restoreBaseline ||
+        members.length > 128 ||
+        utf8.encode(jsonEncode(members.toList())).length > 32768 ||
+        members.any((name) =>
+            !validRomCompanionName(snapshot.romName, name,
+                directory: snapshot.directory) ||
+            !restoreBaseline && !snapshot.files.containsKey(name))) {
+      throw const FormatException('Invalid ROM companion capture');
+    }
+    final names = members.toList()..sort();
+    final raw = await _channel
+        .invokeMapMethod<String, dynamic>('captureRomCompanions', {
+      ...grant,
+      'captureId': captureId,
+      'binding': snapshot.binding,
+      'members': names,
+      'emulatorPackage': emulatorPackage,
+      if (restoreBaseline) 'restoreBaseline': true,
+    });
+    final present = raw?['files'];
+    final group = _captured(raw,
+        captureId: captureId,
+        allowedNames: members,
+        requiredName: restoreBaseline &&
+                present is List &&
+                present.isNotEmpty &&
+                present.first is Map
+            ? (present.first as Map)['name'] as String? ?? ''
+            : names.firstOrNull ?? '',
+        maxSize: 512 * 1024 * 1024,
+        restoreBaseline: restoreBaseline,
+        allowEmptyFiles: true);
+    if ((!restoreBaseline &&
+            !setEquals(
+                group.files.map((file) => file.name).toSet(), members)) ||
+        group.files.fold<int>(0, (total, member) => total + member.size) >
+            512 * 1024 * 1024) {
+      throw const FormatException('Incomplete ROM companion capture');
+    }
+    return group;
   }
 
   /// On-demand, read-only package/provider metadata. No file scan or grant.
@@ -840,16 +1030,75 @@ class SaveCapture {
         ppssppSavedataDirectory: directory);
   }
 
+  Future<void> stageRomCompanionRestore(
+      {required String restoreId,
+      required Map<String, Object> grant,
+      required RomCompanionSnapshot snapshot,
+      required String emulatorPackage,
+      required List<RestoreSaveMember> members}) async {
+    final owned =
+        setEquals(grant.keys.toSet(), {'installationId', 'filename'}) &&
+            grant['installationId'] is String &&
+            (grant['installationId'] as String).trim().isNotEmpty;
+    final observed = setEquals(
+            grant.keys.toSet(), {'observationId', 'platformId', 'filename'}) &&
+        grant['observationId'] is int &&
+        (grant['observationId'] as int) > 0 &&
+        grant['platformId'] is String &&
+        (grant['platformId'] as String).isNotEmpty;
+    final filename = grant['filename'];
+    if (!(owned || observed) ||
+        filename is! String ||
+        filename.length > 4096 ||
+        filename.split('/').any((part) => !validPpssppSavedataMember(part)) ||
+        filename.split('/').last != snapshot.romName ||
+        !RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
+        !RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$')
+            .hasMatch(emulatorPackage) ||
+        members.isEmpty ||
+        members.length > 128 ||
+        utf8
+                .encode(
+                    jsonEncode(members.map((member) => member.name).toList()))
+                .length >
+            32768 ||
+        members.map((member) => member.name).toSet().length != members.length ||
+        members.any((member) =>
+            !validRomCompanionName(snapshot.romName, member.name,
+                directory: snapshot.directory) ||
+            member.size < 0 ||
+            member.size > 512 * 1024 * 1024 ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(member.sha256) ||
+            (member.size == 0 &&
+                member.sha256 !=
+                    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')) ||
+        members.fold<int>(0, (size, member) => size + member.size) >
+            512 * 1024 * 1024) {
+      throw const FormatException('Invalid ROM companion restoration');
+    }
+    await _stageGroupRestore(
+        restoreId: restoreId,
+        name: snapshot.romName,
+        members: members,
+        romCompanion: {
+          ...grant,
+          'binding': snapshot.binding,
+          'emulatorPackage': emulatorPackage
+        });
+  }
+
   Future<void> _stageGroupRestore(
       {required String restoreId,
       required String name,
       required List<RestoreSaveMember> members,
       RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
-      String? ppssppSavedataDirectory}) async {
+      String? ppssppSavedataDirectory,
+      Map<String, Object>? romCompanion}) async {
     final ordered = members.toList()..sort((a, b) => a.name.compareTo(b.name));
     await _channel.invokeMethod('beginRestoreGroup', {
       'captureId': restoreId,
       'name': name,
+      if (romCompanion != null) ...romCompanion,
       if (retroArchRoute != RetroArchBatteryRoute.mgba)
         'retroArchRoute': retroArchRoute.platformId,
       if (ppssppSavedataDirectory != null)

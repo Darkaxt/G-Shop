@@ -13,6 +13,14 @@ class SaveBackgroundDispatch {
     }
   }
 
+  static Future<void> schedulePending() async {
+    if (Platform.isAndroid) await channel.invokeMethod<void>('pending');
+  }
+
+  static Future<bool> networkAvailable() async =>
+      !Platform.isAndroid ||
+      await channel.invokeMethod<bool>('networkAvailable') == true;
+
   static Future<Set<String>> configureWatches(
       List<AutomaticSaveMapping> mappings) async {
     if (!Platform.isAndroid) return {};
@@ -25,6 +33,7 @@ class SaveBackgroundDispatch {
                 if (mapping.isMelon) 'route': 'melon',
                 if (mapping.isPpssppSavedata) 'route': 'ppsspp-savedata',
                 if (mapping.isPpssppCompanion) 'route': 'ppsspp-companion',
+                if (mapping.isRomCompanion) 'route': 'rom-companion',
                 if (mapping.isRetroArch)
                   'route': 'retroarch-${mapping.retroArchRoute!.platformId}',
                 if (mapping.isPcsx)
@@ -62,7 +71,11 @@ class SaveBackgroundDispatch {
           }));
           return null;
         case 'run':
-          await service.checkEnabled();
+          if (call.arguments == 'pending') {
+            await service.backupPending();
+          } else {
+            await service.checkEnabled();
+          }
           return service.passSummary();
         case 'stop':
           await service.cancelAndJoin();

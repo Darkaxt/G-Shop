@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 37, 2026-10-13.
+Authoritative specification, revision 38, 2026-10-13.
 
 Owner clarification, 2026-10-13: S12 modernizes R-Shop's existing frontend with
 Socket-inspired main-screen 3D media, labels and animations; it does not replace
@@ -1475,6 +1475,16 @@ Stream digests, validate uploaded bytes and publish only a complete recoverable
 generation. Cancellation, interrupted upload, changed source or revoked access
 must preserve the last-good backup and resume without duplicate workers.
 
+Owner clarification, 2026-10-13: the Thor can lose Wi-Fi while playing or when
+locked. Offline play must remain available with the installed ROM. Durably queue
+enabled save/companion changes and resume through Android's network-constrained
+scheduling when connectivity returns, including after process death. Do not mark
+an unsuccessful transfer handled. Each resumed publication must freshly discover
+remote generations and reconcile them against the recorded local base; a cached
+cloud listing or a newer timestamp must never authorize overwrite. Preserve both
+branches on divergence and expose the existing explicit conflict choice. Network
+loss is pending work, not evidence that the account needs signing in again.
+
 Provide an explicit restore path, also discoverable when installing a game on
 demand. Verify cloud identity/digests, compatible formats and destination grants
 before atomic local publication. Preserve the current local generation for a
@@ -1629,6 +1639,11 @@ launching without introducing a second frontend or launch pipeline.
 Select the renderer from the required real vertical slice. S10 remains the
 sole ACTIVE stage; S12 does not add acceptance
 gates to S10/S11. Overall completion now requires S1-S12 reconciliation.
+Owner workflow clarification, 2026-10-13: use `ui-diagnostics-first` in S12.
+Build bounded debug-only real-action, measured-tree, resolution and event-driven
+readiness evidence into the new frontend work, reusing the actual Flutter stack.
+Retain targeted visual/motion verification; do not retrofit the mature layout
+or start S12 instrumentation while S10/S11 remain unfinished.
 
 ## 7. Quality and delivery requirements
 
