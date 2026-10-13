@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:retro_eshop/services/saves/emulator_family_settings.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +24,8 @@ import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
 import 'package:retro_eshop/services/saves/save_backup_setup.dart';
 import 'package:retro_eshop/services/saves/save_capture.dart';
+import 'package:retro_eshop/models/emulator_family_registry.dart';
+
 import '../helpers/pump_helpers.dart';
 
 class _Driver implements DriveAuthorizationDriver {
@@ -95,7 +99,110 @@ class _Sources extends SourcesNotifier {
   }
 }
 
+class _FamilyBundle extends CachingAssetBundle {
+  final String contents;
+  _FamilyBundle(this.contents);
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async => contents;
+  @override
+  Future<ByteData> load(String key) async => throw UnimplementedError();
+}
+
 void main() {
+  late EmulatorFamilySettings settings;
+  late String defaults;
+  setUpAll(() async {
+    defaults = await rootBundle.loadString(EmulatorFamilyRegistry.assetPath);
+  });
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    final root = Directory('D:/Temp/rshop-s10-family-settings-20261014');
+    root.createSync(recursive: true);
+    final directory = root.createTempSync('widget-');
+    settings = await EmulatorFamilySettings.open(
+        file: File('${directory.path}/emulator_families.json'),
+        bundle: _FamilyBundle(defaults));
+  });
+
+  testWidgets(
+      'common dialog writes the shared file; external changes reload without import',
+      (tester) async {
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    final requested = <List<String>>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      final packages = List<String>.from(call.arguments['packages'] as List);
+      requested.add(packages);
+      return [
+        if (packages.contains('org.example.switchfork'))
+          {
+            'packageName': 'org.example.switchfork',
+            'versionName': '1',
+            'documentAuthorities': <String>[],
+          }
+      ];
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final sources = _Sources();
+    await sources.ready;
+    sources.publish(null);
+    await tester.pumpWidget(ProviderScope(
+        overrides: [sourcesProvider.overrideWith((_) => sources)],
+        child: createTestApp(
+            SaveBackupSettingsScreen(emulatorSettings: settings))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
+    await tester.pumpAndSettle();
+    expect(find.text('Import'), findsNothing);
+    expect(find.text('Export'), findsNothing);
+    expect(find.byKey(const ValueKey('emulator-config-path')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('save-emulator-families-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('emulator-package')),
+        'org.example.switchfork');
+    await tester.enterText(
+        find.byKey(const ValueKey('emulator-name')), 'My Switch fork');
+    await tester.tap(find.byKey(const ValueKey('emulator-family')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eden / Yuzu').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('emulator-save')));
+    await tester.pumpAndSettle();
+    expect(
+        settings.registry.packages['org.example.switchfork']!.family, 'eden');
+    expect(find.text('My Switch fork'), findsOneWidget);
+    expect(requested.last, contains('org.example.switchfork'));
+    final saved = settings.file.readAsStringSync();
+    await tester.tap(find.byKey(const ValueKey('save-emulator-families-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+    expect(settings.file.readAsStringSync(), saved);
+    final external = jsonDecode(saved);
+    (external['packages'] as List).last['name'] = 'External editor';
+    settings.file.writeAsStringSync(jsonEncode(external), flush: true);
+    // Resume is also the deterministic reload boundary for providers that do not
+    // deliver shared-storage file events reliably.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('External editor'), findsOneWidget);
+    settings.file.writeAsStringSync('{unfinished', flush: true);
+    await tester.tap(find.byKey(const ValueKey('save-emulators-refresh')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('last working settings'), findsOneWidget);
+    expect(find.text('External editor'), findsOneWidget);
+    expect(
+        tester
+            .widget<TextButton>(
+                find.byKey(const ValueKey('save-emulator-families-add')))
+            .onPressed,
+        isNull);
+    expect(settings.file.readAsStringSync(), '{unfinished');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   for (final platform in ['ps2', 'dreamcast', 'gc']) {
     final filename = platform == 'gc' ? 'Game.rvz' : 'Game.chd';
     for (final resolved in [false, true]) {
@@ -241,9 +348,12 @@ void main() {
     final sources = _Sources();
     await sources.ready;
     sources.publish('account');
-    await tester.pumpWidget(ProviderScope(overrides: [
-      sourcesProvider.overrideWith((_) => sources),
-    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          sourcesProvider.overrideWith((_) => sources),
+        ],
+        child: createTestApp(
+            SaveBackupSettingsScreen(emulatorSettings: settings))));
     await tester.pumpAndSettle();
     final workspace = find.byWidgetPredicate(
         (widget) => widget is FutureBuilder<SaveBackupSetup>,
@@ -294,9 +404,12 @@ void main() {
     final sources = _Sources();
     await sources.ready;
     sources.publish(null);
-    await tester.pumpWidget(ProviderScope(overrides: [
-      sourcesProvider.overrideWith((_) => sources),
-    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          sourcesProvider.overrideWith((_) => sources),
+        ],
+        child: createTestApp(
+            SaveBackupSettingsScreen(emulatorSettings: settings))));
     await tester.pumpAndSettle();
     expect(calls, isEmpty); // Not a startup scan or a permission prompt.
     await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
@@ -316,10 +429,10 @@ void main() {
     expect(find.text('Dolphin'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
     await tester.pumpAndSettle();
-    expect(calls, hasLength(1)); // Section changes do not rescan/restart work.
+    expect(calls, hasLength(2)); // Section entry reloads external configuration.
     await tester.tap(find.byKey(const ValueKey('save-emulators-refresh')));
     await tester.pumpAndSettle();
-    expect(calls, hasLength(2));
+    expect(calls, hasLength(3));
     tester.view.physicalSize = const Size(480, 800);
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 1.4;
@@ -550,9 +663,12 @@ void main() {
     final sources = _Sources();
     await sources.ready;
     sources.publish('account');
-    await tester.pumpWidget(ProviderScope(overrides: [
-      sourcesProvider.overrideWith((_) => sources),
-    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          sourcesProvider.overrideWith((_) => sources),
+        ],
+        child: createTestApp(
+            SaveBackupSettingsScreen(emulatorSettings: settings))));
     await tester.pumpAndSettle();
     final navigation = find.byKey(const ValueKey('save-backup-navigation'));
     expect(navigation.hitTestable(), findsOneWidget);
@@ -594,9 +710,12 @@ void main() {
     final sources = _Sources();
     await sources.ready;
     sources.publish('first-account');
-    await tester.pumpWidget(ProviderScope(overrides: [
-      sourcesProvider.overrideWith((_) => sources),
-    ], child: createTestApp(const SaveBackupSettingsScreen())));
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          sourcesProvider.overrideWith((_) => sources),
+        ],
+        child: createTestApp(
+            SaveBackupSettingsScreen(emulatorSettings: settings))));
     await tester.pumpAndSettle();
     expect(find.text('Drive backups are ready to set up for your games'),
         findsOneWidget);

@@ -47,6 +47,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var ppssppCompanionProbe = false
     private var romCompanionProbe = false
     private var standardSaveRootProbe = false
+    private var emulatorFamiliesProbe = false
     private var standardSaveRootPlatform = "ps2"
     private var ppssppRuntimeProbe: String? = null
     private var dsProviderProbe = false
@@ -81,6 +82,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         ppssppCompanionProbe = arguments?.getString("ppssppCompanionProbe") == "true"
         romCompanionProbe = arguments?.getString("romCompanionProbe") == "true"
         standardSaveRootProbe = arguments?.getString("standardSaveRootProbe") == "true"
+        emulatorFamiliesProbe = arguments?.getString("emulatorFamiliesProbe") == "true"
         standardSaveRootPlatform = arguments?.getString("standardSaveRootPlatform") ?: "ps2"
         ppssppRuntimeProbe = arguments?.getString("ppssppRuntimeProbe")
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
@@ -96,7 +98,9 @@ class OwnedRomInstrumentation : Instrumentation() {
     override fun onStart() {
         val report = Bundle()
         try {
-            if (standardSaveRootProbe) {
+            if (emulatorFamiliesProbe) {
+                report.putString("result", reviewEmulatorFamilies())
+            } else if (standardSaveRootProbe) {
                 if (standardSaveRootPlatform == "n3ds") {
                     ObservedCopyProviderProof.azahar(targetContext)
                     report.putString("result", "PASS exact synthetic ROM grant -> NCCH program ID -> live Azahar configured title save group; source worker revalidates current profile and excludes other titles/content; grant/version/path invalidation; exclusive fixtures removed; no save writes or cloud writes")
@@ -219,6 +223,46 @@ class OwnedRomInstrumentation : Instrumentation() {
             }
         }
         return results.joinToString("; ")
+    }
+
+    private fun reviewEmulatorFamilies(): String {
+        check(targetContext.packageName == "com.darkaxt.rshop.debug")
+        val text = targetContext.assets.open("flutter_assets/assets/config/emulator_families.json")
+            .use { it.reader(Charsets.UTF_8).readText() }
+        check(text.toByteArray().size <= 65536)
+        val configuration = JSONObject(text)
+        check(configuration.getInt("schema") == 1)
+        val registrations = configuration.getJSONArray("packages")
+        val names = (0 until registrations.length()).map { registrations.getJSONObject(it).getString("package") }
+        check(names.size in 1..64 && names.toSet().size == names.size)
+        check((0 until registrations.length()).any {
+            val row = registrations.getJSONObject(it)
+            row.getString("package") == "dev.igawa6.edenduo" && row.getString("family") == "eden"
+        })
+        val service = SaveCaptureService(targetContext)
+        try {
+            fun query(packages: List<String>): List<Map<*, *>> {
+                val done = CountDownLatch(1); var value: Any? = null; var failure: String? = null
+                service.handle(MethodCall("installedSaveEmulators", mapOf("packages" to packages)), object : MethodChannel.Result {
+                    override fun success(result: Any?) { value = result; done.countDown() }
+                    override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                    override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+                })
+                done.await(); check(failure == null) { failure ?: "Missing discovery result" }
+                @Suppress("UNCHECKED_CAST")
+                return value as List<Map<*, *>>
+            }
+            val installed = query(names)
+            check(installed.isNotEmpty() && installed.all { it["packageName"] in names && it["versionName"] is String })
+            // This app is installed but deliberately absent from the bundled registry:
+            // the production boundary must accept a newly file-registered identity.
+            val added = query(listOf(targetContext.packageName))
+            check(added.single()["packageName"] == targetContext.packageName)
+            check(query(listOf("org.example.rshop_absent_emulator")).isEmpty())
+            return "PASS packaged JSON registers Eden Duo in Eden; production discovery reads installed configured packages and an added exact package ID, omits absent apps; metadata-only, no configuration/save/account/cloud changes"
+        } finally {
+            val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
+        }
     }
 
     private fun reviewStandardSaveRoot(): String {

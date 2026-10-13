@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import '../../models/save_root_configuration.dart';
 
 import 'package:crypto/crypto.dart';
@@ -21,6 +22,7 @@ import '../../models/config/source.dart';
 import '../../models/game_item.dart';
 import '../../models/system_model.dart';
 import '../../models/save_emulator_coverage.dart';
+import '../../models/emulator_family_registry.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
 import '../../models/save_backup_manifest.dart';
@@ -34,6 +36,7 @@ import '../../services/saves/save_backup_setup.dart';
 import '../../services/saves/save_backup_game_job.dart';
 import '../../services/saves/automatic_save_backups.dart';
 import '../../services/saves/save_capture.dart';
+import '../../services/saves/emulator_family_settings.dart';
 import '../../services/saves/drive_save_backup_generation.dart';
 import '../../services/database_service.dart';
 
@@ -58,20 +61,23 @@ class SaveBackupSettingsScreen extends ConsumerStatefulWidget {
   final GameItem? game;
   final SystemModel? system;
   final String? targetFolder;
+  final EmulatorFamilySettings? emulatorSettings;
   const SaveBackupSettingsScreen(
       {super.key,
       this.editionId,
       this.gameTitle,
       this.game,
       this.system,
-      this.targetFolder});
+      this.targetFolder,
+      this.emulatorSettings});
   @override
   ConsumerState<SaveBackupSettingsScreen> createState() =>
       _SaveBackupSettingsScreenState();
 }
 
 class _SaveBackupSettingsScreenState
-    extends ConsumerState<SaveBackupSettingsScreen> with ConsoleScreenMixin {
+    extends ConsumerState<SaveBackupSettingsScreen>
+    with ConsoleScreenMixin, WidgetsBindingObserver {
   String? _sourceId;
   String? _binding;
   Future<SaveBackupSetup>? _loading;
@@ -93,6 +99,11 @@ class _SaveBackupSettingsScreenState
   bool _editingMapping = false;
   SaveBackupSection _section = SaveBackupSection.area;
   Future<List<SaveEmulatorCoverage>?>? _coverage;
+  bool _familyFileBusy = false;
+  bool _showRegistrations = false;
+  EmulatorFamilySettings? _familySettings;
+  Future<EmulatorFamilySettings>? _familyOpening;
+  StreamSubscription? _familyWatcher;
   final _contentScroll = ScrollController();
   final _sectionFocus = {
     for (final section in SaveBackupSection.values)
@@ -101,6 +112,7 @@ class _SaveBackupSettingsScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.editionId != null) _section = SaveBackupSection.backup;
   }
 
@@ -112,7 +124,7 @@ class _SaveBackupSettingsScreenState
       setState(() {
         _section = section;
         if (section == SaveBackupSection.emulators) {
-          _coverage ??= _readCoverage();
+          _coverage = _readCoverage();
         }
       });
     }
@@ -743,6 +755,8 @@ class _SaveBackupSettingsScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _familyWatcher?.cancel();
     _generation++;
     _closeSetup();
     _contentScroll.dispose();
@@ -1230,11 +1244,155 @@ class _SaveBackupSettingsScreenState
 
   Future<List<SaveEmulatorCoverage>?> _readCoverage() async {
     try {
-      return await SaveCapture().installedEmulators();
+      final settings = _familySettings ??= await (_familyOpening ??=
+          widget.emulatorSettings != null
+              ? Future.value(widget.emulatorSettings!)
+              : EmulatorFamilySettings.open());
+      if (!mounted || _leaving) return null;
+      _familyWatcher ??= settings.watch().listen((_) => _refreshFamilies(),
+          onError: (Object error) {
+        // Resume, section entry and Refresh still read the shared file on
+        // storage implementations that cannot deliver directory notifications.
+        if (mounted) setState(() {});
+      });
+      await settings.reload();
+      if (mounted) setState(() {});
+      return await SaveCapture()
+          .installedEmulators(registry: settings.registry);
     } catch (_) {
       // Observe channel failures immediately, before the next frame attaches
       // FutureBuilder. Null means failed inventory, never a successful empty one.
       return null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _familySettings != null) {
+      _refreshFamilies();
+    }
+  }
+
+  void _refreshFamilies() {
+    if (mounted && !_leaving) {
+      setState(() {
+        _coverage = _readCoverage();
+      });
+    }
+  }
+
+  Future<void> _editFamily([EmulatorRegistration? entry]) async {
+    if (_familyFileBusy) return;
+    final settings = _familySettings;
+    if (settings == null) return;
+    String source;
+    try {
+      await settings.reload();
+      source = settings.source;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+      return;
+    }
+    if (!mounted || _leaving) return;
+    final opening = settings.registry;
+    setState(() => _familyFileBusy = true);
+    final package = TextEditingController(text: entry?.packageName);
+    final name = TextEditingController(text: entry?.name);
+    var family = entry?.family ?? 'custom';
+    String? validation;
+    try {
+      final route = DialogRoute<EmulatorFamilyRegistry>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+            builder: (context, update) => AlertDialog(
+                  title: Text(entry == null ? 'Add emulator' : 'Edit emulator'),
+                  content: SizedBox(
+                      width: 440,
+                      child: SingleChildScrollView(
+                          child:
+                              Column(mainAxisSize: MainAxisSize.min, children: [
+                        TextField(
+                            key: const ValueKey('emulator-package'),
+                            controller: package,
+                            decoration: const InputDecoration(
+                                labelText: 'Package ID',
+                                hintText: 'dev.igawa6.edenduo')),
+                        TextField(
+                            key: const ValueKey('emulator-name'),
+                            controller: name,
+                            decoration: const InputDecoration(
+                                labelText: 'Display name')),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          key: const ValueKey('emulator-family'),
+                          initialValue: family,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                              labelText: 'Emulator family'),
+                          items: [
+                            for (final option
+                                in EmulatorFamilyRegistry.familyNames.entries)
+                              DropdownMenuItem(
+                                  value: option.key, child: Text(option.value))
+                          ],
+                          onChanged: (value) => update(() => family = value!),
+                        ),
+                        if (validation != null)
+                          Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(validation!,
+                                  style: const TextStyle(
+                                      color: Colors.redAccent))),
+                      ]))),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Cancel')),
+                    TextButton.icon(
+                        key: const ValueKey('emulator-save'),
+                        icon: const Icon(Icons.save_outlined),
+                        label: const Text('Save'),
+                        onPressed: () {
+                          try {
+                            final parsed =
+                                EmulatorFamilyRegistry.decode(jsonEncode({
+                              'schema': 1,
+                              'packages': [
+                                for (final current in opening.packages.values)
+                                  if (current.packageName != entry?.packageName)
+                                    current.toJson(),
+                                EmulatorRegistration(package.text.trim(),
+                                        family, name.text.trim())
+                                    .toJson(),
+                              ]
+                            }));
+                            Navigator.pop(dialogContext, parsed);
+                          } on FormatException catch (error) {
+                            update(() => validation = error.message);
+                          }
+                        }),
+                  ],
+                )),
+      );
+      final replacement = await Navigator.of(context).push(route);
+      await route.completed;
+      if (replacement == null || !mounted || _leaving) return;
+      await settings.save(replacement, expectedSource: source);
+      _refreshFamilies();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(error is StateError
+                ? error.message.toString()
+                : 'Could not save the emulator settings. Check storage access.')));
+      }
+    } finally {
+      package.dispose();
+      name.dispose();
+      if (mounted) setState(() => _familyFileBusy = false);
     }
   }
 
@@ -1246,65 +1404,105 @@ class _SaveBackupSettingsScreenState
               'In-game saves and save states are listed separately. Support may '
               'depend on the game and storage folder. This list does not scan your files.'),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
+          const Text(
+              'Add forks here, or edit the shared settings file directly. '
+              'Save folders and existing backups are unchanged.'),
+          if (_familySettings != null) ...[
+            SelectableText(_familySettings!.file.path,
+                key: const ValueKey('emulator-config-path'),
+                style: Theme.of(context).textTheme.bodySmall),
+            if (_familySettings!.issue != null) Text(_familySettings!.issue!),
+          ],
+          const SizedBox(height: 8),
+          Wrap(spacing: 12, runSpacing: 8, children: [
+            TextButton.icon(
               key: const ValueKey('save-emulators-refresh'),
               icon: const Icon(Icons.refresh),
-              label: const Text('Refresh installed apps'),
-              onPressed: () => setState(() {
-                _coverage = _readCoverage();
-              }),
+              label: const Text('Refresh'),
+              onPressed: _refreshFamilies,
             ),
-          ),
-          FutureBuilder<List<SaveEmulatorCoverage>?>(
-            future: _coverage,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const LinearProgressIndicator();
-              }
-              if (snapshot.hasError || snapshot.data == null) {
-                return const Text(
-                    'The installed emulator list could not be loaded. '
-                    'Choose Refresh installed apps to try again.');
-              }
-              final entries = snapshot.data!;
-              if (entries.isEmpty) {
-                return const Text(
-                    'R-Shop could not find any emulators it recognizes. '
-                    'Other emulators may still be installed.');
-              }
-              return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final entry in entries)
-                      Card(
-                        key: ValueKey('save-emulator-${entry.packageName}'),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(entry.label,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                Text(
-                                    '${entry.versionName} · ${entry.packageName}',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall),
-                                const SizedBox(height: 8),
-                                Text('Saves: ${entry.saves}'),
-                                Text('States: ${entry.states}'),
-                                const SizedBox(height: 8),
-                                Text(entry.storage),
-                              ]),
+            TextButton.icon(
+                key: const ValueKey('save-emulator-families-add'),
+                icon: const Icon(Icons.add),
+                label: const Text('Add'),
+                onPressed: _familyFileBusy ||
+                        _familySettings == null ||
+                        _familySettings!.issue != null
+                    ? null
+                    : () => _editFamily()),
+            TextButton.icon(
+                key: const ValueKey('save-emulator-families-configure'),
+                icon: Icon(
+                    _showRegistrations ? Icons.list : Icons.settings_outlined),
+                label: Text(_showRegistrations ? 'Installed' : 'Registrations'),
+                onPressed: _familySettings == null
+                    ? null
+                    : () => setState(
+                        () => _showRegistrations = !_showRegistrations)),
+          ]),
+          if (_showRegistrations && _familySettings != null)
+            for (final entry in _familySettings!.registry.packages.values)
+              ListTile(
+                  title: Text(entry.name),
+                  subtitle: Text(
+                      '${EmulatorFamilyRegistry.familyNames[entry.family]} · ${entry.packageName}'),
+                  trailing: IconButton(
+                      tooltip: 'Edit emulator',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed:
+                          _familyFileBusy || _familySettings!.issue != null
+                              ? null
+                              : () => _editFamily(entry))),
+          if (!_showRegistrations)
+            FutureBuilder<List<SaveEmulatorCoverage>?>(
+              future: _coverage,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const LinearProgressIndicator();
+                }
+                if (snapshot.hasError || snapshot.data == null) {
+                  return const Text(
+                      'The installed emulator list could not be loaded. '
+                      'Choose Refresh to try again.');
+                }
+                final entries = snapshot.data!;
+                if (entries.isEmpty) {
+                  return const Text(
+                      'R-Shop could not find any emulators it recognizes. '
+                      'Other emulators may still be installed.');
+                }
+                return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final entry in entries)
+                        Card(
+                          key: ValueKey('save-emulator-${entry.packageName}'),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(entry.label,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium),
+                                  Text(
+                                      '${entry.familyLabel} · ${entry.versionName} · ${entry.packageName}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall),
+                                  const SizedBox(height: 8),
+                                  Text('Saves: ${entry.saves}'),
+                                  Text('States: ${entry.states}'),
+                                  const SizedBox(height: 8),
+                                  Text(entry.storage),
+                                ]),
+                          ),
                         ),
-                      ),
-                  ]);
-            },
-          ),
+                    ]);
+              },
+            ),
         ],
       );
 }

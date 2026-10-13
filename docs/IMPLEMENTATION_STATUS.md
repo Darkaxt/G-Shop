@@ -5,7 +5,43 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current S10 work — ACTIVE, 2026-10-13
+### Current S10 work — ACTIVE, 2026-10-14
+
+Package-family settings now use one automatically seeded shared file:
+`/storage/emulated/0/RShop/config/emulator_families.json` (created on first use of
+Emulators). Compact Add/Edit dialogs change package ID, family and display name
+in that same file; advanced edits are file-only, not an import/export workflow or
+a full JSON editor. Registrations and installed coverage are separate views.
+File events, section entry and resume reload external edits. Invalid/incomplete
+files retain the last validated recovery snapshot without replacing user content;
+stale dialogs reject newer external edits. Interrupted app-write scratch is reused
+only as scratch, never a competing authority. Package/family changes do not alter
+save mappings, history identities, grants or reviewed-runtime status. Eden Duo is
+included in Eden defaults; additional package IDs need no rebuild.
+
+Focused real-filesystem and widget checks pass automatic seeding, external event
+reload, in-app persistence/cancellation, restart recovery, stale-edit rejection,
+family discovery and existing mapping/workspace behavior. The notification check
+exposed a Windows separator mismatch; normalized path comparison fixes it and the
+repeated check passes. Scoped analysis passes. Unchanged save-job behavior passed
+its affected checks in the same task. This is host UI/file evidence, not a claim
+that native Android dialogs were visually exercised.
+
+Gated requests 1001/1002 package app/test and final app successfully: both acquire
+the shared gate, build/helper exit 0 and daemon exit is verified. Observed workers
+2, parallel=false and Gradle heap 3 GiB; Kotlin in-process configured/requested.
+Test tasks have one 512 MiB fail-fast fork configured but were not executed by
+these assembly requests. Native environment budget two is not universal native
+concurrency proof. No memory failure or heap increase. Preserving install's APK
+matches `bd44c7149444c2cacafe22a4afb7608ff530b15a6378ae54f39709d937b7e7e4`.
+The actual Thor native probe passes packaged defaults and production discovery of
+configured installed/absent/new package IDs; no emulator launch or save/cloud IO.
+Three app preference/key/secure-storage hashes are unchanged. Both displays are
+OFF. Test-only host configuration fixtures were removed through the fully applied
+reviewed cleanup ticket; source, APK and current verification logs are retained.
+This closes the package-family feature only. S10's remaining standard-location
+reconciliation and conditional legacy handover remain advancement blockers; no
+new stage or required deferral was opened.
 
 Azahar raw NCCH/NCSD ROMs now resolve one title's save data plus format metadata
 from the validated local ROM header and current configured user directory. The
@@ -30,10 +66,10 @@ Legacy targets are now identified read-only: device package
 `dk.tacit.android.foldersync.lite`, and task `\RetroBat Save Sync`, whose hidden
 VBS action invokes `sync-retrobat-saves.ps1`. Neither is changed before replacement
 acceptance. Remaining standard-location reconciliation and handover keep S10
-ACTIVE. Discovery currently checks known package IDs, not arbitrary emulator
-capabilities; an unknown fork needs an exact custom mapping and is absent from
-the coverage list. Eden Duo's main package is one concrete example; this is not
-automatic fork compatibility or a claim that the filesystem engine rejects it.
+ACTIVE. Discovery checks configured package IDs, not arbitrary emulator
+capabilities. Unknown forks can now be registered in the shared file or common
+dialog; unresolved save locations still use exact custom mappings. Registration
+is not automatic fork compatibility or a separate filesystem engine.
 
 Shared-card configuration is verified for Flycast's enabled shared virtual VMUs
 and Dolphin's enabled default GCI card folders, in addition to NetherSX2. They

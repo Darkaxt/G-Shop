@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/save_emulator_coverage.dart';
+import '../../models/emulator_family_registry.dart';
+import 'emulator_family_settings.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
 import '../../models/save_root_configuration.dart';
@@ -428,10 +430,15 @@ class SaveCapture {
   }
 
   /// On-demand, read-only package/provider metadata. No file scan or grant.
-  Future<List<SaveEmulatorCoverage>> installedEmulators() async =>
-      SaveEmulatorCoverage.decode(await _channel.invokeListMethod<dynamic>(
-          'installedSaveEmulators',
-          {'packages': SaveEmulatorCoverage.knownPackages.keys.toList()}));
+  Future<List<SaveEmulatorCoverage>> installedEmulators(
+      {EmulatorFamilyRegistry? registry}) async {
+    final configuration =
+        registry ?? (await EmulatorFamilySettings.open()).registry;
+    return SaveEmulatorCoverage.decode(
+        await _channel.invokeListMethod<dynamic>('installedSaveEmulators',
+            {'packages': configuration.packages.keys.toList()}),
+        registry: configuration);
+  }
 
   static bool validName(String name) =>
       name.length > 4 &&

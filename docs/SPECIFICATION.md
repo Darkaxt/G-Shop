@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 39, 2026-10-13.
+Authoritative specification, revision 40, 2026-10-14.
 
 Owner clarification, 2026-10-13: S12 modernizes R-Shop's existing frontend with
 Socket-inspired main-screen 3D media, labels and animations; it does not replace
@@ -1341,6 +1341,29 @@ or permit their existing acceptance criteria to be weakened.
 ## 6d. Emulator-aware save-backup sync (S10)
 
 ### SAVE-01 — Save and save-state backup without ROM mirroring
+
+Owner extension, 2026-10-14: register Android package IDs as members of emulator
+families through an editable JSON configuration, not a compiled package allowlist.
+Deploy bundled defaults automatically to the shared, credential-free file
+`/storage/emulated/0/RShop/config/emulator_families.json`. This file is authoritative
+and editable inside and outside the app, without routine import/export steps.
+Common registration fields have compact add/edit dialogs in Emulators; advanced
+configuration stays in the file rather than a full JSON editor. Reload valid
+external edits on file events and app resume/section entry. Preserve the last
+valid configuration while an external save is incomplete or invalid; never
+overwrite that file with fallback defaults. Reject stale in-app edits when the
+file has changed. Added forks participate in installed-package queries and family
+coverage without rebuilding. Preserve exact package/runtime identities and existing
+save mappings/history; a family label is not permission, proof of an identical
+save location or save-state compatibility. A new package must not inherit another
+package's verified-runtime status. Reuse existing explicit root mappings for
+custom/unresolved fork layouts rather than adding another sync engine. Invalid or
+cancelled dialogs preserve the last valid configuration. Verify a file-added alias,
+family classification, discovery, external reload, in-app persistence, restart
+recovery and these preservation rules. Existing settings outside this feature are
+not migrated by this change; future common dialogs can follow the same approach.
+This belongs to ACTIVE S10; it does not activate S11/S12 or authorize new emulator
+installation, save mutation or an external release.
 
 Owner execution correction, 2026-10-13: the root-backed filesystem pipeline is
 emulator agnostic. Deliver installed-emulator coverage through declarative

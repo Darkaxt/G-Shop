@@ -63,6 +63,7 @@ flutter:
   generate: true
   uses-material-design: true
   assets:
+    - assets/config/emulator_families.json
     - assets/sounds/
     - assets/icon.png
     - assets/platform_icons/

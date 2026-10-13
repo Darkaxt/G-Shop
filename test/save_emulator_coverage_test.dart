@@ -2,6 +2,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/save_emulator_coverage.dart';
 import 'package:retro_eshop/services/saves/save_capture.dart';
+import 'package:retro_eshop/models/emulator_family_registry.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+late EmulatorFamilyRegistry _registry;
+List<SaveEmulatorCoverage> _decode(List<dynamic>? rows) =>
+    SaveEmulatorCoverage.decode(rows, registry: _registry);
 
 Map<String, Object> _row(String name, String version,
         [List<String> authorities = const []]) =>
@@ -13,13 +19,25 @@ Map<String, Object> _row(String name, String version,
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    _registry = await EmulatorFamilyRegistry.load();
+  });
+  test('Eden Duo participates in the Eden family rather than being rejected',
+      () {
+    final entry = _decode([_row('dev.igawa6.edenduo', '1.2.1')]).single;
+    expect(entry.label, 'Eden Duo');
+    expect(entry.storage, contains('title and user/profile'));
+    expect(entry.states, isNot(startsWith('Verified')));
+  });
   test('PC runtimes are excluded from ROM-emulator save coverage', () {
     for (final package in [
       'app.gamenative',
       'com.winnative.cmod',
       'org.force9.starboard',
     ]) {
-      expect(SaveEmulatorCoverage.knownPackages, isNot(contains(package)));
+      expect(_registry.packages, isNot(contains(package)));
     }
     for (final package in [
       'com.retroarch.aarch64',
@@ -29,7 +47,7 @@ void main() {
       'me.magnum.melondualds',
       'dev.eden.eden_emulator',
     ]) {
-      expect(SaveEmulatorCoverage.knownPackages, contains(package));
+      expect(_registry.packages, contains(package));
     }
   });
 
@@ -46,16 +64,20 @@ void main() {
     addTearDown(() => TestDefaultBinaryMessengerBinding
         .instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null));
-    expect((await SaveCapture().installedEmulators()).single.label, 'PPSSPP');
+    expect(
+        (await SaveCapture().installedEmulators(registry: _registry))
+            .single
+            .label,
+        'PPSSPP');
     expect(calls.single.method, 'installedSaveEmulators');
     expect(calls.single.arguments, {
-      'packages': SaveEmulatorCoverage.knownPackages.keys.toList(),
+      'packages': _registry.packages.keys.toList(),
     });
   });
 
   test('installed version cannot inherit verification from an older runtime',
       () {
-    final rows = SaveEmulatorCoverage.decode([
+    final rows = _decode([
       _row('com.retroarch.aarch64', '1.22.2_GIT'),
       _row('org.ppsspp.ppsspp', '1.20.4'),
     ]);
@@ -73,7 +95,7 @@ void main() {
         startsWith('Verified'));
     expect(rows.singleWhere((r) => r.label == 'PPSSPP').saves,
         'In-game saves · complete PPSSPP SAVEDATA folders.');
-    for (final row in SaveEmulatorCoverage.decode([
+    for (final row in _decode([
       _row('com.retroarch.aarch64', '1.23.0'),
       _row('org.ppsspp.ppsspp', '1.21.0'),
     ])) {
@@ -85,7 +107,7 @@ void main() {
   test('PPSSPP coverage describes the verified folder and normal-exit routes',
       () {
     for (final version in ['1.20.4', 'v1.20.4']) {
-      final row = SaveEmulatorCoverage.decode([
+      final row = _decode([
         _row('org.ppsspp.ppsspp', version),
       ]).single;
       expect(row.saves, contains('SAVEDATA'));
@@ -96,7 +118,7 @@ void main() {
       expect(row.storage, contains('Exit'));
       expect(row.storage, isNot(contains('App info')));
     }
-    final changed = SaveEmulatorCoverage.decode([
+    final changed = _decode([
       _row('org.ppsspp.ppsspp', '1.21.0'),
     ]).single;
     expect(changed.saves, startsWith('Needs review'));
@@ -106,7 +128,7 @@ void main() {
 
   test('advertised provider is neither a grant nor implemented restore support',
       () {
-    final row = SaveEmulatorCoverage.decode([
+    final row = _decode([
       _row('info.cemu.cemu', '0.5.2', ['info.cemu.cemu.user'])
     ]).single;
     expect(row.storage, contains('does not select'));
@@ -114,10 +136,12 @@ void main() {
     expect(row.states, startsWith('Custom mapping'));
     expect(row.storage, isNot(contains('unsupported')));
   });
-  test('Azahar coverage distinguishes raw title saves from compressed/custom layouts', () {
-    final row = SaveEmulatorCoverage.decode([
-      _row('io.github.lime3ds.android', '263745c1d-vanilla')
-    ]).single;
+  test(
+      'Azahar coverage distinguishes raw title saves from compressed/custom layouts',
+      () {
+    final row =
+        _decode([_row('io.github.lime3ds.android', '263745c1d-vanilla')])
+            .single;
     expect(row.saves, contains('validated raw ROM header'));
     expect(row.storage, contains('Compressed ROMs'));
     expect(row.storage, contains('other titles are excluded'));
@@ -127,8 +151,8 @@ void main() {
   test(
       'Melon coverage describes automatic root discovery and coherent live capture',
       () {
-    final current = SaveEmulatorCoverage.decode(
-        [_row('me.magnum.melondualds', '0.8.0.rc2')]).single;
+    final current =
+        _decode([_row('me.magnum.melondualds', '0.8.0.rc2')]).single;
     expect(current.saves, contains('shared'));
     expect(current.saves, contains('completed'));
     expect(current.saves, isNot(contains('must be closed')));
@@ -140,14 +164,12 @@ void main() {
     expect(current.storage, isNot(contains('still being integrated')));
     expect(current.storage, isNot(contains('not accessible')));
     expect(current.states, startsWith('Custom mapping'));
-    final changed =
-        SaveEmulatorCoverage.decode([_row('me.magnum.melondualds', '0.9.0')])
-            .single;
+    final changed = _decode([_row('me.magnum.melondualds', '0.9.0')]).single;
     expect(changed.saves, startsWith('Needs review'));
   });
 
   test('launchers and unreviewed emulators are not falsely unsupported', () {
-    final rows = SaveEmulatorCoverage.decode([
+    final rows = _decode([
       _row('org.es_de.frontend', '3.4.1'),
       _row('com.flycast.emulator', 'v2.6'),
     ]);
@@ -158,9 +180,7 @@ void main() {
 
   test('Dolphin card coverage does not claim Wii NAND or raw-card discovery',
       () {
-    final row =
-        SaveEmulatorCoverage.decode([_row('org.dolphinemu.dolphinemu', '2606')])
-            .single;
+    final row = _decode([_row('org.dolphinemu.dolphinemu', '2606')]).single;
     expect(row.saves, contains('shared GCI memory-card folders'));
     expect(row.storage, contains('Wii NAND'));
     expect(row.storage, contains('Raw cards'));
@@ -184,8 +204,8 @@ void main() {
         {'packageName': 'org.ppsspp.ppsspp'}
       ],
     ]) {
-      expect(() => SaveEmulatorCoverage.decode(rows), throwsFormatException);
+      expect(() => _decode(rows), throwsFormatException);
     }
-    expect(SaveEmulatorCoverage.decode([]), isEmpty);
+    expect(_decode([]), isEmpty);
   });
 }

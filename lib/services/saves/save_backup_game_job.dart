@@ -13,7 +13,7 @@ import '../../models/retroarch_battery_route.dart';
 import '../../models/save_root_configuration.dart';
 import '../../models/pcsx_save_layout.dart';
 import '../../models/library_identity.dart';
-import '../../models/save_emulator_coverage.dart';
+import '../../models/emulator_family_registry.dart';
 import '../drive/drive_authorization.dart';
 import '../library_store.dart';
 import 'drive_save_backup_area.dart';
@@ -170,7 +170,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   bool get isMelon => melonDirectory != null;
   bool get isStandalone => isPpsspp || isMelon;
   String get emulatorLabel => isRomCompanion
-      ? SaveEmulatorCoverage.knownPackages[_emulator] ?? 'Emulator'
+      ? EmulatorFamilyRegistry.familyNames[romCompanionCore] ?? _emulator
       : isMelon
           ? 'MelonDualDS'
           : isPpsspp

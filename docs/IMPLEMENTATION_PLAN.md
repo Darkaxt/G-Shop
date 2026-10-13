@@ -1,7 +1,17 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 39.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 40.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+
+S10 package-family configuration (owner, 2026-10-14): replace compiled discovery
+registrations with an automatically deployed shared JSON file, compact common
+add/edit dialogs and external editing without import/export. Verify valid external
+reload, invalid-edit recovery, stale-edit rejection and restart persistence.
+Verify added package aliases use their family classification
+and native package discovery without inheriting verified-runtime status, changing
+backup identities or altering existing save mappings. Invalid external edits keep
+the last valid configuration without overwriting the file; cancelled dialogs do
+not write. Advanced controls remain file-only. This is S10 work, not a new stage.
 
 S12 authorization update (owner, 2026-10-13): implement all 12 plan stages,
 including the recorded 3D physical-media frontend contract. S12 remains NOT
