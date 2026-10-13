@@ -214,12 +214,13 @@ class _SaveBackupSettingsScreenState
             Map<String, dynamic>.from(jsonDecode(raw) as Map));
         _romCompanions = true;
       }
-      if ({'ps2', 'dreamcast', 'gc', 'n3ds'}.contains(widget.system?.id) &&
+      if ({'ps2', 'dreamcast', 'gc', 'n3ds', 'wiiu'}
+              .contains(widget.system?.id) &&
           (_saveRootConfiguration == null ||
               _saveRootConfiguration!.profile != null)) {
         SaveRootConfiguration? standard;
         try {
-          final grant = widget.system!.id == 'n3ds'
+          final grant = const {'n3ds', 'wiiu'}.contains(widget.system!.id)
               ? await OwnedEmulatorLauncher().resolveRomCompanionGrant(
                   widget.game!, widget.system!.id, widget.targetFolder!)
               : null;

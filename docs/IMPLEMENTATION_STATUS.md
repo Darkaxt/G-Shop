@@ -7,6 +7,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current S10 work — ACTIVE, 2026-10-14
 
+Cemu WUA games now resolve a title-scoped save configuration through the normal
+settings path and existing shared backup engine. A bounded ZArchive root-index
+reader identifies one base title directly from the pinned ROM grant, without
+extraction, filename guessing or scraped cache. Current Cemu MLC/account settings
+select its common data, selected account and title metadata; source/root/watch
+revalidation excludes other games/accounts and system storage. Ambiguous multi-
+game archives and custom layouts retain exact mapping; states remain separate.
+Affected Dart model/channel checks and scoped analysis pass. Focused JVM checks
+also pass against a real H: library WUA, not just a generated index, with the same
+bounded reader; no ROM write or extraction. Original gated request 1004 passes
+affected native contracts and app/test packaging: gate acquired, build/helper
+exit 0, observed two workers, parallel=false and 3 GiB Gradle heap, configured
+Kotlin in-process, one executed 512 MiB fail-fast test fork and verified daemon
+exit. No memory failure/increase; native environment budget two is not universal
+native concurrency proof. Preserving install's APK independently matches
+`ee2cdfe8cd896bf8b9537a57132c22ed8897f3c0b2b244f4372bfd236fd104e3`.
+Actual Thor production-channel proof passes the synthetic WUA grant, current live
+Cemu settings, empty selected-title inventory, wrong-title rejection, profile
+revalidation and existing grant invalidation. Cemu has no save for that synthetic
+title: no save-content/backup claim is made. Four Cemu/app settings and secure/key
+hashes are unchanged; exclusive fixture rows/files are removed and both displays
+are OFF. S10 remains ACTIVE for the remaining installed-location reconciliation
+and conditional handover; S11/S12 NOT STARTED.
+
 Package-family settings now use one automatically seeded shared file:
 `/storage/emulated/0/RShop/config/emulator_families.json` (created on first use of
 Emulators). Compact Add/Edit dialogs change package ID, family and display name

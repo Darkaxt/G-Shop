@@ -17,11 +17,14 @@ internal object StandardSaveRoots {
     const val DOLPHIN_PROFILE = "dolphin-gci-cards-v1"
     const val AZAHAR = "io.github.lime3ds.android"
     const val AZAHAR_PROFILE = "azahar-title-save-v1"
+    const val CEMU = "info.cemu.cemu"
+    const val CEMU_PROFILE = "cemu-title-save-v1"
     fun packageFor(platformId: String): String? = when (platformId) {
         "ps2" -> NETHER
         "dreamcast" -> FLYCAST
         "gc" -> DOLPHIN
         "n3ds" -> AZAHAR
+        "wiiu" -> CEMU
         else -> null
     }
     fun validProfile(profile: String, emulator: String, core: String, kind: String,
@@ -30,7 +33,37 @@ internal object StandardSaveRoots {
         FLYCAST_PROFILE -> emulator == FLYCAST && core == "flycast" && resourceId == "vmu-cards" && format == "dreamcast-vmu-v1"
         DOLPHIN_PROFILE -> emulator == DOLPHIN && core == "dolphin" && resourceId == "gc-memory-cards" && format == "gamecube-gci-cards-v1"
         AZAHAR_PROFILE -> emulator == AZAHAR && core == "azahar" && resourceId == null && format == AZAHAR_PROFILE
+        CEMU_PROFILE -> emulator == CEMU && core == "cemu" && resourceId == null && format == CEMU_PROFILE
         else -> false
+    }
+    internal fun cemuConfiguration(mlc: String, account: Long, titleId: String): SaveRootConfiguration {
+        require(SaveRootConfiguration.validDirectory(mlc, CEMU) && account in 0x80000001L..0xffffffffL &&
+            titleId.matches(Regex("00050000[0-9a-f]{8}")))
+        val title = "00050000/${titleId.takeLast(8)}"
+        return SaveRootConfiguration("$mlc/usr/save", CEMU, "cemu", "save", CEMU_PROFILE,
+            emptyList(), listOf("$title/user/common", "$title/user/${account.toString(16)}", "$title/meta"),
+            emptyList(), profile = CEMU_PROFILE)
+    }
+    fun cemu(titleId: String): SaveRootConfiguration {
+        require(Process.myUid() == 0)
+        val home = "/storage/emulated/0/Android/data/$CEMU/files"
+        val parser = Xml.newPullParser()
+        parser.setInput(ByteArrayInputStream(read(home, "settings.xml", 512 * 1024)), "UTF-8")
+        var mlc: String? = null; var account: Long? = null; var root = false
+        while (true) when (parser.nextToken()) {
+            XmlPullParser.DOCDECL -> throw IOException("save_settings_unresolved")
+            XmlPullParser.START_TAG -> {
+                if (parser.depth == 1) { require(!root && parser.name == "content"); root = true }
+                else if (parser.depth == 2 && parser.name == "mlc_path") {
+                    require(mlc == null); mlc = parser.nextText().trimEnd('/')
+                } else if (parser.depth == 3 && parser.name == "PersistentId") {
+                    require(account == null); account = parser.nextText().toLongOrNull()
+                }
+            }
+            XmlPullParser.END_DOCUMENT -> break
+        }
+        require(root && mlc != null && account != null)
+        return cemuConfiguration(mlc.ifEmpty { "$home/mlc01" }, account, titleId)
     }
     internal fun azaharConfiguration(home: String, programId: String): SaveRootConfiguration {
         require(SaveRootConfiguration.validDirectory(home, AZAHAR) && programId.matches(Regex("00040000[0-9a-f]{8}")))
@@ -297,6 +330,7 @@ internal object StandardSaveRoots {
             FLYCAST_PROFILE -> flycast()
             DOLPHIN_PROFILE -> dolphin()
             AZAHAR_PROFILE -> azahar("00040000" + configuration.files.single().substringBefore('/'))
+            CEMU_PROFILE -> cemu("00050000" + configuration.folders.first().split('/')[1])
             else -> throw IOException("source_changed")
         }
         if (current?.json()?.toString() != configuration.json().toString()) throw IOException("source_changed")

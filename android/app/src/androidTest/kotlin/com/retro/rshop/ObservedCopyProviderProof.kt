@@ -18,6 +18,19 @@ import java.util.UUID
 /** Exclusive synthetic bytes/rows only. Tests real SQLite, provider and pinned
  * native reads, never an emulator boot or ownership of an existing ROM. */
 internal object ObservedCopyProviderProof {
+    fun cemu(context: Context) {
+        val bytes = ByteArray(1024)
+        val out = java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.BIG_ENDIAN)
+        val name = "0005000010102000_v0"
+        bytes[64] = name.length.toByte(); name.toByteArray().copyInto(bytes, 65)
+        out.putInt(256, 0x7fffffff); out.putInt(260, 1); out.putInt(264, 1)
+        out.putInt(272, 0); out.putInt(276, 2); out.putInt(280, 1); out.putInt(288, Int.MIN_VALUE)
+        val footer = 1024 - 144
+        out.putLong(footer + 32, 64); out.putLong(footer + 40, name.length + 1L)
+        out.putLong(footer + 48, 256); out.putLong(footer + 56, 48)
+        out.putLong(footer + 128, 1024); out.putInt(footer + 136, 0x61bf3a01); out.putInt(footer + 140, 0x169f52d6)
+        exercise(context, "wiiu", "wua", bytes)
+    }
     fun azahar(context: Context) {
         val bytes = ByteArray(512)
         "NCCH".toByteArray().copyInto(bytes, 0x100)
@@ -87,8 +100,9 @@ internal object ObservedCopyProviderProof {
                 catch (_: FileNotFoundException) { }
             }
             check(read().contentEquals(bytes))
-            if (platform == "n3ds") {
-                check(OwnedRomContentProvider.n3dsProgramId(context, uri) == "00040000004c5700")
+            if (platform in setOf("n3ds", "wiiu")) {
+                if (platform == "n3ds") check(OwnedRomContentProvider.n3dsProgramId(context, uri) == "00040000004c5700")
+                else check(OwnedRomContentProvider.wuaTitleId(context, uri) == "0005000010102000")
                 val service = SaveCaptureService(context)
                 try {
                     val done = java.util.concurrent.CountDownLatch(1)
@@ -103,20 +117,29 @@ internal object ObservedCopyProviderProof {
                     done.await(); check(failure == null) { failure ?: "Missing title mapping" }
                     val config = SaveRootConfiguration.decode(JSONObject(result as Map<*, *>))
                     check(SaveRootConfiguration.decode(config.json()) == config)
-                    check(config.profile == StandardSaveRoots.AZAHAR_PROFILE && config.resourceId == null)
-                    check(config.folders == listOf("004c5700/data/00000001"))
+                    check(config.profile == (if (platform == "n3ds") StandardSaveRoots.AZAHAR_PROFILE else StandardSaveRoots.CEMU_PROFILE) && config.resourceId == null)
+                    if (platform == "n3ds") check(config.folders == listOf("004c5700/data/00000001"))
+                    else check(config.folders == listOf("00050000/10102000/user/common", "00050000/10102000/user/80000001", "00050000/10102000/meta"))
                     val snapshot = OwnedRomContentProvider.companionSnapshot(context, uri, null, {}, config)
-                    check((snapshot["files"] as Map<*, *>).keys == setOf("004c5700/data/00000001.metadata"))
+                    if (platform == "n3ds") check((snapshot["files"] as Map<*, *>).keys == setOf("004c5700/data/00000001.metadata"))
+                    else check((snapshot["files"] as Map<*, *>).isEmpty())
                     try {
-                        val other = StandardSaveRoots.azaharConfiguration(config.directory.substringBefore("/sdmc/"), "0004000000934200")
+                        val other = if (platform == "n3ds") StandardSaveRoots.azaharConfiguration(config.directory.substringBefore("/sdmc/"), "0004000000934200")
+                            else StandardSaveRoots.cemuConfiguration(config.directory.substringBefore("/usr/save"), 0x80000001, "0005000010103000")
                         OwnedRomContentProvider.companionSnapshot(context, uri, null, {}, other)
                         error("Another title's mapping was accepted")
                     } catch (error: java.io.IOException) { check(error.message == "source_changed") }
                     SaveSourceStorage.openRomCompanions(context, config.directory, file.name,
                         emptyList(), configuration = config).use { source ->
                         val names = source.companionInventory().files.keys
-                        check(names == setOf("004c5700/data/00000001.metadata"))
-                        check(!config.acceptsFile("00934200/data/00000001/hime00.sav"))
+                        if (platform == "n3ds") {
+                            check(names == setOf("004c5700/data/00000001.metadata"))
+                            check(!config.acceptsFile("00934200/data/00000001/hime00.sav"))
+                        } else {
+                            check(names.isEmpty())
+                            check(!config.acceptsFile("system/act/80000001/account.dat"))
+                            check(!config.acceptsFile("00050000/10102000/user/80000002/save.bin"))
+                        }
                     }
                 } finally {
                     val closed = java.util.concurrent.CountDownLatch(1)

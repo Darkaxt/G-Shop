@@ -173,8 +173,10 @@ class MelonSaveSettings {
 class SaveCapture {
   Future<SaveRootConfiguration?> standardSaveRoot(
       {required String platformId, Map<String, Object>? grant}) async {
-    if (!{'ps2', 'dreamcast', 'gc', 'n3ds'}.contains(platformId)) return null;
-    if (platformId == 'n3ds' && grant == null) {
+    if (!{'ps2', 'dreamcast', 'gc', 'n3ds', 'wiiu'}.contains(platformId)) {
+      return null;
+    }
+    if (const {'n3ds', 'wiiu'}.contains(platformId) && grant == null) {
       throw const FormatException('The installed ROM is required');
     }
     final row = await _channel.invokeMapMethod<String, dynamic>(

@@ -96,6 +96,41 @@ void main() {
     expect(config.acceptsFile('004c5700/data/00000001/main'), isTrue);
   });
   test(
+      'Cemu configuration requires a WUA grant and preserves account/title scope',
+      () async {
+    final grant = <String, Object>{
+      'observationId': 17,
+      'platformId': 'wiiu',
+      'filename': 'Game.wua'
+    };
+    response = {
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Android/data/info.cemu.cemu/files/mlc01/usr/save',
+      'emulator': 'info.cemu.cemu',
+      'core': 'cemu',
+      'kind': 'save',
+      'format': 'cemu-title-save-v1',
+      'profile': 'cemu-title-save-v1',
+      'files': <String>[],
+      'required': <String>[],
+      'folders': [
+        '00050000/10102000/user/common',
+        '00050000/10102000/user/80000001',
+        '00050000/10102000/meta'
+      ],
+    };
+    await expectLater(SaveCapture().standardSaveRoot(platformId: 'wiiu'),
+        throwsFormatException);
+    expect(calls, isEmpty);
+    final config =
+        await SaveCapture().standardSaveRoot(platformId: 'wiiu', grant: grant);
+    expect(calls.single.arguments, grant);
+    expect(config!.acceptsFile('00050000/10102000/user/80000001/save.bin'),
+        isTrue);
+    expect(config.acceptsFile('system/act/80000001/account.dat'), isFalse);
+  });
+  test(
       'shared Dreamcast VMUs resolve through the existing configuration channel',
       () async {
     response = {

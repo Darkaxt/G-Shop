@@ -7,6 +7,31 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Cemu WUA title configuration — 2026-10-14, verified within ACTIVE S10
+
+Resolve one base title directly from the granted WUA's uncompressed ZArchive v1
+root index, not a filename guess or cached scrape. Read the footer/root entries
+with bounded descriptor reads; do not decompress/extract a multi-gigabyte ROM or
+add another transfer engine. Multiple base titles and invalid/truncated indexes
+remain unresolved. Current Cemu `settings.xml` supplies MLC and selected persistent
+account ID. The resulting shared configuration selects only that title's common
+data, selected account and metadata below `usr/save`, excluding system saves,
+other titles/accounts, installed content and shaders. Revalidate both WUA identity
+and current profile through the existing snapshot/watch/root lane. The settings
+screen resolves/persists this profile through its existing normal mapping path;
+ambiguous/custom layouts retain explicit mapping. States remain separately mapped.
+
+Format/path references: [ZArchive v1 layout](https://github.com/Exzap/ZArchive/blob/master/include/zarchive/zarchivecommon.h),
+[WUA title folders](https://github.com/Exzap/ZArchive#wii-u-specifics),
+[Cemu save enumeration](https://github.com/cemu-project/Cemu/blob/main/src/Cafe/TitleList/SaveList.cpp).
+Affected model/channel/root checks pass, including a real library WUA through the
+same bounded reader. Gated request 1004 packages the final app/test; the actual
+Thor production-channel proof passes current MLC/account configuration, source
+inventory and wrong-title/grant rejection while preserving Cemu/app settings and
+credentials. No save is present for the synthetic title; no Cemu backup is claimed
+from an empty inventory. This is part of S10 standard-location reconciliation,
+not another stage or a separate emulator sync implementation.
+
 ### Title-specific Azahar configuration — 2026-10-14
 
 The same configured-root lane now resolves ordinary raw `.3ds`/`.cci`/`.cxi`/`.app`

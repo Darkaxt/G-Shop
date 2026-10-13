@@ -88,7 +88,10 @@ class SaveEmulatorCoverage {
                               : family == 'dolphin' &&
                                       packageName == 'org.dolphinemu.dolphinemu'
                                   ? 'GameCube saves · enabled shared GCI memory-card folders; Wii and custom/raw cards use exact mappings.'
-                                  : 'Automatic mapping pending · exact save-folder mapping is available';
+                                  : family == 'cemu' &&
+                                          packageName == 'info.cemu.cemu'
+                                      ? 'In-game saves · WUA title identity and the configured MLC/account select one save group.'
+                                      : 'Automatic mapping pending · exact save-folder mapping is available';
   String get states => _launcher
       ? 'Not applicable · launcher; use the selected emulator'
       : _psp
@@ -128,16 +131,19 @@ class SaveEmulatorCoverage {
                           : family == 'azahar' &&
                                   packageName == 'io.github.lime3ds.android'
                               ? 'The configured user directory and installed NCCH/NCSD program ID select one title’s save group, not the entire SDMC. Content, DLC, system files and other titles are excluded. Compressed ROMs, CIA installers, extdata and states need exact custom mappings.'
-                              : documentAuthorities.isNotEmpty
-                                  ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
-                                      'It does not select this game’s saves; an exact root-folder mapping is available.'
-                                  : _retroArch && _reviewed
-                                      ? 'Current routes: shared RetroArch/saves/SameBoy GB/GBC SRAM and optional RTC, FCEUmm NES battery memory, Snes9x SNES SRAM and optional RTC, mGBA and Genesis Plus GX '
-                                          'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
-                                          'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
-                                          'Other cores and custom paths use explicit folder mappings.'
-                                      : _launcher
-                                          ? 'This launcher does not own the emulator’s save files.'
-                                          : '$familyLabel family. Automatic save-folder selection is pending; an exact custom mapping '
-                                              'uses the shared root pipeline. This is not a claim of automatic support.';
+                              : family == 'cemu' &&
+                                      packageName == 'info.cemu.cemu'
+                                  ? 'The WUA root index resolves the base title without extraction. Current MLC/account settings select only its shared and account data plus title metadata, not the whole MLC. Multi-game archives and custom layouts use exact mappings.'
+                                  : documentAuthorities.isNotEmpty
+                                      ? 'Document picker provider advertised: ${documentAuthorities.join(', ')}. '
+                                          'It does not select this game’s saves; an exact root-folder mapping is available.'
+                                      : _retroArch && _reviewed
+                                          ? 'Current routes: shared RetroArch/saves/SameBoy GB/GBC SRAM and optional RTC, FCEUmm NES battery memory, Snes9x SNES SRAM and optional RTC, mGBA and Genesis Plus GX '
+                                              'Game Gear, Master System and Mega Drive cartridge SRAM, plus '
+                                              'Mupen64Plus-Next complete Nintendo 64 save memory with exact launch binding. '
+                                              'Other cores and custom paths use explicit folder mappings.'
+                                          : _launcher
+                                              ? 'This launcher does not own the emulator’s save files.'
+                                              : '$familyLabel family. Automatic save-folder selection is pending; an exact custom mapping '
+                                                  'uses the shared root pipeline. This is not a claim of automatic support.';
 }

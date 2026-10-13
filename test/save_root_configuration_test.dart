@@ -2,6 +2,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/save_root_configuration.dart';
 
 void main() {
+  test('Cemu title profile excludes other titles, accounts and system data',
+      () {
+    final config = SaveRootConfiguration.decode({
+      'schema': 1,
+      'directory':
+          '/storage/emulated/0/Android/data/info.cemu.cemu/files/mlc01/usr/save',
+      'emulator': 'info.cemu.cemu',
+      'core': 'cemu',
+      'kind': 'save',
+      'format': 'cemu-title-save-v1',
+      'profile': 'cemu-title-save-v1',
+      'files': <String>[],
+      'required': <String>[],
+      'folders': [
+        '00050000/10102000/user/common',
+        '00050000/10102000/user/80000001',
+        '00050000/10102000/meta'
+      ],
+    });
+    expect(
+        config.acceptsFile('00050000/10102000/user/80000001/save.bin'), isTrue);
+    expect(config.acceptsFile('00050000/10102000/user/80000002/save.bin'),
+        isFalse);
+    expect(config.acceptsFile('00050000/10103000/user/80000001/save.dat'),
+        isFalse);
+    expect(config.acceptsFile('system/act/80000001/account.dat'), isFalse);
+    expect(config.acceptsFile('00050000/10102000/meta/meta.xml'), isTrue);
+    expect(config.sharedResourceKey, isNull);
+    expect(SaveRootConfiguration.decode(config.toJson()).identity,
+        config.identity);
+  });
   test(
       'Azahar title save profile keeps each title separate and includes its binary saves',
       () {

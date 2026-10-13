@@ -92,6 +92,10 @@ class SaveRootConfiguration {
             row['core'] == 'azahar' &&
             resourceId == null &&
             row['format'] == 'azahar-title-save-v1',
+      'cemu-title-save-v1' => row['emulator'] == 'info.cemu.cemu' &&
+          row['core'] == 'cemu' &&
+          resourceId == null &&
+          row['format'] == 'cemu-title-save-v1',
       _ => false,
     };
     if (profile != null && (!standard || row['kind'] != 'save')) {
@@ -185,7 +189,9 @@ class SaveRootConfiguration {
 
   bool acceptsFile(String path) =>
       _safe(path,
-          binary: files.contains(path) || profile == 'azahar-title-save-v1') &&
+          binary: files.contains(path) ||
+              const {'azahar-title-save-v1', 'cemu-title-save-v1'}
+                  .contains(profile)) &&
       (files.contains(path) ||
           folders.any((folder) => path.startsWith('$folder/')));
   bool acceptsDirectory(String path) =>

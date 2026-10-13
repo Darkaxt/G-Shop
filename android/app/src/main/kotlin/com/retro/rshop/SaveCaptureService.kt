@@ -346,8 +346,11 @@ internal class SaveCaptureService(private val activity: Context) {
                                 ?: throw Failure("invalid_selection")
                             val installed = try { activity.packageManager.getPackageInfo(packageName, 0); true }
                                 catch (_: PackageManager.NameNotFoundException) { false }
-                            val programId = if (packageName == StandardSaveRoots.AZAHAR && installed)
-                                OwnedRomContentProvider.n3dsProgramId(activity, romCompanionUri(call)) else null
+                            val programId = if (!installed) null else when (packageName) {
+                                StandardSaveRoots.AZAHAR -> OwnedRomContentProvider.n3dsProgramId(activity, romCompanionUri(call))
+                                StandardSaveRoots.CEMU -> OwnedRomContentProvider.wuaTitleId(activity, romCompanionUri(call))
+                                else -> null
+                            }
                             if (!installed) null else SaveSourceStorage.standardSaveRoot(activity, packageName, programId).optJSONObject("saveRoot")?.let { row ->
                                 row.keys().asSequence().associateWith { key -> val item = row.get(key)
                                     if (item is JSONArray) (0 until item.length()).map(item::getString) else item }

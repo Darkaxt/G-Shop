@@ -367,6 +367,9 @@ class OwnedRomContentProvider : ContentProvider() {
             if (configuration?.profile == StandardSaveRoots.AZAHAR_PROFILE &&
                 n3dsProgramId(context, uri) != "00040000" + configuration.files.single().substringBefore('/'))
                 throw IOException("source_changed")
+            if (configuration?.profile == StandardSaveRoots.CEMU_PROFILE &&
+                wuaTitleId(context, uri) != "00050000" + configuration.folders.first().split('/')[1])
+                throw IOException("source_changed")
             return openCommitted(context, uri).use { rom ->
                 check()
                 val relative = saved.getString("relativePath")
@@ -438,6 +441,20 @@ class OwnedRomContentProvider : ContentProvider() {
                     check()
                     snapshot.apply { put("changed", changed) }
                 } finally { OwnedStorageNative.close(parent) }
+            }
+        }
+
+        internal fun wuaTitleId(context: Context, uri: Uri): String {
+            val saved = manifest(context, uri, requiredStandaloneWua = true)
+            return openCommitted(context, uri, requiredStandaloneWua = true).use { rom ->
+                val identity = OwnedStorageNative.identity(rom.fd)
+                val id = WuaSaveIdentity.titleId(identity[2]) { offset, count -> OwnedStorageNative.read(rom.fd, offset, count) }
+                openCommitted(context, uri, requiredStandaloneWua = true).use { current ->
+                    if (!identity.contentEquals(OwnedStorageNative.identity(current.fd)) ||
+                        !identity.contentEquals(OwnedStorageNative.identity(rom.fd)) ||
+                        !sameJson(saved, manifest(context, uri, requiredStandaloneWua = true))) throw IOException("source_changed")
+                }
+                id
             }
         }
 
