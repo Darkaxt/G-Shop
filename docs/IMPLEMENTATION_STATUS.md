@@ -31,9 +31,13 @@ persistence and custom-mapping availability after unresolved settings; the latte
 first reproduced a hidden mapping action. Request 986 passes native contracts and
 packaging through the shared gate, observed two-worker/nonparallel/3 GiB profile,
 Kotlin in-process configured, one 512 MiB fail-fast test fork and verified daemon
-exit, without memory failure. The final Dart menu correction's package remains
-in original queued request 988; this checkpoint is not a final installed-APK or
-S10 closure claim. Other standard locations and conditional handover remain.
+exit, without memory failure. Final menu-correction packaging now completes in
+original request 988 with the same observed profile, acquired shared gate and
+verified daemon exit. Preserving install and independent installed-APK SHA-256
+match `84532bb7ce0044b9c4fd16b2753dbfac2d37ca60a609fea2508a4ed1c3c85989`.
+Protected preferences/keys are unchanged; both displays are OFF. This verifies
+the current PS2 configuration outcome, not S10 closure: other standard locations
+and conditional handover remain.
 Optional configured shared resources now have one history across initiating ROMs,
 without merging ordinary per-title/profile folders. Host history/restore/rollback
 checks pass; request 984 passes native contracts and packaging. The real Thor

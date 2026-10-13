@@ -7,8 +7,6 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
-### Configured external/private roots — 2026-10-13
-
 ### Standard PS2 configuration — 2026-10-13
 
 NetherSX2's current enabled memory-card filenames now resolve automatically into
@@ -45,11 +43,18 @@ R-Shop's secure/key/preferences hashes are unchanged and both screens are OFF.
 Request 986 APK SHA-256:
 `dd131d17b4efcbb53abf885608c096035fbec2af7eaab5186e826d75e1c4b27e`.
 
-The final Dart custom-mapping recovery correction is host-verified; its packaging
-remains queued in original request 988 (ticket `2ce22374bff64f6584bb54beedbec4dd`).
-Do not relaunch that request, claim the corrected final APK installed, or close
-S10 from this source checkpoint. Remaining standard-location resolution and
-conditional legacy handover still block S10 completion; S11/S12 NOT STARTED.
+Final Dart recovery packaging completes through the original request 988, with
+shared gate acquired, build/helper exits 0 and daemon exit verified. Observed
+workers=2, parallel=false, Gradle heap=3 GiB; Kotlin in-process configured/requested,
+one 512 MiB fail-fast test fork configured (assembly only), native environment
+budget two not universal concurrency proof. No memory failure or budget increase.
+The preserving final installation and independently read installed APK match
+SHA-256 `84532bb7ce0044b9c4fd16b2753dbfac2d37ca60a609fea2508a4ed1c3c85989`.
+The protected secure/key/preferences hashes remain unchanged and both screens
+are OFF. The native configuration proof remains applicable: native implementation
+was unchanged by the final Dart menu correction. Remaining standard-location
+resolution and conditional legacy handover still block S10 completion;
+S11/S12 NOT STARTED.
 
 ### Generic configured roots
 
