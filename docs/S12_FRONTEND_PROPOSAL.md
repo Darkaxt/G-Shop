@@ -94,6 +94,8 @@ This matches the layout in Godot's official
 It is evidence consistent with encryption, **not successful decryption**.
 No exported `script_encryption_key` symbol was found in the engine's ELF symbol
 tables; no key, model geometry or decoded script has been recovered.
+That was the initial inspection result; the subsequent recovery below supersedes
+it, without changing the APK or relying on a newer version.
 
 The next S12 reference work is to recover or observe the relevant geometry,
 label placement, motion curves and two-display sequencing, recording a
@@ -101,15 +103,144 @@ reproducible comparison before selecting the smallest rendering integration.
 Private inspection remains authorized. Keep recovered proprietary material out
 of the public fork unless its redistribution rights have been established.
 
-### Version decision and fallback contract
+### Verified resource recovery — 2026-10-13
 
-Do **not** recommend purchasing 0.7 yet: the supplied build already contains the
-required cartridge/disc families and rendering entry points. Encryption alone
-is not evidence that buying a newer build would help. Reconsider only for a
-specific missing reference behavior or asset, not merely because it is newer.
+The supplied build is sufficient for further reference work. A bounded scan of
+the native engine's ELF `.data` section located its embedded resource key.
+Candidates were tested against a scene header, then accepted only after full
+AES-256-CFB decryption matched the envelope's MD5. The same key independently
+validated every one of the APK's 371 `.scn`/`.gdc` envelopes. The checksum is
+format-integrity evidence, not a signature or permission to redistribute assets.
+Neither the key nor decrypted proprietary files were written to the fork.
+
+GDScript tokenizer version 101 was decompressed with Zstandard and decoded using
+the matching official token layout. Identifier/constant tables, token counts and
+complete buffer consumption were checked. Representative binary scenes identify
+Godot 4.7 and resource format 6. Their property tables, transforms, external
+references and packed-scene bundles are readable; the earlier encryption finding
+is no longer an obstacle to studying the animation logic.
+
+All thirteen imported model scenes also decompressed and parsed successfully.
+They include Vita geometry in addition to the exported media families listed
+above; this does not establish a usable Vita frontend or platform mapping.
+The visible N64, GBA and disc meshes have these concrete reference inventories
+(shadow meshes are excluded from these totals):
+
+| Reference | Visible vertices | Triangle indices | Surface roles |
+| --- | ---: | ---: | --- |
+| N64 | 1,420 | 3,150 | Casing and label/logo |
+| GBA | 1,156 | 3,276 | Casing, cover and insides |
+| Disc | 6,912 | 24,192 | Disc body and cover |
+
+The decoded resources contain vertex/index buffers, attribute buffers, bounds,
+material references and applicable LOD data. For example, N64's untransformed
+casing bounds are approximately 0.045 x 0.0075 x 0.030 model units; the exported
+scene then applies its own scale/orientation. These are model units, not verified
+physical dimensions. Original FBX/GLB source files have not been reconstructed,
+and no geometry conversion or render-comparison acceptance is claimed.
+
+Decoded motion reference, before any runtime setting/scene overrides:
+
+- Carousel selection defaults to 0.3 seconds. Position uses exponential ease-out;
+  the selected rotation and scale use back ease-out. Selected scale is 1.4 and
+  resting rotation is (-70, 0, 20) degrees. Idle motion is sinusoidal rather than
+  a fixed rotating picture.
+- N64 insertion begins with a 0.15-second lift/back movement and a parallel
+  0.2-second rotation, followed by a 0.3-second exponential ease-in descent.
+  A parallel squash and 0.2-second elastic ease-out rebound complete the sequence.
+- GBA shares that structure, but its realistic-insertion setting changes the
+  rotation target. An adaptation must not accidentally choose one mode while
+  comparing captures of the other.
+- Disc insertion adds two full cover rotations over 0.3 seconds and a final
+  0.8-second linear descent, so it is not interchangeable with the cartridge
+  animation.
+- The transition script drives shader progress with 0.3-second sine ease-in/out
+  phases. These are intentional animation intervals, not implementation wait or
+  synchronization timeouts.
+
+The main-menu launch path awaits the selected media's insertion animation before
+calling its existing game launcher. The Thor manager separately initializes main
+and secondary viewports, receives connection/input events, obtains the secondary
+display size and supports display swapping. This establishes concrete code paths
+to study, but not observed two-display choreography or a Flutter renderer choice.
+Our adaptation must preserve the existing R-Shop launch pipeline and the specified
+skip/reduced-motion behaviour, not copy reference coupling blindly.
+
+Reproduction requires the exact APK hash above: inspect ELF data candidates,
+validate complete encrypted envelopes, decompress GDSC/RSCC payloads with the
+official formats, then read properties and token streams. The bounded inspection
+ran in memory using Python 3.14's Zstandard support and the installed cryptography
+library. Only its task-owned scratch inspection script was created; no recovered
+assets, new dependencies, Gradle build or device installation were required.
+Public records retain findings rather than proprietary code/assets or key bytes.
+Runtime captures, asset provenance/reuse decisions, label composition and actual
+R-Shop integration remain S12 work after S10/S11; this reference investigation
+does not satisfy or close those acceptance criteria.
+
+### Changelog review — 2026-10-13
+
+Reviewed the creator's release posts through 0.7.0 and the visible 0.3.2
+re-upload comment. These are **Socket-reported defects and changes**, not
+confirmed R-Shop defects or evidence that our implementation already handles
+them. They inform the existing S12 fidelity, input, identity and lifecycle
+checks; they do not add unrelated Socket features to our specification.
+
+| Relevant area | Reference evidence | Implication for our existing acceptance |
+| --- | --- | --- |
+| Model coverage and proportions | [0.7](https://www.patreon.com/SocketLauncher/posts/socket-0-7-0-171412020) adds regional Genesis/Mega Drive models; [0.5](https://www.patreon.com/SocketLauncher/posts/socket-0-5-0-and-168380695) corrects N64 label proportions. | Study the newer geometry for Sega coverage; do not reproduce the old N64 label defect as visual fidelity. |
+| Label refresh and build identity | [0.6](https://www.patreon.com/SocketLauncher/posts/socket-0-6-0-169429662) fixes image-picker label refresh; the creator's [0.3.2 post](https://www.patreon.com/SocketLauncher/posts/socket-0-3-2-166847366) comment reports a same-version re-upload correcting 3DS labels. | Check artwork replacement on the existing model. Bind comparisons to APK hashes, not version names alone; our supplied hash's re-upload identity is not established. |
+| Rendering and zoom | [0.4](https://www.patreon.com/SocketLauncher/posts/socket-0-4-0-167472008) reworks glitter as a shader and optimizes materials, marquee and platform switching; 0.7 separates model zoom from spacing. | Measure actual Thor rendering and rapid navigation; compare model scale and layout separately. No imported engine or material architecture is implied. |
+| Controller and touch | 0.5 fixes joystick mapping and slider/scroll gesture collisions; 0.7 fixes PlayStation button mapping and release events leaking into a newly opened screen. | Exercise controller mappings, screen transitions and competing touch gestures in the integrated frontend. |
+| Launch lifecycle | [0.2](https://www.patreon.com/SocketLauncher/posts/socket-0-2-0-166177192), 0.3.2 and 0.6 report external-SD launch, second-game black-screen and sleep-related RetroArch fixes respectively. | Verify our existing launch handoff from SD, repeated launches and sleep/resume, without copying Socket's launcher or reopening deep save/gameplay testing. |
+| Catalogue identity | 0.7 fixes disc tracks appearing separately and missed uppercase extensions. | Preserve R-Shop's canonical game/disc grouping and existing identities; no duplicate carousel entries or parallel catalogue. |
+| Dual-display evidence | [0.0.1](https://www.patreon.com/SocketLauncher/posts/socket-0-0-1-165147792) explicitly removes the bottom-screen presentation. No reviewed later changelog announces its restoration. | Native Thor bridge code is not proof of an active dual-screen UI. Our required coordinated presentation and companion handoff still need their own real-device proof; the requirement is not dropped. |
+
+Socket's emulator-definition updater, Android-app carousel, palette collection
+and optional duplicate-filled carousel are not new R-Shop requirements. The 0.4
+post heading and attachment also differ (0.4.0 versus 0.4.1), reinforcing the
+exact-artifact comparison rule. Changelog reports do not substitute for observing
+the relevant reference behavior on the actual APK.
+
+### Revised version decision and fallback contract
+
+The changelog **changes the initial recommendation**: 0.7 is worth obtaining as
+the final reference because it adds Genesis/Mega Drive geometry absent from the
+supplied model inventory and includes later label, rendering and input fixes.
+The supplied 0.3.2 remains sufficient for the first cartridge/motion study.
+Obtaining 0.7 is not a prerequisite for S10/S11 or for that initial S12 slice;
+no purchase, membership change or newer APK download was performed by the agent.
+Record the newer APK's actual identity before using it, and compare the intended
+appearance/motion without reproducing documented defects from the older build.
 The creator's [official page](https://depmots.com/socket) independently confirms
 Godot, platform-specific 3D models and insertion animations; it does not license
-those assets for redistribution.
+those assets for redistribution. Purchasing access alone does not establish
+asset redistribution rights. The reviewed changelog does not establish that
+0.7 restores dual-screen presentation.
+
+### Owner-supplied 0.7.0 artifact — 2026-10-13
+
+The owner subsequently downloaded the newer reference beside the original:
+`D:/Downloads/Android/socket_release_0.7.0.apk`, 153715341 bytes, SHA-256
+`bccf6bf5beccf5155645638e52a20f6e6e6deed902bd23b6b69ae7060c04bd70`.
+Fresh Android SDK `aapt2 dump badging` identifies `com.depmots.socket`,
+version name `0.7.0`, target SDK 36 and arm64-v8a. All ZIP members pass their CRC
+checks. This is artifact identification/integrity, not runtime verification or a
+claim of signer provenance.
+
+The newer inventory has sixteen exported media scenes versus thirteen in 0.3.2.
+Added scenes are `cart_genesis`, `cart_megadrive` and `cart_android`; imported
+models rise from thirteen to fifteen with Genesis/Mega Drive and Android models.
+Regional casing materials and color/normal/roughness textures corroborate the
+changelog's additional Sega reference coverage. The Android model does not add
+Android-app carousel support to R-Shop's scope.
+
+Use this exact newer artifact for final S12 comparisons, retaining the older
+hash-bound findings as historical evidence. The earlier decrypted geometry and
+motion measurements apply only to 0.3.2: encrypted archive bytes differ, which
+alone cannot distinguish a semantic change from encryption/export differences.
+No 0.7 geometry decoding, model conversion, animation measurement, installation
+or live comparison is claimed in this inventory check. Those comparisons belong
+to S12, after the current S10 and S11 work.
 
 The handwritten-title fallback stays part of FRONTEND-01: compose the title as
 a label on the same media object, with a stable per-game readable sticker color,

@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S12 reference recovery — investigation only, 2026-10-13
+
+The owner's supplied Socket 0.3.2 APK now provides verified decrypted resource
+evidence, not only archive names. All scene/script envelopes passed their embedded
+checksums; the imported model scenes and representative motion token streams were
+decoded. Geometry inventories, label surfaces, insertion timing/easing and Thor
+viewport entry points are recorded in S12_FRONTEND_PROPOSAL.md. No proprietary
+assets/key were added to the fork. The creator's changelog through 0.7 changes
+the reference recommendation: newer regional Genesis/Mega Drive geometry and
+label/rendering/input fixes make 0.7 useful for final comparison, but it is not
+a prerequisite for the initial study or S10/S11. No purchase was performed.
+The reference notes also distinguish the removed bottom-screen presentation
+from the retained native Thor bridge; our dual-display acceptance remains intact.
+Socket-reported bugs are mapped to relevant checks, not claimed as R-Shop defects
+or used to import unrelated features.
+The owner's subsequently supplied 0.7.0 APK is identified by manifest and SHA-256
+in the proposal; ZIP CRC checks pass and its added regional Sega scenes/materials
+corroborate the coverage change. It is now available for final S12 comparison.
+The 0.3.2 decoded motion/geometry evidence is not presented as a 0.7 measurement.
+The handwritten-title/stable-color sticker fallback remains required. S12 remains
+NOT STARTED: renderer integration and visual/runtime fidelity are not verified.
+S10 is still the sole ACTIVE stage; S11 remains NOT STARTED.
+
 ### Complete-folder filesystem capture — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. The PPSSPP capture-only process-exit gate
