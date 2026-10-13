@@ -7,6 +7,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current S10 work — ACTIVE, 2026-10-13
 
+Owner correction (specification revision 39): remaining installed-emulator
+coverage is declarative root/path/game/group/compatibility configuration through
+the existing shared filesystem/Drive pipeline, not eight separate sync engines
+or live test campaigns. The current generic companion root is the ROM directory;
+connecting external/protected save-root configuration is the concrete remaining
+integration gap. Reconcile existing recovery evidence before adding verification.
+Remaining touch/controller and responsive-layout acceptance belongs to S12 by
+explicit owner assignment, not to S10. Historical statements below are superseded
+where they conflict with this correction; S10 is still the sole ACTIVE stage.
+
 S10 is the sole ACTIVE stage; S11/S12 are NOT STARTED. The current
 patch connects ROM-bound companion capture, selective restoration/rollback,
 the existing automatic backup lane and the normal Game files menu. Component
@@ -66,13 +76,14 @@ Current SAVE-01 advancement blockers are internal and actionable:
 
 | Required criterion | Concrete remaining gap | Resolution / dependent completion |
 | --- | --- | --- |
-| Normal companion controls | Native and real watch/Drive/restore/offline headless integration pass; remaining normal-control acceptance is not reconciled | Reconcile applicable touch/controller controls with the integrated feature; S10 cannot close before this |
-| Accessible installed-emulator saves/states | Remaining route/state coverage and refreshed closure inventory are not reconciled | Implement accessible routes and verify the installed coverage matrix; S10 cannot claim coverage before this |
-| Preservation and recovery | Required fault/reconnect/reinstall cases are not all finished | Complete the specified recovery checks with expendable fixtures; replacement acceptance remains open |
+| Configured save-root integration | Shared companion engine currently resolves the ROM parent; external/protected save roots and exact associations are not connected through shared declarative configuration | Connect config to the existing watch/capture/restore lane and reconcile actual installed coverage; do not build per-family sync engines |
+| Preservation and recovery reconciliation | Existing host/native/live proofs have not yet been mapped to the final configured-root feature | Reuse applicable inspected results and verify only missing or changed boundaries; no speculative edge-case expansion |
 | Legacy sync handover | Replacement acceptance has not passed, so retirement must not begin | After acceptance, join the exact old writer, retire only the authorized app/task and prove replacement backup/restore |
 
 These block advancement, not continued implementation. No external execution
-impediment is currently established; none is deferred to S11/S12. Historical
+impediment is currently established. Owner-assigned S12 work: remaining save-settings
+touch/controller and responsive-layout acceptance, with real action/section-state
+proof; current S10 correctness does not depend on that presentation work. Historical
 diagnostic/checkpoint evidence below must not be read as current feature closure.
 
 ### Bound game-folder discovery — ACTIVE work, 2026-10-13

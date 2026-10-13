@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 38, 2026-10-13.
+Authoritative specification, revision 39, 2026-10-13.
 
 Owner clarification, 2026-10-13: S12 modernizes R-Shop's existing frontend with
 Socket-inspired main-screen 3D media, labels and animations; it does not replace
@@ -1342,6 +1342,26 @@ or permit their existing acceptance criteria to be weakened.
 
 ### SAVE-01 — Save and save-state backup without ROM mirroring
 
+Owner execution correction, 2026-10-13: the root-backed filesystem pipeline is
+emulator agnostic. Deliver installed-emulator coverage through declarative
+configuration of save roots, exact game/file associations, required groups and
+save/state compatibility. Reuse the existing watch, coherent capture, Drive
+generation/conflict and restore/rollback machinery. Add specialized resolution
+only when a concrete layout/configuration cannot be expressed by those rules;
+do not build a separate sync implementation or demand a separate live acceptance
+campaign for every emulator family. The coverage target remains most installed
+ROM emulators; missing configuration is implementation work, not justification
+for eight independent pipelines. A root transport alone does not resolve save
+locations outside the ROM directory: finish that shared configuration path.
+Reconcile existing applicable recovery evidence before adding checks. Keep
+conflict preservation, interrupted-write/last-good recovery and correct restore
+destinations; do not add speculative edge-case or gameplay checks as closure gates.
+The owner assigns touch/controller interaction and layout verification to S12,
+including save-management settings. S10 retains functional settings/job wiring
+and sectioned menus, but no further mature-layout/input acceptance campaign.
+This explicitly supersedes the per-family implementation/live-proof reading and
+S10 touch/controller requirements below; it does not waive backup correctness.
+
 Owner scope clarification, 2026-10-12: Windows compatibility apps such as
 GameNative and WinNative, and similar PC execution environments, are outside
 this ROM-emulator save-sync feature. They are not required save-coverage routes
@@ -1367,8 +1387,9 @@ section navigation rather than one long scrolling form (user instruction,
 2026-10-09). Separate backup-area setup, game backup, restore/conflicts and
 status. Only the selected section's controls are visible/focusable; section
 changes preserve the resolved save association and running operation. Reuse
-the metadata settings' responsive/controller navigation pattern. Verify narrow
-and handheld layouts, touch/controller section changes and operation continuity.
+the metadata settings' section-navigation pattern. Preserve mapping and operation
+state across section changes; S12 owns responsive layout and touch/controller
+verification under the owner's execution correction above.
 At stage entry, audit the emulators installed on the Thor and their supported save-memory
 and save-state locations, formats and permission routes. Provide a visible
 per-emulator coverage matrix and resolved save-path associations; do not
@@ -1407,8 +1428,9 @@ Protected or unidentifiable storage remains unresolved only after investigating
 the available ordinary, root and export/import routes; record the concrete reason.
 The user's coverage target is most installed emulators, not just the initial
 pair. Reconcile the full installed package inventory, including differently named
-forks and multi-core/embedded emulators. Every accessible installed-emulator route
-must be implemented and verified; record save and state coverage separately, with
+forks and multi-core/embedded emulators. Resolve accessible save locations through
+the shared configuration pipeline and verify its integrated behavior; record
+save and state configuration coverage separately, with
 the exact permission/export limitation for any unsupported route. An uninvestigated
 route is unfinished work, not a justified unsupported classification. Refresh the
 inventory at S10 entry and closure rather than freeze today's installed apps.
@@ -1502,8 +1524,10 @@ versus state compatibility, multiple ROM/edition isolation, changed files/groups
 conflicts, offline/relaunch/cancellation/revocation and lost/regranted storage.
 Prove last-good recovery after interrupted publication and reconnect/reinstall
 with expendable fixtures, without uninstalling the owner's app or damaging real
-saves. Verify no ROM/BIOS/settings transfers or archive writes. Controller/touch
-setup, status and restore must work. After these replacement criteria pass,
+saves. Reuse applicable inspected results rather than repeating every recovery
+case per emulator. Verify no ROM/BIOS/settings transfers or archive writes.
+Functional setup, status and restore remain wired; S12 owns their touch/controller
+and layout verification. After these replacement criteria pass,
 resolve the old device sync application's exact package and the scheduled task's
 exact identity by its `sync-retrobat-saves.ps1` action. Join any active old sync
 operation safely before handover; do not terminate an in-progress write blindly.
@@ -1644,6 +1668,13 @@ Build bounded debug-only real-action, measured-tree, resolution and event-driven
 readiness evidence into the new frontend work, reusing the actual Flutter stack.
 Retain targeted visual/motion verification; do not retrofit the mature layout
 or start S12 instrumentation while S10/S11 remain unfinished.
+
+Owner scheduling correction, 2026-10-13: S12 also owns the remaining
+touch/controller and responsive-layout acceptance for save-management settings
+and controls. Verify setup, status, restore/conflict choice and section navigation
+through real UI actions while preserving mapping and running-job state. This
+required S12 work is independent of S10's filesystem/Drive correctness and legacy
+sync handover; do not reopen mature-layout/input work as an S10 closure gate.
 
 ## 7. Quality and delivery requirements
 

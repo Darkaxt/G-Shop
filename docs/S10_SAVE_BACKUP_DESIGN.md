@@ -7,6 +7,24 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Owner execution correction — 2026-10-13
+
+Specification revision 39 supersedes historical per-family/input closure language
+below. The implemented filesystem watch/capture/publication/conflict/restore lane
+is shared. The current generic companion resolver still derives its root from
+the installed ROM's parent; protected external emulator save directories need
+the same engine's declarative root/association/group/compatibility configuration.
+Connect that path rather than add separate emulator sync engines. Preserve the
+most-installed-ROM-emulator coverage target and truthful resolved/unresolved
+configuration status. Specialized parsing is justified only by an actual layout.
+
+Reconcile existing safety/recovery results against current code before adding
+checks. Do not repeat a per-emulator fault campaign or deep gameplay proof.
+Conflict preservation and correct complete writes remain required. The owner
+assigns remaining save-settings touch/controller and responsive-layout acceptance
+to S12; keep current functional wiring and sections, without another mature-UI
+verification campaign in S10. Legacy handover still follows replacement acceptance.
+
 ### Game-folder companion pipeline — ACTIVE work, 2026-10-13
 
 Reuse the currently byte-bound installation/local-copy grant to resolve the ROM's

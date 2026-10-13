@@ -1,7 +1,7 @@
 # S12 — 3D physical-media frontend
 
 Status: NOT STARTED.
-Authority: SPECIFICATION.md, revision 37, section 6f.
+Authority: SPECIFICATION.md, revision 39, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -287,6 +287,11 @@ contract. They do not change S10/S11 acceptance:
 - Support controller and touch navigation. Animation must be skippable and offer
   reduced motion; it must not gate download completion, error reporting or launch
   correctness. Failed/cancelled operations remain truthful and recoverable.
+- Owner assignment, 2026-10-13: include the remaining save-management settings
+  input/layout acceptance here, rather than in S10. Verify setup, status,
+  restore/conflict controls and section navigation by touch/controller at the
+  relevant layouts, preserving save mapping and active-job state. Retain concise
+  controls and persistent sections, not a long scrolling settings roll.
 - Measure frame pacing, memory, texture/model residency and lifecycle behavior on
   the actual Thor, including rapid navigation and display/app background changes.
   Set justified measurable budgets from the first proof before broad integration;
@@ -309,4 +314,7 @@ not reasons to stop S10 or S11.
 
 Source review and proposal recording are complete. FRONTEND-01 implementation,
 integration and runtime acceptance are not started. No candidate runtime
-criterion is claimed satisfied. No work is deferred from S10/S11 into S12.
+criterion is claimed satisfied. The owner explicitly assigned save-management
+touch/controller and responsive-layout verification to S12; it remains required
+for overall completion but is not a prerequisite for S10 closure. No other work
+is deferred from S10/S11 into S12.

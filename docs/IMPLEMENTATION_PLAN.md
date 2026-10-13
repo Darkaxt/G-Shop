@@ -1730,6 +1730,16 @@ needed. The audit contract prevents the reviewed matrix drifting from support.
 
 ## S10 — Emulator-aware save-backup sync
 
+Owner correction, 2026-10-13 (specification revision 39): use one emulator-agnostic
+root pipeline with declarative save-root/game-association/group/compatibility
+configuration. Remaining coverage work is connecting that shared configuration,
+not implementing eight emulator-specific sync engines or repeating a live test
+campaign per family. Existing specialized layout resolvers may remain where
+needed. Reconcile already collected recovery evidence before adding checks; do
+not expand speculative edge cases. S12 owns remaining touch/controller and
+responsive-layout acceptance, including save settings. Historical checkpoints
+below do not override this correction.
+
 Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
@@ -1867,8 +1877,9 @@ S10; no other implementation stage is ACTIVE.
   Android access. Show coverage and unsupported routes; preserve the old device
   sync app and laptop scheduled task until the replacement handover below.
   Reconcile the full package inventory, including forks and embedded cores; the
-  target is most installed emulators. Implement and verify every accessible
-  route. Report saves/states separately and substantiate each inaccessible route;
+  target is most installed emulators. Resolve accessible paths through the shared
+  configuration pipeline and verify the integrated mechanism. Report saves/states
+  separately and substantiate each inaccessible route;
   do not classify uninvestigated routes as unsupported. Refresh at stage closure.
 - Prove the narrow real workflow first: explicit backup setup/consent -> stable
   RetroArch save -> dedicated Drive backup -> verified restore at the expected save location.
@@ -1895,12 +1906,12 @@ S10; no other implementation stage is ACTIVE.
   cancellation/relaunch/offline/quota/revocation and storage loss/regrant.
   Restore atomically with a defined rollback; preserve divergent saves and offer
   explicit conflict resolution, never deletion propagation or timestamp-only wins.
-- Verify normal controller/touch setup, coverage/status and restore at the
-  expected save location through persistent left-hand sections: backup area,
-  game backup, restore/conflicts and status, never a single long settings roll.
-  Verify narrow/handheld layouts, section isolation and preserved mapping/job
-  state across touch/controller section changes (specification revision 16).
-  Verify discovery after reconnect/expendable reinstall. Preserve real
+- Preserve functional setup, coverage/status and restore wiring through existing
+  left-hand sections: backup area, game backup, restore/conflicts and status,
+  never a single long settings roll. Remaining input/layout verification belongs
+  to S12 under specification revision 39, not an S10 closure gate.
+  Reconcile existing discovery/recovery evidence; add only missing checks needed
+  to establish backup/conflict/restore correctness. Preserve real
   saves/settings and switch both displays off.
 - After SAVE-01 replacement verification, identify the exact old device sync
   package and laptop task invoking `sync-retrobat-saves.ps1`. Safely join any
@@ -1915,7 +1926,7 @@ S10; no other implementation stage is ACTIVE.
 
 Evidence: inspected installed-emulator coverage matrix, native consent/scope and
 write-boundary proof, real RetroArch/standalone backup and restore to expected locations, durable
-generation/digest/identity/conflict and fault/restart contracts, UI/device proof,
+generation/digest/identity/conflict and focused fault/restart contracts,
 unchanged ROM archive and preserved save/cloud data, exact-target legacy sync
 handover evidence and successful post-handover backup/restore. This closes S10,
 not S11's managed-cache requirements or the overall specification.
@@ -1982,6 +1993,12 @@ Authorization: implement all 12 stages, owner objective update 2026-10-13.
 Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
 Dependency: close S10/S11 before implementation; do not open another ACTIVE stage.
+
+Required work assigned by the owner from S10 (2026-10-13, revision 39): verify
+save-management setup/status/restore/conflict controls, touch/controller section
+changes and responsive layouts with real UI actions, preserving mapping and
+running-job state. This is S12 acceptance, not an S10 dependency. Reuse existing
+sectioned menus and the diagnostics-first route during integrated frontend work.
 
 Objective: modernize presentation while keeping R-Shop's red identity and its
 existing catalogue, on-demand installation and emulator workflows. Use actual
