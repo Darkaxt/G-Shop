@@ -1292,7 +1292,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                                   ignored ? Icons.block : Icons.cloud_outlined),
                               title: Text('Device $shortDevice'),
                               subtitle: Text(
-                                  '${selected.binding.kind == SaveBackupKind.state ? 'Save state' : 'In-game save'} · ${selected.members.length} files${ignored ? ' · Ignored' : ''}')),
+                                  '${selected.binding.kind.label} · ${selected.members.length} files${ignored ? ' · Ignored' : ''}')),
                           const Text(
                               'A newer date is only a suggestion. Open Files to choose what to import.'),
                           const SizedBox(height: 12),

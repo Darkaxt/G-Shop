@@ -284,6 +284,106 @@ void main() {
     expect(drive.listPages, isEmpty);
   });
 
+  for (final policy in SaveCompanionCompatibility.values) {
+    test('companion ${policy.name} publication enforces import compatibility',
+        () async {
+      final binding = SaveBackupBinding.fromJson({
+        ...generation.binding.toJson(),
+        'kind': 'companion',
+        'formatId': 'rom-companion-v1',
+        'companionCompatibility': policy.name,
+      });
+      final companion = SaveBackupManifest(
+          generationId: generation.generationId,
+          binding: binding,
+          parentGenerationIds: [],
+          createdAt: generation.createdAt,
+          members: [
+            for (final member in generation.members)
+              SaveBackupMember(
+                  relativePath: policy == SaveCompanionCompatibility.runtime
+                      ? 'cache/${member.cloudFileId}.dat'
+                      : 'screenshots/${member.cloudFileId}.png',
+                  cloudFileId: member.cloudFileId,
+                  sizeBytes: member.sizeBytes,
+                  sha256: member.sha256),
+          ]);
+      await api.publish(areaId: 'area', generation: companion, captures: files);
+      final target = SaveBackupBinding.fromJson({
+        ...binding.toJson(),
+        'deviceId': 'another-device',
+      });
+      final loaded = await api.loadGeneration(
+          areaId: 'area', generationId: companion.generationId, target: target);
+      expect(loaded.binding.kind, SaveBackupKind.companion);
+      expect(loaded.binding.companionCompatibility, policy);
+      expect(loaded.encode(), companion.encode());
+      for (final member in loaded.members) {
+        final received = await api
+            .memberBytes(
+                areaId: 'area',
+                generation: loaded,
+                memberId: member.cloudFileId)
+            .fold<List<int>>([], (result, chunk) => result..addAll(chunk));
+        expect(sha256.convert(received).toString(), member.sha256);
+      }
+
+      Future<List<SaveBackupManifest>> discover(SaveBackupBinding requested) {
+        drive.listPages.add({
+          'files': [
+            {'id': companion.generationId},
+          ],
+        });
+        return api.discoverGenerations(areaId: 'area', target: requested);
+      }
+
+      expect(await discover(target), hasLength(1));
+      final changedRuntime = SaveBackupBinding.fromJson({
+        ...target.toJson(),
+        'emulatorVersion': 'next-runtime',
+        'coreVersion': 'next-core',
+      });
+      expect(
+          await discover(changedRuntime),
+          policy == SaveCompanionCompatibility.portable
+              ? hasLength(1)
+              : isEmpty);
+      if (policy == SaveCompanionCompatibility.runtime) {
+        await expectLater(
+            api.loadGeneration(
+                areaId: 'area',
+                generationId: companion.generationId,
+                target: changedRuntime),
+            throwsA(isA<SaveBackupGenerationException>().having(
+                (error) => error.issue,
+                'issue',
+                SaveBackupGenerationIssue.invalidBinding)));
+      }
+      // No companion publication can become an in-game save, a different
+      // edition, or a publication with a different portability policy.
+      expect(await discover(generation.binding), isEmpty);
+      expect(
+          await discover(SaveBackupBinding.fromJson({
+            ...target.toJson(),
+            'editions': [
+              {'gameId': 'game-a', 'editionId': 'another-edition'},
+            ],
+          })),
+          isEmpty);
+      expect(
+          await discover(SaveBackupBinding.fromJson({
+            ...target.toJson(),
+            'companionCompatibility':
+                policy == SaveCompanionCompatibility.portable
+                    ? 'runtime'
+                    : 'portable',
+          })),
+          isEmpty);
+      expect(drive.committed.where((id) => id == companion.generationId),
+          hasLength(1));
+    });
+  }
+
   test(
       'shared PS1 publication is discoverable from another game but not another card',
       () async {

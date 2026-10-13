@@ -7,6 +7,23 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Companion publication identity — ACTIVE work, 2026-10-13
+
+The existing immutable generation format now distinguishes `companion` from
+`save` and `state`. A companion binding must explicitly declare `portable` or
+`runtime` compatibility. Both require the same account, ROM edition and format;
+runtime data additionally requires matching emulator/core identity and versions.
+Unknown or missing companion policy is rejected, never assumed portable. Existing
+save/state serialization is unchanged. The existing publication, readback,
+discovery and member-download API enforces these bindings without another
+transport or sync coordinator. The import view names companion data separately.
+Focused manifest and transport checks verify complete streamed readback and
+negative kind/edition/runtime/policy controls; the narrow required-group chooser
+regression also passes. This is an enabling contract, not delivery of automatic
+game-folder discovery/capture or independently selectable imports. Those remain
+unfinished in this ACTIVE S10, as do the remaining installed-emulator routes and
+stage acceptance checks. Required save folders must remain indivisible.
+
 ### Folder capture writer boundary — ACTIVE work, 2026-10-13
 
 The former PPSSPP complete-folder route captured save data and accompanying

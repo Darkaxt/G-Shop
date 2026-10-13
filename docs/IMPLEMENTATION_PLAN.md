@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 36.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 37.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 S12 authorization update (owner, 2026-10-13): implement all 12 plan stages,

@@ -5,6 +5,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Companion publication contract — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. Companion publications now carry a distinct
+kind and an explicit portable/runtime compatibility rule in the existing
+immutable manifest. Existing save/state encoding remains unchanged. Focused
+manifest and generation-transport checks pass publication, independent readback,
+compatible discovery, full member digests and rejection of mismatched kinds,
+editions, runtime versions and policies. The existing narrow required-group
+import chooser regression passes; no save-folder members were split.
+Scoped Dart analysis reports no issues. Verification workloads ran serially;
+no memory-related failure occurred.
+This verifies the host-side contract, not native game-folder companion capture,
+selectable optional import, or a live Drive companion round trip. Those remain
+ordinary unfinished S10 work, not blockers or later-stage deferrals. S11/S12
+remain NOT STARTED. No Gradle invocation or device update was needed for this
+Dart-only contract change.
+
 ### S12 main-screen scope clarification — 2026-10-13
 
 Specification revision 37 records the owner's explicit direction: modernize

@@ -5,7 +5,23 @@ import 'package:crypto/crypto.dart';
 
 import 'pcsx_save_layout.dart';
 
-enum SaveBackupKind { save, state }
+enum SaveBackupKind {
+  save,
+  state,
+  companion;
+
+  String get label => switch (this) {
+        save => 'In-game save',
+        state => 'Save state',
+        companion => 'Companion files',
+      };
+}
+
+/// Screenshots can cross compatible ROM editions without a runtime dependency;
+/// caches and other runtime-specific data must retain emulator/core versions.
+/// The capture route must make this choice explicitly, not infer portability
+/// from a changed timestamp or from the fact that the file is not a save.
+enum SaveCompanionCompatibility { portable, runtime }
 
 enum SaveBackupRelation { identical, localChanged, cloudChanged, conflict }
 
@@ -71,6 +87,7 @@ class SaveBackupBinding {
   final List<SaveBackupEdition> editions;
   final SaveBackupKind kind;
   final String formatId;
+  final SaveCompanionCompatibility? companionCompatibility;
   // The editions remain provenance. A physical shared PS1 card has one history
   // even when another reviewed game initiates the next generation.
   final String? sharedCardDirectory;
@@ -87,6 +104,7 @@ class SaveBackupBinding {
       required List<SaveBackupEdition> editions,
       required this.kind,
       required this.formatId,
+      this.companionCompatibility,
       this.sharedCardDirectory,
       this.sharedCardSlot})
       : editions = List.unmodifiable(
@@ -107,6 +125,10 @@ class SaveBackupBinding {
         editions.length > 256 ||
         editions.map((e) => e.editionId).toSet().length != editions.length) {
       throw const FormatException('Invalid reviewed save group');
+    }
+    if ((kind == SaveBackupKind.companion) !=
+        (companionCompatibility != null)) {
+      throw const FormatException('Companion compatibility must be explicit');
     }
     if ((sharedCardDirectory == null) != (sharedCardSlot == null)) {
       throw const FormatException('Incomplete shared memory card identity');
@@ -159,6 +181,15 @@ class SaveBackupBinding {
             coreVersion != target.coreVersion)) {
       return 'stateCompatibility';
     }
+    if (kind == SaveBackupKind.companion &&
+        (companionCompatibility != target.companionCompatibility ||
+            companionCompatibility == SaveCompanionCompatibility.runtime &&
+                (emulatorPackage != target.emulatorPackage ||
+                    emulatorVersion != target.emulatorVersion ||
+                    coreId != target.coreId ||
+                    coreVersion != target.coreVersion))) {
+      return 'companionCompatibility';
+    }
     return null;
   }
 
@@ -173,6 +204,8 @@ class SaveBackupBinding {
         'editions': editions.map((e) => e.toJson()).toList(),
         'kind': kind.name,
         'formatId': formatId,
+        if (companionCompatibility != null)
+          'companionCompatibility': companionCompatibility!.name,
         if (sharedCardDirectory != null)
           'sharedCard': {
             'directory': sharedCardDirectory!,
@@ -192,6 +225,8 @@ class SaveBackupBinding {
       'editions',
       'kind',
       'formatId',
+      if (raw is Map && raw.containsKey('companionCompatibility'))
+        'companionCompatibility',
       if (raw is Map && raw.containsKey('sharedCard')) 'sharedCard'
     });
     final shared = data.containsKey('sharedCard')
@@ -200,6 +235,12 @@ class SaveBackupBinding {
     if (shared != null &&
         (shared['directory'] is! String || shared['slot'] is! int)) {
       throw const FormatException('Invalid shared memory card fields');
+    }
+    final companionPolicy = data['companionCompatibility'];
+    if (data.containsKey('companionCompatibility') &&
+        !SaveCompanionCompatibility.values
+            .any((value) => value.name == companionPolicy)) {
+      throw const FormatException('Invalid companion compatibility');
     }
     return SaveBackupBinding(
         accountId: data['accountId'] as String,
@@ -213,6 +254,10 @@ class SaveBackupBinding {
             (data['editions'] as List).map(SaveBackupEdition.fromJson).toList(),
         kind: SaveBackupKind.values.byName(data['kind'] as String),
         formatId: data['formatId'] as String,
+        companionCompatibility: companionPolicy == null
+            ? null
+            : SaveCompanionCompatibility.values
+                .byName(companionPolicy as String),
         sharedCardDirectory: shared?['directory'] as String?,
         sharedCardSlot: shared?['slot'] as int?);
   }

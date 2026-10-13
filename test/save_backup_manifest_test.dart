@@ -44,6 +44,66 @@ SaveBackupManifest manifest({
         members: members ?? [member('Pokemon.srm', 'member-a')]);
 
 void main() {
+  SaveBackupBinding companion({
+    String compatibility = 'portable',
+    String version = '1.22.2',
+    String coreVersion = '0.10.5',
+    String edition = 'edition-a',
+    String device = 'device-a',
+  }) =>
+      SaveBackupBinding.fromJson({
+        ...binding(version: version, edition: edition, device: device).toJson(),
+        'coreVersion': coreVersion,
+        'kind': 'companion',
+        'formatId': 'rom-companion-v1',
+        'companionCompatibility': compatibility,
+      });
+
+  test('portable ROM companions retain their own identity and explicit policy',
+      () {
+    final original = manifest(
+        forBinding: companion(),
+        members: [member('screenshots/Game.png', 'image')]);
+    final decoded = SaveBackupManifest.decode(original.encode());
+    expect(decoded.binding.kind.name, 'companion');
+    expect(decoded.binding.toJson()['companionCompatibility'], 'portable');
+    expect(decoded.binding.restoreIssue(companion(version: 'next')), isNull);
+    expect(decoded.binding.restoreIssue(companion(device: 'other')), isNull);
+    expect(decoded.binding.restoreIssue(companion(edition: 'other')),
+        'editionMismatch');
+    expect(decoded.binding.restoreIssue(binding()), 'formatMismatch');
+    expect(binding().toJson(), isNot(contains('companionCompatibility')));
+    expect(binding(kind: SaveBackupKind.state).toJson(),
+        isNot(contains('companionCompatibility')));
+  });
+
+  test('runtime companions reject cache format runtime or policy mismatches',
+      () {
+    final cached = companion(compatibility: 'runtime');
+    expect(cached.restoreIssue(companion(compatibility: 'runtime')), isNull);
+    expect(
+        cached
+            .restoreIssue(companion(compatibility: 'runtime', version: 'next')),
+        'companionCompatibility');
+    expect(
+        cached.restoreIssue(
+            companion(compatibility: 'runtime', coreVersion: 'next')),
+        'companionCompatibility');
+    expect(cached.restoreIssue(companion()), 'companionCompatibility');
+    expect(companion().restoreIssue(cached), 'companionCompatibility');
+    for (final change in [
+      {'companionCompatibility': null},
+      {'companionCompatibility': 'unknown'},
+      {'kind': 'save'},
+      {'kind': 'state'},
+    ]) {
+      expect(() => SaveBackupBinding.fromJson({...cached.toJson(), ...change}),
+          throwsFormatException);
+    }
+    final missing = {...cached.toJson()}..remove('companionCompatibility');
+    expect(() => SaveBackupBinding.fromJson(missing), throwsFormatException);
+  });
+
   test('shared PS1 card history survives different initiating game editions',
       () {
     Map<String, dynamic> card(String edition,
