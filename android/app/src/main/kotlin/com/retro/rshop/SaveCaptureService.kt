@@ -229,7 +229,7 @@ internal class SaveCaptureService(private val activity: Context) {
                 result.success(null)
                 return
             }
-            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "ppssppSavedataFolders", "melonNames", "melonSaveSettings", "ppssppSaveSettings")) id(call) else null
+            val captureId = if (call.method !in setOf("retroArchNames", "ppssppNames", "ppssppSavedataFolders", "melonNames", "melonSaveSettings", "ppssppSaveSettings", "romCompanionSnapshot")) id(call) else null
             synchronized(guard) {
                 if (closed) throw Failure("closed")
                 if (active != null) throw Failure("capture_busy")
@@ -240,6 +240,18 @@ internal class SaveCaptureService(private val activity: Context) {
                 val complete: () -> Unit = try {
                     val value = when (call.method) {
                         "retroArchNames" -> names()
+                        "romCompanionSnapshot" -> {
+                            val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")
+                            val observed = call.argument<Number>("observationId")
+                            val uri = if (observed != null) {
+                                if (observed !is Int && observed !is Long || observed.toLong() <= 0 ||
+                                    call.hasArgument("installationId")) throw Failure("invalid_selection")
+                                OwnedRomContentProvider.localCopyUri(activity, observed.toLong(),
+                                    call.argument<String>("platformId") ?: throw Failure("invalid_selection"), filename, false)
+                            } else OwnedRomContentProvider.uri(activity,
+                                call.argument<String>("installationId") ?: throw Failure("invalid_selection"), filename)
+                            OwnedRomContentProvider.companionSnapshot(activity, uri, call.argument<Map<*, *>>("before"), ::check)
+                        }
                         "ppssppNames" -> ppssppNames(call.argument<String>("directory") ?: "")
                         "ppssppSavedataFolders" -> {
                             val parent = call.argument<String>("directory") ?: ""

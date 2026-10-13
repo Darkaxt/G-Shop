@@ -1734,6 +1734,15 @@ Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
 user-directed sequencing hold is resolved. Remaining SAVE-01
 implementation and verification now resume within this stage.
 
+Current checkpoint, 2026-10-13: exact-ROM-bound shared-folder companion discovery
+has focused host and native Thor evidence. It detects new/changed sidecars and
+replacement identities, refuses changed/revoked grants and excludes neighbouring
+games, ROMs and settings. The existing single-JPEG companion has a completed real
+Drive upload/readback/expected-location restore; per-file import choices persist.
+Discovery-to-watch/capture/upload, nested/isolated folders, selective multi-file
+native restore and remaining SAVE-01 acceptance still belong to this ACTIVE
+stage. No S11/S12 implementation has started. See the current status/design ledger.
+
 Latest verified slice, 2026-10-12: GB/GBC SameBoy now joins exact owned save
 review, normal backup/watch, capture and paired restore/rollback with distinct
 console journals. Focused host/native checks and scoped analysis pass. Thor

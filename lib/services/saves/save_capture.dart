@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/save_emulator_coverage.dart';
@@ -30,6 +31,100 @@ class RestoreSaveMember {
   RestoreSaveMember(this.name, this.size, this.sha256, this.bytes);
 }
 
+/// Native, exact-ROM-bound directory observation. It contains file identities,
+/// not payloads or coherence claims. Modified entries are candidates for the
+/// existing capture pipeline, never timestamp-selected conflict winners.
+class RomCompanionSnapshot {
+  final String binding, directory, romName;
+  final List<int> directoryIdentity;
+  final Map<String, List<int>> files;
+  final List<String> changedFiles;
+
+  RomCompanionSnapshot._(this.binding, this.directory, this.romName,
+      this.directoryIdentity, this.files, this.changedFiles);
+
+  factory RomCompanionSnapshot.decode(Map<String, dynamic>? raw) {
+    if (raw == null ||
+        raw.keys.toSet().difference(const {
+          'binding',
+          'directory',
+          'romName',
+          'directoryIdentity',
+          'files',
+          'changed'
+        }).isNotEmpty ||
+        raw.length != 6 ||
+        raw['binding'] is! String ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(raw['binding'] as String) ||
+        raw['directory'] is! String ||
+        !(raw['directory'] as String).startsWith('/') ||
+        RegExp(r'[\\\x00-\x1f\x7f]').hasMatch(raw['directory'] as String) ||
+        (raw['directory'] as String)
+            .split('/')
+            .skip(1)
+            .any((part) => part.isEmpty || part == '.' || part == '..') ||
+        raw['romName'] is! String ||
+        (raw['romName'] as String).startsWith('.') ||
+        !SaveCapture.validPpssppSavedataMember(raw['romName'] as String) ||
+        raw['directoryIdentity'] is! List ||
+        (raw['directoryIdentity'] as List).length != 2 ||
+        (raw['directoryIdentity'] as List).any((part) => part is! int) ||
+        raw['files'] is! Map ||
+        (raw['files'] as Map).length > 128 ||
+        raw['changed'] is! List ||
+        (raw['changed'] as List).length > 128) {
+      throw const FormatException('Invalid ROM companion observation');
+    }
+    final name = raw['romName'] as String;
+    final split = name.lastIndexOf('.');
+    if (split <= 0) throw const FormatException('Invalid ROM filename');
+    final files = <String, List<int>>{};
+    for (final entry in (raw['files'] as Map).entries) {
+      final leaf = entry.key;
+      final value = entry.value;
+      if (leaf is! String ||
+          !SaveCapture.validPpssppSavedataMember(leaf) ||
+          leaf == name ||
+          !leaf.startsWith('${name.substring(0, split)}.') ||
+          value is! List ||
+          value.length != 5 ||
+          value.any((part) => part is! int) ||
+          (value[2] as int) < 0 ||
+          (value[4] as int) < 0 ||
+          (value[4] as int) >= 1000000000) {
+        throw const FormatException('Invalid ROM companion member');
+      }
+      files[leaf] = List<int>.unmodifiable(value.cast<int>());
+    }
+    final changed = raw['changed'] as List;
+    if (changed.any((path) => path is! String || !files.containsKey(path)) ||
+        changed.toSet().length != changed.length) {
+      throw const FormatException('Invalid ROM companion changes');
+    }
+    return RomCompanionSnapshot._(
+        raw['binding'] as String,
+        raw['directory'] as String,
+        name,
+        List<int>.unmodifiable((raw['directoryIdentity'] as List).cast<int>()),
+        Map<String, List<int>>.unmodifiable(files),
+        List<String>.unmodifiable(changed.cast<String>()));
+  }
+
+  Map<String, Object> toJson() => {
+        'binding': binding,
+        'directory': directory,
+        'romName': romName,
+        'directoryIdentity': directoryIdentity,
+        'files': files,
+      };
+
+  bool sameTarget(RomCompanionSnapshot other) =>
+      binding == other.binding &&
+      directory == other.directory &&
+      romName == other.romName &&
+      listEquals(directoryIdentity, other.directoryIdentity);
+}
+
 /// Current emulator configuration, not a guessed game/save association. A
 /// ROM-relative setting needs the actual launched ROM's parent before resolving
 /// its destination; the protected fallback is not silently substituted.
@@ -57,6 +152,46 @@ class MelonSaveSettings {
 /// filesystem/ROM reader. Each native route uses its reviewed writer boundary.
 class SaveCapture {
   static const _channel = MethodChannel('com.retro.rshop/save_capture');
+
+  Future<RomCompanionSnapshot> reviewRomCompanions(
+      {required Map<String, Object> grant,
+      RomCompanionSnapshot? before}) async {
+    final owned =
+        setEquals(grant.keys.toSet(), {'installationId', 'filename'}) &&
+            grant['installationId'] is String &&
+            (grant['installationId'] as String).trim().isNotEmpty;
+    final observed = setEquals(
+            grant.keys.toSet(), {'observationId', 'platformId', 'filename'}) &&
+        grant['observationId'] is int &&
+        (grant['observationId'] as int) > 0 &&
+        grant['platformId'] is String &&
+        (grant['platformId'] as String).isNotEmpty;
+    final filename = grant['filename'];
+    if (!(owned || observed) ||
+        filename is! String ||
+        filename.length > 4096 ||
+        filename.split('/').any((part) => !validPpssppSavedataMember(part))) {
+      throw const FormatException('Invalid ROM companion grant');
+    }
+    final result = RomCompanionSnapshot.decode(await _channel
+        .invokeMapMethod<String, dynamic>('romCompanionSnapshot',
+            {...grant, if (before != null) 'before': before.toJson()}));
+    if (result.romName != filename.split('/').last ||
+        (before != null && !result.sameTarget(before))) {
+      throw const FormatException('Changed ROM companion target');
+    }
+    if (before != null) {
+      final changed = result.files.keys
+          .where((path) => !listEquals(result.files[path], before.files[path]))
+          .toSet();
+      if (!setEquals(changed, result.changedFiles.toSet())) {
+        throw const FormatException('Incomplete ROM companion changes');
+      }
+    } else if (result.changedFiles.isNotEmpty) {
+      throw const FormatException('Unbound ROM companion changes');
+    }
+    return result;
+  }
 
   /// On-demand, read-only package/provider metadata. No file scan or grant.
   Future<List<SaveEmulatorCoverage>> installedEmulators() async =>

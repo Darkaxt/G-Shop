@@ -16,6 +16,9 @@ import java.io.FileNotFoundException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import java.io.File
+import java.io.IOException
+import java.security.MessageDigest
 
 /** Per-installation read grants, not an arbitrary public-path FileProvider.
  * Re-check the committed owner and current object at every external open, even
@@ -293,6 +296,82 @@ class OwnedRomContentProvider : ContentProvider() {
             a is JSONArray && b is JSONArray -> a.length() == b.length() &&
                 (0 until a.length()).all { sameJson(a.get(it), b.get(it)) }
             else -> a == b
+        }
+
+        /** Read-only companion discovery uses the same currently validated ROM
+         * grant as launch. No arbitrary directory from Flutter crosses here. */
+        internal fun companionSnapshot(context: Context, uri: Uri, before: Map<*, *>?,
+            check: () -> Unit): Map<String, Any> {
+            val saved = manifest(context, uri)
+            return openCommitted(context, uri).use { rom ->
+                check()
+                val relative = saved.getString("relativePath")
+                val name = relative.substringAfterLast('/')
+                require(RomCompanionBoundary.validLeaf(name))
+                val parentPart = relative.substringBeforeLast('/', "")
+                val directory = saved.getString("destinationRoot") +
+                    if (parentPart.isEmpty()) "" else "/$parentPart"
+                val parent = OwnedStorageNative.openRoot(directory)
+                try {
+                    val rootIdentity = OwnedStorageNative.identity(parent).take(2)
+                    val romIdentity = OwnedStorageNative.identity(rom.fd).toList()
+                    if (!OwnedStorageNative.entryIdentity(parent, name).toList().equals(romIdentity))
+                        throw IOException("source_changed")
+                    fun names(): List<String> {
+                        check()
+                        val all = File(directory).list() ?: throw IOException("source_changed")
+                        require(all.size <= 4096)
+                        return all.filter { RomCompanionBoundary.associated(name, it) }.sorted().also {
+                            require(it.size <= RomCompanionBoundary.MAX_MEMBERS)
+                        }
+                    }
+                    val selected = names()
+                    val files = linkedMapOf<String, List<Long>>()
+                    for (member in selected) {
+                        check()
+                        val fd = OwnedStorageNative.openFile(parent, member, false, false)
+                        try {
+                            val identity = OwnedStorageNative.identity(fd).toList()
+                            require(RomCompanionBoundary.validIdentity(identity))
+                            if (OwnedStorageNative.entryIdentity(parent, member).toList() != identity)
+                                throw IOException("source_changed")
+                            files[member] = identity
+                        } finally { OwnedStorageNative.close(fd) }
+                    }
+                    if (names() != selected || files.any { (leaf, identity) ->
+                            OwnedStorageNative.entryIdentity(parent, leaf).toList() != identity })
+                        throw IOException("source_changed")
+                    val fresh = OwnedStorageNative.openRoot(directory)
+                    try {
+                        if (OwnedStorageNative.identity(fresh).take(2) != rootIdentity ||
+                            OwnedStorageNative.identity(rom.fd).toList() != romIdentity ||
+                            OwnedStorageNative.entryIdentity(fresh, name).toList() != romIdentity ||
+                            !sameJson(saved, manifest(context, uri))) throw IOException("source_changed")
+                    } finally { OwnedStorageNative.close(fresh) }
+                    val binding = MessageDigest.getInstance("SHA-256").digest(
+                        JSONArray(listOf(uri.toString(), directory, romIdentity)).toString().toByteArray(Charsets.UTF_8))
+                        .joinToString("") { "%02x".format(it) }
+                    val snapshot = linkedMapOf<String, Any>("binding" to binding, "directory" to directory,
+                        "romName" to name, "directoryIdentity" to rootIdentity, "files" to files)
+                    val changed = if (before == null) emptyList() else {
+                        val oldRoot = before["directoryIdentity"] as? List<*> ?: throw IOException("source_changed")
+                        require(oldRoot.size == 2 && oldRoot.all { it is Long || it is Int })
+                        require(before.keys == snapshot.keys && oldRoot.map { (it as Number).toLong() } == rootIdentity &&
+                            snapshot.filterKeys { it != "files" && it != "directoryIdentity" }
+                                .all { (key, value) -> before[key] == value })
+                        val old = before["files"] as? Map<*, *> ?: throw IOException("source_changed")
+                        require(old.size <= RomCompanionBoundary.MAX_MEMBERS)
+                        val previous = old.entries.associate { (leaf, value) ->
+                            require(leaf is String && RomCompanionBoundary.associated(name, leaf) && value is List<*> &&
+                                value.all { it is Long || it is Int })
+                            leaf to value.map { (it as Number).toLong() }
+                        }
+                        RomCompanionBoundary.changed(previous, files)
+                    }
+                    check()
+                    snapshot.apply { put("changed", changed) }
+                } finally { OwnedStorageNative.close(parent) }
+            }
         }
 
         fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null,

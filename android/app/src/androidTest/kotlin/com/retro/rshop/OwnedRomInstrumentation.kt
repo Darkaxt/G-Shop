@@ -44,6 +44,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var ppssppCachedExitProbe = false
     private var ppssppSavedataCaptureProbe = false
     private var ppssppCompanionProbe = false
+    private var romCompanionProbe = false
     private var ppssppRuntimeProbe: String? = null
     private var dsProviderProbe = false
     private var dsArchiveProbe = false
@@ -75,6 +76,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
         ppssppCompanionProbe = arguments?.getString("ppssppCompanionProbe") == "true"
+        romCompanionProbe = arguments?.getString("romCompanionProbe") == "true"
         ppssppRuntimeProbe = arguments?.getString("ppssppRuntimeProbe")
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
         dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
@@ -91,6 +93,9 @@ class OwnedRomInstrumentation : Instrumentation() {
         try {
             if (automaticSaveDiagnosis) {
                 report.putString("result", AutomaticSaveDiagnosis.observe(targetContext))
+            } else if (romCompanionProbe) {
+                exercise()
+                report.putString("result", "PASS exact owned-ROM companion snapshots, changed/new files, unchanged/removal exclusion, ROM/settings/neighbour exclusion, changed binding and revoked owner rejection; exclusive fixtures removed; no emulator launch or cloud write")
             } else if (pcsxRestoreProbe) {
                 exercise(psx = true)
                 report.putString("result", "PASS exact PS1 private/shared restore, retained rollback, missing-card recovery, changed settings, wrong-card/generic publication rejection and lost-ack service recreation; isolated override/cards removed; real RetroArch CONTENTLESS")
@@ -301,6 +306,50 @@ class OwnedRomInstrumentation : Instrumentation() {
                     if (pcsxCaptureProbe) PcsxCaptureProof.exercise(targetContext, id, rom.name, uri.encodedPath!!.substringAfterLast('/'))
                     if (pcsxRestoreProbe) PcsxRestoreProof.exercise(targetContext, id, rom.name, uri.encodedPath!!.substringAfterLast('/'))
                 } finally { service.shutdown() }
+            }
+            if (romCompanionProbe) {
+                val sidecars = listOf("synthetic.sav", "synthetic.png", "synthetic.cfg", "Other.sav", "synthetic.gba")
+                    .map { File(root, it) }
+                val newSidecar = File(root, "synthetic.cache")
+                val service = SaveCaptureService(targetContext)
+                fun snapshot(before: Map<*, *>? = null, expected: String? = null): Map<*, *>? {
+                    val done = CountDownLatch(1)
+                    var value: Any? = null; var failure: String? = null
+                    service.handle(MethodCall("romCompanionSnapshot", mapOf("installationId" to id,
+                        "filename" to rom.name) + if (before == null) emptyMap() else mapOf("before" to before)),
+                        object : MethodChannel.Result {
+                            override fun success(result: Any?) { value = result; done.countDown() }
+                            override fun error(code: String, message: String?, details: Any?) { failure = code; done.countDown() }
+                            override fun notImplemented() { failure = "not_implemented"; done.countDown() }
+                        })
+                    done.await(); check(failure == expected) { "companion snapshot: $failure" }
+                    return value as? Map<*, *>
+                }
+                fun baseline(row: Map<*, *>) = row.filterKeys { it != "changed" }
+                try {
+                    sidecars.forEach { check(it.createNewFile()); it.writeBytes(byteArrayOf(1)) }
+                    val before = snapshot()!!
+                    check((before["files"] as Map<*, *>).keys == setOf("synthetic.png", "synthetic.sav"))
+                    check((before["changed"] as List<*>).isEmpty())
+                    sidecars.first().appendBytes(byteArrayOf(2))
+                    check(newSidecar.createNewFile())
+                    val changed = snapshot(baseline(before))!!
+                    check(changed["changed"] == listOf("synthetic.cache", "synthetic.sav"))
+                    check(snapshot(baseline(changed))!!["changed"] == emptyList<String>())
+                    check(sidecars[1].delete())
+                    check(snapshot(baseline(changed))!!["changed"] == emptyList<String>())
+                    snapshot(baseline(changed) + mapOf("binding" to "0".repeat(64)), "capture_unavailable")
+                    db.delete("transfer_target_owners", "transfer_id=?", arrayOf(id))
+                    snapshot(expected = "capture_unavailable")
+                    db.insertOrThrow("transfer_target_owners", null, ContentValues().apply {
+                        put("installation_id", id); put("transfer_id", id)
+                        put("destination_root", root.path); put("relative_path", rom.name)
+                    })
+                } finally {
+                    val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
+                    sidecars.forEach { check(!it.exists() || it.delete()) }
+                    check(!newSidecar.exists() || newSidecar.delete())
+                }
             }
             if (ds) {
                 val service = OwnedStorageService(targetContext)

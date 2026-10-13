@@ -7,6 +7,34 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Game-folder companion discovery — ACTIVE work, 2026-10-13
+
+Reuse the currently byte-bound installation/local-copy grant to resolve the ROM's
+actual parent directory; a caller-supplied arbitrary directory is not a discovery
+root. Revalidate the grant and pinned ROM/directory before and after observation.
+For a shared console directory, associate exact ROM-stem sidecars, not title
+searches or prefix neighbours. Exclude ROM/archive payloads, temporary publication
+files, BIOS, credentials and emulator settings. Record bounded immutable native
+file-identity snapshots and compare complete identities: a changed inode, size or
+mtime is association/pending-work evidence, never writer completion or a conflict
+winner. Deleted entries never become cloud deletions. Changed roots/ROM ownership
+invalidate the comparison; oversized inventories fail visibly rather than truncate.
+
+This is the current discovery implementation slice, not a claim that general
+game-folder backup/restore is connected. Isolated/nested game-folder discovery,
+coherent multi-file capture, launch/watch admission, selected-file native
+publication and the required real workflow still belong to this ACTIVE stage.
+
+Verification: focused association/storage JVM contracts and Dart channel checks
+pass, including a RED/GREEN incomplete-change-receipt regression. Gated request
+933 packages the real channel and synthetic instrumentation. The Thor probe
+passes changed/new/unchanged/deleted observations, neighbour/ROM/settings
+exclusion, binding changes and ownership revocation, with its synthetic files and
+rows removed. Preferences/key material and existing PSP fixture digests are
+unchanged; both screens are OFF. This proves the discovery boundary only; the
+automatic multi-file pipeline remains unfinished. See IMPLEMENTATION_STATUS.md
+for resource-profile qualifications and the unchanged stage status.
+
 ### Explicit companion-file import choices — 2026-10-13
 
 The existing Source/Files import dialog now renders optional companion members

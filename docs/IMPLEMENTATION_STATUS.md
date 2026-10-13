@@ -5,6 +5,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Bound game-folder discovery — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. The existing save-capture channel can now
+observe ROM-stem sidecars using the currently revalidated installation/local-copy
+grant. Native code derives and pins the real parent; Flutter cannot supply an
+arbitrary scan directory. Immutable file-identity snapshots detect new files,
+modified files and replaced inodes without using clocks as conflict winners.
+Deleted entries are not remote-deletion work. ROM/archive payload extensions,
+temporary files, credentials, BIOS and emulator settings are excluded; oversized
+inventories fail rather than truncate. The Dart boundary checks complete change
+receipts and refuses changed targets. Discovery never asserts writer completion.
+
+Focused native association/storage contracts and Dart capture-boundary checks
+pass; scoped analysis and whitespace checks pass. The expected initial native/Dart
+RED failures identified the absent API; a separate negative receipt test failed
+before the complete-change check was added. Gated request 933 then passes native
+checks and debug/app-test packaging: mutex acquired, build/helper exit 0 and
+single-use daemon exit verified. Observed workers=2, parallel=false, Gradle heap
+3,221,225,472 bytes; Kotlin in-process configured/requested. One 512 MiB fail-fast
+test fork is configured and the focused JVM tests executed; test markers remain
+configuration evidence, not independent fork-heap telemetry. Existing app native
+pool depth one remains; the helper's native environment budget two is not proof
+of every tool's effective concurrency. No memory failure or budget increase.
+
+Preserving install-replace succeeded; installed and host debug APK SHA-256 match
+`876e7d5fec2fea3f108fa2d57a0d76b1d4f845113f8128b779fb6c92ab88de4f`.
+Actual Thor instrumentation exercises the production channel handler/provider
+against exclusive synthetic owned-ROM rows/files:
+changed/new sidecars, unchanged/removal exclusion, ROM/settings/neighbour
+exclusion, changed snapshot binding and revoked owner rejection pass. Fixtures
+and their exact temporary database rows are removed. No emulator launch, cloud
+write or gameplay check occurred. All three protected preference/key-store hashes
+and the existing PSP screenshot/state hashes match before/after. Both displays
+are confirmed OFF. The unused empty host scratch folder is removed through its
+reviewed transactional ticket.
+
+This is native discovery evidence, not automatic capture/upload, nested or
+isolated-folder coverage, selective multi-file publication or completion of S10.
+Those, remaining emulator/fault/reconnect coverage and conditional legacy handover
+remain ordinary unfinished S10 work. S11/S12 remain NOT STARTED.
+
 ### Companion selection and live Drive restore — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. Optional companion files now have independent

@@ -45,6 +45,87 @@ void main() {
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));
 
+  test('ROM companion review binds snapshots to the exact installed file',
+      () async {
+    response = {
+      'binding': 'a' * 64,
+      'directory': '/storage/75D7-DC5F/Roms/gba',
+      'romName': 'Game.gba',
+      'directoryIdentity': [1, 2],
+      'files': {
+        'Game.sav': [1, 3, 4, 100, 0],
+        'Game.png': [1, 4, 8, 100, 0],
+      },
+      'changed': <String>[],
+    };
+    final grant = {'installationId': 'owned', 'filename': 'Game.gba'};
+    final before = await SaveCapture().reviewRomCompanions(grant: grant);
+    expect(calls.single.method, 'romCompanionSnapshot');
+    expect(calls.single.arguments, grant);
+    expect(before.files.keys.toSet(), {'Game.sav', 'Game.png'});
+    expect(() => before.files['Game.sav']![2] = 99, throwsUnsupportedError);
+    (response['files'] as Map)['Game.png'] = [1, 4, 9, 100, 0];
+    response['changed'] = ['Game.png'];
+    final next =
+        await SaveCapture().reviewRomCompanions(grant: grant, before: before);
+    expect(next.changedFiles, ['Game.png']);
+    expect((calls.last.arguments as Map)['before'], before.toJson());
+    response['binding'] = 'b' * 64;
+    await expectLater(
+        SaveCapture().reviewRomCompanions(grant: grant, before: before),
+        throwsFormatException);
+  });
+
+  test('ROM companion review detects an incomplete native change receipt',
+      () async {
+    response = {
+      'binding': 'a' * 64,
+      'directory': '/storage/75D7-DC5F/Roms/gba',
+      'romName': 'Game.gba',
+      'directoryIdentity': [1, 2],
+      'files': {
+        'Game.sav': [1, 3, 4, 100, 0]
+      },
+      'changed': <String>[],
+    };
+    final grant = {'installationId': 'owned', 'filename': 'Game.gba'};
+    final before = await SaveCapture().reviewRomCompanions(grant: grant);
+    response['files'] = {
+      'Game.sav': [1, 4, 4, 100, 0]
+    };
+    await expectLater(
+        SaveCapture().reviewRomCompanions(grant: grant, before: before),
+        throwsFormatException);
+  });
+
+  test(
+      'ROM companion review refuses arbitrary roots and malformed file receipts',
+      () async {
+    for (final grant in [
+      {'directory': '/storage/emulated/0', 'filename': 'Game.gba'},
+      {'installationId': 'owned', 'filename': '../Game.gba'},
+      {'observationId': 0, 'platformId': 'gba', 'filename': 'Game.gba'},
+    ]) {
+      await expectLater(SaveCapture().reviewRomCompanions(grant: grant),
+          throwsFormatException);
+    }
+    expect(calls, isEmpty);
+    response = {
+      'binding': 'a' * 64,
+      'directory': '/storage/75D7-DC5F/Roms/gba',
+      'romName': 'Game.gba',
+      'directoryIdentity': [1, 2],
+      'files': {
+        'Game.sav': [1, 3, 4, 100, 0]
+      },
+      'changed': ['Other.sav'],
+    };
+    await expectLater(
+        SaveCapture().reviewRomCompanions(
+            grant: {'installationId': 'owned', 'filename': 'Game.gba'}),
+        throwsFormatException);
+  });
+
   test('PS1 capture keeps the owned ROM and private/shared card roles exact',
       () async {
     final layout = PcsxSaveLayout.decode({
