@@ -1969,11 +1969,13 @@ console-specific 3D media, not a new dependency on scraped cartridge images.
 
 Execution order within S12:
 
-1. Inspect/reverse engineer the supplied `socket_release_0.3.2.apk` reference,
-   including physical-media geometry, labels, animations and two-display behavior.
+1. Inspect/reverse engineer the supplied `socket_release_0.7.0.apk` reference,
+   including main-screen physical-media geometry, labels and animations; retain
+   the hash-bound 0.3.2 findings as historical evidence.
    Record reproducible visual/motion findings and asset provenance. Private
    extraction is authorized; resolve redistribution rights before publishing
-   recovered code/assets. Assess 0.7 only if the supplied reference is insufficient.
+   recovered code/assets. Modernize the existing frontend rather than replacing
+   R-Shop; no bottom-screen presentation or two-display 3D proof is required.
 2. Prove one real cartridge-to-emulator workflow on Thor using independently
    sourced or appropriately licensed assets matching the reference models and
    animation, and existing R-Shop identity/launch logic before broadening

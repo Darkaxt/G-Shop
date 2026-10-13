@@ -1,6 +1,11 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 36, 2026-10-13.
+Authoritative specification, revision 37, 2026-10-13.
+
+Owner clarification, 2026-10-13: S12 modernizes R-Shop's existing frontend with
+Socket-inspired main-screen 3D media, labels and animations; it does not replace
+R-Shop. A bottom-screen presentation or coordinated two-display 3D scene is not
+required. Preserve the existing S8 emulator/companion handoff independently.
 
 Owner scope update, 2026-10-13: implement all 12 plan stages. This authorizes
 S12's existing FRONTEND-01 contract after S10/S11; it does not open concurrent
@@ -1610,12 +1615,17 @@ reproduce the physical-media experience. Models and animations must match the
 reference, not merely depict the same media type. Private inspection/extraction
 is authorized; public redistribution still needs appropriate asset/code rights.
 An independent adaptation is allowed, provided visual and motion fidelity is
-verified against the APK. Version 0.7 is a possible later reference if the
-supplied version lacks necessary evidence; assess that need before purchasing.
+verified against the APK. The owner has now supplied version 0.7.0 beside 0.3.2;
+use its hash-bound record in the proposal as the final reference, retaining
+0.3.2 findings as historical evidence. No purchase is needed for reference access.
 Missing or not-yet-scraped artwork uses the same 3D media with a handwritten
 game-title sticker, resembling a homemade/knock-off label. Vary sticker colors
 across games using a stable readable palette; do not flicker on rebuild or
 change the underlying game identity. Replace the fallback when artwork resolves.
+Apply these design features within the existing main-screen frontend, keeping
+its navigation, identity and workflows. Bottom-screen rendering is not an S12
+requirement, and its absence in Socket is not a blocker. Preserve S8 companion
+launching without introducing a second frontend or launch pipeline.
 Select the renderer from the required real vertical slice. S10 remains the
 sole ACTIVE stage; S12 does not add acceptance
 gates to S10/S11. Overall completion now requires S1-S12 reconciliation.

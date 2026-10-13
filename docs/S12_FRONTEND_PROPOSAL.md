@@ -1,7 +1,7 @@
 # S12 — 3D physical-media frontend
 
 Status: NOT STARTED.
-Authority: SPECIFICATION.md, revision 36, section 6f.
+Authority: SPECIFICATION.md, revision 37, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -16,7 +16,10 @@ interested in studying Socket and reproducing the physical-media experience.
 The explicit correction is important: actual 3D cartridge models, rotation and
 insertion animations are not equivalent to ScreenScraper cartridge images or
 tilted 2D cards. The observed reference includes an upper-screen cartridge and
-a lower-screen insertion destination.
+a lower-screen insertion destination. Owner clarification, 2026-10-13: that
+bottom-screen presentation is not required. Apply the main frontend's design
+features to modernize R-Shop, not replace it. This supersedes the earlier
+two-display rendering requirement without changing existing S8 companions.
 
 The conversation's assistant proposed rendering frameworks and described other
 products. Those claims have not been independently verified. No renderer,
@@ -25,7 +28,7 @@ The owner's subsequent 2026-10-13 direction explicitly authorizes private APK
 inspection and reverse engineering of the supplied August reference. Models and
 animations in our adaptation must match the APK, not just its general concept.
 Reference study must capture geometry/proportions, material/label placement,
-motion paths/timing/easing and upper/lower-display sequencing with comparison
+motion paths/timing/easing on the main display with comparison
 evidence. Distribution still requires suitable provenance and reuse rights;
 independently recreated or appropriately licensed assets are valid adaptations.
 
@@ -98,7 +101,7 @@ That was the initial inspection result; the subsequent recovery below supersedes
 it, without changing the APK or relying on a newer version.
 
 The next S12 reference work is to recover or observe the relevant geometry,
-label placement, motion curves and two-display sequencing, recording a
+label placement and main-display motion curves, recording a
 reproducible comparison before selecting the smallest rendering integration.
 Private inspection remains authorized. Keep recovered proprietary material out
 of the public fork unless its redistribution rights have been established.
@@ -193,7 +196,7 @@ checks; they do not add unrelated Socket features to our specification.
 | Controller and touch | 0.5 fixes joystick mapping and slider/scroll gesture collisions; 0.7 fixes PlayStation button mapping and release events leaking into a newly opened screen. | Exercise controller mappings, screen transitions and competing touch gestures in the integrated frontend. |
 | Launch lifecycle | [0.2](https://www.patreon.com/SocketLauncher/posts/socket-0-2-0-166177192), 0.3.2 and 0.6 report external-SD launch, second-game black-screen and sleep-related RetroArch fixes respectively. | Verify our existing launch handoff from SD, repeated launches and sleep/resume, without copying Socket's launcher or reopening deep save/gameplay testing. |
 | Catalogue identity | 0.7 fixes disc tracks appearing separately and missed uppercase extensions. | Preserve R-Shop's canonical game/disc grouping and existing identities; no duplicate carousel entries or parallel catalogue. |
-| Dual-display evidence | [0.0.1](https://www.patreon.com/SocketLauncher/posts/socket-0-0-1-165147792) explicitly removes the bottom-screen presentation. No reviewed later changelog announces its restoration. | Native Thor bridge code is not proof of an active dual-screen UI. Our required coordinated presentation and companion handoff still need their own real-device proof; the requirement is not dropped. |
+| Dual-display evidence | [0.0.1](https://www.patreon.com/SocketLauncher/posts/socket-0-0-1-165147792) explicitly removes the bottom-screen presentation. No reviewed later changelog announces its restoration. | Native Thor bridge code is not proof of an active dual-screen UI. The owner does not require bottom-screen presentation for S12; this is not a reference gap or blocker. Preserve existing S8 companion handoff separately. |
 
 Socket's emulator-definition updater, Android-app carousel, palette collection
 and optional duplicate-filled carousel are not new R-Shop requirements. The 0.4
@@ -273,10 +276,10 @@ contract. They do not change S10/S11 acceptance:
   representative N64/Game Boy cartridge and PlayStation disc formats. Record how
   additional currently supported formats map to models or truthful alternatives;
   do not claim complete media coverage from these three examples.
-- Study the desired upper/lower-screen transition explicitly. Prove coordinated
-  display rendering, then release presentation ownership for the existing
-  emulator-top/linked-companion-bottom handoff. S8 companion launching alone is
-  not evidence of a working dual-display 3D scene.
+- Modernize the existing main-screen R-Shop view, not a replacement frontend.
+  No bottom-screen presentation or coordinated dual-display 3D scene is required.
+  Preserve the existing emulator-top/linked-companion-bottom handoff and do not
+  make it depend on adding a second rendering surface.
 - Keep large collections usable through console navigation, search, dynamic Top
   and tag filters, and fast list/grid access rather than a mandatory linear
   cartridge carousel. Preserve clear cloud versus local residency indicators and
@@ -298,7 +301,7 @@ Choose rendering integration only after checking the project's actual Flutter,
 Android and plugin versions and proving the first workflow on Thor. Assess the
 smallest viable integration; do not rewrite the application or import a second
 engine solely because the reference may use it. Determine model/animation asset
-sources, label composition and dual-display coordinate/lifecycle behavior from
+sources, label composition and main-display rendering/lifecycle behavior from
 the observed reference and real proof. These are ordinary S12 design decisions,
 not reasons to stop S10 or S11.
 

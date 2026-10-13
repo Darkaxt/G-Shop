@@ -5,6 +5,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S12 main-screen scope clarification — 2026-10-13
+
+Specification revision 37 records the owner's explicit direction: modernize
+R-Shop's existing frontend with the reference's main-screen design features,
+not replace R-Shop. Bottom-screen presentation and coordinated two-display 3D
+acceptance are removed requirements, not deferred work. Existing S8 companion
+handoff remains unchanged. The owner-supplied 0.7.0 is the final reference.
+S10 remains ACTIVE; S11 and S12 remain NOT STARTED.
+
 ### S12 reference recovery — investigation only, 2026-10-13
 
 The owner's supplied Socket 0.3.2 APK now provides verified decrypted resource
@@ -17,7 +26,8 @@ the reference recommendation: newer regional Genesis/Mega Drive geometry and
 label/rendering/input fixes make 0.7 useful for final comparison, but it is not
 a prerequisite for the initial study or S10/S11. No purchase was performed.
 The reference notes also distinguish the removed bottom-screen presentation
-from the retained native Thor bridge; our dual-display acceptance remains intact.
+from the retained native Thor bridge. The subsequent owner clarification above
+removes bottom-screen presentation from S12 acceptance while preserving S8.
 Socket-reported bugs are mapped to relevant checks, not claimed as R-Shop defects
 or used to import unrelated features.
 The owner's subsequently supplied 0.7.0 APK is identified by manifest and SHA-256
