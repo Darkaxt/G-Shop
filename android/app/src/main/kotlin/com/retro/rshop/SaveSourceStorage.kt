@@ -22,7 +22,8 @@ internal class SaveSourceStorage private constructor(
     private val pcsxLeaf: String? = null, private val pcsxCard: PcsxSaveSettings.Card? = null,
     private val pcsxRestoreId: String? = null,
     private val companionNames: List<String>? = null, private val companionRom: String? = null,
-    private val companionRestoreId: String? = null, private val companionTarget: String? = null
+    private val companionRestoreId: String? = null, private val companionTarget: String? = null,
+    private val companionConfiguration: SaveRootConfiguration? = null
 ) : Closeable {
     private val input = child?.let { DataInputStream(it.inputStream.buffered()) }
     private val output = child?.let { DataOutputStream(it.outputStream.buffered()) }
@@ -47,6 +48,7 @@ internal class SaveSourceStorage private constructor(
                         .put("pcsxMode", pcsxCard.mode).put("pcsxName", pcsxCard.name)
                     if (pcsxRestoreId != null) it.put("pcsxRestoreId", pcsxRestoreId)
                     if (companionNames != null) it.put("companionNames", JSONArray(companionNames)).put("companionRom", companionRom)
+                    if (companionConfiguration != null) it.put("saveRoot", companionConfiguration.json())
                     if (companionRestoreId != null) it.put("companionRestoreId", companionRestoreId).put("companionTarget", companionTarget)
                 }); 1
             }
@@ -93,13 +95,15 @@ internal class SaveSourceStorage private constructor(
             return SaveSourceStorage(source, start(context, globalMountNamespace = true))
         }
         fun openRomCompanions(context: Context, source: String, romName: String, names: List<String>,
-            restoreId: String? = null, target: String? = null): SaveSourceStorage {
-            require(RomCompanionBoundary.validDirectory(source) && names.size in 0..RomCompanionBoundary.MAX_MEMBERS &&
+            restoreId: String? = null, target: String? = null,
+            configuration: SaveRootConfiguration? = null): SaveSourceStorage {
+            require((if (configuration == null) RomCompanionBoundary.validDirectory(source) else configuration.directory == source) && names.size in 0..RomCompanionBoundary.MAX_MEMBERS &&
                 names.toSet().size == names.size && names.all {
-                    RomCompanionBoundary.associated(romName, it, RomCompanionBoundary.isolated(romName, source)) })
+                    configuration?.acceptsFile(it) ?: RomCompanionBoundary.associated(romName, it, RomCompanionBoundary.isolated(romName, source)) })
             require(if (restoreId == null) target == null else restoreId.matches(Regex("[a-f0-9]{32}")) && target in names)
             return SaveSourceStorage(source, start(context, globalMountNamespace = true),
-                companionNames = names.toList(), companionRom = romName, companionRestoreId = restoreId, companionTarget = target)
+                companionNames = names.toList(), companionRom = romName, companionRestoreId = restoreId,
+                companionTarget = target, companionConfiguration = configuration)
         }
         fun openPcsxCapture(context: Context, encodedLeaf: String, selection: PcsxSaveSettings.Selection): SaveSourceStorage {
             require(PcsxSaveSettings.validChdLeaf(encodedLeaf))
@@ -202,6 +206,16 @@ internal class SaveSourceStorage private constructor(
         require(companionNames != null && rootAssisted)
         require(if (companionRestoreId == null) name == null else name in companionNames)
         call(request("snapshotBegin").also { if (name != null) it.put("name", name) })
+    }
+    fun companionInventory(): OwnedRomContentProvider.Companion.CompanionInventory {
+        require(companionNames != null && rootAssisted)
+        val row = call(request("companionInventory"))
+        fun identities(key: String): Map<String, List<Long>> {
+            val values = row.getJSONObject(key)
+            require(values.length() <= 128)
+            return values.keys().asSequence().associateWith { longs(values.getJSONArray(it)).toList() }
+        }
+        return OwnedRomContentProvider.Companion.CompanionInventory(identities("files"), identities("directories"))
     }
     fun openSaveGroup(name: String, createExclusive: Boolean = false, anchor: LongArray? = null,
                       recoverEmpty: Boolean = false): Int {
@@ -376,17 +390,19 @@ object RootSaveSourceWorker {
                 return
             }
             val source = hello.getString("source")
+            val configuration = hello.optJSONObject("saveRoot")?.let(SaveRootConfiguration::decode)
+            require(configuration == null || configuration.directory == source)
             val companionRom = hello.optString("companionRom").takeIf { it.isNotEmpty() }
             val companionRestore = if (hello.has("companionRestoreId")) hello.getString("companionRestoreId").also {
                 require(hello.has("companionNames") && it.matches(Regex("[a-f0-9]{32}")))
             } else null
             val companions = if (hello.has("companionNames")) {
                 val selected = hello.getJSONArray("companionNames")
-                require(hello.length() == (if (companionRestore == null) 3 else 5) && companionRom != null &&
-                    RomCompanionBoundary.validLeaf(companionRom) && RomCompanionBoundary.validDirectory(source) &&
+                require(hello.length() == (if (companionRestore == null) 3 else 5) + (if (configuration == null) 0 else 1) && companionRom != null &&
+                    RomCompanionBoundary.validLeaf(companionRom) && (configuration != null || RomCompanionBoundary.validDirectory(source)) &&
                     selected.length() in 0..RomCompanionBoundary.MAX_MEMBERS)
                 (0 until selected.length()).map(selected::getString).also {
-                    require(it.toSet().size == it.size && it.all { name -> RomCompanionBoundary.associated(companionRom,
+                    require(it.toSet().size == it.size && it.all { name -> configuration?.acceptsFile(name) ?: RomCompanionBoundary.associated(companionRom,
                         name, RomCompanionBoundary.isolated(companionRom, source)) })
                 }
             } else null
@@ -425,7 +441,7 @@ object RootSaveSourceWorker {
             require(companions != null || pcsx != null || snapshotOnly || hello.length() == 1 && (savedata || savedataParent || SaveSourceStorage.isProtectedDirectory(source)))
             val backing = if (pcsx != null || companions != null) {
                 if (source.startsWith("/storage/emulated/0/")) "/data/media/0/" + source.removePrefix("/storage/emulated/0/")
-                else "/mnt/media_rw/" + source.removePrefix("/storage/")
+                else if (source.startsWith("/storage/")) "/mnt/media_rw/" + source.removePrefix("/storage/") else source
             } else SaveSourceStorage.backingDirectory(source)
             parent = OwnedStorageNative.openRoot(backing)
             fun companionParent(path: String, stage: Boolean = false, create: Boolean = false): Int {
@@ -476,7 +492,7 @@ object RootSaveSourceWorker {
                 try {
                     val operation = row.getString("operation")
                     require(companions == null || operation in (setOf("names", "identity", "currentRoot", "entry",
-                        "open", "read", "close", "snapshotBegin", "snapshotVerify") +
+                        "open", "read", "close", "snapshotBegin", "snapshotVerify", "companionInventory") +
                         if (companionRestore == null) emptySet() else setOf("write", "sync", "rename", "replace")))
                     // Capture stays read-only. Restore can write only its exact
                     // private stage and publish only the configured card.
@@ -548,6 +564,12 @@ object RootSaveSourceWorker {
                         } finally { OwnedStorageNative.close(fresh) }
                     }
                     val result = when (operation) {
+                        "companionInventory" -> {
+                            require(companions != null && companionRestore == null)
+                            pinnedParent()
+                            val inventory = OwnedRomContentProvider.companionInventory(backing, companionRom!!, {}, configuration)
+                            JSONObject().put("files", JSONObject(inventory.files)).put("directories", JSONObject(inventory.directories))
+                        }
                         "emulatorClosed" -> {
                             SaveEmulatorProcess.requireClosed(if (savedata || savedataParent || PpssppSaveBoundary.validDirectory(source))
                                 PpssppSaveSettings.PACKAGE else MelonSaveBoundary.PACKAGE,
@@ -560,7 +582,7 @@ object RootSaveSourceWorker {
                             if (companionTarget?.contains('/') == true) snapshotName = companionTarget.substringBefore('/')
                             snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
                             if (companions != null) {
-                                val inventory = OwnedRomContentProvider.companionInventory(backing, companionRom!!, {})
+                                val inventory = OwnedRomContentProvider.companionInventory(backing, companionRom!!, {}, configuration)
                                 val selectedParents = if (companionTarget == null) inventory.directories.keys.filter(String::isNotEmpty)
                                     else companionTarget.split('/').dropLast(1).let { parts ->
                                         parts.indices.map { index -> parts.take(index + 1).joinToString("/") }
@@ -571,7 +593,7 @@ object RootSaveSourceWorker {
                                         OwnedStorageNative.saveSnapshotOpen(folder))) }
                                     finally { OwnedStorageNative.close(folder) }
                                 }
-                                val reviewed = OwnedRomContentProvider.companionInventory(backing, companionRom, {})
+                                val reviewed = OwnedRomContentProvider.companionInventory(backing, companionRom, {}, configuration)
                                 if (reviewed != inventory) throw IOException("source_changed")
                             }
                             if (companions == null && pcsx == null && source in listOf(RetroArchSaveBoundary.saveDirectory("gb"), RetroArchSaveBoundary.saveDirectory("gba"),

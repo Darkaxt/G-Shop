@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/services/saves/save_capture.dart';
 import 'package:retro_eshop/models/retroarch_battery_route.dart';
 import 'package:retro_eshop/models/pcsx_save_layout.dart';
+import 'package:retro_eshop/models/save_root_configuration.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +75,61 @@ void main() {
     await expectLater(
         SaveCapture().reviewRomCompanions(grant: grant, before: before),
         throwsFormatException);
+  });
+
+  test('configured private-root selection crosses the existing native channel',
+      () async {
+    final config = SaveRootConfiguration.decode({
+      'schema': 1,
+      'directory': '/data/user/0/example.emulator/files/saves',
+      'emulator': 'example.emulator',
+      'core': 'example',
+      'kind': 'save',
+      'format': 'example-card-v1',
+      'files': ['card.bin'],
+      'folders': <String>[],
+      'required': ['card.bin'],
+    });
+    final grant = <String, Object>{
+      'installationId': 'owned',
+      'filename': 'Game.chd',
+      'saveRoot': config.toJson()
+    };
+    response = {
+      'binding': 'a' * 64,
+      'directory': config.directory,
+      'romName': 'Game.chd',
+      'directoryIdentity': [1, 2],
+      'files': {
+        'card.bin': [1, 3, 4, 100, 0]
+      },
+      'changed': <String>[],
+      'saveRoot': config.toJson()
+    };
+    final snapshot = await SaveCapture().reviewRomCompanions(grant: grant);
+    expect(snapshot.configuration!.identity, config.identity);
+    expect(calls.single.arguments, grant);
+    calls.clear();
+    response = {
+      'captureId': 'a' * 32,
+      'deviceId': 'device',
+      'emulatorVersion': '1',
+      'files': [
+        {
+          'name': 'card.bin',
+          'path': '/private/save-captures/${'a' * 32}/member-0',
+          'size': 4,
+          'sha256': 'b' * 64
+        }
+      ]
+    };
+    await SaveCapture().captureRomCompanions(
+        captureId: 'a' * 32,
+        grant: grant,
+        snapshot: snapshot,
+        members: {'card.bin'},
+        emulatorPackage: config.emulator);
+    expect((calls.single.arguments as Map)['saveRoot'], config.toJson());
   });
 
   test('ROM companion review detects an incomplete native change receipt',

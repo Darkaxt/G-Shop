@@ -15,7 +15,7 @@ import java.io.File
 internal class SaveFileWatch(private val context: Context? = null,
     private val unavailable: () -> Unit = {}, private val changed: (String) -> Unit) : Closeable {
     data class Mapping(val key: String, val directory: String, val name: String,
-        val route: String = "ppsspp") {
+        val route: String = "ppsspp", val configuration: SaveRootConfiguration? = null) {
         val pcsx: PcsxSaveSettings.Selection? = if (route.startsWith("pcsx-")) {
             val role = Regex("pcsx-(libretro|shared)-([12])").matchEntire(route)
                 ?: throw IllegalArgumentException("Invalid PlayStation card watch")
@@ -26,7 +26,7 @@ internal class SaveFileWatch(private val context: Context? = null,
         init {
             require(key.matches(Regex("[a-f0-9]{64}")))
             require(when (route) {
-                "rom-companion" -> RomCompanionBoundary.validDirectory(directory) && RomCompanionBoundary.validLeaf(name) && name.lastIndexOf('.') > 0
+                "rom-companion" -> (configuration?.let { it.directory == directory } ?: RomCompanionBoundary.validDirectory(directory)) && RomCompanionBoundary.validLeaf(name) && name.lastIndexOf('.') > 0
                 "ppsspp" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validName(name)
                 "ppsspp-companion" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validCompanionName(name)
                 "melon" -> MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(name)
@@ -36,6 +36,7 @@ internal class SaveFileWatch(private val context: Context? = null,
                     RetroArchSaveBoundary.saveDirectory(route.removePrefix("retroarch-")) == directory &&
                     RetroArchSaveBoundary.validName(name)
             })
+            require(configuration == null || route == "rom-companion")
         }
     }
     companion object {
@@ -46,7 +47,7 @@ internal class SaveFileWatch(private val context: Context? = null,
             if (event and SELF_EVENTS != 0) mappings.map { it.key }
             else mappings.filter {
                 if (it.route == "rom-companion") event and FILE_EVENTS != 0 && name != null &&
-                    RomCompanionBoundary.associated(it.name, name, RomCompanionBoundary.isolated(it.name, it.directory))
+                    (it.configuration?.acceptsFile(name) ?: RomCompanionBoundary.associated(it.name, name, RomCompanionBoundary.isolated(it.name, it.directory)))
                 else if (it.route == "ppsspp-savedata") event and (FILE_EVENTS or FileObserver.CREATE) != 0 &&
                     name != null && PpssppSavedataBoundary.validMember(name)
                 else event and FILE_EVENTS != 0 && (it.name == name ||
@@ -57,13 +58,14 @@ internal class SaveFileWatch(private val context: Context? = null,
             require(raw.size <= 4096)
             val mappings = raw.map { value ->
                 val row = value as? Map<*, *> ?: throw IllegalArgumentException()
-                require(row.keys == setOf("key", "directory", "name") ||
-                    row.keys == setOf("key", "directory", "name", "route"))
+                require(row.keys - "saveRoot" == setOf("key", "directory", "name") ||
+                    row.keys - "saveRoot" == setOf("key", "directory", "name", "route"))
                 Mapping(row["key"] as? String ?: throw IllegalArgumentException(),
                     row["directory"] as? String ?: throw IllegalArgumentException(),
                     row["name"] as? String ?: throw IllegalArgumentException(),
                     if (row.containsKey("route")) row["route"] as? String
-                        ?: throw IllegalArgumentException() else "ppsspp")
+                        ?: throw IllegalArgumentException() else "ppsspp",
+                    (row["saveRoot"] as? Map<*, *>)?.let { SaveRootConfiguration.decode(org.json.JSONObject(it)) })
             }
             require(mappings.map { it.key }.toSet().size == mappings.size)
             return mappings

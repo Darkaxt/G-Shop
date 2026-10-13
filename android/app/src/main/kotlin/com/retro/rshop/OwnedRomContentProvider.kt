@@ -301,7 +301,8 @@ class OwnedRomContentProvider : ContentProvider() {
         /** Read-only companion discovery uses the same currently validated ROM
          * grant as launch. No arbitrary directory from Flutter crosses here. */
         internal data class CompanionInventory(val files: Map<String, List<Long>>, val directories: Map<String, List<Long>>)
-        internal fun companionInventory(directory: String, romName: String, check: () -> Unit): CompanionInventory {
+        internal fun companionInventory(directory: String, romName: String, check: () -> Unit,
+            configuration: SaveRootConfiguration? = null): CompanionInventory {
             val root = OwnedStorageNative.openRoot(directory)
             val files = linkedMapOf<String, List<Long>>()
             val directories = linkedMapOf<String, List<Long>>()
@@ -320,8 +321,8 @@ class OwnedRomContentProvider : ContentProvider() {
                     for (leaf in names.sorted()) {
                         check()
                         val path = if (relative.isEmpty()) leaf else "$relative/$leaf"
-                        val fileAllowed = RomCompanionBoundary.associated(romName, path, isolated)
-                        val folderAllowed = RomCompanionBoundary.associatedDirectory(romName, path, isolated)
+                        val fileAllowed = configuration?.acceptsFile(path) ?: RomCompanionBoundary.associated(romName, path, isolated)
+                        val folderAllowed = configuration?.acceptsDirectory(path) ?: RomCompanionBoundary.associatedDirectory(romName, path, isolated)
                         if (!fileAllowed && !folderAllowed) continue
                         val status = android.system.Os.lstat("$directory/$path")
                         require(!android.system.OsConstants.S_ISLNK(status.st_mode))
@@ -360,7 +361,7 @@ class OwnedRomContentProvider : ContentProvider() {
         }
 
         internal fun companionSnapshot(context: Context, uri: Uri, before: Map<*, *>?,
-            check: () -> Unit): Map<String, Any> {
+            check: () -> Unit, configuration: SaveRootConfiguration? = null): Map<String, Any> {
             val saved = manifest(context, uri)
             return openCommitted(context, uri).use { rom ->
                 check()
@@ -368,31 +369,51 @@ class OwnedRomContentProvider : ContentProvider() {
                 val name = relative.substringAfterLast('/')
                 require(RomCompanionBoundary.validLeaf(name))
                 val parentPart = relative.substringBeforeLast('/', "")
-                val directory = saved.getString("destinationRoot") +
+                val romDirectory = saved.getString("destinationRoot") +
                     if (parentPart.isEmpty()) "" else "/$parentPart"
-                val parent = OwnedStorageNative.openRoot(directory)
+                val directory = configuration?.directory ?: romDirectory
+                val parent = OwnedStorageNative.openRoot(romDirectory)
                 try {
-                    val rootIdentity = OwnedStorageNative.identity(parent).take(2)
+                    val romRootIdentity = OwnedStorageNative.identity(parent).take(2)
                     val romIdentity = OwnedStorageNative.identity(rom.fd).toList()
                     if (!OwnedStorageNative.entryIdentity(parent, name).toList().equals(romIdentity))
                         throw IOException("source_changed")
-                    val inventory = companionInventory(directory, name, check)
+                    val external = configuration?.let { SaveSourceStorage.openRomCompanions(context,
+                        directory, name, emptyList(), configuration = it) }
+                    val rootIdentity: List<Long>
+                    val inventory: CompanionInventory
+                    val reviewed: CompanionInventory
+                    try {
+                        rootIdentity = external?.identity(external.root)?.take(2) ?: romRootIdentity
+                        inventory = external?.companionInventory() ?: companionInventory(directory, name, check)
+                        check()
+                        reviewed = external?.companionInventory() ?: companionInventory(directory, name, check)
+                        if (external != null && external.currentRootIdentity().take(2) != rootIdentity)
+                            throw IOException("source_changed")
+                    } finally { external?.close() }
                     val files = inventory.files
-                    val reviewed = companionInventory(directory, name, check)
                     if (reviewed.files != files || reviewed.directories != inventory.directories)
                         throw IOException("source_changed")
-                    val fresh = OwnedStorageNative.openRoot(directory)
+                    val fresh = OwnedStorageNative.openRoot(romDirectory)
                     try {
-                        if (OwnedStorageNative.identity(fresh).take(2) != rootIdentity ||
+                        if (OwnedStorageNative.identity(fresh).take(2) != romRootIdentity ||
                             OwnedStorageNative.identity(rom.fd).toList() != romIdentity ||
                             OwnedStorageNative.entryIdentity(fresh, name).toList() != romIdentity ||
                             !sameJson(saved, manifest(context, uri))) throw IOException("source_changed")
                     } finally { OwnedStorageNative.close(fresh) }
                     val binding = MessageDigest.getInstance("SHA-256").digest(
-                        JSONArray(listOf(uri.toString(), directory, romIdentity)).toString().toByteArray(Charsets.UTF_8))
+                        JSONArray(listOf(uri.toString(), directory, romIdentity) +
+                            if (configuration == null) emptyList() else listOf(configuration.json().toString(), rootIdentity))
+                            .toString().toByteArray(Charsets.UTF_8))
                         .joinToString("") { "%02x".format(it) }
                     val snapshot = linkedMapOf<String, Any>("binding" to binding, "directory" to directory,
                         "romName" to name, "directoryIdentity" to rootIdentity, "files" to files)
+                    if (configuration != null) snapshot["saveRoot"] = configuration.json().let { row ->
+                        row.keys().asSequence().associateWith { key ->
+                            val value = row.get(key)
+                            if (value is JSONArray) (0 until value.length()).map(value::getString) else value
+                        }
+                    }
                     val changed = if (before == null) emptyList() else {
                         val oldRoot = before["directoryIdentity"] as? List<*> ?: throw IOException("source_changed")
                         require(oldRoot.size == 2 && oldRoot.all { it is Long || it is Int })
@@ -402,8 +423,8 @@ class OwnedRomContentProvider : ContentProvider() {
                         val old = before["files"] as? Map<*, *> ?: throw IOException("source_changed")
                         require(old.size <= RomCompanionBoundary.MAX_MEMBERS)
                         val previous = old.entries.associate { (leaf, value) ->
-                            require(leaf is String && RomCompanionBoundary.associated(name, leaf,
-                                RomCompanionBoundary.isolated(name, directory)) && value is List<*> &&
+                            require(leaf is String && (configuration?.acceptsFile(leaf) ?: RomCompanionBoundary.associated(name, leaf,
+                                RomCompanionBoundary.isolated(name, directory))) && value is List<*> &&
                                 value.all { it is Long || it is Int })
                             leaf to value.map { (it as Number).toLong() }
                         }

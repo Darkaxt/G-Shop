@@ -7,6 +7,65 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Configured external/private roots — 2026-10-13
+
+`SaveRootConfiguration` is selection data consumed by the existing companion
+pipeline: one directory, emulator/core, save/state/companion kind, format,
+explicit files, per-game subdirectories and required file roles. It is not a
+second sync implementation. Shared-storage and that emulator's private
+`files/<subdirectory>` roots use the same joined root worker, pinned identities,
+streamed capture, kernel watcher and journaled restore/rollback. Explicit binary
+save files are permitted without admitting arbitrary `.bin` files recursively.
+ROMs, BIOS, settings, credentials and temporary publication files remain excluded.
+
+The existing Game backup section has a short Import mapping action for a JSON
+file. `{romStem}` expands once from the actual validated local ROM filename,
+not a display title. The resolved configuration persists per remote artifact;
+enabled mappings retain it in their existing durable record, background watch
+registration and capture/restore key. Changing the saved configuration invalidates
+an older automatic selection. Existing unconfigured mappings remain unchanged.
+Save and state groups import indivisibly; companions retain selective import.
+No timer, new service, emulator handshake or ADB runtime dependency is introduced.
+
+Example shape (replace the example root/runtime with the actual configured ones):
+
+```json
+{"schema":1,"directory":"/storage/emulated/0/Emulator/saves",
+ "emulator":"example.emulator","core":"example","kind":"save",
+ "format":"example-save-v1","files":["{romStem}.sav","{romStem}.rtc"],
+ "folders":[],"required":["{romStem}.sav"]}
+```
+
+Focused host checks verify the selected external/private-root boundary and the
+existing persistent job's publication/restore for all three kinds. The automatic
+lane preserves configuration and rejects a replaced selection before capture.
+Scoped analysis passes. Request 975 exposed a Kotlin nested-type qualification
+error, corrected in 976; no memory failure. Request 976 passes affected native
+contracts and app/test packaging, with shared gate acquired, two observed workers,
+parallel=false, Gradle heap=3 GiB, Kotlin in-process configured, one 512 MiB
+fail-fast test fork and verified daemon exit. Native environment budget two is
+not universal concurrency proof. The preserving install keeps secure/key/settings
+hashes unchanged. The actual Thor production-channel probe passes the configured
+private-root snapshot, exact binary save plus nested group capture, kernel watch,
+completed restore with retained rollback and unrelated-file preservation. Its
+exclusive fixtures/journals are removed. This verifies the shared mechanism,
+not default standard-location profiles for every installed emulator or S10 closure.
+The final import reads a bounded stream rather than loading an arbitrary selected
+file into memory before checking its size. Request 978 packages that final Dart
+change after waiting on its original FIFO ticket; gate acquired, build/helper 0,
+same observed two-worker/nonparallel/3 GiB profile and verified daemon exit, no
+memory failure. Kotlin remains configured in-process; assembly does not execute
+JVM tests. Final preserving APK SHA-256:
+`6debe0ffd15cdf5d7cdd235d30cc518c296f98378c2339aab03b3785b55ab434`.
+The installed final APK preserves both secure-store hashes and the settings hash.
+Both displays remain OFF. The current affected job checks also pass after the
+configured automatic-selection fixture was added; no full repository suite ran.
+The state-kind host check establishes routing/format separation, not identity of
+an independently updated libretro core. The current `unreported` core-version
+field cannot prove those bytes compatible. Resolve this with the standard
+configuration/runtime evidence before S10 closure; do not treat the synthetic
+state job as verification of every installed core's state compatibility.
+
 ### Owner execution correction — 2026-10-13
 
 Specification revision 39 supersedes historical per-family/input closure language

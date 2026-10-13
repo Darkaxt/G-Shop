@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../models/save_emulator_coverage.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
+import '../../models/save_root_configuration.dart';
 
 class CapturedSaveFile {
   final String name, sha256;
@@ -36,15 +37,26 @@ class RestoreSaveMember {
 /// not payloads or coherence claims. Modified entries are candidates for the
 /// existing capture pipeline, never timestamp-selected conflict winners.
 class RomCompanionSnapshot {
+  final SaveRootConfiguration? configuration;
   final String binding, directory, romName;
   final List<int> directoryIdentity;
   final Map<String, List<int>> files;
   final List<String> changedFiles;
 
-  RomCompanionSnapshot._(this.binding, this.directory, this.romName,
-      this.directoryIdentity, this.files, this.changedFiles);
+  RomCompanionSnapshot._(
+      this.binding,
+      this.directory,
+      this.romName,
+      this.directoryIdentity,
+      this.files,
+      this.changedFiles,
+      this.configuration);
 
   factory RomCompanionSnapshot.decode(Map<String, dynamic>? raw) {
+    final configuration = raw?['saveRoot'] == null
+        ? null
+        : SaveRootConfiguration.decode(
+            Map<String, dynamic>.from(raw!['saveRoot'] as Map));
     if (raw == null ||
         raw.keys.toSet().difference(const {
           'binding',
@@ -52,9 +64,10 @@ class RomCompanionSnapshot {
           'romName',
           'directoryIdentity',
           'files',
-          'changed'
+          'changed',
+          'saveRoot'
         }).isNotEmpty ||
-        raw.length != 6 ||
+        raw.length != (configuration == null ? 6 : 7) ||
         raw['binding'] is! String ||
         !RegExp(r'^[a-f0-9]{64}$').hasMatch(raw['binding'] as String) ||
         raw['directory'] is! String ||
@@ -84,8 +97,9 @@ class RomCompanionSnapshot {
       final leaf = entry.key;
       final value = entry.value;
       if (leaf is! String ||
-          !SaveCapture.validRomCompanionName(name, leaf,
-              directory: raw['directory'] as String) ||
+          !(configuration?.acceptsFile(leaf) ??
+              SaveCapture.validRomCompanionName(name, leaf,
+                  directory: raw['directory'] as String)) ||
           value is! List ||
           value.length != 5 ||
           value.any((part) => part is! int) ||
@@ -107,7 +121,8 @@ class RomCompanionSnapshot {
         name,
         List<int>.unmodifiable((raw['directoryIdentity'] as List).cast<int>()),
         Map<String, List<int>>.unmodifiable(files),
-        List<String>.unmodifiable(changed.cast<String>()));
+        List<String>.unmodifiable(changed.cast<String>()),
+        configuration);
   }
 
   Map<String, Object> toJson() => {
@@ -116,13 +131,15 @@ class RomCompanionSnapshot {
         'romName': romName,
         'directoryIdentity': directoryIdentity,
         'files': files,
+        if (configuration != null) 'saveRoot': configuration!.toJson(),
       };
 
   bool sameTarget(RomCompanionSnapshot other) =>
       binding == other.binding &&
       directory == other.directory &&
       romName == other.romName &&
-      listEquals(directoryIdentity, other.directoryIdentity);
+      listEquals(directoryIdentity, other.directoryIdentity) &&
+      configuration?.identity == other.configuration?.identity;
 }
 
 /// Current emulator configuration, not a guessed game/save association. A
@@ -278,16 +295,20 @@ class SaveCapture {
   Future<RomCompanionSnapshot> reviewRomCompanions(
       {required Map<String, Object> grant,
       RomCompanionSnapshot? before}) async {
-    final owned =
-        setEquals(grant.keys.toSet(), {'installationId', 'filename'}) &&
-            grant['installationId'] is String &&
-            (grant['installationId'] as String).trim().isNotEmpty;
-    final observed = setEquals(
-            grant.keys.toSet(), {'observationId', 'platformId', 'filename'}) &&
-        grant['observationId'] is int &&
-        (grant['observationId'] as int) > 0 &&
-        grant['platformId'] is String &&
-        (grant['platformId'] as String).isNotEmpty;
+    final keys = grant.keys.toSet()..remove('saveRoot');
+    final configured = grant['saveRoot'] == null
+        ? null
+        : SaveRootConfiguration.decode(
+            Map<String, dynamic>.from(grant['saveRoot'] as Map));
+    final owned = setEquals(keys, {'installationId', 'filename'}) &&
+        grant['installationId'] is String &&
+        (grant['installationId'] as String).trim().isNotEmpty;
+    final observed =
+        setEquals(keys, {'observationId', 'platformId', 'filename'}) &&
+            grant['observationId'] is int &&
+            (grant['observationId'] as int) > 0 &&
+            grant['platformId'] is String &&
+            (grant['platformId'] as String).isNotEmpty;
     final filename = grant['filename'];
     if (!(owned || observed) ||
         filename is! String ||
@@ -299,6 +320,8 @@ class SaveCapture {
         .invokeMapMethod<String, dynamic>('romCompanionSnapshot',
             {...grant, if (before != null) 'before': before.toJson()}));
     if (result.romName != filename.split('/').last ||
+        configured?.identity != result.configuration?.identity ||
+        configured != null && configured.directory != result.directory ||
         (before != null && !result.sameTarget(before))) {
       throw const FormatException('Changed ROM companion target');
     }
@@ -322,16 +345,16 @@ class SaveCapture {
       required Set<String> members,
       required String emulatorPackage,
       bool restoreBaseline = false}) async {
-    final owned =
-        setEquals(grant.keys.toSet(), {'installationId', 'filename'}) &&
-            grant['installationId'] is String &&
-            (grant['installationId'] as String).trim().isNotEmpty;
-    final observed = setEquals(
-            grant.keys.toSet(), {'observationId', 'platformId', 'filename'}) &&
-        grant['observationId'] is int &&
-        (grant['observationId'] as int) > 0 &&
-        grant['platformId'] is String &&
-        (grant['platformId'] as String).isNotEmpty;
+    final keys = grant.keys.toSet()..remove('saveRoot');
+    final owned = setEquals(keys, {'installationId', 'filename'}) &&
+        grant['installationId'] is String &&
+        (grant['installationId'] as String).trim().isNotEmpty;
+    final observed =
+        setEquals(keys, {'observationId', 'platformId', 'filename'}) &&
+            grant['observationId'] is int &&
+            (grant['observationId'] as int) > 0 &&
+            grant['platformId'] is String &&
+            (grant['platformId'] as String).isNotEmpty;
     final filename = grant['filename'];
     if (!(owned || observed) ||
         filename is! String ||
@@ -345,10 +368,17 @@ class SaveCapture {
         members.length > 128 ||
         utf8.encode(jsonEncode(members.toList())).length > 32768 ||
         members.any((name) =>
-            !validRomCompanionName(snapshot.romName, name,
-                directory: snapshot.directory) ||
+            !(snapshot.configuration?.acceptsFile(name) ??
+                validRomCompanionName(snapshot.romName, name,
+                    directory: snapshot.directory)) ||
             !restoreBaseline && !snapshot.files.containsKey(name))) {
       throw const FormatException('Invalid ROM companion capture');
+    }
+    if (snapshot.configuration != null &&
+        !restoreBaseline &&
+        (!snapshot.configuration!.completeGroup(members) ||
+            !setEquals(members, snapshot.files.keys.toSet()))) {
+      throw const FormatException('Incomplete save group');
     }
     final names = members.toList()..sort();
     final raw = await _channel
@@ -1036,16 +1066,16 @@ class SaveCapture {
       required RomCompanionSnapshot snapshot,
       required String emulatorPackage,
       required List<RestoreSaveMember> members}) async {
-    final owned =
-        setEquals(grant.keys.toSet(), {'installationId', 'filename'}) &&
-            grant['installationId'] is String &&
-            (grant['installationId'] as String).trim().isNotEmpty;
-    final observed = setEquals(
-            grant.keys.toSet(), {'observationId', 'platformId', 'filename'}) &&
-        grant['observationId'] is int &&
-        (grant['observationId'] as int) > 0 &&
-        grant['platformId'] is String &&
-        (grant['platformId'] as String).isNotEmpty;
+    final keys = grant.keys.toSet()..remove('saveRoot');
+    final owned = setEquals(keys, {'installationId', 'filename'}) &&
+        grant['installationId'] is String &&
+        (grant['installationId'] as String).trim().isNotEmpty;
+    final observed =
+        setEquals(keys, {'observationId', 'platformId', 'filename'}) &&
+            grant['observationId'] is int &&
+            (grant['observationId'] as int) > 0 &&
+            grant['platformId'] is String &&
+            (grant['platformId'] as String).isNotEmpty;
     final filename = grant['filename'];
     if (!(owned || observed) ||
         filename is! String ||
@@ -1064,8 +1094,9 @@ class SaveCapture {
             32768 ||
         members.map((member) => member.name).toSet().length != members.length ||
         members.any((member) =>
-            !validRomCompanionName(snapshot.romName, member.name,
-                directory: snapshot.directory) ||
+            !(snapshot.configuration?.acceptsFile(member.name) ??
+                validRomCompanionName(snapshot.romName, member.name,
+                    directory: snapshot.directory)) ||
             member.size < 0 ||
             member.size > 512 * 1024 * 1024 ||
             !RegExp(r'^[a-f0-9]{64}$').hasMatch(member.sha256) ||

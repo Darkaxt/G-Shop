@@ -17,6 +17,7 @@ import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/save_backup_manifest.dart';
 import 'package:retro_eshop/models/retroarch_battery_route.dart';
 import 'package:retro_eshop/models/pcsx_save_layout.dart';
+import 'package:retro_eshop/models/save_root_configuration.dart';
 import 'package:retro_eshop/services/drive/drive_authorization.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
@@ -58,24 +59,28 @@ class _Capture extends SaveCapture {
   final pcsxSources = <String>[];
   final pcsxRestores = <String>[];
   bool companionNested = false;
+  SaveRootConfiguration? configuredRoot;
   @override
   Future<RomCompanionSnapshot> reviewRomCompanions(
           {required Map<String, Object> grant,
           RomCompanionSnapshot? before}) async =>
       RomCompanionSnapshot.decode({
         'binding': 'a' * 64,
-        'directory': '/storage/emulated/0/Roms/gba',
+        'directory':
+            configuredRoot?.directory ?? '/storage/emulated/0/Roms/gba',
         'romName': 'Game.7z',
         'directoryIdentity': [1, 2],
         'files': {
-          for (final name in [
-            'Game.png',
-            'Game.cache',
-            if (companionNested) 'Game/images/shot.png'
-          ])
+          for (final name in configuredRoot?.files ??
+              [
+                'Game.png',
+                'Game.cache',
+                if (companionNested) 'Game/images/shot.png'
+              ])
             name: [1, 3, 4, 100, 0]
         },
         'changed': <String>[],
+        if (configuredRoot != null) 'saveRoot': configuredRoot!.toJson(),
       });
 
   @override
@@ -1433,6 +1438,7 @@ void main() {
     bool savedata = false,
     bool companion = false,
     bool romCompanion = false,
+    SaveRootConfiguration? configuredRoot,
     String? ppssppDirectory,
     RetroArchBatteryRoute? retroArch,
     PcsxSaveLayout? pcsx,
@@ -1447,7 +1453,7 @@ void main() {
         title: 'Game',
         matchStatus: IdentityMatchStatus.manuallyMatched));
     final directory = romCompanion
-        ? '/storage/emulated/0/Roms/gba'
+        ? configuredRoot?.directory ?? '/storage/emulated/0/Roms/gba'
         : pcsx != null
             ? pcsx.directory
             : retroArch != null
@@ -1514,6 +1520,7 @@ void main() {
         romCompanionPlatform: romCompanion ? 'gba' : null,
         romCompanionEmulator: romCompanion ? 'com.retroarch.aarch64' : null,
         romCompanionCore: romCompanion ? 'mgba' : null,
+        saveRootConfiguration: configuredRoot,
         resolveSaveName: () async => slot);
     final mapping = AutomaticSaveMapping.fromJob(psp,
         title: 'Game',
@@ -1525,6 +1532,9 @@ void main() {
                 : '/storage/1234-ABCD/Roms/psx');
     psp.dispose();
     SharedPreferences.setMockInitialValues({
+      if (configuredRoot != null)
+        SaveRootConfiguration.storageKey(artifactId.key):
+            configuredRoot.identity,
       SaveBackupSetup.storageKey('client', 'account'):
           jsonEncode({'ready': true, 'areaId': 'area'}),
       if (retroArch == null && pcsx == null)
@@ -1604,6 +1614,7 @@ void main() {
             romCompanionPlatform: mapped.companionPlatform,
             romCompanionEmulator: mapped.companionEmulator,
             romCompanionCore: mapped.companionCore,
+            saveRootConfiguration: mapped.saveRootConfiguration,
             resolveSaveName: resolve));
     addTearDown(() async {
       service.dispose();
@@ -1612,6 +1623,45 @@ void main() {
     await service.setEnabled(mapping, true);
     return (service: service, mapping: mapping, preferences: preferences);
   }
+
+  test(
+      'configured automatic roots retain their selection and reject a replaced mapping',
+      () async {
+    final config = SaveRootConfiguration.decode({
+      'schema': 1,
+      'directory': '/storage/emulated/0/Emulator/saves',
+      'emulator': 'com.retroarch.aarch64',
+      'core': 'mgba',
+      'kind': 'save',
+      'format': 'configured-save-v1',
+      'files': ['Game.sav'],
+      'folders': <String>[],
+      'required': ['Game.sav'],
+    });
+    capture.configuredRoot = config;
+    final watched = <AutomaticSaveMapping>[];
+    final fixture = await automaticFixture(
+        romCompanion: true,
+        configuredRoot: config,
+        watch: (rows) async {
+          watched.addAll(rows);
+        });
+    await fixture.service.checkEnabled();
+    expect((await fixture.service.status(fixture.mapping)).issue, isNull);
+    expect(watched.last.saveRootConfiguration!.identity, config.identity);
+    final before = capture.captures;
+    await fixture.preferences.setString(
+        SaveRootConfiguration.storageKey(artifactId.key),
+        jsonEncode({
+          ...config.toJson(),
+          'directory': '/storage/emulated/0/Other/saves'
+        }));
+    await fixture.service.requestChanged(fixture.mapping.key);
+    await fixture.service.checkEnabled();
+    expect((await fixture.service.status(fixture.mapping)).issue,
+        'source_changed');
+    expect(capture.captures, before);
+  });
 
   test(
       'automatic screenshot companion reuses the reviewed state association independently',
@@ -2646,6 +2696,65 @@ void main() {
     expect(capture.stagedDirectories, [directory]);
     expect(capture.restored, hasLength(1));
   });
+
+  for (final kind in SaveBackupKind.values) {
+    test(
+        'configured ${kind.name} roots use the same durable backup and restore job',
+        () async {
+      final config = SaveRootConfiguration.decode({
+        'schema': 1,
+        'directory': '/storage/emulated/0/Emulator/${kind.name}',
+        'emulator': 'com.retroarch.aarch64',
+        'core': 'mgba',
+        'kind': kind.name,
+        'format': 'configured-${kind.name}-v1',
+        'files': ['Game.sav', 'Game.rtc'],
+        'folders': <String>[],
+        'required': ['Game.sav', 'Game.rtc'],
+      });
+      capture.configuredRoot = config;
+      final configured = SaveBackupGameJob(
+          database: job.database,
+          capture: capture,
+          areas: areas,
+          generations: generations,
+          clientId: 'client',
+          accountId: 'account',
+          areaId: 'area',
+          editionId: 'edition',
+          artifactId: artifactId,
+          resolveSaveName: () async => 'Game.7z',
+          resolveRomCompanionGrant: () async => {
+                'installationId': 'owned',
+                'filename': 'Game.7z',
+                'saveRoot': config.toJson()
+              },
+          saveRootConfiguration: config,
+          romCompanionDirectory: config.directory,
+          romCompanionName: 'Game.7z',
+          romCompanionPlatform: 'gba',
+          romCompanionEmulator: config.emulator,
+          romCompanionCore: config.core);
+      addTearDown(configured.dispose);
+      final mapping = AutomaticSaveMapping.fromJob(configured,
+          title: 'Game', romRoot: '/storage/emulated/0/Roms/gba');
+      expect(jsonDecode(mapping.encode())['saveRoot'], config.toJson());
+      await configured.backup('Game.7z');
+      expect(configured.issue, isNull);
+      expect(configured.lastVerified!.binding.kind, kind);
+      expect(configured.lastVerified!.binding.formatId, config.format);
+      expect(
+          configured.lastVerified!.binding.companionCompatibility,
+          kind == SaveBackupKind.companion
+              ? SaveCompanionCompatibility.runtime
+              : null);
+      await configured.load();
+      await configured.restoreLatest();
+      expect(configured.issue, isNull);
+      expect(capture.stagedGroups.last.toSet(), {'Game.sav', 'Game.rtc'});
+      expect(configured.rollbackAvailable, isTrue);
+    });
+  }
 
   test(
       'ROM companion job publishes runtime-bound files and imports only selected members',

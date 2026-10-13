@@ -10,6 +10,7 @@ import '../../models/config/source.dart';
 import '../../models/library_identity.dart';
 import '../../models/retroarch_battery_route.dart';
 import '../../models/pcsx_save_layout.dart';
+import '../../models/save_root_configuration.dart';
 import '../../models/game_item.dart';
 import '../library_store.dart';
 import '../owned_emulator_launcher.dart';
@@ -27,6 +28,7 @@ class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
   final bool isMelon, isPpssppSavedata, isPpssppCompanion, isRomCompanion;
   final String? companionPlatform, companionEmulator, companionCore;
+  final SaveRootConfiguration? saveRootConfiguration;
   final RetroArchBatteryRoute? retroArchRoute;
   final PcsxSaveLayout? pcsxLayout;
   final String? romRoot;
@@ -40,7 +42,11 @@ class AutomaticSaveMapping {
       : value == slot;
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
-      : isMelon = value['schema'] == 2 && value['route'] == 'melon',
+      : saveRootConfiguration = value['saveRoot'] == null
+            ? null
+            : SaveRootConfiguration.decode(
+                Map<String, dynamic>.from(value['saveRoot'] as Map)),
+        isMelon = value['schema'] == 2 && value['route'] == 'melon',
         isRomCompanion =
             value['schema'] == 6 && value['route'] == 'rom-companion',
         companionPlatform =
@@ -82,7 +88,8 @@ class AutomaticSaveMapping {
             (romRoot == null ||
                 romRoot!.isEmpty ||
                 romRoot!.length > 4096 ||
-                !SaveCapture.validRomCompanionDirectory(directory) ||
+                !(saveRootConfiguration?.directory == directory ||
+                    SaveCapture.validRomCompanionDirectory(directory)) ||
                 [companionPlatform, companionEmulator, companionCore]
                     .any((value) => value == null || value.isEmpty))) ||
         (isPcsx &&
@@ -98,7 +105,8 @@ class AutomaticSaveMapping {
         artifactId.providerId != 'drive' ||
         artifactId.accountId != accountId ||
         !(isRomCompanion
-            ? SaveCapture.validRomCompanionDirectory(directory)
+            ? saveRootConfiguration?.directory == directory ||
+                SaveCapture.validRomCompanionDirectory(directory)
             : isPcsx
                 ? directory == pcsxLayout!.directory
                 : isRetroArch
@@ -126,6 +134,13 @@ class AutomaticSaveMapping {
                                 : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
+    if (saveRootConfiguration != null &&
+        (!isRomCompanion ||
+            saveRootConfiguration!.directory != directory ||
+            saveRootConfiguration!.emulator != companionEmulator ||
+            saveRootConfiguration!.core != companionCore)) {
+      throw const FormatException('Invalid configured save mapping');
+    }
   }
 
   factory AutomaticSaveMapping.fromJob(SaveBackupGameJob job,
@@ -146,6 +161,8 @@ class AutomaticSaveMapping {
         'title': title,
         'directory': job.romCompanionDirectory,
         'slot': job.romCompanionName,
+        if (job.saveRootConfiguration != null)
+          'saveRoot': job.saveRootConfiguration!.toJson(),
       });
     }
     if (job.isPcsx) {
@@ -289,13 +306,16 @@ class AutomaticSaveMapping {
           romRoot,
           companionPlatform,
           companionEmulator,
-          companionCore
+          companionCore,
+          if (saveRootConfiguration != null) saveRootConfiguration!.identity
         ],
       ])))
       .toString();
   Map<String, Object?> get selection => {
         'directory': directory,
         'name': slot,
+        if (saveRootConfiguration != null)
+          'saveRoot': saveRootConfiguration!.toJson(),
         if (isPcsx) ...{
           'mode': pcsxCard!.mode,
           'card': pcsxCard!.slot,
@@ -304,7 +324,9 @@ class AutomaticSaveMapping {
       };
   bool matchesSelection(Object? value) =>
       value is Map &&
-      selection.entries.every((entry) => value[entry.key] == entry.value);
+      selection.entries.every((entry) => entry.key == 'saveRoot'
+          ? jsonEncode(value[entry.key]) == jsonEncode(entry.value)
+          : value[entry.key] == entry.value);
   String encode() => jsonEncode({
         'schema': isRomCompanion
             ? 6
@@ -329,7 +351,9 @@ class AutomaticSaveMapping {
           'romRoot': romRoot,
           'platform': companionPlatform,
           'emulator': companionEmulator,
-          'core': companionCore
+          'core': companionCore,
+          if (saveRootConfiguration != null)
+            'saveRoot': saveRootConfiguration!.toJson()
         },
         if (isPcsx) ...{
           'route': 'pcsx',
@@ -612,6 +636,12 @@ class AutomaticSaveBackups extends ChangeNotifier {
         '{}');
     final slot =
         jsonDecode(preferences.getString(mapping.slotStorageKey) ?? '{}');
+    if (mapping.saveRootConfiguration != null &&
+        preferences.getString(
+                SaveRootConfiguration.storageKey(mapping.artifactId.key)) !=
+            mapping.saveRootConfiguration!.identity) {
+      throw PlatformException(code: 'source_changed');
+    }
     if (!configured ||
         setup is! Map ||
         setup['ready'] != true ||
@@ -700,6 +730,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
         romCompanionPlatform: mapping.companionPlatform,
         romCompanionEmulator: mapping.companionEmulator,
         romCompanionCore: mapping.companionCore,
+        saveRootConfiguration: mapping.saveRootConfiguration,
         resolveSaveName: resolve);
   }
 
@@ -708,7 +739,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
     await _resolve(mapping);
     final artifact = await LibraryStore(database).artifact(mapping.artifactId);
     if (artifact == null) throw PlatformException(code: 'source_changed');
-    final grant = await OwnedEmulatorLauncher().resolveRomCompanionGrant(
+    final baseGrant = await OwnedEmulatorLauncher().resolveRomCompanionGrant(
         GameItem(
             filename: artifact.displayName,
             displayName: artifact.displayName,
@@ -716,6 +747,11 @@ class AutomaticSaveBackups extends ChangeNotifier {
             remoteArtifact: artifact),
         mapping.companionPlatform!,
         mapping.romRoot!);
+    final grant = <String, Object>{
+      ...baseGrant,
+      if (mapping.saveRootConfiguration != null)
+        'saveRoot': mapping.saveRootConfiguration!.toJson()
+    };
     final snapshot = await SaveCapture().reviewRomCompanions(grant: grant);
     if (snapshot.romName != mapping.slot ||
         snapshot.directory != mapping.directory) {

@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../models/save_backup_manifest.dart';
 import '../../models/retroarch_battery_route.dart';
+import '../../models/save_root_configuration.dart';
 import '../../models/pcsx_save_layout.dart';
 import '../../models/library_identity.dart';
 import '../../models/save_emulator_coverage.dart';
@@ -45,6 +46,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   final PcsxSaveCard? pcsxCard;
   final Future<Map<String, Object>> Function()? resolvePcsxGrant;
   final Future<Map<String, Object>> Function()? resolveRomCompanionGrant;
+  final SaveRootConfiguration? saveRootConfiguration;
   final String? romCompanionDirectory,
       romCompanionName,
       romCompanionPlatform,
@@ -82,6 +84,7 @@ class SaveBackupGameJob extends ChangeNotifier {
       this.pcsxCard,
       this.resolvePcsxGrant,
       this.resolveRomCompanionGrant,
+      this.saveRootConfiguration,
       this.romCompanionName,
       this.romCompanionDirectory,
       this.romCompanionPlatform,
@@ -144,6 +147,13 @@ class SaveBackupGameJob extends ChangeNotifier {
                 romCompanionName!.lastIndexOf('.') <= 0)) {
       throw ArgumentError('Invalid ROM companion binding');
     }
+    if (saveRootConfiguration != null &&
+        (!isRomCompanion ||
+            saveRootConfiguration!.directory != romCompanionDirectory ||
+            saveRootConfiguration!.emulator != romCompanionEmulator ||
+            saveRootConfiguration!.core != romCompanionCore)) {
+      throw ArgumentError('Invalid configured save binding');
+    }
   }
 
   bool get isRomCompanion => resolveRomCompanionGrant != null;
@@ -196,7 +206,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                   ? 'ppsspp'
                   : retroArchRoute.coreId;
   String get _format => isRomCompanion
-      ? 'rom-companion-files-v1'
+      ? saveRootConfiguration?.format ?? 'rom-companion-files-v1'
       : isPcsx
           ? 'pcsx-${pcsxCard!.mode}-card${pcsxCard!.slot}-v1'
           : isMelon
@@ -208,11 +218,13 @@ class SaveBackupGameJob extends ChangeNotifier {
                           ? 'ppsspp-screenshot-jpeg-v1'
                           : 'ppsspp-slot-v1')
                       : retroArchRoute.formatId;
-  SaveBackupKind get _kind => isRomCompanion || ppssppCompanion
-      ? SaveBackupKind.companion
-      : isPpssppState
-          ? SaveBackupKind.state
-          : SaveBackupKind.save;
+  SaveBackupKind get _kind =>
+      saveRootConfiguration?.kind ??
+      (isRomCompanion || ppssppCompanion
+          ? SaveBackupKind.companion
+          : isPpssppState
+              ? SaveBackupKind.state
+              : SaveBackupKind.save);
   String get _savedataName => ppssppSavedataDirectory!.split('/').last;
   bool _validName(String name) => isRomCompanion
       ? name == romCompanionName
@@ -239,7 +251,7 @@ class SaveBackupGameJob extends ChangeNotifier {
       binding.coreId == _core &&
       binding.kind == _kind &&
       binding.companionCompatibility ==
-          (isRomCompanion
+          (isRomCompanion && _kind == SaveBackupKind.companion
               ? SaveCompanionCompatibility.runtime
               : ppssppCompanion
                   ? SaveCompanionCompatibility.portable
@@ -257,6 +269,9 @@ class SaveBackupGameJob extends ChangeNotifier {
         throw PlatformException(code: 'source_changed');
       }
       if (snapshot.directory != romCompanionDirectory) {
+        throw PlatformException(code: 'source_changed');
+      }
+      if (snapshot.configuration?.identity != saveRootConfiguration?.identity) {
         throw PlatformException(code: 'source_changed');
       }
       final members = companionMembers ?? snapshot.files.keys.toSet();
@@ -314,6 +329,7 @@ class SaveBackupGameJob extends ChangeNotifier {
           romCompanionPlatform,
           romCompanionEmulator,
           romCompanionCore,
+          if (saveRootConfiguration != null) saveRootConfiguration!.identity,
         ] else if (isPcsx) ...[
           _format,
           pcsxLayout!.directory,
@@ -1011,9 +1027,15 @@ class SaveBackupGameJob extends ChangeNotifier {
       if (!_bindingMatches(manifest.binding) ||
           manifest.members.isEmpty ||
           manifest.members.length > 128 ||
-          manifest.members.any((member) => !SaveCapture.validRomCompanionName(
-              romCompanionName!, member.relativePath,
-              directory: romCompanionDirectory)) ||
+          (saveRootConfiguration != null &&
+              !saveRootConfiguration!.completeGroup(manifest.members
+                  .map((member) => member.relativePath)
+                  .toSet())) ||
+          manifest.members.any((member) =>
+              !(saveRootConfiguration?.acceptsFile(member.relativePath) ??
+                  SaveCapture.validRomCompanionName(
+                      romCompanionName!, member.relativePath,
+                      directory: romCompanionDirectory))) ||
           manifest.members
                   .fold<int>(0, (total, member) => total + member.sizeBytes) >
               512 * 1024 * 1024) {
@@ -1193,11 +1215,12 @@ class SaveBackupGameJob extends ChangeNotifier {
                 SaveBackupEdition(gameId: game.id, editionId: editionId)
               ],
               kind: _kind,
-              companionCompatibility: isRomCompanion
-                  ? SaveCompanionCompatibility.runtime
-                  : ppssppCompanion
-                      ? SaveCompanionCompatibility.portable
-                      : null,
+              companionCompatibility:
+                  isRomCompanion && _kind == SaveBackupKind.companion
+                      ? SaveCompanionCompatibility.runtime
+                      : ppssppCompanion
+                          ? SaveCompanionCompatibility.portable
+                          : null,
               formatId: _format,
               sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
               sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);

@@ -323,6 +323,11 @@ class OwnedRomInstrumentation : Instrumentation() {
                 val nestedFile = File(nestedFolder, "shot.png")
                 val isolatedSave = File(nestedRoot, "progress.sav")
                 val isolatedRom = File(nestedRoot, rom.name)
+                val mappedRoot = File(targetContext.filesDir.canonicalFile, "save-root-proof-$id")
+                val mappedFolder = File(mappedRoot, "TITLE123")
+                val mappedCard = File(mappedRoot, "card.bin")
+                val mappedChild = File(mappedFolder, "progress.dat")
+                val mappedOther = File(mappedRoot, "Other.sav")
                 fun invoke(method: String, args: Map<String, Any>, expected: String? = null): Any? {
                     val done = CountDownLatch(1)
                     var value: Any? = null; var failure: String? = null
@@ -460,6 +465,59 @@ class OwnedRomInstrumentation : Instrumentation() {
                     val missing = capture(listOf(nestedPath), baseline = true)
                     check(missing.second!!["localWasAbsent"] == true)
                     restoreNested(missing.first)
+                    // Same production pipeline, now outside the ROM directory
+                    // and inside private app storage. Only exact fixture files
+                    // are selected; no installed emulator/save settings change.
+                    check(mappedRoot.mkdir()); check(mappedFolder.mkdir())
+                    check(mappedCard.createNewFile()); mappedCard.writeBytes(byteArrayOf(10, 11))
+                    check(mappedChild.createNewFile()); mappedChild.writeBytes(byteArrayOf(12))
+                    check(mappedOther.createNewFile()); mappedOther.writeBytes(byteArrayOf(13))
+                    val configuration = SaveRootConfiguration(mappedRoot.path, targetContext.packageName,
+                        "fixture", "save", "fixture-card-v1", listOf("card.bin"), listOf("TITLE123"), listOf("card.bin"))
+                    val configurationMap = mapOf<String, Any>("schema" to 1, "directory" to mappedRoot.path,
+                        "emulator" to targetContext.packageName, "core" to "fixture", "kind" to "save",
+                        "format" to "fixture-card-v1", "files" to listOf("card.bin"),
+                        "folders" to listOf("TITLE123"), "required" to listOf("card.bin"))
+                    val configuredGrant = mapOf<String, Any>("installationId" to id, "filename" to rom.name,
+                        "saveRoot" to configurationMap, "emulatorPackage" to targetContext.packageName)
+                    val configuredSnapshot = invoke("romCompanionSnapshot", configuredGrant) as Map<*, *>
+                    val configuredNames = listOf("TITLE123/progress.dat", "card.bin")
+                    check(configuredSnapshot["directory"] == mappedRoot.path &&
+                        (configuredSnapshot["files"] as Map<*, *>).keys == configuredNames.toSet())
+                    val configuredBefore = configuredSnapshot.filterKeys { it != "changed" }
+                    val configuredInitial = CountDownLatch(1); val configuredChanged = CountDownLatch(1)
+                    val configuredFirst = java.util.concurrent.atomic.AtomicBoolean(true)
+                    companionWatch = SaveFileWatch(targetContext, changed = {
+                        check(it == "b".repeat(64))
+                        if (configuredFirst.getAndSet(false)) configuredInitial.countDown() else configuredChanged.countDown()
+                    })
+                    check(companionWatch.replace(listOf(SaveFileWatch.Mapping("b".repeat(64), mappedRoot.path,
+                        rom.name, "rom-companion", configuration))) == listOf("b".repeat(64)))
+                    configuredInitial.await()
+                    mappedChild.appendBytes(byteArrayOf(14)); configuredChanged.await()
+                    companionWatch.close(); companionWatch = null
+                    val configuredNext = invoke("romCompanionSnapshot", configuredGrant + mapOf("before" to configuredBefore)) as Map<*, *>
+                    check(configuredNext["changed"] == listOf("TITLE123/progress.dat"))
+                    val configuredBinding = configuredGrant + mapOf("binding" to configuredNext["binding"]!!)
+                    val configuredCaptureId = UUID.randomUUID().toString().replace("-", ""); captures.add(configuredCaptureId)
+                    val configuredCapture = invoke("captureRomCompanions", configuredBinding + mapOf(
+                        "captureId" to configuredCaptureId, "members" to configuredNames)) as Map<*, *>
+                    check((configuredCapture["files"] as List<*>).map { (it as Map<*, *>)["name"] } == configuredNames)
+                    val configuredRestoreId = UUID.randomUUID().toString().replace("-", "")
+                    restoreIds[configuredRestoreId] = configuredNames
+                    val configuredBytes = listOf(byteArrayOf(21, 22), byteArrayOf(23, 24))
+                    invoke("beginRestoreGroup", configuredBinding + mapOf("captureId" to configuredRestoreId,
+                        "name" to rom.name, "members" to configuredNames.indices.map { index ->
+                            mapOf("name" to configuredNames[index], "size" to configuredBytes[index].size,
+                                "sha256" to sha(configuredBytes[index])) }))
+                    for (index in configuredBytes.indices) invoke("appendRestoreGroup", mapOf(
+                        "captureId" to configuredRestoreId, "member" to index, "offset" to 0L, "bytes" to configuredBytes[index]))
+                    invoke("sealRestoreGroup", mapOf("captureId" to configuredRestoreId))
+                    invoke("publishRestoreGroup", mapOf("captureId" to configuredRestoreId,
+                        "rollbackCaptureId" to configuredCaptureId))
+                    check(mappedChild.readBytes().contentEquals(configuredBytes[0]))
+                    check(mappedCard.readBytes().contentEquals(configuredBytes[1]))
+                    check(mappedOther.readBytes().contentEquals(byteArrayOf(13)))
                     snapshot(baseline(changed) + mapOf("binding" to "0".repeat(64)), "capture_unavailable")
                     db.delete("transfer_target_owners", "transfer_id=?", arrayOf(id))
                     snapshot(expected = "capture_unavailable")
@@ -471,6 +529,9 @@ class OwnedRomInstrumentation : Instrumentation() {
                     companionWatch?.close()
                     captures.forEach { captureId -> invoke("retireCapture", mapOf("captureId" to captureId)) }
                     val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
+                    for (fixture in listOf(mappedChild, mappedCard, mappedOther, mappedFolder, mappedRoot)) {
+                        if (fixture.exists()) check(fixture.delete())
+                    }
                     // Exact disposable fixture journals only; no user captures,
                     // rollback history or shared saves are included.
                     for ((restoreId, targets) in restoreIds) {

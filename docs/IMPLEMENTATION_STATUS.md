@@ -10,9 +10,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 Owner correction (specification revision 39): remaining installed-emulator
 coverage is declarative root/path/game/group/compatibility configuration through
 the existing shared filesystem/Drive pipeline, not eight separate sync engines
-or live test campaigns. The current generic companion root is the ROM directory;
-connecting external/protected save-root configuration is the concrete remaining
-integration gap. Reconcile existing recovery evidence before adding verification.
+or live test campaigns. External/private-root configuration now feeds that same
+engine, normal mapping import, durable background records and root watch. Host
+publication/restore and an actual private-root capture/watch/restore check pass.
+Standard-location configuration reconciliation remains unfinished; generic access
+alone is not proof that an installed emulator's correct files are configured.
 Remaining touch/controller and responsive-layout acceptance belongs to S12 by
 explicit owner assignment, not to S10. Historical statements below are superseded
 where they conflict with this correction; S10 is still the sole ACTIVE stage.
@@ -76,8 +78,7 @@ Current SAVE-01 advancement blockers are internal and actionable:
 
 | Required criterion | Concrete remaining gap | Resolution / dependent completion |
 | --- | --- | --- |
-| Configured save-root integration | Shared companion engine currently resolves the ROM parent; external/protected save roots and exact associations are not connected through shared declarative configuration | Connect config to the existing watch/capture/restore lane and reconcile actual installed coverage; do not build per-family sync engines |
-| Preservation and recovery reconciliation | Existing host/native/live proofs have not yet been mapped to the final configured-root feature | Reuse applicable inspected results and verify only missing or changed boundaries; no speculative edge-case expansion |
+| Standard configuration and state-runtime identity | Declarative external/private roots are wired through the existing lane and normal mapping import; host workflow, native packaging and actual private-root capture/watch/restore pass. Standard-location mappings and independently updated core identity for configured states still need reconciliation; `unreported` core version is not proof of compatible core bytes | Resolve the standard configuration and actual state-runtime evidence using the same engine; do not build per-family sync engines or claim all configured states compatible |
 | Legacy sync handover | Replacement acceptance has not passed, so retirement must not begin | After acceptance, join the exact old writer, retire only the authorized app/task and prove replacement backup/restore |
 
 These block advancement, not continued implementation. No external execution
@@ -85,6 +86,17 @@ impediment is currently established. Owner-assigned S12 work: remaining save-set
 touch/controller and responsive-layout acceptance, with real action/section-state
 proof; current S10 correctness does not depend on that presentation work. Historical
 diagnostic/checkpoint evidence below must not be read as current feature closure.
+
+Recovery reconciliation, 2026-10-13: the current affected job checks pass
+interrupted upload/reserved-object replay, last-good/rollback retention, offline
+late-conflict review, cancellation, changed/reinstalled target rejection and
+restore into the current reinstalled target. The current native probe verifies
+writer/mutation rejection, exact ownership revocation, missing-folder recreation,
+retained rollback and configured private-root publication while preserving the
+unselected file. Earlier real Drive/cold-process network-resume evidence remains
+applicable to the unchanged transport/scheduler. These results do not justify a
+new per-emulator recovery campaign or an owner's-app uninstall. Final handover
+and any subsequently changed boundary still require their applicable verification.
 
 ### Bound game-folder discovery — ACTIVE work, 2026-10-13
 

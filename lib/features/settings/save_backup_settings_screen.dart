@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../models/save_root_configuration.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -84,6 +85,7 @@ class _SaveBackupSettingsScreenState
   bool _pspSavedata = true;
   bool _pspCompanion = false;
   bool _romCompanions = false;
+  SaveRootConfiguration? _saveRootConfiguration;
   int _pcsxSlot = 1;
   PcsxSaveLayout? _pcsxLayout;
   bool _editingMapping = false;
@@ -189,6 +191,16 @@ class _SaveBackupSettingsScreenState
   Future<SaveBackupSetup> _open(DriveSourceConfig config) async {
     final generation = ++_generation;
     final preferences = await SharedPreferences.getInstance();
+    final artifactKey = widget.game?.remoteArtifact?.id.key;
+    if (artifactKey != null && _saveRootConfiguration == null) {
+      final raw =
+          preferences.getString(SaveRootConfiguration.storageKey(artifactKey));
+      if (raw != null) {
+        _saveRootConfiguration = SaveRootConfiguration.decode(
+            Map<String, dynamic>.from(jsonDecode(raw) as Map));
+        _romCompanions = true;
+      }
+    }
     final authorization =
         DriveRuntime.instance.authorizationFor(config.serverClientId);
     final setup = SaveBackupSetup(
@@ -227,12 +239,17 @@ class _SaveBackupSettingsScreenState
     PcsxSaveCard? card;
     final launcher = OwnedEmulatorLauncher();
     if (_romCompanions) {
-      Future<Map<String, Object>> grant() => launcher.resolveRomCompanionGrant(
-          widget.game!, widget.system!.id, widget.targetFolder!);
+      final configured = _saveRootConfiguration;
+      Future<Map<String, Object>> grant() async => {
+            ...await launcher.resolveRomCompanionGrant(
+                widget.game!, widget.system!.id, widget.targetFolder!),
+            if (configured != null) 'saveRoot': configured.toJson(),
+          };
       final snapshot =
           await SaveCapture().reviewRomCompanions(grant: await grant());
-      final runtime =
-          OwnedEmulatorLauncher.romCompanionRuntime(widget.system!.id);
+      final runtime = configured == null
+          ? OwnedEmulatorLauncher.romCompanionRuntime(widget.system!.id)
+          : (packageName: configured.emulator, coreId: configured.core);
       final authorization =
           DriveRuntime.instance.authorizationFor(config.serverClientId);
       final areas = DriveSaveBackupAreaApi(
@@ -250,6 +267,7 @@ class _SaveBackupSettingsScreenState
           editionId: widget.editionId!,
           artifactId: widget.game!.remoteArtifact!.id,
           resolveRomCompanionGrant: grant,
+          saveRootConfiguration: configured,
           romCompanionDirectory: snapshot.directory,
           romCompanionName: snapshot.romName,
           romCompanionPlatform: widget.system!.id,
@@ -419,6 +437,60 @@ class _SaveBackupSettingsScreenState
       areas.close();
       api.close();
       rethrow;
+    }
+  }
+
+  Future<void> _importSaveRoot() async {
+    if (_gameJob?.busy == true ||
+        widget.game?.remoteArtifact == null ||
+        widget.system == null ||
+        widget.targetFolder == null) {
+      return;
+    }
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+          withReadStream: true);
+      if (picked == null) return;
+      final file = picked.files.single;
+      if (file.size > 32768 || file.readStream == null) {
+        throw const FormatException();
+      }
+      final bytes = <int>[];
+      await for (final chunk in file.readStream!) {
+        if (bytes.length + chunk.length > 32768) throw const FormatException();
+        bytes.addAll(chunk);
+      }
+      final grant = await OwnedEmulatorLauncher().resolveRomCompanionGrant(
+          widget.game!, widget.system!.id, widget.targetFolder!);
+      final configured = SaveRootConfiguration.decode(
+          Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
+          romName: (grant['filename'] as String).split('/').last);
+      final preferences = await SharedPreferences.getInstance();
+      final old = _gameJob;
+      if (old?.isRomCompanion == true && _automatic != null) {
+        final mapping = AutomaticSaveMapping.fromJob(old!,
+            title: widget.gameTitle ?? 'Game', romRoot: widget.targetFolder);
+        await _automatic!.setEnabled(mapping, false);
+      }
+      if (!await preferences.setString(
+          SaveRootConfiguration.storageKey(widget.game!.remoteArtifact!.id.key),
+          jsonEncode(configured.toJson()))) {
+        throw StateError('Mapping was not saved');
+      }
+      if (!mounted) return;
+      setState(() {
+        _closeGame();
+        _saveRootConfiguration = configured;
+        _romCompanions = true;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Could not use this mapping. Check the folder and selected files.')));
+      }
     }
   }
 
@@ -838,6 +910,8 @@ class _SaveBackupSettingsScreenState
                                                                       widget
                                                                           .editionId,
                                                                       _romCompanions,
+                                                                      _saveRootConfiguration
+                                                                          ?.identity,
                                                                       if (widget
                                                                               .system
                                                                               ?.id ==
@@ -868,6 +942,28 @@ class _SaveBackupSettingsScreenState
                                                                   CrossAxisAlignment
                                                                       .stretch,
                                                               children: [
+                                                                if (widget.game
+                                                                            ?.remoteArtifact !=
+                                                                        null &&
+                                                                    widget.system !=
+                                                                        null &&
+                                                                    _section ==
+                                                                        SaveBackupSection
+                                                                            .backup)
+                                                                  Align(
+                                                                      alignment:
+                                                                          Alignment
+                                                                              .centerLeft,
+                                                                      child: TextButton.icon(
+                                                                          key: const ValueKey(
+                                                                              'save-import-mapping'),
+                                                                          onPressed: _gameJob?.busy == true
+                                                                              ? null
+                                                                              : _importSaveRoot,
+                                                                          icon: const Icon(Icons
+                                                                              .file_open_outlined),
+                                                                          label:
+                                                                              const Text('Import mapping'))),
                                                                 if (widget.game != null &&
                                                                     widget.system !=
                                                                         null &&
@@ -898,13 +994,13 @@ class _SaveBackupSettingsScreenState
                                                                                 'Back up',
                                                                             prefixIcon:
                                                                                 Icon(Icons.folder_copy_outlined)),
-                                                                        items: const [
-                                                                          DropdownMenuItem(
+                                                                        items: [
+                                                                          const DropdownMenuItem(
                                                                               value: false,
                                                                               child: Text('Save data')),
                                                                           DropdownMenuItem(
                                                                               value: true,
-                                                                              child: Text('Game files')),
+                                                                              child: Text(_saveRootConfiguration == null ? 'Game files' : 'Mapped files')),
                                                                         ],
                                                                         onChanged: _gameJob?.busy ==
                                                                                 true

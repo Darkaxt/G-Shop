@@ -1,0 +1,57 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:retro_eshop/models/save_root_configuration.dart';
+
+void main() {
+  final mapping = <String, dynamic>{
+    'schema': 1,
+    'directory':
+        '/storage/emulated/0/Android/data/example.emulator/files/saves',
+    'emulator': 'example.emulator',
+    'core': 'example',
+    'kind': 'save',
+    'format': 'example-save-v1',
+    'files': ['{romStem}.sav', '{romStem}.rtc'],
+    'folders': <String>[],
+    'required': ['{romStem}.sav'],
+  };
+  test('one configuration binds external save groups to the exact ROM', () {
+    final config = SaveRootConfiguration.decode(mapping, romName: 'Game.gba');
+    expect(config.files, ['Game.sav', 'Game.rtc']);
+    expect(config.acceptsFile('Game.sav'), isTrue);
+    expect(config.acceptsFile('Other.sav'), isFalse);
+    expect(config.acceptsFile('../Game.sav'), isFalse);
+    expect(config.completeGroup({'Game.sav'}), isTrue);
+    expect(config.completeGroup({'Game.rtc'}), isFalse);
+    expect(config.completeGroup({}), isTrue);
+    expect(SaveRootConfiguration.decode(config.toJson()).toJson(),
+        config.toJson());
+  });
+  test('a configured game directory includes derived descendants, not app data',
+      () {
+    final config = SaveRootConfiguration.decode({
+      ...mapping,
+      'directory': '/data/user/0/example.emulator/files/saves',
+      'files': ['card.bin'],
+      'folders': ['TITLE123'],
+      'required': <String>[],
+    });
+    expect(config.acceptsFile('card.bin'), isTrue);
+    expect(config.acceptsFile('TITLE123/slot/save.dat'), isTrue);
+    expect(config.acceptsDirectory('TITLE123/slot'), isTrue);
+    expect(config.acceptsFile('TITLE124/slot/save.dat'), isFalse);
+    expect(config.acceptsFile('TITLE123/settings.ini'), isFalse);
+    expect(config.acceptsFile('TITLE123/other.iso'), isFalse);
+    expect(config.acceptsFile('TITLE123/bios.bin'), isFalse);
+    for (final directory in [
+      '/data/user/0/other.app/files/saves',
+      '/data/user/0/example.emulator',
+      '/storage/emulated/0'
+    ]) {
+      expect(
+          () => SaveRootConfiguration.decode(
+              {...mapping, 'directory': directory},
+              romName: 'Game.gba'),
+          throwsFormatException);
+    }
+  });
+}

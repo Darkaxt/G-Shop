@@ -28,7 +28,7 @@ internal class SaveRootWatch(context: Context, entries: List<SaveFileWatch.Mappi
                     it.directory.substringBeforeLast('/') == entries.first().directory.substringBeforeLast('/') &&
                         PpssppSavedataBoundary.validDirectory(it.directory)
                 else it.directory == entries.first().directory &&
-                    (it.pcsx != null || it.route == "rom-companion" && RomCompanionBoundary.validDirectory(it.directory) || SaveSourceStorage.isProtectedDirectory(it.directory))
+                    (it.pcsx != null || it.route == "rom-companion" || SaveSourceStorage.isProtectedDirectory(it.directory))
         })
         val apk = context.applicationInfo.sourceDir
         fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
@@ -47,7 +47,10 @@ internal class SaveRootWatch(context: Context, entries: List<SaveFileWatch.Mappi
                 entries.first().directory.substringBeforeLast('/') else entries.first().directory)
             output.writeUTF(entries.first().route)
             output.writeInt(entries.size)
-            for (entry in entries) { output.writeUTF(entry.key); output.writeUTF(entry.name) }
+            for (entry in entries) {
+                output.writeUTF(entry.key); output.writeUTF(entry.name)
+                if (entry.route == "rom-companion") output.writeUTF(entry.configuration?.json()?.toString() ?: "")
+            }
             output.flush()
             check(input.readInt() == 1) // Only after inotify_add_watch succeeds.
             val keys = entries.map { it.key }.toSet()
@@ -181,7 +184,7 @@ object RootSaveWatchWorker {
         fun arm() {
             val selected = linkedSetOf("")
             for (entry in entries) {
-                selected.addAll(OwnedRomContentProvider.companionInventory(backing, entry.name, {}).directories.keys)
+                selected.addAll(OwnedRomContentProvider.companionInventory(backing, entry.name, {}, entry.configuration).directories.keys)
                 require(selected.size <= 4096)
             }
             folders.keys.toList().forEach { OwnedStorageNative.saveWatchRemove(watch, it) }
@@ -224,7 +227,7 @@ object RootSaveWatchWorker {
                     val leaf = event.name ?: continue
                     val relative = if (prefix.isEmpty()) leaf else "$prefix/$leaf"
                     if (event.mask and 0x40000000 != 0) {
-                        val affected = entries.filter { RomCompanionBoundary.associatedDirectory(it.name, relative,
+                        val affected = entries.filter { it.configuration?.acceptsDirectory(relative) ?: RomCompanionBoundary.associatedDirectory(it.name, relative,
                             RomCompanionBoundary.isolated(it.name, source)) }
                         if (affected.isNotEmpty()) { rearm = true; keys.addAll(affected.map { it.key }) }
                     } else keys.addAll(SaveFileWatch.affected(entries, event.mask, relative))
@@ -246,7 +249,7 @@ object RootSaveWatchWorker {
         val source = input.readUTF()
         val route = input.readUTF()
         require(when (route) {
-            "rom-companion" -> RomCompanionBoundary.validDirectory(source)
+            "rom-companion" -> source.startsWith('/') // Exact config is decoded with each entry below.
             "melon" -> MelonSaveBoundary.isProtectedDirectory(source)
             "ppsspp" -> PpssppSaveBoundary.isProtectedDirectory(source)
             "ppsspp-companion" -> PpssppSaveBoundary.isProtectedDirectory(source)
@@ -258,7 +261,9 @@ object RootSaveWatchWorker {
         require(count in 1..4096)
         val entries = (0 until count).map {
             val key = input.readUTF(); val name = input.readUTF()
-            SaveFileWatch.Mapping(key, if (route == "ppsspp-savedata") "$source/$name" else source, name, route)
+            val configuration = if (route == "rom-companion") input.readUTF().takeIf(String::isNotEmpty)
+                ?.let { SaveRootConfiguration.decode(org.json.JSONObject(it)) } else null
+            SaveFileWatch.Mapping(key, if (route == "ppsspp-savedata") "$source/$name" else source, name, route, configuration)
         }
         require(entries.map { it.key }.toSet().size == count)
         val backing = if (entries.first().pcsx != null || route == "rom-companion") {
@@ -266,7 +271,7 @@ object RootSaveWatchWorker {
             // do not broaden the generic standalone storage allowlist.
             if (source.startsWith("/storage/emulated/0/"))
                 "/data/media/0/" + source.removePrefix("/storage/emulated/0/")
-            else "/mnt/media_rw/" + source.removePrefix("/storage/")
+            else if (source.startsWith("/storage/")) "/mnt/media_rw/" + source.removePrefix("/storage/") else source
         } else SaveSourceStorage.backingDirectory(source)
         val directory = OwnedStorageNative.openRoot(backing)
         try {

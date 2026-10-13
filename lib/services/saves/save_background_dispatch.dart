@@ -34,6 +34,8 @@ class SaveBackgroundDispatch {
                 if (mapping.isPpssppSavedata) 'route': 'ppsspp-savedata',
                 if (mapping.isPpssppCompanion) 'route': 'ppsspp-companion',
                 if (mapping.isRomCompanion) 'route': 'rom-companion',
+                if (mapping.saveRootConfiguration != null)
+                  'saveRoot': mapping.saveRootConfiguration!.toJson(),
                 if (mapping.isRetroArch)
                   'route': 'retroarch-${mapping.retroArchRoute!.platformId}',
                 if (mapping.isPcsx)

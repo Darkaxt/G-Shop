@@ -92,7 +92,8 @@ internal class SaveCaptureService(private val activity: Context) {
         val journalKey: String get() = JSONArray(selection.captureKey(uri.toString())).toString()
     }
     private data class RomCompanionSource(val uri: Uri, val binding: String, val directory: String,
-        val romName: String, val members: List<String>, val emulatorPackage: String, val version: String) {
+        val romName: String, val members: List<String>, val emulatorPackage: String, val version: String,
+        val configuration: SaveRootConfiguration? = null) {
         val journalKey: String get() = JSONArray(listOf(uri.toString(), binding, members, emulatorPackage, version)).toString()
     }
     private fun romCompanionUri(call: MethodCall): Uri {
@@ -108,43 +109,54 @@ internal class SaveCaptureService(private val activity: Context) {
     }
     private fun romCompanionSource(call: MethodCall, selectedMembers: List<String>? = null): RomCompanionSource {
         val uri = romCompanionUri(call)
-        val row = OwnedRomContentProvider.companionSnapshot(activity, uri, null, ::check)
+        val configuration = call.argument<Map<*, *>>("saveRoot")?.let { SaveRootConfiguration.decode(JSONObject(it)) }
+        val row = OwnedRomContentProvider.companionSnapshot(activity, uri, null, ::check, configuration)
         val binding = call.argument<String>("binding") ?: throw Failure("invalid_selection")
         if (row["binding"] != binding) throw Failure("source_changed")
         val romName = row["romName"] as String
         val members = selectedMembers ?: call.argument<List<String>>("members") ?: throw Failure("invalid_selection")
         if (members.size !in 0..RomCompanionBoundary.MAX_MEMBERS ||
             members.isEmpty() && call.argument<Boolean>("restoreBaseline") != true || members.toSet().size != members.size ||
-            !members.all { RomCompanionBoundary.associated(romName, it,
+            !members.all { configuration?.acceptsFile(it) ?: RomCompanionBoundary.associated(romName, it,
                 RomCompanionBoundary.isolated(romName, row["directory"] as String)) }) throw Failure("invalid_selection")
+        if (configuration != null && selectedMembers == null && call.argument<Boolean>("restoreBaseline") != true &&
+            (!configuration.completeGroup(members.toSet()) || members.toSet() != (row["files"] as Map<*, *>).keys))
+            throw Failure("save_group_incomplete")
+        if (configuration != null && selectedMembers != null && configuration.kind != "companion" &&
+            !configuration.completeGroup(members.toSet())) throw Failure("save_group_incomplete")
         if (JSONArray(members).toString().toByteArray(Charsets.UTF_8).size > 32768) throw Failure("invalid_selection")
         val packageName = call.argument<String>("emulatorPackage") ?: throw Failure("invalid_selection")
+        if (configuration != null && configuration.emulator != packageName) throw Failure("invalid_selection")
         if (!packageName.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+"))) throw Failure("invalid_selection")
         @Suppress("DEPRECATION")
         val version = activity.packageManager.getPackageInfo(packageName, 0).versionName
         if (version.isNullOrEmpty()) throw Failure("runtime_unreviewed")
         return RomCompanionSource(uri, binding, row["directory"] as String, romName,
-            members.sorted(), packageName, version)
+            members.sorted(), packageName, version, configuration)
     }
     private fun companionRecord(source: RomCompanionSource): JSONObject = JSONObject()
         .put("uri", source.uri.toString()).put("binding", source.binding).put("directory", source.directory)
         .put("romName", source.romName).put("members", JSONArray(source.members))
-        .put("emulatorPackage", source.emulatorPackage).put("version", source.version)
+        .put("emulatorPackage", source.emulatorPackage).put("version", source.version).also {
+            if (source.configuration != null) it.put("saveRoot", source.configuration.json())
+        }
     private fun restoreCompanions(record: JSONObject, revalidate: Boolean = false): RomCompanionSource? {
         val row = record.optJSONObject("romCompanions") ?: return null
         val uri = Uri.parse(row.getString("uri"))
         val names = row.getJSONArray("members").let { items -> (0 until items.length()).map(items::getString) }
         val value = RomCompanionSource(uri, row.getString("binding"), row.getString("directory"),
-            row.getString("romName"), names, row.getString("emulatorPackage"), row.getString("version"))
-        if (row.length() != 7 || uri.scheme != "content" || uri.authority != "${activity.packageName}.owned-roms" ||
+            row.getString("romName"), names, row.getString("emulatorPackage"), row.getString("version"),
+            row.optJSONObject("saveRoot")?.let(SaveRootConfiguration::decode))
+        if (row.length() != (if (value.configuration == null) 7 else 8) || uri.scheme != "content" || uri.authority != "${activity.packageName}.owned-roms" ||
             uri.query != null || uri.fragment != null || !value.binding.matches(Regex("[a-f0-9]{64}")) ||
-            !RomCompanionBoundary.validDirectory(value.directory) || names.size !in 1..RomCompanionBoundary.MAX_MEMBERS ||
+            !(value.configuration?.let { it.directory == value.directory && it.emulator == value.emulatorPackage }
+                ?: RomCompanionBoundary.validDirectory(value.directory)) || names.size !in 1..RomCompanionBoundary.MAX_MEMBERS ||
             names != names.sorted() || names.toSet().size != names.size ||
-            !names.all { RomCompanionBoundary.associated(value.romName, it,
+            !names.all { value.configuration?.acceptsFile(it) ?: RomCompanionBoundary.associated(value.romName, it,
                 RomCompanionBoundary.isolated(value.romName, value.directory)) } || value.version.isEmpty())
             throw Failure("invalid_restore")
         if (revalidate) {
-            val current = OwnedRomContentProvider.companionSnapshot(activity, uri, null, ::check)
+            val current = OwnedRomContentProvider.companionSnapshot(activity, uri, null, ::check, value.configuration)
             if (current["binding"] != value.binding || current["directory"] != value.directory || current["romName"] != value.romName)
                 throw Failure("source_changed")
             @Suppress("DEPRECATION")
@@ -303,7 +315,8 @@ internal class SaveCaptureService(private val activity: Context) {
                     val value = when (call.method) {
                         "retroArchNames" -> names()
                         "romCompanionSnapshot" -> OwnedRomContentProvider.companionSnapshot(activity,
-                            romCompanionUri(call), call.argument<Map<*, *>>("before"), ::check)
+                            romCompanionUri(call), call.argument<Map<*, *>>("before"), ::check,
+                            call.argument<Map<*, *>>("saveRoot")?.let { SaveRootConfiguration.decode(JSONObject(it)) })
                         "captureRomCompanions" -> romCompanionSource(call).let { source ->
                             capturePpssppSavedata(captureId!!, source.directory,
                                 restoreBaseline = call.argument<Boolean>("restoreBaseline") == true, companions = source)
@@ -723,7 +736,8 @@ internal class SaveCaptureService(private val activity: Context) {
             throw Failure("invalid_capture")
         leftovers.forEach { if (!it.delete()) throw Failure("capture_storage") }
         val opened = try { if (companions == null) SaveSourceStorage.open(activity, sourceDirectory)
-            else SaveSourceStorage.openRomCompanions(activity, sourceDirectory, companions.romName, companions.members) }
+            else SaveSourceStorage.openRomCompanions(activity, sourceDirectory, companions.romName, companions.members,
+                configuration = companions.configuration) }
         catch (error: java.io.IOException) {
             if (companions != null || !restoreBaseline || error.message != "owned_storage:2") throw error
             return captureAbsentPpssppSavedata(captureId, directory, sourceDirectory, version!!, device)
@@ -775,7 +789,7 @@ internal class SaveCaptureService(private val activity: Context) {
                     throw Failure("source_changed")
                 if (companions == null) storage.verifyPpssppSavedataSnapshot() else {
                     storage.verifySnapshot()
-                    if (OwnedRomContentProvider.companionSnapshot(activity, companions.uri, null, ::check)["binding"] != companions.binding)
+                    if (OwnedRomContentProvider.companionSnapshot(activity, companions.uri, null, ::check, companions.configuration)["binding"] != companions.binding)
                         throw Failure("source_changed")
                 }
                 check()
@@ -1074,7 +1088,7 @@ internal class SaveCaptureService(private val activity: Context) {
         connection?.connect(InetAddress.getByName("127.0.0.1"), 55355)
         val sourceStorage = if (pcsx != null) SaveSourceStorage.openPcsxRestore(activity, pcsx.leaf, pcsx.selection, id)
             else if (companions != null) SaveSourceStorage.openRomCompanions(activity, sourceDirectory, companions.romName,
-                companions.members, id, name)
+                companions.members, id, name, companions.configuration)
             else SaveSourceStorage.open(activity, sourceDirectory)
         if (companions != null) try { sourceStorage.beginRomCompanionSnapshot(name) }
             catch (error: Exception) { sourceStorage.close(); throw error }
@@ -1533,7 +1547,8 @@ internal class SaveCaptureService(private val activity: Context) {
         fun verifyCurrentGroup() {
             check()
             if (companions != null) restoreCompanions(record, revalidate = true)
-            val storage = companions?.let { SaveSourceStorage.openRomCompanions(activity, sourceDirectory, it.romName, it.members) }
+            val storage = companions?.let { SaveSourceStorage.openRomCompanions(activity, sourceDirectory, it.romName, it.members,
+                configuration = it.configuration) }
             val parent = storage?.root ?: OwnedStorageNative.openRoot(sourceDirectory)
             try {
                 if (storage != null) {
