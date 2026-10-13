@@ -7,6 +7,33 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Exact-slot companion vertical slice — 2026-10-13
+
+PPSSPP's selected `DISC_VERSION_SLOT.ppst` association deterministically yields
+`DISC_VERSION_SLOT.jpg`. The JPEG is an optional `companion` publication with
+portable policy and `ppsspp-screenshot-jpeg-v1` format, not a required state member
+or a split SAVEDATA group. Reuse the existing per-device history, verified Drive
+transport, restore/rollback journal, opt-in automatic queue and sectioned UI.
+Persist the companion automatic mapping independently while checking it against
+the original state association; changed directories/slots cannot silently retarget
+the job. The explicit backup-type selector names it Slot screenshot. Import
+identifies optional companion data rather than a complete save group.
+
+Native JPEG capture uses the existing root writable-handle census and inotify
+mutation guard, with direct streamed shared-storage IO or the existing protected
+root route. It does not ask the emulator for status. Keep restore's independent
+overwrite-in-use guard; a cached PPSSPP process after normal Exit can satisfy its
+existing versioned closure check without FLAG_STOPPED. State discovery still
+lists only completed `.ppst` files. Protected state/companion watches are grouped
+separately to preserve their exact native route contracts.
+
+Focused Dart/JVM checks, gated assembly (895/898), and actual Thor filesystem
+capture/restore pass; see IMPLEMENTATION_STATUS.md for precise evidence and the
+corrected fixture assumption. This proves one connected companion route, not a
+live Drive round trip or the general game-folder/multi-file discovery requirement.
+These and the remaining S10 coverage/handover checks remain unfinished in S10;
+the route is not a substitute for them and opens no later implementation stage.
+
 ### Companion publication identity — ACTIVE work, 2026-10-13
 
 The existing immutable generation format now distinguishes `companion` from

@@ -4,6 +4,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PpssppSaveBoundaryTest {
+    @Test fun screenshotCompanionsHaveAnIndependentExactWatchAndRestoreFormat() {
+        val directory = "/storage/emulated/0/PSP/PPSSPP_STATE"
+        val name = "ULUS10041_1.00_0.jpg"
+        assertTrue(PpssppSaveBoundary.validCompanionName(name))
+        assertFalse(PpssppSaveBoundary.validName(name))
+        assertFalse(PpssppSaveBoundary.validCompanionName("$name.tmp"))
+        assertFalse(PpssppSaveBoundary.validCompanionName("../$name"))
+        val mapping = SaveFileWatch.Mapping("a".repeat(64), directory, name, "ppsspp-companion")
+        assertEquals(listOf(mapping.key), SaveFileWatch.affected(listOf(mapping), android.os.FileObserver.CLOSE_WRITE, name))
+        assertTrue(SaveFileWatch.affected(listOf(mapping), android.os.FileObserver.CLOSE_WRITE,
+            "ULUS10041_1.00_0.ppst").isEmpty())
+        assertTrue(SaveCaptureService.validRestoreBinding(name, 4, PpssppSaveBoundary.COMPANION_FORMAT, directory))
+        assertFalse(SaveCaptureService.validRestoreBinding(name, 4, "ppsspp-slot-v1", directory))
+    }
     @Test fun protectedStatesStayWithinPpssppExternalFiles() {
         for (path in listOf(
             "/storage/emulated/0/Android/data/org.ppsspp.ppsspp/files/PSP/PPSSPP_STATE",

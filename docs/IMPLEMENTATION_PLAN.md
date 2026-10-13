@@ -1861,6 +1861,10 @@ S10; no other implementation stage is ACTIVE.
 - Add game/edition/emulator-bound save-group identities and persistent bounded
   backup work through existing settings/emulator return and legitimate Android
   background work. Separate battery saves from version-sensitive save states.
+  The first connected optional-companion slice is the exact PPSSPP slot JPEG:
+  its own portable history, existing state association, normal opt-in queue and
+  restore coordinator. Its filesystem verification does not close general
+  game-folder discovery, multi-file optional imports or live Drive acceptance.
 - Complete the mapped enabled game's launch path: reconcile local/cloud ancestry
   and bytes, restore only an unambiguous compatible cloud generation, require a
   choice for divergence, arm the exact file watch, then hand off to the emulator.

@@ -299,6 +299,27 @@ void main() {
     expect(captured.emulatorVersion, 'v1.20.4');
   });
 
+  test('PPSSPP slot screenshot is a separate exact companion capture',
+      () async {
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    const state = 'ULUS10001_1.00_0.ppst';
+    const name = 'ULUS10001_1.00_0.jpg';
+    expect(SaveCapture.ppssppScreenshotName(state), name);
+    expect(SaveCapture.validPpssppName(name), isFalse);
+    response['emulatorVersion'] = 'v1.20.4';
+    (response['files'] as List).single['name'] = name;
+    final captured = await SaveCapture().capturePpssppCompanion(
+        captureId: 'a' * 32, directory: directory, name: name);
+    expect(captured.files.single.name, name);
+    expect(calls.single.method, 'capturePpssppCompanion');
+    calls.clear();
+    await expectLater(
+        SaveCapture().capturePpssppCompanion(
+            captureId: 'a' * 32, directory: directory, name: state),
+        throwsFormatException);
+    expect(calls, isEmpty);
+  });
+
   test('PPSSPP settings discovery exposes only a validated state directory',
       () async {
     const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';

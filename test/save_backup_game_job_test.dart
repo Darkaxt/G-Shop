@@ -163,6 +163,18 @@ class _Capture extends SaveCapture {
   }
 
   @override
+  Future<CapturedSaveGroup> capturePpssppCompanion(
+          {required String captureId,
+          required String directory,
+          required String name,
+          bool restoreBaseline = false}) =>
+      capturePpsspp(
+          captureId: captureId,
+          directory: directory,
+          name: name,
+          restoreBaseline: restoreBaseline);
+
+  @override
   Future<List<String>> retroArchNames() async => ['Game.srm'];
   @override
   Future<CapturedSaveGroup> captureMelon(
@@ -221,6 +233,7 @@ class _Capture extends SaveCapture {
       required int size,
       required String sha256,
       String? ppssppDirectory,
+      bool ppssppCompanion = false,
       String? melonDirectory,
       RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
       required Stream<Uint8List> bytes}) async {
@@ -376,6 +389,7 @@ class _UiJob extends SaveBackupGameJob {
             artifactId: other.artifactId,
             ppssppDirectory: other.ppssppDirectory,
             ppssppSlot: other.ppssppSlot,
+            ppssppCompanion: other.ppssppCompanion,
             melonDirectory: other.melonDirectory,
             melonName: other.melonName,
             pcsxLayout: other.pcsxLayout,
@@ -1305,6 +1319,7 @@ void main() {
     Set<String> watchFailures = const {},
     bool melon = false,
     bool savedata = false,
+    bool companion = false,
     String? ppssppDirectory,
     RetroArchBatteryRoute? retroArch,
     PcsxSaveLayout? pcsx,
@@ -1333,7 +1348,9 @@ void main() {
                 ? 'Game.sav'
                 : savedata
                     ? 'ULUS10041DATA00'
-                    : 'ULUS10041_1.00_0.ppst';
+                    : companion
+                        ? 'ULUS10041_1.00_0.jpg'
+                        : 'ULUS10041_1.00_0.ppst';
     final psp = SaveBackupGameJob(
         database: Future.value(db),
         capture: capture,
@@ -1351,6 +1368,7 @@ void main() {
             ? null
             : slot,
         ppssppSavedataDirectory: savedata ? directory : null,
+        ppssppCompanion: companion,
         melonDirectory: melon ? directory : null,
         melonName: melon ? slot : null,
         retroArchRoute: retroArch ?? RetroArchBatteryRoute.mgba,
@@ -1372,7 +1390,8 @@ void main() {
       if (retroArch == null && pcsx == null)
         mapping.slotStorageKey: jsonEncode({
           'directory': directory,
-          melon || savedata || retroArch != null ? 'name' : 'slot': slot
+          melon || savedata || retroArch != null ? 'name' : 'slot':
+              companion ? 'ULUS10041_1.00_0.ppst' : slot
         }),
     });
     final preferences = await SharedPreferences.getInstance();
@@ -1418,6 +1437,7 @@ void main() {
                 ? null
                 : mapped.slot,
             ppssppSavedataDirectory: savedata ? mapped.directory : null,
+            ppssppCompanion: mapped.isPpssppCompanion,
             melonDirectory: melon ? mapped.directory : null,
             melonName: melon ? mapped.slot : null,
             retroArchRoute: retroArch ?? RetroArchBatteryRoute.mgba,
@@ -1435,6 +1455,37 @@ void main() {
     await service.setEnabled(mapping, true);
     return (service: service, mapping: mapping, preferences: preferences);
   }
+
+  test(
+      'automatic screenshot companion reuses the reviewed state association independently',
+      () async {
+    final watched = <AutomaticSaveMapping>[];
+    final fixture = await automaticFixture(
+        companion: true,
+        watch: (mappings) async {
+          watched.addAll(mappings);
+        });
+    expect(fixture.mapping.isPpssppCompanion, isTrue);
+    expect(jsonDecode(fixture.mapping.encode())['route'], 'ppsspp-companion');
+    expect(fixture.mapping.matchesStoredSlot('ULUS10041_1.00_0.ppst'), isTrue);
+    expect(fixture.mapping.matchesStoredSlot('ULUS10041_1.00_1.ppst'), isFalse);
+    await fixture.service.checkEnabled();
+    expect(watched, isNotEmpty);
+    expect(watched.every((mapping) => mapping.slot == 'ULUS10041_1.00_0.jpg'),
+        isTrue);
+    expect(generations.uploaded!.binding.kind, SaveBackupKind.companion);
+    expect((await fixture.service.status(fixture.mapping)).issue, isNull);
+    await fixture.preferences.setString(
+        fixture.mapping.slotStorageKey,
+        jsonEncode({
+          'directory': fixture.mapping.directory,
+          'slot': 'ULUS10041_1.00_1.ppst'
+        }));
+    await fixture.service.checkEnabled();
+    expect((await fixture.service.status(fixture.mapping)).issue,
+        'source_changed');
+    expect(generations.uploads, 1);
+  });
 
   for (final shared in [false, true]) {
     test(
@@ -2311,6 +2362,45 @@ void main() {
     expect(reopened.pendingName, isNull);
     reopened.dispose();
   });
+  test(
+      'PPSSPP screenshot publishes a portable companion and restores its exact leaf',
+      () async {
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'psp',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    const name = 'ULUS10041_1.00_0.jpg';
+    const directory = '/storage/emulated/0/PSP/PPSSPP_STATE';
+    final companion = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: directory,
+        ppssppSlot: name,
+        ppssppCompanion: true,
+        resolveSaveName: () async => name);
+    addTearDown(companion.dispose);
+    await companion.backup(name);
+    expect(companion.issue, isNull);
+    expect(companion.lastVerified!.binding.kind, SaveBackupKind.companion);
+    expect(companion.lastVerified!.binding.companionCompatibility,
+        SaveCompanionCompatibility.portable);
+    expect(
+        companion.lastVerified!.binding.formatId, 'ppsspp-screenshot-jpeg-v1');
+    await companion.restoreLatest();
+    expect(companion.issue, isNull);
+    expect(capture.stagedNames, [name]);
+    expect(capture.stagedDirectories, [directory]);
+    expect(capture.restored, hasLength(1));
+  });
+
   test(
       'automatic mapped slot is opt-in, durable and skips identical publication',
       () async {

@@ -169,7 +169,7 @@ internal class SaveSourceStorage private constructor(
         val validName: (String) -> Boolean = if (PpssppSavedataBoundary.validDirectory(source) ||
             PpssppSavedataBoundary.validParent(source))
             PpssppSavedataBoundary::validMember else if (PpssppSaveBoundary.isProtectedDirectory(source))
-            PpssppSaveBoundary::validName else MelonSaveBoundary::validName
+            PpssppSaveBoundary::validSourceName else MelonSaveBoundary::validName
         if (!rootAssisted) {
             val names = File(source).list() ?: throw IOException("owned_storage:13")
             require(names.size <= 4096)
@@ -250,6 +250,10 @@ internal class SaveSourceStorage private constructor(
     }
     fun beginRetroArchSnapshot(context: Context, name: String) {
         RetroArchSaveBoundary.snapshotNames(source, name)
+        beginSnapshot(context, name)
+    }
+    fun beginPpssppCompanionSnapshot(context: Context, name: String) {
+        require(PpssppSaveBoundary.validDirectory(source) && PpssppSaveBoundary.validCompanionName(name))
         beginSnapshot(context, name)
     }
     fun beginPcsxSnapshot(context: Context, name: String) {
@@ -371,10 +375,10 @@ object RootSaveSourceWorker {
             // directory accidentally resembling another emulator's layout.
             val savedata = pcsx == null && PpssppSavedataBoundary.validDirectory(source)
             val savedataParent = pcsx == null && PpssppSavedataBoundary.validParent(source)
-            val ppsspp = pcsx == null && PpssppSaveBoundary.isProtectedDirectory(source)
+            val ppsspp = pcsx == null && PpssppSaveBoundary.validDirectory(source)
             val validName: (String) -> Boolean = if (pcsx != null) { leaf -> leaf == pcsx.first.card.name }
                 else if (savedata || savedataParent) PpssppSavedataBoundary::validMember
-                else if (ppsspp) PpssppSaveBoundary::validName else MelonSaveBoundary::validName
+                else if (ppsspp) PpssppSaveBoundary::validSourceName else MelonSaveBoundary::validName
             val maxBytes = if (pcsx != null) 131072L else if (savedata || savedataParent) PpssppSavedataBoundary.MAX_BYTES
                 else if (ppsspp) PpssppSaveBoundary.MAX_STATE_BYTES else MelonSaveBoundary.MAX_BYTES
             val snapshotOnly = hello.length() == 2 && hello.optBoolean("snapshotOnly") &&
@@ -461,7 +465,7 @@ object RootSaveSourceWorker {
                             JSONObject()
                         }
                         "snapshotBegin" -> {
-                            require(snapshot == -1 && (pcsx != null || MelonSaveBoundary.validDirectory(source)))
+                            require(snapshot == -1 && (pcsx != null || MelonSaveBoundary.validDirectory(source) || ppsspp))
                             snapshotName = name(row)
                             snapshot = OwnedStorageNative.saveSnapshotOpen(parent)
                             if (pcsx == null && source in listOf(RetroArchSaveBoundary.saveDirectory("gb"), RetroArchSaveBoundary.saveDirectory("gba"),

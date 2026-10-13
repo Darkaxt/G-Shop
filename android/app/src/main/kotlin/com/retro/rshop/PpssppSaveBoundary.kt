@@ -6,10 +6,14 @@ package com.retro.rshop
  * writer-quiescence contract for SAVEDATA directories or for restore. */
 internal object PpssppSaveBoundary {
     const val MAX_STATE_BYTES = 256L * 1024 * 1024
+    const val COMPANION_FORMAT = "ppsspp-screenshot-jpeg-v1"
     private val protected = Regex("/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/Android/data/org\\.ppsspp\\.ppsspp/files/.+/PPSSPP_STATE")
     fun isProtectedDirectory(path: String): Boolean = protected.matches(path) && validDirectory(path)
     fun validName(name: String) =
         name.matches(Regex("[A-Z0-9]{9}_[0-9]\\.[0-9]{2}_[0-9]{1,2}\\.ppst"))
+    fun validCompanionName(name: String) =
+        name.matches(Regex("[A-Z0-9]{9}_[0-9]\\.[0-9]{2}_[0-9]{1,2}\\.jpg"))
+    fun validSourceName(name: String) = validName(name) || validCompanionName(name)
 
     fun validDirectory(path: String): Boolean {
         if (!path.matches(Regex("/storage/(emulated/0|[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4})/.+/PPSSPP_STATE"))) return false

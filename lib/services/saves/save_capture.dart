@@ -324,17 +324,52 @@ class SaveCapture {
   /// Pins and verifies a selected completed PPSSPP state slot. Temporary and
   /// undo slots are excluded; game association remains explicitly reviewed.
   Future<CapturedSaveGroup> capturePpsspp(
+          {required String captureId,
+          required String directory,
+          required String name,
+          bool restoreBaseline = false}) =>
+      _capturePpssppFile(
+          captureId: captureId,
+          directory: directory,
+          name: name,
+          restoreBaseline: restoreBaseline,
+          companion: false);
+
+  static bool validPpssppCompanionName(String name) =>
+      RegExp(r'^[A-Z0-9]{9}_[0-9]\.[0-9]{2}_[0-9]{1,2}\.jpg$').hasMatch(name);
+
+  static String ppssppScreenshotName(String state) {
+    if (!validPpssppName(state)) {
+      throw const FormatException('Invalid PPSSPP state slot');
+    }
+    return '${state.substring(0, state.length - 5)}.jpg';
+  }
+
+  Future<CapturedSaveGroup> capturePpssppCompanion(
+          {required String captureId,
+          required String directory,
+          required String name,
+          bool restoreBaseline = false}) =>
+      _capturePpssppFile(
+          captureId: captureId,
+          directory: directory,
+          name: name,
+          restoreBaseline: restoreBaseline,
+          companion: true);
+
+  Future<CapturedSaveGroup> _capturePpssppFile(
       {required String captureId,
       required String directory,
       required String name,
-      bool restoreBaseline = false}) async {
+      required bool restoreBaseline,
+      required bool companion}) async {
     if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) ||
-        !validPpssppName(name) ||
+        !(companion ? validPpssppCompanionName(name) : validPpssppName(name)) ||
         !validPpssppDirectory(directory)) {
       throw const FormatException('Invalid PPSSPP state selection');
     }
-    final raw =
-        await _channel.invokeMapMethod<String, dynamic>('capturePpsspp', {
+    final raw = await _channel.invokeMapMethod<String, dynamic>(
+        companion ? 'capturePpssppCompanion' : 'capturePpsspp', {
       'captureId': captureId,
       'directory': directory,
       'name': name,
@@ -492,17 +527,21 @@ class SaveCapture {
       required int size,
       required String sha256,
       String? ppssppDirectory,
+      bool ppssppCompanion = false,
       String? melonDirectory,
       RetroArchBatteryRoute retroArchRoute = RetroArchBatteryRoute.mgba,
       required Stream<Uint8List> bytes}) async {
     final ppsspp = ppssppDirectory != null;
     final melon = melonDirectory != null;
     if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
+        (ppssppCompanion && !ppsspp) ||
         (ppsspp && melon) ||
         !(melon
             ? validMelonName(name)
             : ppsspp
-                ? validPpssppName(name)
+                ? (ppssppCompanion
+                    ? validPpssppCompanionName(name)
+                    : validPpssppName(name))
                 : validName(name)) ||
         (melon && !validMelonDirectory(melonDirectory)) ||
         (ppsspp && !validPpssppDirectory(ppssppDirectory)) ||
@@ -524,6 +563,7 @@ class SaveCapture {
       'size': size,
       'sha256': sha256,
       if (ppsspp) 'ppssppDirectory': ppssppDirectory,
+      if (ppssppCompanion) 'ppssppCompanion': true,
       if (melon) 'melonDirectory': melonDirectory,
       if (retroArchRoute != RetroArchBatteryRoute.mgba)
         'retroArchRoute': retroArchRoute.platformId,

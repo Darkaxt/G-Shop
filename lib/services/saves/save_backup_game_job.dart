@@ -36,6 +36,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   // Explicitly reviewed mapping, never inferred from a game title. One slot is
   // one state stream; another directory/slot must have a separate durable job.
   final String? ppssppDirectory, ppssppSlot;
+  final bool ppssppCompanion;
   final String? ppssppSavedataDirectory;
   final String? melonDirectory, melonName;
   final RetroArchBatteryRoute retroArchRoute;
@@ -66,6 +67,7 @@ class SaveBackupGameJob extends ChangeNotifier {
       SaveOperationAdmission? admission,
       this.ppssppDirectory,
       this.ppssppSlot,
+      this.ppssppCompanion = false,
       this.ppssppSavedataDirectory,
       this.melonDirectory,
       this.melonName,
@@ -81,13 +83,16 @@ class SaveBackupGameJob extends ChangeNotifier {
     }
     if ((isPpsspp && retroArchRoute != RetroArchBatteryRoute.mgba) ||
         (ppssppDirectory == null) != (ppssppSlot == null) ||
-        (isPpssppState && isPpssppSavedata) ||
+        (ppssppCompanion && ppssppDirectory == null) ||
+        (ppssppDirectory != null && isPpssppSavedata) ||
         (isPpssppSavedata &&
             !SaveCapture.validPpssppSavedataDirectory(
                 ppssppSavedataDirectory!)) ||
-        (isPpssppState &&
+        (ppssppDirectory != null &&
             (!SaveCapture.validPpssppDirectory(ppssppDirectory!) ||
-                !SaveCapture.validPpssppName(ppssppSlot!)))) {
+                !(ppssppCompanion
+                    ? SaveCapture.validPpssppCompanionName(ppssppSlot!)
+                    : SaveCapture.validPpssppName(ppssppSlot!))))) {
       throw ArgumentError('Invalid PPSSPP mapping');
     }
     if ((melonDirectory == null) != (melonName == null) ||
@@ -114,9 +119,9 @@ class SaveBackupGameJob extends ChangeNotifier {
   bool get isSharedPcsx => isPcsx && pcsxCard!.isShared;
   String? get _sharedCardKey =>
       isSharedPcsx ? pcsxLayout!.sharedResourceKey(pcsxCard!) : null;
-  bool get isPpssppState => ppssppDirectory != null;
+  bool get isPpssppState => ppssppDirectory != null && !ppssppCompanion;
   bool get isPpssppSavedata => ppssppSavedataDirectory != null;
-  bool get isPpsspp => isPpssppState || isPpssppSavedata;
+  bool get isPpsspp => ppssppDirectory != null || isPpssppSavedata;
   bool get isMelon => melonDirectory != null;
   bool get isStandalone => isPpsspp || isMelon;
   String get emulatorLabel => isMelon
@@ -157,10 +162,15 @@ class SaveBackupGameJob extends ChangeNotifier {
           : isPpssppSavedata
               ? 'ppsspp-savedata-v1'
               : isPpsspp
-                  ? 'ppsspp-slot-v1'
+                  ? (ppssppCompanion
+                      ? 'ppsspp-screenshot-jpeg-v1'
+                      : 'ppsspp-slot-v1')
                   : retroArchRoute.formatId;
-  SaveBackupKind get _kind =>
-      isPpssppState ? SaveBackupKind.state : SaveBackupKind.save;
+  SaveBackupKind get _kind => ppssppCompanion
+      ? SaveBackupKind.companion
+      : isPpssppState
+          ? SaveBackupKind.state
+          : SaveBackupKind.save;
   String get _savedataName => ppssppSavedataDirectory!.split('/').last;
   bool _validName(String name) => isPcsx
       ? name == pcsxCard!.name
@@ -169,7 +179,10 @@ class SaveBackupGameJob extends ChangeNotifier {
           : isPpssppSavedata
               ? name == _savedataName
               : isPpsspp
-                  ? name == ppssppSlot && SaveCapture.validPpssppName(name)
+                  ? name == ppssppSlot &&
+                      (ppssppCompanion
+                          ? SaveCapture.validPpssppCompanionName(name)
+                          : SaveCapture.validPpssppName(name))
                   : SaveCapture.validName(name);
   bool _bindingMatches(SaveBackupBinding binding) =>
       binding.accountId == accountId &&
@@ -181,6 +194,8 @@ class SaveBackupGameJob extends ChangeNotifier {
       binding.emulatorPackage == _emulator &&
       binding.coreId == _core &&
       binding.kind == _kind &&
+      binding.companionCompatibility ==
+          (ppssppCompanion ? SaveCompanionCompatibility.portable : null) &&
       binding.formatId == _format &&
       (!isPpsspp || {'v1.20.4', '1.20.4'}.contains(binding.emulatorVersion)) &&
       (!isMelon || binding.emulatorVersion == '0.8.0.rc2');
@@ -206,7 +221,9 @@ class SaveBackupGameJob extends ChangeNotifier {
                       directory: ppssppSavedataDirectory!,
                       restoreBaseline: restoreBaseline)
                   : isPpsspp
-                      ? capture.capturePpsspp(
+                      ? (ppssppCompanion
+                              ? capture.capturePpssppCompanion
+                              : capture.capturePpsspp)(
                           captureId: id,
                           directory: ppssppDirectory!,
                           name: name,
@@ -806,7 +823,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                   (member) => _savedataLeaf(member.relativePath) != null))
           .toList();
     }
-    if (isPpssppState) {
+    if (ppssppDirectory != null) {
       compatible = compatible
           .where((item) =>
               item.members.length == 1 &&
@@ -1028,6 +1045,8 @@ class SaveBackupGameJob extends ChangeNotifier {
                 SaveBackupEdition(gameId: game.id, editionId: editionId)
               ],
               kind: _kind,
+              companionCompatibility:
+                  ppssppCompanion ? SaveCompanionCompatibility.portable : null,
               formatId: _format,
               sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
               sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);
@@ -1732,6 +1751,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                   bytes: bytes);
             } else {
               await capture.stageRestore(
+                  ppssppCompanion: ppssppCompanion,
                   restoreId: restoreId,
                   name: name,
                   size: retainedFile?.size ?? member.sizeBytes,

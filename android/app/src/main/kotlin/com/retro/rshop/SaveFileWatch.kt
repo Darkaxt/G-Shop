@@ -27,6 +27,7 @@ internal class SaveFileWatch(private val context: Context? = null,
             require(key.matches(Regex("[a-f0-9]{64}")))
             require(when (route) {
                 "ppsspp" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validName(name)
+                "ppsspp-companion" -> PpssppSaveBoundary.validDirectory(directory) && PpssppSaveBoundary.validCompanionName(name)
                 "melon" -> MelonSaveBoundary.validDirectory(directory) && MelonSaveBoundary.validName(name)
                 "ppsspp-savedata" -> PpssppSavedataBoundary.validDirectory(directory) &&
                     directory.substringAfterLast('/') == name
@@ -94,7 +95,7 @@ internal class SaveFileWatch(private val context: Context? = null,
         val registered = mutableListOf<String>()
         for ((group, entries) in mappings.groupBy {
             (if (it.route == "ppsspp-savedata") it.directory.substringBeforeLast('/') else it.directory) to
-                (if (it.pcsx != null) it.route else "")
+                (if (it.pcsx != null || it.route == "ppsspp-companion") it.route else "")
         }) {
             val directory = group.first
             var observer: FileObserver? = null

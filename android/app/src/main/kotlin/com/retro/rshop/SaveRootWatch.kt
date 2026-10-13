@@ -182,6 +182,7 @@ object RootSaveWatchWorker {
         require(when (route) {
             "melon" -> MelonSaveBoundary.isProtectedDirectory(source)
             "ppsspp" -> PpssppSaveBoundary.isProtectedDirectory(source)
+            "ppsspp-companion" -> PpssppSaveBoundary.isProtectedDirectory(source)
             "ppsspp-savedata" -> PpssppSavedataBoundary.validParent(source)
             else -> Regex("pcsx-(libretro|shared)-([12])").matches(route) &&
                 PcsxSaveSettings.storagePath(source) == source

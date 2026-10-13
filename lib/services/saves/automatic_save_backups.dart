@@ -25,16 +25,23 @@ import 'save_capture.dart';
 /// bytes are safe. RetroArch uses root writer checks and a mutation guard.
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
-  final bool isMelon, isPpssppSavedata;
+  final bool isMelon, isPpssppSavedata, isPpssppCompanion;
   final RetroArchBatteryRoute? retroArchRoute;
   final PcsxSaveLayout? pcsxLayout;
   final String? romRoot;
   bool get isPcsx => pcsxLayout != null;
   PcsxSaveCard? get pcsxCard => pcsxLayout?.cards.single;
   bool get isRetroArch => retroArchRoute != null;
+  bool matchesStoredSlot(Object? value) => isPpssppCompanion
+      ? value is String &&
+          SaveCapture.validPpssppName(value) &&
+          SaveCapture.ppssppScreenshotName(value) == slot
+      : value == slot;
   final RemoteArtifactId artifactId;
   AutomaticSaveMapping._(Map<String, dynamic> value)
       : isMelon = value['schema'] == 2 && value['route'] == 'melon',
+        isPpssppCompanion =
+            value['schema'] == 5 && value['route'] == 'ppsspp-companion',
         isPpssppSavedata =
             value['schema'] == 2 && value['route'] == 'ppsspp-savedata',
         retroArchRoute = value['schema'] == 3 && value['route'] == 'retroarch'
@@ -58,6 +65,7 @@ class AutomaticSaveMapping {
     if (!(value['schema'] == 1 && !value.containsKey('route') ||
             isMelon ||
             isPpssppSavedata ||
+            isPpssppCompanion ||
             isRetroArch ||
             isPcsx) ||
         (isPcsx &&
@@ -90,7 +98,9 @@ class AutomaticSaveMapping {
                     : isPpssppSavedata
                         ? slot == directory.split('/').last &&
                             SaveCapture.validPpssppSavedataMember(slot)
-                        : SaveCapture.validPpssppName(slot))) {
+                        : isPpssppCompanion
+                            ? SaveCapture.validPpssppCompanionName(slot)
+                            : SaveCapture.validPpssppName(slot))) {
       throw const FormatException('Invalid automatic save mapping');
     }
   }
@@ -127,17 +137,20 @@ class AutomaticSaveMapping {
       throw const FormatException('Reviewed RetroArch save name required');
     }
     return AutomaticSaveMapping._({
-      'schema': !job.isStandalone
-          ? 3
-          : job.isMelon || job.isPpssppSavedata
-              ? 2
-              : 1,
+      'schema': job.ppssppCompanion
+          ? 5
+          : !job.isStandalone
+              ? 3
+              : job.isMelon || job.isPpssppSavedata
+                  ? 2
+                  : 1,
       if (!job.isStandalone) ...{
         'route': 'retroarch',
         'platform': job.retroArchRoute.platformId
       },
       if (job.isMelon) 'route': 'melon',
       if (job.isPpssppSavedata) 'route': 'ppsspp-savedata',
+      if (job.ppssppCompanion) 'route': 'ppsspp-companion',
       'clientId': job.clientId,
       'accountId': job.accountId,
       'areaId': job.areaId,
@@ -219,6 +232,7 @@ class AutomaticSaveMapping {
         if (isRetroArch) retroArchRoute!.journalId,
         if (isMelon) 'melondualds-sram-v1',
         if (isPpssppSavedata) 'ppsspp-savedata-v1',
+        if (isPpssppCompanion) 'ppsspp-screenshot-jpeg-v1',
       ])))
       .toString();
   Map<String, Object?> get selection => {
@@ -234,19 +248,22 @@ class AutomaticSaveMapping {
       value is Map &&
       selection.entries.every((entry) => value[entry.key] == entry.value);
   String encode() => jsonEncode({
-        'schema': isPcsx
-            ? 4
-            : isRetroArch
-                ? 3
-                : isMelon || isPpssppSavedata
-                    ? 2
-                    : 1,
+        'schema': isPpssppCompanion
+            ? 5
+            : isPcsx
+                ? 4
+                : isRetroArch
+                    ? 3
+                    : isMelon || isPpssppSavedata
+                        ? 2
+                        : 1,
         if (isRetroArch) ...{
           'route': 'retroarch',
           'platform': retroArchRoute!.platformId
         },
         if (isMelon) 'route': 'melon',
         if (isPpssppSavedata) 'route': 'ppsspp-savedata',
+        if (isPpssppCompanion) 'route': 'ppsspp-companion',
         if (isPcsx) ...{
           'route': 'pcsx',
           'pcsx': pcsxLayout!.toJson(),
@@ -528,13 +545,12 @@ class AutomaticSaveBackups extends ChangeNotifier {
         (requireSelection &&
             (slot is! Map ||
                 slot['directory'] != mapping.directory ||
-                slot[mapping.isMelon ||
-                            mapping.isPpssppSavedata ||
-                            mapping.isRetroArch ||
-                            mapping.isPcsx
-                        ? 'name'
-                        : 'slot'] !=
-                    mapping.slot ||
+                !mapping.matchesStoredSlot(slot[mapping.isMelon ||
+                        mapping.isPpssppSavedata ||
+                        mapping.isRetroArch ||
+                        mapping.isPcsx
+                    ? 'name'
+                    : 'slot']) ||
                 mapping.isPcsx && !mapping.matchesSelection(slot)))) {
       throw PlatformException(code: 'source_changed');
     }
@@ -590,6 +606,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
             : mapping.slot,
         ppssppSavedataDirectory:
             mapping.isPpssppSavedata ? mapping.directory : null,
+        ppssppCompanion: mapping.isPpssppCompanion,
         melonDirectory: mapping.isMelon ? mapping.directory : null,
         melonName: mapping.isMelon ? mapping.slot : null,
         retroArchRoute: mapping.retroArchRoute ?? RetroArchBatteryRoute.mgba,

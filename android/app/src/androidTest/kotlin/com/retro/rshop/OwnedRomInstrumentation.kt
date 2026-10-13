@@ -43,6 +43,7 @@ class OwnedRomInstrumentation : Instrumentation() {
     private var protectedPpssppSaveProbe = false
     private var ppssppCachedExitProbe = false
     private var ppssppSavedataCaptureProbe = false
+    private var ppssppCompanionProbe = false
     private var ppssppRuntimeProbe: String? = null
     private var dsProviderProbe = false
     private var dsArchiveProbe = false
@@ -73,6 +74,7 @@ class OwnedRomInstrumentation : Instrumentation() {
         protectedPpssppSaveProbe = arguments?.getString("protectedPpssppSaveProbe") == "true"
         ppssppCachedExitProbe = arguments?.getString("ppssppCachedExitProbe") == "true"
         ppssppSavedataCaptureProbe = arguments?.getString("ppssppSavedataCaptureProbe") == "true"
+        ppssppCompanionProbe = arguments?.getString("ppssppCompanionProbe") == "true"
         ppssppRuntimeProbe = arguments?.getString("ppssppRuntimeProbe")
         dsProviderProbe = arguments?.getString("dsProviderProbe") == "true"
         dsArchiveProbe = arguments?.getString("dsArchiveProbe") == "true"
@@ -104,6 +106,8 @@ class OwnedRomInstrumentation : Instrumentation() {
             } else if (dsProviderProbe) {
                 exercise(ds = true)
                 report.putString("result", "PASS DS document leaf read/name/size and launch-bound live save-location review, read-only grant and native publication/identity/ownership/removal rejection; exclusive fixture cleanup; no emulator launch")
+            } else if (ppssppCompanionProbe) {
+                report.putString("result", PpssppCompanionProof.exercise(targetContext))
             } else if (ppssppSavedataCaptureProbe) {
                 report.putString("result", PpssppSavedataCaptureProof.exercise(targetContext))
             } else if (ppssppRuntimeProbe != null) {

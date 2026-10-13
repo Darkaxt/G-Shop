@@ -5,6 +5,40 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### First connected companion route — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. PPSSPP's exact selected-slot JPEG now uses
+the existing capture/publication/restore coordinator as an optional portable
+companion, with its own history and automatic mapping. Settings offers a short
+Slot screenshot choice beside saves/states; it derives the JPEG from the existing
+reviewed state association, without another ownership confirmation. State and
+required SAVEDATA groups remain separate. A changed association is rejected.
+The import view labels this optional data separately from a complete save group.
+
+Focused Dart capture/job/automatic/UI checks and scoped analysis pass. Gated
+request 895 passes affected JVM boundary/watch/storage checks and Android
+assembly. Request 898 packages the corrected native fixture and final labels.
+Both acquire the shared mutex and report build/helper exit 0 and verified daemon
+exit: two workers, parallel=false, 3221225472-byte Gradle heap; Kotlin in-process
+configured/requested, one 512 MiB fail-fast test fork configured (executed in
+895), native compile/link pool depth one. No memory failure or budget increase.
+Existing Kotlin/plugin and Gradle-10 deprecation warnings remain.
+
+Actual Thor filesystem proof passes exact watcher admission, open-writer and
+overlapping-mutation rejection, read-only handle admission, full streamed
+digests, state separation, staging and restored bytes at the selected path.
+The first fixture run failed because it incorrectly equated Android's stopped
+package flag with native runtime closure; production's existing cached-exit
+guard was correct. The corrected fixture observes the actual guarded outcome.
+The preserving install and fixture leave preferences and both secure-storage
+hashes unchanged. Installed/host APK SHA-256 matches
+`f025e4ef97ae51c4463a2bcdf6b37999b0ebc66c1750e676ad03b91a2055122f`.
+Exclusive synthetic files/captures/restores are removed; both displays are OFF.
+This is not a live Drive companion round trip or completion of generic
+game-folder discovery, selectable multi-file companion imports, remaining
+emulator coverage or final S10 handover. Those remain ordinary unfinished S10
+work. S11/S12 remain NOT STARTED; S12 retains the main-screen-only clarification.
+
 ### Companion publication contract — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. Companion publications now carry a distinct
