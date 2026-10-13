@@ -392,6 +392,35 @@ class SaveBackupGameJob extends ChangeNotifier {
       .toString();
   bool deviceBackupIgnored(SaveBackupManifest manifest) =>
       _deviceImportChoices[_deviceChoiceKey(manifest)] == 'ignore';
+  String _deviceMemberChoiceKey(SaveBackupManifest manifest, String path) =>
+      sha256
+          .convert(utf8
+              .encode(jsonEncode([_deviceChoiceKey(manifest), 'member', path])))
+          .toString();
+  bool deviceBackupMemberSelected(SaveBackupManifest manifest, String path) =>
+      manifest.binding.kind == SaveBackupKind.companion &&
+      !deviceBackupIgnored(manifest) &&
+      manifest.members.any((member) => member.relativePath == path) &&
+      _deviceImportChoices[_deviceMemberChoiceKey(manifest, path)] == 'import';
+
+  bool _validDeviceImportMembers(
+      SaveBackupManifest manifest, Set<String> paths) {
+    if (!_bindingMatches(manifest.binding)) return false;
+    // Validate the actual route as well as the chooser input. In particular,
+    // today's screenshot route is exactly one JPEG; a crafted multi-file
+    // manifest must not reach the scalar native restore path.
+    try {
+      _contents(manifest);
+    } on FormatException {
+      return false;
+    }
+    final available = manifest.members.map((m) => m.relativePath).toSet();
+    return paths.isNotEmpty &&
+        available.containsAll(paths) &&
+        (manifest.binding.kind == SaveBackupKind.companion ||
+            setEquals(available, paths));
+  }
+
   List<SaveBackupManifest> get suggestedDeviceBackups {
     final current = lastVerified;
     return List.unmodifiable(_otherDeviceHeads.where((item) =>
@@ -517,6 +546,17 @@ class SaveBackupGameJob extends ChangeNotifier {
             throw const FormatException('Changed restore binding');
           }
           _contents(manifest);
+          if (restore.containsKey('memberPaths')) {
+            final paths = restore['memberPaths'];
+            if (restore['deviceImport'] != true ||
+                paths is! List ||
+                paths.any((path) => path is! String) ||
+                paths.toSet().length != paths.length ||
+                !_validDeviceImportMembers(
+                    manifest, paths.cast<String>().toSet())) {
+              throw const FormatException('Changed device import files');
+            }
+          }
           if (operationKey == 'rollback' &&
               (record['restore'] is! Map ||
                   restore['sourceCaptureId'] !=
@@ -688,6 +728,12 @@ class SaveBackupGameJob extends ChangeNotifier {
         final key = _deviceChoiceKey(candidate);
         previousChoices = _deviceImportChoices;
         _deviceImportChoices = Map.of(_deviceImportChoices);
+        // Revising a publication-wide choice resets its per-file associations.
+        // Otherwise Suggest could silently reselect a previously imported file.
+        for (final member in candidate.members) {
+          _deviceImportChoices
+              .remove(_deviceMemberChoiceKey(candidate, member.relativePath));
+        }
         if (ignored) {
           _deviceImportChoices[key] = 'ignore';
         } else {
@@ -716,8 +762,16 @@ class SaveBackupGameJob extends ChangeNotifier {
     return operation;
   }
 
-  Future<void> importDeviceBackup(SaveBackupManifest candidate) async {
+  Future<void> importDeviceBackup(SaveBackupManifest candidate,
+      {Set<String>? memberPaths}) async {
     if (_disposed || busy) return;
+    final paths = Set<String>.unmodifiable(
+        memberPaths ?? candidate.members.map((member) => member.relativePath));
+    if (!_validDeviceImportMembers(candidate, paths)) {
+      _issue = 'device_import_selection';
+      _changed();
+      return;
+    }
     // Preserve the current device branch first. Foreign heads cannot interfere
     // with this reconciliation or become an implicit restore selection.
     try {
@@ -728,7 +782,7 @@ class SaveBackupGameJob extends ChangeNotifier {
       return;
     }
     if (_issue != null || restorePending || pendingName != null) return;
-    await _restore(deviceImport: candidate);
+    await _restore(deviceImport: candidate, deviceMemberPaths: paths);
   }
 
   /// Reconcile before an owned launch, without treating a newer clock as a
@@ -1497,7 +1551,8 @@ class SaveBackupGameJob extends ChangeNotifier {
   Future<void> _restore(
       {bool rollback = false,
       bool beforeLaunch = false,
-      SaveBackupManifest? deviceImport}) {
+      SaveBackupManifest? deviceImport,
+      Set<String>? deviceMemberPaths}) {
     if (_disposed) return Future.value();
     if (_operation case final pending?) return pending;
     if (_running[_key] case final pending?) return pending;
@@ -1544,6 +1599,8 @@ class SaveBackupGameJob extends ChangeNotifier {
         if (deviceImport != null) {
           final target = _deviceBinding;
           if (target == null ||
+              deviceMemberPaths == null ||
+              !_validDeviceImportMembers(deviceImport, deviceMemberPaths) ||
               deviceImport.binding.deviceId == target.deviceId ||
               deviceImport.binding.restoreIssue(target) != null ||
               !_otherDeviceHeads.any(
@@ -1588,6 +1645,7 @@ class SaveBackupGameJob extends ChangeNotifier {
             'state': 'capture',
             if (deviceImport != null) ...{
               'deviceImport': true,
+              'memberPaths': deviceMemberPaths!.toList()..sort(),
               'deviceParentGenerationIds': [
                 if (lastVerified?.binding.deviceId ==
                         _deviceBinding?.deviceId &&
@@ -1807,6 +1865,15 @@ class SaveBackupGameJob extends ChangeNotifier {
         // Cancellation after that receipt must not discard the completed result.
         if (!rollback && restore['deviceImport'] == true) {
           _deviceImportChoices[_deviceChoiceKey(selected)] = 'import';
+          if (selected.binding.kind == SaveBackupKind.companion) {
+            final paths = (restore['memberPaths'] as List?)?.cast<String>() ??
+                selected.members.map((member) => member.relativePath).toList();
+            for (final member in selected.members) {
+              _deviceImportChoices[
+                      _deviceMemberChoiceKey(selected, member.relativePath)] =
+                  paths.contains(member.relativePath) ? 'import' : 'ignore';
+            }
+          }
         }
         await _persist({
           ...record,

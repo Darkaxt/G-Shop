@@ -348,6 +348,20 @@ class _Areas extends DriveSaveBackupAreaApi {
 /// UI verifies the explicit choice; the separate job tests exercise real SQLite
 /// ordering. Do not launch FFI work from a dialog's fake-clock continuation.
 class _UiJob extends SaveBackupGameJob {
+  List<SaveBackupManifest>? deviceCopiesFixture;
+  final deviceImports = <({SaveBackupManifest copy, Set<String>? paths})>[];
+  @override
+  List<SaveBackupManifest> get otherDeviceBackups =>
+      deviceCopiesFixture ?? super.otherDeviceBackups;
+  @override
+  List<SaveBackupManifest> get suggestedDeviceBackups =>
+      deviceCopiesFixture ?? super.suggestedDeviceBackups;
+  @override
+  Future<void> importDeviceBackup(SaveBackupManifest candidate,
+      {Set<String>? memberPaths}) async {
+    deviceImports.add((copy: candidate, paths: memberPaths));
+  }
+
   List<String>? namesFixture;
   Object? namesFailure;
   Future<List<String>>? namesPending;
@@ -735,6 +749,35 @@ void main() {
     expect(job.issue, 'device_import_changed');
     expect(capture.restored, isEmpty);
     expect(generations.downloads, 0);
+  });
+
+  test('device import cannot split a required save group', () async {
+    capture.includeRtc = true;
+    await job.backup(currentName);
+    final local = job.lastVerified!;
+    final peer = SaveBackupManifest(
+        generationId: 'paired-peer',
+        binding: SaveBackupBinding.fromJson(
+            {...local.binding.toJson(), 'deviceId': 'second-device'}),
+        parentGenerationIds: [],
+        createdAt: DateTime.utc(2090),
+        members: [
+          for (final member in local.members)
+            SaveBackupMember(
+                relativePath: member.relativePath,
+                cloudFileId: 'peer-${member.cloudFileId}',
+                sizeBytes: member.sizeBytes,
+                sha256: member.sha256)
+        ]);
+    generations.cloud[peer.generationId] = peer;
+    await job.reconcileBeforeLaunch(currentName);
+    final captures = capture.captures;
+    await job.importDeviceBackup(peer, memberPaths: {currentName});
+    expect(job.issue, 'device_import_selection');
+    expect(capture.captures, captures);
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+    expect(job.lastVerified!.encode(), local.encode());
   });
 
   testWidgets(
@@ -2399,6 +2442,138 @@ void main() {
     expect(capture.stagedNames, [name]);
     expect(capture.stagedDirectories, [directory]);
     expect(capture.restored, hasLength(1));
+  });
+
+  test('companion file import rejects unrelated paths and remembers the choice',
+      () async {
+    const name = 'ULUS10041_1.00_0.jpg';
+    final companion = SaveBackupGameJob(
+        database: job.database,
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: '/storage/emulated/0/PSP/PPSSPP_STATE',
+        ppssppSlot: name,
+        ppssppCompanion: true,
+        resolveSaveName: () async => name);
+    addTearDown(companion.dispose);
+    await LibraryStore(Future.value(db)).putGame(GameIdentity(
+        id: 'game',
+        platformId: 'psp',
+        title: 'Game',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    await companion.backup(name);
+    final peer = otherDevice(companion.lastVerified!);
+    generations.cloud[peer.generationId] = peer;
+    await companion.reconcileBeforeLaunch(name);
+    final captures = capture.captures;
+    await companion.importDeviceBackup(peer, memberPaths: {});
+    expect(companion.issue, 'device_import_selection');
+    await companion.importDeviceBackup(peer, memberPaths: {'unrelated.jpg'});
+    expect(companion.issue, 'device_import_selection');
+    expect(capture.captures, captures);
+    expect(capture.restored, isEmpty);
+    expect(generations.downloads, 0);
+    await companion.importDeviceBackup(peer, memberPaths: {name});
+    expect(companion.issue, isNull);
+    expect(capture.stagedNames, [name]);
+    expect(capture.restored, hasLength(1));
+    expect(companion.rollbackAvailable, isTrue);
+    await companion.load();
+    expect(companion.deviceBackupMemberSelected(peer, name), isTrue);
+    await companion.setDeviceBackupIgnored(peer, true);
+    expect(companion.deviceBackupMemberSelected(peer, name), isFalse);
+    await companion.setDeviceBackupIgnored(peer, false);
+    expect(companion.deviceBackupMemberSelected(peer, name), isFalse);
+  });
+
+  testWidgets(
+      'companion chooser keeps independent file choices across sections',
+      (tester) async {
+    const name = 'ULUS10041_1.00_0.jpg';
+    final ui = _UiJob(SaveBackupGameJob(
+        database: job.database,
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        ppssppDirectory: '/storage/emulated/0/PSP/PPSSPP_STATE',
+        ppssppSlot: name,
+        ppssppCompanion: true,
+        resolveSaveName: () async => name))
+      ..namesFixture = [name];
+    addTearDown(ui.dispose);
+    final peer = SaveBackupManifest(
+        generationId: 'companion-peer',
+        binding: SaveBackupBinding(
+            accountId: 'account',
+            deviceId: 'second-device',
+            emulatorPackage: 'org.ppsspp.ppsspp',
+            emulatorVersion: 'v1.20.4',
+            coreId: 'ppsspp',
+            coreVersion: 'unreported',
+            platformId: 'psp',
+            editions: [SaveBackupEdition(gameId: 'game', editionId: 'edition')],
+            kind: SaveBackupKind.companion,
+            formatId: 'ppsspp-screenshot-jpeg-v1',
+            companionCompatibility: SaveCompanionCompatibility.portable),
+        parentGenerationIds: [],
+        createdAt: DateTime.utc(2090),
+        members: [
+          for (final slot in [0, 1])
+            SaveBackupMember(
+                relativePath: 'ULUS10041_1.00_$slot.jpg',
+                cloudFileId: 'peer-member-$slot',
+                sizeBytes: 4,
+                sha256: 'c' * 64)
+        ]);
+    ui.deviceCopiesFixture = [peer];
+    await tester.pumpWidget(createTestApp(Scaffold(
+        body: SingleChildScrollView(
+            child: SaveBackupGamePanel(
+                job: ui, title: 'Game', section: SaveBackupSection.restore)))));
+    await tester.pumpAndSettle();
+    final open = find.byKey(const ValueKey('save-other-devices'));
+    await tester.ensureVisible(open);
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-device-files-section')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('save-device-group')), findsNothing);
+    final file = find.byKey(const ValueKey('save-device-file-$name'));
+    final otherFile =
+        find.byKey(const ValueKey('save-device-file-ULUS10041_1.00_1.jpg'));
+    expect(tester.widget<CheckboxListTile>(file).value, isFalse);
+    expect(tester.widget<CheckboxListTile>(otherFile).value, isFalse);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byKey(const ValueKey('save-device-import')))
+            .onPressed,
+        isNull);
+    await tester.tap(file);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-device-source-section')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-device-files-section')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<CheckboxListTile>(file).value, isTrue);
+    expect(tester.widget<CheckboxListTile>(otherFile).value, isFalse);
+    await tester.tap(find.byKey(const ValueKey('save-device-import')));
+    await tester.pumpAndSettle();
+    expect(ui.deviceImports.single.copy.encode(), peer.encode());
+    expect(ui.deviceImports.single.paths, {name});
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   test(

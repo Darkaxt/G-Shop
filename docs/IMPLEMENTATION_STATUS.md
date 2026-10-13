@@ -5,6 +5,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Companion selection and live Drive restore — ACTIVE work, 2026-10-13
+
+S10 remains the sole ACTIVE stage. Optional companion files now have independent
+checkboxes in the existing Source/Files dialog; required save/state groups remain
+indivisible. Exact selections survive section changes and are journaled. Unknown,
+empty, changed-binding and partial required-group choices are rejected before
+capture/download. Successful associations are remembered per immutable publication
+and device, with reversible Ignore/Suggest choices. Focused SQLite job and UI
+contracts, the affected job test file and scoped Dart analysis pass.
+
+The normal Thor game menu -> Save backups -> Slot screenshot path automatically
+resolved the existing PSP slot association, uploaded its JPEG to the dedicated
+Drive backup area and completed verified readback. Explicit normal cloud restore
+then produced a native `published` receipt at PPSSPP's configured expected path.
+The independent restored 42,285-byte JPEG SHA-256 is
+`e8d87cdebac8d61a044ad435ffb7737ccbffa5665c6ddb499bdd7f4e4f957729`.
+The retained rollback capture has the same digest. The separate 5,557,226-byte
+state digest remains
+`ef64997dfb2f43e04d1c9b86416b98ab61b71c189f7c37026de7ce2db735cc53`.
+No emulator was launched and no gameplay/deep save-loading check was added.
+Normal navigation between backup/status sections preserved the running upload.
+
+Gated assembly request 902 completed through the shared mutex, build/helper exit
+0 and verified daemon exit. Observed workers=2, parallel=false and Gradle maximum
+heap=3,221,225,472 bytes; Kotlin in-process configured/requested. One 512 MiB
+fail-fast test fork was configured but no JVM tests ran in this assembly. Native
+compile/link pool depth remains one; environment budget two is not proof that
+every native tool honored it. No memory failure or budget increase occurred.
+Installed and host debug APK SHA-256 match
+`b98b2ecf45c1734197680d54eee7119b9b1fde9ff317d0bf44edb9ffed481e3c`.
+Install-replace preserved app data; no sign-in/reconsent was needed. The encrypted
+token store changed during normal use, so byte-identical token storage is not
+claimed; secure key-store digest remained unchanged. Both physical displays are
+confirmed OFF. Inspected temporary host captures are cleaned through the exact
+transactional ticket; native rollback/history is intentional retained app data.
+
+This closes the connected single-JPEG live Drive check, not general game-folder
+discovery, native selective multi-file restoration, remaining emulator coverage,
+required fault/reconnect cases or conditional legacy-sync handover. Those remain
+ordinary unfinished S10 work. S11/S12 remain NOT STARTED.
+
 ### First connected companion route — ACTIVE work, 2026-10-13
 
 S10 remains the sole ACTIVE stage. PPSSPP's exact selected-slot JPEG now uses

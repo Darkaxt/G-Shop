@@ -1247,8 +1247,15 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     final suggested = job.suggestedDeviceBackups;
     var selected = suggested.isEmpty ? copies.first : suggested.first;
     var includeGroup = false;
+    Set<String> rememberedFiles(SaveBackupManifest copy) => {
+          for (final member in copy.members)
+            if (job.deviceBackupMemberSelected(copy, member.relativePath))
+              member.relativePath
+        };
+    var selectedFiles = rememberedFiles(selected);
     var section = _DeviceImportSection.source;
-    final choice = await showDialog<({SaveBackupManifest copy, String action})>(
+    final choice = await showDialog<
+            ({SaveBackupManifest copy, String action, Set<String> files})>(
         context: context,
         builder: (context) => StatefulBuilder(builder: (context, update) {
               final ignored = job.deviceBackupIgnored(selected);
@@ -1303,6 +1310,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                               update(() {
                                 selected = copy;
                                 includeGroup = false;
+                                selectedFiles = rememberedFiles(copy);
                               });
                             },
                           ),
@@ -1320,28 +1328,48 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                           const Text(
                               'Close the game first. Your current copy is kept for Undo; cloud copies are kept too.'),
                         ] else ...[
-                          CheckboxListTile(
-                            key: const ValueKey('save-device-group'),
-                            contentPadding: EdgeInsets.zero,
-                            value: includeGroup,
-                            title: Text(selected.binding.kind ==
-                                    SaveBackupKind.companion
-                                ? 'Companion files'
-                                : 'Complete save group'),
-                            subtitle: Text(selected.binding.kind ==
-                                    SaveBackupKind.companion
-                                ? 'Optional data for this game.'
-                                : 'These files need to stay together.'),
-                            onChanged: (value) =>
-                                update(() => includeGroup = value ?? false),
-                          ),
+                          if (selected.binding.kind != SaveBackupKind.companion)
+                            CheckboxListTile(
+                              key: const ValueKey('save-device-group'),
+                              contentPadding: EdgeInsets.zero,
+                              value: includeGroup,
+                              title: const Text('Complete save group'),
+                              subtitle: const Text(
+                                  'These files need to stay together.'),
+                              onChanged: (value) =>
+                                  update(() => includeGroup = value ?? false),
+                            ),
+                          if (selected.binding.kind == SaveBackupKind.companion)
+                            const Text('Choose the companion files to import.'),
                           for (final member in selected.members)
-                            ListTile(
-                                dense: true,
-                                leading: const Icon(
-                                    Icons.insert_drive_file_outlined),
-                                title: Text(member.relativePath),
-                                subtitle: Text('${member.sizeBytes} bytes')),
+                            if (selected.binding.kind ==
+                                SaveBackupKind.companion)
+                              CheckboxListTile(
+                                  key: ValueKey(
+                                      'save-device-file-${member.relativePath}'),
+                                  contentPadding: EdgeInsets.zero,
+                                  value: selectedFiles
+                                      .contains(member.relativePath),
+                                  secondary: const Icon(
+                                      Icons.insert_drive_file_outlined),
+                                  title: Text(member.relativePath),
+                                  subtitle: Text('${member.sizeBytes} bytes'),
+                                  onChanged: (value) => update(() {
+                                        if (value == true) {
+                                          selectedFiles
+                                              .add(member.relativePath);
+                                        } else {
+                                          selectedFiles
+                                              .remove(member.relativePath);
+                                        }
+                                      }))
+                            else
+                              ListTile(
+                                  dense: true,
+                                  leading: const Icon(
+                                      Icons.insert_drive_file_outlined),
+                                  title: Text(member.relativePath),
+                                  subtitle: Text('${member.sizeBytes} bytes')),
                         ],
                       ])),
                     ],
@@ -1358,7 +1386,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                       key: const ValueKey('save-device-ignore'),
                       onPressed: () => Navigator.pop(context, (
                             copy: selected,
-                            action: ignored ? 'suggest' : 'ignore'
+                            action: ignored ? 'suggest' : 'ignore',
+                            files: <String>{},
                           )),
                       icon: Icon(
                           ignored ? Icons.notifications_outlined : Icons.block),
@@ -1366,10 +1395,21 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                   FilledButton.icon(
                       key: const ValueKey('save-device-import'),
                       style: AppTheme.primaryButtonStyle,
-                      onPressed: includeGroup
-                          ? () => Navigator.pop(
-                              context, (copy: selected, action: 'import'))
-                          : null,
+                      onPressed:
+                          (selected.binding.kind == SaveBackupKind.companion
+                                  ? selectedFiles.isNotEmpty
+                                  : includeGroup)
+                              ? () => Navigator.pop(context, (
+                                    copy: selected,
+                                    action: 'import',
+                                    files: Set<String>.unmodifiable(
+                                        selected.binding.kind ==
+                                                SaveBackupKind.companion
+                                            ? selectedFiles
+                                            : selected.members
+                                                .map((m) => m.relativePath)),
+                                  ))
+                              : null,
                       icon: const Icon(Icons.download_outlined),
                       label: const Text('Import')),
                 ],
@@ -1377,7 +1417,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
             }));
     if (choice == null || !context.mounted || job.busy) return;
     if (choice.action == 'import') {
-      await job.importDeviceBackup(choice.copy);
+      await job.importDeviceBackup(choice.copy, memberPaths: choice.files);
     } else {
       await job.setDeviceBackupIgnored(choice.copy, choice.action == 'ignore');
     }
@@ -1693,6 +1733,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                               'That choice could not be saved. Your files are unchanged; try again.',
                             'device_import_changed' =>
                               'That backup changed or is no longer available for this game. Open Other devices and choose again. Your files were not replaced.',
+                            'device_import_selection' =>
+                              'Choose at least one companion file, or the complete save group. Nothing was replaced.',
                             'conflict_changed' => job.restorePending
                                 ? 'The cloud save changed while it was being checked. Automatic restore stopped. You can review and explicitly resume the previously selected copy in Restore & conflicts; other cloud copies are kept.'
                                 : 'The cloud saves changed while you were choosing. Review the current choices in Restore & conflicts. No copy was replaced.',

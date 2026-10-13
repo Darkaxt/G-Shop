@@ -7,6 +7,38 @@ do not override this schedule or restore the rejected full-scraping requirement.
 
 ## Current resumption — 2026-10-11
 
+### Explicit companion-file import choices — 2026-10-13
+
+The existing Source/Files import dialog now renders optional companion members
+as separate checkboxes, not an indivisible save group. Required saves/states keep
+their complete-group control. Section changes preserve the selected files; the
+dialog passes an immutable exact-path selection to the existing job. Empty,
+unknown, foreign-binding and partial required-group selections are refused before
+capture/download. The journal retains the chosen paths, validates them on reload,
+and records successful member association only after native publication. Ignore
+and Suggest reset the publication's member associations so they remain reversible.
+Selections are keyed by the current device and complete immutable publication,
+not title, timestamp or bare filename. Existing journals without selected paths
+retain their complete-group behavior.
+
+The connected route remains PPSSPP's exact single-slot JPEG, including the normal
+rollback coordinator. A presentation fixture exercises independent choices with
+multiple optional members; it is not evidence of native multi-file restoration.
+The scalar native route still rejects a multi-member publication. General
+game-folder companion discovery, capture and selective multi-file restoration
+remain unfinished S10 work; this change does not claim those requirements passed.
+Focused real SQLite job checks and the affected job test file pass; scoped Dart
+analysis passes. No required save folder is split and no alternate sync engine is
+introduced.
+
+The existing one-JPEG route subsequently passed the normal Thor UI -> Drive
+upload/readback -> explicit restore workflow. Native publication and retained
+rollback receipts plus independent expected-path SHA-256 checks are recorded in
+IMPLEMENTATION_STATUS.md. The separate state bytes stayed unchanged. This is
+actual Drive transport/native publication evidence, not a live multi-file or
+second-account test. Assembly 902 and the preserving installed APK apply to this
+code; both screens are OFF after inspection.
+
 ### Exact-slot companion vertical slice — 2026-10-13
 
 PPSSPP's selected `DISC_VERSION_SLOT.ppst` association deterministically yields
