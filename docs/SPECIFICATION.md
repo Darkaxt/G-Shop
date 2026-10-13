@@ -9,7 +9,8 @@ required. Preserve the existing S8 emulator/companion handoff independently.
 
 Owner scope update, 2026-10-13: implement all 12 plan stages. This authorizes
 S12's existing FRONTEND-01 contract after S10/S11; it does not open concurrent
-implementation or authorize a release. S10 remains the sole ACTIVE stage.
+implementation or authorize a release. Current execution state is maintained in
+IMPLEMENTATION_STATUS.md; S10 closed on 2026-10-14 and S11 is now ACTIVE.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained
@@ -1365,6 +1366,18 @@ not migrated by this change; future common dialogs can follow the same approach.
 This belongs to ACTIVE S10; it does not activate S11/S12 or authorize new emulator
 installation, save mutation or an external release.
 
+S10 implementation detail: optional `saveRoots` in each shared-file package
+registration describe named, console-scoped `SaveRootConfiguration` presets.
+`{package}` binds a preset to its registered package and `{romStem}` retains the
+existing exact-ROM filename expansion. Common settings offer a compact chooser
+of installed packages' matching presets, not a path-rule editor. Choosing a
+preset uses the existing joined remapping/persistence path; discovery or file
+editing alone never changes an enabled game's binding or grants file access.
+Registration edits preserve these advanced fields. Existing import remains a
+compatibility route, not a required step for shared-file presets. Permit explicit
+file/group selection at an emulator's private `files` root as well as its children;
+other app roots, settings, credentials, ROMs and unselected members stay excluded.
+
 Owner execution correction, 2026-10-13: the root-backed filesystem pipeline is
 emulator agnostic. Deliver installed-emulator coverage through declarative
 configuration of save roots, exact game/file associations, required groups and
@@ -1391,6 +1404,16 @@ this ROM-emulator save-sync feature. They are not required save-coverage routes
 or S10 acceptance blockers. Starboard runs the PortMaster PC-port catalogue and
 is also excluded on this basis. Keep ROM emulators and ROM-derived engines in
 scope; do not interpret this exclusion as permission to remove apps or data.
+
+Owner scope correction, 2026-10-14: S10 covers ROM games selectable in R-Shop
+and their emulator save workflows, not arbitrary installed APKs. Standalone game
+ports such as Ship of Harkinian are not ROM emulators. Exclude standalone ports,
+unrelated launchers and companion APKs from required emulator coverage, bundled
+save presets and S10 advancement blockers. Preserve all those apps and their
+data. This supersedes the earlier ROM-derived-engine inclusion and the broad
+installed-app coverage interpretation; do not add port support or live campaigns
+to postpone S11. Retain editable emulator-family registration and generic save
+configuration for actual ROM-emulator use, including the requested fork aliases.
 
 Acceptance scope revised by the user on 2026-10-09: a restored save must be
 published at the location the configured emulator expects. Verify the destination

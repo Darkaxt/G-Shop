@@ -25,6 +25,136 @@ void main() {
   };
   String file(List<Object> entries) =>
       jsonEncode({'schema': 1, 'packages': entries});
+  test('shared package presets bind the registered package and exact ROM stem',
+      () {
+    final presetFile = file([
+      {
+        ...alias,
+        'saveRoots': [
+          {
+            'name': 'In-game save',
+            'platform': 'gba',
+            'mapping': {
+              'directory': '/data/user/0/{package}/files',
+              'core': 'mGBA',
+              'kind': 'save',
+              'format': 'gba-sram',
+              'files': ['{romStem}.sav'],
+              'folders': <String>[],
+              'required': ['{romStem}.sav'],
+            },
+          }
+        ],
+      }
+    ]);
+    final registry = EmulatorFamilyRegistry.decode(presetFile);
+    final entry = registry.packages.values.single;
+    final mapping =
+        entry.saveRoots.single.resolve(entry.packageName, 'Game.gba');
+    expect(mapping.directory, '/data/user/0/org.example.switchfork/files');
+    expect(mapping.emulator, entry.packageName);
+    expect(mapping.files, ['Game.sav']);
+    expect(mapping.acceptsFile('Other.sav'), isFalse);
+    expect(
+        EmulatorFamilyRegistry.decode(registry.encode())
+            .packages
+            .values
+            .single
+            .saveRoots
+            .single
+            .name,
+        'In-game save');
+  });
+  test('presets reject unsafe paths, duplicate choices and unknown fields', () {
+    final mapping = {
+      'directory': '/data/user/0/{package}/files',
+      'core': 'example',
+      'kind': 'save',
+      'format': 'example-save-v1',
+      'files': ['{romStem}.sav'],
+      'folders': <String>[],
+      'required': ['{romStem}.sav'],
+    };
+    final preset = {
+      'name': 'In-game save',
+      'platform': 'gba',
+      'mapping': mapping
+    };
+    for (final roots in [
+      [preset, preset],
+      [
+        {...preset, 'unexpected': true}
+      ],
+      [
+        {...preset, 'platform': '../gba'}
+      ],
+      [
+        {
+          ...preset,
+          'mapping': {...mapping, 'emulator': 'other.app'}
+        }
+      ],
+      [
+        {
+          ...preset,
+          'mapping': {...mapping, 'directory': '/data/user/0/other.app/files'}
+        }
+      ],
+      [
+        {
+          ...preset,
+          'mapping': {
+            ...mapping,
+            'files': ['../save.sav']
+          }
+        }
+      ],
+      [
+        {
+          ...preset,
+          'mapping': {
+            ...mapping,
+            'files': ['settings.ini']
+          }
+        }
+      ],
+      [
+        {
+          ...preset,
+          'mapping': {...mapping, 'directory': '/data/user/0/{unknown}/files'}
+        }
+      ],
+    ]) {
+      expect(
+          () => EmulatorFamilyRegistry.decode(file([
+                {...alias, 'saveRoots': roots}
+              ])),
+          throwsFormatException);
+    }
+  });
+  test('bundled registrations exclude standalone ports and unrelated APKs',
+      () async {
+    final entries = (await EmulatorFamilyRegistry.load()).packages;
+    for (final package in [
+      'dev.twilitrealm.dusk',
+      'com.dishii.soh',
+      'com.dishii.zelda3',
+      'com.zelda.ladxhd',
+      'org.solarus_games.solarus',
+      'dev.picori.tmc',
+      'com.underdecodedhd.gen2recomp',
+      'com.theboisclub.pokemonred',
+      'com.balatro.dualscreen',
+      'com.darkaxt.dualdex',
+      'io.github.darkaxt.dualsouls',
+      'com.retrohrai.launcher',
+      'rip.moth.cocoonshell',
+      'org.es_de.frontend',
+      'com.neogamelab.neostation'
+    ]) {
+      expect(entries, isNot(contains(package)), reason: package);
+    }
+  });
   test(
       'the bundled file registers existing apps and Eden Duo as the Eden family',
       () async {

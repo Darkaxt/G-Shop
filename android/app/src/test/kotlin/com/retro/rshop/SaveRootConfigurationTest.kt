@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveRootConfigurationTest {
+    @Test fun privateFilesRootStillRequiresExactPackageAndSelectedMembers() {
+        assertTrue(SaveRootConfiguration.validDirectory("/data/user/0/example.emulator/files", "example.emulator"))
+        assertTrue(SaveRootConfiguration.validDirectory("/data/data/example.emulator/files", "example.emulator"))
+        for (path in listOf("/data/user/0/other.app/files", "/data/user/0/example.emulator",
+                "/data/user/0/example.emulator/shared_prefs", "/data/user/0/example.emulator/files/../shared_prefs"))
+            assertFalse(path, SaveRootConfiguration.validDirectory(path, "example.emulator"))
+    }
     @Test fun configuredSharedResourceUsesOneLogicalNameNotTheInitiatingRom() {
         val config = SaveRootConfiguration("/storage/emulated/0/Emulator/memcards",
             "example.emulator", "example", "save", "memory-card-v1", listOf("Mcd001.ps2"),

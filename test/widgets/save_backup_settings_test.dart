@@ -25,6 +25,7 @@ import 'package:retro_eshop/services/saves/drive_save_backup_area.dart';
 import 'package:retro_eshop/services/saves/save_backup_setup.dart';
 import 'package:retro_eshop/services/saves/save_capture.dart';
 import 'package:retro_eshop/models/emulator_family_registry.dart';
+import 'package:retro_eshop/services/owned_emulator_launcher.dart';
 
 import '../helpers/pump_helpers.dart';
 
@@ -108,6 +109,13 @@ class _FamilyBundle extends CachingAssetBundle {
   Future<ByteData> load(String key) async => throw UnimplementedError();
 }
 
+class _InstalledRom extends OwnedEmulatorLauncher {
+  @override
+  Future<Map<String, Object>> resolveRomCompanionGrant(
+          GameItem game, String platformId, String root) async =>
+      {'installationId': 'owned-fixture', 'filename': 'Actual.gba'};
+}
+
 void main() {
   late EmulatorFamilySettings settings;
   late String defaults;
@@ -122,6 +130,164 @@ void main() {
     settings = await EmulatorFamilySettings.open(
         file: File('${directory.path}/emulator_families.json'),
         bundle: _FamilyBundle(defaults));
+  });
+
+  testWidgets(
+      'save-location chooser binds installed console preset; cancel and external edits preserve mapping',
+      (tester) async {
+    const package = 'org.example.gba';
+    final registration = {
+      'package': package,
+      'family': 'custom',
+      'name': 'GBA emulator',
+      'saveRoots': [
+        {
+          'name': 'In-game save',
+          'platform': 'gba',
+          'mapping': {
+            'directory': '/data/user/0/{package}/files',
+            'core': 'example',
+            'kind': 'save',
+            'format': 'example-save-v1',
+            'files': ['{romStem}.sav'],
+            'folders': <String>[],
+            'required': ['{romStem}.sav'],
+          }
+        },
+        {
+          'name': 'Wrong console',
+          'platform': 'snes',
+          'mapping': {
+            'directory': '/data/user/0/{package}/files',
+            'core': 'example',
+            'kind': 'save',
+            'format': 'example-save-v1',
+            'files': ['{romStem}.sav'],
+            'folders': <String>[],
+            'required': ['{romStem}.sav'],
+          }
+        },
+      ],
+    };
+    final source = jsonEncode({
+      'schema': 1,
+      'packages': [
+        registration,
+        {
+          ...registration,
+          'package': 'org.example.absent',
+          'name': 'Not installed'
+        },
+      ]
+    });
+    settings.file.writeAsStringSync(source, flush: true);
+    await settings.reload();
+    const channel = MethodChannel('com.retro.rshop/save_capture');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'installedSaveEmulators') {
+        return [
+          {
+            'packageName': package,
+            'versionName': '1',
+            'documentAuthorities': <String>[],
+          }
+        ];
+      }
+      return null;
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    final sources = _Sources();
+    await sources.ready;
+    sources.publish('account');
+    final game = GameItem(
+        filename: 'Displayed.gba',
+        displayName: 'Game',
+        url: 'drive:fixture',
+        remoteArtifact: RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: 'same-source',
+                accountId: 'account',
+                providerFileId: 'file'),
+            displayPath: 'Displayed.gba',
+            displayName: 'Game'));
+    await tester.pumpWidget(ProviderScope(
+        overrides: [sourcesProvider.overrideWith((_) => sources)],
+        child: createTestApp(SaveBackupSettingsScreen(
+            editionId: 'edition',
+            gameTitle: 'Game',
+            game: game,
+            system: SystemModel(
+                id: 'gba',
+                name: 'Game Boy Advance',
+                manufacturer: 'Nintendo',
+                releaseYear: 2001),
+            targetFolder: '/storage/1234-ABCD/Roms/gba',
+            emulatorSettings: settings,
+            emulatorLauncher: _InstalledRom()))));
+    await tester.pumpAndSettle();
+    final key = SaveRootConfiguration.storageKey(game.remoteArtifact!.id.key);
+    final preferences = await SharedPreferences.getInstance();
+    await tester.tap(find.byKey(const ValueKey('save-choose-preset')));
+    await tester.pumpAndSettle();
+    expect(find.text('GBA emulator'), findsOneWidget);
+    expect(find.text('Not installed'), findsNothing);
+    expect(find.text('Wrong console'), findsNothing);
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+    expect(preferences.getString(key), isNull);
+    await tester.tap(find.byKey(const ValueKey('save-choose-preset')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('save-preset-$package-In-game save')));
+    await tester.pumpAndSettle();
+    final saved = preferences.getString(key)!;
+    final mapping = SaveRootConfiguration.decode(
+        Map<String, dynamic>.from(jsonDecode(saved) as Map));
+    expect(mapping.directory, '/data/user/0/$package/files');
+    expect(mapping.files,
+        ['Actual.sav']); // Native granted filename, not display name.
+    expect(mapping.emulator, package);
+    await tester.tap(find.byKey(const ValueKey('save-choose-preset')));
+    await tester.pumpAndSettle();
+    settings.file.writeAsStringSync(
+        source.replaceFirst('GBA emulator', 'Changed externally'),
+        flush: true);
+    await tester
+        .tap(find.byKey(const ValueKey('save-preset-$package-In-game save')));
+    await tester.pumpAndSettle();
+    expect(preferences.getString(key), saved);
+    expect(find.textContaining('Could not use this save location'),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('save-emulator-families-configure')));
+    await tester.pumpAndSettle();
+    final originalPresets = settings.registry.packages[package]!.saveRoots
+        .map((p) => p.toJson())
+        .toList();
+    await tester.tap(find.descendant(
+        of: find.ancestor(
+            of: find.text('Changed externally'),
+            matching: find.byType(ListTile)),
+        matching: find.byType(IconButton)));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('emulator-name')), 'Renamed in app');
+    await tester.tap(find.byKey(const ValueKey('emulator-save')));
+    await tester.pumpAndSettle();
+    expect(
+        settings.registry.packages[package]!.saveRoots
+            .map((p) => p.toJson())
+            .toList(),
+        originalPresets);
+    expect(preferences.getString(key), saved);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets(
@@ -429,7 +595,8 @@ void main() {
     expect(find.text('Dolphin'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('save-nav-emulators')));
     await tester.pumpAndSettle();
-    expect(calls, hasLength(2)); // Section entry reloads external configuration.
+    expect(
+        calls, hasLength(2)); // Section entry reloads external configuration.
     await tester.tap(find.byKey(const ValueKey('save-emulators-refresh')));
     await tester.pumpAndSettle();
     expect(calls, hasLength(3));

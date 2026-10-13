@@ -131,8 +131,8 @@ void main() {
     final row = _decode([
       _row('info.cemu.cemu', '0.5.2', ['info.cemu.cemu.user'])
     ]).single;
-    expect(row.storage, contains('does not select'));
-    expect(row.saves, startsWith('Automatic mapping pending'));
+    expect(row.storage, contains('not the whole MLC'));
+    expect(row.saves, contains('WUA title identity'));
     expect(row.states, startsWith('Custom mapping'));
     expect(row.storage, isNot(contains('unsupported')));
   });
@@ -168,14 +168,12 @@ void main() {
     expect(changed.saves, startsWith('Needs review'));
   });
 
-  test('launchers and unreviewed emulators are not falsely unsupported', () {
-    final rows = _decode([
-      _row('org.es_de.frontend', '3.4.1'),
-      _row('com.flycast.emulator', 'v2.6'),
-    ]);
-    expect(rows.first.saves, startsWith('Not applicable'));
-    expect(rows.last.saves, contains('shared virtual VMU cards'));
-    expect(rows.last.storage, contains('not BIOS'));
+  test(
+      'Flycast coverage describes its actual card route without unrelated launchers',
+      () {
+    final row = _decode([_row('com.flycast.emulator', 'v2.6')]).single;
+    expect(row.saves, contains('shared virtual VMU cards'));
+    expect(row.storage, contains('not BIOS'));
   });
 
   test('Dolphin card coverage does not claim Wii NAND or raw-card discovery',

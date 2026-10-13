@@ -567,19 +567,21 @@ class OwnedRomInstrumentation : Instrumentation() {
                     check(mappedChild.createNewFile()); mappedChild.writeBytes(byteArrayOf(12))
                     check(mappedOther.createNewFile()); mappedOther.writeBytes(byteArrayOf(13))
                     check(mappedRuntime.createNewFile()); mappedRuntime.writeBytes(byteArrayOf(31, 32))
-                    val configuration = SaveRootConfiguration(mappedRoot.path, targetContext.packageName,
-                        "fixture", "state", "fixture-state-v1", listOf("card.bin"), listOf("TITLE123"), listOf("card.bin"),
+                    val configuredDirectory = targetContext.filesDir.canonicalPath
+                    val mappedPrefix = mappedRoot.name
+                    val configuration = SaveRootConfiguration(configuredDirectory, targetContext.packageName,
+                        "fixture", "state", "fixture-state-v1", listOf("$mappedPrefix/card.bin"), listOf("$mappedPrefix/TITLE123"), listOf("$mappedPrefix/card.bin"),
                         listOf(mappedRuntime.path))
-                    val configurationMap = mapOf<String, Any>("schema" to 1, "directory" to mappedRoot.path,
+                    val configurationMap = mapOf<String, Any>("schema" to 1, "directory" to configuredDirectory,
                         "emulator" to targetContext.packageName, "core" to "fixture", "kind" to "state",
-                        "format" to "fixture-state-v1", "files" to listOf("card.bin"),
-                        "folders" to listOf("TITLE123"), "required" to listOf("card.bin"),
+                        "format" to "fixture-state-v1", "files" to configuration.files,
+                        "folders" to configuration.folders, "required" to configuration.required,
                         "runtimeFiles" to listOf(mappedRuntime.path))
                     val configuredGrant = mapOf<String, Any>("installationId" to id, "filename" to rom.name,
                         "saveRoot" to configurationMap, "emulatorPackage" to targetContext.packageName)
                     val configuredSnapshot = invoke("romCompanionSnapshot", configuredGrant) as Map<*, *>
-                    val configuredNames = listOf("TITLE123/progress.dat", "card.bin")
-                    check(configuredSnapshot["directory"] == mappedRoot.path &&
+                    val configuredNames = listOf("$mappedPrefix/TITLE123/progress.dat", "$mappedPrefix/card.bin")
+                    check(configuredSnapshot["directory"] == configuredDirectory &&
                         (configuredSnapshot["files"] as Map<*, *>).keys == configuredNames.toSet())
                     val configuredBefore = configuredSnapshot.filterKeys { it != "changed" }
                     val configuredInitial = CountDownLatch(1); val configuredChanged = CountDownLatch(1)
@@ -588,13 +590,13 @@ class OwnedRomInstrumentation : Instrumentation() {
                         check(it == "b".repeat(64))
                         if (configuredFirst.getAndSet(false)) configuredInitial.countDown() else configuredChanged.countDown()
                     })
-                    check(companionWatch.replace(listOf(SaveFileWatch.Mapping("b".repeat(64), mappedRoot.path,
+                    check(companionWatch.replace(listOf(SaveFileWatch.Mapping("b".repeat(64), configuredDirectory,
                         rom.name, "rom-companion", configuration))) == listOf("b".repeat(64)))
                     configuredInitial.await()
                     mappedChild.appendBytes(byteArrayOf(14)); configuredChanged.await()
                     companionWatch.close(); companionWatch = null
                     val configuredNext = invoke("romCompanionSnapshot", configuredGrant + mapOf("before" to configuredBefore)) as Map<*, *>
-                    check(configuredNext["changed"] == listOf("TITLE123/progress.dat"))
+                    check(configuredNext["changed"] == listOf("$mappedPrefix/TITLE123/progress.dat"))
                     val configuredBinding = configuredGrant + mapOf("binding" to configuredNext["binding"]!!)
                     val configuredCaptureId = UUID.randomUUID().toString().replace("-", ""); captures.add(configuredCaptureId)
                     val configuredCapture = invoke("captureRomCompanions", configuredBinding + mapOf(

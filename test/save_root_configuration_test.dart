@@ -70,6 +70,25 @@ void main() {
     'folders': <String>[],
     'required': ['{romStem}.sav'],
   };
+  test('a private files root admits selected saves, not settings or other apps',
+      () {
+    for (final root in [
+      '/data/user/0/example.emulator/files',
+      '/data/data/example.emulator/files'
+    ]) {
+      final config = SaveRootConfiguration.decode(
+          {...mapping, 'directory': root},
+          romName: 'Game.gba');
+      expect(config.acceptsFile('Game.sav'), isTrue);
+      expect(config.acceptsFile('Other.sav'), isFalse);
+      expect(config.acceptsFile('settings.ini'), isFalse);
+    }
+    expect(
+        () => SaveRootConfiguration.decode(
+            {...mapping, 'directory': '/data/user/0/other.app/files'},
+            romName: 'Game.gba'),
+        throwsFormatException);
+  });
   test('one configuration binds external save groups to the exact ROM', () {
     final config = SaveRootConfiguration.decode(mapping, romName: 'Game.gba');
     expect(config.files, ['Game.sav', 'Game.rtc']);

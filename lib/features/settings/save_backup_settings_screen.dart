@@ -62,6 +62,7 @@ class SaveBackupSettingsScreen extends ConsumerStatefulWidget {
   final SystemModel? system;
   final String? targetFolder;
   final EmulatorFamilySettings? emulatorSettings;
+  final OwnedEmulatorLauncher? emulatorLauncher;
   const SaveBackupSettingsScreen(
       {super.key,
       this.editionId,
@@ -69,7 +70,8 @@ class SaveBackupSettingsScreen extends ConsumerStatefulWidget {
       this.game,
       this.system,
       this.targetFolder,
-      this.emulatorSettings});
+      this.emulatorSettings,
+      this.emulatorLauncher});
   @override
   ConsumerState<SaveBackupSettingsScreen> createState() =>
       _SaveBackupSettingsScreenState();
@@ -105,6 +107,8 @@ class _SaveBackupSettingsScreenState
   Future<EmulatorFamilySettings>? _familyOpening;
   StreamSubscription? _familyWatcher;
   final _contentScroll = ScrollController();
+  OwnedEmulatorLauncher get _launcher =>
+      widget.emulatorLauncher ?? OwnedEmulatorLauncher();
   final _sectionFocus = {
     for (final section in SaveBackupSection.values)
       section: FocusNode(debugLabel: 'save-section-${section.name}'),
@@ -221,7 +225,7 @@ class _SaveBackupSettingsScreenState
         SaveRootConfiguration? standard;
         try {
           final grant = const {'n3ds', 'wiiu'}.contains(widget.system!.id)
-              ? await OwnedEmulatorLauncher().resolveRomCompanionGrant(
+              ? await _launcher.resolveRomCompanionGrant(
                   widget.game!, widget.system!.id, widget.targetFolder!)
               : null;
           standard = await SaveCapture()
@@ -288,7 +292,7 @@ class _SaveBackupSettingsScreenState
     _automatic = await ref.read(automaticSaveBackupsProvider.future);
     PcsxSaveLayout? pcsx;
     PcsxSaveCard? card;
-    final launcher = OwnedEmulatorLauncher();
+    final launcher = _launcher;
     if (_romCompanions) {
       final configured = _saveRootConfiguration;
       Future<Map<String, Object>> grant() async => {
@@ -513,30 +517,12 @@ class _SaveBackupSettingsScreenState
         if (bytes.length + chunk.length > 32768) throw const FormatException();
         bytes.addAll(chunk);
       }
-      final grant = await OwnedEmulatorLauncher().resolveRomCompanionGrant(
+      final grant = await _launcher.resolveRomCompanionGrant(
           widget.game!, widget.system!.id, widget.targetFolder!);
       final configured = SaveRootConfiguration.decode(
           Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
           romName: (grant['filename'] as String).split('/').last);
-      final preferences = await SharedPreferences.getInstance();
-      final old = _gameJob;
-      if (old?.isRomCompanion == true && _automatic != null) {
-        final mapping = AutomaticSaveMapping.fromJob(old!,
-            title: widget.gameTitle ?? 'Game', romRoot: widget.targetFolder);
-        await _automatic!.setEnabled(mapping, false);
-      }
-      if (!await preferences.setString(
-          SaveRootConfiguration.storageKey(widget.game!.remoteArtifact!.id.key),
-          jsonEncode(configured.toJson()))) {
-        throw StateError('Mapping was not saved');
-      }
-      if (!mounted) return;
-      setState(() {
-        _closeGame();
-        _saveRootConfiguration = configured;
-        _standardMappingIssue = null;
-        _romCompanions = true;
-      });
+      await _applySaveRoot(configured);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -544,6 +530,92 @@ class _SaveBackupSettingsScreenState
                 'Could not use this mapping. Check the folder and selected files.')));
       }
     }
+  }
+
+  Future<void> _chooseSavePreset() async {
+    if (_gameJob?.busy == true ||
+        widget.game?.remoteArtifact == null ||
+        widget.system == null ||
+        widget.targetFolder == null) {
+      return;
+    }
+    try {
+      final settings =
+          widget.emulatorSettings ?? await EmulatorFamilySettings.open();
+      await settings.reload();
+      if (settings.issue != null) throw StateError(settings.issue!);
+      final source = settings.source;
+      final installed =
+          await SaveCapture().installedEmulators(registry: settings.registry);
+      final presets = [
+        for (final emulator in installed)
+          for (final preset in emulator.registration.saveRoots)
+            if (preset.platform == widget.system!.id)
+              (emulator: emulator.registration, preset: preset)
+      ];
+      if (!mounted || _leaving) return;
+      final selected = await showDialog<
+              ({EmulatorRegistration emulator, EmulatorSavePreset preset})>(
+          context: context,
+          builder: (context) => AlertDialog(
+                title: const Text('Save location'),
+                content: presets.isEmpty
+                    ? Text(
+                        'No presets for this console. Add saveRoots to ${settings.file.path}, then reopen this dialog.')
+                    : SizedBox(
+                        width: 480,
+                        height: (presets.length * 76.0).clamp(76, 360),
+                        child: ListView(children: [
+                          for (final choice in presets)
+                            ListTile(
+                                key: ValueKey(
+                                    'save-preset-${choice.emulator.packageName}-${choice.preset.name}'),
+                                leading: const Icon(Icons.folder_outlined),
+                                title: Text(choice.emulator.name),
+                                subtitle: Text(choice.preset.name),
+                                onTap: () => Navigator.pop(context, choice))
+                        ])),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'))
+                ],
+              ));
+      if (selected == null || !mounted || _leaving) return;
+      final grant = await _launcher.resolveRomCompanionGrant(
+          widget.game!, widget.system!.id, widget.targetFolder!);
+      await settings.reload();
+      if (settings.source != source) {
+        throw StateError('Save locations changed. Reopen the dialog.');
+      }
+      final configured = selected.preset.resolve(selected.emulator.packageName,
+          (grant['filename'] as String).split('/').last);
+      await _applySaveRoot(configured);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Could not use this save location. Check the settings file and installed game.')));
+      }
+    }
+  }
+
+  Future<void> _applySaveRoot(SaveRootConfiguration configured) async {
+    if (!mounted || _leaving || _gameJob?.busy == true) return;
+    final preferences = await SharedPreferences.getInstance();
+    await _prepareMappingChange();
+    if (!await preferences.setString(
+        SaveRootConfiguration.storageKey(widget.game!.remoteArtifact!.id.key),
+        jsonEncode(configured.toJson()))) {
+      throw StateError('Mapping was not saved');
+    }
+    if (!mounted) return;
+    setState(() {
+      _closeGame();
+      _saveRootConfiguration = configured;
+      _standardMappingIssue = null;
+      _romCompanions = true;
+    });
   }
 
   String _ppssppMappingKey(DriveSourceConfig config, {bool? savedata}) =>
@@ -620,10 +692,9 @@ class _SaveBackupSettingsScreenState
     requireIdle();
     // Retire only this association's automatic work/watch before publishing a
     // new location. Other games and all retained backup generations are kept.
-    await _automatic?.setEnabled(
-        AutomaticSaveMapping.fromJob(job,
-            title: widget.gameTitle ?? 'Selected game'),
-        false);
+    await _automatic?.disableForJob(job,
+        title: widget.gameTitle ?? 'Selected game',
+        romRoot: widget.targetFolder);
     await job.refresh();
     requireIdle();
   }
@@ -1009,7 +1080,7 @@ class _SaveBackupSettingsScreenState
                                                                       child: Text(_standardMappingIssue ==
                                                                               'root_unavailable'
                                                                           ? 'Root access is needed to read the save folder.'
-                                                                          : 'Save folder could not be resolved. Import a custom mapping.')),
+                                                                          : 'Save folder could not be resolved. Choose a save location or use a custom mapping.')),
                                                                 if (widget.game
                                                                             ?.remoteArtifact !=
                                                                         null &&
@@ -1032,6 +1103,27 @@ class _SaveBackupSettingsScreenState
                                                                               .file_open_outlined),
                                                                           label:
                                                                               const Text('Import mapping'))),
+                                                                if (widget
+                                                                            .game
+                                                                            ?.remoteArtifact !=
+                                                                        null &&
+                                                                    _section ==
+                                                                        SaveBackupSection
+                                                                            .backup)
+                                                                  Align(
+                                                                      alignment:
+                                                                          Alignment
+                                                                              .centerLeft,
+                                                                      child: TextButton.icon(
+                                                                          key: const ValueKey(
+                                                                              'save-choose-preset'),
+                                                                          onPressed: _gameJob?.busy == true
+                                                                              ? null
+                                                                              : _chooseSavePreset,
+                                                                          icon: const Icon(Icons
+                                                                              .folder_outlined),
+                                                                          label:
+                                                                              const Text('Save location'))),
                                                                 if (widget.game != null &&
                                                                     widget.system !=
                                                                         null &&
@@ -1366,7 +1458,8 @@ class _SaveBackupSettingsScreenState
                                   if (current.packageName != entry?.packageName)
                                     current.toJson(),
                                 EmulatorRegistration(package.text.trim(),
-                                        family, name.text.trim())
+                                        family, name.text.trim(),
+                                        saveRoots: entry?.saveRoots ?? const [])
                                     .toJson(),
                               ]
                             }));

@@ -1,11 +1,76 @@
-# S10 save backup — active implementation
+# S10 save backup — COMPLETE
 
-Authority: SAVE-01 in SPECIFICATION.md. S10 is the sole ACTIVE stage; setup and
-inventory do not satisfy SAVE-01 as a whole. S7 is COMPLETE as of 2026-10-11;
-its sequencing hold is resolved. S11 is NOT STARTED. Historical checkpoints below
-do not override this schedule or restore the rejected full-scraping requirement.
+Authority: SAVE-01 in SPECIFICATION.md. S10 is COMPLETE as of 2026-10-14;
+the current acceptance reconciliation is in IMPLEMENTATION_STATUS.md. S11 is
+the sole ACTIVE stage; S12 NOT STARTED. Historical checkpoints below are evidence,
+not current blockers or authority to reopen per-emulator/port campaigns.
+
+Final handover: inactive exact FolderSync Lite package removed, idle exact
+RetroBat Save Sync task disabled, script and actual saves/cloud data preserved.
+The installed final app independently matches the packaged APK. Its existing
+production backup API publishes and reads back a changed two-member fixture,
+then its restore API publishes the correct bytes back to the exact folder after
+a deliberate fixture change. Independent destination hashes match the verified
+manifest. No gameplay, real-save alteration or extra emulator audit was needed.
+See the status ledger for digests, profile, scope and preservation evidence.
 
 ## Current resumption — 2026-10-11
+
+### Shared-file save locations — 2026-10-14
+
+The shared `emulator_families.json` accepts optional `saveRoots` on a package
+registration. Each choice has `name`, `platform` (the R-Shop console ID) and
+`mapping` (the existing save-root fields, without `schema` or `emulator`). The
+registered package supplies the exact emulator identity; `{package}` expands
+that package in paths, and `{romStem}` uses the granted local ROM filename.
+Existing shared files remain authoritative and are not replaced by updated
+bundled defaults. Add a preset to an existing file to expose it immediately.
+
+```json
+{"package":"org.example.gba","family":"custom","name":"GBA emulator",
+ "saveRoots":[{"name":"In-game save","platform":"gba","mapping":{
+   "directory":"/data/user/0/{package}/files/saves","core":"example",
+   "kind":"save","format":"example-save-v1","files":["{romStem}.sav"],
+   "folders":[],"required":["{romStem}.sav"]}}]}
+```
+
+Game backup offers a short **Save location** chooser, restricted to installed
+packages and the current console. It does not expose a JSON/path-rule editor or
+require import/export. Cancel leaves the mapping unchanged; an external edit
+while the chooser is open rejects the stale selection. Common package/name/family
+edits preserve advanced presets. Applying a choice joins/disables the old
+automatic mapping before persisting its replacement through the existing path;
+backup is still opt-in. Presets do not claim automatic title or runtime matching.
+
+Bundled registrations are restricted to ROM emulators, not standalone game ports,
+companion apps or unrelated launchers. No bundled port save presets remain.
+Explicit selection at the package's private `files` root is supported,
+but unselected files, settings, BIOS, ROMs and other packages remain excluded.
+The existing native configured-root proof now exercises that exact files root,
+selecting only an exclusive fixture subdirectory through the same capture,
+watch, state-runtime, restore and rollback machinery.
+
+Focused real-file/model/widget checks and scoped analysis pass; the chooser
+proves cancellation, installed-console filtering, exact grant expansion, stale
+selection rejection and advanced-field preservation in the common Edit dialog.
+Gated request 1008 passes focused native contracts and app/test packaging with
+verified gate acquisition and daemon exit, two observed workers, no parallel
+projects, 3 GiB Gradle heap, Kotlin in-process configured and one executed 512 MiB
+fail-fast test fork. No memory failure; native environment budget two is not a
+universal concurrency claim. Installed APK independently matches
+`1c538a1a40b73efa6751efbba07d23e5de8b1d27a1ac5511e139375c60267933`.
+The actual Thor production probe passes the private-files-root workflow above;
+exclusive fixtures are removed, protected settings/key/secure-store hashes match
+and both screens are OFF. No real save/cloud mutation or emulator launch occurred.
+Host-only test configuration fixtures were removed through the applied reviewed
+cleanup ticket. Native dialog presentation remains S12, not an S10 correctness gate.
+
+The owner corrected the scope to R-Shop-selectable ROM games and their emulator
+workflows. The broad installed-APK audit incorrectly pulled in standalone ports
+such as Ship of Harkinian, Dusk, Picori, Zelda3, LADXHD and Gen2Recomp, plus
+companion/launcher APKs. They are removed from bundled coverage and required
+configuration work, not counted as unresolved S10 routes. No app, save or port
+data is removed. Previously collected path facts do not create new requirements.
 
 ### Cemu WUA title configuration — 2026-10-14, verified within ACTIVE S10
 
@@ -135,7 +200,7 @@ S11/S12 NOT STARTED.
 pipeline: one directory, emulator/core, save/state/companion kind, format,
 explicit files, per-game subdirectories and required file roles. It is not a
 second sync implementation. Shared-storage and that emulator's private
-`files/<subdirectory>` roots use the same joined root worker, pinned identities,
+`files` root and selected subdirectories use the same joined root worker, pinned identities,
 streamed capture, kernel watcher and journaled restore/rollback. Explicit binary
 save files are permitted without admitting arbitrary `.bin` files recursively.
 ROMs, BIOS, settings, credentials and temporary publication files remain excluded.

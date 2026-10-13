@@ -3,6 +3,11 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 40.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
+Current execution, 2026-10-14: S0-S10 COMPLETE; S11 ACTIVE (sole active stage);
+S12 NOT STARTED. SAVE-01 closure is reconciled in the status ledger, including
+actual post-retirement Drive publication/readback and expected-location restore.
+Earlier checkpoint scheduling below is historical, not current stage state.
+
 S10 package-family configuration (owner, 2026-10-14): replace compiled discovery
 registrations with an automatically deployed shared JSON file, compact common
 add/edit dialogs and external editing without import/export. Verify valid external
@@ -12,6 +17,15 @@ and native package discovery without inheriting verified-runtime status, changin
 backup identities or altering existing save mappings. Invalid external edits keep
 the last valid configuration without overwriting the file; cancelled dialogs do
 not write. Advanced controls remain file-only. This is S10 work, not a new stage.
+Named, console-scoped save-root presets in that same file feed a compact Save
+location chooser. Verify installed-package/console filtering, exact granted-ROM
+filename expansion, joined remapping, stale-choice rejection and preservation of
+advanced fields during common registration edits. Keep raw rules file-only and
+the earlier import route optional; do not create a separate sync engine.
+Owner scope correction: required coverage is R-Shop-selectable ROM games and
+their emulators, not arbitrary installed APKs. Remove standalone-port/launcher/
+companion presets and associated advancement blockers. Preserve those apps/data;
+finish in-scope reconciliation and the authorized legacy handover, then S11.
 
 S12 authorization update (owner, 2026-10-13): implement all 12 plan stages,
 including the recorded 3D physical-media frontend contract. S12 remains NOT
@@ -1750,9 +1764,9 @@ not expand speculative edge cases. S12 owns remaining touch/controller and
 responsive-layout acceptance, including save settings. Historical checkpoints
 below do not override this correction.
 
-Status: ACTIVE (2026-10-11), the sole ACTIVE stage. S7 is COMPLETE and its
-user-directed sequencing hold is resolved. Remaining SAVE-01
-implementation and verification now resume within this stage.
+Status: COMPLETE (2026-10-14). SAVE-01's in-scope configuration, integrated
+backup/conflict/restore, recovery and exact-target legacy handover are reconciled
+in the current status ledger. Subsequent checkpoint text is historical evidence.
 
 Current checkpoint, 2026-10-13: exact-ROM-bound shared-folder companion discovery
 has focused host and native Thor evidence. It detects new/changed sidecars and
@@ -1943,7 +1957,7 @@ not S11's managed-cache requirements or the overall specification.
 
 ## S11 — Configurable managed ROM cache
 
-Status: NOT STARTED.
+Status: ACTIVE (2026-10-14), the sole ACTIVE stage after verified S10 closure.
 Requirements: CACHE-01; recheck CORE-01/02/03, DRIVE-04/05/06, META-07,
 MIGRATE-01, SAVE-01 and QA-01/02/03/04.
 Depends on: S1-S10 acceptance. Do not begin while an earlier stage is ACTIVE.

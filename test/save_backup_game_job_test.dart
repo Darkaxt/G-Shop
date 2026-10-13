@@ -1917,6 +1917,28 @@ void main() {
     expect((await fixture.service.status(fixture.mapping)).enabled, isFalse);
   });
 
+  test(
+      'changing save location retires the exact RetroArch association and watch',
+      () async {
+    final watched = <List<String>>[];
+    final fixture = await automaticFixture(
+        retroArch: RetroArchBatteryRoute.mgba,
+        watch: (mappings) async =>
+            watched.add(mappings.map((m) => m.key).toList()));
+    currentName = fixture.mapping.slot;
+    final selection =
+        fixture.preferences.getString(fixture.mapping.slotStorageKey);
+    await fixture.service.reconcileWatches();
+    expect(watched.last, [fixture.mapping.key]);
+    await fixture.service.disableForJob(job, title: 'Game');
+    expect((await fixture.service.status(fixture.mapping)).enabled, isFalse);
+    expect(watched.last, isEmpty);
+    expect(fixture.preferences.getString(fixture.mapping.slotStorageKey),
+        selection);
+    expect(capture.captures, 0);
+    expect(generations.uploads, 0);
+  });
+
   test('pre-launch waits for reconciliation and its enabled file watch',
       () async {
     var hold = false;

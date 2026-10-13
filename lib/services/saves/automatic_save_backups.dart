@@ -452,6 +452,19 @@ class AutomaticSaveBackups extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  /// Retire an existing job's exact association through the normal joined
+  /// opt-out path. RetroArch's reviewed save name is part of that identity.
+  Future<void> disableForJob(SaveBackupGameJob job,
+      {required String title, String? romRoot}) async {
+    final name = job.isStandalone || job.isPcsx || job.isRomCompanion
+        ? null
+        : (await job.reviewedNames()).single;
+    await setEnabled(
+        AutomaticSaveMapping.fromJob(job,
+            title: title, saveName: name, romRoot: romRoot),
+        false);
+  }
+
   Future<void> setEnabled(AutomaticSaveMapping mapping, bool enabled) async {
     final db = await _db();
     if (enabled) {

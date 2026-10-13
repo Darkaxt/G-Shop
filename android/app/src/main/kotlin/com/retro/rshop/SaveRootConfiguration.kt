@@ -47,8 +47,8 @@ internal data class SaveRootConfiguration(val directory: String, val emulator: S
         }
         fun validDirectory(path: String, emulator: String): Boolean = path.length <= 4096 &&
             (RomCompanionBoundary.validDirectory(path) ||
-                listOf("/data/user/0/$emulator/files/", "/data/data/$emulator/files/").any {
-                    path.startsWith(it) && path.length > it.length
+                listOf("/data/user/0/$emulator/files", "/data/data/$emulator/files").any {
+                    path == it || path.startsWith("$it/")
                 } && path.split('/').drop(1).all(RomCompanionBoundary::validLeaf))
         private fun safe(path: String, binary: Boolean = false): Boolean = RomCompanionBoundary.validPath(path) &&
             path.split('/').all { part ->

@@ -109,13 +109,13 @@ class SaveRootConfiguration {
       throw const FormatException('Invalid shared save resource');
     }
     final emulator = row['emulator'] as String;
-    final private = '/data/user/0/$emulator/files/';
-    final legacy = '/data/data/$emulator/files/';
+    final private = '/data/user/0/$emulator/files';
+    final legacy = '/data/data/$emulator/files';
     if (!(SaveCapture.validRomCompanionDirectory(directory) ||
-            (directory.startsWith(private) &&
-                        directory.length > private.length ||
-                    directory.startsWith(legacy) &&
-                        directory.length > legacy.length) &&
+            (directory == private ||
+                    directory.startsWith('$private/') ||
+                    directory == legacy ||
+                    directory.startsWith('$legacy/')) &&
                 directory.split('/').skip(1).every(
                     (part) => SaveCapture.validPpssppSavedataMember(part))) ||
         directory.length > 4096) {

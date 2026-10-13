@@ -5,7 +5,72 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current schedule — S10 COMPLETE; S11 ACTIVE, 2026-10-14
+
+S0-S10 are COMPLETE. S11 (managed ROM cache) is the sole ACTIVE stage;
+S12 is NOT STARTED. The overall twelve-stage objective is unfinished.
+
+### S10 closure reconciliation — COMPLETE, 2026-10-14
+
+Only R-Shop-selectable ROM workflows count toward SAVE-01. The closure package
+inventory confirms RetroArch, PPSSPP, MelonDualDS, Dolphin, NetherSX2, Cemu,
+Azahar, Flycast and KenjiNX installed; Eden/Duo aliases are configured but absent.
+Standalone ports, companions and launchers are excluded, not missing coverage.
+
+| Required outcome | Applicable evidence / remaining boundary |
+| --- | --- |
+| Actual ROM save routes | RetroArch cartridge/PS1, PPSSPP and Melon workflows have native capture/watch/restore plus real Drive evidence recorded below. PS2 cards, Dolphin/Flycast shared cards, Cemu title/account and Azahar title configuration reuse the same verified root/group engine. KenjiNX/custom title-user layouts retain exact declarative configuration; no automatic title resolver or unimplemented launch is claimed. Most installed ROM emulators have standard location resolution; family aliases never assert runtime compatibility. |
+| Shared settings and configurable locations | Automatic shared-file deployment/reload, recovery, compact registration dialogs and save-location chooser pass affected file/model/widget checks. Joined remapping retires the old exact RetroArch watch/association without deleting cloud history. Existing owner files remain authoritative. |
+| Safety and recovery | Existing current-task results cover complete coherent groups, writer/mutation rejection, save/state compatibility, device-specific histories/selective imports, live conflict preservation, last-good/rollback, cancellation/reinstall/regrant and cold-process offline/reconnect. Native request 1008's actual private-files-root probe passes; native engine is unchanged by subsequent Dart/registry changes. No additional per-emulator campaign is required. |
+| Final packaging | Gated requests 1010/1012 pass assembly with acquired mutex, build/helper exits 0 and verified daemon exit. Final installed base APK independently matches `d694616679231f58642f40ec2e0fadfb17348fc941785ac04af07122da6596b4`. Same observed two-worker/nonparallel/3 GiB Gradle profile; Kotlin in-process configured; assembly executes no JVM tests. Request 1008 executed the affected one-fork/512 MiB native contracts. No memory failure or budget increase. |
+| Legacy handover | Exact idle task `\RetroBat Save Sync` is disabled and exact inactive package `dk.tacit.android.foldersync.lite` is uninstalled. Package absence/task state are verified. Script remains, SHA-256 `562c0a76c98ebae64d473d8f65def69cbe05f0ff3f9453108ac22fa4b1f5593b`. Post-handover production APIs publish/read back a new two-member Patapon fixture generation (`phase=verified`, no issue), then restore over changed fixture bytes (`phase=restored`, no issue). Independent destination SHA-256 agrees: flat `094d297b8446738a96b9ceaa6cf579a25e7fccc02196f33ef92058d447dc8a25`, nested `55f94495d8803350f8f7598a38d7ae8c4a564272027fecc2e7de8b91be994be3`. No real emulator save was modified. |
+
+SAVE-01 has no unresolved current-stage blocker or tracked deferral. Native
+settings presentation/input belongs to S12 by explicit owner assignment, not an
+unmet S10 criterion. The earlier current-gap table and historical ACTIVE wording
+below are superseded by this reconciliation. Closure design-debt review found no
+required consolidation: shared presets feed the existing mapping/lane; old and
+new root contracts remain aligned. No optional refactor delays S11. Reviewed host
+configuration cleanup completed (25,087 bytes). The tiny retained device fixture
+and its earlier host recovery inputs remain intentional S11 save-preservation
+controls, not real saves or extra ROMs. Secure-storage ciphertext changed during
+normal live authorization renewal; no unchanged-token assertion is made. The
+secure-key-store digest remains unchanged.
+
 ### Current S10 work — ACTIVE, 2026-10-14
+
+Owner scope correction: required coverage is R-Shop-selectable ROM games and
+their emulator workflows, not arbitrary installed APKs. Standalone ports,
+unrelated launchers and companions are removed from bundled registrations and
+required configuration/blocker accounting. Their apps/data are unchanged.
+Earlier installed-APK inventory entries cannot expand this scope or delay S11.
+
+Shared-file save-location presets now feed a compact normal chooser, without
+routine import/export or an advanced path-rule editor. The chooser filters
+installed packages/current console, expands the native granted ROM filename,
+rejects stale external edits and applies the existing joined remapping path.
+Common registration edits preserve advanced presets. Existing shared files are
+never overwritten by new defaults. No standalone-port presets remain. Custom
+ROM-emulator choices do not infer title/runtime compatibility.
+
+Focused file/model/widget checks and scoped analysis pass, including cancellation,
+advanced-field preservation, stale-choice rejection and exact selected-member
+boundaries. Gated request 1008 passes affected native contracts and app/test
+packaging: acquired shared mutex, build/helper exits 0, observed two workers,
+parallel=false, Gradle heap 3 GiB, configured Kotlin in-process, one executed
+512 MiB fail-fast test fork and verified daemon exit. No memory failure/increase;
+native environment budget two is not universal plugin concurrency proof.
+Preserving installed APK independently matches
+`1c538a1a40b73efa6751efbba07d23e5de8b1d27a1ac5511e139375c60267933`.
+Actual Thor production-channel proof passes exact private-files-root selection,
+capture/watch, runtime-bound state rejection, restore/rollback and unselected-file
+preservation. This is native filesystem evidence, not live dialog visual evidence
+or a new cloud-upload claim. Exclusive fixtures are removed, three protected
+app preference/secure/key hashes remain unchanged and both displays are OFF.
+Reviewed cleanup removed only disposable host test configurations (165,099 bytes);
+the exact D: test root was absent at that checkpoint. The final scope correction,
+joined remapping verification and conditional legacy handover remain current work;
+the obsolete port audit is not an advancement blocker.
 
 Cemu WUA games now resolve a title-scoped save configuration through the normal
 settings path and existing shared backup engine. A bounded ZArchive root-index
