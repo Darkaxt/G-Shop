@@ -402,12 +402,13 @@ class OwnedRomContentProvider : ContentProvider() {
                             !sameJson(saved, manifest(context, uri))) throw IOException("source_changed")
                     } finally { OwnedStorageNative.close(fresh) }
                     val binding = MessageDigest.getInstance("SHA-256").digest(
-                        JSONArray(listOf(uri.toString(), directory, romIdentity) +
+                        JSONArray((if (configuration?.resourceId != null) listOf(directory)
+                            else listOf(uri.toString(), directory, romIdentity)) +
                             if (configuration == null) emptyList() else listOf(configuration.json().toString(), rootIdentity))
                             .toString().toByteArray(Charsets.UTF_8))
                         .joinToString("") { "%02x".format(it) }
                     val snapshot = linkedMapOf<String, Any>("binding" to binding, "directory" to directory,
-                        "romName" to name, "directoryIdentity" to rootIdentity, "files" to files)
+                        "romName" to (configuration?.logicalRomName ?: name), "directoryIdentity" to rootIdentity, "files" to files)
                     if (configuration != null) snapshot["saveRoot"] = configuration.json().let { row ->
                         row.keys().asSequence().associateWith { key ->
                             val value = row.get(key)

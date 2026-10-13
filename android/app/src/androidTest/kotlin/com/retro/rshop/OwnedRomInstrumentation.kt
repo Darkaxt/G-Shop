@@ -329,6 +329,8 @@ class OwnedRomInstrumentation : Instrumentation() {
                 val mappedChild = File(mappedFolder, "progress.dat")
                 val mappedOther = File(mappedRoot, "Other.sav")
                 val mappedRuntime = File(mappedRoot, "fixture-core.so")
+                val sharedOtherRom = File(root, "other-shared.rvz")
+                val sharedOtherId = "$id-shared"
                 fun invoke(method: String, args: Map<String, Any>, expected: String? = null): Any? {
                     val done = CountDownLatch(1)
                     var value: Any? = null; var failure: String? = null
@@ -532,6 +534,65 @@ class OwnedRomInstrumentation : Instrumentation() {
                     check(mappedChild.readBytes().contentEquals(configuredBytes[0]))
                     check(mappedCard.readBytes().contentEquals(configuredBytes[1]))
                     check(mappedOther.readBytes().contentEquals(byteArrayOf(13)))
+                    // A physical shared card has the same native capture and
+                    // restore identity when another independently owned ROM
+                    // initiates the operation. Only disposable proof rows change.
+                    check(sharedOtherRom.createNewFile()); sharedOtherRom.writeBytes(bytes)
+                    val sharedRootFd = OwnedStorageNative.openRoot(root.path)
+                    val sharedIdentity = try {
+                        val fd = OwnedStorageNative.openFile(sharedRootFd, sharedOtherRom.name, false, false)
+                        try { OwnedStorageNative.identity(fd) } finally { OwnedStorageNative.close(fd) }
+                    } finally { OwnedStorageNative.close(sharedRootFd) }
+                    val sharedStamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                        timeZone = TimeZone.getTimeZone("UTC")
+                    }.format(Date(sharedIdentity[3] * 1000)) + "." + (sharedIdentity[4] / 1000).toString().padStart(6, '0') + "Z"
+                    val sharedNative = JSONObject().put("volumeId", sharedIdentity[0].toString())
+                        .put("fileId", sharedIdentity[1].toString()).put("sizeBytes", sharedIdentity[2])
+                        .put("modifiedAt", sharedStamp).put("modifiedNanoseconds", sharedIdentity[4])
+                    for ((table, key) in listOf("transfer_records" to "transfer_id", "installed_artifacts" to "installation_id",
+                        "transfer_target_owners" to "installation_id")) {
+                        val values = db.query(table, null, "$key=?", arrayOf(id), null, null, null).use { cursor ->
+                            check(cursor.moveToFirst()); ContentValues().also { android.database.DatabaseUtils.cursorRowToContentValues(cursor, it) }
+                        }
+                        values.put("transfer_id", sharedOtherId)
+                        if (table != "transfer_records") values.put("installation_id", sharedOtherId)
+                        else values.put("artifact_key", sharedOtherId)
+                        values.put("relative_path", sharedOtherRom.name)
+                        if (values.containsKey("record_json")) {
+                            val record = JSONObject(values.getAsString("record_json")).put("id", sharedOtherId)
+                                .put("relativePath", sharedOtherRom.name)
+                            if (table == "installed_artifacts") record.put("transferId", sharedOtherId).put("fileIdentity", sharedNative)
+                            else record.getJSONObject("publication").put("destinationIdentity", sharedNative)
+                            values.put("record_json", record.toString())
+                        }
+                        db.insertOrThrow(table, null, values)
+                    }
+                    val sharedConfig = configuration.copy(kind = "save", format = "fixture-card-v1", resourceId = "card-1")
+                    val sharedMap = configurationMap + mapOf("kind" to "save", "format" to "fixture-card-v1", "resourceId" to "card-1")
+                    val sharedGrant = configuredGrant + mapOf("saveRoot" to sharedMap)
+                    val otherGrant = sharedGrant + mapOf("installationId" to sharedOtherId, "filename" to sharedOtherRom.name)
+                    val firstShared = invoke("romCompanionSnapshot", sharedGrant) as Map<*, *>
+                    val otherShared = invoke("romCompanionSnapshot", otherGrant) as Map<*, *>
+                    check(firstShared["binding"] == otherShared["binding"] && firstShared["romName"] == sharedConfig.logicalRomName)
+                    val sharedCaptureId = UUID.randomUUID().toString().replace("-", ""); captures.add(sharedCaptureId)
+                    fun sharedCapture(grant: Map<String, Any>) = invoke("captureRomCompanions", grant + mapOf(
+                        "binding" to firstShared["binding"]!!, "captureId" to sharedCaptureId, "members" to configuredNames)) as Map<*, *>
+                    check(sharedCapture(sharedGrant) == sharedCapture(otherGrant))
+                    val sharedRestoreId = UUID.randomUUID().toString().replace("-", "")
+                    restoreIds[sharedRestoreId] = configuredNames
+                    fun sharedRestore(grant: Map<String, Any>) = grant + mapOf(
+                        "binding" to firstShared["binding"]!!, "captureId" to sharedRestoreId,
+                        "name" to sharedConfig.logicalRomName!!, "members" to configuredNames.indices.map { index ->
+                            mapOf("name" to configuredNames[index], "size" to configuredBytes[index].size,
+                                "sha256" to sha(configuredBytes[index])) })
+                    invoke("beginRestoreGroup", sharedRestore(sharedGrant))
+                    invoke("beginRestoreGroup", sharedRestore(otherGrant))
+                    for (index in configuredBytes.indices) invoke("appendRestoreGroup", mapOf(
+                        "captureId" to sharedRestoreId, "member" to index, "offset" to 0L, "bytes" to configuredBytes[index]))
+                    invoke("sealRestoreGroup", mapOf("captureId" to sharedRestoreId))
+                    invoke("publishRestoreGroup", mapOf("captureId" to sharedRestoreId, "rollbackCaptureId" to sharedCaptureId))
+                    check(mappedChild.readBytes().contentEquals(configuredBytes[0]) && mappedCard.readBytes().contentEquals(configuredBytes[1]))
+                    check(mappedOther.readBytes().contentEquals(byteArrayOf(13)))
                     snapshot(baseline(changed) + mapOf("binding" to "0".repeat(64)), "capture_unavailable")
                     db.delete("transfer_target_owners", "transfer_id=?", arrayOf(id))
                     snapshot(expected = "capture_unavailable")
@@ -543,6 +604,10 @@ class OwnedRomInstrumentation : Instrumentation() {
                     companionWatch?.close()
                     captures.forEach { captureId -> invoke("retireCapture", mapOf("captureId" to captureId)) }
                     val done = CountDownLatch(1); service.shutdown { done.countDown() }; done.await()
+                    for ((table, key) in listOf("transfer_target_owners" to "installation_id",
+                        "installed_artifacts" to "installation_id", "transfer_records" to "transfer_id"))
+                        db.delete(table, "$key=?", arrayOf(sharedOtherId))
+                    check(!sharedOtherRom.exists() || sharedOtherRom.delete())
                     for (fixture in listOf(mappedChild, mappedCard, mappedOther, mappedRuntime, mappedFolder, mappedRoot)) {
                         if (fixture.exists()) check(fixture.delete())
                     }

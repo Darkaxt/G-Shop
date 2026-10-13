@@ -104,6 +104,30 @@ void main() {
     expect(() => SaveBackupBinding.fromJson(missing), throwsFormatException);
   });
 
+  test(
+      'configured shared resource preserves provenance without per-game histories',
+      () {
+    SaveBackupBinding shared(String edition, {String resource = 'a'}) =>
+        SaveBackupBinding.fromJson({
+          ...binding(edition: edition).toJson(),
+          'configuredResourceKey': resource * 64
+        });
+    final first = shared('edition-a');
+    final second = shared('edition-b');
+    expect(first.restoreIssue(second), isNull);
+    expect(first.editions.single.editionId, 'edition-a');
+    expect(first.restoreIssue(shared('edition-a', resource: 'b')),
+        'editionMismatch');
+    expect(first.restoreIssue(binding()), 'editionMismatch');
+    expect(
+        SaveBackupManifest.decode(manifest(forBinding: first).encode())
+            .binding
+            .key,
+        first.key);
+    expect(
+        () => SaveBackupBinding.fromJson({...first.toJson(), 'kind': 'state'}),
+        throwsFormatException);
+  });
   test('shared PS1 card history survives different initiating game editions',
       () {
     Map<String, dynamic> card(String edition,

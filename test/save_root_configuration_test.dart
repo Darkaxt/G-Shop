@@ -54,4 +54,37 @@ void main() {
           throwsFormatException);
     }
   });
+  test(
+      'shared card selection is stable across ROMs and separate from other cards',
+      () {
+    final row = {
+      ...mapping,
+      'resourceId': 'card-1',
+      'files': ['Mcd001.ps2'],
+      'folders': <String>[],
+      'required': ['Mcd001.ps2']
+    };
+    final first = SaveRootConfiguration.decode(row, romName: 'One.chd');
+    final second = SaveRootConfiguration.decode(row, romName: 'Two.chd');
+    expect(first.identity, second.identity);
+    expect(first.logicalRomName, 'shared-card-1.save');
+    expect(first.sharedResourceKey, second.sharedResourceKey);
+    expect(first.acceptsFile('Mcd002.ps2'), isFalse);
+    expect(
+        SaveRootConfiguration.decode({...row, 'resourceId': 'card-2'})
+            .sharedResourceKey,
+        isNot(first.sharedResourceKey));
+    for (final change in [
+      {'kind': 'state'},
+      {'resourceId': '../other'},
+      {
+        'files': ['{romStem}.sav']
+      }
+    ]) {
+      expect(
+          () => SaveRootConfiguration.decode({...row, ...change},
+              romName: 'One.chd'),
+          throwsFormatException);
+    }
+  });
 }

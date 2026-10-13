@@ -92,6 +92,7 @@ class SaveBackupBinding {
   // even when another reviewed game initiates the next generation.
   final String? sharedCardDirectory;
   final int? sharedCardSlot;
+  final String? configuredResourceKey;
 
   SaveBackupBinding(
       {required this.accountId,
@@ -106,7 +107,8 @@ class SaveBackupBinding {
       required this.formatId,
       this.companionCompatibility,
       this.sharedCardDirectory,
-      this.sharedCardSlot})
+      this.sharedCardSlot,
+      this.configuredResourceKey})
       : editions = List.unmodifiable(
             [...editions]..sort((a, b) => a.key.compareTo(b.key))) {
     for (final value in [
@@ -132,6 +134,12 @@ class SaveBackupBinding {
     }
     if ((sharedCardDirectory == null) != (sharedCardSlot == null)) {
       throw const FormatException('Incomplete shared memory card identity');
+    }
+    if (configuredResourceKey != null &&
+        (kind != SaveBackupKind.save ||
+            sharedCardDirectory != null ||
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(configuredResourceKey!))) {
+      throw const FormatException('Invalid configured shared save resource');
     }
     if (sharedCardDirectory != null) {
       if (emulatorPackage != 'com.retroarch.aarch64' ||
@@ -160,15 +168,16 @@ class SaveBackupBinding {
       ? null
       : jsonEncode(
           [emulatorPackage, coreId, sharedCardDirectory, sharedCardSlot]);
+  String? get sharedResourceKey =>
+      configuredResourceKey ?? sharedCardResourceKey;
 
   /// Origin device is recorded, but explicit cross-device restore is allowed.
   /// Battery-save portability still requires the exact reviewed format ID.
   String? restoreIssue(SaveBackupBinding target) {
     if (accountId != target.accountId) return 'accountMismatch';
     if (platformId != target.platformId ||
-        sharedCardResourceKey != target.sharedCardResourceKey ||
-        (sharedCardResourceKey == null &&
-            _editionsKey != target._editionsKey)) {
+        sharedResourceKey != target.sharedResourceKey ||
+        (sharedResourceKey == null && _editionsKey != target._editionsKey)) {
       return 'editionMismatch';
     }
     if (kind != target.kind || formatId != target.formatId) {
@@ -211,6 +220,8 @@ class SaveBackupBinding {
             'directory': sharedCardDirectory!,
             'slot': sharedCardSlot!
           },
+        if (configuredResourceKey != null)
+          'configuredResourceKey': configuredResourceKey!,
       };
 
   factory SaveBackupBinding.fromJson(Object? raw) {
@@ -227,7 +238,9 @@ class SaveBackupBinding {
       'formatId',
       if (raw is Map && raw.containsKey('companionCompatibility'))
         'companionCompatibility',
-      if (raw is Map && raw.containsKey('sharedCard')) 'sharedCard'
+      if (raw is Map && raw.containsKey('sharedCard')) 'sharedCard',
+      if (raw is Map && raw.containsKey('configuredResourceKey'))
+        'configuredResourceKey'
     });
     final shared = data.containsKey('sharedCard')
         ? _object(data['sharedCard'], {'directory', 'slot'})
@@ -259,7 +272,8 @@ class SaveBackupBinding {
             : SaveCompanionCompatibility.values
                 .byName(companionPolicy as String),
         sharedCardDirectory: shared?['directory'] as String?,
-        sharedCardSlot: shared?['slot'] as int?);
+        sharedCardSlot: shared?['slot'] as int?,
+        configuredResourceKey: data['configuredResourceKey'] as String?);
   }
 }
 

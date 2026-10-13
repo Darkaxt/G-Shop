@@ -23,6 +23,16 @@ exit. No memory failure. The Thor production-channel probe passes using exclusiv
 private-root/core fixtures, without changing actual emulator saves or cloud data.
 Standard-location configuration reconciliation remains unfinished; generic access
 alone is not proof that an installed emulator's correct files are configured.
+Optional configured shared resources now have one history across initiating ROMs,
+without merging ordinary per-title/profile folders. Host history/restore/rollback
+checks pass; request 984 passes native contracts and packaging. The real Thor
+production-channel probe passes capture replay and restore-journal resume across
+two independently owned fixture ROMs, preserving the unselected file and removing
+exclusive fixture rows/files. Shared mutex acquisition and daemon exit are
+verified, with two observed workers, no parallel projects, 3 GiB Gradle heap,
+Kotlin in-process configured and a single 512 MiB fail-fast test fork. No memory
+failure. Standard-location resolution (including Eden's distinct title/profile
+layout) and conditional legacy handover remain the current S10 gaps.
 Remaining touch/controller and responsive-layout acceptance belongs to S12 by
 explicit owner assignment, not to S10. Historical statements below are superseded
 where they conflict with this correction; S10 is still the sole ACTIVE stage.

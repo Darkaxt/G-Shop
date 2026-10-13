@@ -161,6 +161,9 @@ class SaveBackupGameJob extends ChangeNotifier {
   bool get isSharedPcsx => isPcsx && pcsxCard!.isShared;
   String? get _sharedCardKey =>
       isSharedPcsx ? pcsxLayout!.sharedResourceKey(pcsxCard!) : null;
+  String? get _sharedResourceKey =>
+      saveRootConfiguration?.sharedResourceKey ?? _sharedCardKey;
+  bool get isSharedResource => _sharedResourceKey != null;
   bool get isPpssppState => ppssppDirectory != null && !ppssppCompanion;
   bool get isPpssppSavedata => ppssppSavedataDirectory != null;
   bool get isPpsspp => ppssppDirectory != null || isPpssppSavedata;
@@ -243,8 +246,8 @@ class SaveBackupGameJob extends ChangeNotifier {
   bool _bindingMatches(SaveBackupBinding binding) =>
       binding.accountId == accountId &&
       binding.platformId == _platform &&
-      binding.sharedCardResourceKey == _sharedCardKey &&
-      (isSharedPcsx ||
+      binding.sharedResourceKey == _sharedResourceKey &&
+      (isSharedResource ||
           (binding.editions.length == 1 &&
               binding.editions.single.editionId == editionId)) &&
       binding.emulatorPackage == _emulator &&
@@ -321,7 +324,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         clientId,
         accountId,
         areaId,
-        if (isSharedPcsx) _sharedCardKey else editionId,
+        if (isSharedResource) _sharedResourceKey else editionId,
         if (isRomCompanion) ...[
           _format,
           romCompanionName,
@@ -1227,7 +1230,8 @@ class SaveBackupGameJob extends ChangeNotifier {
                           : null,
               formatId: _format,
               sharedCardDirectory: isSharedPcsx ? pcsxLayout!.directory : null,
-              sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null);
+              sharedCardSlot: isSharedPcsx ? pcsxCard!.slot : null,
+              configuredResourceKey: saveRootConfiguration?.sharedResourceKey);
           final priorState = lastVerified;
           if (saveRootConfiguration != null &&
               _kind == SaveBackupKind.state &&
@@ -1287,7 +1291,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                 _heads(await _cloudHistoryForBinding(binding, cancellation));
             for (final head in heads) {
               if (!_bindingMatches(head.binding) ||
-                  (!isSharedPcsx &&
+                  (!isSharedResource &&
                       head.binding.editions.single.gameId != game.id)) {
                 throw const FormatException('Changed restore binding');
               }
@@ -1401,7 +1405,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         _check(cancellation);
         var manifest = SaveBackupManifest.decode(
             utf8.encode(jsonEncode(record['generation'])));
-        if (!isSharedPcsx &&
+        if (!isSharedResource &&
             manifest.binding.editions.single.gameId != game.id) {
           throw const FormatException('Changed game binding');
         }
@@ -1781,7 +1785,7 @@ class SaveBackupGameJob extends ChangeNotifier {
                   ? SaveBackupManifest.decode(
                       utf8.encode(jsonEncode(record['restore']['manifest'])))
                   : lastVerified!);
-          if (!isSharedPcsx &&
+          if (!isSharedResource &&
               manifest.binding.editions.single.gameId != game.id) {
             throw const FormatException('Changed restore game');
           }
@@ -1829,7 +1833,7 @@ class SaveBackupGameJob extends ChangeNotifier {
         }
         final selected = SaveBackupManifest.decode(
             utf8.encode(jsonEncode(restore['manifest'])));
-        if (!isSharedPcsx &&
+        if (!isSharedResource &&
             selected.binding.editions.single.gameId != game.id) {
           throw const FormatException('Changed restore game');
         }

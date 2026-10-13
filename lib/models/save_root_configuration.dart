@@ -12,6 +12,7 @@ class SaveRootConfiguration {
   final SaveBackupKind kind;
   final List<String> files, folders, requiredFiles;
   final List<String> runtimeFiles;
+  final String? resourceId;
   SaveRootConfiguration._(
       this.directory,
       this.emulator,
@@ -21,7 +22,8 @@ class SaveRootConfiguration {
       this.files,
       this.folders,
       this.requiredFiles,
-      this.runtimeFiles);
+      this.runtimeFiles,
+      this.resourceId);
 
   factory SaveRootConfiguration.decode(Map<String, dynamic> row,
       {String? romName}) {
@@ -36,7 +38,8 @@ class SaveRootConfiguration {
       'folders',
       'required'
     };
-    final baseKeys = row.keys.toSet()..remove('runtimeFiles');
+    final baseKeys = row.keys.toSet()
+      ..removeAll({'runtimeFiles', 'resourceId'});
     if (baseKeys.length != keys.length ||
         !baseKeys.every(keys.contains) ||
         row['schema'] != 1 ||
@@ -66,6 +69,14 @@ class SaveRootConfiguration {
     }
 
     final directory = expand(row['directory']);
+    final resourceId = row['resourceId'];
+    if (resourceId != null &&
+        (resourceId is! String ||
+            !RegExp(r'^[A-Za-z0-9_-]{1,128}$').hasMatch(resourceId) ||
+            row['kind'] != 'save' ||
+            jsonEncode(row).contains('{romStem}'))) {
+      throw const FormatException('Invalid shared save resource');
+    }
     final emulator = row['emulator'] as String;
     final private = '/data/user/0/$emulator/files/';
     final legacy = '/data/data/$emulator/files/';
@@ -133,7 +144,8 @@ class SaveRootConfiguration {
         files,
         folders,
         required,
-        List<String>.unmodifiable(runtime.cast<String>()));
+        List<String>.unmodifiable(runtime.cast<String>()),
+        resourceId as String?);
   }
 
   static bool _safe(String path, {bool binary = false}) {
@@ -167,6 +179,12 @@ class SaveRootConfiguration {
         'folders': folders,
         'required': requiredFiles,
         if (runtimeFiles.isNotEmpty) 'runtimeFiles': runtimeFiles,
+        if (resourceId != null) 'resourceId': resourceId!,
       };
   String get identity => jsonEncode(toJson());
+  String? get logicalRomName =>
+      resourceId == null ? null : 'shared-$resourceId.save';
+  String? get sharedResourceKey => resourceId == null
+      ? null
+      : sha256.convert(utf8.encode(identity)).toString();
 }

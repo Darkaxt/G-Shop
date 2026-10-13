@@ -320,7 +320,8 @@ class SaveCapture {
     final result = RomCompanionSnapshot.decode(await _channel
         .invokeMapMethod<String, dynamic>('romCompanionSnapshot',
             {...grant, if (before != null) 'before': before.toJson()}));
-    if (result.romName != filename.split('/').last ||
+    if (result.romName !=
+            (configured?.logicalRomName ?? filename.split('/').last) ||
         configured?.identity != result.configuration?.identity ||
         configured != null && configured.directory != result.directory ||
         (before != null && !result.sameTarget(before))) {
@@ -361,7 +362,8 @@ class SaveCapture {
         filename is! String ||
         filename.length > 4096 ||
         filename.split('/').any((part) => !validPpssppSavedataMember(part)) ||
-        filename.split('/').last != snapshot.romName ||
+        (snapshot.configuration?.logicalRomName ?? filename.split('/').last) !=
+            snapshot.romName ||
         !RegExp(r'^[a-f0-9]{32}$').hasMatch(captureId) ||
         !RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$')
             .hasMatch(emulatorPackage) ||
@@ -1091,7 +1093,8 @@ class SaveCapture {
         filename is! String ||
         filename.length > 4096 ||
         filename.split('/').any((part) => !validPpssppSavedataMember(part)) ||
-        filename.split('/').last != snapshot.romName ||
+        (snapshot.configuration?.logicalRomName ?? filename.split('/').last) !=
+            snapshot.romName ||
         !RegExp(r'^[a-f0-9]{32}$').hasMatch(restoreId) ||
         !RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$')
             .hasMatch(emulatorPackage) ||

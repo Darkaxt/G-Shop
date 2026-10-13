@@ -93,7 +93,57 @@ fixtures are removed; no real emulator/core/save or cloud data is changed.
 Standard-location configuration and conditional legacy handover remain unfinished
 S10 acceptance; S11/S12 remain NOT STARTED.
 
-### Owner execution correction — 2026-10-13
+### Shared configured resources — verified 2026-10-13
+
+Optional `resourceId` on a save-kind configuration selects a physical shared
+resource, rather than a per-game history. The same directory/selection/resource
+has one durable job, generation ancestry and restore/rollback history across
+initiating game editions. Each edition remains provenance and each actual ROM
+grant is still revalidated. Different cards/selections retain different histories.
+Native capture and restore journals use the shared resource's stable logical name
+and binding, so replay from another independently owned ROM does not fork the
+history or fail because the first game's filename differs. Ordinary per-game
+folders, including Switch title/profile saves, do not acquire shared identity
+merely because they have the same parent. Existing PS1 shared-card metadata stays
+compatible. No new backup engine or emulator handshake is introduced.
+
+For example, the existing import action accepts an explicitly selected PS2 card:
+
+```json
+{"schema":1,"directory":"/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards",
+ "emulator":"xyz.aethersx2.android","core":"pcsx2","kind":"save",
+ "format":"ps2-memory-card-v1","resourceId":"card-1",
+ "files":["Mcd001.ps2"],"folders":[],"required":["Mcd001.ps2"]}
+```
+
+Affected host configuration/manifest/channel/job checks and scoped analysis pass.
+Gated request 984 passes selected native contracts and app/test packaging; FIFO
+request retained, mutex acquisition recorded, build/helper exits 0 and daemon exit
+verified. Observed workers=2, parallel=false, Gradle heap=3 GiB; Kotlin in-process
+configured/requested. One 512 MiB fail-fast test fork is configured and selected
+tests ran. Native environment budget two is not universal concurrency proof.
+No memory failure or heap increase. Preserving debug APK SHA-256:
+`1301c70a90435f91ca74047bd3cb6dc6d9248cceabc57f9363eb6acb17e679cb`.
+The actual Thor production-channel probe verifies two independently owned fixture
+ROMs resolve the same shared binding/logical name, replay the same sealed capture,
+and resume one restore journal across both grants before publishing the selected
+files with retained rollback. The unselected fixture is preserved and exclusive
+files/database rows are removed. No real emulator save or cloud data changes.
+This closes shared-resource semantics, not automatic standard-location resolution
+or conditional legacy handover. S10 remains ACTIVE; S11/S12 NOT STARTED.
+
+### Owner execution correction — configuration distinctions
+
+Shared save identity follows the actual resource, not a common parent directory.
+A PS1/PS2 card image can contain several games and must have one resource history.
+Switch saves under a common NAND/save root remain separate title/user groups;
+do not merge the entire root into one backup history. Eden's current source
+(`src/core/file_sys/savedata_factory.cpp` in its official GitHub mirror) supports
+both title/profile descendants and newer account/device layouts. Its configured
+save root and actual title/profile association must be resolved, not inferred
+from a generic `save` directory name. Eden automatic resolution is not currently
+implemented or verified; explicit exact-folder configuration is not equivalent
+to that acceptance. This is standard-configuration work in S10, not a new stage.
 
 Specification revision 39 supersedes historical per-family/input closure language
 below. The implemented filesystem watch/capture/publication/conflict/restore lane

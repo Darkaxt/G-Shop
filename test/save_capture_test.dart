@@ -77,60 +77,80 @@ void main() {
         throwsFormatException);
   });
 
-  test('configured private-root selection crosses the existing native channel',
-      () async {
-    final config = SaveRootConfiguration.decode({
-      'schema': 1,
-      'directory': '/data/user/0/example.emulator/files/saves',
-      'emulator': 'example.emulator',
-      'core': 'example',
-      'kind': 'save',
-      'format': 'example-card-v1',
-      'files': ['card.bin'],
-      'folders': <String>[],
-      'required': ['card.bin'],
+  for (final shared in [false, true]) {
+    test(
+        'configured ${shared ? "shared card" : "private-root"} selection crosses the existing native channel',
+        () async {
+      final config = SaveRootConfiguration.decode({
+        'schema': 1,
+        'directory': '/data/user/0/example.emulator/files/saves',
+        'emulator': 'example.emulator',
+        'core': 'example',
+        'kind': 'save',
+        'format': 'example-card-v1',
+        if (shared) 'resourceId': 'card-1',
+        'files': ['card.bin'],
+        'folders': <String>[],
+        'required': ['card.bin'],
+      });
+      final grant = <String, Object>{
+        'installationId': 'owned',
+        'filename': 'Game.chd',
+        'saveRoot': config.toJson()
+      };
+      response = {
+        'binding': 'a' * 64,
+        'directory': config.directory,
+        'romName': config.logicalRomName ?? 'Game.chd',
+        'directoryIdentity': [1, 2],
+        'files': {
+          'card.bin': [1, 3, 4, 100, 0]
+        },
+        'changed': <String>[],
+        'saveRoot': config.toJson()
+      };
+      final snapshot = await SaveCapture().reviewRomCompanions(grant: grant);
+      expect(snapshot.configuration!.identity, config.identity);
+      expect(calls.single.arguments, grant);
+      calls.clear();
+      response = {
+        'captureId': 'a' * 32,
+        'deviceId': 'device',
+        'emulatorVersion': '1',
+        'files': [
+          {
+            'name': 'card.bin',
+            'path': '/private/save-captures/${'a' * 32}/member-0',
+            'size': 4,
+            'sha256': 'b' * 64
+          }
+        ]
+      };
+      await SaveCapture().captureRomCompanions(
+          captureId: 'a' * 32,
+          grant: grant,
+          snapshot: snapshot,
+          members: {'card.bin'},
+          emulatorPackage: config.emulator);
+      expect((calls.single.arguments as Map)['saveRoot'], config.toJson());
+      calls.clear();
+      response = {'offset': 0};
+      await SaveCapture().stageRomCompanionRestore(
+          restoreId: 'b' * 32,
+          grant: grant,
+          snapshot: snapshot,
+          emulatorPackage: config.emulator,
+          members: [
+            RestoreSaveMember(
+                'card.bin',
+                0,
+                'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+                const Stream<Uint8List>.empty())
+          ]);
+      expect((calls.first.arguments as Map)['name'],
+          config.logicalRomName ?? 'Game.chd');
     });
-    final grant = <String, Object>{
-      'installationId': 'owned',
-      'filename': 'Game.chd',
-      'saveRoot': config.toJson()
-    };
-    response = {
-      'binding': 'a' * 64,
-      'directory': config.directory,
-      'romName': 'Game.chd',
-      'directoryIdentity': [1, 2],
-      'files': {
-        'card.bin': [1, 3, 4, 100, 0]
-      },
-      'changed': <String>[],
-      'saveRoot': config.toJson()
-    };
-    final snapshot = await SaveCapture().reviewRomCompanions(grant: grant);
-    expect(snapshot.configuration!.identity, config.identity);
-    expect(calls.single.arguments, grant);
-    calls.clear();
-    response = {
-      'captureId': 'a' * 32,
-      'deviceId': 'device',
-      'emulatorVersion': '1',
-      'files': [
-        {
-          'name': 'card.bin',
-          'path': '/private/save-captures/${'a' * 32}/member-0',
-          'size': 4,
-          'sha256': 'b' * 64
-        }
-      ]
-    };
-    await SaveCapture().captureRomCompanions(
-        captureId: 'a' * 32,
-        grant: grant,
-        snapshot: snapshot,
-        members: {'card.bin'},
-        emulatorPackage: config.emulator);
-    expect((calls.single.arguments as Map)['saveRoot'], config.toJson());
-  });
+  }
 
   test('ROM companion review detects an incomplete native change receipt',
       () async {

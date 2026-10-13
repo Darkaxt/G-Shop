@@ -69,7 +69,7 @@ class _Capture extends SaveCapture {
         'binding': 'a' * 64,
         'directory':
             configuredRoot?.directory ?? '/storage/emulated/0/Roms/gba',
-        'romName': 'Game.7z',
+        'romName': configuredRoot?.logicalRomName ?? 'Game.7z',
         'directoryIdentity': [1, 2],
         'files': {
           for (final name in configuredRoot?.files ??
@@ -2698,6 +2698,83 @@ void main() {
     expect(capture.stagedNames, [name]);
     expect(capture.stagedDirectories, [directory]);
     expect(capture.restored, hasLength(1));
+  });
+
+  test('configured shared card has one history across initiating ROMs',
+      () async {
+    final otherArtifact = RemoteArtifactId(
+        providerId: 'drive',
+        sourceId: 'source',
+        accountId: 'account',
+        providerFileId: 'other-card-game');
+    final store = LibraryStore(Future.value(db));
+    await store.putGame(GameIdentity(
+        id: 'other-game',
+        platformId: 'gba',
+        title: 'Other',
+        matchStatus: IdentityMatchStatus.manuallyMatched));
+    await store.putEdition(EditionIdentity(
+        id: 'other-edition',
+        gameId: 'other-game',
+        members: [EditionMember(artifactId: otherArtifact)]));
+    final config = SaveRootConfiguration.decode({
+      'schema': 1,
+      'directory': '/storage/emulated/0/Emulator/memcards',
+      'emulator': 'example.emulator',
+      'core': 'example',
+      'kind': 'save',
+      'format': 'memory-card-v1',
+      'resourceId': 'card-1',
+      'files': ['Mcd001.ps2'],
+      'folders': <String>[],
+      'required': ['Mcd001.ps2']
+    });
+    capture.configuredRoot = config;
+    SaveBackupGameJob make(String edition, RemoteArtifactId artifact) =>
+        SaveBackupGameJob(
+            database: job.database,
+            capture: capture,
+            areas: areas,
+            generations: generations,
+            clientId: 'client',
+            accountId: 'account',
+            areaId: 'area',
+            editionId: edition,
+            artifactId: artifact,
+            resolveSaveName: () async => 'shared-card-1.save',
+            resolveRomCompanionGrant: () async => {
+                  'installationId': edition,
+                  'filename': '$edition.7z',
+                  'saveRoot': config.toJson()
+                },
+            saveRootConfiguration: config,
+            romCompanionDirectory: config.directory,
+            romCompanionName: 'shared-card-1.save',
+            romCompanionPlatform: 'gba',
+            romCompanionEmulator: config.emulator,
+            romCompanionCore: config.core);
+    final first = make('edition', artifactId);
+    final second = make('other-edition', otherArtifact);
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    await first.backup('shared-card-1.save');
+    expect(first.issue, isNull);
+    final original = first.lastVerified!;
+    await second.backup('shared-card-1.save');
+    expect(second.issue, isNull);
+    expect(second.phase, 'unchanged');
+    expect(generations.uploads, 1);
+    capture.digest = 'e' * 64;
+    await second.backup('shared-card-1.save');
+    expect(second.issue, isNull);
+    expect(second.lastVerified!.parentGenerationIds, [original.generationId]);
+    expect(await db.query('save_backup_game_jobs'), hasLength(1));
+    await first.restoreLatest();
+    expect(first.issue, isNull);
+    expect(first.phase, 'restored');
+    await first.rollbackLast();
+    expect(first.issue, isNull);
+    expect(first.phase, 'rolled_back');
   });
 
   for (final kind in SaveBackupKind.values) {

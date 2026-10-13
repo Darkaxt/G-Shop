@@ -94,7 +94,9 @@ internal class SaveCaptureService(private val activity: Context) {
     private data class RomCompanionSource(val uri: Uri, val binding: String, val directory: String,
         val romName: String, val members: List<String>, val emulatorPackage: String, val version: String,
         val configuration: SaveRootConfiguration? = null, val coreVersion: String? = null) {
-        val journalKey: String get() = JSONArray(listOf(uri.toString(), binding, members, emulatorPackage, version)).toString()
+        val journalKey: String get() = JSONArray(listOf(
+            if (configuration?.resourceId != null) configuration.json().toString() else uri.toString(),
+            binding, members, emulatorPackage, version)).toString()
     }
     private fun romCompanionUri(call: MethodCall): Uri {
         val filename = call.argument<String>("filename") ?: throw Failure("invalid_selection")

@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveRootConfigurationTest {
+    @Test fun configuredSharedResourceUsesOneLogicalNameNotTheInitiatingRom() {
+        val config = SaveRootConfiguration("/storage/emulated/0/Emulator/memcards",
+            "example.emulator", "example", "save", "memory-card-v1", listOf("Mcd001.ps2"),
+            emptyList(), listOf("Mcd001.ps2"), resourceId = "card-1")
+        assertEquals("shared-card-1.save", config.logicalRomName)
+        assertTrue(config.acceptsFile("Mcd001.ps2"))
+        assertFalse(config.acceptsFile("Mcd002.ps2"))
+    }
     @Test fun configuredGroupsReuseExactFileAndDirectorySelection() {
         val config = SaveRootConfiguration("/data/user/0/example.emulator/files/saves",
             "example.emulator", "example", "save", "example-save-v1",
