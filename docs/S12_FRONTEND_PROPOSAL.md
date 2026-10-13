@@ -37,6 +37,87 @@ Do not commit the APK or private extraction outputs. The owner offered to pay
 for version 0.7 if needed. Start with this reference and establish a concrete
 missing requirement before recommending a purchase or newer reference.
 
+## Initial static reference inspection — 2026-10-13
+
+This is bounded source/reference investigation, not S12 implementation or stage
+closure. S10 remains the sole ACTIVE implementation stage. No app installation,
+Gradle invocation, APK modification or device operation was needed. Archive
+members were inspected in memory; no extraction directory was created.
+
+Fresh APK identity checks confirm the size and SHA-256 above. Android SDK
+`aapt2 dump badging` identifies package `com.depmots.socket`, version name
+`0.3.2`, minimum SDK 29 and target SDK 36. Thus the filename is not being used
+as the sole version evidence.
+
+### Concrete assets and entry points
+
+The archive contains `lib/arm64-v8a/libgodot_android.so`,
+`lib/arm64-v8a/libaynthor_native.so` and `assets/assets.sparsepck`.
+It is a Godot application, not a library of pre-rendered cartridge pictures.
+The ZIP inventory exposes thirteen exported `cart_*.scn` scene names:
+
+- GB, GBC, GBC dual-mode, GBA, N64, NES, SNES PAL and SNES US;
+- DS, 3DS, Switch, PSP and disc.
+
+There are also thirteen imported model scene names, including
+`n64_cartridge.fbx`, `uploads_files_3322711_GBA_Cartridge.fbx`,
+`nds_cartridge_v2.glb`, `compact_disc.fbx` and `umd_dis.fbx`.
+These are imported `.scn` resources with source-model names, **not recovered
+original FBX/GLB files**. A filename is not proof of topology, UV coordinates,
+dimensions, platform assignment or reuse rights.
+
+Named resources include opaque, clear, translucent, metallic and glitter
+casings; `sticker_paper`, foil sticker and separate disc-sticker materials;
+and normal, roughness, metallic and ambient-occlusion textures. Relevant compiled
+scripts include `scripts/cartridge.gdc`, platform-specific cartridge scripts,
+`scenes/cartridge_carousel.gdc`, `scenes/platform_select_carousel.gdc`,
+`scenes/transition.gdc` and `scenes/render_scale_3d.gdc`.
+This identifies where model appearance and motion should be studied; it does
+not yet establish animation duration, easing or transforms.
+
+The native Thor library exposes
+`Java_org_godot_plugins_aynthor_AynThorPlugin_nativeSetSurface` and
+`..._nativeRemoveSurface`, and references Android native-window and Vulkan
+surface functions. This is concrete evidence of a native surface bridge, not
+proof of the exact upper/lower-screen choreography or of a reusable Flutter
+integration. Do not import the whole engine merely because the reference uses it.
+
+### Resource encoding and remaining evidence
+
+Five representative members were checked: exported N64, GBA and disc scenes,
+the cartridge-carousel script and the N64 platform-model script. Each has the
+40-byte prefix plus 16-byte-padded payload length used by Godot's no-magic
+encrypted-file envelope. For example, N64 declares 7,451 payload bytes in a
+7,496-byte member; the carousel declares 8,567 in an 8,616-byte member.
+This matches the layout in Godot's official
+[encrypted-file implementation](https://github.com/godotengine/godot/blob/master/core/io/file_access_encrypted.cpp).
+It is evidence consistent with encryption, **not successful decryption**.
+No exported `script_encryption_key` symbol was found in the engine's ELF symbol
+tables; no key, model geometry or decoded script has been recovered.
+
+The next S12 reference work is to recover or observe the relevant geometry,
+label placement, motion curves and two-display sequencing, recording a
+reproducible comparison before selecting the smallest rendering integration.
+Private inspection remains authorized. Keep recovered proprietary material out
+of the public fork unless its redistribution rights have been established.
+
+### Version decision and fallback contract
+
+Do **not** recommend purchasing 0.7 yet: the supplied build already contains the
+required cartridge/disc families and rendering entry points. Encryption alone
+is not evidence that buying a newer build would help. Reconsider only for a
+specific missing reference behavior or asset, not merely because it is newer.
+The creator's [official page](https://depmots.com/socket) independently confirms
+Godot, platform-specific 3D models and insertion animations; it does not license
+those assets for redistribution.
+
+The handwritten-title fallback stays part of FRONTEND-01: compose the title as
+a label on the same media object, with a stable per-game readable sticker color,
+then replace that label when artwork becomes available. This must cover missing,
+pending, failed and offline artwork, preserve long-title readability and never
+change game identity or flicker colors on rebuild. No generated substitute art
+or new renderer has been introduced during this investigation.
+
 ## FRONTEND-01 — Required behavior and acceptance
 
 These criteria implement the owner's direction under the authorized S1-S12
