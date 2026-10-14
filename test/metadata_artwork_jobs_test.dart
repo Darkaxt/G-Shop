@@ -129,6 +129,36 @@ void main() {
     expect(provider.calls, 1);
   });
 
+  test('normal artwork refresh caches physical labels separately from covers',
+      () async {
+    final store = LibraryStore(Future.value(db));
+    final original = (await store.metadata('a', provider.providerId))!;
+    final label = MetadataMedia(type: 'support-texture', region: 'us',
+        providerReference: ScreenScraperMediaReference(providerGameId: '42',
+            providerPlatformId: 4, mediaType: 'support-texture', region: 'us'));
+    final record = MetadataRecord.fromJson({...original.toJson(),
+      'media': [media.toJson(), label.toJson()]});
+    await store.putMetadata(record);
+    expect(MetadataArtworkCache.displayMedia(record).map((m) => m.type),
+        ['box-2D']);
+    expect(MetadataArtworkCache.displayMedia(record, includePhysicalLabel: true)
+        .map((m) => m.type), ['box-2D', 'support-texture']);
+    final job = await jobs.createArtwork(providerId: provider.providerId,
+        collectionGeneration: 'physical-label', editionIds: ['a']);
+    expect((await jobs.run(job.id, provider, artworkCache: cache)).counts,
+        {'matched': 2});
+    final local = await cache.artworkForEdition('a');
+    expect(local.cover, isNotNull);
+    expect(local.supportTexture, isNotNull);
+    expect(local.screenshots, isEmpty);
+    final calls = provider.calls;
+    final offline = await cache.artworkForEdition('a');
+    expect(offline.supportTexture, local.supportTexture);
+    expect(provider.calls, calls, reason: 'Browsing reads only the durable cache');
+    expect((await cache.artworkForEdition('b')).supportTexture, isNull,
+        reason: 'A different edition with box art cannot borrow this label');
+  });
+
   test('invalid refresh preserves usable cached artwork and removes staging',
       () async {
     final initial = await jobs.createArtwork(

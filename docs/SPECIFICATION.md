@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 41, 2026-10-14.
+Authoritative specification, revision 42, 2026-10-14.
+
+Owner artwork correction, 2026-10-14: a cartridge/disc model must use the
+corresponding physical-media label texture, not the game's box-cover image.
+Keep box art in the existing cover/grid view. Use independently typed,
+edition/region-bound cached support textures for 3D labels; a whole-cartridge
+photograph is not a label texture. When that texture is missing, pending, failed
+or unavailable offline, retain the handwritten title sticker on the same model.
+Normal metadata/artwork refresh gathers these textures through the existing
+shared cache; browsing must not trigger API requests or borrow another edition's
+artwork. This corrects FRONTEND-01 within S12, not a new stage or full scrape gate.
 
 Owner visual clarification, 2026-10-14: S12 retains R-Shop's red/dark theme
 including its backgrounds, not only buttons and highlights. Socket's grey dotted
@@ -1708,6 +1718,9 @@ Missing or not-yet-scraped artwork uses the same 3D media with a handwritten
 game-title sticker, resembling a homemade/knock-off label. Vary sticker colors
 across games using a stable readable palette; do not flicker on rebuild or
 change the underlying game identity. Replace the fallback when artwork resolves.
+Here artwork means the physical-media label texture, not box art. Preserve that
+role distinction through provider selection, durable cache, detail and selected
+library preview; verify actual texture rendering and box-cover rejection.
 Apply these design features within the existing main-screen frontend, keeping
 its navigation, identity and workflows. Bottom-screen rendering is not an S12
 requirement, and its absence in Socket is not a blocker. Preserve S8 companion

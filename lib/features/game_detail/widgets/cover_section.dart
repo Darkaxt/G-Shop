@@ -11,6 +11,7 @@ class CoverSection extends StatefulWidget {
   final SystemModel system;
   final List<String> coverUrls;
   final String? cachedUrl;
+  final String? physicalLabelUrl;
   final GameMetadataFull metadata;
   final bool isFavorite;
   final bool isInstalled;
@@ -24,6 +25,7 @@ class CoverSection extends StatefulWidget {
     required this.system,
     required this.coverUrls,
     this.cachedUrl,
+    this.physicalLabelUrl,
     required this.metadata,
     this.isFavorite = false,
     this.isInstalled = false,
@@ -65,12 +67,11 @@ class _CoverSectionState extends State<CoverSection> {
                         reducedMotion: _reducedMotion || widget.reducedMotion,
                         label: SmartCoverImage(
                             systemId: system.id,
-                            urls: widget.coverUrls,
-                            cachedUrl: widget.cachedUrl,
+                            urls: const [],
+                            cachedUrl: widget.physicalLabelUrl,
                             placeholder: sticker,
                             errorWidget: sticker,
                             fit: BoxFit.cover,
-                            hasThumbnail: widget.hasThumbnail,
                             memCacheWidth: 640))
                     : Hero(
                         tag: game.filename,

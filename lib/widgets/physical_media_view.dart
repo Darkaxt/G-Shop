@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 enum PhysicalMediaFormat {
@@ -91,11 +92,7 @@ class PhysicalMediaGeometry {
         width: 0.0210141 / 0.045,
         height: 0.50);
     final rim = label.inflate(0.012);
-    _extrude(
-        faces,
-        [rim.topLeft, rim.topRight, rim.bottomRight, rim.bottomLeft],
-        depth / 2 + 0.002,
-        depth / 2 - 0.002,
+    _extrude(faces, _n64LabelOutline(rim), depth / 2 + 0.002, depth / 2 - 0.002,
         const Color(0xff55575e));
     for (final x in [-0.29, 0.285]) {
       _extrude(
@@ -124,6 +121,16 @@ class PhysicalMediaGeometry {
     return PhysicalMediaGeometry._(
         1, height, depth, label, Rect.zero, List.unmodifiable(faces));
   }
+
+  static List<Offset> _n64LabelOutline(Rect rect) => [
+        for (var step = 0; step <= 12; step++)
+          Offset(rect.left + rect.width * step / 12,
+              rect.top + rect.height * 0.12 * math.pow((step - 6) / 6, 2)),
+        Offset(rect.right, rect.bottom - rect.height * 0.02),
+        Offset(rect.right - rect.width * 0.02, rect.bottom),
+        Offset(rect.left + rect.width * 0.02, rect.bottom),
+        Offset(rect.left, rect.bottom - rect.height * 0.02),
+      ];
 
   static PhysicalMediaGeometry _disc() {
     const depth = 0.001886 / 0.1239977, outer = 0.5, hole = 0.0625, hub = 0.15;
@@ -414,9 +421,9 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                 final selected = _reduce
                     ? 1.0
                     : Curves.easeOutBack.transform(_selection.value);
-                var rx = -0.18 + (1 - selected) * -0.75,
-                    ry = -0.25 + _manualRotation,
-                    rz = -0.10;
+                var rx = 0.18 + (1 - selected) * -0.75,
+                    ry = 0.25 + _manualRotation,
+                    rz = 0.10;
                 var y = 0.0, z = 0.0, scale = 0.85 + 0.15 * selected;
                 if (!_reduce && _completion == null) {
                   y = math.sin(phase * 25) * 0.015;
@@ -568,7 +575,13 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                                         ? ClipPath(
                                             clipper: const _DiscLabelClipper(),
                                             child: widget.label)
-                                        : widget.label)))),
+                                        : widget.format ==
+                                                PhysicalMediaFormat.n64
+                                            ? ClipPath(
+                                                clipper:
+                                                    const _N64LabelClipper(),
+                                                child: widget.label)
+                                            : widget.label)))),
                   if (_completion != null)
                     Positioned(
                         right: 8,
@@ -594,7 +607,52 @@ class _DiscLabelClipper extends CustomClipper<Path> {
   bool shouldReclip(_DiscLabelClipper old) => false;
 }
 
+class _N64LabelClipper extends CustomClipper<Path> {
+  const _N64LabelClipper();
+  @override
+  Path getClip(Size size) => Path()
+    ..addPolygon(
+        PhysicalMediaGeometry._n64LabelOutline(Offset.zero & size), true);
+  @override
+  bool shouldReclip(_N64LabelClipper oldClipper) => false;
+}
+
 class _MediaShellPainter extends CustomPainter {
+  // Independent, fixed moulded-plastic grain. Record once in model space;
+  // it follows the physical surface rather than flickering in screen space.
+  static final ui.Picture _plasticGrain = _recordPlasticGrain();
+  static ui.Picture _recordPlasticGrain() {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final dark = <Offset>[], light = <Offset>[];
+    var seed = 0x53484c4c;
+    double next() {
+      seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+      return seed / 0x100000000;
+    }
+
+    for (var y = 0; y < 91; y++) {
+      for (var x = 0; x < 81; x++) {
+        final point =
+            Offset(-0.5 + (x + next()) / 81, -0.6 + (y + next()) * 1.2 / 91);
+        (next() < 0.5 ? dark : light).add(point);
+      }
+    }
+    canvas.drawPoints(
+        ui.PointMode.points,
+        dark,
+        Paint()
+          ..color = const Color(0x19000000)
+          ..strokeWidth = 0.0012);
+    canvas.drawPoints(
+        ui.PointMode.points,
+        light,
+        Paint()
+          ..color = const Color(0x14ffffff)
+          ..strokeWidth = 0.0012);
+    return recorder.endRecording();
+  }
+
   final PhysicalMediaGeometry model;
   final Matrix4 matrix;
   _MediaShellPainter(this.model, this.matrix);
@@ -683,6 +741,18 @@ class _MediaShellPainter extends CustomPainter {
         }
       }
       canvas.drawPath(path, paint);
+      if (!identical(model, PhysicalMediaGeometry.disc) &&
+          projected.face.points.length > 8 &&
+          projected.face.points
+              .every((p) => (p.z - model.depth / 2).abs() < 0.000001)) {
+        canvas.save();
+        canvas.clipPath(path);
+        canvas.transform((matrix.clone()
+              ..translateByDouble(0, 0, model.depth / 2, 1))
+            .storage);
+        canvas.drawPicture(_plasticGrain);
+        canvas.restore();
+      }
     }
   }
 

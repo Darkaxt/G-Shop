@@ -2069,6 +2069,10 @@ instrumentation. The existing FRONTEND-01 contract governs this ACTIVE stage.
    Verify reference geometry and animation fidelity, plus cancelled
    or failed downloads/launches, lifecycle recovery and companion handoff;
    reconcile the specification and commit. No release is implied.
+   The owner's 2026-10-14 correction requires physical support textures rather
+   than box covers on the model, wired through the existing shared artwork cache
+   and normal refresh. Verify exact edition/region selection, offline texture
+   reuse and handwritten fallback when absent; box art stays in cover/grid views.
 
 Evidence required: observed reference report, reproducible Thor rendering and
 resource measurements, real normal launch workflow, integrated controller/touch

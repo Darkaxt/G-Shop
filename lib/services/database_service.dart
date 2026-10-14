@@ -988,7 +988,8 @@ class DatabaseService {
     if (current != null) {
       if (artworkCache == null || current.editionId == null) return current;
       final artwork = await artworkCache.artworkForEdition(current.editionId!);
-      return current.withArtwork(artwork.cover, artwork.screenshots);
+      return current.withArtwork(artwork.cover, artwork.screenshots,
+          supportTexture: artwork.supportTexture);
     }
     // Exact artifact selections must never fall back to a filename-only record.
     if (filename.startsWith('artifact:')) return null;

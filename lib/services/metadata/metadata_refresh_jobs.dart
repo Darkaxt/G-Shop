@@ -492,7 +492,8 @@ class MetadataRefreshJobs {
         }
         for (final media in metadataJobId == null
             ? record.media
-            : MetadataArtworkCache.displayMedia(record)) {
+            : MetadataArtworkCache.displayMedia(record,
+                includePhysicalLabel: true)) {
           final mediaKey = MetadataArtworkCache.key(media);
           if (mediaKeys != null && !mediaKeys.contains(mediaKey)) continue;
           if (retryArtworkJobId != null) {

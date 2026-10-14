@@ -150,6 +150,29 @@ ScreenScraperProvider _provider(_Wire wire, {bool configured = true}) =>
         clock: () => DateTime.utc(2026, 9, 8));
 
 void main() {
+  test('physical support texture has its own exact regional selection',
+      () async {
+    final game = _game();
+    game['medias'] = [
+      ...(game['medias'] as List),
+      for (final region in ['jp', 'us'])
+        {
+          'type': 'support-texture',
+          'region': region,
+          'url': _authenticatedMedia(media: 'support-texture($region)')
+        }
+    ];
+    final api = _provider(_Wire({
+      'response': {'jeu': game}
+    }));
+    addTearDown(api.close);
+    final result = await api.lookup(_request(region: 'USA'));
+    final labels =
+        result.record!.media.where((m) => m.type == 'support-texture');
+    expect(labels, hasLength(1));
+    expect(labels.single.region, 'us');
+    expect(result.record!.media.where((m) => m.type == 'box-2D'), hasLength(1));
+  });
   test('DSi uses verified provider alias without changing app identity',
       () async {
     final wire = _Wire({

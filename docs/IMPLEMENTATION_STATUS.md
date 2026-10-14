@@ -13,6 +13,90 @@ do not supersede this schedule or the closure reconciliations.
 
 ### Current S12 work — ACTIVE
 
+Owner correction, revision 42: the physical model was incorrectly using box art
+as its label. This invalidates the earlier resolved-artwork visual acceptance;
+the successful launch/save-input evidence remains applicable. The current patch
+adds the documented support-texture download role, independent regional selection,
+durable cache projection and distinct physical-label inputs in detail/library.
+Box/grid art is unchanged. ES-DE cover publication deliberately keeps its existing
+selector, so a support texture cannot overwrite a box-cover file. Missing or
+ambiguous physical labels retain the handwritten fallback. Red reproductions
+prove box-cover rejection, authenticated texture access and independent regional
+selection before the corrections. Current host checks pass those paths, the
+reference pose/arched label and existing browsing/settings. The normal cache job,
+shared recovery, existing ES-DE import and identity/query checks also pass. The
+new cache test's initial assertion compared reconstructed objects by reference;
+it is corrected to compare the media roles, then passes through durable storage
+and offline access. No production workaround was needed.
+
+A bounded real ScreenScraper GoldenEye 007 (USA) refresh through normal controls
+now gathers box art, the actual support texture and screenshots separately.
+The cache projection supplies the texture to game metadata, and a shared-store
+rebuild restores it with the provider closed. The first live attempt exposed a
+hardcoded Super Mario lookup in the parameterized test; the corrected exact
+sample lookup passes the complete refresh/rebuild workflow. No owner collection,
+credentials or remote ROMs are changed by that isolated host verification.
+Scoped analysis is clean after correcting one missing-brace lint. Corrected
+package request 1068 is retained in the shared gate queue. Native texture/fallback
+verification and corrected-package acceptance remain required before closure.
+The private VM-created fixture route hit the known evaluator/navigation assertion;
+its attempted native image verification is rejected. Its loopback server and ADB
+reverse are closed. Use ordinary native game/metadata controls for the remaining
+verification, not another evaluated Navigator push or a production workaround.
+
+The actual 1060 package completes the normal Game Boy Open action to RetroArch,
+with inserted pose held through Android's cover transition and reset only on
+resumed lifecycle. The same State resumes with idle motion and no pending work.
+Its joined 355-frame recording is reanalyzed without evidence truncation; remuxed
+timestamps still inherit the declared raw-H.264 timeline, not capture pacing.
+Rapid actual Android controller navigation across the 2,632-game Game Boy page
+observes eight media changes with at most one mounted preview and correct selected
+identity. Debug build/raster P95 are 6,279/4,416 us; maxima 567,453/13,742 us. The
+observation includes VM inspection overhead, so the maximum is not claimed as
+release pacing. Image cache is 14,009,768 bytes, 23 live/zero pending; app PSS/RSS
+is 698,796/843,968 KiB, graphics 75,496 KiB, swap 148 KiB. Separate P95 budgets
+pass; this does not revalidate the subsequent artwork/pose patch by itself.
+
+The remaining save-control review corrects long cloud-choice button labels:
+localized copy date/time is shown separately, with short “Use this copy” and
+“Restore” actions. Exact generation IDs, confirmations and conflict revalidation
+are unchanged. Focused fixture actions pass restore/conflict confirmation/cancel,
+mapping preservation, running-job preservation and sectioned responsive layout.
+On Thor, touch Status and controller Up/A select Restore & conflicts without
+recreating the setup instance. The per-game native restore/cancel check remains
+required; a later debug-evaluated route has no mounted modal scope and is rejected
+as acceptance evidence, not repaired with a production navigation workaround.
+The combined package will be cold-started for ordinary native navigation.
+
+The final reference comparison corrects the opposite lean to clockwise and adds
+independent fixed model-space plastic grain (no recovered Socket textures).
+Affected media/library/settings checks pass, scoped analysis is clean and the
+patch has no whitespace errors. Final material/motion comparison, current-package
+handoff, rapid-navigation/resource evidence and per-game save controls remain
+internal S12 advancement blockers; no required work is deferred.
+
+Normal native navigation on the installed 1055 package now verifies the per-game
+flow: controller Y/search/A selects installed Patapon, Start/A opens Save backups,
+touch selects Status, and controller Up/A returns to Restore & conflicts. The
+setup and job instances remain identical. A measured touch opens the real restore
+confirmation; controller A selects its default Cancel. The dialog closes and the
+job remains idle, not busy, with its verified backup available and no pending
+restore or issue. No capture, restore or mapping edit is invoked. The actual
+confirmation capture is readable with white text on the red action. Existing
+fixture actions provide exact conflict-selection and running-job evidence; no
+live conflict is fabricated merely to repeat those checks.
+
+Combined request 1060 finishes build/helper 0, gate acquired, daemon exit verified.
+Observed workers=2, parallel=false, Gradle heap=3 GiB, Kotlin in-process configured;
+one-fork/512 MiB test-task configuration (assembly executes no JVM tests), app
+native compile/link pools=1. Plugin-wide native concurrency remains unverified.
+No memory failure or increase. In-place install succeeds and the installed base
+APK matches host SHA-256
+`9916aa4928d18ed1673e68d804a99086bf45cca382e8a1f5702102b0b345554d`
+(180,739,847 bytes). It includes the handoff fix, material/orientation correction
+and short save controls. Final current-package media/resource/launch checks remain
+required before S12 closure; no release or collection reset occurred.
+
 Current source integrates independent Game Boy/N64/disc media, format-specific
 insertion, a single selected-media preview beside the virtualized library grid,
 and persisted Display controls for classic view/reduced motion. Focused checks

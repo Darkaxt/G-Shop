@@ -1742,6 +1742,38 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     }
   }
 
+  Widget _cloudConflictChoice(SaveBackupManifest cloud, int index) {
+    final date = cloud.createdAt.toLocal();
+    final labels = MaterialLocalizations.of(context);
+    final saved = '${labels.formatMediumDate(date)} · '
+        '${labels.formatTimeOfDay(TimeOfDay.fromDateTime(date), alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context))}';
+    final choose = widget.job.busy
+        ? null
+        : () => _resolveConflict(cloudId: cloud.generationId);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Tooltip(
+          message:
+              'Device: ${cloud.binding.deviceId}\nBackup: ${cloud.generationId}',
+          child: Text('Cloud copy ${index + 1} · $saved',
+              key: ValueKey('save-cloud-summary-${cloud.generationId}')),
+        ),
+        const SizedBox(height: 4),
+        ConsoleFocusable(
+          focusScale: 1,
+          onSelect: choose,
+          child: OutlinedButton.icon(
+            key: ValueKey('save-conflict-cloud-${cloud.generationId}'),
+            onPressed: choose,
+            icon: const Icon(Icons.cloud_download_outlined),
+            label: const Text('Use this copy'),
+          ),
+        ),
+      ]),
+    );
+  }
+
   Future<void> _restore({bool rollback = false}) async {
     if (widget.job.busy) return;
     final writerInstruction = widget.job.isStandalone
@@ -2139,25 +2171,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             style: AppTheme.primaryButtonStyle,
                             onPressed: job.busy ? null : _resolveConflict,
                             child: const Text('Use device copy'))),
-                  for (final cloud in conflicts)
-                    ConsoleFocusable(
-                        focusScale: 1,
-                        onSelect: job.busy
-                            ? null
-                            : () =>
-                                _resolveConflict(cloudId: cloud.generationId),
-                        child: OutlinedButton.icon(
-                          key: ValueKey(
-                              'save-conflict-cloud-${cloud.generationId}'),
-                          onPressed: job.busy
-                              ? null
-                              : () =>
-                                  _resolveConflict(cloudId: cloud.generationId),
-                          icon: const Icon(Icons.cloud_download_outlined),
-                          label: Text(
-                              'Use cloud save · ${cloud.binding.deviceId} · '
-                              '${cloud.createdAt.toLocal()} · ${cloud.generationId}'),
-                        )),
+                  for (var i = 0; i < conflicts.length; i++)
+                    _cloudConflictChoice(conflicts[i], i),
                 ],
                 if (job.lastVerified != null || job.restorePending)
                   ConsoleFocusable(
@@ -2175,9 +2190,8 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                             ? _restore
                             : null,
                         icon: const Icon(Icons.restore),
-                        label: Text(job.restorePending
-                            ? 'Resume this restore'
-                            : 'Restore verified cloud backup'),
+                        label: Text(
+                            job.restorePending ? 'Resume restore' : 'Restore'),
                       )),
                 if (job.rollbackAvailable)
                   ConsoleFocusable(

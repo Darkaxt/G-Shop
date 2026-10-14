@@ -62,6 +62,25 @@ void main() {
   });
   tearDown(() => provider.close());
 
+  test('physical support textures use the normal authenticated image path',
+      () async {
+    final label = MetadataMedia(
+        type: 'support-texture',
+        region: 'us',
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 4,
+            mediaType: 'support-texture',
+            region: 'us'));
+    final received = <int>[];
+    final result = await provider.fetchArtwork(label,
+        write: (bytes) async => received.addAll(bytes));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(received, wire.bytes);
+    expect(
+        wire.requests.single.queryParameters['media'], 'support-texture(us)');
+  });
+
   test('image selector uses fixed authenticated endpoint and bounded output',
       () async {
     final received = <int>[];

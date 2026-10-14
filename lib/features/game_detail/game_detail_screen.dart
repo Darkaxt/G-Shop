@@ -1175,6 +1175,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                                 .reducedMotion,
                             system: widget.system,
                             coverUrls: coverUrls,
+                            physicalLabelUrl:
+                                richMetadata?.cachedSupportTexture,
                             cachedUrl: richMetadata?.cachedCover ??
                                 selectedVariant.cachedCoverUrl,
                             metadata: fileMetadata,

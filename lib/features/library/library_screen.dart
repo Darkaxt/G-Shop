@@ -43,6 +43,7 @@ import '../../widgets/base_game_card.dart';
 import '../../widgets/console_hud.dart';
 import '../../widgets/download_overlay.dart';
 import '../../widgets/quick_menu.dart';
+import '../../widgets/physical_media_view.dart';
 import '../../widgets/selection_aware_item.dart';
 import 'shelf_edit_screen.dart';
 import 'widgets/library_entry.dart';
@@ -2121,6 +2122,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         .where((system) => system.id == entry.systemSlug)
         .firstOrNull;
     if (system == null) return const SizedBox.shrink();
+    final physicalLabel = media.enabled &&
+            PhysicalMediaFormat.forSystem(system.id) != null
+        ? ref
+            .watch(gameMetadataProvider(
+                (filename: entry.selectionKey, systemSlug: entry.systemSlug)))
+            .asData
+            ?.value
+            ?.cachedSupportTexture
+        : null;
     final variants = _discoveryVariants[
             coverRatingKey(entry.systemSlug, entry.selectionKey)] ??
         [entry];
@@ -2145,6 +2155,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   system: system,
                   coverUrls:
                       ImageHelper.getCoverUrlsForSingle(system, entry.filename),
+                  physicalLabelUrl: physicalLabel,
                   cachedUrl: _metadataCovers[coverRatingKey(
                           entry.systemSlug, entry.selectionKey)] ??
                       entry.coverUrl,

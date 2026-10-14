@@ -410,7 +410,8 @@ class MetadataArtworkCache {
   /// Current, owned local media only. No selectors/URLs escape to card loaders.
   /// This same selection is snapshotted by the normal refresh, so it does not
   /// download every regional cover, logo, video or background the API offers.
-  static List<MetadataMedia> displayMedia(MetadataRecord record) {
+  static List<MetadataMedia> displayMedia(MetadataRecord record,
+      {bool includePhysicalLabel = false}) {
     MetadataMedia? cover;
     for (final type in ['box-2D', 'box-3D', 'cover']) {
       final matches = record.media.where((m) => m.type == type);
@@ -421,35 +422,53 @@ class MetadataArtworkCache {
     }
     return [
       if (cover != null) cover,
+      if (includePhysicalLabel)
+        ...record.media.where((m) => m.type == 'support-texture'),
       ...record.media.where((m) => {'ss', 'screenshot'}.contains(m.type))
     ];
   }
 
-  Future<({String? cover, List<String> screenshots})> artworkForEdition(
-      String editionId) async {
+  Future<({String? cover, String? supportTexture, List<String> screenshots})>
+      artworkForEdition(String editionId) async {
     try {
       await _requireAccess();
     } on FileSystemException {
-      return (cover: null, screenshots: const <String>[]);
+      return (cover: null, supportTexture: null, screenshots: const <String>[]);
     }
     String? cover;
+    String? supportTexture;
     final screenshots = <String>[];
     for (final provider in ['screenscraper', 'romm']) {
       final record =
           await LibraryStore(_database).metadata(editionId, provider);
       if (record == null) continue;
-      for (final item in displayMedia(record)) {
+      final labels = record.media
+          .where((m) => m.type == 'support-texture' && m.memberIndex == null)
+          .toList();
+      for (final item in displayMedia(record, includePhysicalLabel: true)) {
         final isCover = {'box-2D', 'box-3D', 'cover'}.contains(item.type);
         final isScreenshot = {'ss', 'screenshot'}.contains(item.type);
-        if ((!isCover || cover != null) && !isScreenshot) continue;
+        final isLabel = item.type == 'support-texture' &&
+            labels.length == 1 &&
+            identical(item, labels.single);
+        if ((!isCover || cover != null) &&
+            !isScreenshot &&
+            (!isLabel || supportTexture != null)) {
+          continue;
+        }
         final file = await _fileFor(editionId, provider, item);
         if (file == null) continue;
         final uri = file.uri.toString();
         if (isCover) cover ??= uri;
+        if (isLabel) supportTexture ??= uri;
         if (isScreenshot && !screenshots.contains(uri)) screenshots.add(uri);
       }
     }
-    return (cover: cover, screenshots: List<String>.unmodifiable(screenshots));
+    return (
+      cover: cover,
+      supportTexture: supportTexture,
+      screenshots: List<String>.unmodifiable(screenshots)
+    );
   }
 
   /// Exact currently owned cover only, with the same bounded PNG policy.

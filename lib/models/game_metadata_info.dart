@@ -49,6 +49,9 @@ class GameMetadataInfo {
   final Map<String, MetadataFieldProvenance> provenance;
   final Map<String, String> providerMatches;
   final String? cachedCover;
+
+  /// Exact physical-media label texture; never a box cover or support photo.
+  final String? cachedSupportTexture;
   final List<String> cachedScreenshots;
 
   const GameMetadataInfo({
@@ -77,6 +80,7 @@ class GameMetadataInfo {
     this.provenance = const {},
     this.providerMatches = const {},
     this.cachedCover,
+    this.cachedSupportTexture,
     this.cachedScreenshots = const [],
   });
 
@@ -122,7 +126,8 @@ class GameMetadataInfo {
   List<String> get screenshotUrlList =>
       cachedScreenshots.isNotEmpty ? cachedScreenshots : _splitCsv(screenshots);
 
-  GameMetadataInfo withArtwork(String? cover, List<String> images) =>
+  GameMetadataInfo withArtwork(String? cover, List<String> images,
+          {String? supportTexture}) =>
       GameMetadataInfo(
           filename: filename,
           systemSlug: systemSlug,
@@ -149,6 +154,7 @@ class GameMetadataInfo {
           provenance: provenance,
           providerMatches: providerMatches,
           cachedCover: cover,
+          cachedSupportTexture: supportTexture,
           cachedScreenshots: images);
 
   /// Parsed sibling info from RomM (JSON array in DB).

@@ -30,6 +30,7 @@ class ScreenScraperProvider
     'fanart',
     'marquee',
     'screenmarquee',
+    'support-texture',
     'support-2D',
     'support-3D'
   };
@@ -627,27 +628,31 @@ class ScreenScraperProvider
         .whereType<MetadataMedia>()
         .toList();
     if (request.region != null) {
-      const covers = {'box-2D', 'box-3D', 'cover'};
       final wanted = _region(request.region!);
-      final exact = media
-          .where((m) =>
-              covers.contains(m.type) &&
-              m.region != null &&
-              _region(m.region!) == wanted)
-          .toList();
-      final neutral = media
-          .where((m) =>
-              covers.contains(m.type) &&
-              (m.region == null ||
-                  m.region!.trim().isEmpty ||
-                  _region(m.region!) == 'wor'))
-          .toList();
-      final selected = exact.isNotEmpty ? exact : neutral;
-      // Snapshot artwork for this reviewed release. The API's list order is
-      // not a regional preference; a foreign cover must not impersonate it.
-      media = media
-          .where((m) => !covers.contains(m.type) || selected.contains(m))
-          .toList();
+      for (final role in [
+        {'box-2D', 'box-3D', 'cover'},
+        {'support-texture'}
+      ]) {
+        final exact = media
+            .where((m) =>
+                role.contains(m.type) &&
+                m.region != null &&
+                _region(m.region!) == wanted)
+            .toList();
+        final neutral = media
+            .where((m) =>
+                role.contains(m.type) &&
+                (m.region == null ||
+                    m.region!.trim().isEmpty ||
+                    _region(m.region!) == 'wor'))
+            .toList();
+        final selected = exact.isNotEmpty ? exact : neutral;
+        // Snapshot artwork for this reviewed release. The API's list order is
+        // not a regional preference; a foreign cover must not impersonate it.
+        media = media
+            .where((m) => !role.contains(m.type) || selected.contains(m))
+            .toList();
+      }
     }
     final score = SourcedRating.parse(
         sourceId: providerId,

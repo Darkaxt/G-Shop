@@ -246,6 +246,11 @@ void main() {
 
   test('normal controls live review publishes cached cover and screenshots',
       () async {
+    final physicalSample =
+        values['RSHOP_PHYSICAL_LABEL_CAPTURE'] == 'true';
+    final platform = physicalSample ? 'n64' : 'snes';
+    final title = physicalSample ? 'GoldenEye 007' : 'Super Mario World';
+    final filename = '$title (USA).${physicalSample ? 'z64' : 'sfc'}';
     SharedPreferences.setMockInitialValues({});
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     final root = await Directory.systemTemp.createTemp('rshop-live-controls-');
@@ -257,9 +262,9 @@ void main() {
     await LibraryQuery.install(db);
     await db.insert('games', {
       'id': 1,
-      'systemSlug': 'snes',
-      'filename': 'Super Mario World (USA).sfc',
-      'displayName': 'Super Mario World'
+      'systemSlug': platform,
+      'filename': filename,
+      'displayName': title
     });
     final secrets = MemorySecrets();
     final ss = ScreenScraperCredentialStore(storage: secrets);
@@ -299,7 +304,8 @@ void main() {
     expect(controls.state.report!.counts, {'matched': 1});
     final record = (await LibraryStore(Future.value(db))
         .metadata(review.editionId, 'screenscraper'))!;
-    final selected = MetadataArtworkCache.displayMedia(record);
+    final selected =
+        MetadataArtworkCache.displayMedia(record, includePhysicalLabel: true);
     expect(selected.any((m) => m.type == 'box-2D'), isTrue);
     expect(selected.any((m) => m.type == 'ss'), isTrue);
     expect(controls.state.artworkReport!.counts, {'matched': selected.length});
@@ -307,6 +313,19 @@ void main() {
     final requests = controls.state.artworkReport!.requested;
     // Normal query/decoder references, not a manually inserted game cover URL.
     final local = await cache.artworkForEdition(review.editionId);
+    if (physicalSample) {
+      expect(local.supportTexture, isNotNull,
+          reason: 'The real provider must supply physical label art, not box art');
+      final output = values['RSHOP_PHYSICAL_LABEL_OUTPUT'];
+      if (output != null) {
+        final directory = Directory(output).absolute;
+        expect(directory.path.replaceAll('\\', '/'),
+            startsWith('D:/Temp/rshop-s12-reference-20261014/'));
+        await directory.create(recursive: true);
+        await File.fromUri(Uri.parse(local.supportTexture!))
+            .copy('${directory.path}/support-texture.png');
+      }
+    }
     expect(Uri.parse(local.cover!).scheme, 'file');
     expect(local.screenshots, isNotEmpty);
     expect(
@@ -317,9 +336,10 @@ void main() {
     DatabaseService.testDatabase = db;
     addTearDown(DatabaseService.resetForTesting);
     final details = await DatabaseService().getGameMetadata(
-        'Super Mario World (USA).sfc', 'snes',
+        filename, platform,
         artworkCache: cache);
     expect(details!.cachedCover, local.cover);
+    expect(details.cachedSupportTexture, local.supportTexture);
     expect(details.screenshotUrlList, local.screenshots);
     await controls.resume();
     expect(controls.state.artworkReport!.id, child);
@@ -339,6 +359,8 @@ void main() {
           sharedStore: reopened);
       expect((await offline.artworkForEdition(review.editionId)).cover,
           local.cover);
+      expect((await offline.artworkForEdition(review.editionId)).supportTexture,
+          local.supportTexture);
       expect(
           (await LibraryQuery(Future.value(db)).cachedCovers([1], offline))[1],
           local.cover);

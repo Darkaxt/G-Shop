@@ -2,12 +2,41 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/widgets/physical_media_view.dart';
+import 'package:retro_eshop/widgets/smart_cover_image.dart';
 import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
 
 void main() {
+  testWidgets('physical labels never reuse box-cover artwork', (tester) async {
+    final system =
+        SystemModel.supportedSystems.firstWhere((s) => s.id == 'n64');
+    final game = GameItem(filename: 'Game.7z', displayName: 'Game', url: '');
+    await tester.pumpWidget(MaterialApp(
+        home: CoverSection(
+            game: game,
+            system: system,
+            coverUrls: const ['https://example.invalid/box.png'],
+            cachedUrl: File('assets/media_fallbacks/systematic/n64.png')
+                .absolute
+                .uri
+                .toString(),
+            reducedMotion: true,
+            metadata: GameMetadata.parse(game.filename))));
+    final image = tester.widget<SmartCoverImage>(find.byType(SmartCoverImage));
+    expect(image.cachedUrl, isNull);
+    expect(image.urls, isEmpty);
+    final cover = File('assets/media_fallbacks/systematic/n64.png')
+        .absolute.uri.toString();
+    await tester.pumpWidget(MaterialApp(
+        home: CoverSection(game: game, system: system, coverUrls: const [],
+            cachedUrl: cover, physicalMediaEnabled: false,
+            metadata: GameMetadata.parse(game.filename))));
+    expect(tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
+        cover, reason: 'Classic cover mode still uses the box cover');
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
       'cached artwork and missing-artwork recovery keep the same media identity',
       (tester) async {
@@ -20,7 +49,7 @@ void main() {
             game: game,
             system: system,
             coverUrls: const [],
-            cachedUrl: cached,
+            physicalLabelUrl: cached,
             reducedMotion: true,
             physicalMediaKey: key,
             metadata: GameMetadata.parse(game.filename)));
@@ -124,6 +153,63 @@ void main() {
     }
     key.currentState!.skipInsertion();
     expect(await future, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('selected media uses the reference clockwise presentation',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: PhysicalMediaView(
+            identity: 'reference',
+            title: 'Reference',
+            reducedMotion: true,
+            label: Text('Artwork'))));
+    final label = tester
+        .widgetList<Transform>(find.descendant(
+            of: find.byType(PhysicalMediaView),
+            matching: find.byType(Transform)))
+        .last;
+    expect(label.transform.storage[1], greaterThan(0),
+        reason: 'The supplied reference leans clockwise, not counterclockwise');
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('reference pose exposes the left side and underside',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: PhysicalMediaView(
+            identity: 'reference-depth',
+            title: 'Reference',
+            reducedMotion: true,
+            label: Text('Artwork'))));
+    final shell = tester.widget<CustomPaint>(
+        find.byKey(const ValueKey('physical-media-shell')));
+    final Matrix4 matrix = (shell.painter as dynamic).matrix as Matrix4;
+    final m = matrix.storage;
+    Offset project(double z) => Offset((m[8] * z + m[12]) / (m[11] * z + m[15]),
+        (m[9] * z + m[13]) / (m[11] * z + m[15]));
+    final front = project(PhysicalMediaGeometry.gameBoy.depth / 2);
+    final back = project(-PhysicalMediaGeometry.gameBoy.depth / 2);
+    expect(front.dx, greaterThan(back.dx),
+        reason: 'Socket exposes the left casing edge, not the right edge');
+    expect(front.dy, lessThan(back.dy),
+        reason: 'Socket exposes the bottom connector edge, not the top edge');
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('N64 artwork follows the arched physical label recess',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: PhysicalMediaView(
+            format: PhysicalMediaFormat.n64,
+            identity: 'n64-label',
+            title: 'Reference',
+            reducedMotion: true,
+            label: Text('Artwork'))));
+    final clips = tester.widgetList<ClipPath>(find.descendant(
+        of: find.byType(PhysicalMediaView), matching: find.byType(ClipPath)));
+    expect(clips, hasLength(1));
+    final path = clips.single.clipper!.getClip(const Size(320, 284));
+    expect(path.contains(const Offset(160, 8)), isTrue);
+    expect(path.contains(const Offset(2, 8)), isFalse,
+        reason: 'The label top corners sit below its curved centre');
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(

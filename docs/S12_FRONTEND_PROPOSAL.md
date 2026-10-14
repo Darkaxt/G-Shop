@@ -1,7 +1,7 @@
 # S12 — 3D physical-media frontend
 
 Status: ACTIVE (2026-10-14), after S10/S11 acceptance and verified S11 remote sync.
-Authority: SPECIFICATION.md, revision 39, section 6f.
+Authority: SPECIFICATION.md, revision 42, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -277,6 +277,12 @@ contract. They do not change S10/S11 acceptance:
   and offline artwork cases. Do not require a cartridge photograph or fresh
   network scraping per game. Compare models and animations against the supplied
   APK with reproducible reference captures, not only screenshots of our own app.
+- Owner correction, 2026-10-14: physical labels use the edition/region-bound
+  support texture, never box art or a whole-cartridge photograph. Box art remains
+  the ordinary cover/grid presentation. Missing physical textures use the same
+  handwritten sticker. Gather/cache them through normal metadata/artwork refresh,
+  without browse-time API calls; verify both actual texture rendering and cover
+  rejection in detail and selected-library paths.
 - First demonstrate one cartridge's normal selection -> optional existing Drive
   installation -> animation -> real emulator launch on Thor. Only then expand to
   representative N64/Game Boy cartridge and PlayStation disc formats. Record how
@@ -307,6 +313,11 @@ contract. They do not change S10/S11 acceptance:
   screens off after live work. No release/publication is authorized here.
 
 ## Decisions to resolve when S12 becomes actionable
+
+Lower-priority owner preference (2026-10-14): the handwritten fallback should
+eventually look more careless, like a hurried marker label rather than neat
+handwriting. This is a visual refinement candidate, not a blocker ahead of the
+physical-texture correction or the required stage acceptance.
 
 Choose rendering integration only after checking the project's actual Flutter,
 Android and plugin versions and proving the first workflow on Thor. Assess the

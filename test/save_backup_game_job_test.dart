@@ -3350,6 +3350,12 @@ void main() {
         find.byKey(const ValueKey('save-conflict-cloud-left')), findsOneWidget);
     expect(find.byKey(const ValueKey('save-conflict-cloud-right')),
         findsOneWidget);
+    expect(find.text('Use this copy'), findsNWidgets(2),
+        reason: 'Cloud metadata must not become a long button label');
+    expect(
+        find.byKey(const ValueKey('save-cloud-summary-left')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('save-cloud-summary-right')), findsOneWidget);
     expect(find.textContaining('More than one cloud save is available'),
         findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
