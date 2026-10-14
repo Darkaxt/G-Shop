@@ -13,8 +13,8 @@ S0-S12 remain COMPLETE; the delivery acceptance is separate and unfinished.
 
 | Delivery stage | Status | Acceptance / remaining |
 | --- | --- | --- |
-| R1 signed publication | ACTIVE | Signed 1.8.0+13 build and release JVM tests passed under request 1079. APK identity, signer and private-credential scan passed. Commit/tag/publication and independent download verification remain. |
-| R2 updater/install/configuration | NOT STARTED | Register ObtainX, install the actual published APK, restore reusable configuration and fresh production authorization/API secrets, verify Drive access without starting a scrape, then remove the fork debug app. |
+| R1 signed publication | COMPLETE | Release JVM tests/assembly, APK identity/signer/privacy, source commit/tag/publication and independent public download verification passed. |
+| R2 updater/install/configuration | BLOCKED | Public APK installed and byte-verified; library/configuration restored. Production OAuth creation awaits action-time confirmation, and Thor wake/unlock is requested for ObtainX/credential setup. Online Drive verification and debug removal remain. |
 | R3 final handover | NOT STARTED | Verify updater/source/settings/permission state, cleanup private staging after restoration, commit/sync final delivery record and switch both screens off. |
 
 Private signing identity is outside Git under the Windows user's `.android/rshop-release`.
@@ -25,7 +25,14 @@ Windows profile, or a separately secured portable copy of the password. Do not
 publish these files. The owner should include this identity in their private
 signing-key recovery storage. Debug config/database/preferences are preserved in
 private migration staging; encrypted debug tokens/keystore are not transferable
-production credentials. No debug uninstall or release publication has occurred yet.
+production credentials. Debug removal awaits verified production restoration.
+
+Published normal release: <https://github.com/Darkaxt/R-Shop/releases/tag/v1.8.0>,
+tag/source commit `dc8ee70102ed6290ea14fc5ed423d05b77bd2570` verified remotely.
+An independent unauthenticated HTTPS download of the public APK matches the
+66,578,946-byte build, SHA-256 and dedicated signer recorded below. Exact assets
+are APK, SHA256SUMS and provenance.json; private migration/configuration/signing
+files are not uploaded.
 
 Release verification: request 1079 (`ba128209d1334b7aa99c69a97c6649b5`)
 acquires the shared gate; build/helper exit 0 and post-build daemon exit are
@@ -45,6 +52,43 @@ with dedicated certificate SHA-256
 `075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
 Streaming APK inspection finds none of the configured password/secret values or
 environment/signing files. This does not claim a general security audit.
+
+R2 checkpoint: Thor's installed production `base.apk` independently matches the
+public asset hash. The stopped debug app's seven Drive sources, 40 console
+configurations, library database, reusable preferences and private capture/restore
+files are restored under production UID 10167. No debug Flutter assets, encrypted
+debug credential store or Google tokens are transplanted. SQLite quick-check
+passes; only two save-job capture paths are relocated to the production private
+folder, and the installed database matches the resulting host hash. Historical
+transfer/removal records remain unchanged. Storage and notification permissions
+and the existing battery exemption are configured for the new package.
+
+Two Windows newline faults in the required transfer/cleanup helpers were
+reproduced and narrowly corrected (agent-toolbelt commit `bb9b74f`): Android's
+checksum protocol now receives LF, and device identity parsing accepts ADB CRLF.
+Focused helper verification and actual device transfer/cleanup pass. Failed
+staging plus both completed transport roots are removed through inspected exact
+cleanup tickets; host private migration snapshots remain intentionally retained
+until production setup is verified. No ROM/save/shared metadata is removed.
+
+External advancement blockers for R2:
+- Production Android OAuth client creation in the existing Google project awaits
+  the pending action-time confirmation. Package and public certificate fingerprint
+  are already prepared; no billing/scope expansion is proposed. This blocks
+  production sign-in and real Drive catalogue verification.
+- A combined wake/Wi-Fi/ObtainX deep-link shell command was rejected before
+  execution as `blocked by policy`. No bypass or broad device-control prohibition
+  is inferred. Public APK installation and read-only/root restoration commands
+  separately succeeded. Thor remains Asleep; wake/unlock was requested for normal
+  ObtainX registration and metadata credential setup from the existing private
+  environment file. Neither is claimed configured yet.
+
+Resolve these through the pending confirmation and awake device, verify actual
+source access without starting a scrape, then remove the debug/test packages.
+R3 depends on this handover and remains NOT STARTED. Screens are currently off;
+no ScreenScraper collection job is started. Retained recovery staging is
+`D:/Temp/rshop-release-20261014`, with open cleanup transaction
+`12f8e436b77bbc1524efc1e92305e174`; it must be finalized after verified restoration.
 
 ### Current schedule — S0-S12 COMPLETE, 2026-10-14
 
