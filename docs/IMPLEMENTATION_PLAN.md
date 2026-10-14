@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 43.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 44.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current execution, 2026-10-14: S0-S11 COMPLETE; S12 ACTIVE (sole active stage).

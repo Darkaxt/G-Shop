@@ -24,6 +24,7 @@ Uint8List? _reencodeAsJpeg(Uint8List input) {
 class SmartCoverImage extends StatefulWidget {
   final List<String> urls;
   final String? systemId;
+  final String? fallbackTitle, fallbackIdentity;
   final String? cachedUrl;
   final double? width;
   final double? height;
@@ -40,6 +41,8 @@ class SmartCoverImage extends StatefulWidget {
     super.key,
     required this.urls,
     this.systemId,
+    this.fallbackTitle,
+    this.fallbackIdentity,
     this.cachedUrl,
     this.width,
     this.height,
@@ -516,7 +519,11 @@ class _SmartCoverImageState extends State<SmartCoverImage> {
 
   Widget _buildDefaultPlaceholder() {
     return MediaCoverFallback(
-        systemId: widget.systemId, width: widget.width, height: widget.height);
+        systemId: widget.systemId,
+        title: widget.fallbackTitle,
+        identity: widget.fallbackIdentity,
+        width: widget.width,
+        height: widget.height);
   }
 
   Widget _buildDefaultError() {

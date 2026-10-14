@@ -104,6 +104,8 @@ class _CoverSectionState extends State<CoverSection> {
                               ),
                               child: SmartCoverImage(
                                 systemId: system.id,
+                                fallbackTitle: game.displayName,
+                                fallbackIdentity: game.selectionKey,
                                 urls: widget.coverUrls,
                                 cachedUrl: widget.cachedUrl,
                                 fit: BoxFit.contain,

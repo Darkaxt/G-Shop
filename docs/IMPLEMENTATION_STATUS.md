@@ -20,13 +20,18 @@ families exist in R-Shop; Xbox/Xbox 360 are inventory-only. Current source binds
 four consoles (GB, N64, PS1, PS2) to three 3D geometries. Fifteen current-console
 bindings are missing; 2D fallback icons do not satisfy those integrations.
 Existing geometry/motion/label evidence remains bounded to the actually verified
-formats and editions, not all 21 families. No renderer/product code changed in
-this inventory checkpoint, and no new build, scrape or release was performed.
+formats and editions, not all 21 families. Subsequent source work adds the requested
+2D missing-box-art title labels through the shared cover/sticker path. Focused host
+checks verify correct game identity, loading/failed fallback, recovery to cached
+box art, small-card layout and preserved 3D behavior; focused analysis passes.
+Native visual verification remains part of integrated S12 acceptance. No Android
+build, scrape, device change or release was performed for this addition.
 
 Internal advancement blockers: missing in-scope geometry/mapping, typed physical
 labels/box-grid separation, reference motion and integrated verification as
 itemized in the ledger. The owner's additional title sticker on missing 2D box-art
-fallbacks is recorded as required, still missing S12 work. GBA is the first repair;
+fallbacks is source-wired and host-verified, with integrated native visual
+acceptance remaining. GBA is the first 3D repair;
 the precise 007 source-image
 role remains under investigation, not presumed swapped. Resolve the listed
 implementation and fresh affected workflow checks before S12 closure. No tracked

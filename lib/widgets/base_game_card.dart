@@ -13,6 +13,7 @@ class BaseGameCard extends StatelessWidget {
   // Core
   final String displayName;
   final String? systemId;
+  final String? gameIdentity;
   final List<String> coverUrls;
   final String? cachedUrl;
   final bool isInstalled;
@@ -69,6 +70,7 @@ class BaseGameCard extends StatelessWidget {
     super.key,
     required this.displayName,
     this.systemId,
+    this.gameIdentity,
     required this.coverUrls,
     required this.cachedUrl,
     required this.isInstalled,
@@ -136,6 +138,8 @@ class BaseGameCard extends StatelessWidget {
                   color: const Color(0xFF151515),
                   child: SmartCoverImage(
                     systemId: systemId,
+                    fallbackTitle: displayName,
+                    fallbackIdentity: gameIdentity,
                     urls: coverUrls,
                     cachedUrl: cachedUrl,
                     fit: BoxFit.contain,
@@ -299,6 +303,7 @@ class BaseGameCard extends StatelessWidget {
                                   metrics.dispose();
                                   return Text(
                                     displayName,
+                                    key: const ValueKey('game-card-title'),
                                     style: style,
                                     maxLines: lines,
                                     overflow: TextOverflow.ellipsis,

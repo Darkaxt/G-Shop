@@ -14,6 +14,7 @@ import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/image_cache_service.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:retro_eshop/widgets/physical_media_view.dart';
 import 'package:retro_eshop/widgets/smart_cover_image.dart';
 
 void main() {
@@ -179,6 +180,8 @@ void main() {
             height: 240,
             child: SmartCoverImage(
                 systemId: 'psp',
+                fallbackTitle: 'Patapon',
+                fallbackIdentity: 'patapon-usa',
                 urls: const [url],
                 scrollSuppression: suppressed)));
     await tester.pumpWidget(cover());
@@ -187,6 +190,13 @@ void main() {
             .widget<MediaCoverFallback>(find.byType(MediaCoverFallback))
             .systemId,
         'psp');
+    expect(find.text('Patapon'), findsOneWidget);
+    expect(
+        tester
+            .widget<HandwrittenMediaSticker>(
+                find.byType(HandwrittenMediaSticker))
+            .identity,
+        'patapon-usa');
     FailedUrlsCache.instance.markFailed(url);
     await tester.pumpWidget(const SizedBox());
     suppressed.value = false;
@@ -196,6 +206,7 @@ void main() {
             .widget<MediaCoverFallback>(find.byType(MediaCoverFallback))
             .systemId,
         'psp');
+    expect(find.text('Patapon'), findsOneWidget);
     expect(find.byIcon(Icons.broken_image), findsNothing);
     final image = tester.widget<Image>(find.byType(Image));
     expect((image.image as ResizeImage).width, 256,
@@ -208,6 +219,34 @@ void main() {
         home: SmartCoverImage(urls: [], errorWidget: Text('caller fallback'))));
     expect(find.text('caller fallback'), findsOneWidget);
     expect(find.byType(MediaCoverFallback), findsNothing);
+  });
+
+  testWidgets(
+      'fallback labels update independently without artwork or requests',
+      (tester) async {
+    Widget cover(String identity, String title) => MaterialApp(
+        home: Center(
+            child: SizedBox(
+                width: 56,
+                height: 56,
+                child: SmartCoverImage(
+                    systemId: 'gba',
+                    fallbackIdentity: identity,
+                    fallbackTitle: title,
+                    urls: const []))));
+    await tester.pumpWidget(cover('gba-a', 'Pokémon Unbound'));
+    expect(find.text('Pokémon Unbound'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester
+        .pumpWidget(cover('gba-b', 'A different and very long game title'));
+    expect(find.text('Pokémon Unbound'), findsNothing);
+    expect(find.text('A different and very long game title'), findsOneWidget);
+    final sticker = tester
+        .widget<HandwrittenMediaSticker>(find.byType(HandwrittenMediaSticker));
+    expect(sticker.identity, 'gba-b');
+    expect(HandwrittenMediaSticker.colorFor(sticker.identity),
+        HandwrittenMediaSticker.colorFor('gba-b'));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('missing cover uses bundled game media rather than black error',
@@ -240,7 +279,12 @@ void main() {
                 'assets/media_fallbacks/systematic/neutral.png'),
         findsOneWidget);
     expect(find.byIcon(Icons.broken_image), findsNothing);
-    expect(find.text('Unknown game.7z'), findsOneWidget);
+    expect(find.text('Unknown game.7z'), findsNWidgets(2),
+        reason: 'The missing-art media itself carries the game title');
+    final sticker = tester
+        .widget<HandwrittenMediaSticker>(find.byType(HandwrittenMediaSticker));
+    expect(sticker.title, 'Unknown game.7z');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('decoded cached cover replaces media fallback without requests',
@@ -272,6 +316,8 @@ void main() {
       await tester.pumpWidget(const MaterialApp(
         home: SmartCoverImage(
             systemId: 'psx',
+            fallbackTitle: 'Real cover replaces this label',
+            fallbackIdentity: 'psx-cover',
             urls: [url],
             cachedUrl: url,
             width: 180,
@@ -284,6 +330,7 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(find.byType(MediaCoverFallback), findsNothing);
+    expect(find.byType(HandwrittenMediaSticker), findsNothing);
     expect(find.byType(RawImage), findsOneWidget);
     expect(tester.widget<RawImage>(find.byType(RawImage)).image, isNotNull,
         reason: 'A decoded cover, not an empty Image wrapper, is visible');

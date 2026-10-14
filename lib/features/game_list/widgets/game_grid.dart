@@ -312,6 +312,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
         index: index,
         builder: (isSelected) => BaseGameCard(
           systemId: widget.system.id,
+          gameIdentity: first.selectionKey,
           displayName: first.displayName,
           coverUrls: coverUrls,
           cachedUrl: _metadataCovers[

@@ -3,10 +3,16 @@
 Status: ACTIVE (reopened 2026-10-14). The owner reports the GBA selected preview
 falling back to a flat image. The earlier representative-only completion claim
 does not establish integration of the reference's other console formats.
-Authority: SPECIFICATION.md, revision 43, section 6f.
+Authority: SPECIFICATION.md, revision 44, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
+
+Owner's active objective now explicitly requires extraction/integration of all
+Socket 0.7 console media and animations, followed by the next public release
+(SPECIFICATION.md revision 44). The earlier independent-approximation option is
+superseded for this work. Source APK SHA checks and complete encrypted-envelope
+checksums bind recovered data; extraction alone is not integrated-feature proof.
 
 ## Current console integration ledger — 2026-10-14
 
@@ -78,13 +84,17 @@ integration/evidence, plus the reported 007 artwork-role investigation. S12 stay
 ACTIVE while these are actionable; delivery R3 depends on their reconciliation.
 No required row is silently deferred or declared complete by a fallback icon.
 
-Owner addition, 2026-10-14: missing box-art raster fallbacks also need the game's
+Owner addition, 2026-10-14: missing box-art raster fallbacks carry the game's
 handwritten title sticker with stable per-game color, not an anonymous 2D media
-icon. This is currently **missing**, not implemented by this documentation edit.
-Wire known title/identity through the existing common cover fallback, retain the
-licensed raster asset, and verify missing/loading/failed/offline fallback,
-different-title isolation and recovery to the actual box art. This belongs to
-ACTIVE S12 alongside artwork-role separation, not a later unnamed refinement.
+icon. The shared sticker now serves both 3D labels and the licensed 2D fallback;
+known title/selection identity is wired through library/system cards, detail cover
+view, downloads and scrape previews. Focused host checks verify missing/loading/
+failed fallback, different-title isolation, small-card layout, cache-only recovery
+to real box art, and preserved 3D label/insertion behavior. A failing reproduction
+first confirmed that the old card had no title sticker. Affected widget checks and
+focused analysis pass. Installed native visual acceptance belongs to the integrated
+S12 verification, which remains outstanding; this patch is not a released fix or
+proof of the missing 3D integrations. No additional provider requests are made.
 
 This inventory is verified against ZIP member names and current renderer source;
 it does not claim newly decoded mesh contents, live reference bindings, new

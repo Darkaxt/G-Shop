@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../core/util/color_contrast.dart';
+import '../media_cover_fallback.dart';
 import '../smart_cover_image.dart';
 
 /// Game cover art thumbnail with status overlay
 class CoverThumbnail extends StatelessWidget {
   final List<String> coverUrls;
   final String? cachedUrl;
+  final String? systemId, title, identity;
   final Color accentColor;
   final double size;
   final bool isComplete;
@@ -16,6 +17,9 @@ class CoverThumbnail extends StatelessWidget {
     super.key,
     required this.coverUrls,
     this.cachedUrl,
+    this.systemId,
+    this.title,
+    this.identity,
     required this.accentColor,
     required this.size,
     this.isComplete = false,
@@ -70,6 +74,9 @@ class CoverThumbnail extends StatelessWidget {
     }
 
     return SmartCoverImage(
+      systemId: systemId,
+      fallbackTitle: title,
+      fallbackIdentity: identity,
       urls: coverUrls,
       cachedUrl: cachedUrl,
       fit: BoxFit.cover,
@@ -79,25 +86,8 @@ class CoverThumbnail extends StatelessWidget {
   }
 
   Widget _buildFallback() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accentColor.withValues(alpha: 0.3),
-            accentColor.withValues(alpha: 0.1),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.videogame_asset_rounded,
-          color: accentColor.forIcon,
-          size: size * 0.45,
-        ),
-      ),
-    );
+    return MediaCoverFallback(
+        systemId: systemId, title: title, identity: identity);
   }
 
   Widget _buildStatusOverlay() {

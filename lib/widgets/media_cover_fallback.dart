@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'handwritten_media_sticker.dart';
 
 /// Original platform media, not a downloaded file's archive/container format.
 /// Mixed-media computers intentionally use a neutral illustration, not a claim
@@ -93,10 +94,17 @@ Stream<LicenseEntry> mediaArtworkLicenses() async* {
 /// Bundled art never starts a provider/image/ROM request or an animation.
 class MediaCoverFallback extends StatelessWidget {
   final String? systemId;
+  final String? title, identity;
   final double? width;
   final double? height;
 
-  const MediaCoverFallback({super.key, this.systemId, this.width, this.height});
+  const MediaCoverFallback(
+      {super.key,
+      this.systemId,
+      this.title,
+      this.identity,
+      this.width,
+      this.height});
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -106,11 +114,39 @@ class MediaCoverFallback extends StatelessWidget {
           color: const Color(0xFF182326),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Image.asset(
-              mediaFallbackAsset(systemId),
-              fit: BoxFit.contain,
-              cacheWidth: 256,
-              excludeFromSemantics: true,
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Stack(fit: StackFit.expand, children: [
+                  Image.asset(
+                    mediaFallbackAsset(systemId),
+                    fit: BoxFit.contain,
+                    cacheWidth: 256,
+                    excludeFromSemantics: true,
+                  ),
+                  if (title != null && title!.trim().isNotEmpty)
+                    Align(
+                      alignment: const Alignment(0, 0.05),
+                      child: FractionallySizedBox(
+                        widthFactor: 0.65,
+                        heightFactor: 0.34,
+                        child: Transform.rotate(
+                          angle: -0.055,
+                          child: FittedBox(
+                            child: SizedBox(
+                              width: 310,
+                              height: 180,
+                              child: HandwrittenMediaSticker(
+                                identity: identity ?? '$systemId:$title',
+                                title: title!,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ]),
+              ),
             ),
           ),
         ),

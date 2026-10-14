@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 43, 2026-10-14.
+Authoritative specification, revision 44, 2026-10-14.
+
+Owner objective, 2026-10-14: extract the cartridges, physical-media models,
+materials/label placement and animations from the supplied Socket Launcher 0.7
+for all currently supported consoles, integrate them in this fork, then publish
+the next verified release. Do not substitute a representative subset or an
+approximate independent shell for the requested extracted reference. Keep the
+per-console ledger and exact source hashes, preserve existing ROM identities,
+box-art/physical-label separation and the red theme. Use the established
+verification, signing and public-release workflow after integrated acceptance.
+Only S12 is ACTIVE; R3/publication depend on its completed reconciliation.
 
 Owner missing-cover direction, 2026-10-14: when box art is missing/loading/failed,
 the existing 2D physical-media fallback must also carry the game's handwritten

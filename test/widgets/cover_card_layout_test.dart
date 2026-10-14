@@ -95,8 +95,9 @@ void defineCoverCardLayoutChecks({
   void checkGeometry(WidgetTester tester, {required bool footer}) {
     expect(tester.takeException(), isNull);
     expect(find.byType(MediaCoverFallback), findsOneWidget);
-    final title = tester.getRect(find.text(_title));
-    final paragraph = tester.renderObject<RenderParagraph>(find.text(_title));
+    final caption = find.byKey(const ValueKey('game-card-title'));
+    final title = tester.getRect(caption);
+    final paragraph = tester.renderObject<RenderParagraph>(caption);
     // Android's selection rectangles retain fractional font metrics while its
     // paragraph line boxes round to logical pixels. Selection-box height is not
     // the paint/clipping boundary (RenderParagraph uses TextPainter.size).
@@ -161,7 +162,11 @@ void defineCoverCardLayoutChecks({
     for (final compact in [true, false]) {
       for (final selected in [true, false]) {
         await open(tester, compact: compact, selected: selected);
-        expect(tester.widget<Text>(find.text(_title)).style!.fontSize,
+        expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('game-card-title')))
+                .style!
+                .fontSize,
             greaterThanOrEqualTo(compact ? 12 : 14));
         final local = find.byKey(const ValueKey('cover-availability'));
         expect(find.descendant(of: local, matching: find.byIcon(Icons.sd_card)),
@@ -268,7 +273,10 @@ void defineCoverCardLayoutChecks({
           find.byIcon(Icons.lock_outline_rounded),
         _ => find.byType(CircularProgressIndicator),
       });
-      expect(progress.overlaps(tester.getRect(find.text(_title))), isFalse,
+      expect(
+          progress.overlaps(
+              tester.getRect(find.byKey(const ValueKey('game-card-title')))),
+          isFalse,
           reason: '$status progress must not be covered by title');
       expect(
           progress.bottom,

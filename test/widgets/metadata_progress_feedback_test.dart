@@ -62,7 +62,7 @@ void main() {
     await tester.pumpWidget(panel(report('Skipped')));
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpWidget(panel(report('Latest', image: true)));
-    expect(find.text('First'), findsOneWidget);
+    expect(find.text('First'), findsNWidgets(2));
     expect(find.text('Skipped'), findsNothing);
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('Latest'), findsOneWidget);
@@ -70,12 +70,12 @@ void main() {
     await tester
         .pumpWidget(panel(report('Other provider', id: 2, provider: 'igdb')));
     expect(find.text('Latest'), findsNothing);
-    expect(find.text('Other provider'), findsOneWidget);
+    expect(find.text('Other provider'), findsNWidgets(2));
     expect(find.textContaining('Daily API quota'), findsNothing);
     expect(find.byType(MediaCoverFallback), findsOneWidget);
     await tester.pumpWidget(panel(
         report('Completed', id: 2, provider: 'igdb', state: 'completed')));
-    expect(find.text('Completed'), findsOneWidget);
+    expect(find.text('Completed'), findsNWidgets(2));
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
     expect(tester.takeException(), isNull);
@@ -176,7 +176,7 @@ void main() {
     expect(feedback, findsOneWidget);
     await tester.ensureVisible(feedback);
     await tester.pumpAndSettle();
-    expect(find.text('Game 1'), findsOneWidget);
+    expect(find.text('Game 1'), findsNWidgets(2));
     expect(find.text('Candidate title'), findsOneWidget);
     expect(find.text('Already fetched synopsis'), findsOneWidget);
     expect(find.text('Description francaise'), findsNothing);
@@ -190,7 +190,7 @@ void main() {
         reason: 'candidate descriptions are preview-only, not publication');
     await tester.runAsync(() => controls.refresh(cacheRowId: 2));
     await tester.pumpAndSettle();
-    expect(find.text('Game 2'), findsOneWidget);
+    expect(find.text('Game 2'), findsNWidgets(2));
     expect(find.text('Game 1'), findsNothing);
     expect(find.text('Already fetched synopsis'), findsOneWidget);
     expect(provider.calls, hasLength(2));

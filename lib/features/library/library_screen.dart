@@ -2039,6 +2039,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 index: index,
                 builder: (isSelected) => BaseGameCard(
                   systemId: entry.systemSlug,
+                  gameIdentity: entry.selectionKey,
                   displayName: entry.cardTitle,
                   variantCount: variants.length,
                   systemLabel: systemLabel,

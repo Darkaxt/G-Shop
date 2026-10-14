@@ -113,13 +113,18 @@ class _MetadataProgressFeedbackState extends State<MetadataProgressFeedback> {
                 width: 96,
                 height: 112,
                 child: bytes == null
-                    ? MediaCoverFallback(systemId: game.platformId)
+                    ? MediaCoverFallback(
+                        systemId: game.platformId,
+                        title: game.title,
+                        identity: game.editionId)
                     : Image.memory(bytes,
                         fit: BoxFit.contain,
                         cacheWidth: 128,
                         gaplessPlayback: false,
-                        errorBuilder: (_, __, ___) =>
-                            MediaCoverFallback(systemId: game.platformId))),
+                        errorBuilder: (_, __, ___) => MediaCoverFallback(
+                            systemId: game.platformId,
+                            title: game.title,
+                            identity: game.editionId))),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(
