@@ -86,6 +86,28 @@ reducedMotion=false, verified against state and storage. Red background, readabl
 white text and icon/toggle controls are captured. No other preference is changed.
 Save-management section/input acceptance and final animation/launch/resource
 reconciliation remain S12 advancement blockers; S12 stays ACTIVE.
+
+The current package's normal 10-Pin Bowling Open control again hands off to
+RetroArch (Android independently reports RetroActivityFuture). The corrected
+spin straightens before descent, but the joined recording reveals a new
+handoff defect: finally resets the media when Android accepts startActivity,
+before the emulator covers our surface. Source now retains the inserted pose
+on successful launch and resets on actual resumed lifecycle; failures/cancellation
+still reset immediately. A regression fails before the lifecycle correction
+and passes afterward. Focused media checks pass and scoped analysis is clean.
+An additional metadata-detail test did not execute because its existing font-
+cache environment was absent; no passing claim is made for that attempted run.
+Native hot-reload verification passes: the same measured Open control reaches
+RetroArch, and the joined 351-frame recording keeps the inserted pose until the
+emulator covers it, with no original-position flash-back. The game is visibly
+running; no gameplay/save audit was added. This is current-source/runtime proof,
+not packaged proof: the installed 1055 APK does not yet contain this later source
+correction. Include it in the next integrated S12 package, not a per-edit build.
+Returning to R-Shop independently reports resumed lifecycle, the same media
+State, insertionValue=0 and its idle ticker resumed. A later private synchronous
+popUntil restoration hit Flutter's debug evaluator/stack-reporting assertion;
+it is not used as normal navigation evidence or repaired through a product
+workaround. Actual route state is inspected and restoration uses ordinary Back.
 Owner request during this work: dismissed the one failed Minish Cap queue entry
 through the actual Downloads > Clear Done control. The floating badge is gone;
 no ROM/save removal or retry occurred, and both Thor displays are verified OFF.

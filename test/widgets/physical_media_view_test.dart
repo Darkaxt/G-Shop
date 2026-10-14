@@ -126,6 +126,39 @@ void main() {
     expect(await future, isTrue);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets(
+      'completed insertion resets only after emulator background return',
+      (tester) async {
+    final key = GlobalKey<PhysicalMediaViewState>();
+    await tester.pumpWidget(MaterialApp(
+        home: PhysicalMediaView(
+            key: key,
+            identity: 'game',
+            title: 'Game',
+            label: const Text('Artwork'))));
+    double labelY() => tester
+        .widgetList<Transform>(find.descendant(
+            of: find.byType(PhysicalMediaView),
+            matching: find.byType(Transform)))
+        .last
+        .transform
+        .storage[13];
+    final insertion = key.currentState!.playInsertion();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 851));
+    expect(await insertion, isTrue);
+    final inserted = labelY();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(labelY(), closeTo(inserted, 0.001),
+        reason: 'Android launch acceptance is not yet a background transition');
+    key.currentState!.didChangeAppLifecycleState(AppLifecycleState.paused);
+    key.currentState!.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(labelY(), lessThan(inserted - 20),
+        reason:
+            'Returning from the emulator restores the normal media position');
+    await tester.pumpWidget(const SizedBox());
+  });
   for (final systemId in ['n64', 'psx', 'ps2']) {
     testWidgets('$systemId detail uses its physical media without artwork',
         (tester) async {

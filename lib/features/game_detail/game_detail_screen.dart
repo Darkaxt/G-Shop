@@ -531,6 +531,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final game = _controller?.selectedVariant;
     if (game == null) return;
     _openingOwnedRom = true;
+    var handedOff = false;
     try {
       final metadata = await ref.read(gameMetadataProvider(
           (filename: game.selectionKey, systemSlug: widget.system.id)).future);
@@ -563,6 +564,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           throw PlatformException(code: 'cancelled');
         }
       });
+      handedOff = true;
     } catch (error) {
       if (!mounted) return;
       final code =
@@ -600,7 +602,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       showConsoleNotification(context, message: message);
     } finally {
       _openingOwnedRom = false;
-      _physicalMediaKey.currentState?.resetInsertion();
+      // Android accepts startActivity before the emulator covers our surface.
+      // Hold the inserted pose through that handoff; reset on actual return.
+      if (!handedOff) _physicalMediaKey.currentState?.resetInsertion();
     }
   }
 

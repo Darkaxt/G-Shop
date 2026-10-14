@@ -387,6 +387,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
       _insertion.stop();
       _idle.stop();
     } else {
+      if (_insertion.isCompleted) resetInsertion();
       _configureMotion();
     }
   }
