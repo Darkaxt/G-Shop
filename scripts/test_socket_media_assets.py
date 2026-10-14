@@ -6,6 +6,17 @@ import build_socket_media_assets as media
 
 
 class MediaConversionTest(unittest.TestCase):
+    def test_godot_binary_basis_rows_are_not_transposed(self):
+        # resource_format_binary.cpp serializes Basis.rows, unlike Transform2D.
+        source = [1, 0, 0, 0, 0, 1, 0, -1, 0, 3, 4, 5]
+        self.assertEqual(media.point(source, [0, 1, 0]), [3, 4, 4])
+        self.assertEqual(media.transform_normal(source, [0, 1, 0]), [0, 0, -1])
+        translated = list(media.IDENTITY)
+        translated[9:] = [1, 2, 3]
+        composed = media.multiply(source, translated)
+        self.assertEqual(media.point(composed, [2, 3, 4]),
+                         media.point(source, media.point(translated, [2, 3, 4])))
+
     def test_nonuniform_basis_uses_inverse_transpose_normals(self):
         # A tangent and its normal must remain perpendicular after scale/shear.
         matrix = [2, 0, 0, 1, 3, 0, 0, 0, 4, 7, 8, 9]

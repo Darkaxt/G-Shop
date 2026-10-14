@@ -7,22 +7,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
-Native renderer checkpoint, 2026-10-15: isolated `sharedproof` APK from gated
-ticket 1086 installed with an absence/hash baseline on Thor `bfa98654`; no owner
-database/authentication or ROM launch was used. Initial actual pixels exposed
-reversed perspective depth. The regression test reproduced the wrong +Z depth
-order, then passed after correction. A debug hot restart loaded that source fix;
-all 16 variants completed real GPU submissions with resolved labels, expected
-triangle counts and real insertion-control completion. GB label orientation/depth
-now passes targeted visual inspection. GBA and UMD still appear upside down in
-their resting presentation, and UMD material/lighting fidelity needs comparison.
-These remain internal S12 blockers, not acceptance waived by green GPU status.
-Normal library/detail artwork/launch regression and full reference reconciliation
-are still required. This was hot-restarted source evidence, not a rebuilt release.
-Test package cleanup transaction `b56864e4300f398623db86ae074ff6b2` was reviewed,
-ticketed and applied; the isolated app/data were removed. Production is untouched.
-Both display states were verified OFF. Private source/oracle/captures remain needed
-for diagnosis; no asset-bearing build was uploaded.
+Native renderer checkpoint, 2026-10-15: the orientation defect is resolved in
+the isolated Thor renderer. Godot's binary Basis/Transform3D stores rows; the
+converter previously treated them as columns. Regression checks reproduce the
+transposition. Corrected point/composition/normal transforms retain source
+triangles, UVs and materials. The renderer now uses source YXZ angles and camera
+basis, replacing the baked root pose once instead of guessing from label normals.
+Disc/UMD spin retains its actual local-node axis. The first native run exposed a
+second vertical inversion at GpuImageSurface projection; a failing sign check and
+debug hot restart verified its correction. Targeted pixels show GB/GBA/UMD labels
+upright and unmirrored, with GBA embossing and UMD casing logo correctly oriented.
+All 16 variants completed real GPU submissions and insertion-control completion.
+This is isolated real-renderer evidence, not owner-library or ROM-launch proof.
+
+Gated ticket 1089 completed with actual gate acquisition, two workers/no parallel,
+3 GB Gradle heap, assessed in-process Kotlin, configured one-fork/512 MB test
+tasks and verified daemon exit; no memory failure. Native environment hints remain
+not universally verified. APK SHA-256
+`64d27ef631969f9ba92a37ccbc857ea066f3d73f2ac1c57605a2e27eb9c167ac`
+preceded the hot-restarted projection correction, so it is not a current release
+artifact. Test package cleanup transaction `524b41b628c32c36969a9c14680b4852` was
+reviewed/ticketed/applied; isolated app/data and owned ADB forwards were removed.
+Production is untouched and both displays were verified OFF. Captures and private
+source/oracle remain necessary evidence; no asset-bearing build was uploaded.
+Normal library/detail artwork/launch regression, material/reference fidelity,
+Vita source-gap reconciliation and GBC edition binding remain internal S12
+advancement blockers. S12 stays ACTIVE, with no required deferral out of S12.
 
 Owner clarification, revision 48: use an in-app original Socket APK importer and
 default flat artwork, not the private-release route. No extracted assets may ship

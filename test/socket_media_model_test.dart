@@ -3,6 +3,13 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('selected pose retains source Euler angles before camera conversion',
+      () {
+    final pose = SocketMediaPose.sample(
+        kind: 'drop', selected: 1, seconds: 0, reducedMotion: true);
+    expect(pose.rx, closeTo(-70 * 3.141592653589793 / 180, 1e-8));
+    expect(pose.rz, closeTo(20 * 3.141592653589793 / 180, 1e-8));
+  });
   test(
       'Socket console bindings include GBA, UMD, regional and optical variants',
       () {
@@ -75,7 +82,7 @@ void main() {
       () {
     final cart = SocketMediaPose.sample(
         kind: 'drop', selected: 1, seconds: 0, insertion: .2);
-    expect(cart.rx, closeTo(0, 1e-8));
+    expect(cart.rx, closeTo(-3.141592653589793 / 2, 1e-8));
     expect(cart.ry, closeTo(2 * 3.141592653589793, .0001));
     final umd = SocketMediaPose.sample(
         kind: 'umd', selected: 1, seconds: 0, insertion: .2);
@@ -86,7 +93,7 @@ void main() {
         kind: 'disc', selected: 1, seconds: 0, insertion: 1.6);
     final clicked = SocketMediaPose.sample(
         kind: 'pushClick', selected: 1, seconds: 0, insertion: .85);
-    expect(disc.y, greaterThan(1));
-    expect(clicked.y, greaterThan(1));
+    expect(disc.y, lessThan(-1));
+    expect(clicked.y, lessThan(-1));
   });
 }

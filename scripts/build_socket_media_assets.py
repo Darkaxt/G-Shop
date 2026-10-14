@@ -19,16 +19,18 @@ IDENTITY = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
 
 
 def point(matrix, value, translate=True):
-    return [sum(matrix[c * 3 + r] * value[c] for c in range(3)) +
+    # Godot's binary resource format writes Basis.rows, not columns.
+    return [sum(matrix[r * 3 + c] * value[c] for c in range(3)) +
             (matrix[9 + r] if translate else 0) for r in range(3)]
 
 
 def multiply(a, b):
-    return [v for c in range(3) for v in point(a, b[c * 3:c * 3 + 3], False)] + point(a, b[9:12])
+    return [sum(a[r * 3 + k] * b[k * 3 + c] for k in range(3))
+            for r in range(3) for c in range(3)] + point(a, b[9:12])
 
 
 def transform_normal(matrix, normal):
-    columns = [matrix[i:i + 3] for i in (0, 3, 6)]
+    columns = [[matrix[r * 3 + c] for r in range(3)] for c in range(3)]
     def cross(a, b):
         return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
     cofactors = [cross(columns[1], columns[2]), cross(columns[2], columns[0]), cross(columns[0], columns[1])]
@@ -215,7 +217,7 @@ class MediaBuilder:
         if name == 'vita':
             # The platform references a missing cart_vita scene. Preserve the
             # actual imported label mesh and existing Vita script, not a made-up
-            # shell. The shared Cartridge scene's +90-degree rest basis is the
+            # shell. The shared Cartridge scene's -90-degree rest basis is the
             # only reconstructed selectable-scene property.
             cover = 'Sketchfab_model/PS Vita cart_STL_cleaner/Object_2_001'
             script_path = 'res://scripts/cartridge_vita.gd'
@@ -299,6 +301,8 @@ class MediaBuilder:
                 if length:
                     n[:] = [v / length for v in n]
         model = {'name': name, 'apkSha256': APK_SHA256, 'sourceScene': scene_path,
+                 'sourceRootTransform': root.get('transform', ({'values': IDENTITY}, None))[0]['values'],
+                 'sourceBasisLayout': 'rows',
                  'sourceMember': self.archive.resolve(scene_path), 'bounds': [(high[i] - low[i]) / width for i in range(3)],
                  'sourceWidth': width, 'surfaces': surfaces, 'animationSource': script_path,
                  'animationSourceSha256': hashlib.sha256(self.archive.plain(script_member)).hexdigest(),
@@ -322,6 +326,12 @@ class MediaBuilder:
         for surface, buffers in zip(surfaces, ranges):
             surface.update(buffers)
             matrix = surface['sourceTransform']
+            # Disc rotates the cover node's local Y; UMD rotates its local Z.
+            # Keep that axis in the same baked coordinates as its exact mesh.
+            axis = 1 if name == 'disc' else 2
+            spin_axis = [matrix[axis], -matrix[3 + axis], matrix[6 + axis]]
+            length = math.sqrt(sum(v * v for v in spin_axis))
+            surface['spinAxis'] = [v / length for v in spin_axis]
             surface['pivot'] = [(matrix[9] - center[0]) / width,
                                 (-matrix[10] - center[1]) / width,
                                 (matrix[11] - center[2]) / width]

@@ -58,6 +58,9 @@ class Reader:
             return self.number({2: 'I', 3: 'i', 40: 'q', 4: 'f', 41: 'd'}[kind])
         if kind in (5, 44):
             return self.string()
+        if kind in (45, 46, 47, 51):
+            count = {45: 2, 46: 4, 47: 3, 51: 4}[kind]
+            return {'variant': kind, 'values': [self.number('i') for _ in range(count)]}
         if kind in (10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 50, 52):
             count = {10: 2, 11: 4, 12: 3, 13: 4, 14: 4, 15: 6, 16: 9, 17: 12, 18: 6, 20: 4, 50: 4, 52: 16}[kind]
             return {'variant': kind, 'values': [self.number('f') for _ in range(count)]}

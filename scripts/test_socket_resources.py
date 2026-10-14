@@ -9,6 +9,15 @@ from socket_resources import Reader, decrypt_resource, decompress_resource
 
 
 class SocketResourceTests(unittest.TestCase):
+    def test_scene_integer_vectors_preserve_signed_components(self):
+        # Main SubViewport sizes use Godot's binary Vector2i tag, not Vector2.
+        for kind, values in [(45, [1920, -1080]), (46, [-1, 2, 3, 4]),
+                             (47, [1, -2, 3]), (51, [1, 2, -3, 4])]:
+            with self.subTest(kind=kind):
+                reader = Reader(struct.pack('<I' + 'i' * len(values), kind, *values))
+                self.assertEqual(reader.variant(), {'variant': kind, 'values': values})
+                self.assertEqual(reader.pos, len(reader.data))
+
     def test_envelope_preserves_exact_bytes_and_rejects_corruption(self):
         key, iv = bytes(range(32)), bytes(range(16))
         content = b'RSRC exact source geometry'

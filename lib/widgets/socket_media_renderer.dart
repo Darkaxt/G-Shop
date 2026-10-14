@@ -266,11 +266,37 @@ class _LabelLayer extends RenderRepaintBoundary {
 }
 
 class SocketMediaGpu {
+  /// Godot's source camera looks from -Z with a 180-degree Y basis. A selected
+  /// Node3D replaces its root rotation (intrinsic YXZ), rather than adding to it.
+  /// Undo the converter's Y reflection and baked rest basis exactly once.
+  static vm.Matrix4 modelTransform(
+      SocketMediaModel model, SocketMediaPose pose) {
+    final values = (model.data['sourceRootTransform'] as List).cast<num>();
+    final rest = vm.Matrix4.identity();
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 3; c++) {
+        rest.setEntry(r, c, values[r * 3 + c].toDouble());
+      }
+    }
+    rest.invert();
+    return vm.Matrix4.identity()
+      ..translateByDouble(0, pose.y, pose.z, 1)
+      ..rotateY(math.pi)
+      ..rotateY(pose.ry)
+      ..rotateX(pose.rx)
+      ..rotateZ(pose.rz)
+      ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1)
+      ..multiply(rest)
+      ..scaleByDouble(1, -1, 1, 1);
+  }
+
   static vm.Matrix4 cameraProjection(
           double width, double height, double units) =>
       vm.Matrix4.identity()
         ..setEntry(0, 0, units * 2 / width)
-        ..setEntry(1, 1, -units * 2 / height)
+        // GpuImageSurface presents +clip-Y at the image top, like Godot's
+        // camera. Canvas's downward Y must not be applied a second time here.
+        ..setEntry(1, 1, units * 2 / height)
         // After perspective division, depth must decrease toward the +Z
         // camera. -.1 made (.5-.1*z)/(1-.25*z) increase, drawing backs first.
         ..setEntry(2, 2, -.25)
@@ -377,18 +403,13 @@ class SocketMediaGpu {
       pass.bindPipeline(pipeline);
       pass.setDepthCompareOperation(gpu.CompareFunction.lessEqual);
       pass.setCullMode(gpu.CullMode.none);
+      pass.setWindingOrder(gpu.WindingOrder.clockwise);
       pass.setColorBlendEnable(true);
       pass.setColorBlendEquation(gpu.ColorBlendEquation());
       final units =
           math.min(size.width * .72, size.height * .68 / model.height);
       final projection = cameraProjection(size.width, size.height, units);
-      final base = vm.Matrix4.identity()
-        ..translateByDouble(0, pose.y, pose.z, 1)
-        ..rotateZ(pose.rz)
-        ..rotateY(pose.ry)
-        ..rotateX(pose.rx)
-        ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
-      if (model.frontSign < 0) base.rotateY(math.pi);
+      final base = modelTransform(model, pose);
       final uniforms = context.createHostBuffer(blockLengthInBytes: 16 * 1024);
       final ordered = [...model.surfaces]..sort((a, b) =>
           ((a['material']['color'][3] as num) < 1 ? 1 : 0)
@@ -398,10 +419,14 @@ class SocketMediaGpu {
         final transform = base.clone();
         if (pose.labelSpin != 0 && (isLabel || model.motionKind == 'disc')) {
           final pivot = (surface['pivot'] as List).cast<num>();
+          final axis = (surface['spinAxis'] as List).cast<num>();
           transform
             ..translateByDouble(pivot[0].toDouble(), pivot[1].toDouble(),
                 pivot[2].toDouble(), 1)
-            ..rotateZ(pose.labelSpin)
+            ..rotate(
+                vm.Vector3(
+                    axis[0].toDouble(), axis[1].toDouble(), axis[2].toDouble()),
+                pose.labelSpin)
             ..translateByDouble(-pivot[0].toDouble(), -pivot[1].toDouble(),
                 -pivot[2].toDouble(), 1);
         }

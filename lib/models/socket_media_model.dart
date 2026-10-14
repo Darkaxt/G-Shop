@@ -178,12 +178,13 @@ class SocketMediaPose {
       bool reducedMotion = false}) {
     const degrees = math.pi / 180;
     final chosen = reducedMotion ? 1.0 : _expoOut(selected);
-    var rx = _mix(-90, 20, chosen) * degrees;
+    // Source Node3D angles; the renderer replaces the baked rest basis once.
+    var rx = _mix(-180, -70, chosen) * degrees;
     var rz = _mix(90, 20, chosen) * degrees;
-    var ry = manualRotation, y = -(1 - chosen) * .816, z = -(1 - chosen) * .64;
+    var ry = manualRotation, y = (1 - chosen) * .816, z = (1 - chosen) * .64;
     var sx = _mix(1 / 1.4, 1, chosen), sy = sx, sz = sx, spin = 0.0;
     if (!reducedMotion && insertion == 0) {
-      y -= math.sin(seconds * 2.5) * .08 * .32;
+      y += math.sin(seconds * 2.5) * .08 * .32;
       rx += math.sin(seconds * 1.5) * 3 * degrees;
       ry += math.cos(seconds * 1.5 * .8) * 1.5 * degrees;
       rz += math.sin(seconds * 1.5 * 1.2) * 2.4 * degrees;
@@ -191,13 +192,13 @@ class SocketMediaPose {
     if (insertion > 0) {
       final t = insertion;
       final turn = _phase(t, 0, .2);
-      rx *= 1 - turn;
+      rx = _mix(rx, -math.pi / 2, turn);
       rz *= 1 - turn;
       ry = kind == 'umd' || kind == 'disc'
           ? ry * (1 - turn)
           : _mix(ry, math.pi * 2, turn);
-      y = -.5 * .32 * _backOut(_phase(t, 0, .15));
-      z = -.2 * .32 * _backOut(_phase(t, 0, .15));
+      y = .5 * .32 * _backOut(_phase(t, 0, .15));
+      z = .2 * .32 * _backOut(_phase(t, 0, .15));
       final spinEnd = kind == 'disc' ? .3 : .2;
       spin = kind == 'disc'
           ? math.pi * 4 * _phase(t, 0, .3)
@@ -207,20 +208,21 @@ class SocketMediaPose {
       if (t > spinEnd) {
         final click = kind == 'pushClick';
         final landDuration = click ? .2 : .3;
-        final target = kind == 'disc'
+        final target = -(kind == 'disc'
             ? (2.5 + .45) * .32
             : click
                 ? (3.8 + .45) * .32
-                : (3.5 + .45) * .32;
+                : (3.5 + .45) * .32);
         final landing = _expoIn(_phase(t, spinEnd, landDuration));
-        y = _mix(-.5 * .32, target, landing);
-        z = _mix(-.2 * .32, 0, landing);
+        y = _mix(.5 * .32, target, landing);
+        z = _mix(.2 * .32, 0, landing);
         final landed = spinEnd + landDuration;
         if (click && t > landed) {
-          y = _mix(target, (3.4 + .45) * .32, _backOut(_phase(t, landed, .12)));
+          y = _mix(
+              target, -(3.4 + .45) * .32, _backOut(_phase(t, landed, .12)));
           sx = sy = sz = _mix(1, 1, _elasticOut(_phase(t, landed, .25)));
           if (t > landed + .25) {
-            y = (3.4 + .45) * .32 +
+            y = -(3.4 + .45) * .32 -
                 .4 * .32 * _backInOut(_phase(t, landed + .25, .2));
           }
         } else if (!click) {
@@ -233,7 +235,7 @@ class SocketMediaPose {
             sy = _mix(.7 / 1.4, 1, settle);
           }
           if (kind == 'disc' && t > landed + .2) {
-            y = target + .32 * _phase(t, landed + .2, .8);
+            y = target - .32 * _phase(t, landed + .2, .8);
           }
         }
       }

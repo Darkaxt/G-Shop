@@ -93,10 +93,15 @@ insertion/cancellation/artwork contracts. The selected view now uses indexed
 Flutter GPU draws, not simplified painter geometry. Host Skia tests cannot prove
 this GPU renderer. Gated ticket 1086 subsequently built the isolated Android proof.
 Real Thor GPU submissions and insertion-control completion passed all 16 variants
-after a reproduced/corrected camera-depth defect (debug hot restart, not release
-repackaging). GB's label is visibly correct; GBA/UMD resting orientation and
-material/reference fidelity remain defects to resolve. Full normal-library,
-edition-artwork and launch reconciliation is not proved by this isolated app.
+after reproduced/corrected camera-depth and orientation defects (debug hot
+restart, not release repackaging). Gated build 1089 plus hot-restarted projection
+fix verifies actual GB/GBA/UMD labels and casing logos upright and unmirrored;
+all 16 variants render and complete insertion controls. The coordinate fix uses
+row-major source Basis data, source YXZ/root replacement and the actual -Z
+camera basis, not a per-model face-normal rotation guess. Godot's format is
+documented in its [binary resource reader](https://github.com/godotengine/godot/blob/4.5/core/io/resource_format_binary.cpp#L287-L315).
+Material/reference fidelity and full normal-library, edition-artwork and launch
+reconciliation are not proved by this isolated app.
 
 Vita's supplied import has no UV channel and its referenced exported selectable
 scene is absent. The converter retains every imported triangle, uses the existing
@@ -104,14 +109,14 @@ Vita script and shared rest basis, and explicitly marks planar UVs on the actual
 label surface. This is an adaptation with a recorded source gap, not a claim that
 the missing original scene was recovered. Native/reference comparison is required.
 
-Public redistribution provenance is unresolved: no asset reuse grant was found in ZIP
-licence/credit filenames or the decoded About/Thanks scripts (Thanks lists Patreon
-supporters, not asset licences). This does not prove no licence exists. Retain the
-private converted assets out of the public fork. The owner has authorized a
-private fork as an alternative; revision 46 selects private repository/release
-delivery for this asset-bearing build. This resolves the delivery route, not a
-claim that the assets have a public reuse licence. A possession check alone would
-not establish such a licence.
+No asset reuse grant was found in ZIP licence/credit filenames or decoded
+About/Thanks scripts; this does not prove no licence exists. Revisions 47-49
+supersede revision 46's private-release choice: retain recovered assets only as
+local S12 diagnostic inputs. S13 owns the owner's original-APK importer, default
+flat view and asset-free public package. No recovered geometry, texture, script
+or original APK may enter public source/release assets. The delivery route is
+resolved by that requirement; S13 implementation/verification remains required,
+not an external licence blocker parked inside S12.
 
 ### Artwork-role and closure rules
 
@@ -125,8 +130,8 @@ be stretched onto the model. A missing label retains the handwritten sticker on
 the same model, not a flat cover. Do not require a full-collection scrape.
 
 Current advancement blockers are native renderer/artwork/motion integration
-evidence, GBC discriminator wiring, Vita source-gap reconciliation, publication
-provenance and the reported 007 artwork-role investigation. S12 stays
+evidence, GBC discriminator wiring, Vita source-gap reconciliation and the
+reported 007 artwork-role investigation. S12 stays
 ACTIVE while these are actionable; delivery R3 depends on their reconciliation.
 No required row is silently deferred or declared complete by a fallback icon.
 

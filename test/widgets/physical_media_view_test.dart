@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,15 +8,58 @@ import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 import 'package:retro_eshop/widgets/smart_cover_image.dart';
 import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
 import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
 
 // Host checks cover binding, artwork roles and the existing launch lifecycle.
 // Actual indexed GPU rendering is checked on Android, not inferred from these.
 void main() {
+  test(
+      'source camera keeps GBA and UMD label axes upright without face guesses',
+      () async {
+    for (final format in [
+      PhysicalMediaFormat.gameBoy,
+      PhysicalMediaFormat.gba,
+      PhysicalMediaFormat.psp,
+      PhysicalMediaFormat.n64,
+      PhysicalMediaFormat.nds
+    ]) {
+      final model = await SocketMediaModel.load(format);
+      final pose = SocketMediaPose.sample(
+          kind: model.motionKind, selected: 1, seconds: 0, reducedMotion: true);
+      final transform = SocketMediaGpu.modelTransform(model, pose);
+      final surface = model.surfaces.singleWhere((s) => s['role'] == 'label');
+      final count = surface['vertexCount'] as int;
+      var uMean = 0.0, vMean = 0.0;
+      final points = <vm.Vector3>[];
+      final uvs = <List<double>>[];
+      for (var i = 0; i < count; i++) {
+        final offset = (surface['vertexOffset'] as int) + i * 32;
+        double read(int index) =>
+            model.mesh.getFloat32(offset + index * 4, Endian.little);
+        points
+            .add(transform.transformed3(vm.Vector3(read(0), read(1), read(2))));
+        uvs.add([read(6), read(7)]);
+        uMean += read(6) / count;
+        vMean += read(7) / count;
+      }
+      var right = 0.0, down = 0.0;
+      for (var i = 0; i < count; i++) {
+        right += (uvs[i][0] - uMean) * points[i].x;
+        down += (uvs[i][1] - vMean) * points[i].y;
+      }
+      expect(right, greaterThan(0),
+          reason: '${format.name}: U increases right');
+      expect(down, lessThan(0), reason: '${format.name}: V increases down');
+    }
+  });
+
   test('camera depth keeps the positive-Z label in front of the casing back',
       () {
     final matrix = SocketMediaGpu.cameraProjection(832, 314, 160);
+    expect(matrix.transformed(vm.Vector4(0, 1, 0, 1)).y, greaterThan(0),
+        reason: 'GpuImageSurface presents positive clip Y at the image top');
     double depth(double z) {
       final point = matrix.transformed(vm.Vector4(0, 0, z, 1));
       return point.z / point.w;
@@ -165,7 +209,7 @@ void main() {
     key.currentState!.didChangeAppLifecycleState(AppLifecycleState.paused);
     key.currentState!.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await tester.pump();
-    expect(key.currentState!.pose.y, lessThan(inserted - 1));
+    expect(key.currentState!.pose.y, greaterThan(inserted + 1));
     await tester.pumpWidget(const SizedBox());
   });
 
