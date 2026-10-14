@@ -3,7 +3,7 @@
 Status: ACTIVE (reopened 2026-10-14). The owner reports the GBA selected preview
 falling back to a flat image. The earlier representative-only completion claim
 does not establish integration of the reference's other console formats.
-Authority: SPECIFICATION.md, revision 45, section 6f.
+Authority: SPECIFICATION.md, revision 48, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -13,6 +13,15 @@ Socket 0.7 console media and animations, followed by the next public release
 (SPECIFICATION.md revision 44). The earlier independent-approximation option is
 superseded for this work. Source APK SHA checks and complete encrypted-envelope
 checksums bind recovered data; extraction alone is not integrated-feature proof.
+
+Owner delivery correction (revisions 47-48): public builds ship the importer and
+renderer only. Flat artwork is default. Settings imports resources directly from
+the owner's original Socket APK on Android, validates them and enables optional
+3D. The importer, flat default and cover reveal belong to NOT STARTED S13 after
+S12 closure; the reveal also works with flat media and skips absent/loading/failed
+box art or reduced motion. The host converted assets are an oracle for implementation/native comparison,
+not distributable bundled assets. This supersedes the private-release selection
+recorded below; the newly created private repository remains empty and unused.
 
 The owner's library-order addition uses the existing canonical score projection:
 up to Top 100 first, all remaining entries A-Z, no padded ranks or browse-time
@@ -42,38 +51,60 @@ Fresh ZIP inventory of `D:/Downloads/Android/socket_release_0.7.0.apk`, SHA-256
   not recovered original FBX/GLB files or permission to redistribute them.
 - **19 of those console families exist in R-Shop's current system catalogue**.
   Xbox/Xbox 360 do not, so inventorying them does not authorize new ROM systems.
-- Current source `PhysicalMediaFormat.forSystem` binds **four consoles to three
-  geometries**. The other 15 currently selectable families have no 3D binding.
-  Licensed 2D fallback icons do not count as 3D implementation or verification.
+- Current source `PhysicalMediaFormat.forSystem` binds **all 19 console families**
+  to 16 recovered ROM-media variants. Native indexed rendering and expanded
+  artwork/motion acceptance remain pending; source wiring is not native proof.
 
 Each row tracks a console family, not a separate ACTIVE implementation stage.
 "Wired" means current renderer/selection/detail integration exists; it is not a
 claim that every regional label or every console-specific live workflow passed.
 Previous verification below remains evidence only for its actual tested scope.
 
-| Console family | R-Shop ID | APK evidence / required variant accounting | Current geometry and label wiring | Verification / remaining integration |
+| Console family | R-Shop ID | Recovered binding / source triangles | Source integration | Native acceptance remaining |
 | --- | --- | --- | --- | --- |
-| Game Boy | `gb` | `gb.gdc`; `cart_gb`; `gb.fbx` import | Wired: independent GB model; separate cached physical texture/sticker path | Earlier native geometry/motion/launch proof applies. Exact resolved GB label and box/grid role regression remain in the expanded reconciliation. |
-| Game Boy Color | `gbc` | `gbc.gdc`; `cart_gbc`, `cart_gbc_dual_mode`; `gbc_world.fbx` | Missing | Implement/reference-check both casing variants and their edition-based selection, label placement, motion and native integration. |
-| Game Boy Advance | `gba` | `gba.gdc`; `cart_gba`; `uploads_files_3322711_GBA_Cartridge.fbx` | Missing; current preview falls through to flat cover | **First repair.** Same GBA shell must survive missing/resolved labels; grid retains box art. Verify the reported 007 path without assuming image role from appearance. |
-| Nintendo 64 | `n64` | `n64.gdc`; `cart_n64`; `n64_cartridge.fbx` | Wired: independent N64 model and separate label path | Earlier native geometry/motion and exact Europe label/offline proof apply. Preserve these while closing missing formats. |
-| Nintendo Entertainment System | `nes` | `nes.gdc`; `cart_nes`; `nes.fbx` | Missing | Model, physical label, reference motion and integrated library/detail proof. |
-| Super Nintendo | `snes` | `snes.gdc`; `cart_snes_pal`, `cart_snes_us`; PAL/US imports | Missing | Both regional shells; explicit edition/region selection rather than arbitrary filename/list order; label/motion/native proof. |
-| Nintendo DS | `nds` | `nds.gdc`; `cart_nds`; `nds_cartridge_v2.glb` | Missing | DS game-card model, label/motion and native integration. DSi is not a separate APK definition in this count. |
-| Nintendo 3DS | `n3ds` | `3ds.gdc`; `cart_3ds`; `3ds.fbx` | Missing | Correct 3DS shell, label/motion and native integration. |
-| Nintendo Switch | `switch` | `switch.gdc`; `cart_switch`; `switch_cartridge.fbx` | Missing | Switch game-card model, label/motion and native integration. |
-| Sega Mega Drive / Genesis | `megadrive` | `genesis.gdc`; `cart_genesis`, `cart_megadrive`; shared cartridge import with regional materials | Missing | Regional presentation variants, physical label/motion and native integration; one console family, not two. |
-| PlayStation Portable | `psp` | `psp.gdc`; `cart_psp`; `umd_dis.fbx` | Missing | UMD shell/label/motion; do not substitute the ordinary disc. |
-| PlayStation Vita | `psvita` | `vita.gdc`; `vita.fbx` import; no `cart_vita` exported scene | Missing | Establish actual reference platform-to-model/animation binding, then integrate the correct card. Model presence alone is not runtime proof. |
-| PlayStation | `psx` | `psx.gdc`; generic `cart_disc` / `compact_disc.fbx` available | Wired: optical-disc geometry and separate label path | Earlier disc/reference and PS1 preview proof applies; resolved PS1 label/native role proof remains. |
-| PlayStation 2 | `ps2` | `ps2.gdc`; generic disc available | Wired: optical-disc geometry and separate label path | Earlier disc motion proof applies; resolved PS2 label/native role proof remains. |
-| PlayStation 3 | `ps3` | `ps3.gdc`; generic disc available | Missing | Verify reference binding/scale/material/motion before reusing disc; label and native integration. |
-| Dreamcast | `dreamcast` | `dreamcast.gdc`; generic disc available | Missing | Verify reference binding, disc label/motion and native integration. |
-| GameCube | `gc` | `gc.gdc`; generic disc available; no dedicated mini-disc named import | Missing | Verify actual reference scale/hub/label/motion; do not silently map to a full-size disc. |
-| Wii | `wii` | `wii.gdc`; generic disc available | Missing | Verify reference binding, disc label/motion and native integration. |
-| Wii U | `wiiu` | `wiiu.gdc`; generic disc available | Missing | Verify reference binding, disc label/motion and native integration. |
-| Xbox | Not in current catalogue | `xbox.gdc`; generic disc available | No selectable R-Shop system | Inventory only; no new console/emulator support authorized by this audit. |
-| Xbox 360 | Not in current catalogue | `xbox360.gdc`; generic disc available | No selectable R-Shop system | Inventory only; no new console/emulator support authorized by this audit. |
+| Game Boy | `gb` | `cart_gb`, 1,162 | Wired: source mesh/UVs/materials, push-click motion | Renderer, label roles and launch regression |
+| Game Boy Color | `gbc` | `cart_gbc` 1,162; `cart_gbc_dual_mode` 1,776 | Both recovered; source default/explicit dual-mode binding | Edition discriminator consumer and both native variants |
+| Game Boy Advance | `gba` | `cart_gba`, 1,092 | Wired: actual GBA shell, drop motion, separate label | First native proof; reported 007 role and grid regression |
+| Nintendo 64 | `n64` | `cart_n64`, 1,050 | Wired: source mesh/UVs/materials, drop motion | Expanded renderer and cached label regression |
+| Nintendo Entertainment System | `nes` | `cart_nes`, 7,257 | Wired: source mesh/UVs/materials, push-click motion | Renderer, label/motion and normal selection |
+| Super Nintendo | `snes` | PAL 12,130; US 8,251 | Both wired by edition region, drop motion | Both regional renderer/label/motion paths |
+| Nintendo DS | `nds` | `cart_nds`, 5,030 | Wired: source game-card mesh and push-click motion | Renderer, label/motion and normal selection |
+| Nintendo 3DS | `n3ds` | `cart_3ds`, 4,240 | Wired: source game-card mesh and push-click motion | Renderer, label/motion and normal selection |
+| Nintendo Switch | `switch` | `cart_switch`, 1,494 | Wired: source game-card mesh and push-click motion | Renderer, label/motion and normal selection |
+| Mega Drive / Genesis | `megadrive` | Both regional variants 2,186 each | Wired by edition region, source materials/motion | Both regional renderer/label/motion paths |
+| PlayStation Portable | `psp` | `cart_psp`, 144,640 | Wired: indexed UMD casing, independently spinning label | UMD transparency/depth and motion proof |
+| PlayStation Vita | `psvita` | Imported `vita.fbx`, 2,627 | Actual imported mesh and existing Vita animation script; see gap below | Missing exported scene, label UV adaptation and native comparison |
+| PlayStation | `psx` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview regression |
+| PlayStation 2 | `ps2` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview regression |
+| PlayStation 3 | `ps3` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview |
+| Dreamcast | `dreamcast` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview |
+| GameCube | `gc` | Source platform binds generic disc, 8,064 | Wired to actual source binding; no separate mini-disc invented | Native renderer/label and normal preview |
+| Wii | `wii` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview |
+| Wii U | `wiiu` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview |
+| Xbox | Not in current catalogue | Source generic disc binding | Inventory only | No new system authorized |
+| Xbox 360 | Not in current catalogue | Source generic disc binding | Inventory only | No new system authorized |
+
+Conversion checkpoint: all 16 source-bound binary meshes load with exact source
+index/vertex buffer hashes, original triangle counts and separate label surfaces.
+Focused host checks pass source bindings, motion formulas/timings and the existing
+insertion/cancellation/artwork contracts. The selected view now uses indexed
+Flutter GPU draws, not simplified painter geometry. Host Skia tests cannot prove
+this GPU renderer; the isolated Android proof is queued through the shared gate.
+
+Vita's supplied import has no UV channel and its referenced exported selectable
+scene is absent. The converter retains every imported triangle, uses the existing
+Vita script and shared rest basis, and explicitly marks planar UVs on the actual
+label surface. This is an adaptation with a recorded source gap, not a claim that
+the missing original scene was recovered. Native/reference comparison is required.
+
+Public redistribution provenance is unresolved: no asset reuse grant was found in ZIP
+licence/credit filenames or the decoded About/Thanks scripts (Thanks lists Patreon
+supporters, not asset licences). This does not prove no licence exists. Retain the
+private converted assets out of the public fork. The owner has authorized a
+private fork as an alternative; revision 46 selects private repository/release
+delivery for this asset-bearing build. This resolves the delivery route, not a
+claim that the assets have a public reuse licence. A possession check alone would
+not establish such a licence.
 
 ### Artwork-role and closure rules
 
@@ -86,8 +117,9 @@ whole-cartridge image must never replace grid box art, and a box image must neve
 be stretched onto the model. A missing label retains the handwritten sticker on
 the same model, not a flat cover. Do not require a full-collection scrape.
 
-Current advancement blockers are internal: missing mappings/geometries and their
-integration/evidence, plus the reported 007 artwork-role investigation. S12 stays
+Current advancement blockers are native renderer/artwork/motion integration
+evidence, GBC discriminator wiring, Vita source-gap reconciliation, publication
+provenance and the reported 007 artwork-role investigation. S12 stays
 ACTIVE while these are actionable; delivery R3 depends on their reconciliation.
 No required row is silently deferred or declared complete by a fallback icon.
 
@@ -103,9 +135,8 @@ focused analysis pass. Installed native visual acceptance belongs to the integra
 S12 verification, which remains outstanding; this patch is not a released fix or
 proof of the missing 3D integrations. No additional provider requests are made.
 
-This inventory is verified against ZIP member names and current renderer source;
-it does not claim newly decoded mesh contents, live reference bindings, new
-feature tests, APK changes or a new release.
+This ledger now includes hash-checked decoded meshes and source platform/script
+bindings. It does not claim installed renderer acceptance or a new public release.
 
 ## Owner direction and source boundary
 

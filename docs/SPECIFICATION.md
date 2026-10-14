@@ -1,6 +1,39 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 45, 2026-10-14.
+Authoritative specification, revision 48, 2026-10-14.
+
+Owner stage/design direction, 2026-10-14: assign the original-APK importer to S13,
+after S12's source-model integration. S13 also owns the focus reveal in BOTH flat
+and imported-3D modes: show real box art first, visibly larger than the cartridge,
+then slide it left completely outside the preview, revealing the cartridge behind
+it. No box art means no reveal: missing/loading/failed covers show the cartridge
+directly, never an animated placeholder. Reduced motion also skips the reveal.
+Preserve the red background, box/physical-label roles, selection/launch identity,
+one selected animated preview and existing touch/controller behavior. Default
+flat mode and local APK import belong to S13; do not implement S13 concurrently
+with ACTIVE S12. The next public asset-free release requires S13 acceptance too.
+
+Owner correction, 2026-10-14: the selected delivery mechanism is an in-app Socket
+APK resource importer, like a game recomp importing its original ROM resources.
+Use flat artwork by default. Settings offers an explicit local APK selection and
+import; successful import makes the exact source 3D models/animations available.
+Public source/releases contain our importer/renderer and factual format recipes,
+not recovered Socket geometry, textures, scripts or the original APK. Read the
+user-selected hash-bound 0.7 APK locally; validate source/content before activation,
+preserve a prior valid import on cancellation/failure, and leave original APK,
+ROMs, saves, metadata/authentication untouched. Do not require a laptop conversion
+or a separately prepared model pack. Verify real Android import -> enable 3D ->
+rendered source models, restart persistence, default flat behavior and absent
+Socket assets in the actual published APK. This is now owned by S13 and supersedes revision 46's selected
+private-release route; the empty private repository has no delivery role.
+
+Owner publication scope change, 2026-10-14: use a private fork for the extracted
+Socket assets, or require users to supply their own APK. The selected path for
+this release is a private GitHub repository/release in the owner's account;
+the existing public R-Shop fork remains unchanged and receives no extracted
+Socket assets. Private delivery replaces public publication for this asset-bearing
+release. Preserve upstream notices, the existing application ID/signing identity
+and user data. An APK possession check is not treated as a public reuse licence.
 
 Owner library-order direction, 2026-10-14: default console library browsing puts
 up to the collection's Top 100 canonical games first in overall-score rank order,
@@ -19,7 +52,8 @@ approximate independent shell for the requested extracted reference. Keep the
 per-console ledger and exact source hashes, preserve existing ROM identities,
 box-art/physical-label separation and the red theme. Use the established
 verification, signing and public-release workflow after integrated acceptance.
-Only S12 is ACTIVE; R3/publication depend on its completed reconciliation.
+Only S12 is ACTIVE; R3/publication depend on its completed reconciliation and the
+owner's private-publication scope change above.
 
 Owner missing-cover direction, 2026-10-14: when box art is missing/loading/failed,
 the existing 2D physical-media fallback must also carry the game's handwritten
@@ -1766,7 +1800,7 @@ requirement, and its absence in Socket is not a blocker. Preserve S8 companion
 launching without introducing a second frontend or launch pipeline.
 Select the renderer from the required real vertical slice. S12 is the
 sole ACTIVE stage during implementation; its frontend criteria did not add acceptance
-gates to S10/S11. Overall completion now requires S1-S12 reconciliation.
+gates to S10/S11. Overall completion now requires S1-S13 reconciliation.
 Owner workflow clarification, 2026-10-13: use `ui-diagnostics-first` in S12.
 Build bounded debug-only real-action, measured-tree, resolution and event-driven
 readiness evidence into the new frontend work, reusing the actual Flutter stack.

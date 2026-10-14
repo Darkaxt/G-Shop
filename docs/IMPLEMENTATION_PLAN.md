@@ -1,6 +1,19 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 45.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 48.
+
+Owner correction: S13 owns the in-app original-APK resource import, default flat
+mode and cover-to-cartridge focus reveal in both flat and 3D modes. S12 remains
+the sole ACTIVE stage; S13 is NOT STARTED and depends on its model/renderer
+integration. Public delivery follows S13's asset-free package acceptance. No host
+conversion requirement for the user or private-release workaround. Earlier
+publication-routing notes below are superseded.
+
+Owner publication update: complete the extracted-model integration and publish
+the next release privately under the owner's account. Do not upload Socket assets
+to the existing public fork or change that fork's visibility. Preserve package,
+signer, user state and upstream notices. This is the selected owner-authorized
+private-fork path, not a claim of public redistribution rights.
 
 S12 library ordering (owner, 2026-10-14): default browsing features up to the
 canonical Top 100 in score order, followed by all other games alphabetically.
@@ -2093,6 +2106,82 @@ representative formats, physical-label refresh/offline reuse, integrated input/
 lifecycle and installed-package/cleanup acceptance are verified in
 IMPLEMENTATION_STATUS.md. No S12 advancement blocker remains; S10/S11 are not reopened.
 
+## S13 — Local Socket resource import and cover reveal
+
+Status: NOT STARTED. Owner-assigned stage, specification revision 48.
+Prerequisite: S12 COMPLETE; do not implement concurrently. Existing unconnected
+format-conversion exploration produced before this stage assignment is not an
+integrated importer or acceptance evidence. Preserve it for review when S13 starts.
+
+Required outcomes and acceptance:
+
+1. **IMPORT-01 — Local resource import.** Add a concise Display/3D media settings
+   page with separate import status, `Import APK` action, 3D toggle and reduced-
+   motion toggle; icons and short labels, not a scrolling technical form. Use the
+   Android file picker for the original Socket 0.7 APK. Verify exact APK identity,
+   encrypted resource checksums and every required source buffer/texture before
+   atomic activation. No APK upload, install, network download, PC conversion or
+   user-prepared pack. Stream archive IO and convert one model/texture at a time;
+   reuse the current source extraction recipes and selected-view GPU renderer.
+   Bind imported files to the APK version/hash and keep them across restart.
+   Cancellation, wrong APK and damaged resources preserve the prior usable import
+   and original file; remove only the import's own incomplete staging.
+2. **IMPORT-02 — Flat default and asset-free delivery.** Fresh installs without
+   imported resources use flat physical-media presentation. 3D requires a valid
+   local import and an explicit toggle; importing does not silently switch the
+   current presentation. Existing saved 3D preferences without resources must not
+   cause a failing renderer. Remove extracted geometry/textures/scripts from
+   public source and release packaging; retain only our implementation, factual
+   source recipes and compatible notices. Verify the actual APK and source tree,
+   not just pubspec entries. Imported local resources remain outside publication.
+3. **REVEAL-01 — Focus animation in both modes.** Reuse the one selected library/
+   detail preview. When the focused game has resolved real box art, show that
+   cover in front of its flat or 3D cartridge, then slide the cover left until its
+   right edge is outside the preview. Preserve cover aspect ratio and clip at the
+   preview boundary. Fit the cover to at most 90% of preview height; fit the visible
+   cartridge within 80% of the fitted cover width and height so the box is
+   unambiguously larger in both modes. Use a brief 180 ms cover hold and 420 ms
+   ease-in/out slide as animation timings, not sleeps or data-readiness timeouts.
+   Existing cartridge selection/idle/insertion motion and launch ownership remain
+   intact. A newly focused identity cancels the previous reveal and resets once;
+   repaint, score updates and later artwork arrival must not replay it unexpectedly.
+4. **REVEAL-02 — Honest skips and lifecycle.** Missing, loading or failed box art
+   skips this focus's reveal and shows the physical media/title fallback directly.
+   Do not animate a placeholder or wait for network artwork. Reduced motion also
+   skips directly. Leaving/replacing/disposing the selected view cancels only its
+   visual animation; launch still resolves the same selected ROM through the
+   existing insertion/skip/cancel path. Preserve red backgrounds, box art in grid
+   cards and independently typed physical label textures on media.
+5. **Integrated acceptance and release.** Focused tests cover flat defaults,
+   import activation/restart, rejection/cancellation preservation and the two
+   reveal modes/skips/identity changes. Native Thor proof: select the original APK
+   through Settings -> complete local import -> explicitly enable 3D -> verify all
+   16 source variants/19 supported-family bindings -> restart -> verify persistence.
+   Inspect measured preview bounds and targeted real frames for cover dominance,
+   complete left exit, flat/3D reveal and no-art/reduced-motion skips. Reuse S12's
+   applicable source-model/artwork/launch evidence; no broad scraping or new ROM
+   downloads. Verify release package has no recovered Socket payloads, then use
+   the existing signed public-release/provenance/download workflow. Switch Thor
+   screens off after testing and clean exact task-owned fixtures.
+
+Implementation seams: `lib/features/settings/widgets/general_tab.dart` and a
+focused media settings page; `lib/services/storage_service.dart` and
+`lib/providers/app_providers.dart` for persisted preferences;
+`lib/services/socket_mesh_import.dart`, source recipes and a scoped Android
+import boundary for local conversion; `lib/models/socket_media_model.dart` and
+`lib/widgets/socket_media_renderer.dart` for imported asset loading;
+`lib/features/game_detail/widgets/cover_section.dart` for the shared selected
+preview/reveal, also consumed by `lib/features/library/library_screen.dart`.
+Keep import job state separate from ROM download/save jobs; do not create another
+general provider framework. Relevant focused checks belong in media settings,
+physical-media and import tests. Every Windows Gradle verification uses the shared
+installed gate; preserve one workload and existing resource limits.
+
+Reconciliation: all five outcome groups above are unsatisfied until implemented
+and verified in S13. S12 acceptance does not depend on its future importer or
+new reveal; public distribution does. No stage is COMPLETE because a recipe or
+test fixture exists. No independent worktree, worker or approval gate is required.
+
 ## Source extension map (baseline, not implemented classes)
 
 | Area | Existing entry points | Required consideration |
@@ -2179,3 +2268,4 @@ Each requirement has one delivery owner; dependent stages must still maintain it
 | SAVE-01 | S10 | Installed-emulator coverage; separate backup consent/area; real save backup and restore to expected emulator locations; compatibility, conflicts, last-good recovery and no ROM mirroring; verified exact-target legacy app/task handover |
 | CACHE-01 | S11 | Persisted Settings duration/queue/order/budget and unified/per-console scope; protected sample/pins; actual automatic expiry/capacity rotation through exact owned/cloud-verified removal and identical usable restore |
 | FRONTEND-01 | S12 | Actual 3D media and animation on Thor; retained red identity; scalable browsing, normal launch and existing-feature regression evidence; contract in S12_FRONTEND_PROPOSAL.md |
+| IMPORT-01/02, REVEAL-01/02 | S13 | In-app original APK import, persistent verified local resources, default flat mode, asset-free public build and cover-first reveal in flat/3D with honest no-art/reduced-motion skips |

@@ -7,6 +7,35 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
+Owner clarification, revision 48: use an in-app original Socket APK importer and
+default flat artwork, not the private-release route. No extracted assets may ship
+in public source/APKs. The isolated renderer build remains useful diagnostic
+evidence only; the complete required workflow is local APK import -> optional 3D
+with all source variants -> preserved restart state, followed by public package
+and release verification. Import/default flat/cover reveal are assigned to S13
+(NOT STARTED), after S12 COMPLETE. The larger cover slides left in both flat and
+3D modes only when real box art is resolved; no art or reduced motion skips it.
+S12 remains sole ACTIVE stage. Empty private repository
+was created before this clarification; no commit or asset was pushed to it.
+
+Exact-source integration checkpoint: all 16 ROM-media variants are converted and
+wired to the 19 existing console families, with original indexed triangles,
+separate label surfaces/material maps and source motion profiles. Host checks
+verify source hashes, bindings, artwork roles and insertion lifecycle; Android
+GPU visual acceptance remains outstanding. Native proof uses an isolated debug
+entrypoint/package, not the owner's database/authentication. The first gated
+build failed from a split unquoted Dart target before app compilation; its gate
+and 3 GB/two-worker profile were verified, memory failure evidence was empty and
+post-build daemon exit was verified. Correctly quoted replacement ticket 1086
+completed successfully with gate acquisition, verified 3 GB/two-worker/no-parallel
+profile and post-build daemon exit. Kotlin uses the assessed in-process strategy;
+test tasks report one fork/512 MB; no memory failure evidence. Native concurrency
+hints are not universal plugin proof. No device rendering or release is claimed
+from compilation. Revision 48 supersedes private-fork delivery; keep recovered
+assets out of the public fork and package them only in local S12 diagnostics.
+Keep S12 ACTIVE; native acceptance,
+Vita's missing scene and GBC edition discriminator remain current-stage blockers.
+
 Library ordering addition: source-wired and host-verified. Default console
 browsing puts up to the canonical Top 100 first, with the remainder A-Z;
 unresolved/unrated entries remain visible. Existing ranking/conflict/variant,
@@ -26,8 +55,8 @@ acceptance and source-bound inventory are in
 Fresh APK inventory identifies 21 console families, 16 exported media scenes
 (15 ROM-media variants plus Android), and 16 imported scenes. Nineteen console
 families exist in R-Shop; Xbox/Xbox 360 are inventory-only. Current source binds
-four consoles (GB, N64, PS1, PS2) to three 3D geometries. Fifteen current-console
-bindings are missing; 2D fallback icons do not satisfy those integrations.
+all 19 families to 16 recovered variants. Native integration evidence remains
+outstanding; 2D fallback icons do not satisfy those integrations.
 Existing geometry/motion/label evidence remains bounded to the actually verified
 formats and editions, not all 21 families. Subsequent source work adds the requested
 2D missing-box-art title labels through the shared cover/sticker path. Focused host
@@ -36,7 +65,7 @@ box art, small-card layout and preserved 3D behavior; focused analysis passes.
 Native visual verification remains part of integrated S12 acceptance. No Android
 build, scrape, device change or release was performed for this addition.
 
-Internal advancement blockers: missing in-scope geometry/mapping, typed physical
+Internal advancement blockers: native in-scope geometry/mapping proof, typed physical
 labels/box-grid separation, reference motion and integrated verification as
 itemized in the ledger. The owner's additional title sticker on missing 2D box-art
 fallbacks is source-wired and host-verified, with integrated native visual
