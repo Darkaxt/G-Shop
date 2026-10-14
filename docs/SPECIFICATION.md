@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 48, 2026-10-14.
+Authoritative specification, revision 49, 2026-10-15.
+
+Owner S13 zoom refinement, 2026-10-15: while the box cover is present, fit the
+physical media small enough to sit inside its apparent bounds. As the box slides
+left, smoothly restore the media's normal selected-preview zoom in the same
+animation. Apply this to flat and imported-3D modes without reshaping source
+geometry. The cover must dominate the initial boxed composition, not permanently
+shrink the final cartridge. Missing/loading/failed box art or reduced motion skips
+the reveal and starts directly at normal media zoom. This remains planned S13
+behavior; S12 source-model fidelity work is still the sole ACTIVE stage.
 
 Owner stage/design direction, 2026-10-14: assign the original-APK importer to S13,
 after S12's source-model integration. S13 also owns the focus reveal in BOTH flat

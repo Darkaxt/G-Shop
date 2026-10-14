@@ -3,7 +3,7 @@
 Status: ACTIVE (reopened 2026-10-14). The owner reports the GBA selected preview
 falling back to a flat image. The earlier representative-only completion claim
 does not establish integration of the reference's other console formats.
-Authority: SPECIFICATION.md, revision 48, section 6f.
+Authority: SPECIFICATION.md, revision 49, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -19,7 +19,9 @@ renderer only. Flat artwork is default. Settings imports resources directly from
 the owner's original Socket APK on Android, validates them and enables optional
 3D. The importer, flat default and cover reveal belong to NOT STARTED S13 after
 S12 closure; the reveal also works with flat media and skips absent/loading/failed
-box art or reduced motion. The host converted assets are an oracle for implementation/native comparison,
+box art or reduced motion. Revision 49 adds synchronized media zoom from a smaller
+boxed size to normal preview size as the cover exits, in both flat/3D modes;
+skipped reveals start directly at normal zoom. The host converted assets are an oracle for implementation/native comparison,
 not distributable bundled assets. This supersedes the private-release selection
 recorded below; the newly created private repository remains empty and unused.
 

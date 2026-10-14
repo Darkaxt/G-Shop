@@ -35,6 +35,12 @@ and release verification. Import/default flat/cover reveal are assigned to S13
 S12 remains sole ACTIVE stage. Empty private repository
 was created before this clarification; no commit or asset was pushed to it.
 
+S13 revision 49 refinement (planned, NOT STARTED): uniformly fit the physical
+media inside the larger box cover initially, then restore normal preview zoom
+smoothly with the cover's left-exit animation in both flat/3D modes. Absent,
+pending or failed box art and reduced motion skip directly to normal media zoom.
+No S13 implementation or acceptance is claimed; S12 fidelity remains ACTIVE.
+
 Exact-source integration checkpoint: all 16 ROM-media variants are converted and
 wired to the 19 existing console families, with original indexed triangles,
 separate label surfaces/material maps and source motion profiles. Host checks

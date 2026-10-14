@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 48.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 49.
 
 Owner correction: S13 owns the in-app original-APK resource import, default flat
 mode and cover-to-cartridge focus reveal in both flat and 3D modes. S12 remains
@@ -2108,7 +2108,7 @@ IMPLEMENTATION_STATUS.md. No S12 advancement blocker remains; S10/S11 are not re
 
 ## S13 — Local Socket resource import and cover reveal
 
-Status: NOT STARTED. Owner-assigned stage, specification revision 48.
+Status: NOT STARTED. Owner-assigned stage, specification revision 49.
 Prerequisite: S12 COMPLETE; do not implement concurrently. Existing unconnected
 format-conversion exploration produced before this stage assignment is not an
 integrated importer or acceptance evidence. Preserve it for review when S13 starts.
@@ -2139,14 +2139,18 @@ Required outcomes and acceptance:
    cover in front of its flat or 3D cartridge, then slide the cover left until its
    right edge is outside the preview. Preserve cover aspect ratio and clip at the
    preview boundary. Fit the cover to at most 90% of preview height; fit the visible
-   cartridge within 80% of the fitted cover width and height so the box is
-   unambiguously larger in both modes. Use a brief 180 ms cover hold and 420 ms
-   ease-in/out slide as animation timings, not sleeps or data-readiness timeouts.
+   cartridge initially within 80% of the fitted cover width and height so the box
+   is unambiguously larger in both modes. Uniformly interpolate from that fitted
+   scale to the normal selected-preview zoom over the same cover-exit progress;
+   the normal final model must not stay artificially small. Do not reshape source
+   meshes or vary identity. Use a brief 180 ms cover hold and 420 ms ease-in/out
+   slide/zoom as animation timings, not sleeps or data-readiness timeouts.
    Existing cartridge selection/idle/insertion motion and launch ownership remain
    intact. A newly focused identity cancels the previous reveal and resets once;
    repaint, score updates and later artwork arrival must not replay it unexpectedly.
 4. **REVEAL-02 — Honest skips and lifecycle.** Missing, loading or failed box art
-   skips this focus's reveal and shows the physical media/title fallback directly.
+   skips this focus's reveal and shows the physical media/title fallback directly
+   at its normal selected-preview zoom.
    Do not animate a placeholder or wait for network artwork. Reduced motion also
    skips directly. Leaving/replacing/disposing the selected view cancels only its
    visual animation; launch still resolves the same selected ROM through the
@@ -2158,7 +2162,8 @@ Required outcomes and acceptance:
    through Settings -> complete local import -> explicitly enable 3D -> verify all
    16 source variants/19 supported-family bindings -> restart -> verify persistence.
    Inspect measured preview bounds and targeted real frames for cover dominance,
-   complete left exit, flat/3D reveal and no-art/reduced-motion skips. Reuse S12's
+   complete left exit, synchronized boxed-to-normal media zoom, flat/3D reveal and
+   no-art/reduced-motion direct normal-zoom skips. Reuse S12's
    applicable source-model/artwork/launch evidence; no broad scraping or new ROM
    downloads. Verify release package has no recovered Socket payloads, then use
    the existing signed public-release/provenance/download workflow. Switch Thor
