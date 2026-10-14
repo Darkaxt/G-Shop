@@ -378,6 +378,15 @@ artwork is subordinate at 12 percent opacity. A real Thor capture confirms the
 red detail backdrop with the handwritten missing-artwork label. Representative
 settings/library and artwork-state visual acceptance remains required.
 
+The subsequent integrated background correction removes opaque grey Settings/
+console-configuration overlays, the black library scaffold and console-colored
+ScreenLayout glow. Headers use a matching dark-red scrim. A fresh packaged Thor
+check confirms Home, Settings and library loading/populated dashboard backgrounds;
+the detail missing-artwork capture retains the same red base. Host regressions
+cover the green-console accent, Settings overlays and library loading/identity/
+filter/configuration paths. This closes the observed background overrides, not
+the remaining media formats, artwork-state transitions or whole S12 acceptance.
+
 The capture helper initially rejected supported display selection because this
 device prints screenrecord help on stderr. Its installed Codex/Claude copies now
 check the combined successful help output; the stderr-boundary fixture and actual

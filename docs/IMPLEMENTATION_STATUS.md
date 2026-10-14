@@ -17,13 +17,18 @@ FRONTEND-01's existing red/dark, main-display-only design is retained. First wor
 includes the owner's explicit red/dark-background requirement (2026-10-14):
 Socket's grey dotted screen is reference-app UI, not the R-Shop target theme.
 Shared backgrounds and detail tint are implemented, with a real red detail
-capture and a regression rejecting console-color replacement. Representative
-library/settings/artwork-state verification remains acceptance work. First work
+capture and regressions rejecting console-color replacement. The remaining
+console-colored ScreenLayout glow, black library scaffold and opaque grey
+Settings/configuration overlays are now corrected in the same background path;
+library loading/identity/filter behavior and Settings rendering checks pass.
+The current packaged Thor Home, Settings and library loading/populated dashboard
+captures confirm the red backdrop. Remaining artwork-state visual verification
+belongs to the integrated media work. First work
 is the hash-bound 0.7 reference comparison and one real physical-cartridge
 selection/install/animated-launch workflow in the existing library/detail path.
 Renderer choice remains bounded to that workflow; no second catalogue, launch
 pipeline or full engine rewrite is authorized. Remaining acceptance: reference
-geometry/motion comparison, first Thor workflow, representative format coverage,
+geometry/motion comparison, representative format coverage,
 artwork/sticker transitions, scalable navigation/input, save-settings input/layout
 checks, measured resource/lifecycle behavior and integrated final reconciliation.
 These are internal advancement blockers while S12 stays ACTIVE, not deferrals or
@@ -54,18 +59,60 @@ matching source. The attribution-only change does not alter the verified model
 or handoff. Scoped analysis reports no issues; affected media/detail/lifecycle/
 background/license checks pass. These are first-slice evidence, not stage closure.
 
-Remaining motion evidence is explicit: the two recorded sample sets did not
-capture the launch interval; they cannot establish insertion fidelity or release
-performance. Do not repeat an action based on an uncertain result. The existing
-source timings/native handoff are established, but a valid matched motion capture
-is still required. Material fidelity, additional formats, main-library integration,
+The two initial recording sample sets omitted the launch interval. A corrected
+capture now starts its action after actual encoder bytes, rather than a delayed
+filesystem notification. The completed Socket and R-Shop Game Boy recordings
+include insertion (194/395 decoded frames, neither evidence set truncated).
+Comparison confirms a remaining R-Shop mismatch: straighten the model during
+the initial spin before descent. Recording timestamps are estimated, not frame-
+pacing proof. Material fidelity, corrected motion, additional formats, main-library integration,
 artwork-state/input/settings and resource/lifecycle acceptance remain S12 work.
 No required gap has been deferred out of S12.
 
-Original library console choice (dashboard/null) and residency tab 0 are restored
-through the actual controls. The owned Flutter attach and all test/analysis/build
-operations are terminal; its one ADB forward is removed and unrelated forwards
-are preserved. Both displays report OFF. The tiny owned Game Boy installation,
+Measured first-slice baseline on the actual Thor: debug Game Boy view, 251 steady
+frames after excluding the observer-start batch; build P95 5,858 us, raster P95
+2,663 us, build/raster maxima 19,371/4,243 us. Image cache holds 19,581,472 bytes,
+and the independent model has 164 faces. Native aggregate app PSS/RSS is
+831,059/954,868 KiB (includes catalogue, SQLite and debug runtime, not model-only
+memory). The viewport is 832.5 x 468.3 logical pixels on a reported 120-Hz display.
+These are diagnostic baseline measurements, not release-performance acceptance.
+
+The red-theme live check encountered an unresolved debug-observation Future.
+Its original client was retained until the debug restart ended the service;
+there was no duplicate Back action. That restart crashed in the existing
+SoLoud native voiceEndedCallback/disposeAllSound path, also present in an earlier
+crash record. Normal cold start succeeds; no data reset, speculative audio patch
+or claim of lifecycle acceptance follows. S12 lifecycle acceptance must resolve
+or properly distinguish this tooling-only restart path from normal app lifecycle.
+
+The red-background package request 1048 (`891dce358fef46ec843a5c2cf9d9c15e`)
+finishes build/helper 0 with the shared gate acquired and daemon exit verified.
+Observed: two workers, parallel=false, Gradle maximum heap 3 GiB; Kotlin is
+configured in-process, with no separate compiler heap. Test configuration remains
+one fork/512 MiB; assembly did not execute JVM tests. Native tasks execute for
+multiple ABIs, with the existing app compile/link pools and two-job environment
+hints; plugin-wide effective native concurrency is not established. No memory
+failure or budget increase. Existing Flutter Kotlin/AGP and SDK XML/deprecation
+warnings remain, without toolchain changes or disabled verification.
+Host and installed APK SHA-256 independently match
+`74cc985f69685b27fe98ced3c8640dc3baf2b9c69aee7eebdfc0c41d2b0065e9`
+(228,068,593 bytes; this invocation packaged the default multi-ABI target).
+Focused Settings/background, library identity/filter/loading and configuration
+persistence checks pass, with scoped analysis reporting no issues. Existing SVG
+loader diagnostics remain; they are not newly introduced theme exceptions.
+The original data-ready observation completed normally: 26 consoles, loading
+false, no discovery error, console null and residency tab 0. Route setup for
+these color captures is not claimed as controller/touch acceptance.
+
+Original library console choice (dashboard/null) and residency tab 0 are unchanged.
+At the previous checkpoint, the owned Flutter attach and all test/analysis/build
+operations were terminal, its one ADB forward removed, unrelated forwards
+preserved and both displays OFF. The current check also restores the original
+Home route without changing preferences, detaches its Flutter client normally,
+removes only its owned 30956 forward and verifies both displays OFF. All owned
+test/analysis/build/observation sessions are terminal. Private captures/reference
+inputs remain bound to the existing S12 cleanup transaction until the required
+comparison is finished. The tiny owned Game Boy installation,
 isolated Socket reference copy/app and private reference captures are intentional
 S12 verification inputs until comparison finishes, not a changed retention policy
 or a published collection. Retire these exact inputs at S12 cleanup; no real saves,

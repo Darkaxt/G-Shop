@@ -2072,9 +2072,11 @@ instrumentation. The existing FRONTEND-01 contract governs this ACTIVE stage.
 
 Evidence required: observed reference report, reproducible Thor rendering and
 resource measurements, real normal launch workflow, integrated controller/touch
-navigation and regression evidence. No implementation or runtime evidence exists
-yet. Proposed renderer/asset decisions are unfinished design work, not blockers
-for S10/S11 or tracked deferrals from those stages.
+navigation and regression evidence. The existing Game Boy Drive installation and
+animated native handoff establish the first real workflow; reference comparison,
+format coverage and integrated frontend acceptance remain unfinished. Current
+evidence and gaps are recorded in IMPLEMENTATION_STATUS.md. These remain S12
+advancement blockers, not reopened S10/S11 criteria or tracked deferrals.
 
 ## Source extension map (baseline, not implemented classes)
 

@@ -28,7 +28,8 @@ class ScreenLayout extends StatelessWidget {
       body: Stack(
         children: [
           AnimatedBackground(accentColor: accentColor),
-          RadialGlow(color: accentColor),
+          // Console accents belong to controls, not the app's red backdrop.
+          const RadialGlow(),
           if (useSafeArea)
             SafeArea(
               child: Padding(

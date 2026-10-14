@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/input/input.dart';
 import '../../core/responsive/responsive.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/animated_background.dart';
 import '../../core/util/source_color.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/config/app_config.dart';
@@ -1612,7 +1614,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final metadataScope = _selectedConsole ?? '';
     _metadataCovers = _isDashboard
         ? const {}
-        : ref.watch(cachedMetadataCoversProvider(metadataScope)).asData?.value ??
+        : ref
+                .watch(cachedMetadataCoversProvider(metadataScope))
+                .asData
+                ?.value ??
             const {};
     final ratings = _showRatings && !_isDashboard
         ? ref.watch(cachedCoverRatingsProvider(metadataScope))
@@ -1627,9 +1632,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           if (!didPop) _handleBack();
         },
         child: Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: AppTheme.backgroundColor,
           body: Stack(
             children: [
+              const Positioned.fill(child: AnimatedBackground()),
               Column(children: [
                 _buildHeader(rs),
                 Expanded(child: _buildContent(rs)),
@@ -1676,17 +1682,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     return Container(
       key: const ValueKey('library-header'),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black,
-            Color.fromRGBO(0, 0, 0, 0.9),
-            Color.fromRGBO(0, 0, 0, 0.6),
-            Colors.transparent,
-          ],
-          stops: [0.0, 0.5, 0.8, 1.0],
-        ),
+        gradient: AppTheme.headerGradient,
       ),
       child: SafeArea(
         bottom: false,

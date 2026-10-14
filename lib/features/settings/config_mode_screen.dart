@@ -166,21 +166,9 @@ class _ConfigModeScreenState extends ConsumerState<ConfigModeScreen>
           if (!didPop) _handleBack();
         },
         child: ScreenLayout(
-          backgroundColor: Colors.black,
           accentColor: AppTheme.primaryColor,
           body: Stack(
             children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF1A1A1A), Colors.black],
-                    ),
-                  ),
-                ),
-              ),
               Column(
                 children: [
                   SizedBox(height: topPadding),
@@ -231,17 +219,7 @@ class _ConfigModeScreenState extends ConsumerState<ConfigModeScreen>
       right: 0,
       child: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Color.fromRGBO(0, 0, 0, 0.9),
-              Color.fromRGBO(0, 0, 0, 0.6),
-              Colors.transparent,
-            ],
-            stops: [0.0, 0.5, 0.8, 1.0],
-          ),
+          gradient: AppTheme.headerGradient,
         ),
         child: SafeArea(
           bottom: false,

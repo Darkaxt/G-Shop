@@ -879,30 +879,34 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final controller = _controller;
     if (controller == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF121212),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: widget.system.accentColor),
-              const SizedBox(height: 16),
-              Text(
-                widget.game.displayName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+        backgroundColor: AppTheme.backgroundColor,
+        body: DecoratedBox(
+          decoration:
+              const BoxDecoration(gradient: AppTheme.backgroundGradient),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: widget.system.accentColor),
+                const SizedBox(height: 16),
+                Text(
+                  widget.game.displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.system.name,
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 14,
+                const SizedBox(height: 4),
+                Text(
+                  widget.system.name,
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -964,7 +968,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           }
         },
         child: Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: AppTheme.backgroundColor,
           body: Stack(
             children: [
               Positioned.fill(

@@ -225,21 +225,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           if (!didPop) _exitSettings();
         },
         child: ScreenLayout(
-          backgroundColor: Colors.black,
           accentColor: AppTheme.primaryColor,
           body: Stack(
             children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF1A1A1A), Colors.black],
-                    ),
-                  ),
-                ),
-              ),
               Column(
                 children: [
                   SizedBox(height: topPadding),
@@ -317,17 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       right: 0,
       child: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Color.fromRGBO(0, 0, 0, 0.9),
-              Color.fromRGBO(0, 0, 0, 0.6),
-              Colors.transparent,
-            ],
-            stops: [0.0, 0.5, 0.8, 1.0],
-          ),
+          gradient: AppTheme.headerGradient,
         ),
         child: SafeArea(
           bottom: false,
@@ -352,7 +330,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 SizedBox(height: rs.isSmall ? 6 : 10),
                 SettingsTabs(
                   selectedTab: _selectedTab,
-                  tabs: [l.settings_tabGeneral, l.settings_tabAudio, l.settings_tabAdvanced, l.settings_tabAbout],
+                  tabs: [
+                    l.settings_tabGeneral,
+                    l.settings_tabAudio,
+                    l.settings_tabAdvanced,
+                    l.settings_tabAbout
+                  ],
                   accentColor: AppTheme.primaryColor,
                   onTap: _selectTab,
                 ),

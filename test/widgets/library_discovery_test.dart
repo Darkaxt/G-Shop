@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/library/library_screen.dart';
+import 'package:retro_eshop/core/widgets/animated_background.dart';
 import 'package:retro_eshop/features/library/widgets/library_tabs.dart';
 import 'package:retro_eshop/features/library/widgets/library_dashboard.dart';
 import 'package:retro_eshop/features/game_list/widgets/filter_overlay.dart';
@@ -96,8 +97,7 @@ void main() {
       libraryDbProvider.overrideWithValue(_Database(db)),
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
-      installedFilesProvider
-          .overrideWith((ref) async => InstalledFilesState()),
+      installedFilesProvider.overrideWith((ref) async => InstalledFilesState()),
       selectionContinuityProvider.overrideWith((ref) async {
         ref.watch(gameDbChangedProvider);
         migrations++;
@@ -114,6 +114,8 @@ void main() {
     });
     await tester.pumpWidget(UncontrolledProviderScope(
         container: container, child: createTestApp(const LibraryScreen())));
+    expect(find.byType(AnimatedBackground), findsOneWidget,
+        reason: 'Loading and loaded content share the red library backdrop');
     while (migrations == 0) {
       await tester.pump();
     }
@@ -364,18 +366,19 @@ void defineLibraryDiscoveryChecks({
           createdAt: at)
     ]);
     final metadataScopes = _MetadataScopeObserver();
-    final container = ProviderContainer(observers: [metadataScopes], overrides: [
+    final container = ProviderContainer(observers: [
+      metadataScopes
+    ], overrides: [
       libraryDbProvider.overrideWithValue(_Database(db)),
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
-      installedFilesProvider
-          .overrideWith((ref) async => InstalledFilesState(
-                bySystem: {
-                  'ps2': {'Game 02.7z'},
-                  'psx': {'Game 09.7z'}
-                },
-                all: {'Game 02.7z', 'Game 09.7z'},
-              )),
+      installedFilesProvider.overrideWith((ref) async => InstalledFilesState(
+            bySystem: {
+              'ps2': {'Game 02.7z'},
+              'psx': {'Game 09.7z'}
+            },
+            all: {'Game 02.7z', 'Game 09.7z'},
+          )),
       deviceMemoryProvider.overrideWithValue(
           const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
       sourcesProvider

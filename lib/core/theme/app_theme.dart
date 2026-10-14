@@ -23,6 +23,17 @@ class AppTheme {
     ],
     stops: [0.0, 0.3, 0.65, 1.0],
   );
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      backgroundColor,
+      Color(0xE6140609),
+      Color(0x99140609),
+      Color(0x00140609),
+    ],
+    stops: [0.0, 0.5, 0.8, 1.0],
+  );
   static const Color surfaceColor = Color(0xFF121212);
   static const Color cardColor = Color(0xFF1E1E1E);
 
