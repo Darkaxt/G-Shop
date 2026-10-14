@@ -7,6 +7,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
+Library ordering addition: source-wired and host-verified. Default console
+browsing puts up to the canonical Top 100 first, with the remainder A-Z;
+unresolved/unrated entries remain visible. Existing ranking/conflict/variant,
+metadata update, filter, manual shelf and library identity checks pass. A normal
+library widget test changes Game 10's stored score and verifies it moves before
+Game 02, then restores the score and verifies reordering. This is display order,
+not downloading or SD retention. Installed acceptance remains part of the next
+integrated S12 build; no release is claimed by this checkpoint.
+
 The owner reports a flat GBA selected preview and questions the 007 artwork role,
 then explicitly requests the APK-console inventory/integration ledger first.
 The earlier representative-only S12 completion claims below are superseded.

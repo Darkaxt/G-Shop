@@ -1506,6 +1506,37 @@ void main() {
   });
 
   test(
+      'featured ranking is a prefix, not a Top filter; remainder stays alphabetical',
+      () async {
+    await seed(1, score: 80);
+    await seed(2, score: 95);
+    await seed(3, score: 85);
+    await seed(4, score: 90);
+    await seed(5);
+    final featured = await query.page(
+        filter: LibraryQueryFilter(platformIds: {'psx'}, featuredTop: 2),
+        assessedBases: [basis]);
+    expect(featured.items.map((i) => i.cacheRowId).toList(), [2, 4, 1, 3, 5]);
+    expect(featured.totalMatches, 5);
+    final fewer = await query.page(
+        filter: LibraryQueryFilter(platformIds: {'psx'}, featuredTop: 100),
+        assessedBases: [basis]);
+    expect(fewer.items.map((i) => i.cacheRowId).toList(), [2, 4, 3, 1, 5]);
+    expect(fewer.rankedGames, 4);
+    final keys = [
+      for (var i = 1; i <= 5; i++) coverRatingKey('psx', 'Game $i.7z')
+    ];
+    final discovery = (await query.discover(
+        filter: LibraryQueryFilter(platformIds: {'psx'}, featuredTop: 2),
+        orderedKeys: keys,
+        preserveOrder: true,
+        isCurrent: () => true,
+        assessedBases: [basis]))!;
+    expect(discovery.groups.values.map((v) => v.first).toList(),
+        [keys[1], keys[3], keys[0], keys[2], keys[4]]);
+  });
+
+  test(
       'UI view binds exact files after ranking with no title match or backfill',
       () async {
     await seed(1, score: 90);

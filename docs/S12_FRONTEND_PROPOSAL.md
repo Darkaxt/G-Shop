@@ -3,7 +3,7 @@
 Status: ACTIVE (reopened 2026-10-14). The owner reports the GBA selected preview
 falling back to a flat image. The earlier representative-only completion claim
 does not establish integration of the reference's other console formats.
-Authority: SPECIFICATION.md, revision 44, section 6f.
+Authority: SPECIFICATION.md, revision 45, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
@@ -13,6 +13,13 @@ Socket 0.7 console media and animations, followed by the next public release
 (SPECIFICATION.md revision 44). The earlier independent-approximation option is
 superseded for this work. Source APK SHA checks and complete encrypted-envelope
 checksums bind recovered data; extraction alone is not integrated-feature proof.
+
+The owner's library-order addition uses the existing canonical score projection:
+up to Top 100 first, all remaining entries A-Z, no padded ranks or browse-time
+scraping. Host query and normal Library checks pass, including an actual stored
+score update that changes card order. Manual shelves and explicit filters retain
+their behavior. Native visual acceptance is still required with the integrated
+S12 frontend; the SD Top 25 policy is unchanged.
 
 ## Current console integration ledger — 2026-10-14
 

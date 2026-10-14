@@ -20,7 +20,7 @@ String coverRatingKey(String systemSlug, String selectionKey) =>
 class LibraryQueryFilter {
   final Set<String> platformIds, tags, genres, regions, languages, viewIds;
   final bool matchAllTags, ratingOrder, includeVariants;
-  final int? top;
+  final int? top, featuredTop;
   final String? search, manualViewId;
   final int limit, offset;
   LibraryQueryFilter(
@@ -34,6 +34,7 @@ class LibraryQueryFilter {
       this.ratingOrder = false,
       this.includeVariants = false,
       this.top,
+      this.featuredTop,
       this.search,
       this.manualViewId,
       this.limit = 50,
@@ -128,16 +129,19 @@ class LibraryRetentionPage {
 /// Lightweight UI identities only; metadata/artwork stay in the paged cache.
 class LibraryDiscoveryResult {
   final Map<String, List<String>> groups;
+  final Map<String, int> featuredRanks;
   final List<String> genres;
   final int collectionGames, rankedGames, totalMatches;
   bool get provisional => rankedGames < collectionGames;
   LibraryDiscoveryResult(
       {required Map<String, List<String>> groups,
+      Map<String, int> featuredRanks = const {},
       required List<String> genres,
       required this.collectionGames,
       required this.rankedGames,
       required this.totalMatches})
-      : groups = Map.unmodifiable(
+      : featuredRanks = Map.unmodifiable(featuredRanks),
+        groups = Map.unmodifiable(
             groups.map((k, v) => MapEntry(k, List<String>.unmodifiable(v)))),
         genres = List.unmodifiable(genres);
 }
@@ -374,6 +378,7 @@ class LibraryQuery {
           txn, view, orderedKeys, filter.platformIds, bases);
       try {
         final groups = <String, List<String>>{};
+        final featuredRanks = <String, int>{};
         LibraryQueryPage? coverage;
         var offset = 0;
         while (isCurrent()) {
@@ -388,6 +393,7 @@ class LibraryQuery {
                   matchAllTags: filter.matchAllTags,
                   ratingOrder: filter.ratingOrder,
                   top: filter.top,
+                  featuredTop: filter.featuredTop,
                   search: filter.search,
                   viewIds: {...filter.viewIds, view},
                   manualViewId: preserveOrder ? view : null,
@@ -400,6 +406,11 @@ class LibraryQuery {
             final key = bindings[item.cacheRowId];
             if (key != null) {
               groups.putIfAbsent(item.groupKey, () => []).add(key);
+              if (filter.featuredTop != null &&
+                  item.rank != null &&
+                  item.rank! <= filter.featuredTop!) {
+                featuredRanks[item.groupKey] = item.rank!;
+              }
             }
           }
           if (page.items.length < 128) break;
@@ -409,6 +420,7 @@ class LibraryQuery {
         final genres = await _genres(txn, filter.platformIds);
         return LibraryDiscoveryResult(
             groups: groups,
+            featuredRanks: featuredRanks,
             genres: genres,
             collectionGames: coverage.collectionGames,
             rankedGames: coverage.rankedGames,
@@ -962,7 +974,8 @@ class LibraryQuery {
     if (filter.limit < 1 ||
         filter.limit > 128 ||
         filter.offset < 0 ||
-        (filter.top != null && filter.top! < 1)) {
+        (filter.top != null && filter.top! < 1) ||
+        (filter.featuredTop != null && filter.featuredTop! < 1)) {
       throw ArgumentError('Invalid query page/Top');
     }
     final dimensions = [
@@ -1054,11 +1067,18 @@ class LibraryQuery {
           rating_eligible DESC, source_order, edition_id) AS edition_order FROM candidates)''';
     // manual position placeholder comes before filter predicates, after scope.
     if (manual != null) args.insert(filter.platformIds.length, manual);
+    final tailOrder = manual != null
+        ? 'manual_position IS NULL, manual_position, group_key, edition_order'
+        : 'title COLLATE NOCASE, group_key, edition_order';
+    // Featuring changes order only. The same canonical scope establishes ranks
+    // before search/tags/views; unrated and below-cap games remain in the tail.
+    final featured = filter.featuredTop;
     final order = ratingOrder
         ? 'rank IS NULL, rank, group_key, edition_order'
-        : manual != null
-            ? 'manual_position IS NULL, manual_position, group_key, edition_order'
-            : 'title COLLATE NOCASE, group_key, edition_order';
+        : featured != null
+            ? 'CASE WHEN rank <= $featured THEN 0 ELSE 1 END, '
+                'CASE WHEN rank <= $featured THEN rank ELSE NULL END, $tailOrder'
+            : tailOrder;
     // One evaluation supplies coverage/count/page, including empty pages.
     // Re-running the same full-scope rank CTE for each count tripled work.
     final response = await txn.rawQuery('''$intersection, summary AS (SELECT

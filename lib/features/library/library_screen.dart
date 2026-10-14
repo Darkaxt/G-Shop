@@ -52,7 +52,7 @@ import 'widgets/library_tabs.dart';
 import 'widgets/reorderable_card_wrapper.dart';
 import 'widgets/shelf_picker_dialog.dart';
 
-enum LibrarySortMode { alphabetical, bySystem }
+enum LibrarySortMode { featured, alphabetical, bySystem }
 
 enum ReorderState { none, selecting, grabbed }
 
@@ -86,7 +86,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   Set<String> get _rankingPlatforms => _selectedConsole == null
       ? _filters.selectedPlatforms
       : {_selectedConsole!};
-  LibrarySortMode _sortMode = LibrarySortMode.alphabetical;
+  LibrarySortMode _sortMode = LibrarySortMode.featured;
+  bool get _needsDiscovery =>
+      _filters.hasMetadataFilters ||
+      (!_isShelfTab && _sortMode == LibrarySortMode.featured);
   List<CustomShelf> _shelves = [];
 
   // Reorder mode
@@ -672,6 +675,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               : LibrarySortMode.alphabetical)
           : _sortMode;
       switch (effectiveSort) {
+        case LibrarySortMode.featured:
         case LibrarySortMode.alphabetical:
           games.sort((a, b) => a.displayName
               .toLowerCase()
@@ -687,7 +691,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       }
     }
 
-    if (_filters.hasMetadataFilters) {
+    if (_needsDiscovery) {
       _discoveryEntries = games;
       setState(() {
         _queryingDiscovery = true;
@@ -729,7 +733,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Future<void> _runDiscovery() async {
     try {
-      while (mounted && _filters.hasMetadataFilters && !_isDashboard) {
+      while (mounted && _needsDiscovery && !_isDashboard) {
         final generation = _discoveryGeneration;
         final filters = _filters;
         final entries = _discoveryEntries;
@@ -743,6 +747,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       tags: filters.selectedTags,
                       genres: filters.selectedGenres,
                       top: filters.top,
+                      featuredTop:
+                          !_isShelfTab && _sortMode == LibrarySortMode.featured
+                              ? 100
+                              : null,
                       ratingOrder: filters.ratingOrder,
                       matchAllTags: filters.matchAllTags),
                   orderedKeys: [
@@ -775,6 +783,34 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             for (final key in group.value) {
               groups[key] = group.key;
             }
+          }
+          if (!filters.hasMetadataFilters) {
+            // Browsing order must not hide files whose identity is unresolved.
+            // They cannot be ranked, but remain visible in the A-Z remainder.
+            for (final entry in entries) {
+              if (!groups.containsKey(
+                  coverRatingKey(entry.systemSlug, entry.selectionKey))) {
+                visible.add(entry);
+              }
+            }
+            visible.sort((a, b) {
+              int? rank(LibraryEntry entry) => result.featuredRanks[
+                  groups[coverRatingKey(entry.systemSlug, entry.selectionKey)]];
+              final ar = rank(a), br = rank(b);
+              if (ar != null || br != null) {
+                if (ar == null) return 1;
+                if (br == null) return -1;
+                final order = ar.compareTo(br);
+                if (order != 0) return order;
+              }
+              final title = a.displayName
+                  .toLowerCase()
+                  .compareTo(b.displayName.toLowerCase());
+              return title != 0
+                  ? title
+                  : coverRatingKey(a.systemSlug, a.selectionKey)
+                      .compareTo(coverRatingKey(b.systemSlug, b.selectionKey));
+            });
           }
           _discoveryVariants = variants;
           _discoveryGroups = groups;
@@ -922,9 +958,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           );
       _shelves = ref.read(customShelvesProvider);
     } else {
-      _sortMode = _sortMode == LibrarySortMode.alphabetical
-          ? LibrarySortMode.bySystem
-          : LibrarySortMode.alphabetical;
+      _sortMode = switch (_sortMode) {
+        LibrarySortMode.featured => LibrarySortMode.alphabetical,
+        LibrarySortMode.alphabetical => LibrarySortMode.bySystem,
+        LibrarySortMode.bySystem => LibrarySortMode.featured,
+      };
     }
 
     setState(() => _currentIndex = 0);
@@ -1428,9 +1466,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             ShelfSortMode.bySystem => l.library_sortManual,
             ShelfSortMode.manual => l.library_sortAZ,
           }
-        : _sortMode == LibrarySortMode.alphabetical
-            ? l.library_sortSystem
-            : l.library_sortAZ;
+        : switch (_sortMode) {
+            LibrarySortMode.featured => l.library_sortAZ,
+            LibrarySortMode.alphabetical => l.library_sortSystem,
+            LibrarySortMode.bySystem => l.filter_topLimit(100),
+          };
     final hasDownloads = ref.read(hasQueueItemsProvider);
     final shelf = _activeShelf;
     return [
@@ -1736,9 +1776,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                               ShelfSortMode.manual =>
                                 l.library_sortIndicatorManual,
                             }
-                          : _sortMode == LibrarySortMode.alphabetical
-                              ? l.library_sortIndicatorAZ
-                              : l.library_sortIndicatorBySystem,
+                          : switch (_sortMode) {
+                              LibrarySortMode.featured =>
+                                '${l.filter_topLimit(100)} · ${l.library_sortIndicatorAZ}',
+                              LibrarySortMode.alphabetical =>
+                                l.library_sortIndicatorAZ,
+                              LibrarySortMode.bySystem =>
+                                l.library_sortIndicatorBySystem,
+                            },
                       style: TextStyle(
                         fontSize: rs.isSmall ? 9 : 10,
                         fontWeight: FontWeight.w600,

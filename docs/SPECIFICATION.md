@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 44, 2026-10-14.
+Authoritative specification, revision 45, 2026-10-14.
+
+Owner library-order direction, 2026-10-14: default console library browsing puts
+up to the collection's Top 100 canonical games first in overall-score rank order,
+then the remaining games alphabetically. Use however many eligible ranked games
+exist; never pad a Top list, manufacture scores or trigger scraping from browsing.
+Reuse the established canonical ranking, source/conflict policy and console scope.
+Keep unrated/unbound entries in the alphabetical tail, preserve explicit filters
+and manual shelf order, and offer the existing alternate sort controls. This is
+S12 frontend behavior, not a download queue or change to Top 25 SD retention.
 
 Owner objective, 2026-10-14: extract the cartridges, physical-media models,
 materials/label placement and animations from the supplied Socket Launcher 0.7

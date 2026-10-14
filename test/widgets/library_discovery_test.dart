@@ -526,6 +526,25 @@ void defineLibraryDiscoveryChecks({
     // collection-wide Top 10. Selecting the dashboard never opens the ROM dump.
     await tester.tap(find.byKey(const ValueKey('console-summary-ps2')));
     await tester.pumpAndSettle();
+    expect(find.text('Best 100 · A-Z'), findsOneWidget);
+    // Default browsing follows actual score changes, not the catalogue's A-Z
+    // order or a fixed downloaded Top list. Fewer than 100 remains valid.
+    final savedRating = (await db.query('library_metadata',
+            columns: ['record_json'],
+            where: 'edition_id = ?',
+            whereArgs: [editions[10]]))
+        .single['record_json'] as String;
+    final changedRating = jsonDecode(savedRating) as Map<String, dynamic>;
+    (changedRating['ratings'] as List).first['rawValue'] = 99.5;
+    await store.putMetadata(MetadataRecord.fromJson(changedRating));
+    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.pumpAndSettle();
+    expect(cards().first, 'Game 10',
+        reason: 'Top-first order must beat alphabetical order');
+    await store.putMetadata(MetadataRecord.fromJson(jsonDecode(savedRating)));
+    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.pumpAndSettle();
+    expect(cards().first, 'Game 02');
     expect(find.byKey(const ValueKey('library-media-preview')), findsOneWidget);
     expect(find.byType(PhysicalMediaView), findsOneWidget,
         reason: 'Only the selected game gets an animated media object');

@@ -1,6 +1,12 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 44.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 45.
+
+S12 library ordering (owner, 2026-10-14): default browsing features up to the
+canonical Top 100 in score order, followed by all other games alphabetically.
+Reuse the existing ranking/edition/conflict rules; incomplete score coverage does
+not hide games or require scraping. Preserve explicit filters, manual shelf order
+and alternate sort controls. This does not change Top 25 SD retention.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
 Current execution, 2026-10-14: S0-S11 COMPLETE; S12 ACTIVE (sole active stage).
