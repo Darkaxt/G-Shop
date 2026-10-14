@@ -3,6 +3,7 @@ uniform FragInfo {
   vec4 pbr; // roughness, metallic, normal depth, casing tint strength
   vec4 uv_info; // scale, offset xy, albedo impact
   vec4 flags; // casing shader, label, disc metal, AO strength
+  vec4 channels; // source roughness, metallic and AO channel selectors
 } material;
 uniform sampler2D albedo_map;
 uniform sampler2D roughness_map;
@@ -13,6 +14,14 @@ in vec3 v_position;
 in vec3 v_normal;
 in vec2 v_uv;
 out vec4 frag_color;
+
+float source_channel(vec4 sampled, float channel) {
+  if (channel < 0.5) return sampled.r;
+  if (channel < 1.5) return sampled.g;
+  if (channel < 2.5) return sampled.b;
+  if (channel < 3.5) return sampled.a;
+  return dot(sampled.rgb, vec3(0.333333));
+}
 
 void main() {
   vec2 uv = v_uv * material.uv_info.x + material.uv_info.yz;
@@ -41,9 +50,9 @@ void main() {
   vec3 halfVector = normalize(view + light);
   float ndl = max(dot(n, light), 0.0), ndv = max(dot(n, view), 0.001);
   float ndh = max(dot(n, halfVector), 0.0), vdh = max(dot(view, halfVector), 0.0);
-  float rough = clamp(texture(roughness_map, uv).r * material.pbr.x, 0.045, 1.0);
-  float metal = clamp(texture(metallic_map, uv).r * material.pbr.y, 0.0, 1.0);
-  float ao = mix(1.0, texture(ao_map, uv).r, material.flags.w);
+  float rough = clamp(source_channel(texture(roughness_map, uv), material.channels.x) * material.pbr.x, 0.045, 1.0);
+  float metal = clamp(source_channel(texture(metallic_map, uv), material.channels.y) * material.pbr.y, 0.0, 1.0);
+  float ao = mix(1.0, source_channel(texture(ao_map, uv), material.channels.z), material.flags.w);
   vec3 f0 = mix(vec3(0.04), base, metal);
   vec3 fresnel = f0 + (1.0 - f0) * pow(1.0 - vdh, 5.0);
   float a2 = pow(rough, 4.0);

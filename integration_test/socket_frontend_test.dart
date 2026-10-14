@@ -109,10 +109,20 @@ void main() {
       final result = await key.currentState!.renderReady;
       expect(result['error'], isNull, reason: format.name);
       expect(result['frameRendered'], isTrue, reason: format.name);
+      const materialTextureCounts = {
+        PhysicalMediaFormat.nes: 2,
+        PhysicalMediaFormat.psp: 4,
+        PhysicalMediaFormat.snesPal: 3,
+        PhysicalMediaFormat.genesis: 3,
+        PhysicalMediaFormat.snesUs: 5,
+      };
+      if (materialTextureCounts.containsKey(format)) {
+        expect(result['materialTextures'], materialTextureCounts[format],
+            reason: 'Source material maps must reach the native GPU');
+      }
       expect(find.byType(HandwrittenMediaSticker), findsOneWidget);
       results[format.assetName] = result;
-      if ({PhysicalMediaFormat.gameBoyColorDual, PhysicalMediaFormat.vita}
-          .contains(format)) {
+      if (materialTextureCounts.containsKey(format)) {
         await capture('normal-cover-${format.assetName}', tester);
       }
     }

@@ -12,7 +12,10 @@ import pathlib
 import re
 import struct
 import zipfile
-from compression import zstd
+try:
+    from compression import zstd
+except ModuleNotFoundError:  # Python 3.11 for FastNoiseLite's native wheel.
+    import zstandard as zstd
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 from cryptography.hazmat.decrepit.ciphers.modes import CFB

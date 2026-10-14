@@ -7,6 +7,26 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
+Current material repair: source inspection identifies internal GradientTexture1D
+maps for NES casing and UMD plastic, plus a FastNoiseLite/Gradient NoiseTexture2D
+for SNES PAL. They were silently omitted because conversion accepted only
+external texture references. The converter now preserves them, source shader
+include/default values and explicit material overrides. Godot's RGB gradient and
+L8-normalize-before-ramp semantics are followed; native FastNoiseLite uses the
+source seed/fractal/cellular settings. Required conversion runs use Python 3.11
+and pyfastnoiselite 0.0.5; its wheel is unavailable for the host's default Python
+3.14. Zstandard decoding supports both those actual runtimes.
+Renderer uniforms now preserve StandardMaterial3D normal_scale and scalar
+texture channels (including SNES US grayscale metallic), rather than hardcoding
+normal depth and red-channel sampling. Focused converter/material/model/insertion
+checks and scoped Dart analysis pass; rebuilt shader compilation succeeds under
+PowerShell 7. The earlier Windows PowerShell 5 invocation stripped the JSON
+argument and failed, not a shader compilation success.
+Native acceptance is pending original gated request 1099
+(`9605dba463cd49e780fb68f4a3089e00`), with the current all-format frontend test
+requiring actual GPU map counts and targeted affected-format captures. Keep S12
+ACTIVE; no material-fidelity or stage-completion claim follows from host checks.
+
 Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
 recovered variants with completed label/GPU readiness. Native Library checks
 verify stored-score reordering, console navigation, Top/tag intersections,

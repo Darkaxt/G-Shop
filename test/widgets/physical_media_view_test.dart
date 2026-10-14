@@ -15,6 +15,31 @@ import 'package:retro_eshop/utils/game_metadata.dart';
 // Host checks cover binding, artwork roles and the existing launch lifecycle.
 // Actual indexed GPU rendering is checked on Android, not inferred from these.
 void main() {
+  test('source materials retain normal depth and scalar texture channels', () {
+    final uniform = SocketMediaGpu.materialUniforms({
+      'color': [1, 1, 1, 1],
+      'sourceProperties': {
+        'normal_scale': 5,
+        'metallic': .7,
+        'metallic_texture_channel': 4,
+        'roughness_texture_channel': 2,
+      }
+    });
+    expect(uniform[6], 5);
+    expect(uniform[16], 2);
+    expect(uniform[17], 4);
+    final casing = SocketMediaGpu.materialUniforms({
+      'color': [1, 1, 1, 1],
+      'shaderSource': 'res://cartridge_casing.gdshader',
+      'sourceProperties': {
+        'shader_parameter/normal_depth': .4,
+        'shader_parameter/metallic_scale': .8,
+        'shader_parameter/metallic_impact': .5,
+      }
+    });
+    expect(casing[5], closeTo(.4, 1e-7));
+    expect(casing[6], closeTo(.4, 1e-7));
+  });
   test(
       'source camera keeps GBA and UMD label axes upright without face guesses',
       () async {

@@ -46,6 +46,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'identity': widget.identity,
         'triangles': _renderer?.model.triangles,
         'surfaces': _renderer?.model.surfaces.length,
+        'materialTextures': _renderer?.textures.length,
         'labelReady': _labelTexture != null,
         'frameRendered': frameRendered,
         'error': _error?.toString(),
@@ -313,6 +314,40 @@ class SocketMediaGpu {
   SocketMediaGpu._(this.model, this.pipeline, this.mesh, this.textures,
       this.white, this.flatNormal);
 
+  static Float32List materialUniforms(Map<String, dynamic> material,
+      {bool isLabel = false, bool isDisc = false}) {
+    final props = (material['sourceProperties'] as Map?) ?? const {};
+    double number(String key, double fallback) =>
+        ((props['shader_parameter/$key'] ?? props[key]) as num?)?.toDouble() ??
+        fallback;
+    final casing =
+        (material['shaderSource'] as String?)?.contains('casing') ?? false;
+    final color = (material['color'] as List).cast<num>();
+    final offset =
+        ((props['shader_parameter/uv_offset'] as Map?)?['values'] as List?) ??
+            [0, 0];
+    return Float32List.fromList([
+      ...(isLabel ? [1.0, 1.0, 1.0, 1.0] : color.map((v) => v.toDouble())),
+      number(casing ? 'roughness_scale' : 'roughness', isLabel ? .85 : 1),
+      number(casing ? 'metallic_scale' : 'metallic', 0) *
+          (casing ? number('metallic_impact', 1) : 1),
+      number(casing ? 'normal_depth' : 'normal_scale', 1),
+      number('tint_strength', 1),
+      number('uv_scale', 1),
+      (offset[0] as num).toDouble(),
+      (offset[1] as num).toDouble(),
+      number('albedo_impact', 1),
+      casing ? 1 : 0,
+      isLabel ? 1 : 0,
+      isDisc && !isLabel ? 1 : 0,
+      number('ao_strength', 1),
+      number('roughness_texture_channel', 0),
+      number('metallic_texture_channel', 0),
+      number('ao_texture_channel', 0),
+      0,
+    ]);
+  }
+
   static Future<SocketMediaGpu> load(PhysicalMediaFormat format) async {
     final context = gpu.gpuContext;
     final model = await SocketMediaModel.load(format);
@@ -441,41 +476,13 @@ class SocketMediaGpu {
                 .buffer
                 .asByteData()));
         final material = surface['material'] as Map<String, dynamic>;
-        final props = (material['sourceProperties'] as Map?) ?? const {};
-        double number(String key, double fallback) =>
-            ((props['shader_parameter/$key'] ?? props[key]) as num?)
-                ?.toDouble() ??
-            fallback;
-        final casing =
-            (material['shaderSource'] as String?)?.contains('casing') ?? false;
-        final color = (material['color'] as List)
-            .cast<num>()
-            .map((v) => v.toDouble())
-            .toList();
-        final offset = ((props['shader_parameter/uv_offset'] as Map?)?['values']
-                as List?) ??
-            [0, 0];
-        final rough = number(
-            casing ? 'roughness_scale' : 'roughness', isLabel ? 0.85 : 1);
-        final metallic = number(casing ? 'metallic_scale' : 'metallic', 0);
-        pass.setDepthWriteEnable(color[3] >= 1);
+        pass.setDepthWriteEnable((material['color'][3] as num) >= 1);
         pass.bindUniform(
             pipeline.fragmentShader.getUniformSlot('FragInfo'),
-            uniforms.emplace(Float32List.fromList([
-              ...(isLabel ? [1.0, 1.0, 1.0, 1.0] : color),
-              rough,
-              metallic,
-              number('normal_depth', 1),
-              number('tint_strength', 1),
-              number('uv_scale', 1),
-              (offset[0] as num).toDouble(),
-              (offset[1] as num).toDouble(),
-              number('albedo_impact', 1),
-              casing ? 1 : 0,
-              isLabel ? 1 : 0,
-              model.motionKind == 'disc' && !isLabel ? 1 : 0,
-              number('ao_strength', 1),
-            ]).buffer.asByteData()));
+            uniforms.emplace(materialUniforms(material,
+                    isLabel: isLabel, isDisc: model.motionKind == 'disc')
+                .buffer
+                .asByteData()));
         final maps = (material['textures'] as Map?) ?? const {};
         for (final role in [
           'albedo',

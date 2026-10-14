@@ -18,6 +18,64 @@ from socket_resources import APK_SHA256, SocketArchive, decode_script, scene_nod
 IDENTITY = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
 
 
+def shader_defaults(archive, path, ancestors=()):
+    """Read numeric source declarations, including the actual casing include.
+
+    Only values are retained, never proprietary shader source in public recipes.
+    """
+    if path in ancestors:
+        raise ValueError('Cyclic source shader include')
+    code = archive.plain(archive.resolve(path)).decode().rstrip('\0')
+    code = re.sub(r'/\*.*?\*/', '', code, flags=re.S)
+    code = re.sub(r'^\s*//[^\n]*', '', code, flags=re.M)
+    result = {}
+    for include in re.findall(r'#include\s+"([^"]+)"', code):
+        result.update(shader_defaults(archive, include, (*ancestors, path)))
+    declarations = re.findall(
+        r'\buniform\s+(bool|int|float|vec[234])\s+(\w+)\s*(?::[^;=]*)?=\s*([^;]+);', code)
+    for kind, name, expression in declarations:
+        expression = expression.strip()
+        if kind == 'bool':
+            if expression not in ('true', 'false'):
+                raise ValueError('Nonconstant source shader boolean')
+            value = expression == 'true'
+        elif kind.startswith('vec'):
+            match = re.fullmatch(kind + r'\(([^)]+)\)', expression)
+            if not match:
+                raise ValueError('Nonconstant source shader vector')
+            numbers = [float(v.strip()) for v in match[1].split(',')]
+            width = int(kind[-1])
+            if len(numbers) == 1:
+                numbers *= width
+            if len(numbers) != width:
+                raise ValueError('Invalid source shader vector')
+            value = {'variant': {2: 10, 3: 12, 4: 50}[width], 'values': numbers}
+        else:
+            value = int(expression) if kind == 'int' else float(expression)
+        result['shader_parameter/' + name] = value
+    return result
+
+
+def gradient_color(props, position):
+    """Godot's source gradients here use linear RGB interpolation."""
+    if props.get('interpolation_mode', 0) != 0 or props.get('interpolation_color_space', 0) != 0:
+        raise ValueError('Unsupported source gradient interpolation')
+    values = props.get('colors', {'values': [0, 0, 0, 1, 1, 1, 1, 1]})['values']
+    colors = [values[i:i + 4] for i in range(0, len(values), 4)]
+    offsets = props.get('offsets', {'values': [i / (len(colors) - 1) for i in range(len(colors))]
+                                 if len(colors) > 1 else [0]})['values']
+    points = sorted(zip(offsets, colors))
+    if not points or len(offsets) != len(colors):
+        raise ValueError('Invalid source gradient stops')
+    if position <= points[0][0]:
+        return points[0][1]
+    for (left, a), (right, b) in zip(points, points[1:]):
+        if position <= right:
+            t = (position - left) / (right - left)
+            return [x + (y - x) * t for x, y in zip(a, b)]
+    return points[-1][1]
+
+
 def point(matrix, value, translate=True):
     # Godot's binary resource format writes Basis.rows, not columns.
     return [sum(matrix[r * 3 + c] * value[c] for c in range(3)) +
@@ -192,23 +250,105 @@ class MediaBuilder:
         self.textures[path] = result
         return result
 
+    def source_tree(self, value, scene):
+        if isinstance(value, dict) and 'resource_reference' in value:
+            resource, context = self.archive.reference(value, scene)
+            return {'type': resource['type'],
+                    'properties': self.source_tree(resource['properties'], context)}
+        if isinstance(value, dict):
+            return {k: self.source_tree(v, scene) for k, v in value.items()}
+        if isinstance(value, list):
+            return [self.source_tree(v, scene) for v in value]
+        return value
+
+    def internal_texture(self, reference, scene):
+        from PIL import Image
+        tree = self.source_tree(reference, scene)
+        source = json.dumps(tree, sort_keys=True, separators=(',', ':')).encode()
+        digest = hashlib.sha256(source).hexdigest()
+        identity = 'resource:' + digest
+        if identity in self.textures:
+            return self.textures[identity]
+        props = tree['properties']
+        if tree['type'] == 'GradientTexture1D':
+            width, height = props.get('width', 256), 1
+            if props.get('use_hdr'):
+                raise ValueError('HDR source gradient needs a float texture')
+            gradient = props['gradient']['properties']
+            colors = [gradient_color(gradient, i / max(width - 1, 1)) for i in range(width)]
+        elif tree['type'] == 'NoiseTexture2D':
+            # Actual SNES PAL resource: nonseamless 2D FastNoiseLite + RGB ramp.
+            # Godot normalizes the noise into L8 before applying that ramp.
+            import numpy as np
+            from pyfastnoiselite.pyfastnoiselite import (FastNoiseLite, NoiseType,
+                FractalType, CellularDistanceFunction, CellularReturnType)
+            if any(props.get(k) for k in ('seamless', 'as_normal_map', 'in_3d_space')):
+                raise ValueError('Unsupported source noise texture mode')
+            noise = props['noise']
+            if noise['type'] != 'FastNoiseLite' or noise['properties'].get('domain_warp_enabled'):
+                raise ValueError('Unsupported source noise generator')
+            settings = noise['properties']
+            generator = FastNoiseLite(seed=settings.get('seed', 0))
+            generator.noise_type = NoiseType(settings.get('noise_type', 1))
+            generator.frequency = settings.get('frequency', .01)
+            generator.fractal_type = FractalType(settings.get('fractal_type', 1))
+            generator.fractal_octaves = settings.get('fractal_octaves', 5)
+            generator.fractal_lacunarity = settings.get('fractal_lacunarity', 2)
+            generator.fractal_gain = settings.get('fractal_gain', .5)
+            generator.fractal_weighted_strength = settings.get('fractal_weighted_strength', 0)
+            generator.fractal_ping_pong_strength = settings.get('fractal_ping_pong_strength', 2)
+            generator.cellular_distance_function = CellularDistanceFunction(settings.get('cellular_distance_function', 0))
+            generator.cellular_return_type = CellularReturnType(settings.get('cellular_return_type', 1))
+            generator.cellular_jitter = settings.get('cellular_jitter', 1)
+            width, height = props.get('width', 512), props.get('height', 512)
+            y, x = np.indices((height, width), dtype=np.float32)
+            offset = settings.get('offset', {'values': [0, 0, 0]})['values']
+            values = generator.gen_from_coords(np.stack((x.ravel() + offset[0], y.ravel() + offset[1])))
+            if props.get('normalize', True):
+                low, high = values.min(), values.max()
+                gray = np.zeros_like(values) if low == high else (values - low) / (high - low) * 255
+            else:
+                gray = values * 127.5 + 127.5
+            gray = np.clip(gray, 0, 255).astype(np.uint8)
+            if props.get('invert'):
+                gray = 255 - gray
+            gradient = props.get('color_ramp', {}).get('properties', {})
+            colors = [gradient_color(gradient, int(v) / 255) for v in gray]
+        else:
+            raise ValueError('Unsupported internal source texture: ' + tree['type'])
+        pixels = bytes(max(0, min(255, int(v * 255))) for color in colors for v in color)
+        filename = digest + '.png'
+        Image.frombytes('RGBA', (width, height), pixels).save(self.output / filename)
+        result = {'file': filename, 'source': identity, 'sourceMember': scene['member'],
+                  'sourceSha256': digest, 'sourceType': tree['type'], 'sourceTree': tree,
+                  'width': width, 'height': height, 'format': 'source-procedural-rgba8'}
+        self.textures[identity] = result
+        return result
+
     def material(self, reference, scene):
         if reference is None:
             return {'color': [0.7, 0.7, 0.7, 1]}
         item, context = self.archive.reference(reference, scene)
-        props = item['properties']
+        props = dict(item['properties'])
+        shader = props.get('shader')
+        shader_path = context['external'][shader['index']][1] if shader and shader['resource_reference'] == 3 else None
+        if shader_path:
+            defaults = shader_defaults(self.archive, shader_path)
+            defaults.update({k: v for k, v in props.items() if v is not None})
+            props = defaults
         color = (props.get('albedo_color') or props.get('shader_parameter/tint_color') or
                  props.get('shader_parameter/base_color') or {'values': [1, 1, 1, 1]})['values']
         result = {'color': color, 'sourceType': item['type'], 'sourceProperties': props}
         for role in ['albedo', 'roughness', 'metallic', 'normal', 'ao']:
             for key in [role + '_texture', 'shader_parameter/' + role + '_texture']:
                 value = props.get(key)
-                if value and value['resource_reference'] == 3:
-                    path = context['external'][value['index']][1]
-                    result.setdefault('textures', {})[role] = self.texture(path)['file']
+                if value:
+                    texture = (self.texture(context['external'][value['index']][1])
+                               if value['resource_reference'] == 3 else self.internal_texture(value, context))
+                    result.setdefault('textures', {})[role] = texture['file']
                     break
-        if 'shader' in props and props['shader']['resource_reference'] == 3:
-            result['shaderSource'] = context['external'][props['shader']['index']][1]
+        if shader_path:
+            result['shaderSource'] = shader_path
         return result
 
     def build(self, name, scene_path):
