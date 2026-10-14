@@ -13,6 +13,83 @@ do not supersede this schedule or the closure reconciliations.
 
 ### Current S12 work — ACTIVE
 
+Current source integrates independent Game Boy/N64/disc media, format-specific
+insertion, a single selected-media preview beside the virtualized library grid,
+and persisted Display controls for classic view/reduced motion. Focused checks
+verify format mapping, joins/skip/cancellation, artwork identity, setting
+persistence and existing library identity/Top/tag behavior. Native acceptance
+remains incomplete; this does not close S12.
+
+The first integrated package (request 1052) installs without resetting data;
+host and installed SHA-256 match
+`ceb61bc76b94cda585b32c2fa0bd811b0da0f698880dac3608f2219af3563b4e`
+(180,740,456 bytes). Actual library readiness reports 26 consoles, and Game Boy
+selection shows the new preview with the existing SD/cloud grid indicators.
+That Thor capture exposed a cramped preview: archive tags, view controls and
+reserved HUD padding consumed its model height. The source correction removes
+preview-only controls, uses the readable clean title (identity unchanged), and
+retains at least half the preview height for media at the actual Thor viewport.
+Its regression fails before the correction and passes afterward.
+
+Socket 0.7 native N64/disc reference captures now use two tiny, explicitly
+non-playable fixtures in the task-owned reference folder. They establish
+rendering/insertion only, not emulator launch. The observed N64 crown, taller
+label, side seams and connector recess correct the independent mesh; the disc
+retains its clear hub ring outside the printed label. No recovered topology,
+textures or code are published. Independently shaded materials still require
+final visual comparison. Both reference recordings include insertion with no
+evidence truncation; their reconstructed H.264 timeline is not measured pacing.
+The revised coherent package (request 1055) finishes build/helper 0 with the
+shared gate acquired and post-build daemon exit verified. Observed workers=2,
+parallel=false, Gradle heap=3 GiB, Kotlin configured in-process. Test tasks retain
+one fork/512 MiB; assembly executes no JVM tests. App native compile/link pools
+remain limited to one; plugin-wide effective native concurrency is unverified.
+No memory failure or budget increase. The host APK is 180,736,310 bytes, SHA-256
+`7f85759a589918d9b5293cd462d88c6d42ac7619d60b91efabe791bebf501fdc`;
+native corrected-layout, format/artwork/input and resource/lifecycle acceptance
+remain internal advancement blockers, with no deferral out of S12.
+
+The installed 1052 package's unchanged Game Boy artwork pipeline passes a real
+native, isolated preview check: a loopback HTTP response is held until explicitly
+released (sticker visible, image pending), then decoded (sticker replaced),
+followed by HTTP 404 (same sticker returns) and cached artwork with the fixture
+server confirmed stopped. The media State and logical identity stay identical
+through all transitions. Rendered captures confirm the red background and no
+black placeholder. This is native artwork-boundary evidence, not a fresh scrape,
+real cover provenance or a physical Wi-Fi-off test. The fixture route is closed,
+the server exits, its ADB reverse is removed and no catalogue/settings data is
+changed. Revised materials/layout still need their current-package verification.
+
+Request 1055's installed APK independently matches the host digest above. Its
+actual library preview occupies 233.1 x 294.3 logical pixels, with a 217.1 x
+176.3 media area (more than half its height), and no overlaid presentation
+controls. A real controller-right input changes the selected card and preview
+together. Native library/detail captures show the curved N64 shell and the PS1
+disc with its uncovered hub, using the original game/card identities and existing
+artwork. The reference retains more detailed surface texture; exact material/
+insertion fidelity is not claimed from these static captures.
+
+Current-package native N64 detail observation: 249 steady frames, build P95
+3,125 us, raster P95 1,828 us; maxima 14,101/1,924 us. This is below the declared
+16.67 ms separate build/raster targets, not release FPS or physical scanout
+proof. The model has 94 faces; shared image cache holds 43,416,184 bytes, two live
+images and none pending. Aggregate app PSS/RSS is 680,861/825,168 KiB, graphics
+79,292 KiB, swap 148 KiB (not model-only memory). Real Android Home/background
+stops the idle ticker; return resumes it with the same media State/identity and
+no pending insertion. This distinguishes normal lifecycle from the earlier
+debug hot-restart/SoLoud crash; rapid-navigation/library pacing remains required.
+
+Display settings pass native touch/controller checks: measured touch disables
+3D media; controller Down/A enables reduced motion. Android's persisted XML
+independently confirms both values. The same controls restore enabled=true and
+reducedMotion=false, verified against state and storage. Red background, readable
+white text and icon/toggle controls are captured. No other preference is changed.
+Save-management section/input acceptance and final animation/launch/resource
+reconciliation remain S12 advancement blockers; S12 stays ACTIVE.
+Owner request during this work: dismissed the one failed Minish Cap queue entry
+through the actual Downloads > Clear Done control. The floating badge is gone;
+no ROM/save removal or retry occurred, and both Thor displays are verified OFF.
+
 FRONTEND-01's existing red/dark, main-display-only design is retained. First work
 includes the owner's explicit red/dark-background requirement (2026-10-14):
 Socket's grey dotted screen is reference-app UI, not the R-Shop target theme.

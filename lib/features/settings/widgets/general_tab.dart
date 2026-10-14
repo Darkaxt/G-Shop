@@ -32,6 +32,7 @@ class SettingsGeneralTab extends ConsumerWidget {
     final isHomeGrid = ref.watch(homeLayoutProvider);
     final hideEmpty = ref.watch(hideEmptyConsolesProvider);
     final ratingOverlays = ref.watch(ratingOverlaysProvider);
+    final media = ref.watch(mediaPresentationProvider);
     final layout = ref.watch(controllerLayoutProvider);
     final localeOverride = ref.watch(localeProvider);
     final localeName = localeOverride == null
@@ -46,10 +47,14 @@ class SettingsGeneralTab extends ConsumerWidget {
       firstFocusNode: firstFocusNode,
       sections: [
         SettingsSection(l.settings_sectionLibrary, [
-          SettingsEntry.nav(icon:Icons.sd_storage_outlined,title:'ROM cache',
-            subtitle:'Retention, rotation and protected games',
-            onSelect:()=>Navigator.push(context,MaterialPageRoute(
-                builder:(_)=>const RomCacheSettingsScreen()))),
+          SettingsEntry.nav(
+              icon: Icons.sd_storage_outlined,
+              title: 'ROM cache',
+              subtitle: 'Retention, rotation and protected games',
+              onSelect: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const RomCacheSettingsScreen()))),
           SettingsEntry.nav(
             icon: Icons.auto_stories_outlined,
             title: l.metadata_setupTitle,
@@ -94,6 +99,43 @@ class SettingsGeneralTab extends ConsumerWidget {
           ),
         ]),
         SettingsSection(l.settings_sectionDisplay, [
+          SettingsEntry.toggle(
+            title: '3D media',
+            icon: Icons.view_in_ar_rounded,
+            subtitle: 'Physical-media previews in the library and game details',
+            value: media.enabled,
+            onChanged: () async {
+              try {
+                await ref
+                    .read(mediaPresentationProvider.notifier)
+                    .toggleMedia();
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content:
+                        Text(l.onboarding_failedToSave(error.toString()))));
+              }
+            },
+          ),
+          SettingsEntry.toggle(
+            title: 'Reduced motion',
+            icon: Icons.motion_photos_off_rounded,
+            subtitle:
+                'Keep previews still and open games without insertion animations',
+            value: media.reducedMotion,
+            onChanged: () async {
+              try {
+                await ref
+                    .read(mediaPresentationProvider.notifier)
+                    .toggleMotion();
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content:
+                        Text(l.onboarding_failedToSave(error.toString()))));
+              }
+            },
+          ),
           SettingsEntry.toggle(
             title: l.metadata_ratingOverlays,
             subtitle: l.metadata_ratingOverlaysSubtitle,

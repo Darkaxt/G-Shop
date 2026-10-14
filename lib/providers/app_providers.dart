@@ -157,8 +157,7 @@ final gridColumnsProvider =
   ),
 );
 
-final homeGridColumnsProvider =
-    StateNotifierProvider<GridColumnsNotifier, int>(
+final homeGridColumnsProvider = StateNotifierProvider<GridColumnsNotifier, int>(
   (ref) => GridColumnsNotifier(
     ref.read(storageServiceProvider),
     'home',
@@ -251,7 +250,8 @@ class FavoriteGamesNotifier extends StateNotifier<List<String>> {
 class ControllerLayoutNotifier extends StateNotifier<ControllerLayout> {
   final StorageService _storage;
 
-  ControllerLayoutNotifier(this._storage) : super(_storage.getControllerLayout());
+  ControllerLayoutNotifier(this._storage)
+      : super(_storage.getControllerLayout());
 
   Future<void> cycle() async {
     final next = switch (state) {
@@ -290,7 +290,8 @@ class HomeLayoutNotifier extends StateNotifier<bool> {
   }
 }
 
-final homeLayoutProvider = StateNotifierProvider<HomeLayoutNotifier, bool>((ref) {
+final homeLayoutProvider =
+    StateNotifierProvider<HomeLayoutNotifier, bool>((ref) {
   final storage = ref.read(storageServiceProvider);
   return HomeLayoutNotifier(storage);
 });
@@ -313,14 +314,57 @@ class RatingOverlaysNotifier extends StateNotifier<bool> {
     // Preserve tap order, and allow a later retry after a failed write. The
     // caller still receives the original error; the visible state changes only
     // after persistence acknowledges the update.
-    _pending = operation.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    _pending =
+        operation.then<void>((_) {}, onError: (Object _, StackTrace __) {});
     return operation;
   }
 }
 
 final ratingOverlaysProvider =
-    StateNotifierProvider<RatingOverlaysNotifier, bool>((ref) =>
-        RatingOverlaysNotifier(ref.read(storageServiceProvider)));
+    StateNotifierProvider<RatingOverlaysNotifier, bool>(
+        (ref) => RatingOverlaysNotifier(ref.read(storageServiceProvider)));
+
+class MediaPresentationNotifier
+    extends StateNotifier<({bool enabled, bool reducedMotion})> {
+  final StorageService _storage;
+  Future<void> _pending = Future<void>.value();
+  MediaPresentationNotifier(this._storage)
+      : super((
+          enabled: _storage.getPhysicalMediaEnabled(),
+          reducedMotion: _storage.getReducedMediaMotion()
+        ));
+
+  Future<void> toggleMedia() => _change(media: true);
+  Future<void> toggleMotion() => _change(media: false);
+
+  Future<void> _change({required bool media}) {
+    final operation = _pending.then((_) async {
+      if (!mounted) return;
+      final next = media ? !state.enabled : !state.reducedMotion;
+      if (media) {
+        await _storage.setPhysicalMediaEnabled(next);
+      } else {
+        await _storage.setReducedMediaMotion(next);
+      }
+      if (mounted) {
+        state = (
+          enabled: media ? next : state.enabled,
+          reducedMotion: media ? state.reducedMotion : next
+        );
+      }
+    });
+    _pending =
+        operation.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return operation;
+  }
+}
+
+final mediaPresentationProvider = StateNotifierProvider<
+    MediaPresentationNotifier,
+    ({
+      bool enabled,
+      bool reducedMotion
+    })>((ref) => MediaPresentationNotifier(ref.read(storageServiceProvider)));
 
 class HideEmptyConsolesNotifier extends StateNotifier<bool> {
   final StorageService _storage;
@@ -364,8 +408,7 @@ class LocaleNotifier extends StateNotifier<Locale?> {
   }
 }
 
-final localeProvider =
-    StateNotifierProvider<LocaleNotifier, Locale?>((ref) {
+final localeProvider = StateNotifierProvider<LocaleNotifier, Locale?>((ref) {
   final storage = ref.read(storageServiceProvider);
   return LocaleNotifier(storage);
 });
@@ -382,8 +425,7 @@ const syncTimeoutSteps = [60, 120, 300, 600];
 class SyncTimeoutNotifier extends StateNotifier<int> {
   final StorageService _storage;
 
-  SyncTimeoutNotifier(this._storage)
-      : super(_storage.getSyncTimeoutSeconds());
+  SyncTimeoutNotifier(this._storage) : super(_storage.getSyncTimeoutSeconds());
 
   Future<void> cycle() async {
     final currentIndex = syncTimeoutSteps.indexOf(state);
@@ -471,8 +513,7 @@ final hapticEnabledProvider =
 class AllowNonLanHttpNotifier extends StateNotifier<bool> {
   final StorageService _storage;
 
-  AllowNonLanHttpNotifier(this._storage)
-      : super(_storage.getAllowNonLanHttp());
+  AllowNonLanHttpNotifier(this._storage) : super(_storage.getAllowNonLanHttp());
 
   Future<void> toggle() async {
     final newValue = !state;

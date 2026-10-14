@@ -38,6 +38,8 @@ class StorageService {
   static const _raLastSyncKey = 'ra_last_sync';
   static const _hideEmptyConsolesKey = 'hide_empty_consoles';
   static const _ratingOverlaysKey = 'rating_overlays';
+  static const _physicalMediaKey = 'physical_media_enabled';
+  static const _reducedMediaMotionKey = 'physical_media_reduced_motion';
   static const _startHintShownKey = 'start_hint_shown';
   static const _localeOverrideKey = 'locale_override';
   static const _syncTimeoutSecondsKey = 'sync_timeout_seconds';
@@ -324,6 +326,30 @@ class StorageService {
   bool getRatingOverlays() {
     _ensureInitialized();
     return _prefs!.getBool(_ratingOverlaysKey) ?? true;
+  }
+
+  bool getPhysicalMediaEnabled() {
+    _ensureInitialized();
+    return _prefs!.getBool(_physicalMediaKey) ?? true;
+  }
+
+  bool getReducedMediaMotion() {
+    _ensureInitialized();
+    return _prefs!.getBool(_reducedMediaMotionKey) ?? false;
+  }
+
+  Future<void> setPhysicalMediaEnabled(bool enabled) async {
+    _ensureInitialized();
+    if (!await _prefs!.setBool(_physicalMediaKey, enabled)) {
+      throw StateError('3D media preference was not saved');
+    }
+  }
+
+  Future<void> setReducedMediaMotion(bool enabled) async {
+    _ensureInitialized();
+    if (!await _prefs!.setBool(_reducedMediaMotionKey, enabled)) {
+      throw StateError('Reduced motion preference was not saved');
+    }
   }
 
   Future<void> setRatingOverlays(bool enabled) async {

@@ -397,6 +397,42 @@ they include VM-observation overhead and are not release-performance acceptance.
 
 ## Reconciliation
 
+### Integration budget and layout contract — 2026-10-14
+
+The measured first Game Boy proof establishes the renderer baseline before
+library integration. Target the Thor's supported 60-Hz presentation budget:
+steady-state build and raster P95 each below 16.67 ms, measured separately (their
+percentiles are not additive FPS proof). Final measurements must include rapid
+navigation/background recovery and identify debug/observer overhead.
+Keep exactly one animated selected-media preview, shared immutable geometry per
+format (at most 256 exterior faces for the current three formats), and the
+existing 640-pixel selected-label decode limit. This bounds the label bitmap to
+1,638,400 RGBA bytes; it is not a cap on the whole shared artwork cache or app.
+Compare integrated native memory/residency with the recorded first-slice baseline;
+do not claim model-only memory from aggregate app PSS.
+
+Landscape library layouts at least 720 logical pixels wide use a selected-media
+panel beside the existing virtualized grid. Its width is 28 percent of available
+content width; the grid retains the user's actual column count and its existing
+focus/index/search/Top/tag behavior. Smaller/portrait views retain the fast grid,
+with the same media available in details. Persisted Display settings offer 3D
+media/classic view and reduced motion; Android's disabled animations also wins.
+This is one existing catalogue/identity and detail/launch path, not a second
+carousel, download engine or per-card animated mesh.
+
+Current format map (representative coverage, not every console's 3D shell):
+
+| Systems | Presentation |
+| --- | --- |
+| Game Boy (`gb`) | Independent cartridge with recessed header and grip ribs. |
+| Nintendo 64 (`n64`) | Independent curved cartridge with seams and connector recess. |
+| PlayStation/PlayStation 2 (`psx`, `ps2`) | Optical disc with a real centre hole and clear hub. |
+| Other supported systems | Existing cover or licensed Systematic physical-media fallback; never substitute an incorrect Game Boy shell or ordinary disc for UMD/mini-disc/other cartridge formats. |
+
+The N64/disc meshes follow the native 0.7 silhouette/label/hub comparison, while
+using independent geometry and shading rather than redistributing Socket assets.
+Their fixtures are non-playable renderer references, not emulator-launch evidence.
+
 Source review and proposal recording are complete. FRONTEND-01 implementation
 is now ACTIVE; remaining integration and runtime acceptance are unfinished.
 The first real download/launch and red detail-background evidence above do not

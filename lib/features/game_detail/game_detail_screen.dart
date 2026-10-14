@@ -1164,6 +1164,11 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                           child: CoverSection(
                             game: selectedVariant,
                             physicalMediaKey: _physicalMediaKey,
+                            physicalMediaEnabled:
+                                ref.watch(mediaPresentationProvider).enabled,
+                            reducedMotion: ref
+                                .watch(mediaPresentationProvider)
+                                .reducedMotion,
                             system: widget.system,
                             coverUrls: coverUrls,
                             cachedUrl: richMetadata?.cachedCover ??
@@ -1249,6 +1254,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             child: CoverSection(
               game: selectedVariant,
               physicalMediaKey: _physicalMediaKey,
+              physicalMediaEnabled:
+                  ref.watch(mediaPresentationProvider).enabled,
+              reducedMotion: ref.watch(mediaPresentationProvider).reducedMotion,
               system: widget.system,
               coverUrls: coverUrls,
               cachedUrl:

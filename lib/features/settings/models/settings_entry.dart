@@ -64,11 +64,13 @@ class SettingsEntry {
     required bool value,
     required VoidCallback onChanged,
     FocusNode? focusNode,
+    IconData? icon,
   }) : this._(
           title: title,
           subtitle: subtitle,
           type: SettingsEntryType.toggle,
           toggleValue: value,
+          icon: icon,
           onTap: onChanged,
           focusNode: focusNode,
         );

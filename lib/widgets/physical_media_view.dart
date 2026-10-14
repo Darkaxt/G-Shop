@@ -2,6 +2,24 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+enum PhysicalMediaFormat {
+  gameBoy('Game Boy cartridge', 850),
+  n64('Nintendo 64 cartridge', 700),
+  disc('optical disc', 1600);
+
+  final String description;
+  final int insertionMilliseconds;
+  const PhysicalMediaFormat(this.description, this.insertionMilliseconds);
+
+  static PhysicalMediaFormat? forSystem(String systemId) => switch (systemId) {
+        'gb' => gameBoy,
+        'n64' => n64,
+        'psx' || 'ps2' => disc,
+        // UMD, mini-disc and other cartridge shells are not these formats.
+        _ => null,
+      };
+}
+
 /// Independently constructed exterior, not recovered Socket topology/textures.
 /// Model-space proportions follow the hash-bound physical reference study.
 class MediaPoint3 {
@@ -26,6 +44,121 @@ class PhysicalMediaGeometry {
   const PhysicalMediaGeometry._(
       this.width, this.height, this.depth, this.label, this.header, this.faces);
   static final gameBoy = _gameBoy();
+  static final n64 = _n64();
+  static final disc = _disc();
+  static PhysicalMediaGeometry forFormat(PhysicalMediaFormat format) =>
+      switch (format) {
+        PhysicalMediaFormat.gameBoy => gameBoy,
+        PhysicalMediaFormat.n64 => n64,
+        PhysicalMediaFormat.disc => disc,
+      };
+
+  static void _extrude(List<MediaFace> faces, List<Offset> polygon,
+      double front, double back, Color color) {
+    final near = polygon.map((p) => MediaPoint3(p.dx, p.dy, front)).toList();
+    final far = polygon.map((p) => MediaPoint3(p.dx, p.dy, back)).toList();
+    faces.add(MediaFace(near, color));
+    faces.add(MediaFace(far.reversed.toList(), color));
+    for (var i = 0; i < polygon.length; i++) {
+      final next = (i + 1) % polygon.length;
+      faces.add(MediaFace([near[i], far[i], far[next], near[next]], color));
+    }
+  }
+
+  static PhysicalMediaGeometry _n64() {
+    const height = 0.03 / 0.045, depth = 0.0075 / 0.045;
+    // Independently drawn curved crown, shoulders, bottom connector notches.
+    final outline = <Offset>[
+      for (var step = 0; step <= 24; step++)
+        Offset(-0.5 + step / 24,
+            -height / 2 + 0.14 * math.pow((step - 12) / 12, 2)),
+      const Offset(0.5, height / 2 - 0.045),
+      const Offset(0.46, height / 2),
+      const Offset(0.33, height / 2),
+      const Offset(0.33, height / 2 - 0.025),
+      const Offset(-0.33, height / 2 - 0.025),
+      const Offset(-0.33, height / 2),
+      const Offset(-0.46, height / 2),
+      const Offset(-0.5, height / 2 - 0.045),
+    ];
+    final faces = <MediaFace>[];
+    _extrude(faces, outline, depth / 2 - 0.008, -depth / 2 + 0.008,
+        const Color(0xff777775));
+    _extrude(faces, outline.map((p) => p * 0.982).toList(), depth / 2,
+        -depth / 2, const Color(0xff929290));
+    final label = Rect.fromCenter(
+        center: const Offset(0, -0.018),
+        width: 0.0210141 / 0.045,
+        height: 0.50);
+    final rim = label.inflate(0.012);
+    _extrude(
+        faces,
+        [rim.topLeft, rim.topRight, rim.bottomRight, rim.bottomLeft],
+        depth / 2 + 0.002,
+        depth / 2 - 0.002,
+        const Color(0xff55575e));
+    for (final x in [-0.29, 0.285]) {
+      _extrude(
+          faces,
+          [
+            Offset(x, -0.28),
+            Offset(x + 0.005, -0.28),
+            Offset(x + 0.005, height / 2 - 0.025),
+            Offset(x, height / 2 - 0.025)
+          ],
+          depth / 2 + 0.001,
+          depth / 2,
+          const Color(0xff6d6d6b));
+    }
+    _extrude(
+        faces,
+        [
+          const Offset(-0.33, height / 2 - 0.04),
+          const Offset(0.33, height / 2 - 0.04),
+          const Offset(0.33, height / 2 - 0.025),
+          const Offset(-0.33, height / 2 - 0.025)
+        ],
+        depth / 2 + 0.001,
+        depth / 2,
+        const Color(0xff353534));
+    return PhysicalMediaGeometry._(
+        1, height, depth, label, Rect.zero, List.unmodifiable(faces));
+  }
+
+  static PhysicalMediaGeometry _disc() {
+    const depth = 0.001886 / 0.1239977, outer = 0.5, hole = 0.0625, hub = 0.15;
+    final faces = <MediaFace>[];
+    MediaPoint3 point(double radius, double angle, double z) =>
+        MediaPoint3(math.cos(angle) * radius, math.sin(angle) * radius, z);
+    for (var segment = 0; segment < 48; segment++) {
+      final a = segment * math.pi / 24, b = (segment + 1) * math.pi / 24;
+      final ofa = point(outer, a, depth / 2),
+          ofb = point(outer, b, depth / 2),
+          ifa = point(hole, a, depth / 2),
+          ifb = point(hole, b, depth / 2),
+          oba = point(outer, a, -depth / 2),
+          obb = point(outer, b, -depth / 2),
+          iba = point(hole, a, -depth / 2),
+          ibb = point(hole, b, -depth / 2);
+      final hfa = point(hub, a, depth / 2), hfb = point(hub, b, depth / 2);
+      faces.add(MediaFace([ofa, ofb, hfb, hfa], const Color(0xffd9dce7)));
+      faces.add(MediaFace([hfa, hfb, ifb, ifa], const Color(0xffc2c5ce)));
+      faces.add(MediaFace(
+          [obb, oba, iba, ibb],
+          Color.lerp(const Color(0xff899dac), const Color(0xffdbc1dc),
+              (math.sin(a * 3) + 1) / 2)!));
+      faces.add(MediaFace([ofb, ofa, oba, obb], const Color(0xffaeb3c0)));
+      faces.add(MediaFace([ifa, ifb, ibb, iba], const Color(0xff8b8e98)));
+    }
+    return PhysicalMediaGeometry._(
+        1,
+        1,
+        depth,
+        const Rect.fromLTRB(-0.49, -0.49, 0.49, 0.49),
+        Rect.zero,
+        List.unmodifiable(faces));
+  }
+
   static PhysicalMediaGeometry _gameBoy() {
     const width = 1.0,
         height = 0.0648228 / 0.0564107,
@@ -43,16 +176,7 @@ class PhysicalMediaGeometry {
     ];
     final faces = <MediaFace>[];
     void extrude(List<Offset> polygon, double front, double back, Color color) {
-      final near = polygon.map((p) => MediaPoint3(p.dx, p.dy, front)).toList();
-      final far = polygon.map((p) => MediaPoint3(p.dx, p.dy, back)).toList();
-      // Each convex front/back plane is one face. Sorting separate coplanar
-      // triangles by their centres can paint the shell over its moulded ribs.
-      faces.add(MediaFace(near, color));
-      faces.add(MediaFace(far.reversed.toList(), color));
-      for (var i = 0; i < polygon.length; i++) {
-        final next = (i + 1) % polygon.length;
-        faces.add(MediaFace([near[i], far[i], far[next], near[next]], color));
-      }
+      _extrude(faces, polygon, front, back, color);
     }
 
     extrude(
@@ -110,8 +234,12 @@ class PhysicalMediaGeometry {
 
 class HandwrittenMediaSticker extends StatelessWidget {
   final String identity, title;
+  final bool disc;
   const HandwrittenMediaSticker(
-      {super.key, required this.identity, required this.title});
+      {super.key,
+      required this.identity,
+      required this.title,
+      this.disc = false});
   static const palette = <Color>[
     Color(0xfff0dd99),
     Color(0xffbdd9b5),
@@ -134,7 +262,9 @@ class HandwrittenMediaSticker extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Expanded(
-                child: Center(
+                child: Align(
+                    alignment:
+                        disc ? const Alignment(0, -0.6) : Alignment.center,
                     child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: SizedBox(
@@ -159,12 +289,14 @@ class PhysicalMediaView extends StatefulWidget {
   final String identity, title;
   final Widget label;
   final bool reducedMotion;
+  final PhysicalMediaFormat format;
   const PhysicalMediaView(
       {super.key,
       required this.identity,
       required this.title,
       required this.label,
-      this.reducedMotion = false});
+      this.reducedMotion = false,
+      this.format = PhysicalMediaFormat.gameBoy});
   @override
   State<PhysicalMediaView> createState() => PhysicalMediaViewState();
 }
@@ -176,7 +308,8 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
   late final AnimationController _idle = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 62832));
   late final AnimationController _insertion = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 850));
+      vsync: this,
+      duration: Duration(milliseconds: widget.format.insertionMilliseconds));
   Completer<bool>? _completion;
   double _manualRotation = 0;
   bool get _reduce =>
@@ -199,11 +332,14 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
   @override
   void didUpdateWidget(PhysicalMediaView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.identity != widget.identity) {
+    if (oldWidget.identity != widget.identity ||
+        oldWidget.format != widget.format) {
       _finish(false);
       _insertion.reset();
       _manualRotation = 0;
       _selection.reset();
+      _insertion.duration =
+          Duration(milliseconds: widget.format.insertionMilliseconds);
     }
     _configureMotion();
   }
@@ -267,12 +403,12 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
 
   @override
   Widget build(BuildContext context) => Semantics(
-      label: '3D Game Boy cartridge: ${widget.title}',
+      label: '3D ${widget.format.description}: ${widget.title}',
       child: LayoutBuilder(
           builder: (context, box) => AnimatedBuilder(
               animation: Listenable.merge([_selection, _idle, _insertion]),
               builder: (context, _) {
-                final model = PhysicalMediaGeometry.gameBoy;
+                final model = PhysicalMediaGeometry.forFormat(widget.format);
                 final phase = _idle.value * math.pi * 2;
                 final selected = _reduce
                     ? 1.0
@@ -287,33 +423,71 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                   ry += math.cos(phase * 12) * 0.02618;
                   rz += math.sin(phase * 18) * 0.04189;
                 }
-                final seconds = _insertion.value * 0.85;
+                final seconds = _insertion.value *
+                    widget.format.insertionMilliseconds /
+                    1000;
+                var labelRotation = 0.0, scaleY = 1.0;
                 if (_insertion.value > 0) {
                   final lift = Curves.easeOutBack
                       .transform((seconds / 0.15).clamp(0.0, 1.0));
                   y = -0.13 * lift;
                   z = -0.05 * lift;
-                  ry += math.pi * 2 * (seconds / 0.2).clamp(0.0, 1.0);
-                  if (seconds > 0.2) {
-                    y += 1.25 *
-                        Curves.easeInExpo
-                            .transform(((seconds - 0.2) / 0.2).clamp(0.0, 1.0));
+                  final turn = (seconds / 0.2).clamp(0.0, 1.0);
+                  rx *= 1 - turn;
+                  rz *= 1 - turn;
+                  ry = ry * (1 - turn) +
+                      (widget.format == PhysicalMediaFormat.disc
+                              ? 0
+                              : math.pi * 2) *
+                          turn;
+                  final spinEnd =
+                      widget.format == PhysicalMediaFormat.disc ? 0.3 : 0.2;
+                  final descent =
+                      widget.format == PhysicalMediaFormat.gameBoy ? 0.2 : 0.3;
+                  final landed = spinEnd + descent;
+                  if (widget.format == PhysicalMediaFormat.disc) {
+                    labelRotation =
+                        math.pi * 4 * (seconds / 0.3).clamp(0.0, 1.0);
                   }
-                  if (seconds > 0.4) {
+                  if (seconds > spinEnd) {
+                    y += (widget.format == PhysicalMediaFormat.disc
+                            ? 0.7
+                            : 1.25) *
+                        Curves.easeInExpo.transform(
+                            ((seconds - spinEnd) / descent).clamp(0.0, 1.0));
+                  }
+                  if (widget.format == PhysicalMediaFormat.gameBoy &&
+                      seconds > landed) {
                     y -= 0.12 *
                         Curves.easeOutBack.transform(
-                            ((seconds - 0.4) / 0.12).clamp(0.0, 1.0));
+                            ((seconds - landed) / 0.12).clamp(0.0, 1.0));
                   }
-                  if (seconds > 0.4) {
+                  if (seconds > landed) {
+                    if (widget.format != PhysicalMediaFormat.gameBoy) {
+                      final squash =
+                          ((seconds - landed) / 0.05).clamp(0.0, 1.0);
+                      final settle = Curves.elasticOut.transform(
+                          ((seconds - landed) / 0.2).clamp(0.0, 1.0));
+                      scaleY = 1 - 0.3 * squash * (1 - settle);
+                    }
                     scale *= 1 +
                         0.05 *
-                            Curves.elasticOut.transform(
-                                ((seconds - 0.4) / 0.25).clamp(0.0, 1.0));
+                            Curves.elasticOut.transform(((seconds - landed) /
+                                    (widget.format ==
+                                            PhysicalMediaFormat.gameBoy
+                                        ? 0.25
+                                        : 0.2))
+                                .clamp(0.0, 1.0));
                   }
-                  if (seconds > 0.65) {
+                  if (widget.format == PhysicalMediaFormat.gameBoy &&
+                      seconds > 0.65) {
                     y += 0.12 *
                         Curves.easeInOutBack.transform(
                             ((seconds - 0.65) / 0.2).clamp(0.0, 1.0));
+                  }
+                  if (widget.format == PhysicalMediaFormat.disc &&
+                      seconds > 0.8) {
+                    y += 0.55 * ((seconds - 0.8) / 0.8).clamp(0.0, 1.0);
                   }
                 }
                 final units = math.min(
@@ -327,12 +501,15 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                 matrix.rotateZ(rz);
                 matrix.rotateY(ry);
                 matrix.rotateX(rx);
-                matrix.scaleByDouble(scale, scale, scale, 1);
-                final labelMatrix = matrix.clone()
+                matrix.scaleByDouble(scale, scale * scaleY, scale, 1);
+                final labelMatrix = matrix.clone()..rotateZ(labelRotation);
+                final labelHeight =
+                    widget.format == PhysicalMediaFormat.disc ? 320.0 : 284.0;
+                labelMatrix
                   ..translateByDouble(model.label.left, model.label.top,
                       model.depth / 2 + 0.003, 1)
-                  ..scaleByDouble(
-                      model.label.width / 320, model.label.height / 284, 1, 1);
+                  ..scaleByDouble(model.label.width / 320,
+                      model.label.height / labelHeight, 1, 1);
                 final headerMatrix = matrix.clone()
                   ..translateByDouble(model.header.left, model.header.top,
                       model.depth / 2 + 0.007, 1)
@@ -351,7 +528,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                           child: CustomPaint(
                               key: const ValueKey('physical-media-shell'),
                               painter: _MediaShellPainter(model, matrix)))),
-                  if (front)
+                  if (front && !model.header.isEmpty)
                     Positioned(
                         left: 0,
                         top: 0,
@@ -384,8 +561,13 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                                 transform: labelMatrix,
                                 child: SizedBox(
                                     width: 320,
-                                    height: 284,
-                                    child: widget.label)))),
+                                    height: labelHeight,
+                                    child: widget.format ==
+                                            PhysicalMediaFormat.disc
+                                        ? ClipPath(
+                                            clipper: const _DiscLabelClipper(),
+                                            child: widget.label)
+                                        : widget.label)))),
                   if (_completion != null)
                     Positioned(
                         right: 8,
@@ -397,6 +579,18 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                             icon: const Icon(Icons.skip_next_rounded))),
                 ]);
               })));
+}
+
+class _DiscLabelClipper extends CustomClipper<Path> {
+  const _DiscLabelClipper();
+  @override
+  Path getClip(Size size) => Path()
+    ..fillType = PathFillType.evenOdd
+    ..addOval(Offset.zero & size)
+    ..addOval(Rect.fromCircle(
+        center: size.center(Offset.zero), radius: size.width * (0.15 / 0.98)));
+  @override
+  bool shouldReclip(_DiscLabelClipper old) => false;
 }
 
 class _MediaShellPainter extends CustomPainter {
@@ -423,7 +617,16 @@ class _MediaShellPainter extends CustomPainter {
                 b.points.length));
     for (final projected in faces) {
       final points = projected.points;
-      final normal = (points[1] - points[0]).cross(points[2] - points[0]);
+      // The shells have concave shoulders/notches. A local first triangle can
+      // face the opposite way; use the complete polygon's oriented normal.
+      var nx = 0.0, ny = 0.0, nz = 0.0;
+      for (var i = 0; i < points.length; i++) {
+        final a = points[i], b = points[(i + 1) % points.length];
+        nx += (a.y - b.y) * (a.z + b.z);
+        ny += (a.z - b.z) * (a.x + b.x);
+        nz += (a.x - b.x) * (a.y + b.y);
+      }
+      final normal = MediaPoint3(nx, ny, nz);
       if (normal.z <= 0) continue;
       final length = math.sqrt(
           normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
@@ -441,6 +644,43 @@ class _MediaShellPainter extends CustomPainter {
         path.lineTo(p.x, p.y);
       }
       path.close();
+      // Independently shaded plastic/metal; no recovered reference textures.
+      // Keep the light in screen space so rotating shells catch a highlight.
+      if (projected.face.points.every(
+          (p) => (p.z - projected.face.points.first.z).abs() < 0.000001)) {
+        final center = _transform(const MediaPoint3(0, 0, 0));
+        final bounds = Rect.fromCenter(
+            center: Offset(center.x, center.y),
+            width: size.width,
+            height: size.height);
+        if (identical(model, PhysicalMediaGeometry.disc)) {
+          paint.shader = SweepGradient(colors: [
+            paint.color,
+            const Color(0xfff1edf2),
+            const Color(0xffbbcbd1),
+            paint.color,
+            const Color(0xffe8dce9),
+            const Color(0xfff0f1e7),
+            paint.color,
+          ]).createShader(bounds);
+        } else {
+          paint.shader = LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.lerp(paint.color, Colors.black, 0.10)!,
+                paint.color,
+                Color.lerp(paint.color, Colors.white, 0.18)!,
+                paint.color,
+              ],
+              stops: const [
+                0,
+                0.36,
+                0.62,
+                1
+              ]).createShader(bounds);
+        }
+      }
       canvas.drawPath(path, paint);
     }
   }

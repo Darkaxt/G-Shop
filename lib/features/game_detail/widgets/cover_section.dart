@@ -16,6 +16,8 @@ class CoverSection extends StatefulWidget {
   final bool isInstalled;
   final bool hasThumbnail;
   final GlobalKey<PhysicalMediaViewState>? physicalMediaKey;
+  final bool physicalMediaEnabled, reducedMotion;
+  final bool showPresentationControls;
   const CoverSection({
     super.key,
     required this.game,
@@ -27,6 +29,9 @@ class CoverSection extends StatefulWidget {
     this.isInstalled = false,
     this.hasThumbnail = false,
     this.physicalMediaKey,
+    this.physicalMediaEnabled = true,
+    this.reducedMotion = false,
+    this.showPresentationControls = true,
   });
 
   @override
@@ -39,9 +44,12 @@ class _CoverSectionState extends State<CoverSection> {
   @override
   Widget build(BuildContext context) {
     final game = widget.game, system = widget.system;
-    final physical = system.id == 'gb' && _physical;
+    final format = PhysicalMediaFormat.forSystem(system.id);
+    final physical = format != null && _physical && widget.physicalMediaEnabled;
     final sticker = HandwrittenMediaSticker(
-        identity: game.selectionKey, title: game.displayName);
+        identity: game.selectionKey,
+        title: game.displayName,
+        disc: format == PhysicalMediaFormat.disc);
     return Column(
       children: [
         Expanded(
@@ -53,7 +61,8 @@ class _CoverSectionState extends State<CoverSection> {
                         key: widget.physicalMediaKey,
                         identity: game.selectionKey,
                         title: game.displayName,
-                        reducedMotion: _reducedMotion,
+                        format: format,
+                        reducedMotion: _reducedMotion || widget.reducedMotion,
                         label: SmartCoverImage(
                             systemId: system.id,
                             urls: widget.coverUrls,
@@ -104,7 +113,9 @@ class _CoverSectionState extends State<CoverSection> {
                         ),
                       ),
               ),
-              if (system.id == 'gb')
+              if (format != null &&
+                  widget.physicalMediaEnabled &&
+                  widget.showPresentationControls)
                 Positioned(
                     top: 4,
                     right: 4,

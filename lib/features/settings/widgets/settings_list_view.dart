@@ -190,8 +190,7 @@ class _SettingsEntryTileState extends ConsumerState<_SettingsEntryTile> {
                 color: AppTheme.primaryColor.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child:
-                  Icon(entry.icon, color: AppTheme.primaryColor, size: 22),
+              child: Icon(entry.icon, color: AppTheme.primaryColor, size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -233,6 +232,10 @@ class _SettingsEntryTileState extends ConsumerState<_SettingsEntryTile> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
+            if (entry.icon != null) ...[
+              Icon(entry.icon, color: AppTheme.primaryColor, size: 24),
+              const SizedBox(width: 14),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,13 +400,11 @@ class _SettingsEntryTileState extends ConsumerState<_SettingsEntryTile> {
           actions: {
             NavigateIntent: NavigateAction(ref, onNavigate: (intent) {
               if (intent.direction == GridDirection.left) {
-                entry.onSliderChanged
-                    ?.call((entry.sliderValue ?? 0) - 0.05);
+                entry.onSliderChanged?.call((entry.sliderValue ?? 0) - 0.05);
                 ref.read(feedbackServiceProvider).tick();
                 return true;
               } else if (intent.direction == GridDirection.right) {
-                entry.onSliderChanged
-                    ?.call((entry.sliderValue ?? 0) + 0.05);
+                entry.onSliderChanged?.call((entry.sliderValue ?? 0) + 0.05);
                 ref.read(feedbackServiceProvider).tick();
                 return true;
               }

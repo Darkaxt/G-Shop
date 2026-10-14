@@ -36,6 +36,7 @@ import '../../utils/game_metadata.dart';
 import '../../utils/game_merge_helper.dart';
 import '../../utils/image_helper.dart';
 import '../game_detail/game_detail_screen.dart';
+import '../game_detail/widgets/cover_section.dart';
 import '../game_list/logic/filter_state.dart';
 import '../game_list/widgets/filter_overlay.dart';
 import '../../widgets/base_game_card.dart';
@@ -1932,10 +1933,31 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
 
+    return LayoutBuilder(builder: (context, constraints) {
+      final media = ref.watch(mediaPresentationProvider);
+      final showPreview =
+          media.enabled && !rs.isPortrait && constraints.maxWidth >= 720;
+      final previewWidth = showPreview ? constraints.maxWidth * 0.28 : 0.0;
+      return Row(children: [
+        if (showPreview)
+          SizedBox(
+              width: previewWidth,
+              child: ValueListenableBuilder<int>(
+                valueListenable: _selectedIndexNotifier,
+                builder: (context, index, _) => _buildMediaPreview(
+                    _filteredGames[index.clamp(0, _filteredGames.length - 1)],
+                    media),
+              )),
+        Expanded(child: _buildGrid(rs, constraints.maxWidth - previewWidth)),
+      ]);
+    });
+  }
+
+  Widget _buildGrid(Responsive rs, double availableWidth) {
     final deviceMemory = ref.read(deviceMemoryProvider);
     final gridPadding = rs.spacing.lg * 2;
     final spacing = rs.isSmall ? 10.0 : 16.0;
-    final gridWidth = MediaQuery.of(context).size.width - gridPadding;
+    final gridWidth = availableWidth - gridPadding;
     final itemWidth = (gridWidth - (_columns - 1) * spacing) / _columns;
     final dpr = MediaQuery.of(context).devicePixelRatio;
     final optimalCacheWidth =
@@ -2090,6 +2112,72 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildMediaPreview(
+      LibraryEntry entry, ({bool enabled, bool reducedMotion}) media) {
+    final system = SystemModel.supportedSystems
+        .where((system) => system.id == entry.systemSlug)
+        .firstOrNull;
+    if (system == null) return const SizedBox.shrink();
+    final variants = _discoveryVariants[
+            coverRatingKey(entry.systemSlug, entry.selectionKey)] ??
+        [entry];
+    final installed = variants.any(_isGameInstalled);
+    final game = GameItem(
+        filename: entry.filename,
+        displayName: entry.displayName,
+        url: entry.url,
+        providerConfig: entry.providerConfig,
+        remoteArtifact: entry.remoteArtifact,
+        hasThumbnail: entry.hasThumbnail);
+    return Padding(
+      key: const ValueKey('library-media-preview'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      child: Column(children: [
+        Expanded(
+            child: HeroMode(
+                enabled: false,
+                child: CoverSection(
+                  key: ValueKey(entry.selectionKey),
+                  game: game,
+                  system: system,
+                  coverUrls:
+                      ImageHelper.getCoverUrlsForSingle(system, entry.filename),
+                  cachedUrl: _metadataCovers[coverRatingKey(
+                          entry.systemSlug, entry.selectionKey)] ??
+                      entry.coverUrl,
+                  metadata: GameMetadata.parse(entry.filename),
+                  isFavorite: variants
+                      .any((g) => _favoriteIds.contains(g.selectionKey)),
+                  isInstalled: installed,
+                  hasThumbnail: entry.hasThumbnail,
+                  reducedMotion: media.reducedMotion,
+                  physicalMediaEnabled: media.enabled,
+                  showPresentationControls: false,
+                ))),
+        Text(GameMetadata.cleanTitle(entry.displayName),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white)),
+        const SizedBox(height: 8),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(installed ? Icons.sd_card_outlined : Icons.cloud_outlined,
+              color: Colors.white70, size: 20),
+          const SizedBox(width: 6),
+          Text(_systemShortLabel(entry.systemSlug),
+              style: const TextStyle(color: Colors.white70)),
+        ]),
+        TextButton.icon(
+            onPressed: () => _openGameDetail(entry),
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Details')),
+      ]),
     );
   }
 

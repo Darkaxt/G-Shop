@@ -31,6 +31,7 @@ import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
+import 'package:retro_eshop/widgets/physical_media_view.dart';
 import '../helpers/pump_helpers.dart';
 
 class _Database extends DatabaseService {
@@ -86,8 +87,11 @@ void main() {
       'filename': 'Game.chd',
       'url': ''
     });
-    SharedPreferences.setMockInitialValues(
-        {'favorites_version': 1, 'secure_auth_migrated': true});
+    SharedPreferences.setMockInitialValues({
+      'favorites_version': 1,
+      'secure_auth_migrated': true,
+      'physical_media_reduced_motion': true
+    });
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
     await storage.init();
@@ -183,8 +187,11 @@ void main() {
           const ProviderConfig(type: ProviderType.drive, priority: 0)
               .toJsonWithoutAuth())
     });
-    SharedPreferences.setMockInitialValues(
-        {'favorites_version': 1, 'secure_auth_migrated': true});
+    SharedPreferences.setMockInitialValues({
+      'favorites_version': 1,
+      'secure_auth_migrated': true,
+      'physical_media_reduced_motion': true
+    });
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
     await storage.init();
@@ -351,7 +358,8 @@ void defineLibraryDiscoveryChecks({
                 retrievedAt: at)!
           ]));
     }
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(
+        {'physical_media_reduced_motion': true});
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
     await storage.init();
@@ -517,6 +525,30 @@ void defineLibraryDiscoveryChecks({
     // A console's Top includes its sixth game, not only the five left after a
     // collection-wide Top 10. Selecting the dashboard never opens the ROM dump.
     await tester.tap(find.byKey(const ValueKey('console-summary-ps2')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-media-preview')), findsOneWidget);
+    expect(find.byType(PhysicalMediaView), findsOneWidget,
+        reason: 'Only the selected game gets an animated media object');
+    expect(
+        tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).format,
+        PhysicalMediaFormat.disc);
+    expect(find.byTooltip('Cover view'), findsNothing,
+        reason:
+            'Presentation controls belong in details, not over the preview');
+    tester.view.physicalSize = const Size(832.5, 468.3);
+    await tester.pumpAndSettle();
+    final previewHeight = tester
+        .getSize(find.byKey(const ValueKey('library-media-preview')))
+        .height;
+    expect(tester.getSize(find.byType(PhysicalMediaView)).height,
+        greaterThanOrEqualTo(previewHeight * 0.5),
+        reason: 'The selected object must retain half the Thor preview height');
+    tester.view.physicalSize = const Size(1920, 1080);
+    await tester.pumpAndSettle();
+    await container.read(mediaPresentationProvider.notifier).toggleMedia();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-media-preview')), findsNothing);
+    await container.read(mediaPresentationProvider.notifier).toggleMedia();
     await tester.pumpAndSettle();
     expect(metadataScopes.covers, ['ps2'],
         reason: 'Console browsing must not hash every console cover');
