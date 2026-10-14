@@ -1,12 +1,15 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 40.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 43.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Current execution, 2026-10-14: S0-S10 COMPLETE; S11 ACTIVE (sole active stage);
-S12 NOT STARTED. SAVE-01 closure is reconciled in the status ledger, including
-actual post-retirement Drive publication/readback and expected-location restore.
-Earlier checkpoint scheduling below is historical, not current stage state.
+Current execution, 2026-10-14: S0-S11 COMPLETE; S12 ACTIVE (sole active stage).
+The owner's GBA/artwork report reopens FRONTEND-01; start with the verified
+console inventory and integration ledger in S12_FRONTEND_PROPOSAL.md. Repair GBA
+first, then close the ledger's other in-scope format/variant integrations and
+affected native artwork/motion acceptance. R3 final delivery is parked on that
+dependency. Earlier completion/scheduling checkpoints below are historical and
+do not supersede this current state. No new ROM systems or full scrape gate.
 
 S10 package-family configuration (owner, 2026-10-14): replace compiled discovery
 registrations with an automatically deployed shared JSON file, compact common

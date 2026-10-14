@@ -1,6 +1,24 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 42, 2026-10-14.
+Authoritative specification, revision 43, 2026-10-14.
+
+Owner missing-cover direction, 2026-10-14: when box art is missing/loading/failed,
+the existing 2D physical-media fallback must also carry the game's handwritten
+title label, with the same stable per-game readable color policy as the 3D label.
+Do not replace an available box cover or mistake this labelled raster fallback
+for 3D integration. Apply the fallback consistently to cover/card callers with a
+known game identity/title; verify recovery to box art and independent game labels.
+
+Owner coverage correction, 2026-10-14: inventory the supplied Socket 0.7 APK's
+identifiable consoles and maintain the per-console integration ledger in
+S12_FRONTEND_PROPOSAL.md before further rendering changes. GBA must use its
+actual 3D cartridge with the edition's cartridge-label texture; the library
+grid remains box art. Do not count a flat image or licensed fallback icon as
+3D integration. The representative-only completion claim is superseded; S12
+is ACTIVE until its applicable console integration and artwork-role criteria
+are reconciled. Inventory does not authorize new non-selectable ROM systems
+such as Xbox/Xbox 360 or Android-app support. Preserve the existing pipeline,
+and do not require full scraping to close missing model integration.
 
 Owner artwork correction, 2026-10-14: a cartridge/disc model must use the
 corresponding physical-media label texture, not the game's box-cover image.
@@ -1701,8 +1719,9 @@ Thor Frontends" and consider an S12 task. Record the candidate in
 modern, Socket-inspired frontend retaining R-Shop's red theme, using actual 3D
 physical-media models and animations rather than scraped cartridge pictures.
 
-S12 is COMPLETE after S10/S11 closure and the final FRONTEND-01 reconciliation in
-IMPLEMENTATION_STATUS.md (2026-10-14). The owner's 2026-10-13 objective update authorizes
+S12's earlier COMPLETE claim is superseded by the owner's 2026-10-14 coverage
+correction and the current console ledger. S10/S11 remain closed. The owner's
+2026-10-13 objective update authorizes
 implementation of the recorded FRONTEND-01 contract after S10/S11. Assistant
 suggestions in the source conversation remain design candidates, not verified
 technical facts. Owner update, 2026-10-13: use the supplied Socket August APK

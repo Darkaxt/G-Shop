@@ -1,11 +1,94 @@
 # S12 — 3D physical-media frontend
 
-Status: COMPLETE (2026-10-14). Final FRONTEND-01 acceptance and full-specification
-reconciliation are recorded in IMPLEMENTATION_STATUS.md; no required gaps remain.
-Authority: SPECIFICATION.md, revision 42, section 6f.
+Status: ACTIVE (reopened 2026-10-14). The owner reports the GBA selected preview
+falling back to a flat image. The earlier representative-only completion claim
+does not establish integration of the reference's other console formats.
+Authority: SPECIFICATION.md, revision 43, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
 Scheduling: after S10 and S11; neither stage's acceptance depends on this proposal.
+
+## Current console integration ledger — 2026-10-14
+
+This is the current coverage authority; it supersedes the representative-only
+format map and completion claim at the end of this document. The owner requests
+an APK inventory and integration ledger before further rendering changes.
+
+Fresh ZIP inventory of `D:/Downloads/Android/socket_release_0.7.0.apk`, SHA-256
+`bccf6bf5beccf5155645638e52a20f6e6e6deed902bd23b6b69ae7060c04bd70`, identifies:
+
+- **21 console-family definitions**, from compiled `.gdc` members directly under
+  `assets/scripts/models/platforms/`, excluding `android` and `platform_model`.
+  A definition proves an identifiable platform, not that its menu is reachable
+  or that a particular mesh/animation has been verified at runtime.
+- **16 exported selectable media scenes** (`cart_*.scn`): 15 ROM-media variants
+  plus Android. Regional SNES/Genesis and dual-mode GBC variants are not extra
+  consoles. The generic optical disc is not a console either.
+- **16 imported model scenes**, including two Android imports and a Vita model.
+  This corrects the earlier newer-APK count of fifteen. Imported resources are
+  not recovered original FBX/GLB files or permission to redistribute them.
+- **19 of those console families exist in R-Shop's current system catalogue**.
+  Xbox/Xbox 360 do not, so inventorying them does not authorize new ROM systems.
+- Current source `PhysicalMediaFormat.forSystem` binds **four consoles to three
+  geometries**. The other 15 currently selectable families have no 3D binding.
+  Licensed 2D fallback icons do not count as 3D implementation or verification.
+
+Each row tracks a console family, not a separate ACTIVE implementation stage.
+"Wired" means current renderer/selection/detail integration exists; it is not a
+claim that every regional label or every console-specific live workflow passed.
+Previous verification below remains evidence only for its actual tested scope.
+
+| Console family | R-Shop ID | APK evidence / required variant accounting | Current geometry and label wiring | Verification / remaining integration |
+| --- | --- | --- | --- | --- |
+| Game Boy | `gb` | `gb.gdc`; `cart_gb`; `gb.fbx` import | Wired: independent GB model; separate cached physical texture/sticker path | Earlier native geometry/motion/launch proof applies. Exact resolved GB label and box/grid role regression remain in the expanded reconciliation. |
+| Game Boy Color | `gbc` | `gbc.gdc`; `cart_gbc`, `cart_gbc_dual_mode`; `gbc_world.fbx` | Missing | Implement/reference-check both casing variants and their edition-based selection, label placement, motion and native integration. |
+| Game Boy Advance | `gba` | `gba.gdc`; `cart_gba`; `uploads_files_3322711_GBA_Cartridge.fbx` | Missing; current preview falls through to flat cover | **First repair.** Same GBA shell must survive missing/resolved labels; grid retains box art. Verify the reported 007 path without assuming image role from appearance. |
+| Nintendo 64 | `n64` | `n64.gdc`; `cart_n64`; `n64_cartridge.fbx` | Wired: independent N64 model and separate label path | Earlier native geometry/motion and exact Europe label/offline proof apply. Preserve these while closing missing formats. |
+| Nintendo Entertainment System | `nes` | `nes.gdc`; `cart_nes`; `nes.fbx` | Missing | Model, physical label, reference motion and integrated library/detail proof. |
+| Super Nintendo | `snes` | `snes.gdc`; `cart_snes_pal`, `cart_snes_us`; PAL/US imports | Missing | Both regional shells; explicit edition/region selection rather than arbitrary filename/list order; label/motion/native proof. |
+| Nintendo DS | `nds` | `nds.gdc`; `cart_nds`; `nds_cartridge_v2.glb` | Missing | DS game-card model, label/motion and native integration. DSi is not a separate APK definition in this count. |
+| Nintendo 3DS | `n3ds` | `3ds.gdc`; `cart_3ds`; `3ds.fbx` | Missing | Correct 3DS shell, label/motion and native integration. |
+| Nintendo Switch | `switch` | `switch.gdc`; `cart_switch`; `switch_cartridge.fbx` | Missing | Switch game-card model, label/motion and native integration. |
+| Sega Mega Drive / Genesis | `megadrive` | `genesis.gdc`; `cart_genesis`, `cart_megadrive`; shared cartridge import with regional materials | Missing | Regional presentation variants, physical label/motion and native integration; one console family, not two. |
+| PlayStation Portable | `psp` | `psp.gdc`; `cart_psp`; `umd_dis.fbx` | Missing | UMD shell/label/motion; do not substitute the ordinary disc. |
+| PlayStation Vita | `psvita` | `vita.gdc`; `vita.fbx` import; no `cart_vita` exported scene | Missing | Establish actual reference platform-to-model/animation binding, then integrate the correct card. Model presence alone is not runtime proof. |
+| PlayStation | `psx` | `psx.gdc`; generic `cart_disc` / `compact_disc.fbx` available | Wired: optical-disc geometry and separate label path | Earlier disc/reference and PS1 preview proof applies; resolved PS1 label/native role proof remains. |
+| PlayStation 2 | `ps2` | `ps2.gdc`; generic disc available | Wired: optical-disc geometry and separate label path | Earlier disc motion proof applies; resolved PS2 label/native role proof remains. |
+| PlayStation 3 | `ps3` | `ps3.gdc`; generic disc available | Missing | Verify reference binding/scale/material/motion before reusing disc; label and native integration. |
+| Dreamcast | `dreamcast` | `dreamcast.gdc`; generic disc available | Missing | Verify reference binding, disc label/motion and native integration. |
+| GameCube | `gc` | `gc.gdc`; generic disc available; no dedicated mini-disc named import | Missing | Verify actual reference scale/hub/label/motion; do not silently map to a full-size disc. |
+| Wii | `wii` | `wii.gdc`; generic disc available | Missing | Verify reference binding, disc label/motion and native integration. |
+| Wii U | `wiiu` | `wiiu.gdc`; generic disc available | Missing | Verify reference binding, disc label/motion and native integration. |
+| Xbox | Not in current catalogue | `xbox.gdc`; generic disc available | No selectable R-Shop system | Inventory only; no new console/emulator support authorized by this audit. |
+| Xbox 360 | Not in current catalogue | `xbox360.gdc`; generic disc available | No selectable R-Shop system | Inventory only; no new console/emulator support authorized by this audit. |
+
+### Artwork-role and closure rules
+
+For every in-scope row, record reference geometry/material/label placement,
+selection/insertion motion, edition/region binding, actual library/detail
+rendering, missing/resolved/failed/offline label behavior and preserved launch
+identity. Reuse the existing renderer/cache/launch pipeline. Exactly one selected
+library model remains animated; grid cards remain box art. A support texture or
+whole-cartridge image must never replace grid box art, and a box image must never
+be stretched onto the model. A missing label retains the handwritten sticker on
+the same model, not a flat cover. Do not require a full-collection scrape.
+
+Current advancement blockers are internal: missing mappings/geometries and their
+integration/evidence, plus the reported 007 artwork-role investigation. S12 stays
+ACTIVE while these are actionable; delivery R3 depends on their reconciliation.
+No required row is silently deferred or declared complete by a fallback icon.
+
+Owner addition, 2026-10-14: missing box-art raster fallbacks also need the game's
+handwritten title sticker with stable per-game color, not an anonymous 2D media
+icon. This is currently **missing**, not implemented by this documentation edit.
+Wire known title/identity through the existing common cover fallback, retain the
+licensed raster asset, and verify missing/loading/failed/offline fallback,
+different-title isolation and recovery to the actual box art. This belongs to
+ACTIVE S12 alongside artwork-role separation, not a later unnamed refinement.
+
+This inventory is verified against ZIP member names and current renderer source;
+it does not claim newly decoded mesh contents, live reference bindings, new
+feature tests, APK changes or a new release.
 
 ## Owner direction and source boundary
 

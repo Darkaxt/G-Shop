@@ -5,17 +5,46 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current correction — S12 ACTIVE, 2026-10-14
+
+The owner reports a flat GBA selected preview and questions the 007 artwork role,
+then explicitly requests the APK-console inventory/integration ledger first.
+The earlier representative-only S12 completion claims below are superseded.
+S0-S11 remain COMPLETE; S12 is the sole ACTIVE implementation stage. Current
+acceptance and source-bound inventory are in
+[S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md#current-console-integration-ledger--2026-10-14).
+
+Fresh APK inventory identifies 21 console families, 16 exported media scenes
+(15 ROM-media variants plus Android), and 16 imported scenes. Nineteen console
+families exist in R-Shop; Xbox/Xbox 360 are inventory-only. Current source binds
+four consoles (GB, N64, PS1, PS2) to three 3D geometries. Fifteen current-console
+bindings are missing; 2D fallback icons do not satisfy those integrations.
+Existing geometry/motion/label evidence remains bounded to the actually verified
+formats and editions, not all 21 families. No renderer/product code changed in
+this inventory checkpoint, and no new build, scrape or release was performed.
+
+Internal advancement blockers: missing in-scope geometry/mapping, typed physical
+labels/box-grid separation, reference motion and integrated verification as
+itemized in the ledger. The owner's additional title sticker on missing 2D box-art
+fallbacks is recorded as required, still missing S12 work. GBA is the first repair;
+the precise 007 source-image
+role remains under investigation, not presumed swapped. Resolve the listed
+implementation and fresh affected workflow checks before S12 closure. No tracked
+deferrals. R3 is parked BLOCKED because final delivery reconciliation depends on
+this reopened earlier frontend acceptance; restart persistence/host-staging
+cleanup and screens-off handover remain recorded and are not claimed complete.
+
 ### Authorized publication and device handover — 2026-10-14
 
 The owner now requests GitHub publication, ObtainX tracking, installation of the
 published production APK, debug removal and restoration of Drive/API setup.
-S0-S12 remain COMPLETE; the delivery acceptance is separate and unfinished.
+S0-S11 remain COMPLETE; S12 coverage is reopened above. Delivery is unfinished.
 
 | Delivery stage | Status | Acceptance / remaining |
 | --- | --- | --- |
 | R1 signed publication | COMPLETE | Release JVM tests/assembly, APK identity/signer/privacy, source commit/tag/publication and independent public download verification passed. |
-| R2 updater/install/configuration | BLOCKED | Public APK installed and byte-verified; library/configuration restored. Production OAuth creation awaits action-time confirmation, and Thor wake/unlock is requested for ObtainX/credential setup. Online Drive verification and debug removal remain. |
-| R3 final handover | NOT STARTED | Verify updater/source/settings/permission state, cleanup private staging after restoration, commit/sync final delivery record and switch both screens off. |
+| R2 updater/install/configuration | COMPLETE | Production OAuth created; real sign-in and Drive folder reads pass. ObtainX tracks installed 1.8.0; metadata credentials saved in production secure storage. Source definitions unchanged; debug/test packages removed and absence verified. |
+| R3 final handover | BLOCKED | Depends on reopened S12 acceptance above. Original catalogue sync was gracefully cancelled/joined before the queued Game & Watch-only sync began; its terminal state, restart persistence, staging cleanup and final handover remain. |
 
 Private signing identity is outside Git under the Windows user's `.android/rshop-release`.
 Reuse it for all updates; `scripts/release_signing.ps1 -LoadEnvironment` loads its
@@ -71,29 +100,38 @@ staging plus both completed transport roots are removed through inspected exact
 cleanup tickets; host private migration snapshots remain intentionally retained
 until production setup is verified. No ROM/save/shared metadata is removed.
 
-External advancement blockers for R2:
-- Production Android OAuth client creation in the existing Google project awaits
-  the pending action-time confirmation. Package and public certificate fingerprint
-  are already prepared; no billing/scope expansion is proposed. This blocks
-  production sign-in and real Drive catalogue verification.
-- A combined wake/Wi-Fi/ObtainX deep-link shell command was rejected before
-  execution as `blocked by policy`. No bypass or broad device-control prohibition
-  is inferred. Public APK installation and read-only/root restoration commands
-  separately succeeded. Thor remains Asleep; wake/unlock was requested for normal
-  ObtainX registration and metadata credential setup from the existing private
-  environment file. Neither is claimed configured yet.
+R2 closure: the owner supplies action-time confirmation and wakes Thor. The
+existing Google project now contains Android client
+`593016299117-k2a4j79nbptrgkgkosapffm8p85gjqq2.apps.googleusercontent.com`, bound to
+the production package and verified release SHA-1. No billing or broader scopes
+are introduced. The old tab's input connection stalls; a fresh tab in the same
+browser session recovers control, and Google reports OAuth client created. The
+production app's normal Connect flow selects the existing default account and
+successfully reads My Drive plus its child folders. No tokens are printed.
 
-Resolve these through the pending confirmation and awake device, verify actual
-source access without starting a scrape, then remove the debug/test packages.
-R3 depends on this handover and remains NOT STARTED. Screens are currently off;
-no ScreenScraper collection job is started. Retained recovery staging is
+ObtainX's normal Add app workflow registers `https://github.com/Darkaxt/R-Shop`
+with custom ID `com.darkaxt.rshop`, installed version `1.8.0`, latest `v1.8.0` and
+prereleases false. The app-owned persisted record independently confirms these
+fields. Existing upstream R-Shop tracking is untouched. ScreenScraper's account,
+developer access/software name and IGDB's client credentials are entered from the
+private environment file through the actual production settings/save actions;
+encrypted storage is present. No collection scrape is started or claimed.
+
+Production source definitions compare exactly with the original seven Drive
+definitions, and all 40 console configurations remain. Exact debug/test package
+uninstalls succeed; only `com.darkaxt.rshop` remains installed. ROMs, saves and
+shared metadata are untouched. The read-only catalogue sync is retained through
+its completion and final persistence checks in R3; no fresh-all-catalogue claim is
+made from the successful root-folder read alone. No R2 blocker remains.
+
+Retained recovery staging until final persistence verification is
 `D:/Temp/rshop-release-20261014`, with open cleanup transaction
 `12f8e436b77bbc1524efc1e92305e174`; it must be finalized after verified restoration.
 
-### Current schedule — S0-S12 COMPLETE, 2026-10-14
+### Previous completion checkpoint — superseded by current correction above
 
-S0-S12 are COMPLETE. No S0-S12 implementation stage remains ACTIVE and no required
-S0-S12 blocker or tracked deferral remains. Publication is now separately authorized
+At this previous checkpoint S0-S12 were reported COMPLETE. The current correction
+above supersedes that S12 conclusion. Publication was separately authorized
 under the delivery schedule above. Historical
 progress notes below do not supersede this schedule or the closure reconciliations.
 
