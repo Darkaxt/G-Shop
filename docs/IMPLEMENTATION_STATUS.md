@@ -22,10 +22,36 @@ normal depth and red-channel sampling. Focused converter/material/model/insertio
 checks and scoped Dart analysis pass; rebuilt shader compilation succeeds under
 PowerShell 7. The earlier Windows PowerShell 5 invocation stripped the JSON
 argument and failed, not a shader compilation success.
-Native acceptance is pending original gated request 1099
-(`9605dba463cd49e780fb68f4a3089e00`), with the current all-format frontend test
-requiring actual GPU map counts and targeted affected-format captures. Keep S12
-ACTIVE; no material-fidelity or stage-completion claim follows from host checks.
+Native material-map integration, 2026-10-15: original gated request 1099
+(`9605dba463cd49e780fb68f4a3089e00`) completed with build/helper exit 0,
+gate acquired, observed two workers/no parallel/3 GiB Gradle heap, assessed
+in-process Kotlin, configured one-fork/512 MiB tests and daemon exit verified.
+No memory failure; native concurrency hints remain unverified. APK SHA-256:
+`bf11e67849c8bde9946ca4d7dfd2354382354a60e60ee56c128b8dc9ed5deca2`.
+The prebuilt-APK native driver exits 0. Its actual CoverSection/GPU report confirms
+all 16 source variants rendered without errors, including NES 2, UMD 4, SNES PAL 3,
+Genesis 3 and SNES US 5 material textures. Native Library/filter checks also pass;
+production bootstrap is false and ROM request count is zero.
+
+Original owner-supplied Socket 0.7 was temporarily installed with a pre-install
+absence/hash baseline and three isolated non-playable fixtures. Inspected source
+NES, UMD and regional SNES PAL reference frames are retained beside the native
+R-Shop captures. These establish geometry/reference views, not full material
+fidelity: R-Shop's NES casing is visibly darker, and UMD's opaque central source
+badge overlaps the generated fallback title. Source lighting/material effects
+and the UMD label composition remain internal S12 acceptance blockers; do not
+close S12 from successful map binding alone. Affected real-launch/lifecycle
+reconciliation is still required. S13 stays NOT STARTED, including the owner's
+already-recorded synchronized boxed-to-normal zoom refinement.
+
+Both temporary apps were removed (source app through reviewed cleanup ticket;
+native driver removed sharedproof and absence was checked). Only this run's ADB
+forward tcp:60585 was removed; pre-existing forwards and production data remain.
+Fixture cleanup of `/storage/emulated/0/RShopS12Materials-20261015` reported
+`unsafe_android_member` / exit 45 (stat identity changed during hash snapshot),
+first on the NES file, then PSP after source-app removal. No deletion ticket was
+issued and no alternate deletion was attempted. The six tiny synthetic files
+(1,203 bytes total) remain for diagnosed helper cleanup; original APKs are kept.
 
 Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
 recovered variants with completed label/GPU readiness. Native Library checks
