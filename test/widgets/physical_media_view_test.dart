@@ -15,6 +15,28 @@ import 'package:retro_eshop/utils/game_metadata.dart';
 // Host checks cover binding, artwork roles and the existing launch lifecycle.
 // Actual indexed GPU rendering is checked on Android, not inferred from these.
 void main() {
+  testWidgets('UMD fallback uses the disc layout away from the central badge',
+      (tester) async {
+    final system =
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'psp');
+    const game =
+        GameItem(filename: 'Sample (USA).iso', displayName: 'Sample', url: '');
+    await tester.pumpWidget(MaterialApp(
+        home: CoverSection(
+      game: game,
+      system: system,
+      coverUrls: const [],
+      reducedMotion: true,
+      metadata: GameMetadata.parse(game.filename),
+    )));
+    expect(
+        tester
+            .widget<HandwrittenMediaSticker>(
+                find.byType(HandwrittenMediaSticker))
+            .disc,
+        isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
   test('source materials retain normal depth and scalar texture channels', () {
     final uniform = SocketMediaGpu.materialUniforms({
       'color': [1, 1, 1, 1],

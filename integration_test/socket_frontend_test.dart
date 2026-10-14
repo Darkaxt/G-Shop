@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +50,29 @@ void main() {
       converted = true;
     }
     await tester.pump();
-    await binding.takeScreenshot(name);
+    final png = await binding.takeScreenshot(name);
+    if (name == 'normal-cover-nes') {
+      final codec = await ui.instantiateImageCodec(Uint8List.fromList(png));
+      final image = (await codec.getNextFrame()).image;
+      try {
+        final rgba =
+            (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        final rect = tester.getRect(find.byType(PhysicalMediaView));
+        final factor = image.width /
+            (tester.view.physicalSize.width / tester.view.devicePixelRatio);
+        final x = ((rect.left + rect.width * .52) * factor).round();
+        final y = ((rect.top + rect.height * .74) * factor).round();
+        final pixel = (y * image.width + x) * 4;
+        final channels = List.generate(3, (i) => rgba.getUint8(pixel + i));
+        binding.reportData!['nes-front-lighting-rgb'] = channels;
+        expect(channels.every((v) => v > 90 && v < 220), isTrue,
+            reason: 'Source gray casing must receive direct lighting; '
+                'authored front normals must not become ambient-only');
+      } finally {
+        image.dispose();
+        codec.dispose();
+      }
+    }
   }
 
   testWidgets('native normal cover binds every recovered media variant',

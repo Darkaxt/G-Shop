@@ -47,11 +47,25 @@ already-recorded synchronized boxed-to-normal zoom refinement.
 Both temporary apps were removed (source app through reviewed cleanup ticket;
 native driver removed sharedproof and absence was checked). Only this run's ADB
 forward tcp:60585 was removed; pre-existing forwards and production data remain.
-Fixture cleanup of `/storage/emulated/0/RShopS12Materials-20261015` reported
-`unsafe_android_member` / exit 45 (stat identity changed during hash snapshot),
-first on the NES file, then PSP after source-app removal. No deletion ticket was
-issued and no alternate deletion was attempted. The six tiny synthetic files
-(1,203 bytes total) remain for diagnosed helper cleanup; original APKs are kept.
+Fixture cleanup initially reported `unsafe_android_member` / exit 45. Read-only
+diagnostics observed one-second ctime normalization during hashing, without inode,
+size, mtime or content changes. A fresh unchanged-checks review then passed.
+Transaction `04bf17d0d27cc6a6b7560fb9dfca14a0` was fully inspected, separately
+ticketed and applied: six synthetic files plus eight directories removed, 1,203
+bytes, terminal applied/no residuals. Original APKs are kept; no helper bypass.
+
+Lighting/layout correction in progress: a failing widget reproduction identifies
+UMD's fallback incorrectly using the non-disc title layout; it now uses the disc
+layout. Focused media/model checks pass. Native build 1101 passes build/gate/
+daemon lifecycle with the usual profile, but its native NES brightness regression
+fails: removing the normal-facing flip did not fix the dark front. That speculative
+change is reverted. Actual `scenes/main.tscn` inspection identifies the differing
+light: source camera-relative direction is (0.3154230118, 0.8141155243,
+0.4875697494), not the renderer's invented (-0.6, -0.8, 1.7). The shader now uses
+the source direction. Scoped analysis and shader compilation pass. Native
+acceptance is pending original gated request 1103
+(`721744e55b5a47d2a40e0114285d7fdb`); do not call this lighting fix verified yet.
+Failed native app/forward were cleaned and both displays confirmed OFF.
 
 Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
 recovered variants with completed label/GPU readiness. Native Library checks

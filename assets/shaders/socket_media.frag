@@ -46,7 +46,9 @@ void main() {
   n = normalize(mat3(t * invLength, b * invLength, n) * tangentNormal);
   if (!gl_FrontFacing) n = -n;
   vec3 view = normalize(vec3(0.0, 0.0, 4.0) - v_position);
-  vec3 light = normalize(vec3(-0.6, -0.8, 1.7));
+  // Socket main scene's DirectionalLight3D +Z, transformed by its -Z camera.
+  // The prior invented bottom-side light shadowed the tilted cartridge front.
+  vec3 light = normalize(vec3(0.3154230118, 0.8141155243, 0.4875697494));
   vec3 halfVector = normalize(view + light);
   float ndl = max(dot(n, light), 0.0), ndv = max(dot(n, view), 0.001);
   float ndh = max(dot(n, halfVector), 0.0), vdh = max(dot(view, halfVector), 0.0);

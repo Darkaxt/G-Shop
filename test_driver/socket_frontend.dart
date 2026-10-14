@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:integration_test/integration_test_driver_extended.dart';
 
-Future<void> main() =>
-    integrationDriver(onScreenshot: (name, bytes, [args]) async {
+Future<void> main() => integrationDriver(
+    writeResponseOnFailure: true,
+    onScreenshot: (name, bytes, [args]) async {
       if (!{
         'normal-cover-nes',
         'normal-cover-psp',
@@ -16,7 +17,8 @@ Future<void> main() =>
       const root = 'D:/Temp/rshop-socket07-integration-20261014';
       await File('$root/captures/$name.png').writeAsBytes(bytes);
       return true;
-    }, responseDataCallback: (data) async {
+    },
+    responseDataCallback: (data) async {
       final summary = {...?data}..remove('screenshots');
       await writeResponseData(summary,
           testOutputFilename: 'native-normal-frontend',

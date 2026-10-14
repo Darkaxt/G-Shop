@@ -54,7 +54,8 @@ class _CoverSectionState extends State<CoverSection> {
     final sticker = HandwrittenMediaSticker(
         identity: game.selectionKey,
         title: game.displayName,
-        disc: format == PhysicalMediaFormat.disc);
+        disc: format == PhysicalMediaFormat.disc ||
+            format == PhysicalMediaFormat.psp);
     return Column(
       children: [
         Expanded(
