@@ -37,8 +37,29 @@ hardcoded Super Mario lookup in the parameterized test; the corrected exact
 sample lookup passes the complete refresh/rebuild workflow. No owner collection,
 credentials or remote ROMs are changed by that isolated host verification.
 Scoped analysis is clean after correcting one missing-brace lint. Corrected
-package request 1068 is retained in the shared gate queue. Native texture/fallback
-verification and corrected-package acceptance remain required before closure.
+package request 1068 completed successfully: gate acquired, two workers, parallel
+projects disabled, observed Gradle heap 3 GiB, Kotlin configured in-process,
+and verified post-build daemon exit. No memory failure or budget increase occurred.
+Test-task configuration records one fork/512 MiB; assembly did not execute JVM
+tests. The app's native compile/link pool is one; plugin-wide effective native
+concurrency remains unproven. The in-place installed APK independently matches
+SHA-256 `618f27a00257467e5f7c6175392e60431dd49e6d6decb49e09dac4d00e0d3ed0`
+(180,755,442 bytes). The old attached session's field layout was stale, so it is
+not accepted as proof of the correction.
+
+On the freshly installed package, the normal GoldenEye 007 (Europe) metadata
+settings refresh completes one exact matched game and three artwork items.
+Its physical label and box cover are different durable shared-cache files.
+Actual detail and selected-library captures show the cartridge label on the
+N64 model while the grid retains box art. Before the refresh, the physical-label
+input was null despite a present box cover, confirming the roles are not mixed.
+The scoped review used the exact official N64 candidate, retaining Europe;
+the broad paused job 76 was not resumed. Controller/menu and measured touch
+controls performed navigation/refresh; the final search used the instantiated
+text-field change/submit callbacks after host key injection failed to edit it
+reliably. No emulator launch, ROM replacement or save operation occurred.
+Current-package motion/resource and remaining frontend acceptance are still
+required before S12 closure.
 The private VM-created fixture route hit the known evaluator/navigation assertion;
 its attempted native image verification is rejected. Its loopback server and ADB
 reverse are closed. Use ordinary native game/metadata controls for the remaining
