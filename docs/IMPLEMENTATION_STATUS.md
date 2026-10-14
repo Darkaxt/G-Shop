@@ -13,6 +13,33 @@ do not supersede this schedule or the closure reconciliations.
 
 ### Current S12 work — ACTIVE
 
+#### Current acceptance checkpoint — 2026-10-14
+
+This checkpoint supersedes older remaining-work statements below; it does not
+close S12 while the final package and cleanup acceptance remain unfinished.
+
+| FRONTEND-01 boundary | Applicable evidence / remaining work |
+| --- | --- |
+| Reference proportions, physical geometry and motion | Supplied 0.7 hash and native reference captures are inspected. Installed request 1068 uses independent GB/N64/disc meshes (164/107/240 exterior faces), with corrected clockwise pose, left-side/underside exposure and arched N64 label. Frame-bound native probes complete GB/N64/disc at 859,250/712,724/1,602,449 us against configured 850/700/1,600 ms. Joined recordings scan 400/451/368 frames without evidence truncation; inspected sheets show lift/turn/descent/settle and the disc spin/hub. Raw-H.264 timelines remain estimated, not measured capture pacing. No proprietary Socket mesh, texture or code is redistributed. |
+| Existing real installation/launch workflow | The normal tiny GB download completes and Open reaches RetroArch's actual game screen. Current-package media state is paused with inserted value 1 and no pending work; normal return resumes the identical state with value 0 and idle motion. The Open recording begins after the transition and is not claimed as insertion-video proof; the separate frame-bound recording proves current rendering, and the prior unchanged handoff recording proves no pre-cover reset. |
+| Exact physical label, cover separation and offline reuse | Normal exact Europe refresh and actual detail/library captures are recorded below. With active default network **none**, decoded image memory is cleared, then normal details decode the durable cartridge label, cover and screenshot again. The physical label and box cover remain distinct file bindings. Wi-Fi is restored to its original enabled state. Host checks also verify missing/pending/failure fallback, exact edition isolation and provider-closed durable reconstruction. |
+| Bounded scalable browsing and lifecycle | Current PS1 native controller navigation observes eight selection changes, at most one mounted preview and matching selected identity across 286 entries. Build/raster P95 are 5,552/3,308 us, maxima 734,051/25,087 us; debug VM-observer overhead is explicit, not release FPS. Cache is 75,370,400 bytes, 51 live/zero pending images. Current N64 steady P95 is 5,660/3,817 us across 246 frames; native app PSS/RSS is 669,497/804,036 KiB versus first-slice 831,059/954,868 KiB. Home/background stops idle motion and clears pending insertion; return retains identity. Earlier 2,632-entry GB navigation and unchanged virtualized-query/filter evidence remain applicable. |
+| Theme, fallback, input and save controls | Red-background and affected media/action regressions pass. Existing native Display controls, reduced motion, save section navigation and restore-confirm/cancel evidence below remain applicable; no save mapping or conflict logic changed. The visual review finds a remaining custom Delete red-on-red style; its regression reproduces both focus states. White label/icon on opaque `#C62828` now passes contrast and unchanged action-callback checks. Scoped analysis is clean. |
+| Final package and delivery | Request 1074 (`172259a48ee744ac8234108ab09a84f0`) is submitted once through the shared gate for the Delete contrast correction. Retain its original supervised session. Build/lifecycle result, in-place package digest and native corrected-control inspection remain required; no release is authorized. |
+| Exact cleanup | Owner expressly permits hash-checked ADB cleanup because the Windows helper has no Android target support. Socket's installed APK matches the supplied 0.7 hash before uninstall. Four exact reference files (37,485 bytes) are rechecked and removed, followed only by empty directories; absence is verified. Original supplied APKs and Cocoon Home remain unchanged. Host scratch still needs reviewed transactional cleanup after required evidence is retained and consumers exit. |
+
+Remaining internal advancement blockers: final request-1074 package/native
+contrast inspection, reviewed host-output cleanup and final integrated
+reconciliation/commit. No required work is deferred. Messier handwriting remains
+the owner's optional, non-urgent refinement, not a completion gate.
+
+Private probe failures are not product passes: an arbitrarily interrupted
+renderer call failed to join and was terminated by a controlled cold app start;
+read-only observer clients with unresolved evaluated Futures were identity-checked
+and cancelled. Frame-bound probes and synchronous bounded snapshots then provide
+the accepted evidence above. No production timeout, retry or navigation workaround
+was added to accommodate the debugger.
+
 Owner correction, revision 42: the physical model was incorrectly using box art
 as its label. This invalidates the earlier resolved-artwork visual acceptance;
 the successful launch/save-input evidence remains applicable. The current patch

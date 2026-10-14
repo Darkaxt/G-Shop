@@ -139,7 +139,8 @@ class ActionButtonsRow extends StatelessWidget {
           child: _IconActionButton(
             icon: Icons.share_rounded,
             color: shareEnabled ? Colors.white54 : Colors.white12,
-            isFocused: shareEnabled && isSectionFocused && focusedButtonIndex == 1,
+            isFocused:
+                shareEnabled && isSectionFocused && focusedButtonIndex == 1,
             accentColor: accentColor,
             enabled: shareEnabled,
             onTap: onShare!,
@@ -151,7 +152,9 @@ class ActionButtonsRow extends StatelessWidget {
           child: _IconActionButton(
             icon: Icons.shelves,
             color: collectionEnabled ? Colors.white54 : Colors.white12,
-            isFocused: collectionEnabled && isSectionFocused && focusedButtonIndex == 2,
+            isFocused: collectionEnabled &&
+                isSectionFocused &&
+                focusedButtonIndex == 2,
             accentColor: accentColor,
             enabled: collectionEnabled,
             onTap: onCollection!,
@@ -238,9 +241,9 @@ class _PrimaryActionButton extends StatelessWidget {
         label = l.gameDetail_extracting;
         showProgressFill = false;
       case DownloadButtonState.delete:
-        bgColor = Colors.red.withValues(alpha: isFocused ? 0.18 : 0.1);
+        bgColor = const Color(0xFFC62828);
         borderColor = Colors.red.withValues(alpha: isFocused ? 0.5 : 0.3);
-        textColor = Colors.redAccent;
+        textColor = Colors.white;
         icon = Icons.delete_outline_rounded;
         label = l.gameDetail_delete;
         showProgressFill = false;
@@ -277,7 +280,8 @@ class _PrimaryActionButton extends StatelessWidget {
           color: bgColor,
           borderRadius: radius,
           border: Border.all(
-            color: isFocused ? Colors.white.withValues(alpha: 0.9) : borderColor,
+            color:
+                isFocused ? Colors.white.withValues(alpha: 0.9) : borderColor,
             width: isFocused ? 2 : 1.5,
           ),
           boxShadow: isFocused
@@ -358,12 +362,11 @@ class _PrimaryActionButton extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    if (isMulti &&
-                        state == DownloadButtonState.download) ...[
+                    if (isMulti && state == DownloadButtonState.download) ...[
                       SizedBox(width: rs.spacing.sm),
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
                         decoration: BoxDecoration(
                           color: accentColor.withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(6),
