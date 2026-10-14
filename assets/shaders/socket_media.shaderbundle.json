@@ -1,0 +1,4 @@
+{
+  "SocketMediaVertex": { "type": "vertex", "file": "socket_media.vert" },
+  "SocketMediaFragment": { "type": "fragment", "file": "socket_media.frag" }
+}

@@ -89,7 +89,12 @@ index/vertex buffer hashes, original triangle counts and separate label surfaces
 Focused host checks pass source bindings, motion formulas/timings and the existing
 insertion/cancellation/artwork contracts. The selected view now uses indexed
 Flutter GPU draws, not simplified painter geometry. Host Skia tests cannot prove
-this GPU renderer; the isolated Android proof is queued through the shared gate.
+this GPU renderer. Gated ticket 1086 subsequently built the isolated Android proof.
+Real Thor GPU submissions and insertion-control completion passed all 16 variants
+after a reproduced/corrected camera-depth defect (debug hot restart, not release
+repackaging). GB's label is visibly correct; GBA/UMD resting orientation and
+material/reference fidelity remain defects to resolve. Full normal-library,
+edition-artwork and launch reconciliation is not proved by this isolated app.
 
 Vita's supplied import has no UV channel and its referenced exported selectable
 scene is absent. The converter retains every imported triangle, uses the existing

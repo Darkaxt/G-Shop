@@ -7,6 +7,23 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
+Native renderer checkpoint, 2026-10-15: isolated `sharedproof` APK from gated
+ticket 1086 installed with an absence/hash baseline on Thor `bfa98654`; no owner
+database/authentication or ROM launch was used. Initial actual pixels exposed
+reversed perspective depth. The regression test reproduced the wrong +Z depth
+order, then passed after correction. A debug hot restart loaded that source fix;
+all 16 variants completed real GPU submissions with resolved labels, expected
+triangle counts and real insertion-control completion. GB label orientation/depth
+now passes targeted visual inspection. GBA and UMD still appear upside down in
+their resting presentation, and UMD material/lighting fidelity needs comparison.
+These remain internal S12 blockers, not acceptance waived by green GPU status.
+Normal library/detail artwork/launch regression and full reference reconciliation
+are still required. This was hot-restarted source evidence, not a rebuilt release.
+Test package cleanup transaction `b56864e4300f398623db86ae074ff6b2` was reviewed,
+ticketed and applied; the isolated app/data were removed. Production is untouched.
+Both display states were verified OFF. Private source/oracle/captures remain needed
+for diagnosis; no asset-bearing build was uploaded.
+
 Owner clarification, revision 48: use an in-app original Socket APK importer and
 default flat artwork, not the private-release route. No extracted assets may ship
 in public source/APKs. The isolated renderer build remains useful diagnostic

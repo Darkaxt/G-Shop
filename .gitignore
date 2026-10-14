@@ -81,3 +81,5 @@ ROADMAP_1.0.md
 
 # Local backup of pre-redesign docs site (keep until new site is verified, then delete)
 docs-old/
+# Owner-provided Socket extraction oracle; never publish recovered assets.
+/assets/socket_media/

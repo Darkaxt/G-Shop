@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_gpu:
+    sdk: flutter
+  vector_math: 2.4.2
   flutter_localizations:
     sdk: flutter
   intl: 0.20.3
@@ -68,6 +71,8 @@ flutter:
         - asset: assets/fonts/Kalam-Regular.ttf
   assets:
     - assets/fonts/Kalam-OFL.txt
+    - assets/socket_media/
+    - assets/shaders/socket_media.shaderbundle
     - assets/config/emulator_families.json
     - assets/sounds/
     - assets/icon.png

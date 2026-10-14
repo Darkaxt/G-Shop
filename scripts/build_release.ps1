@@ -8,6 +8,12 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Push-Location $projectRoot
 try {
+    # S12 local oracle builds may include owner-extracted assets. Public release
+    # packaging must wait for S13's original-APK importer and asset-free manifest.
+    if ((Get-Content -LiteralPath (Join-Path $projectRoot 'pubspec.yaml') -Raw) -match 'assets/socket_media/') {
+        throw 'Public release blocked: remove bundled Socket resources and complete the S13 local APK importer first.'
+    }
+    & (Join-Path $PSScriptRoot 'build_media_shaders.ps1')
     # Official Flutter release preparation filters dev-only native plugins.
     # --config-only returns before Gradle execution; the actual build uses the gate.
     # Do not pass --no-pub: Flutter intentionally skips plugin regeneration then.

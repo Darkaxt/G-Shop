@@ -46,7 +46,8 @@ class _CoverSectionState extends State<CoverSection> {
   @override
   Widget build(BuildContext context) {
     final game = widget.game, system = widget.system;
-    final format = PhysicalMediaFormat.forSystem(system.id);
+    final format = PhysicalMediaFormat.forSystem(system.id,
+        region: widget.metadata.region.name);
     final physical = format != null && _physical && widget.physicalMediaEnabled;
     final sticker = HandwrittenMediaSticker(
         identity: game.selectionKey,
@@ -71,7 +72,7 @@ class _CoverSectionState extends State<CoverSection> {
                             cachedUrl: widget.physicalLabelUrl,
                             placeholder: sticker,
                             errorWidget: sticker,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.fill,
                             memCacheWidth: 640))
                     : Hero(
                         tag: game.filename,

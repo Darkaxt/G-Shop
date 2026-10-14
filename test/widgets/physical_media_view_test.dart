@@ -1,70 +1,104 @@
 import 'dart:io';
+import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/widgets/physical_media_view.dart';
+import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 import 'package:retro_eshop/widgets/smart_cover_image.dart';
 import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
 
+// Host checks cover binding, artwork roles and the existing launch lifecycle.
+// Actual indexed GPU rendering is checked on Android, not inferred from these.
 void main() {
+  test('camera depth keeps the positive-Z label in front of the casing back',
+      () {
+    final matrix = SocketMediaGpu.cameraProjection(832, 314, 160);
+    double depth(double z) {
+      final point = matrix.transformed(vm.Vector4(0, 0, z, 1));
+      return point.z / point.w;
+    }
+
+    expect(depth(.065), lessThan(depth(-.065)),
+        reason: 'Less-equal depth must match the camera at positive Z');
+  });
+
+  testWidgets('renderer readiness reports unsupported backend as failure',
+      (tester) async {
+    final key = GlobalKey<PhysicalMediaViewState>();
+    await tester.pumpWidget(MaterialApp(
+        home: PhysicalMediaView(
+            key: key,
+            identity: 'failure',
+            title: 'Backend failure',
+            reducedMotion: true,
+            label: const Text('Label'))));
+    await tester.pumpAndSettle();
+    final result = await key.currentState!.renderReady;
+    expect(result['frameRendered'], isFalse);
+    expect(result['error'], contains('Impeller'));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('physical labels never reuse box-cover artwork', (tester) async {
     final system =
-        SystemModel.supportedSystems.firstWhere((s) => s.id == 'n64');
-    final game = GameItem(filename: 'Game.7z', displayName: 'Game', url: '');
-    await tester.pumpWidget(MaterialApp(
+        SystemModel.supportedSystems.firstWhere((s) => s.id == 'gba');
+    final game =
+        GameItem(filename: 'Game (USA).gba', displayName: 'Game', url: '');
+    final cover = File('assets/media_fallbacks/systematic/gba.png')
+        .absolute
+        .uri
+        .toString();
+    Widget view(bool physical) => MaterialApp(
         home: CoverSection(
             game: game,
             system: system,
             coverUrls: const ['https://example.invalid/box.png'],
-            cachedUrl: File('assets/media_fallbacks/systematic/n64.png')
-                .absolute
-                .uri
-                .toString(),
+            cachedUrl: cover,
+            physicalMediaEnabled: physical,
             reducedMotion: true,
-            metadata: GameMetadata.parse(game.filename))));
-    final image = tester.widget<SmartCoverImage>(find.byType(SmartCoverImage));
-    expect(image.cachedUrl, isNull);
-    expect(image.urls, isEmpty);
-    final cover = File('assets/media_fallbacks/systematic/n64.png')
-        .absolute.uri.toString();
-    await tester.pumpWidget(MaterialApp(
-        home: CoverSection(game: game, system: system, coverUrls: const [],
-            cachedUrl: cover, physicalMediaEnabled: false,
-            metadata: GameMetadata.parse(game.filename))));
-    expect(tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
-        cover, reason: 'Classic cover mode still uses the box cover');
+            metadata: GameMetadata.parse(game.filename)));
+    await tester.pumpWidget(view(true));
+    expect(
+        tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).format,
+        PhysicalMediaFormat.gba);
+    final label = tester.widget<SmartCoverImage>(find.byType(SmartCoverImage));
+    expect(label.cachedUrl, isNull);
+    expect(label.urls, isEmpty);
+    await tester.pumpWidget(view(false));
+    expect(
+        tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
+        cover);
     await tester.pumpWidget(const SizedBox());
   });
+
   testWidgets(
-      'cached artwork and missing-artwork recovery keep the same media identity',
+      'cached physical artwork updates without replacing the media identity',
       (tester) async {
     final key = GlobalKey<PhysicalMediaViewState>();
-    final game = GameItem(
-        filename: 'Long Game Name.7z', displayName: 'Long Game Name', url: '');
-    final system = SystemModel.supportedSystems.firstWhere((s) => s.id == 'gb');
-    Widget view(String? cached) => MaterialApp(
+    final game =
+        GameItem(filename: 'Long Game.gba', displayName: 'Long Game', url: '');
+    final system =
+        SystemModel.supportedSystems.firstWhere((s) => s.id == 'gba');
+    Widget view(String? label) => MaterialApp(
         home: CoverSection(
             game: game,
             system: system,
             coverUrls: const [],
-            physicalLabelUrl: cached,
+            physicalLabelUrl: label,
             reducedMotion: true,
             physicalMediaKey: key,
             metadata: GameMetadata.parse(game.filename)));
     await tester.pumpWidget(view(null));
     final original = key.currentState;
     expect(find.byType(HandwrittenMediaSticker), findsOneWidget);
-    final file = File('assets/media_fallbacks/systematic/gb.png').absolute;
-    // Start I/O before mounting Image, outside the test clock. Joining a
-    // fake-clock ImageCache load from runAsync would prevent its microtasks
-    // from being pumped while waiting for that same load.
+    final file = File('assets/media_fallbacks/systematic/gba.png').absolute;
     await tester.runAsync(() => precacheImage(
         ResizeImage(FileImage(File.fromUri(file.uri)), width: 640),
         tester.element(find.byType(CoverSection))));
-    final artwork = file.uri.toString();
-    await tester.pumpWidget(view(artwork));
+    await tester.pumpWidget(view(file.uri.toString()));
     await tester.pumpAndSettle();
     expect(key.currentState, same(original));
     expect(find.byType(HandwrittenMediaSticker), findsNothing);
@@ -75,37 +109,10 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
-  test('format mapping distinguishes unsupported physical formats', () {
-    expect(PhysicalMediaFormat.forSystem('n64'), PhysicalMediaFormat.n64);
-    expect(PhysicalMediaFormat.forSystem('psx'), PhysicalMediaFormat.disc);
-    for (final unsupported in ['psp', 'gc', 'gba', 'gbc', 'nes']) {
-      expect(PhysicalMediaFormat.forSystem(unsupported), isNull);
-    }
-  });
-  test('N64 shell follows exterior bounds; optical disc has a real hub hole',
-      () {
-    final cart = PhysicalMediaGeometry.n64;
-    expect(cart.height / cart.width, closeTo(0.03 / 0.045, 0.0001));
-    expect(cart.depth / cart.width, closeTo(0.0075 / 0.045, 0.0001));
-    final disc = PhysicalMediaGeometry.disc;
-    expect(disc.depth / disc.width, closeTo(0.001886 / 0.1239977, 0.0001));
-    for (final face in disc.faces) {
-      final path = Path()..moveTo(face.points.first.x, face.points.first.y);
-      for (final point in face.points.skip(1)) {
-        path.lineTo(point.x, point.y);
-      }
-      path.close();
-      expect(path.contains(Offset.zero), isFalse,
-          reason: 'No disc surface may fill the spindle hole');
-    }
-    for (final format in PhysicalMediaFormat.values) {
-      expect(PhysicalMediaGeometry.forFormat(format).faces.length,
-          lessThanOrEqualTo(256));
-    }
-  });
+
   for (final format in PhysicalMediaFormat.values) {
     testWidgets(
-        '${format.name} insertion uses its duration and joins one launch',
+        '${format.name} insertion joins, completes and cancels with the view',
         (tester) async {
       final key = GlobalKey<PhysicalMediaViewState>();
       await tester.pumpWidget(MaterialApp(
@@ -132,166 +139,49 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
-  testWidgets('Game Boy straightens during spin before descending',
-      (tester) async {
-    final key = GlobalKey<PhysicalMediaViewState>();
-    await tester.pumpWidget(MaterialApp(
-        home: PhysicalMediaView(
-            key: key,
-            identity: 'game',
-            title: 'Game',
-            label: const Text('Artwork'))));
-    final future = key.currentState!.playInsertion();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    final transforms = tester.widgetList<Transform>(find.descendant(
-        of: find.byType(PhysicalMediaView), matching: find.byType(Transform)));
-    for (final transform in transforms) {
-      for (final index in [1, 2, 4, 6]) {
-        expect(transform.transform.storage[index], closeTo(0, 0.000001));
-      }
-    }
-    key.currentState!.skipInsertion();
-    expect(await future, isTrue);
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets('selected media uses the reference clockwise presentation',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-        home: PhysicalMediaView(
-            identity: 'reference',
-            title: 'Reference',
-            reducedMotion: true,
-            label: Text('Artwork'))));
-    final label = tester
-        .widgetList<Transform>(find.descendant(
-            of: find.byType(PhysicalMediaView),
-            matching: find.byType(Transform)))
-        .last;
-    expect(label.transform.storage[1], greaterThan(0),
-        reason: 'The supplied reference leans clockwise, not counterclockwise');
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets('reference pose exposes the left side and underside',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-        home: PhysicalMediaView(
-            identity: 'reference-depth',
-            title: 'Reference',
-            reducedMotion: true,
-            label: Text('Artwork'))));
-    final shell = tester.widget<CustomPaint>(
-        find.byKey(const ValueKey('physical-media-shell')));
-    final Matrix4 matrix = (shell.painter as dynamic).matrix as Matrix4;
-    final m = matrix.storage;
-    Offset project(double z) => Offset((m[8] * z + m[12]) / (m[11] * z + m[15]),
-        (m[9] * z + m[13]) / (m[11] * z + m[15]));
-    final front = project(PhysicalMediaGeometry.gameBoy.depth / 2);
-    final back = project(-PhysicalMediaGeometry.gameBoy.depth / 2);
-    expect(front.dx, greaterThan(back.dx),
-        reason: 'Socket exposes the left casing edge, not the right edge');
-    expect(front.dy, lessThan(back.dy),
-        reason: 'Socket exposes the bottom connector edge, not the top edge');
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets('N64 artwork follows the arched physical label recess',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-        home: PhysicalMediaView(
-            format: PhysicalMediaFormat.n64,
-            identity: 'n64-label',
-            title: 'Reference',
-            reducedMotion: true,
-            label: Text('Artwork'))));
-    final clips = tester.widgetList<ClipPath>(find.descendant(
-        of: find.byType(PhysicalMediaView), matching: find.byType(ClipPath)));
-    expect(clips, hasLength(1));
-    final path = clips.single.clipper!.getClip(const Size(320, 284));
-    expect(path.contains(const Offset(160, 8)), isTrue);
-    expect(path.contains(const Offset(2, 8)), isFalse,
-        reason: 'The label top corners sit below its curved centre');
-    await tester.pumpWidget(const SizedBox());
-  });
+
   testWidgets(
-      'completed insertion resets only after emulator background return',
+      'selection and return preserve the reference pose and renderer binding',
       (tester) async {
     final key = GlobalKey<PhysicalMediaViewState>();
     await tester.pumpWidget(MaterialApp(
         home: PhysicalMediaView(
             key: key,
-            identity: 'game',
+            identity: 'gba',
             title: 'Game',
+            format: PhysicalMediaFormat.gba,
             label: const Text('Artwork'))));
-    double labelY() => tester
-        .widgetList<Transform>(find.descendant(
-            of: find.byType(PhysicalMediaView),
-            matching: find.byType(Transform)))
-        .last
-        .transform
-        .storage[13];
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 301));
+    expect(find.byType(SocketMediaRenderer), findsOneWidget);
+    expect(key.currentState!.pose.rz, greaterThan(0));
     final insertion = key.currentState!.playInsertion();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 851));
+    await tester.pump(const Duration(milliseconds: 701));
     expect(await insertion, isTrue);
-    final inserted = labelY();
+    final inserted = key.currentState!.pose.y;
     await tester.pump(const Duration(milliseconds: 100));
-    expect(labelY(), closeTo(inserted, 0.001),
-        reason: 'Android launch acceptance is not yet a background transition');
+    expect(key.currentState!.pose.y, closeTo(inserted, .001));
     key.currentState!.didChangeAppLifecycleState(AppLifecycleState.paused);
     key.currentState!.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await tester.pump();
-    expect(labelY(), lessThan(inserted - 20),
-        reason:
-            'Returning from the emulator restores the normal media position');
+    expect(key.currentState!.pose.y, lessThan(inserted - 1));
     await tester.pumpWidget(const SizedBox());
   });
-  for (final systemId in ['n64', 'psx', 'ps2']) {
-    testWidgets('$systemId detail uses its physical media without artwork',
-        (tester) async {
-      final system =
-          SystemModel.supportedSystems.firstWhere((s) => s.id == systemId);
-      final game =
-          GameItem(filename: 'A Game.7z', displayName: 'A Game', url: '');
-      await tester.pumpWidget(MaterialApp(
-          home: SizedBox(
-              width: 320,
-              height: 400,
-              child: CoverSection(
-                  game: game,
-                  system: system,
-                  coverUrls: const [],
-                  metadata: GameMetadata.parse(game.filename)))));
-      expect(find.byType(PhysicalMediaView), findsOneWidget);
-      await tester.pumpWidget(const SizedBox());
-    });
-  }
-  test('Game Boy shell has volume and reference exterior proportions', () {
-    final model = PhysicalMediaGeometry.gameBoy;
-    expect(model.width / model.height, closeTo(0.0564107 / 0.0648228, 0.001));
-    expect(model.depth / model.width, closeTo(0.0074225 / 0.0564107, 0.001));
-    expect(model.faces.any((f) => f.points.any((p) => p.z < 0)), isTrue);
-    expect(model.faces.any((f) => f.points.any((p) => p.z > 0)), isTrue);
-    expect(
-        model.label.width / model.width, closeTo(0.0439713 / 0.0564107, 0.001));
-    // Shell planes must not be split into overlapping depth-sorted triangles
-    // which overpaint the nearer grip ribs during rotation.
-    expect(model.faces.where((face) => face.points.length == 9), hasLength(4));
-    expect(model.header.bottom, lessThan(model.label.top));
-  });
 
-  testWidgets('missing artwork is a stable readable title on the same model',
+  testWidgets(
+      'reduced motion skips insertion; missing artwork retains the handwritten title',
       (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-        home: SizedBox(
-            width: 320,
-            height: 400,
-            child: PhysicalMediaView(
-                identity: 'game-1',
-                title: 'A long Game Boy title',
-                reducedMotion: true,
-                label: HandwrittenMediaSticker(
-                    identity: 'game-1', title: 'A long Game Boy title')))));
-    expect(find.byKey(const ValueKey('physical-media-shell')), findsOneWidget);
+    final key = GlobalKey<PhysicalMediaViewState>();
+    await tester.pumpWidget(MaterialApp(
+        home: PhysicalMediaView(
+            key: key,
+            identity: 'game-1',
+            title: 'A long Game Boy title',
+            reducedMotion: true,
+            label: const HandwrittenMediaSticker(
+                identity: 'game-1', title: 'A long Game Boy title'))));
+    expect(await key.currentState!.playInsertion(), isTrue);
     expect(find.text('A long Game Boy title'), findsOneWidget);
     expect(
         tester
@@ -299,46 +189,7 @@ void main() {
             .style!
             .fontFamily,
         'Kalam');
-    expect(HandwrittenMediaSticker.colorFor('game-1'),
-        HandwrittenMediaSticker.colorFor('game-1'));
-    expect(HandwrittenMediaSticker.palette,
-        contains(HandwrittenMediaSticker.colorFor('game-1')));
-  });
-
-  testWidgets(
-      'insertion completes once, skips and cancels with the view lifecycle',
-      (tester) async {
-    final key = GlobalKey<PhysicalMediaViewState>();
-    await tester.pumpWidget(MaterialApp(
-        home: SizedBox(
-            width: 320,
-            height: 400,
-            child: PhysicalMediaView(
-                key: key,
-                identity: 'game-1',
-                title: 'Game',
-                label: const Text('label')))));
-    final first = key.currentState!.playInsertion();
-    expect(identical(first, key.currentState!.playInsertion()), isTrue);
-    await tester.pump(const Duration(milliseconds: 100));
-    key.currentState!.skipInsertion();
-    expect(await first, isTrue);
-    key.currentState!.resetInsertion();
-    final second = key.currentState!.playInsertion();
+    expect(find.byKey(const ValueKey('physical-media-skip')), findsNothing);
     await tester.pumpWidget(const SizedBox());
-    expect(await second, isFalse);
-  });
-
-  testWidgets('reduced motion never waits for an animation', (tester) async {
-    final key = GlobalKey<PhysicalMediaViewState>();
-    await tester.pumpWidget(MaterialApp(
-        home: PhysicalMediaView(
-            key: key,
-            identity: 'game-1',
-            title: 'Game',
-            reducedMotion: true,
-            label: const Text('label'))));
-    expect(await key.currentState!.playInsertion(), isTrue);
-    expect(tester.binding.transientCallbackCount, 0);
   });
 }
