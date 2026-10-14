@@ -9,6 +9,7 @@ import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/models/owned_removal_record.dart';
 import 'package:retro_eshop/models/local_cloud_byte_observation.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
+import 'package:retro_eshop/services/rom_cache_store.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 RemoteArtifact _artifact({
@@ -288,6 +289,24 @@ void main() {
         relativePath: completed.relativePath), isNull);
     // New download reservation is allowed only after removal commit.
     await journal.create(_queued());
+  });
+
+  test('cache removal retires usage so identical reinstallation starts a fresh persistence window', () async {
+    final publishing=await _advanceToPublishing(journal,await journal.create(_queued()));
+    final manifest=_installation(publishing);
+    final completed=await journal.complete(publishing,manifest);
+    final store=RomCacheStore(Future.value(db));
+    final oldUse=DateTime.now().toUtc();
+    await store.recordSuccessfulUse(manifest.id,oldUse);
+    final intent=await journal.beginRemoval(completed,manifest,id:'cache-usage-removal',quarantinePath:'/private/cache-usage-removal.partial',policyDriven:true);
+    final quarantined=await journal.advanceRemoval(intent,OwnedRemovalPhase.quarantined);
+    await journal.finishRemoval(await journal.advanceRemoval(quarantined,OwnedRemovalPhase.deleting));
+    expect(await store.usage(manifest.id),isNull);
+    final again=await _advanceToPublishing(journal,await journal.create(_queued()));
+    await journal.complete(again,_installation(again));
+    final usage=(await store.usage(manifest.id))!;
+    expect(usage.installedAt!.isBefore(oldUse),isFalse);
+    expect(usage.lastUsedAt,isNull);
   });
 
   test('pending removal cannot be rewritten or duplicated and survives reopen', () async {

@@ -65,13 +65,17 @@ object RootSaveProcess {
         val reply = JSONObject().put("rshopRootSave", 1)
         try {
             require(Process.myUid() == 0 && (args.size == 1 ||
-                args.size == 2 && args[1] in setOf("source", "watch")))
+                args.size == 2 && args[1] in setOf("source", "watch", "rom-cache")))
             val apk = File(args[0])
             require(apk.isFile && apk.isAbsolute && apk.canonicalFile == apk.absoluteFile)
             val loader = PathClassLoader(apk.path, apk.path + "!/lib/arm64-v8a",
                 ClassLoader.getSystemClassLoader().parent)
             if (args.size == 2) {
-                val worker = if (args[1] == "watch") "RootSaveWatchWorker" else "RootSaveSourceWorker"
+                val worker = when (args[1]) {
+                    "watch" -> "RootSaveWatchWorker"
+                    "rom-cache" -> "RootRomCacheWorker"
+                    else -> "RootSaveSourceWorker"
+                }
                 Class.forName("com.retro.rshop.$worker", true, loader)
                     .getMethod("serve").invoke(null)
                 return

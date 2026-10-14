@@ -28,7 +28,7 @@ void saveBackupBackground() async {
 
     await refresh();
     service = AutomaticSaveBackups(
-        database: DatabaseService.openSaveBackgroundDatabase(),
+        database: DatabaseService.openBackgroundDatabase(),
         preferences: preferences,
         sources: () => sources,
         schedulePending: SaveBackgroundDispatch.schedulePending,

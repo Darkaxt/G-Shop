@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 import '../models/game_item.dart';
 import '../models/system_model.dart';
 import '../models/transfer_record.dart';
@@ -7,6 +8,7 @@ import '../models/pcsx_save_layout.dart';
 import 'rom_manager.dart';
 import 'owned_storage.dart';
 import 'saves/save_capture.dart';
+import 'installation_paths.dart';
 
 /// Exact local handoff through an owned installation or separately byte-bound
 /// read-only copy. No source access, ownership adoption or emulator setup mutation.
@@ -63,10 +65,13 @@ class OwnedEmulatorLauncher {
   }
 
   Future<Map<String, Object>> _grant(
-      GameItem game, String platformId, String root) async {
+      GameItem game, String platformId, String root,
+      {void Function(String)? resolvedPath}) async {
     Map<String, Object> grant;
     try {
       final installed = await romManager.requireInstalledArtifact(game, root);
+      resolvedPath
+          ?.call(p.join(installed.destinationRoot, installed.relativePath));
       grant = {
         'installationId': installed.id,
         'filename': installed.relativePath
@@ -74,6 +79,8 @@ class OwnedEmulatorLauncher {
     } on OwnedStorageException catch (error) {
       if (error.code != 'changed') rethrow;
       final copy = await romManager.requireLocalCopy(game, root);
+      resolvedPath?.call(p.join(
+          copy.observation.destinationRoot, copy.observation.relativePath));
       grant = {
         'observationId': copy.id,
         'platformId': platformId,
@@ -220,44 +227,52 @@ class OwnedEmulatorLauncher {
 
   Future<void> _open(GameItem game, SystemModel system, String root,
       String? companionComponent, Future<void> Function()? prepareSave) async {
-    final grant = await _grant(game, system.id, root);
-    await prepareSave?.call();
-    if (companionComponent != null) {
-      grant['companionComponent'] = companionComponent;
-    }
-    await channel.invokeMethod<void>(
-        system.id == 'nds'
-            ? 'launchOwnedMelon'
-            : system.id == 'gamegear'
-                ? 'launchOwnedRetroArchGameGear'
-                : system.id == 'megadrive'
-                    ? 'launchOwnedRetroArchMegaDrive'
-                    : system.id == 'mastersystem'
-                        ? 'launchOwnedRetroArchMasterSystem'
-                        : system.id == 'sg1000'
-                            ? 'launchOwnedRetroArchSG1000'
-                            : system.id == 'n64'
-                                ? 'launchOwnedRetroArchN64'
-                                : system.id == 'nes'
-                                    ? 'launchOwnedRetroArchNes'
-                                    : system.id == 'snes'
-                                        ? 'launchOwnedRetroArchSnes'
-                                        : system.id == 'gb'
-                                            ? 'launchOwnedRetroArchGameBoy'
-                                            : system.id == 'gbc'
-                                                ? 'launchOwnedRetroArchGameBoyColor'
-                                                : system.id == 'gba'
-                                                    ? 'launchOwnedRetroArchGameBoyAdvance'
-                                                    : system.id == 'psx'
-                                                        ? 'launchOwnedRetroArchPSX'
-                                                        : system.id == 'psp'
-                                                            ? 'launchOwnedPPSSPP'
-                                                            : system.id == 'ps2'
-                                                                ? 'launchOwnedNetherSX2'
-                                                                : system.id ==
-                                                                        'wiiu'
-                                                                    ? 'launchOwnedCemu'
-                                                                    : 'launchOwnedDolphin',
-        grant);
+    String? exactPath;
+    final grant = await _grant(game, system.id, root,
+        resolvedPath: (path) => exactPath = path);
+    await InstallationMutations.run(exactPath!, () async {
+      await prepareSave?.call();
+      if (companionComponent != null) {
+        grant['companionComponent'] = companionComponent;
+      }
+      await channel.invokeMethod<void>(
+          system.id == 'nds'
+              ? 'launchOwnedMelon'
+              : system.id == 'gamegear'
+                  ? 'launchOwnedRetroArchGameGear'
+                  : system.id == 'megadrive'
+                      ? 'launchOwnedRetroArchMegaDrive'
+                      : system.id == 'mastersystem'
+                          ? 'launchOwnedRetroArchMasterSystem'
+                          : system.id == 'sg1000'
+                              ? 'launchOwnedRetroArchSG1000'
+                              : system.id == 'n64'
+                                  ? 'launchOwnedRetroArchN64'
+                                  : system.id == 'nes'
+                                      ? 'launchOwnedRetroArchNes'
+                                      : system.id == 'snes'
+                                          ? 'launchOwnedRetroArchSnes'
+                                          : system.id == 'gb'
+                                              ? 'launchOwnedRetroArchGameBoy'
+                                              : system.id == 'gbc'
+                                                  ? 'launchOwnedRetroArchGameBoyColor'
+                                                  : system.id == 'gba'
+                                                      ? 'launchOwnedRetroArchGameBoyAdvance'
+                                                      : system.id == 'psx'
+                                                          ? 'launchOwnedRetroArchPSX'
+                                                          : system.id == 'psp'
+                                                              ? 'launchOwnedPPSSPP'
+                                                              : system.id ==
+                                                                      'ps2'
+                                                                  ? 'launchOwnedNetherSX2'
+                                                                  : system.id ==
+                                                                          'wiiu'
+                                                                      ? 'launchOwnedCemu'
+                                                                      : 'launchOwnedDolphin',
+          grant);
+      if (grant['installationId'] case final String id) {
+        await romManager.recordSuccessfulLaunch(id);
+      }
+    });
   }
 }

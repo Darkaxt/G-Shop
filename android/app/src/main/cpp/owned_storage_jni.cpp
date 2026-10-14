@@ -15,6 +15,7 @@
 #include <poll.h>
 #include <sys/inotify.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <unistd.h>
 
 namespace {
@@ -231,7 +232,8 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotChanged(JNIEnv* env, jobject
 
 static jboolean snapshotHasWriter(int directory, const std::string& leaf,
     const std::string& publicSource, const std::string& backingSource,
-    const std::vector<std::string>* selection = nullptr) {
+    const std::vector<std::string>* selection = nullptr, bool anyHandle = false,
+    const std::string& activePackage = "") {
         if (::geteuid() != 0) throw std::system_error(EACCES, std::generic_category());
         const std::string publicPath = publicSource + "/" + leaf;
         const std::string backingPath = backingSource + "/" + leaf;
@@ -307,6 +309,39 @@ static jboolean snapshotHasWriter(int directory, const std::string& leaf,
         while (auto* process = next(processes.get())) {
             if (!numeric(process->d_name)) continue;
             const std::string prefix = std::string("/proc/") + process->d_name;
+            if (anyHandle && !activePackage.empty()) {
+                auto closeFile = [](FILE* file) { ::fclose(file); };
+                std::unique_ptr<FILE, decltype(closeFile)> command(::fopen((prefix + "/cmdline").c_str(), "re"), closeFile);
+                if (command) {
+                    char name[512]{};
+                    const auto count = ::fread(name, 1, sizeof(name)-1, command.get());
+                    if (count >= activePackage.size() &&
+                        std::strncmp(name, activePackage.c_str(), activePackage.size()) == 0 &&
+                        (name[activePackage.size()] == '\0' || name[activePackage.size()] == ':')) {
+                        std::unique_ptr<FILE, decltype(closeFile)> importance(::fopen((prefix + "/oom_score_adj").c_str(), "re"), closeFile);
+                        int score;
+                        if (!importance || ::fscanf(importance.get(), "%d", &score) != 1) {
+                            if (!exited(errno)) throw std::system_error(EACCES, std::generic_category());
+                        } else if (score < 900) return JNI_TRUE; // Android non-cached emulator process.
+                    }
+                } else if (!exited(errno)) throw std::system_error(errno, std::generic_category());
+            }
+            if (anyHandle) {
+                auto closeFile = [](FILE* file) { ::fclose(file); };
+                std::unique_ptr<FILE, decltype(closeFile)> maps(::fopen((prefix + "/maps").c_str(), "re"), closeFile);
+                if (!maps && !exited(errno)) throw std::system_error(errno, std::generic_category());
+                char line[8192];
+                while (maps && ::fgets(line, sizeof(line), maps.get())) {
+                    unsigned long major, minor; unsigned long long inode;
+                    if (::sscanf(line, "%*s %*s %*s %lx:%lx %llu", &major, &minor, &inode) != 3 || inode == 0) continue;
+                    const auto device = makedev(major, minor);
+                    auto matches = [&](const struct stat& file) { return file.st_ino != 0 &&
+                        file.st_dev == device && file.st_ino == inode; };
+                    if (matches(pinned) || matches(publicFile) ||
+                        std::any_of(groupFiles.begin(), groupFiles.end(), matches)) return JNI_TRUE;
+                }
+                if (maps && ::ferror(maps.get())) throw std::system_error(EIO, std::generic_category());
+            }
             std::unique_ptr<DIR, decltype(closeDir)> descriptors(::opendir((prefix + "/fd").c_str()), closeDir);
             if (!descriptors) {
                 if (exited(errno)) continue;
@@ -345,6 +380,7 @@ static jboolean snapshotHasWriter(int directory, const std::string& leaf,
                     matched = group ? inGroup(publicPath) || inGroup(backingPath) : actual == publicPath || actual == backingPath;
                 }
                 if (!matched) continue;
+                if (anyHandle) return JNI_TRUE;
                 auto closeFile = [](FILE* file) { ::fclose(file); };
                 std::unique_ptr<FILE, decltype(closeFile)> info(
                     ::fopen((prefix + "/fdinfo/" + descriptor->d_name).c_str(), "re"), closeFile);
@@ -408,6 +444,15 @@ Java_com_retro_rshop_OwnedStorageNative_saveSnapshotHasWriters(JNIEnv* env, jobj
             members.push_back(member);
         }
         return snapshotHasWriter(directory, "", utf8(env, source), utf8(env, backing), &members);
+    });
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_retro_rshop_OwnedStorageNative_romCacheHasReaders(JNIEnv* env, jobject, jint directory,
+    jstring name, jstring source, jstring backing, jstring package) {
+    return guarded<jboolean>(env, JNI_TRUE, [&]() -> jboolean {
+        return snapshotHasWriter(directory, utf8(env, name), utf8(env, source),
+            utf8(env, backing), nullptr, true, utf8(env, package));
     });
 }
 

@@ -79,6 +79,69 @@ class OwnedRomContentProvider : ContentProvider() {
             return result
         }
 
+        internal fun cacheInstallation(context: Context, id: String, bundleOwner: String? = null): JSONObject {
+            val db = SQLiteDatabase.openDatabase(context.getDatabasePath("rshop.db").path,
+                null, SQLiteDatabase.OPEN_READONLY)
+            val filename = try {
+                db.rawQuery("SELECT relative_path FROM installed_artifacts WHERE installation_id=?",
+                    arrayOf(id)).use { cursor ->
+                    if (!cursor.moveToFirst()) throw FileNotFoundException("Installation not ready")
+                    cursor.getString(0)
+                }
+            } finally { db.close() }
+            return manifest(context, uri(context, id, filename), bundleOwner)
+        }
+
+        /** Recovery is not a launch grant. Only an exact durable cache removal
+         * may supply these read-only census paths, including its quarantine. */
+        internal fun cacheRemoval(context: Context, id: String, removalId: String): List<JSONObject> {
+            val db = SQLiteDatabase.openDatabase(context.getDatabasePath("rshop.db").path,
+                null, SQLiteDatabase.OPEN_READONLY)
+            try {
+                val root = db.rawQuery("""SELECT r.record_json,i.record_json FROM owned_removals r
+                    JOIN installed_artifacts i ON i.transfer_id=r.transfer_id
+                    JOIN transfer_target_owners o ON o.installation_id=i.installation_id
+                      AND o.transfer_id=i.transfer_id AND o.destination_root=i.destination_root
+                      AND o.relative_path=i.relative_path
+                    WHERE r.removal_id=? AND i.installation_id=?
+                      AND r.phase NOT IN ('completed','retained') AND r.issue IS NULL""",
+                    arrayOf(removalId,id)).use { cursor ->
+                    if (!cursor.moveToFirst()) throw FileNotFoundException("Cache removal changed")
+                    val record = JSONObject(cursor.getString(0))
+                    val installed = JSONObject(cursor.getString(1))
+                    if (!record.optBoolean("policyDriven") || record.getString("id") != removalId ||
+                        installed.getString("id") != id || !sameJson(record.getJSONObject("installation"),installed))
+                        throw FileNotFoundException("Cache removal changed")
+                    installed to (record.optJSONArray("groupMembers") ?: JSONArray())
+                }
+                val roots=mutableListOf(root.first)
+                if(root.second.length()>256)throw FileNotFoundException("Cache game changed")
+                for(index in 0 until root.second.length())roots.add(root.second.getJSONObject(index))
+                val members=mutableListOf<JSONObject>()
+                for(installed in roots) {
+                    members.add(installed)
+                    val dependencies=installed.optJSONArray("dependencies") ?: JSONArray()
+                    if(dependencies.length()>256)throw FileNotFoundException("Cache bundle changed")
+                    for(index in 0 until dependencies.length())members.add(dependencies.getJSONObject(index))
+                }
+                val paths = members.toMutableList()
+                for (member in members) {
+                    db.rawQuery("""SELECT record_json FROM owned_removals
+                        WHERE transfer_id=? AND phase NOT IN ('completed','retained') AND issue IS NULL""",
+                        arrayOf(member.getString("transferId"))).use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val record=JSONObject(cursor.getString(0))
+                            if (!record.optBoolean("policyDriven") || !sameJson(record.getJSONObject("installation"),member))
+                                throw FileNotFoundException("Cache member changed")
+                            val stage=File(record.getString("quarantinePath"))
+                            paths.add(JSONObject().put("destinationRoot",stage.parent).put("relativePath",stage.name))
+                        }
+                    }
+                }
+                return paths
+            } finally { db.close() }
+        }
+
         private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null,
             requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
             requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false): JSONObject {

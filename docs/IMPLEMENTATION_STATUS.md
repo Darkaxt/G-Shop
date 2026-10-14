@@ -5,10 +5,38 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current schedule — S10 COMPLETE; S11 ACTIVE, 2026-10-14
+### Current schedule — S0-S11 COMPLETE, 2026-10-14
 
-S0-S10 are COMPLETE. S11 (managed ROM cache) is the sole ACTIVE stage;
-S12 is NOT STARTED. The overall twelve-stage objective is unfinished.
+S0-S11 are COMPLETE. S12 is NOT STARTED and owns the remaining frontend work.
+The overall twelve-stage objective is unfinished. Historical progress notes below
+do not supersede this schedule or the closure reconciliations.
+
+### S11 closure reconciliation — COMPLETE, 2026-10-14
+
+| CACHE-01 required outcome | Verified integrated evidence |
+| --- | --- |
+| Persisted policy and clear controls | SQLite v39 preserves existing state and defaults cleanup to disabled. Sectioned Policy/Consoles/Games/Status controls cover custom/Never retention, independent queue/byte budgets, LRU/FIFO, unified/per-console inheritance and retained overrides, pins and credential-free policy JSON. Focused widget/store/planner contracts pass. Actual Thor touch enters and persists custom retention; actual gamepad input enters traversal and switches sections. |
+| Truthful use and protection | Only successful native handoff records use. Existing unknown history is preserved; clock anomalies pause expiry. Focused launch/clock/sample/pin contracts pass. The real root census rejects cleanup during emulator use. Removal retires usage with ownership; actual identical re-download has a fresh verified-install time and no inherited last-use. |
+| Exact recoverable whole-game removal | Existing ownership/quarantine journal remains the sole removal engine. Focused Drive/removal contracts cover current readable cloud bytes/version/checksum, unavailable/revoked/missing/truncated/changed cloud, changed local files, transfer/use conflicts, joined pin edits, complete independent roots/bundles, cancellation and interrupted recovery. Adjacent save fixtures remain unchanged. Policy recovery rechecks current policy and fresh cloud proof rather than replaying manual-removal authority. |
+| Actual capacity and successful-use expiry | Two normal small owned downloads use isolated console destinations. Per-console queue=1 retains both; unified queue=1 removes the older game. Identical SHA-256 re-download boots in RetroArch. Android's persisted job removes the test ROM after actual successful-use expiry (use 01:39:56Z, removal 01:44:26Z, three-minute window), without forced jobs or timestamp edits. |
+| Cold background lifecycle | With the foreground process gone, Android starts a new process for the expiry service. Headless IO reuses its already-open database. Real expiry is due 09:00:53Z; the durable native receipt reports one removal at 09:02:39Z. JobScheduler subsequently records jobFinished and no active cache job. Framework scheduling latency is not advertised as exact-time execution. |
+| Final packaging and restoration | Gated request 1026 acquires the shared mutex and exits build/helper 0 with daemon exit verified. Installed base APK independently agrees with SHA-256 `d128e076b0ddc26c0ae5f828551888acd21d5162c4a6d5a2ef35ab4f5d0348e0`. Original policy/pins and exact configuration hash are restored; original owned/protected groups and both S10 save-control hashes agree. Remote test entries remain available. Only isolated test ROMs, empty test directories and the temporary recovery marker are retired. Both displays report OFF. |
+
+Observed build profile: two workers, parallel=false, Gradle heap 3 GiB;
+Kotlin in-process configured, one-fork/512 MiB test-task configuration (assembly
+did not execute JVM tests), app Ninja pool depth one. No memory failure or budget
+increase. Earlier request 1019 failed from PowerShell argument quoting and 1020
+from the Android `makedev` macro namespace; both were corrected before successful
+packaging and both completed daemon retirement.
+
+S1-S11 reconciliation preserves catalogue/source identity, read-only ROM Drive
+access, verified installation/launch, metadata/ranking/sample semantics, companion
+handoff and SAVE-01 histories. The owner-accepted Unbound/RetroArch check is reused,
+not reopened. No S11 blocker or tracked deferral remains. The closure design-debt
+assessment found no required consolidation: policy selection and native admission
+feed the existing removal journal, with one durable ownership authority. No
+optional refactor delays S12. S12 still owns its explicitly assigned save-settings
+touch/controller/responsive presentation checks; no public release is claimed.
 
 ### S10 closure reconciliation — COMPLETE, 2026-10-14
 
@@ -37,7 +65,7 @@ controls, not real saves or extra ROMs. Secure-storage ciphertext changed during
 normal live authorization renewal; no unchanged-token assertion is made. The
 secure-key-store digest remains unchanged.
 
-### Current S10 work — ACTIVE, 2026-10-14
+### Historical S10 work — formerly ACTIVE, 2026-10-14
 
 Owner scope correction: required coverage is R-Shop-selectable ROM games and
 their emulator workflows, not arbitrary installed APKs. Standalone ports,

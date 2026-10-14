@@ -11,8 +11,12 @@ class OwnedRemovalRecord {
   final OwnedRemovalPhase phase;
   final int revision;
   final String? issue;
+  final bool policyDriven;
+  final List<InstalledArtifact> groupMembers;
+  final String? parentRemovalId;
 
-  bool get isTerminal => phase == OwnedRemovalPhase.completed ||
+  bool get isTerminal =>
+      phase == OwnedRemovalPhase.completed ||
       phase == OwnedRemovalPhase.retained;
 
   OwnedRemovalRecord(
@@ -21,7 +25,18 @@ class OwnedRemovalRecord {
       required this.quarantinePath,
       this.phase = OwnedRemovalPhase.intent,
       this.revision = 0,
-      this.issue}) {
+      this.issue,
+      this.policyDriven = false,
+      this.parentRemovalId,
+      List<InstalledArtifact> groupMembers = const []})
+      : groupMembers = List.unmodifiable(groupMembers) {
+    if (groupMembers.length > 256 ||
+        groupMembers.any((m) =>
+            m.id == installation.id ||
+            m.destinationRoot != installation.destinationRoot) ||
+        groupMembers.map((m) => m.id).toSet().length != groupMembers.length) {
+      throw ArgumentError('Invalid removal game group');
+    }
     if (!RegExp(r'^[A-Za-z0-9_-]{1,96}$').hasMatch(id) ||
         !quarantinePath.startsWith('/') ||
         quarantinePath.contains('\\') ||
@@ -46,7 +61,10 @@ class OwnedRemovalRecord {
           quarantinePath: quarantinePath,
           phase: phase ?? this.phase,
           revision: revision + 1,
-          issue: issue);
+          issue: issue,
+          policyDriven: policyDriven,
+          groupMembers: groupMembers,
+          parentRemovalId: parentRemovalId);
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -54,7 +72,11 @@ class OwnedRemovalRecord {
         'quarantinePath': quarantinePath,
         'phase': phase.name,
         'revision': revision,
-        if (issue != null) 'issue': issue
+        if (issue != null) 'issue': issue,
+        if (policyDriven) 'policyDriven': true,
+        if (groupMembers.isNotEmpty)
+          'groupMembers': [for (final m in groupMembers) m.toJson()],
+        if (parentRemovalId != null) 'parentRemovalId': parentRemovalId,
       };
 
   factory OwnedRemovalRecord.fromJson(Map<String, dynamic> json) =>
@@ -65,5 +87,11 @@ class OwnedRemovalRecord {
           quarantinePath: json['quarantinePath'] as String,
           phase: OwnedRemovalPhase.values.byName(json['phase'] as String),
           revision: json['revision'] as int,
-          issue: json['issue'] as String?);
+          issue: json['issue'] as String?,
+          policyDriven: json['policyDriven'] as bool? ?? false,
+          parentRemovalId: json['parentRemovalId'] as String?,
+          groupMembers: [
+            for (final m in json['groupMembers'] as List? ?? const [])
+              InstalledArtifact.fromJson((m as Map).cast<String, dynamic>())
+          ]);
 }

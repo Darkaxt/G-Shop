@@ -91,6 +91,7 @@ class DriveRuntime {
   final _metadataHeaders = <CancelToken, Future<Uint8List>>{};
   final _metadataArchives = <CancelToken, Future<MetadataRomIdentifier?>>{};
   final _recoveryReviews = <CancelToken, Future<DriveLocalCloudObservation>>{};
+  final _cacheRotations = <CancelToken, Future<void>>{};
   bool _disconnecting = false;
   int _laneGeneration = 0;
 
@@ -925,17 +926,116 @@ class DriveRuntime {
           await session.validateNesSevenZip();
         } else if (record.archivePlatformId == 'snes') {
           await session.validateSnesSevenZip();
-        } else if (const {'gb', 'gbc', 'gba'}.contains(record.archivePlatformId)) {
+        } else if (const {'gb', 'gbc', 'gba'}
+            .contains(record.archivePlatformId)) {
           await session.validateGameBoySevenZip(record.archivePlatformId!);
         } else {
           await session.validateN64Archive(record.relativePath);
         }
-      } finally { await session.close(); }
+      } finally {
+        await session.close();
+      }
     }
   }
 
   Future<TransferRecord> finishRetainedStage(TransferRecord record) =>
       retireCommittedStage(journal, _storage, record);
+
+  /// Managed-cache removal reuses the normal durable quarantine/removal engine.
+  /// Read every exact cloud member now, not a cached catalogue or old checksum
+  /// comparison. Policy, protection and active-use checks are supplied by the
+  /// cache owner and repeated after remote IO, within the same target mutation.
+  Future<void> rotateOwnedInstallation(
+      {required ProviderConfig config,
+      required InstalledArtifact installation,
+      required CancelToken cancellation,
+      required Future<void> Function() requireEligible,
+      String? removalId, List<InstalledArtifact> groupMembers=const [],
+      Map<String,ProviderConfig> groupSources=const {}}) async {
+    if (_cacheRotations.containsKey(cancellation)) throw StateError('Cache pass already active');
+    final operation = _rotateOwnedInstallation(config:config,installation:installation,
+        cancellation:cancellation,requireEligible:requireEligible,removalId:removalId,
+        groupMembers:groupMembers,groupSources:groupSources);
+    _cacheRotations[cancellation] = operation;
+    try { await operation; } finally { _cacheRotations.remove(cancellation); }
+  }
+
+  Future<void> _rotateOwnedInstallation(
+      {required ProviderConfig config, required InstalledArtifact installation,
+      required CancelToken cancellation, required Future<void> Function() requireEligible,
+      String? removalId, List<InstalledArtifact> groupMembers=const [],
+      Map<String,ProviderConfig> groupSources=const {}}) async {
+    void check() {
+      if (cancellation.isCancelled) {
+        throw const DriveTransferException(DriveTransferIssue.cancelled);
+      }
+      _requireConnectedLane();
+    }
+
+    check();
+    final members = [for(final root in [installation,...groupMembers])
+      for(final member in [root,...root.dependencies])
+        (installation:member,config:groupSources[root.id] ?? config)];
+    final boundaries = <DriveDownloadBoundary>[];
+    Future<void> proof() async {
+      await requireEligible();
+      check();
+      for (final item in members) {
+        final member=item.installation;
+        final source=item.config;
+        _requireArtifactSource(source, member.artifact);
+        final record = await journal.transfer(member.transferId);
+        if (_startingTransfers.contains(member.transferId) ||
+            _transfers.containsKey(member.transferId)) {
+          throw const OwnedStorageException('changed');
+        }
+        if(removalId==null) {
+          if(record==null)throw const OwnedStorageException('changed');
+          await requireInstalledTransfer(record,
+            bundleOwner:record.bundleOwner);
+        }
+        check();
+        final boundary = DriveDownloadBoundary(
+            config: source,
+            artifact: member.artifact,
+            catalogue: catalogue,
+            api: apiFor(source.drive!));
+        await boundary.revalidate(cancellation: cancellation);
+        final media = _mediaApis.putIfAbsent(
+            source.drive!.accountId,
+            () => _createMediaApi(
+                authorizationFor(source.drive!.serverClientId),
+                source.drive!.accountId));
+        final response = await media.open(member.artifact,
+            offset: 0, cancelToken: cancellation);
+        final verified = await DriveVerification(member.artifact)
+            .verifyBytes(response.bytes, cancellation: cancellation);
+        if (verified['sha256'] != member.verifiedChecksums['sha256']) {
+          throw const DriveTransferException(
+              DriveTransferIssue.checksumMismatch);
+        }
+        boundaries.add(boundary);
+      }
+      for (final boundary in boundaries) {
+        await boundary.revalidate(cancellation: cancellation);
+      }
+      await requireEligible();
+      check();
+    }
+    final remover=OwnedInstallationRemoval(journal,storage:_storage);
+    if(removalId==null) {
+      await remover.remove(installation,policyDriven:true,beforeRemoval:proof,groupMembers:groupMembers);
+    } else {
+      final saved=await journal.removal(removalId);
+      if(saved==null || !saved.policyDriven || saved.isTerminal ||
+          !const DeepCollectionEquality().equals(saved.installation.toJson(),installation.toJson()) ||
+          !const DeepCollectionEquality().equals([for(final m in saved.groupMembers)m.toJson()],
+              [for(final m in groupMembers)m.toJson()])) {
+        throw const OwnedStorageException('changed');
+      }
+      await remover.recover(removalId,beforeRemoval:proof);
+    }
+  }
 
   Future<String?> finishReplacement(TransferRecord record) =>
       retireReplacedInstallation(journal, _storage, record);
@@ -979,6 +1079,11 @@ class DriveRuntime {
           if (!canContinue()) break;
           final record = records.current;
           examined++;
+          if (record.policyDriven) {
+            pending++;
+            addIssue('cache_policy_review');
+            continue;
+          }
           if (_startingTransfers.contains(record.installation.transferId) ||
               _transfers.containsKey(record.installation.transferId)) {
             skippedActive++;
@@ -1271,6 +1376,8 @@ class DriveRuntime {
       final headers = _metadataHeaders.values.toList();
       final archives = _metadataArchives.values.toList();
       final reviews = _recoveryReviews.values.toList();
+      final rotations = _cacheRotations.values.toList();
+      for (final cancellation in _cacheRotations.keys.toList()) { cancellation.cancel(); }
       for (final cancellation in _recoveryReviews.keys.toList()) {
         cancellation.cancel();
       }
@@ -1302,6 +1409,8 @@ class DriveRuntime {
           archive.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
         for (final review in reviews)
           review.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+        for (final rotation in rotations)
+          rotation.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
       ]);
     } finally {
       for (final api in _apis.values) {

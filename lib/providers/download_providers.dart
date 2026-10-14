@@ -12,6 +12,7 @@ import '../services/rom_manager.dart';
 import 'app_providers.dart';
 import 'library_providers.dart';
 import 'ra_providers.dart';
+import 'rom_cache_providers.dart';
 
 final downloadQueueManagerProvider =
     ChangeNotifierProvider<DownloadQueueManager>((ref) {
@@ -28,6 +29,8 @@ final downloadQueueManagerProvider =
   qm.onItemCompleted = (item) {
     // Bump game counts so the home screen updates immediately.
     ref.read(gameDbChangedProvider.notifier).state++;
+    ref.read(romCacheProvider.future).then((cache)=>cache.reconcile()).catchError(
+        (Object _,StackTrace __){debugPrint('ROM cache completion check could not start');});
     if (raService != null) {
       _verifyRaHash(item, raService, apiKey, ref);
     }

@@ -1957,7 +1957,8 @@ not S11's managed-cache requirements or the overall specification.
 
 ## S11 — Configurable managed ROM cache
 
-Status: ACTIVE (2026-10-14), the sole ACTIVE stage after verified S10 closure.
+Status: COMPLETE (2026-10-14). Integrated CACHE-01 evidence and owner-state
+restoration are recorded in IMPLEMENTATION_STATUS.md's S11 closure reconciliation.
 Requirements: CACHE-01; recheck CORE-01/02/03, DRIVE-04/05/06, META-07,
 MIGRATE-01, SAVE-01 and QA-01/02/03/04.
 Depends on: S1-S10 acceptance. Do not begin while an earlier stage is ACTIVE.

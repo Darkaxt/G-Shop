@@ -17,11 +17,12 @@ import 'metadata/metadata_refresh_jobs.dart';
 import 'metadata/metadata_artwork_cache.dart';
 import 'drive/drive_catalogue.dart';
 import 'transfer_journal.dart';
+import 'rom_cache_store.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 38;
+  static const int _dbVersion = 39;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -33,7 +34,7 @@ class DatabaseService {
 
   /// A scheduled save pass must not pause/recover a live metadata worker.
   /// UI bootstrap owns migrations; existing schema is required here.
-  static Future<Database> openSaveBackgroundDatabase() async {
+  static Future<Database> openBackgroundDatabase() async {
     final directory = await getDatabasesPath();
     final path = join(directory, 'rshop.db');
     if (!await databaseExists(path)) {
@@ -393,6 +394,9 @@ class DatabaseService {
     }
     if (oldVersion < 38) {
       await TransferJournalSchema.installByteObservationRootIndex(db);
+    }
+    if (oldVersion < 39) {
+      await RomCacheSchema.install(db);
     }
   }
 

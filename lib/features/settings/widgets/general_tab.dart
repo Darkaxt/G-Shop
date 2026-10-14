@@ -6,6 +6,7 @@ import '../../onboarding/widgets/ra_onboarding_screen.dart';
 import '../config_mode_screen.dart';
 import '../metadata_settings_screen.dart';
 import '../save_backup_settings_screen.dart';
+import '../rom_cache_settings_screen.dart';
 import '../models/settings_entry.dart';
 import '../sources_screen.dart';
 import 'settings_list_view.dart';
@@ -45,6 +46,10 @@ class SettingsGeneralTab extends ConsumerWidget {
       firstFocusNode: firstFocusNode,
       sections: [
         SettingsSection(l.settings_sectionLibrary, [
+          SettingsEntry.nav(icon:Icons.sd_storage_outlined,title:'ROM cache',
+            subtitle:'Retention, rotation and protected games',
+            onSelect:()=>Navigator.push(context,MaterialPageRoute(
+                builder:(_)=>const RomCacheSettingsScreen()))),
           SettingsEntry.nav(
             icon: Icons.auto_stories_outlined,
             title: l.metadata_setupTitle,

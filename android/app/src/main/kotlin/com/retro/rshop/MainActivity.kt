@@ -31,6 +31,7 @@ class MainActivity : FlutterActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val smbService = SmbService()
     private var ownedStorage: OwnedStorageService? = null
+    private var romCacheChannel: MethodChannel? = null
     private var saveCapture: SaveCaptureService? = null
     private val saveOperationOwner = java.util.UUID.randomUUID().toString()
     private var saveBackgroundChannel: MethodChannel? = null
@@ -75,6 +76,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         SaveOperationChannel.attach(flutterEngine.dartExecutor.binaryMessenger, saveOperationOwner)
         saveBackgroundChannel = SaveBackgroundChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
+        romCacheChannel = RomCacheChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger,true)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "com.retro.rshop/save_capture").setMethodCallHandler { call, result ->
@@ -302,7 +304,9 @@ class MainActivity : FlutterActivity() {
         val captures = saveCapture
         if (captures != null) captures.shutdown { SaveOperationChannel.detach(saveOperationOwner) }
         else SaveOperationChannel.detach(saveOperationOwner)
-        ownedStorage?.shutdown()
+        val owned = ownedStorage
+        if(owned!=null)owned.shutdown { RomCacheChannel.detach(romCacheChannel) }
+        else RomCacheChannel.detach(romCacheChannel)
         extractorPool.shutdown()
         smbService.shutdown()
         try {

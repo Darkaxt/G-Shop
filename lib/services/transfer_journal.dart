@@ -8,6 +8,7 @@ import '../models/owned_removal_record.dart';
 import '../models/library_identity.dart';
 import '../models/local_cloud_byte_observation.dart';
 import 'installation_paths.dart';
+import 'rom_cache_store.dart';
 
 /// Additive transfer/install schema. Integration into the application database
 /// migration remains the responsibility of DatabaseService.
@@ -15,6 +16,7 @@ class TransferJournalSchema {
   TransferJournalSchema._();
 
   static Future<void> install(DatabaseExecutor db) async {
+    await RomCacheSchema.install(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS transfer_records (
       transfer_id TEXT PRIMARY KEY,
       destination_root TEXT NOT NULL,
@@ -122,6 +124,10 @@ class TransferJournal {
   final Future<Database> _database;
   TransferJournal(this._database);
 
+  Future<void> recordSuccessfulUse(String installationId) =>
+      RomCacheStore(_database)
+          .recordSuccessfulUse(installationId, DateTime.now());
+
   /// Caller supplies a new closed-read comparison and checks the public identity
   /// immediately before this transaction. Historical observations cannot stand
   /// in for those current checks. No filesystem operation occurs here.
@@ -182,6 +188,8 @@ class TransferJournal {
         'relative_path': record.relativePath,
         'record_json': jsonEncode(installation.toJson()),
       });
+      await RomCacheSchema.recordInstalled(
+          txn, installation.id, DateTime.now());
       await txn.insert('transfer_target_owners', {
         'destination_root': record.destinationRoot,
         'relative_path': record.relativePath,
@@ -336,9 +344,11 @@ class TransferJournal {
       {required String id,
       required String quarantinePath,
       String? replacementTransferId,
-      String? bundleRemovalId}) async {
+      String? bundleRemovalId, bool policyDriven = false,
+      String? groupRemovalId, List<InstalledArtifact> groupMembers = const []}) async {
     final intent = OwnedRemovalRecord(
-        id: id, installation: installation, quarantinePath: quarantinePath);
+        id: id, installation: installation, quarantinePath: quarantinePath,
+        policyDriven: policyDriven, groupMembers: groupMembers,parentRemovalId:bundleRemovalId ?? groupRemovalId);
     final db = await _database;
     return db.transaction((txn) async {
       _requireExactRecord(await _requiredTransfer(txn, transfer.id), transfer);
@@ -352,6 +362,21 @@ class TransferJournal {
       }
       _requireMatchingInstallation(transfer, installation);
       await _requireInstalledOwner(txn, installation);
+      if(groupRemovalId!=null) {
+        final parent=await _removal(txn,groupRemovalId);
+        if(parent==null || parent.isTerminal || !parent.policyDriven || !policyDriven ||
+            transfer.bundleOwner!=null || !parent.groupMembers.any((m)=>_sameJson(m.toJson(),installation.toJson()))) {
+          throw StateError('Game members require their exact cache removal intent');
+        }
+      }
+      for(final member in groupMembers) {
+        final memberTransfer=await _requiredTransfer(txn,member.transferId);
+        _requireMatchingInstallation(memberTransfer,member);
+        await _requireInstalledOwner(txn,member);
+        if(!policyDriven || memberTransfer.bundleOwner!=null ||
+            memberTransfer.lifecycle!=TransferLifecycle.completed ||
+            await _pendingRemoval(txn,member.transferId)) { throw StateError('Game group changed'); }
+      }
       if (transfer.bundleOwner != null) {
         final parent = bundleRemovalId == null
             ? null
@@ -467,6 +492,10 @@ class TransferJournal {
       await _requireInstalledOwner(txn, record.installation);
       await txn.delete('installed_artifacts',
           where: 'installation_id = ?', whereArgs: [record.installation.id]);
+      // Transfer/install IDs are deterministic and may be reused by an identical
+      // re-download. Its actual commit must start a new installation lifetime.
+      await txn.delete('rom_cache_usage',
+          where:'installation_id = ?',whereArgs:[record.installation.id]);
       await txn.delete('transfer_target_owners',
           where: 'transfer_id = ?',
           whereArgs: [record.installation.transferId]);
@@ -880,6 +909,8 @@ class TransferJournal {
         revision: record.revision + 1,
         clearErrorCode: true,
       );
+      await RomCacheSchema.recordInstalled(
+          txn, installation.id, DateTime.now());
       await _updateTransfer(txn, completed, expectedRevision: record.revision);
       final ownerUpdates = await txn.update(
         'transfer_target_owners',

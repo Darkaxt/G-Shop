@@ -26,6 +26,15 @@ import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/services/native_smb_service.dart';
 import 'package:retro_eshop/services/installation_index.dart';
 import 'package:retro_eshop/services/owned_installation_removal.dart';
+import 'package:retro_eshop/models/config/app_config.dart';
+import 'package:retro_eshop/models/config/source.dart';
+import 'package:retro_eshop/models/config/system_config.dart';
+import 'package:retro_eshop/models/rom_cache_policy.dart';
+import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/library_query.dart';
+import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:retro_eshop/services/rom_cache_store.dart';
+import 'package:retro_eshop/services/rom_cache_runtime.dart';
 
 class _Driver implements DriveAuthorizationDriver {
   final signedOut = Completer<void>();
@@ -124,6 +133,8 @@ class _Transport implements HttpClientAdapter {
   final String name;
   String version = '1';
   String fileParent = 'folder';
+  int? rejectedStatus;
+  bool offline=false;
   final extraFolders = <String, Map<String, Object?>>{};
   Future<ResponseBody> Function(RequestOptions, Future<void>?)? mediaResponse;
   _Transport({this.size = 5, this.name = 'fixture.chd'});
@@ -134,6 +145,8 @@ class _Transport implements HttpClientAdapter {
       Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
     requests.add(options);
     if (closed) throw StateError('Transport already closed');
+    if(offline)throw DioException(requestOptions:options,type:DioExceptionType.connectionError);
+    if(rejectedStatus!=null)return ResponseBody.fromString('{"error":{"message":"Synthetic source rejection"}}',rejectedStatus!);
     if (options.queryParameters['alt'] == 'media') {
       if (mediaResponse != null) return mediaResponse!(options, cancelFuture);
       return ResponseBody(
@@ -196,6 +209,7 @@ class _Transport implements HttpClientAdapter {
 }
 
 class _NativeStorage {
+  bool cacheIdle = true;
   Map<String, Object?> archiveObservation = {
     'container': {'sizeBytes': 5, 'md5': _md5, 'sha256': 'd' * 64},
     'localIdentity': {
@@ -262,6 +276,7 @@ class _NativeStorage {
     calls.add(call.method);
     final args = Map<String, dynamic>.from(call.arguments as Map);
     switch (call.method) {
+      case 'ownedCacheIdle': return cacheIdle;
       case 'localCopyInspect':
         if (rootArchiveFailure != null && args['destinationRoot'] == '/roms') {
           if (rootArchiveFailure == 'not_found') return null;
@@ -546,6 +561,37 @@ class _TransferFixture {
           authorization: auth, accountId: account, httpClientAdapter: media));
 }
 
+Future<RomCacheRuntime> _cacheFixture(_TransferFixture fixture, DriveRuntime runtime) async {
+  final db = fixture.db;
+  await LibrarySchema.install(db);
+  await MetadataRefreshJobs.install(db);
+  await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY, systemSlug TEXT,
+    displayName TEXT, filename TEXT, artifact_key TEXT, remote_artifact TEXT,
+    is_folder INTEGER DEFAULT 0)''');
+  await LibraryQuery.install(db);
+  await db.insert('games',{'id':1,'systemSlug':'psx','displayName':'Fixture',
+    'filename':'fixture.chd','artifact_key':_artifact().id.key,
+    'remote_artifact':jsonEncode(_artifact().toJson())});
+  final edition = (await db.transaction((txn)=>
+      LibraryStore.catalogueEditions(txn,cacheRowId:1).toList())).single;
+  final library = LibraryStore(Future.value(db));
+  final game = (await library.game((await library.edition(edition))!.gameId))!;
+  await library.putGame(GameIdentity.fromJson({...game.toJson(),'matchStatus':'manuallyMatched'}));
+  final config = AppConfig(systems:[SystemConfig(id:'psx',name:'PlayStation',
+      targetFolder:'/roms',providers:const [],
+      manualMappings:const [SystemSourceMapping(sourceId:'source',remotePath:'folder')])],
+      sources:[Source(id:'source',name:'Drive',type:SourceType.drive,
+          drive:_transferConfig.drive)]);
+  final origin = DateTime.now().millisecondsSinceEpoch;
+  final cache = RomCacheRuntime(store:RomCacheStore(Future.value(db)),
+      configuration:() async => config,drive:runtime,
+      storage:OwnedStorage(channel:fixture.native.channel),
+      clockSample:() async { final wall = DateTime.now().millisecondsSinceEpoch;
+        return {'wallMillis':wall,'elapsedMillis':wall-origin,'bootCount':1}; });
+  addTearDown(cache.dispose);
+  return cache;
+}
+
 class _QueueStorage extends StorageService {
   String? savedQueue;
   int concurrent = 1;
@@ -619,6 +665,92 @@ Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('cache rotation proves current cloud bytes then uses durable owned removal', () async {
+    final fixture = await _TransferFixture.create();
+    final drive = fixture.runtime();
+    await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
+    final cache = await _cacheFixture(fixture,drive);
+    await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
+    final before = await cache.snapshot();
+    expect(before.plan.victims,hasLength(1));
+    expect(before.games.single.entry.block,isNull);
+    await cache.reconcile();
+    expect(cache.issue,isNull);
+    expect(cache.removedGames,1);
+    expect(fixture.native.published,isFalse);
+    expect(fixture.native.quarantinePresent,isFalse);
+    expect(fixture.media.requests,hasLength(2)); // download, then fresh proof
+    expect(await fixture.db.query('games'),hasLength(1));
+    expect((await fixture.db.query('rom_cache_decisions')).single['outcome'],'removed');
+  });
+  for (final failure in ['in_use','changed_cloud','truncated_cloud','offline','revoked','missing_cloud','changed_local']) {
+    test('cache rotation preserves local and cloud records on $failure', () async {
+      final fixture = await _TransferFixture.create();
+      final drive = fixture.runtime();
+      await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
+      final cache = await _cacheFixture(fixture,drive);
+      await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
+      if (failure=='in_use') fixture.native.cacheIdle=false;
+      if (failure=='changed_cloud') fixture.metadata.version='2';
+      if (failure=='offline')fixture.metadata.offline=true;
+      if (failure=='revoked')fixture.metadata.rejectedStatus=403;
+      if (failure=='missing_cloud')fixture.metadata.rejectedStatus=404;
+      if (failure=='changed_local')fixture.native.targetChanged=true;
+      if (failure=='truncated_cloud') fixture.media.mediaResponse = (_,__) async =>
+          ResponseBody(Stream.value(Uint8List.fromList([1,2])),200,headers:{'content-length':['2']});
+      await cache.reconcile();
+      expect(cache.removedGames,0);
+      expect(cache.issue,isNotNull);
+      expect(fixture.native.published,isTrue);
+      expect(fixture.native.calls,isNot(contains('ownedQuarantine')));
+      expect(await fixture.db.query('installed_artifacts'),hasLength(1));
+      expect((await fixture.db.query('rom_cache_decisions')).single['outcome'],'blocked');
+    });
+  }
+  for (final cloudChanged in [false, true]) {
+    test('cache restart rechecks cloud before continuing quarantine: changed=$cloudChanged', () async {
+      final fixture = await _TransferFixture.create();
+      final drive = fixture.runtime();
+      final transfer = await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
+      final installed = (await fixture.journal.installationForTarget(destinationRoot:'/roms',relativePath:'fixture.chd'))!;
+      final cache = await _cacheFixture(fixture,drive);
+      await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
+      final removal = await fixture.journal.beginRemoval(transfer,installed,id:'cache-removal-restart',
+          quarantinePath:'/owned/cache-removal-restart.partial',policyDriven:true);
+      await OwnedStorage(channel:fixture.native.channel).quarantine(destinationRoot:installed.destinationRoot,
+          relativePath:installed.relativePath,stagePath:removal.quarantinePath,expectedIdentity:installed.fileIdentity);
+      expect((await drive.recoverPendingRemovals()).removed,0);
+      if(cloudChanged)fixture.metadata.version='2';
+      await cache.reconcile();
+      if(!cloudChanged)expect(cache.issue,isNull);
+      expect(fixture.native.quarantinePresent,cloudChanged);
+      expect((await fixture.journal.removal(removal.id))!.phase,
+          cloudChanged ? OwnedRemovalPhase.intent : OwnedRemovalPhase.completed);
+      expect(await fixture.db.query('games'),hasLength(1));
+      if(!cloudChanged)expect(fixture.media.requests,hasLength(2));
+    });
+  }
+  test('pin change cancels and joins cloud proof before saving protection', () async {
+    final fixture=await _TransferFixture.create();
+    final drive=fixture.runtime();
+    await (await drive.startTransfer(config:_transferConfig,transferId:'transfer')).result;
+    final cache=await _cacheFixture(fixture,drive);
+    await cache.store.savePolicy(RomCachePolicy(enabled:true,defaults:RomCacheLimits(maxGames:0)));
+    final key=(await cache.snapshot()).games.single.entry.id;
+    final entered=Completer<void>(),cancelled=Completer<void>(),drain=Completer<void>();
+    fixture.media.mediaResponse=(request,cancellation) async {
+      entered.complete();await cancellation;cancelled.complete();await drain.future;
+      throw DioException(requestOptions:request,type:DioExceptionType.cancel);
+    };
+    final pass=cache.reconcile();await entered.future;
+    final edit=cache.setPinned(key,true);await cancelled.future;
+    expect(await cache.store.isPinned(key),isFalse);
+    expect(cache.busy,isTrue);expect(fixture.native.calls,isNot(contains('ownedQuarantine')));
+    drain.complete();await edit;await pass;
+    expect(await cache.store.isPinned(key),isTrue);
+    expect(fixture.native.published,isTrue);expect(cache.busy,isFalse);
+    expect((await cache.snapshot()).plan.protectedGames,1);
+  });
   test('explicit adoption compares current bytes and commits a reusable owner', () async {
     final fixture = await _TransferFixture.create(reserve: false);
     fixture.native.bytes.addAll([1,2,3,4,5]);

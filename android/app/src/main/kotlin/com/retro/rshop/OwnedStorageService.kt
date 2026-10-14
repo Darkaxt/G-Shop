@@ -21,6 +21,8 @@ internal class OwnedStorageService(private val context: Context) {
     private val main = Handler(Looper.getMainLooper())
     private val sessions = mutableMapOf<String, Session>()
     @Volatile private var closed = false
+    private var shutdownComplete = false
+    private val shutdownCallbacks = mutableListOf<() -> Unit>()
 
     private class Failure(val code: String) : Exception()
     private data class Target(val root: String, val parent: String, val name: String)
@@ -221,6 +223,10 @@ internal class OwnedStorageService(private val context: Context) {
                                     // and the pinned object on every subsequent open.
                                     context.grantUriPermission(app, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
+                                call.argument<String>("installationId")?.let { id ->
+                                    if (!context.getSharedPreferences("rom-cache-launches", Context.MODE_PRIVATE)
+                                        .edit().putString(id, app).commit()) throw Failure("io_error")
+                                }
                                 if (pair == null) context.startActivity(intent)
                                 else CompanionLauncher.launch(context, pair, intent)
                                 // Activity acceptance is not a claim that the ROM booted.
@@ -249,17 +255,49 @@ internal class OwnedStorageService(private val context: Context) {
         }
     }
 
-    fun shutdown() {
+    @Synchronized fun shutdown(completed: (() -> Unit)? = null) {
+        if(completed!=null) {
+            if(shutdownComplete)main.post { completed() } else shutdownCallbacks.add(completed)
+        }
         if (closed) return
         closed = true
         worker.execute {
             sessions.values.forEach(::closeSession)
             sessions.clear()
+            main.post {
+                val callbacks = synchronized(this) {
+                    shutdownComplete=true
+                    shutdownCallbacks.toList().also { shutdownCallbacks.clear() }
+                }
+                callbacks.forEach { it() }
+            }
         }
         worker.shutdown()
     }
 
     private fun execute(call: MethodCall): Any? = when (call.method) {
+        "ownedCacheIdle" -> {
+            val id=string(call,"installationId")
+            val removalId=call.argument<String>("removalId")
+            val members = if(removalId!=null) OwnedRomContentProvider.cacheRemoval(context,id,removalId)
+                else {
+                    val installed=OwnedRomContentProvider.cacheInstallation(context,id)
+                    val result=mutableListOf(installed)
+                    val dependencies=installed.optJSONArray("dependencies")
+                    if(dependencies!=null)for(index in 0 until dependencies.length()) {
+                        val member=dependencies.getJSONObject(index)
+                        result.add(OwnedRomContentProvider.cacheInstallation(context,member.getString("id"),installed.getString("transferId")))
+                    }
+                    result
+                }
+            val emulator = context.getSharedPreferences("rom-cache-launches", Context.MODE_PRIVATE)
+                .getString(id, "") ?: ""
+            !RootRomCacheScan.inUse(context, members, emulator)
+        }
+        "ownedCacheClock" -> mapOf("wallMillis" to System.currentTimeMillis(),
+            "elapsedMillis" to android.os.SystemClock.elapsedRealtime(),
+            "bootCount" to android.provider.Settings.Global.getInt(context.contentResolver,
+                android.provider.Settings.Global.BOOT_COUNT, -1))
         "ownedPrepare" -> prepare(string(call, "destinationRoot"))
         "ownedOpen" -> open(call)
         "ownedInspect" -> inspect(call)

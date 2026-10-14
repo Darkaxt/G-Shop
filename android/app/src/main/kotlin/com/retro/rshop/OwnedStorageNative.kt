@@ -41,4 +41,6 @@ internal object OwnedStorageNative {
     external fun saveSnapshotHasWriter(directory: Int, name: String, source: String, backing: String): Boolean
     /** Same census, one traversal for the exact optional companion selection. */
     external fun saveSnapshotHasWriters(directory: Int, names: Array<String>, source: String, backing: String): Boolean
+    /** Cache-only: protect readers/mappings and the non-cached launched emulator. */
+    external fun romCacheHasReaders(directory: Int, name: String, source: String, backing: String, emulator: String): Boolean
 }

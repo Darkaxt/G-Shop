@@ -11,11 +11,16 @@ import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
 class _RomManager extends RomManager {
   final Future<InstalledArtifact> Function() resolve;
+  final successfulUses = <String>[];
   _RomManager(this.resolve);
   @override
   Future<InstalledArtifact> requireInstalledArtifact(
           GameItem game, String root) =>
       resolve();
+  @override
+  Future<void> recordSuccessfulLaunch(String installationId) async {
+    successfulUses.add(installationId);
+  }
 }
 
 void main() {
@@ -153,6 +158,28 @@ void main() {
     expect(calls.single.method, 'launchOwnedDolphin');
     expect(calls.single.arguments,
         {'installationId': manifest.id, 'filename': manifest.relativePath});
+  });
+  test(
+      'cache use is recorded once after native handoff, never for failed launch',
+      () async {
+    final manager = _RomManager(() async => manifest);
+    final launcher =
+        OwnedEmulatorLauncher(romManager: manager, channel: channel);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      expect(manager.successfulUses, isEmpty);
+      throw PlatformException(code: 'emulator_unavailable');
+    });
+    await expectLater(launcher.open(game, system, '/owned'),
+        throwsA(isA<PlatformException>()));
+    expect(manager.successfulUses, isEmpty);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      expect(manager.successfulUses, isEmpty);
+      return null;
+    });
+    await launcher.open(game, system, '/owned');
+    expect(manager.successfulUses, [manifest.id]);
   });
   test('companion component shares the exact preflight and native ROM handoff',
       () async {

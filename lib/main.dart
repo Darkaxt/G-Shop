@@ -13,6 +13,7 @@ import 'providers/library_providers.dart';
 import 'providers/source_health_providers.dart';
 import 'providers/rom_status_providers.dart';
 import 'providers/save_backup_providers.dart';
+import 'providers/rom_cache_providers.dart';
 import 'features/home/home_view.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'services/crash_log_service.dart';
@@ -38,6 +39,7 @@ import 'widgets/media_cover_fallback.dart';
 import 'l10n/app_localizations.dart';
 
 export 'services/saves/save_backup_background.dart' show saveBackupBackground;
+export 'services/rom_cache_background.dart' show romCacheBackground;
 
 class NoGlowScrollBehavior extends ScrollBehavior {
   @override
@@ -252,6 +254,8 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
 
   void _checkAutomaticSaveBackups() {
     if (!mounted) return;
+    unawaited(ref.read(romCacheProvider.future).then((cache)=>cache.reconcile())
+        .catchError((Object _,StackTrace __){debugPrint('ROM cache check could not start');}));
     unawaited(ref.read(automaticSaveBackupsProvider.future).then((service) async {
       if (mounted) await service.checkEnabled();
     }).catchError((Object _, StackTrace __) {

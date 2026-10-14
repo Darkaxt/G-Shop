@@ -49,6 +49,23 @@ class OwnedStorage {
   const OwnedStorage(
       {this.channel = const MethodChannel('com.retro.rshop/storage')});
 
+  Future<void> requireCacheIdle(InstalledArtifact installation, {String? removalId}) async {
+    final idle =
+        await _invoke('ownedCacheIdle', {'installationId': installation.id,
+          if(removalId!=null)'removalId':removalId});
+    if (idle != true) throw const OwnedStorageException('in_use');
+  }
+
+  Future<Map<String,int>> cacheClock() async {
+    final value = await _invoke('ownedCacheClock');
+    if (value is! Map || value.length != 3 ||
+        ['wallMillis','elapsedMillis','bootCount'].any((key)=>value[key] is! int) ||
+        (value['wallMillis'] as int) < 0 || (value['elapsedMillis'] as int) < 0) {
+      throw const OwnedStorageException('io_error');
+    }
+    return value.cast<String,int>();
+  }
+
   Future<Object?> _invoke(String method,
       [Map<String, Object?>? arguments]) async {
     try {

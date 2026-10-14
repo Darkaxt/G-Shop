@@ -784,6 +784,23 @@ void main() {
     expect(requests, [0, 0]);
   });
 
+  test(
+      'cache pre-removal guard rejects changed eligibility before durable intent',
+      () async {
+    await queue();
+    await engine().start('transfer').result;
+    final manifest = (await installed())!;
+    final before = native.methods.length;
+    await expectLater(
+        remover().remove(manifest, beforeRemoval: () async {
+          throw const OwnedStorageException('changed');
+        }),
+        throwsA(isA<OwnedStorageException>()));
+    expect(await installed(), isNotNull);
+    expect(await journal.pendingRemovals().toList(), isEmpty);
+    expect(native.methods.skip(before), isNot(contains('ownedQuarantine')));
+  });
+
   for (final phase in ['ownedQuarantine', 'ownedRetireQuarantine']) {
     test(
         'lost $phase acknowledgement recovers without repeating download or deleting neighbor',
@@ -1505,6 +1522,39 @@ void main() {
         relativePath: '$namespace/game.m3u',
         stagePath: '/owned/playlist.partial',
         bundleMembers: members));
+  }
+
+  for(final interrupted in [false,true]) {
+    test('cache removes independent game roots as one durable group: interrupted=$interrupted', () async {
+      final installs=<InstalledArtifact>[];
+      for(var i=0;i<2;i++) {
+        final record=await journal.create(TransferRecord(id:'group-$i',artifact:artifact(),
+          destinationRoot:'/roms',relativePath:'Group $i.chd',stagePath:'/owned/group-$i.partial'));
+        expect((await engine().start(record.id).result).lifecycle,TransferLifecycle.completed);
+        installs.add((await journal.installationForTarget(destinationRoot:'/roms',relativePath:record.relativePath))!);
+      }
+      final save=_NativeFile(990)..bytes=[42];
+      native.files['/roms/Group.sav']=save;
+      var lost=false;
+      if(interrupted)native.after=(call) async {
+        if(call.method=='ownedQuarantine' && (call.arguments as Map)['relativePath']=='Group 1.chd' && !lost) {
+          lost=true;throw StateError('lost group quarantine receipt');
+        }
+      };
+      final operation=remover().remove(installs.first,policyDriven:true,groupMembers:[installs.last]);
+      if(interrupted) {
+        await expectLater(operation,throwsA(isA<OwnedStorageException>()));
+        expect(lost,isTrue);
+        native.after=null;
+        final row=(await db.query('owned_removals',where:'transfer_id=?',whereArgs:[installs.first.transferId])).single;
+        final pending=OwnedRemovalRecord.fromJson(jsonDecode(row['record_json'] as String));
+        expect(pending.groupMembers.single.toJson(),installs.last.toJson());
+        await remover().recover(pending.id);
+      } else { await operation; }
+      expect(await db.query('installed_artifacts'),isEmpty);
+      expect(native.files,{'/roms/Group.sav':save});
+      expect((await db.query('owned_removals')).every((r)=>r['phase']=='completed'),isTrue);
+    });
   }
 
   test(

@@ -27,51 +27,93 @@ class OwnedInstallationRemoval {
   final OwnedStorage storage;
   OwnedInstallationRemoval(this.journal, {this.storage = const OwnedStorage()});
 
-  Future<void> remove(InstalledArtifact installation,
-          {String? replacementTransferId, String? bundleRemovalId}) =>
-      InstallationMutations.run(
-          p.join(installation.destinationRoot, installation.relativePath),
-          () async {
-        final transfer = await journal.transfer(installation.transferId);
-        if (transfer == null) throw const OwnedStorageException('changed');
-        await InstallationIndex(journal, storage: storage).requireInstallation(
-            transfer, installation,
-            bundleOwner: bundleRemovalId == null ? null : transfer.bundleOwner);
-        final plan = await storage.prepare(installation.destinationRoot);
-        if (!plan.sameMountHint) {
-          throw const OwnedStorageException('cross_volume');
-        }
-        final random = Random.secure();
-        final id = bundleRemovalId != null
-            ? _memberRemovalId(bundleRemovalId, transfer.id)
-            : replacementTransferId == null
-                ? 'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}'
-                : 'replacement-$replacementTransferId';
-        final intent = await journal.beginRemoval(transfer, installation,
-            id: id,
-            quarantinePath: plan.stagePath(id),
-            replacementTransferId: replacementTransferId,
-            bundleRemovalId: bundleRemovalId);
-        await _continue(intent);
-        if ((await journal.removal(id))!.phase == OwnedRemovalPhase.retained) {
-          throw const OwnedStorageException('cross_volume');
-        }
-      });
+  static String _scope(
+      InstalledArtifact installation, List<InstalledArtifact> group) {
+    if(group.isEmpty)return p.join(installation.destinationRoot,installation.relativePath);
+    final paths = [
+      for (final root in [installation, ...group])
+        for (final member in [root, ...root.dependencies])
+          p.join(member.destinationRoot, member.relativePath)
+    ];
+    var scope = paths.first;
+    for (final path in paths.skip(1)) {
+      while (scope != path && !p.isWithin(scope, path)) {
+        scope = p.dirname(scope);
+      }
+    }
+    return scope;
+  }
 
-  Future<void> recover(String id) async {
+  Future<void> remove(InstalledArtifact installation,
+          {String? replacementTransferId,
+          String? bundleRemovalId,
+          Future<void> Function()? beforeRemoval,
+          bool policyDriven = false,
+          List<InstalledArtifact> groupMembers = const []}) =>
+      InstallationMutations.run(
+          _scope(installation, groupMembers),
+          () => _remove(installation,
+              replacementTransferId: replacementTransferId,
+              bundleRemovalId: bundleRemovalId,
+              beforeRemoval: beforeRemoval,
+              policyDriven: policyDriven,
+              groupMembers: groupMembers,scopeHeld:groupMembers.isNotEmpty));
+
+  Future<void> _remove(InstalledArtifact installation,
+      {String? replacementTransferId,
+      String? bundleRemovalId,
+      String? groupRemovalId,
+      Future<void> Function()? beforeRemoval,
+      bool policyDriven = false,
+      List<InstalledArtifact> groupMembers = const [],bool scopeHeld=false}) async {
+    final transfer = await journal.transfer(installation.transferId);
+    if (transfer == null) throw const OwnedStorageException('changed');
+    await InstallationIndex(journal, storage: storage).requireInstallation(
+        transfer, installation,
+        bundleOwner: bundleRemovalId == null ? null : transfer.bundleOwner);
+    final plan = await storage.prepare(installation.destinationRoot);
+    if (!plan.sameMountHint) {
+      throw const OwnedStorageException('cross_volume');
+    }
+    // Policy-driven callers perform current recovery/eligibility checks
+    // inside the existing target mutation, before creating any remove intent.
+    await beforeRemoval?.call();
+    final random = Random.secure();
+    final parentRemoval = bundleRemovalId ?? groupRemovalId;
+    final id = parentRemoval != null
+        ? _memberRemovalId(parentRemoval, transfer.id)
+        : replacementTransferId == null
+            ? 'removal-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}'
+            : 'replacement-$replacementTransferId';
+    final intent = await journal.beginRemoval(transfer, installation,
+        id: id,
+        quarantinePath: plan.stagePath(id),
+        replacementTransferId: replacementTransferId,
+        bundleRemovalId: bundleRemovalId,
+        policyDriven: policyDriven,
+        groupRemovalId: groupRemovalId,
+        groupMembers: groupMembers);
+    await _continue(intent,scopeHeld:scopeHeld);
+    if ((await journal.removal(id))!.phase == OwnedRemovalPhase.retained) {
+      throw const OwnedStorageException('cross_volume');
+    }
+  }
+
+  Future<void> recover(String id,
+      {Future<void> Function()? beforeRemoval}) async {
     final saved = await journal.removal(id);
     if (saved == null) throw const OwnedStorageException('not_found');
     await InstallationMutations.run(
-        p.join(saved.installation.destinationRoot,
-            saved.installation.relativePath), () async {
+        _scope(saved.installation, saved.groupMembers), () async {
       final current = (await journal.removal(id))!;
       if (current.isTerminal) return;
       if (current.issue != null) throw OwnedStorageException(current.issue!);
-      await _continue(current);
+      await beforeRemoval?.call();
+      await _continue(current,scopeHeld:current.groupMembers.isNotEmpty);
     });
   }
 
-  Future<void> _continue(OwnedRemovalRecord saved) async {
+  Future<void> _continue(OwnedRemovalRecord saved,{bool scopeHeld=false}) async {
     var record = saved;
     final manifest = record.installation;
     final expected = manifest.fileIdentity;
@@ -130,13 +172,35 @@ class OwnedInstallationRemoval {
         final memberRemovalId = _memberRemovalId(record.id, member.transferId);
         final prior = await journal.removal(memberRemovalId);
         if (prior == null) {
-          await remove(member, bundleRemovalId: record.id);
+          if(scopeHeld) {
+            await _remove(member,bundleRemovalId:record.id,policyDriven:record.policyDriven,scopeHeld:true);
+          } else {
+            await remove(member,bundleRemovalId:record.id,policyDriven:record.policyDriven);
+          }
         } else {
-          await recover(memberRemovalId);
+          if (prior.issue != null) throw OwnedStorageException(prior.issue!);
+          if (!prior.isTerminal) {
+            if(scopeHeld) { await _continue(prior,scopeHeld:true); }
+            else { await recover(prior.id); }
+          }
           if ((await journal.removal(memberRemovalId))!.phase !=
               OwnedRemovalPhase.completed) {
             throw const OwnedStorageException('bundle_removal_pending');
           }
+        }
+      }
+      for (final member in record.groupMembers) {
+        final id = _memberRemovalId(record.id, member.transferId);
+        final prior = await journal.removal(id);
+        if (prior == null) {
+          await _remove(member,
+              groupRemovalId: record.id, policyDriven: record.policyDriven,scopeHeld:true);
+        } else if (!prior.isTerminal) {
+          if (prior.issue != null) throw OwnedStorageException(prior.issue!);
+          await _continue(prior,scopeHeld:true);
+        }
+        if ((await journal.removal(id))!.phase != OwnedRemovalPhase.completed) {
+          throw const OwnedStorageException('bundle_removal_pending');
         }
       }
       await storage.retireQuarantine(

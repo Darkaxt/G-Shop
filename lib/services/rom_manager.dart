@@ -17,6 +17,11 @@ class RomManager {
   final InstallationIndex? installations;
   RomManager({this.installations});
 
+  Future<void> recordSuccessfulLaunch(String installationId) =>
+      (installations ?? InstallationIndex.application())
+          .journal
+          .recordSuccessfulUse(installationId);
+
   Future<JournaledByteObservation> requireLocalCopy(
       GameItem game, String root) async {
     final artifact = game.remoteArtifact;
