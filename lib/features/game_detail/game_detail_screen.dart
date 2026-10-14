@@ -1177,6 +1177,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                             coverUrls: coverUrls,
                             physicalLabelUrl:
                                 richMetadata?.cachedSupportTexture,
+                            gbcDualMode: richMetadata?.gbcDualMode,
                             cachedUrl: richMetadata?.cachedCover ??
                                 selectedVariant.cachedCoverUrl,
                             metadata: fileMetadata,
@@ -1265,6 +1266,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
               reducedMotion: ref.watch(mediaPresentationProvider).reducedMotion,
               system: widget.system,
               coverUrls: coverUrls,
+              physicalLabelUrl: richMetadata?.cachedSupportTexture,
+              gbcDualMode: richMetadata?.gbcDualMode,
               cachedUrl:
                   richMetadata?.cachedCover ?? selectedVariant.cachedCoverUrl,
               metadata: fileMetadata,

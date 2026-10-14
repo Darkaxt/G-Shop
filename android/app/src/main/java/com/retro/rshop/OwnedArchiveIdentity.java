@@ -12,8 +12,11 @@ import java.util.zip.CRC32;
 final class OwnedArchiveIdentity {
     private final MessageDigest md5 = digest("MD5"), sha1 = digest("SHA-1"), sha256 = digest("SHA-256");
     private final CRC32 crc = new CRC32();
+    private final byte[] header = new byte[0x150];
     private long size;
     void add(byte[] bytes, int count) {
+        if (size < header.length) System.arraycopy(bytes, 0, header, (int) size,
+                (int) Math.min(count, header.length - size));
         md5.update(bytes, 0, count); sha1.update(bytes, 0, count); sha256.update(bytes, 0, count);
         crc.update(bytes, 0, count); size += count;
     }
@@ -22,6 +25,15 @@ final class OwnedArchiveIdentity {
         result.put("kind", "rawRom"); result.put("filename", name); result.put("sizeBytes", size);
         result.put("crc32", String.format(java.util.Locale.ROOT, "%08x", crc.getValue()));
         result.put("md5", hex(md5.digest())); result.put("sha1", hex(sha1.digest()));
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        if (size >= header.length && (lower.endsWith(".gb") || lower.endsWith(".gbc"))) {
+            // Pan Docs 0143/014D: retain only a checksum-valid, recognized flag.
+            int checksum = 0;
+            for (int i = 0x134; i <= 0x14c; i++) checksum = (checksum - (header[i] & 255) - 1) & 255;
+            int flag = header[0x143] & 255;
+            if (checksum == (header[0x14d] & 255) && (flag == 0x80 || flag == 0xc0))
+                result.put("gbcDualMode", flag == 0x80 ? "yes" : "no");
+        }
         return result;
     }
     static Map<String, Object> container(String path) throws IOException {

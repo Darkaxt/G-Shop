@@ -965,13 +965,35 @@ class MetadataRefreshJobs {
       MetadataLookupRequest request,
       Map<String, Object?> identity,
       CancelToken cancel) async {
-    final archive = {'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes', 'megadrive', 'mastersystem', 'sg1000'}
-        .contains(request.platformId);
+    final archive = {
+      'n64',
+      'gamegear',
+      'gb',
+      'gbc',
+      'gba',
+      'nes',
+      'snes',
+      'megadrive',
+      'mastersystem',
+      'sg1000'
+    }.contains(request.platformId);
     if ((archive ? _readArchiveIdentifier == null : _readRomHeader == null) ||
         request.romIdentifier != null ||
         request.verifiedProviderGameId != null ||
-        !{'psp', 'ps2', 'n64', 'gamegear', 'gb', 'gbc', 'gba', 'nes', 'snes', 'megadrive', 'mastersystem', 'sg1000'}
-            .contains(request.platformId)) {
+        !{
+          'psp',
+          'ps2',
+          'n64',
+          'gamegear',
+          'gb',
+          'gbc',
+          'gba',
+          'nes',
+          'snes',
+          'megadrive',
+          'mastersystem',
+          'sg1000'
+        }.contains(request.platformId)) {
       return null;
     }
     final game =
@@ -1005,7 +1027,8 @@ class MetadataRefreshJobs {
         artifact.canDownload != true ||
         (artifact.sizeBytes ?? 0) < (archive ? 1 : 140) ||
         !(archive
-            ? {'n64', 'gamegear', 'megadrive', 'mastersystem', 'sg1000'}.contains(request.platformId) &&
+            ? {'n64', 'gamegear', 'megadrive', 'mastersystem', 'sg1000'}
+                        .contains(request.platformId) &&
                     artifact.displayName.toLowerCase().endsWith('.zip') ||
                 {'n64', 'gb', 'gbc', 'gba', 'nes', 'snes'}
                         .contains(request.platformId) &&
@@ -1169,20 +1192,7 @@ class MetadataRefreshJobs {
               jsonDecode(rows.single['record_json'] as String)),
           platformId);
     }
-    if (evidence.length != 1) return null;
-    // A preserved manual assertion made before the current content marker is
-    // review evidence, not proof about a replacement blob.
-    final rawIndex = edition.evidence.indexOf(evidence.single);
-    final markerIndex = edition.evidence.lastIndexWhere(
-        (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
-    if (markerIndex > rawIndex) return null;
-    try {
-      final value = jsonDecode(evidence.single.value);
-      if (value is! Map<String, dynamic>) return null;
-      return MetadataRomIdentifier.fromJson(value);
-    } on FormatException {
-      return null;
-    }
+    return MetadataRomIdentifier.fromEditionEvidence(edition);
   }
 
   /// Local paged review only: displaying outcomes never starts provider requests.

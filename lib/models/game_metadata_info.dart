@@ -52,6 +52,7 @@ class GameMetadataInfo {
 
   /// Exact physical-media label texture; never a box cover or support photo.
   final String? cachedSupportTexture;
+  final String? gbcDualMode;
   final List<String> cachedScreenshots;
 
   const GameMetadataInfo({
@@ -81,6 +82,7 @@ class GameMetadataInfo {
     this.providerMatches = const {},
     this.cachedCover,
     this.cachedSupportTexture,
+    this.gbcDualMode,
     this.cachedScreenshots = const [],
   });
 
@@ -155,6 +157,7 @@ class GameMetadataInfo {
           providerMatches: providerMatches,
           cachedCover: cover,
           cachedSupportTexture: supportTexture,
+          gbcDualMode: gbcDualMode,
           cachedScreenshots: images);
 
   /// Parsed sibling info from RomM (JSON array in DB).

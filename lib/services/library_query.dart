@@ -11,6 +11,7 @@ import 'library_store.dart';
 
 import 'metadata/effective_overall_rating.dart';
 import 'metadata/metadata_artwork_cache.dart';
+import 'metadata/metadata_provider.dart';
 
 /// File identity shared by cached covers and discovery, never a cleaned title.
 String coverRatingKey(String systemSlug, String selectionKey) =>
@@ -792,6 +793,9 @@ class LibraryQuery {
           systemSlug: systemSlug,
           cacheRowId: cacheId,
           editionId: edition.id,
+          gbcDualMode: systemSlug == 'gbc'
+              ? MetadataRomIdentifier.fromEditionEvidence(edition)?.gbcDualMode
+              : null,
           overallRating: overall,
           rating: overall?.rating.normalizedValue,
           summary: summary,

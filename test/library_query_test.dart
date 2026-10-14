@@ -235,6 +235,52 @@ void main() {
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
 
+  test('cartridge compatibility follows only the current exact cached edition',
+      () async {
+    final id = await seed(1, platform: 'gbc');
+    await seed(2, platform: 'gbc');
+    final edition = (await store.edition(id))!;
+    final evidence = IdentityEvidence(
+        source: 'driveLocalArchive',
+        kind: 'rawRomIdentifier',
+        value: jsonEncode({
+          'kind': 'rawRom',
+          'filename': 'Actual member.gbc',
+          'sizeBytes': 32768,
+          'md5': '0123456789abcdef0123456789abcdef',
+          'gbcDualMode': 'no'
+        }));
+    await store.putEdition(EditionIdentity.fromJson({
+      ...edition.toJson(),
+      'evidence': [
+        ...edition.evidence.map((e) => e.toJson()),
+        evidence.toJson()
+      ]
+    }));
+    final detail = await query.cachedMetadata('Game 1.7z', 'gbc');
+    expect(detail?.gbcDualMode, 'no');
+    expect(
+        detail
+            ?.withArtwork(null, const [], supportTexture: 'file:///label.png')
+            .gbcDualMode,
+        'no');
+    expect(
+        (await query.cachedMetadata('Game 2.7z', 'gbc'))?.gbcDualMode, isNull);
+    await store.putEdition(EditionIdentity.fromJson({
+      ...edition.toJson(),
+      'evidence': [
+        evidence.toJson(),
+        IdentityEvidence(
+                source: 'catalogue',
+                kind: 'artifactContent',
+                value: 'replacement')
+            .toJson()
+      ]
+    }));
+    expect(
+        (await query.cachedMetadata('Game 1.7z', 'gbc'))?.gbcDualMode, isNull);
+  });
+
   test('policy rebuild batches projection writes per bounded edition page',
       () async {
     for (var n = 1; n <= 129; n++) {

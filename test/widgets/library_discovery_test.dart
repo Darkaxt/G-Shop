@@ -554,16 +554,20 @@ void defineLibraryDiscoveryChecks({
     expect(find.byTooltip('Cover view'), findsNothing,
         reason:
             'Presentation controls belong in details, not over the preview');
-    tester.view.physicalSize = const Size(832.5, 468.3);
-    await tester.pumpAndSettle();
+    if (factory == null) {
+      tester.view.physicalSize = const Size(832.5, 468.3);
+      await tester.pumpAndSettle();
+    }
     final previewHeight = tester
         .getSize(find.byKey(const ValueKey('library-media-preview')))
         .height;
     expect(tester.getSize(find.byType(PhysicalMediaView)).height,
         greaterThanOrEqualTo(previewHeight * 0.5),
         reason: 'The selected object must retain half the Thor preview height');
-    tester.view.physicalSize = const Size(1920, 1080);
-    await tester.pumpAndSettle();
+    if (factory == null) {
+      tester.view.physicalSize = const Size(1920, 1080);
+      await tester.pumpAndSettle();
+    }
     await container.read(mediaPresentationProvider.notifier).toggleMedia();
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('library-media-preview')), findsNothing);

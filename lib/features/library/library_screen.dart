@@ -2168,14 +2168,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         .where((system) => system.id == entry.systemSlug)
         .firstOrNull;
     if (system == null) return const SizedBox.shrink();
-    final physicalLabel = media.enabled &&
+    final physicalMetadata = media.enabled &&
             PhysicalMediaFormat.forSystem(system.id) != null
         ? ref
             .watch(gameMetadataProvider(
                 (filename: entry.selectionKey, systemSlug: entry.systemSlug)))
             .asData
             ?.value
-            ?.cachedSupportTexture
         : null;
     final variants = _discoveryVariants[
             coverRatingKey(entry.systemSlug, entry.selectionKey)] ??
@@ -2201,7 +2200,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   system: system,
                   coverUrls:
                       ImageHelper.getCoverUrlsForSingle(system, entry.filename),
-                  physicalLabelUrl: physicalLabel,
+                  physicalLabelUrl: physicalMetadata?.cachedSupportTexture,
+                  gbcDualMode: physicalMetadata?.gbcDualMode,
                   cachedUrl: _metadataCovers[coverRatingKey(
                           entry.systemSlug, entry.selectionKey)] ??
                       entry.coverUrl,

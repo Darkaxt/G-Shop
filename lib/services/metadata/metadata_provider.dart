@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
@@ -15,6 +16,7 @@ class MetadataRomIdentifier {
   final String? crc32;
   final String? md5;
   final String? sha1;
+  final String? gbcDualMode;
   const MetadataRomIdentifier({
     required this.kind,
     required this.filename,
@@ -22,6 +24,7 @@ class MetadataRomIdentifier {
     this.crc32,
     this.md5,
     this.sha1,
+    this.gbcDualMode,
   });
 
   /// Read only the declared original ISO identity, not CHD/combined checksums.
@@ -136,6 +139,7 @@ class MetadataRomIdentifier {
         'crc32': crc32,
         'md5': md5,
         'sha1': sha1,
+        if (gbcDualMode != null) 'gbcDualMode': gbcDualMode,
       };
 
   factory MetadataRomIdentifier.fromJson(Map<String, dynamic> json) {
@@ -145,7 +149,8 @@ class MetadataRomIdentifier {
       'sizeBytes',
       'crc32',
       'md5',
-      'sha1'
+      'sha1',
+      'gbcDualMode'
     };
     _rejectUnexpectedKeys(json, allowedKeys, 'ROM identifier');
     final kindName = _requiredString(json, 'kind', 'ROM identifier');
@@ -158,14 +163,43 @@ class MetadataRomIdentifier {
     if (sizeBytes is! int || sizeBytes < 0) {
       throw FormatException('ROM identifier sizeBytes must be nonnegative.');
     }
+    final dual = _optionalString(json, 'gbcDualMode', 'ROM identifier');
+    final filename = _requiredString(json, 'filename', 'ROM identifier');
+    if (dual != null &&
+        (!{'yes', 'no'}.contains(dual) ||
+            kind.single != RomIdentifierKind.rawRom ||
+            !RegExp(r'\.(gb|gbc)$', caseSensitive: false).hasMatch(filename))) {
+      throw const FormatException('Invalid GBC compatibility evidence.');
+    }
     return MetadataRomIdentifier(
       kind: kind.single,
-      filename: _requiredString(json, 'filename', 'ROM identifier'),
+      filename: filename,
       sizeBytes: sizeBytes,
       crc32: _optionalString(json, 'crc32', 'ROM identifier'),
       md5: _optionalString(json, 'md5', 'ROM identifier'),
       sha1: _optionalString(json, 'sha1', 'ROM identifier'),
+      gbcDualMode: dual,
     );
+  }
+
+  /// Current exact-edition evidence, never an assertion preceding replacement
+  /// content or a conflicting sibling. Shared by lookup and presentation.
+  static MetadataRomIdentifier? fromEditionEvidence(EditionIdentity edition) {
+    final evidence =
+        edition.evidence.where((e) => e.kind == 'rawRomIdentifier').toList();
+    if (evidence.length != 1) return null;
+    final rawIndex = edition.evidence.indexOf(evidence.single);
+    final markerIndex = edition.evidence.lastIndexWhere(
+        (e) => e.source == 'catalogue' && e.kind == 'artifactContent');
+    if (markerIndex > rawIndex) return null;
+    try {
+      final value = jsonDecode(evidence.single.value);
+      return value is Map<String, dynamic>
+          ? MetadataRomIdentifier.fromJson(value)
+          : null;
+    } on FormatException {
+      return null;
+    }
   }
 }
 

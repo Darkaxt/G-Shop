@@ -12,6 +12,7 @@ class CoverSection extends StatefulWidget {
   final List<String> coverUrls;
   final String? cachedUrl;
   final String? physicalLabelUrl;
+  final String? gbcDualMode;
   final GameMetadataFull metadata;
   final bool isFavorite;
   final bool isInstalled;
@@ -26,6 +27,7 @@ class CoverSection extends StatefulWidget {
     required this.coverUrls,
     this.cachedUrl,
     this.physicalLabelUrl,
+    this.gbcDualMode,
     required this.metadata,
     this.isFavorite = false,
     this.isInstalled = false,
@@ -47,7 +49,7 @@ class _CoverSectionState extends State<CoverSection> {
   Widget build(BuildContext context) {
     final game = widget.game, system = widget.system;
     final format = PhysicalMediaFormat.forSystem(system.id,
-        region: widget.metadata.region.name);
+        region: widget.metadata.region.name, dualMode: widget.gbcDualMode);
     final physical = format != null && _physical && widget.physicalMediaEnabled;
     final sticker = HandwrittenMediaSticker(
         identity: game.selectionKey,

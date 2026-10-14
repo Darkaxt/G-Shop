@@ -23,7 +23,8 @@ void main() {
       PhysicalMediaFormat.gba,
       PhysicalMediaFormat.psp,
       PhysicalMediaFormat.n64,
-      PhysicalMediaFormat.nds
+      PhysicalMediaFormat.nds,
+      PhysicalMediaFormat.vita
     ]) {
       final model = await SocketMediaModel.load(format);
       final pose = SocketMediaPose.sample(
@@ -115,6 +116,34 @@ void main() {
     expect(
         tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
         cover);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+      'normal cover binds GBC compatibility and the physical label separately',
+      (tester) async {
+    final system =
+        SystemModel.supportedSystems.firstWhere((s) => s.id == 'gbc');
+    const game =
+        GameItem(filename: 'Game (USA).gbc', displayName: 'Game', url: '');
+    await tester.pumpWidget(MaterialApp(
+        home: CoverSection(
+            game: game,
+            system: system,
+            coverUrls: const [],
+            cachedUrl: 'file:///box.png',
+            physicalLabelUrl: 'file:///label.png',
+            gbcDualMode: 'no',
+            metadata: GameMetadata.parse(game.filename))));
+    expect(
+        tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).format,
+        PhysicalMediaFormat.gameBoyColorDual);
+    expect(
+        tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
+        'file:///label.png');
+    expect(
+        PhysicalMediaFormat.forSystem('gbc', region: 'Japan', dualMode: 'no'),
+        PhysicalMediaFormat.gameBoyColor);
     await tester.pumpWidget(const SizedBox());
   });
 

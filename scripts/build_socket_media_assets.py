@@ -270,6 +270,9 @@ class MediaBuilder:
                         lo = [min(p[i] for p in positions) for i in range(2)]
                         hi = [max(p[i] for p in positions) for i in range(2)]
                         uv = [[(p[i] - lo[i]) / (hi[i] - lo[i]) for i in range(2)] for p in positions]
+                        # Source camera faces -Z: +U runs toward decreasing X.
+                        for value in uv:
+                            value[0] = 1 - value[0]
                         uv_source = 'reconstructed planar label; supplied Vita import has no UV channel'
                     else:
                         uv = [[0, 0] for _ in positions]

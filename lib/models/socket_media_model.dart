@@ -52,8 +52,10 @@ enum PhysicalMediaFormat {
     return switch (systemId) {
       'gb' => gameBoy,
       // This is the actual (counterintuitively named) Socket binding.
-      'gbc' =>
-        dualMode?.toLowerCase() == 'no' ? gameBoyColorDual : gameBoyColor,
+      'gbc' => !{'jp', 'japan'}.contains(region?.toLowerCase()) &&
+              dualMode?.toLowerCase() == 'no'
+          ? gameBoyColorDual
+          : gameBoyColor,
       'gba' => gba,
       'n64' => n64,
       'nes' => nes,

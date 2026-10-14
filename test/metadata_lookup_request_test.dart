@@ -24,6 +24,23 @@ MetadataLookupRequest _request({
     );
 
 void main() {
+  test('raw GBC compatibility evidence round trips without changing hashes',
+      () {
+    final value = {
+      'kind': 'rawRom',
+      'filename': 'Game.gbc',
+      'sizeBytes': 32768,
+      'md5': '0123456789abcdef0123456789abcdef',
+      'gbcDualMode': 'no',
+    };
+    final restored = MetadataRomIdentifier.fromJson(value);
+    expect(restored.toJson()['gbcDualMode'], 'no');
+    expect(restored.md5, value['md5']);
+    expect(
+        () =>
+            MetadataRomIdentifier.fromJson({...value, 'gbcDualMode': 'maybe'}),
+        throwsFormatException);
+  });
   test('request aliases canonicalize without interpreting unfamiliar labels',
       () {
     final request = _request(contentTags: {

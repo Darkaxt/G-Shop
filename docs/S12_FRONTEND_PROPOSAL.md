@@ -65,8 +65,8 @@ Previous verification below remains evidence only for its actual tested scope.
 | Console family | R-Shop ID | Recovered binding / source triangles | Source integration | Native acceptance remaining |
 | --- | --- | --- | --- | --- |
 | Game Boy | `gb` | `cart_gb`, 1,162 | Wired: source mesh/UVs/materials, push-click motion | Renderer, label roles and launch regression |
-| Game Boy Color | `gbc` | `cart_gbc` 1,162; `cart_gbc_dual_mode` 1,776 | Both recovered; source default/explicit dual-mode binding | Edition discriminator consumer and both native variants |
-| Game Boy Advance | `gba` | `cart_gba`, 1,092 | Wired: actual GBA shell, drop motion, separate label | First native proof; reported 007 role and grid regression |
+| Game Boy Color | `gbc` | `cart_gbc` 1,162; `cart_gbc_dual_mode` 1,776 | Checked ROM-header evidence reaches exact cached edition and native cover binding; Japan priority preserved | Reference material/motion comparison; both native variants render |
+| Game Boy Advance | `gba` | `cart_gba`, 1,092 | Wired: actual GBA shell, drop motion, separate label; native CoverSection renders | Reference materials/motion and reported 007 role reconciliation |
 | Nintendo 64 | `n64` | `cart_n64`, 1,050 | Wired: source mesh/UVs/materials, drop motion | Expanded renderer and cached label regression |
 | Nintendo Entertainment System | `nes` | `cart_nes`, 7,257 | Wired: source mesh/UVs/materials, push-click motion | Renderer, label/motion and normal selection |
 | Super Nintendo | `snes` | PAL 12,130; US 8,251 | Both wired by edition region, drop motion | Both regional renderer/label/motion paths |
@@ -75,7 +75,7 @@ Previous verification below remains evidence only for its actual tested scope.
 | Nintendo Switch | `switch` | `cart_switch`, 1,494 | Wired: source game-card mesh and push-click motion | Renderer, label/motion and normal selection |
 | Mega Drive / Genesis | `megadrive` | Both regional variants 2,186 each | Wired by edition region, source materials/motion | Both regional renderer/label/motion paths |
 | PlayStation Portable | `psp` | `cart_psp`, 144,640 | Wired: indexed UMD casing, independently spinning label | UMD transparency/depth and motion proof |
-| PlayStation Vita | `psvita` | Imported `vita.fbx`, 2,627 | Actual imported mesh and existing Vita animation script; see gap below | Missing exported scene, label UV adaptation and native comparison |
+| PlayStation Vita | `psvita` | Imported `vita.fbx`, 2,627 | Actual imported mesh, existing Vita script and native-verified upright/unmirrored planar label | Missing exported scene and reference material/motion reconciliation |
 | PlayStation | `psx` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview regression |
 | PlayStation 2 | `ps2` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview regression |
 | PlayStation 3 | `ps3` | Source platform binds generic disc, 8,064 | Wired: recovered disc and disc motion | Native renderer/label and normal preview |
@@ -133,6 +133,21 @@ Current advancement blockers are native renderer/artwork/motion integration
 evidence, GBC discriminator wiring, Vita source-gap reconciliation and the
 reported 007 artwork-role investigation. S12 stays
 ACTIVE while these are actionable; delivery R3 depends on their reconciliation.
+
+2026-10-15 reconciliation: all 16 normal CoverSection variants now complete real
+Thor GPU/label readiness. The GBC discriminator path and normal Library score
+reordering/Top/tag/console/shelf workflow are verified; they are no longer open
+advancement blockers. Scoped analysis and the focused header/metadata/query/
+artwork checks pass. The existing read-only shared cache contains no metadata
+record titled Everything or Nothing; the fallback URL producer requests only
+Named_Boxarts, and typed physical-label/cache paths remain separate. This is
+bounded diagnostic evidence, not proof of which historical 007 image appeared.
+The remaining internal FRONTEND-01 blockers are reference material/motion
+fidelity, the explicit Vita missing-scene adaptation, the 007 role reconciliation
+and affected launch/lifecycle acceptance. Resolve them with source-bound native
+comparison and the existing launch path before S12 closes or S13 starts. No
+full-collection scrape, new emulator support or later-stage implementation is
+required by these checks. Production data remains untouched; both screens are OFF.
 No required row is silently deferred or declared complete by a fallback icon.
 
 Owner addition, 2026-10-14: missing box-art raster fallbacks carry the game's

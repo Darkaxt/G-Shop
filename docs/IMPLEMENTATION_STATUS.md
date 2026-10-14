@@ -7,6 +7,40 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
+Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
+recovered variants with completed label/GPU readiness. Native Library checks
+verify stored-score reordering, console navigation, Top/tag intersections,
+manual shelves, restored filters and unrated browsing on the Thor's actual
+display metrics. The isolated `socket_frontend_test.dart` uses native SQLite/GPU,
+synthetic data and no production bootstrap or ROM requests. Report/captures are
+retained in the task-owned `rshop-socket07-integration-20261014` evidence folder.
+Earlier harness runs exposed suppressed asynchronous frames, a desktop-only
+resize applied with native density, and per-test Android screenshot reset. All
+three harness causes are corrected; the final run exits successfully.
+
+GBC compatibility now flows from the checksum-valid streamed ROM header through
+exact current edition evidence to cached metadata and both Library/detail
+previews. Unknown/stale evidence retains the source default; Japan keeps its
+source-specific priority. No additional ROM download or full scrape is required.
+The focused archive test, metadata/query/widget regressions and scoped analysis
+pass. Portrait details now receive the same cached physical label as landscape.
+Vita's reconstructed label U direction is corrected and native text is upright
+and unmirrored; the missing exported source scene remains explicitly recorded.
+
+Gated build 1095 packages these current changes: gate acquired, two workers,
+parallel false, 3 GiB Gradle heap, assessed in-process Kotlin, configured one
+test fork/512 MiB, no memory failure, build/helper exit 0 and daemon exit verified.
+Native concurrency hints are not universal effective-concurrency proof. Current
+isolated APK SHA-256 is
+`48f80722d17c98ca50fe64c07520a8158042b8edf369d0065917bb9c30e9978d`.
+Flutter removed the temporary app after each terminal run; absence was verified
+and cleanup baselines closed. Production data and APK are untouched. No public
+asset-bearing package is permitted. S12 remains ACTIVE on material/reference
+fidelity and affected real launch/lifecycle reconciliation; S13 remains NOT
+STARTED. These native rendering checks do not claim emulator-launch acceptance.
+Both Thor displays were subsequently confirmed OFF. Only the three forwards
+created by these frontend runs were removed.
+
 Native renderer checkpoint, 2026-10-15: the orientation defect is resolved in
 the isolated Thor renderer. Godot's binary Basis/Transform3D stores rows; the
 converter previously treated them as columns. Regression checks reproduce the

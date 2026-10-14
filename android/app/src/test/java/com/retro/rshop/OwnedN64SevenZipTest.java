@@ -16,6 +16,27 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.Assert.*;
 
 public class OwnedN64SevenZipTest {
+    @Test public void cgbCompatibilityComesFromTheCheckedRawHeader() throws Exception {
+        for (int flag : new int[]{0x80, 0xc0, 0x00}) {
+            byte[] raw = new byte[32768]; raw[0x143] = (byte) flag;
+            int checksum = 0;
+            for (int i = 0x134; i <= 0x14c; i++) checksum = (checksum - (raw[i] & 255) - 1) & 255;
+            raw[0x14d] = (byte) checksum;
+            for (boolean valid : new boolean[]{true, false}) {
+                byte[] bytes = raw.clone();
+                if (!valid) bytes[0x14d] ^= 1;
+                File file = File.createTempFile("rshop-cgb-edition-", ".7z");
+                try {
+                    Files.write(file.toPath(), archive("Game.gbc", bytes, 1, true, bytes.length, 4096, 1));
+                    java.util.Map<String, Object> result = OwnedN64SevenZip.validate(file.getPath(), "gbc");
+                    assertEquals(valid && flag == 0x80 ? "yes" : valid && flag == 0xc0 ? "no" : null,
+                            result.get("gbcDualMode"));
+                    assertEquals(hash(bytes, "MD5"), result.get("md5"));
+                } finally { assertTrue(file.delete()); }
+            }
+        }
+    }
+
     @Test public void dsArchivesStreamMemberIdentityWithoutExtraction() throws Exception {
         byte[] raw = new byte[32768];
         for (int i = 0; i < raw.length; i++) raw[i] = (byte) (i * 19);
