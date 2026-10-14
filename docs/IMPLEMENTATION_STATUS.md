@@ -5,10 +5,52 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Authorized publication and device handover — 2026-10-14
+
+The owner now requests GitHub publication, ObtainX tracking, installation of the
+published production APK, debug removal and restoration of Drive/API setup.
+S0-S12 remain COMPLETE; the delivery acceptance is separate and unfinished.
+
+| Delivery stage | Status | Acceptance / remaining |
+| --- | --- | --- |
+| R1 signed publication | ACTIVE | Signed 1.8.0+13 build and release JVM tests passed under request 1079. APK identity, signer and private-credential scan passed. Commit/tag/publication and independent download verification remain. |
+| R2 updater/install/configuration | NOT STARTED | Register ObtainX, install the actual published APK, restore reusable configuration and fresh production authorization/API secrets, verify Drive access without starting a scrape, then remove the fork debug app. |
+| R3 final handover | NOT STARTED | Verify updater/source/settings/permission state, cleanup private staging after restoration, commit/sync final delivery record and switch both screens off. |
+
+Private signing identity is outside Git under the Windows user's `.android/rshop-release`.
+Reuse it for all updates; `scripts/release_signing.ps1 -LoadEnvironment` loads its
+credentials without printing them. Its credential XML is Windows-user/DPAPI bound;
+key recovery requires retaining the keystore and the credential's decrypting
+Windows profile, or a separately secured portable copy of the password. Do not
+publish these files. The owner should include this identity in their private
+signing-key recovery storage. Debug config/database/preferences are preserved in
+private migration staging; encrypted debug tokens/keystore are not transferable
+production credentials. No debug uninstall or release publication has occurred yet.
+
+Release verification: request 1079 (`ba128209d1334b7aa99c69a97c6649b5`)
+acquires the shared gate; build/helper exit 0 and post-build daemon exit are
+verified. Observed two workers, parallel false, Gradle heap 3 GiB; Kotlin runs
+in-process. Test tasks use one fork/512 MiB. Native pools are configured at one
+per plugin; aggregate effective native concurrency is not claimed. No memory
+failure or heap increase occurs. Earlier release attempts exposed stale dev-only
+plugin registration and the pinned SoLoud plugin's SDK 33/release-lint mismatch.
+Official Flutter config-only preparation now regenerates release plugins, and
+SoLoud uses the application's existing compile SDK 36; dependencies are unchanged.
+
+Audited artifact: `app-release.apk`, 66,578,946 bytes, SHA-256
+`6ddd4d088f0772ae5e76a9750c3088f5692da222b83c2cb678df8333c7e19b42`.
+Package `com.darkaxt.rshop`, version 1.8.0/code 13, label R-Shop, minimum API 24,
+target API 36; no debuggable manifest flag. APK signature verification passes
+with dedicated certificate SHA-256
+`075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
+Streaming APK inspection finds none of the configured password/secret values or
+environment/signing files. This does not claim a general security audit.
+
 ### Current schedule — S0-S12 COMPLETE, 2026-10-14
 
-S0-S12 are COMPLETE. No implementation stage remains ACTIVE, no required blocker
-or tracked deferral remains, and no external release is authorized. Historical
+S0-S12 are COMPLETE. No S0-S12 implementation stage remains ACTIVE and no required
+S0-S12 blocker or tracked deferral remains. Publication is now separately authorized
+under the delivery schedule above. Historical
 progress notes below do not supersede this schedule or the closure reconciliations.
 
 ### S12 closure reconciliation — COMPLETE

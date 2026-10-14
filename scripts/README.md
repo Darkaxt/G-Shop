@@ -136,3 +136,24 @@ coverage abort the observation even for discarded unrelated rows. Pages remain
 separate observations, not an atomic collection snapshot or deletion authority.
 Normally pause/join the metadata writer before this native read, then resume the
 same saved job afterwards; do not overlap an external reader with app writes.
+# Signed Android release
+
+Set `JAVA_HOME` to the existing compatible JDK. Create the private signing identity
+once with `./scripts/release_signing.ps1 -Create`; never regenerate it for an
+update. Retain the keystore and recoverable password privately. The generated
+credential XML is Windows-user/DPAPI bound, so copying that XML to a different
+computer alone is not a portable password backup.
+
+Run `./scripts/build_release.ps1 -FlutterCommand <flutter launcher> -ThreadName
+'<actual conversation title>'`. It performs Flutter's official release
+`--config-only` preparation (without `--no-pub`, which skips plugin regeneration),
+rejects a stale debug-plugin registrant, loads private signing and submits the
+release tests/assembly once through the installed shared Gradle gate. Observe
+that original request to completion. Do not invoke Gradle directly.
+
+Keep `app-release.apk`, display name `R-Shop` and package `com.darkaxt.rshop`.
+Verify APK version, non-debuggable manifest, signer, hash and absence of private
+credentials; publish from an exact committed source/tag and independently verify
+the downloaded GitHub asset. Provider credentials and source configuration are
+per-device, never compiled into the public APK. The private signing environment
+is not an application API-credential injection mechanism.

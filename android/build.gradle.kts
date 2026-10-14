@@ -20,6 +20,16 @@ subprojects {
     // Bound plugin Ninja compile/link work too, not just the app JNI target.
     // Gradle's two workers can run two ABI tasks; each uses one shared pool.
     plugins.withId("com.android.library") {
+        if (project.name == "flutter_soloud") {
+            // This pinned plugin declares SDK 33, but Flutter's release lint
+            // dependencies require SDK 34+. Reuse the app's verified SDK;
+            // do not edit the global Pub cache or change min/target SDKs.
+            extensions.getByType<com.android.build.api.variant.LibraryAndroidComponentsExtension>()
+                .finalizeDsl { library ->
+                    library.compileSdk = project(":app")
+                        .extensions.getByType<com.android.build.api.dsl.ApplicationExtension>().compileSdk
+                }
+        }
         extensions.configure<com.android.build.gradle.LibraryExtension> {
             defaultConfig.externalNativeBuild.cmake.arguments.addAll(listOf(
                 "-DCMAKE_JOB_POOLS=rshop_native=1",

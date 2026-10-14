@@ -1831,6 +1831,25 @@ blockers/deferrals. Preparation completion is not feature completion.
 
 ## 8. Non-goals for this scope
 
+### Authorized release handover — 2026-10-14
+
+The owner now authorizes a signed GitHub release, ObtainX registration, installing
+that published APK on Thor, removing this fork's debug app and restoring the
+existing Google Drive sources and required API credentials. Preserve ROMs, saves,
+shared metadata and reusable configuration before debug removal. Never distribute
+user credentials, signing secrets, private inventories or tokens. Configure the
+production package/signer for Google OAuth and verify real catalogue access;
+do not transfer debug authorization tokens as production credentials. Leave
+ScreenScraper collection jobs stopped for the owner to run. Keep the upstream APK
+filename/display name and custom package ID. Independently download the release
+and verify source/tag, digest, size and signer before deployment. Verify updater
+tracking, restored settings, required permissions and both screens off afterward.
+
+Compact delivery stages: R1 signed publication ACTIVE; R2 published-APK install,
+configuration and debug removal NOT STARTED; R3 integrated handover/cleanup and
+remote verification NOT STARTED. Only one is ACTIVE at a time. This adds delivery
+to the completed S0-S12 implementation; it does not reopen their accepted scope.
+
 - Streaming ROM content directly into emulators; games are downloaded first.
 - ROM/BIOS uploads, archive mutation, remote deletion and public share-link
   download workarounds. SAVE-01's separately authorized save-backup uploads are

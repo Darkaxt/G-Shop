@@ -21,6 +21,8 @@ val keyProperties = Properties().apply {
         keyPropertiesFile.inputStream().use { load(it) }
     }
 }
+val releaseStore = providers.environmentVariable("RSHOP_RELEASE_STORE_FILE").orNull
+val hasReleaseSigning = keyPropertiesFile.exists() || !releaseStore.isNullOrBlank()
 
 android {
     namespace = "com.retro.rshop"
@@ -59,12 +61,15 @@ android {
     }
 
     signingConfigs {
-        if (keyPropertiesFile.exists()) {
+        if (hasReleaseSigning) {
             create("release") {
-                storeFile = file(keyProperties["storeFile"] as String)
-                storePassword = keyProperties["storePassword"] as String
-                keyAlias = keyProperties["keyAlias"] as String
-                keyPassword = keyProperties["keyPassword"] as String
+                storeFile = file(releaseStore ?: keyProperties["storeFile"] as String)
+                storePassword = providers.environmentVariable("RSHOP_RELEASE_STORE_PASSWORD").orNull
+                    ?: keyProperties["storePassword"] as String
+                keyAlias = providers.environmentVariable("RSHOP_RELEASE_KEY_ALIAS").orNull
+                    ?: keyProperties["keyAlias"] as String
+                keyPassword = providers.environmentVariable("RSHOP_RELEASE_KEY_PASSWORD").orNull
+                    ?: keyProperties["keyPassword"] as String
             }
         }
     }
@@ -76,11 +81,10 @@ android {
                 if (sharedMetadataProof == "true") "R-Shop Shared Proof" else "R-Shop Drive Dev"
         }
         release {
-            signingConfig = if (keyPropertiesFile.exists()) {
+            signingConfig = if (hasReleaseSigning) {
                 signingConfigs.getByName("release")
             } else {
-                // Fallback to debug signing for development builds
-                signingConfigs.getByName("debug")
+                null
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -89,6 +93,12 @@ android {
         }
     }
 }
+
+// Publication must never silently use Android's development certificate.
+tasks.matching { it.name.startsWith("assembleRelease") || it.name.startsWith("bundleRelease") }
+    .configureEach {
+        doFirst { check(hasReleaseSigning) { "Configure private R-Shop release signing before packaging." } }
+    }
 
 kotlin {
     compilerOptions {
