@@ -1701,7 +1701,8 @@ Thor Frontends" and consider an S12 task. Record the candidate in
 modern, Socket-inspired frontend retaining R-Shop's red theme, using actual 3D
 physical-media models and animations rather than scraped cartridge pictures.
 
-S12 is ACTIVE after S10/S11 closure. The owner's 2026-10-13 objective update authorizes
+S12 is COMPLETE after S10/S11 closure and the final FRONTEND-01 reconciliation in
+IMPLEMENTATION_STATUS.md (2026-10-14). The owner's 2026-10-13 objective update authorizes
 implementation of the recorded FRONTEND-01 contract after S10/S11. Assistant
 suggestions in the source conversation remain design candidates, not verified
 technical facts. Owner update, 2026-10-13: use the supplied Socket August APK
@@ -1726,7 +1727,7 @@ its navigation, identity and workflows. Bottom-screen rendering is not an S12
 requirement, and its absence in Socket is not a blocker. Preserve S8 companion
 launching without introducing a second frontend or launch pipeline.
 Select the renderer from the required real vertical slice. S12 is the
-sole ACTIVE stage; its frontend criteria did not add acceptance
+sole ACTIVE stage during implementation; its frontend criteria did not add acceptance
 gates to S10/S11. Overall completion now requires S1-S12 reconciliation.
 Owner workflow clarification, 2026-10-13: use `ui-diagnostics-first` in S12.
 Build bounded debug-only real-action, measured-tree, resolution and event-driven

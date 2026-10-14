@@ -2013,7 +2013,9 @@ S1-S11 reconciliation. A settings-only implementation does not close S11.
 
 ## S12 — 3D physical-media frontend
 
-Status: ACTIVE (2026-10-14), the sole ACTIVE stage after verified S11 closure.
+Status: COMPLETE (2026-10-14). All assigned acceptance criteria are verified in
+IMPLEMENTATION_STATUS.md's final S12/full-specification reconciliation; no required
+blocker or tracked deferral remains. No release is authorized.
 Authorization: implement all 12 stages, owner objective update 2026-10-13.
 Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
@@ -2076,11 +2078,11 @@ instrumentation. The existing FRONTEND-01 contract governs this ACTIVE stage.
 
 Evidence required: observed reference report, reproducible Thor rendering and
 resource measurements, real normal launch workflow, integrated controller/touch
-navigation and regression evidence. The existing Game Boy Drive installation and
-animated native handoff establish the first real workflow; reference comparison,
-format coverage and integrated frontend acceptance remain unfinished. Current
-evidence and gaps are recorded in IMPLEMENTATION_STATUS.md. These remain S12
-advancement blockers, not reopened S10/S11 criteria or tracked deferrals.
+navigation and regression evidence. The Game Boy Drive installation and animated
+native handoff establish the first real workflow. Final reference comparison,
+representative formats, physical-label refresh/offline reuse, integrated input/
+lifecycle and installed-package/cleanup acceptance are verified in
+IMPLEMENTATION_STATUS.md. No S12 advancement blocker remains; S10/S11 are not reopened.
 
 ## Source extension map (baseline, not implemented classes)
 

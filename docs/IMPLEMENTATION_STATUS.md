@@ -5,18 +5,18 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current schedule — S0-S11 COMPLETE; S12 ACTIVE, 2026-10-14
+### Current schedule — S0-S12 COMPLETE, 2026-10-14
 
-S0-S11 are COMPLETE. S12 is the sole ACTIVE stage and owns the remaining frontend work.
-The overall twelve-stage objective is unfinished. Historical progress notes below
-do not supersede this schedule or the closure reconciliations.
+S0-S12 are COMPLETE. No implementation stage remains ACTIVE, no required blocker
+or tracked deferral remains, and no external release is authorized. Historical
+progress notes below do not supersede this schedule or the closure reconciliations.
 
-### Current S12 work — ACTIVE
+### S12 closure reconciliation — COMPLETE
 
-#### Current acceptance checkpoint — 2026-10-14
+#### Final acceptance checkpoint — 2026-10-14
 
-This checkpoint supersedes older remaining-work statements below; it does not
-close S12 while the final package and cleanup acceptance remain unfinished.
+This checkpoint supersedes older remaining-work statements below. The final
+package, native contrast check and exact cleanup have now passed.
 
 | FRONTEND-01 boundary | Applicable evidence / remaining work |
 | --- | --- |
@@ -24,14 +24,62 @@ close S12 while the final package and cleanup acceptance remain unfinished.
 | Existing real installation/launch workflow | The normal tiny GB download completes and Open reaches RetroArch's actual game screen. Current-package media state is paused with inserted value 1 and no pending work; normal return resumes the identical state with value 0 and idle motion. The Open recording begins after the transition and is not claimed as insertion-video proof; the separate frame-bound recording proves current rendering, and the prior unchanged handoff recording proves no pre-cover reset. |
 | Exact physical label, cover separation and offline reuse | Normal exact Europe refresh and actual detail/library captures are recorded below. With active default network **none**, decoded image memory is cleared, then normal details decode the durable cartridge label, cover and screenshot again. The physical label and box cover remain distinct file bindings. Wi-Fi is restored to its original enabled state. Host checks also verify missing/pending/failure fallback, exact edition isolation and provider-closed durable reconstruction. |
 | Bounded scalable browsing and lifecycle | Current PS1 native controller navigation observes eight selection changes, at most one mounted preview and matching selected identity across 286 entries. Build/raster P95 are 5,552/3,308 us, maxima 734,051/25,087 us; debug VM-observer overhead is explicit, not release FPS. Cache is 75,370,400 bytes, 51 live/zero pending images. Current N64 steady P95 is 5,660/3,817 us across 246 frames; native app PSS/RSS is 669,497/804,036 KiB versus first-slice 831,059/954,868 KiB. Home/background stops idle motion and clears pending insertion; return retains identity. Earlier 2,632-entry GB navigation and unchanged virtualized-query/filter evidence remain applicable. |
-| Theme, fallback, input and save controls | Red-background and affected media/action regressions pass. Existing native Display controls, reduced motion, save section navigation and restore-confirm/cancel evidence below remain applicable; no save mapping or conflict logic changed. The visual review finds a remaining custom Delete red-on-red style; its regression reproduces both focus states. White label/icon on opaque `#C62828` now passes contrast and unchanged action-callback checks. Scoped analysis is clean. |
-| Final package and delivery | Request 1074 (`172259a48ee744ac8234108ab09a84f0`) is submitted once through the shared gate for the Delete contrast correction. Retain its original supervised session. Build/lifecycle result, in-place package digest and native corrected-control inspection remain required; no release is authorized. |
-| Exact cleanup | Owner expressly permits hash-checked ADB cleanup because the Windows helper has no Android target support. Socket's installed APK matches the supplied 0.7 hash before uninstall. Four exact reference files (37,485 bytes) are rechecked and removed, followed only by empty directories; absence is verified. Original supplied APKs and Cocoon Home remain unchanged. Host scratch still needs reviewed transactional cleanup after required evidence is retained and consumers exit. |
+| Theme, fallback, input and save controls | Red-background and affected media/action regressions pass. Existing native Display controls, reduced motion, save section navigation and restore-confirm/cancel evidence below remain applicable; no save mapping or conflict logic changed. The visual review found a custom Delete red-on-red style; its regression reproduced both focus states. White label/icon on opaque `#C62828` now passes contrast and unchanged action-callback checks, plus the final native inspection below. Scoped analysis is clean. |
+| Final package and delivery | Original request 1074 (`172259a48ee744ac8234108ab09a84f0`) completes with gate acquired, build/helper exit 0 and post-build daemon exit verified. Observed workers 2, parallel false and Gradle heap 3 GiB; Kotlin is configured in-process. Test tasks are configured for one fork/512 MiB; assembly does not execute those tests. App native pool is one; plugin-wide effective native concurrency is not claimed. No memory failure or budget increase occurs. In-place installed APK independently matches SHA-256 `9957fa9f88eb9f208f03450739d798d61e714adf9b2d948ffafac621a5a32238`, 180,740,920 bytes. Normal startup/library/detail controls reach the installed legacy GoldenEye entry; its inspected native capture shows white Delete label/icon on opaque red. Delete is not activated for that owner ROM. No release occurs. |
+| Exact cleanup | Owner expressly permits hash-checked ADB cleanup because the installed helper lacked Android target support at that time. Socket's installed APK matches the supplied 0.7 hash before uninstall. Four exact reference files (37,485 bytes) are rechecked and removed, followed only by empty directories; absence is verified. Original supplied APKs and Cocoon Home remain unchanged. Transaction `c60f2a11f7a1736b2ceb61ce39e1bb41` inspects all 1,211 signed members before ticket/apply and verifies terminal `applied`, 850,750,071 bytes removed, no errors or residual helper files. Final-package diagnostics/helpers were retained until native inspection, then removed by the second transaction below. |
 
-Remaining internal advancement blockers: final request-1074 package/native
-contrast inspection, reviewed host-output cleanup and final integrated
-reconciliation/commit. No required work is deferred. Messier handwriting remains
-the owner's optional, non-urgent refinement, not a completion gate.
+Final cleanup also applies transaction `c296d1d145fafff5a5d500af4bd3483f` after
+all 106 signed members are inspected: 17,149,386 additional bytes removed, terminal
+`applied`, no errors, and exact scratch-root absence verified. Total host scratch
+removed across the two transactions is 867,899,457 bytes. The separate normal
+R-Shop installation of the 32,917-byte 10-Pin test archive is removed through its
+actual menu and confirmation callbacks after inspecting the exact owned removal
+preview; installation becomes false and exact file absence is verified. No save
+or owner ROM removal is requested by this cleanup. PS1 selection and closed search
+are restored. The attach client's closed stdin prevents normal `d` detachment;
+only its PID/start/command-verified Dart client is stopped, original tool exit 1
+is retained, the native app stays alive, and only owned forward 30956 is removed.
+This diagnostic-client exit is not a failed product check. Both displays report
+committed OFF and power Asleep. Original reference APKs and launcher remain intact.
+
+Remaining advancement blockers: none. Required tracked deferrals: none. Messier
+handwriting remains the owner's optional, non-urgent refinement, not a completion
+gate. Final changes are documentation-only after verified source commit `beafb1d`;
+applicable feature results are reused without an unrelated full-suite run.
+
+Integrated design-debt assessment: the new presentation keeps immutable geometry
+shared by format and only one selected-library preview. Detail launch still uses
+the existing emulator/save/companion authority, with insertion joined at its
+prepare boundary and reset on actual resumed lifecycle. Physical-label selection
+uses the existing metadata cache rather than a parallel catalogue or browse-time
+scraper. No material duplicated authority, stacked workaround or required
+consolidation is identified in this scope. No speculative refactoring is scheduled;
+the packaged-control acceptance is now independently satisfied above.
+
+#### Final full-specification reconciliation
+
+| Stage / requirement owner | Status | Applicable inspected evidence | Remaining / blockers / required deferrals |
+| --- | --- | --- | --- |
+| S0 preparation and specification | COMPLETE | Authoritative revision 42, requirement-to-stage map and recorded owner scope changes. | None. |
+| S1 CORE-01/02/03, DRIVE-01, META-02, privacy | COMPLETE | S1 reconciliation: real native sign-in/silent renewal, isolated identity, legitimate provider access and signing/name/preservation checks. Live second-account test is expressly waived, not claimed. | None. |
+| S2 DRIVE-02/03 | COMPLETE | Catalogue/source/queue evidence and S6 combined real Drive workflow; exact IDs, pagination and failed-refresh preservation. | None. |
+| S3 DRIVE-04/05/06 | COMPLETE | Transfer/version/checksum, lifecycle recovery and exact ownership; S6 validated install, save-safe removal and identical reinstall/offline boot. | None. |
+| S4 META-01/03/04/05/06/07/08 | COMPLETE | S4 current closure: fresh matching/provenance/score/Top/tag/quota/shared-cache workflows and real provider refresh/reconstruction. S12 adds normal support-texture/offline proof. Historical private-state loss is not retroactively called preservation. | None. |
+| S5 UI-01/02/03 | COMPLETE | S5 shared-card/detail/filter and sectioned-menu touch/controller reconciliation; S12 retains identity/query semantics and closes discovered action contrast. | None. |
+| S6 QA-01/02/03/04 integration | COMPLETE | S6 complete real combined workflow and applicable provider/queue/storage regressions; current gate/profile and integrated frontend evidence above. | None. |
+| S7 MIGRATE-01 | COMPLETE | S7 current matrix: actual approved Top-25 cleanup, representative fresh metadata and usable cloud restore. No exhaustive scrape, fabricated padding or refill gate. | None. |
+| S8 COMPANION-01 | COMPLETE | S8 actual top-ROM/bottom-companion and failure/ordinary-launch isolation; owner's accepted Unbound/RetroArch/DualDex smoke. No DualDex-internal test claimed. | None. |
+| S9 ART-01 | COMPLETE | Complete supported-platform/legacy-media asset matrix, raster provenance and native layout/fallback evidence. S12's three 3D formats are representative; other formats keep truthful licensed fallbacks. | None. |
+| S10 SAVE-01 | COMPLETE | Current closure/design ledger: configurable root/emulator monitoring, device histories, offline queue, remote conflicts, expected-path restore and exact old-sync app/task handover. Windows compatibility runtimes remain out of scope. | None. |
+| S11 CACHE-01 | COMPLETE | Current closure: persisted unified/per-console expiry/capacity policy, protected pins/sample/saves, real automatic rotation and identical cloud recovery. | None. |
+| S12 FRONTEND-01 | COMPLETE | Matrix above: reference study, independent geometry/motion, actual launch, physical-label/cache/offline roles, bounded browsing/lifecycle, red theme/save input, installed artifact and exact cleanup. | None. |
+
+The Gradle >9 requirement remains satisfied by TOOLCHAIN_UPGRADE.md's actual gated
+Gradle 9.1/AGP 8.13.2/Kotlin 2.3.21/JDK 21 build and JVM-test evidence. Current
+assembly retains known Kotlin-DSL/AGP/SDK-XML/Gradle-10 deprecation warnings; these
+are not memory failures or waived current criteria. No required consolidation
+emerges from the integrated assessment. No public APK release, exhaustive scrape
+or extra device migration is claimed or added to close the implementation.
 
 Private probe failures are not product passes: an arbitrarily interrupted
 renderer call failed to join and was terminated by a controlled cold app start;

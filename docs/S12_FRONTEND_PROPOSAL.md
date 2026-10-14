@@ -1,6 +1,7 @@
 # S12 — 3D physical-media frontend
 
-Status: ACTIVE (2026-10-14), after S10/S11 acceptance and verified S11 remote sync.
+Status: COMPLETE (2026-10-14). Final FRONTEND-01 acceptance and full-specification
+reconciliation are recorded in IMPLEMENTATION_STATUS.md; no required gaps remain.
 Authority: SPECIFICATION.md, revision 42, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
@@ -444,11 +445,10 @@ The N64/disc meshes follow the native 0.7 silhouette/label/hub comparison, while
 using independent geometry and shading rather than redistributing Socket assets.
 Their fixtures are non-playable renderer references, not emulator-launch evidence.
 
-Source review and proposal recording are complete. FRONTEND-01 implementation
-is now ACTIVE; remaining integration and runtime acceptance are unfinished.
-The first real download/launch and red detail-background evidence above do not
-close geometry/material/motion, format coverage or performance acceptance.
-The owner explicitly assigned save-management
-touch/controller and responsive-layout verification to S12; it remains required
-for overall completion but is not a prerequisite for S10 closure. No other work
-is deferred from S10/S11 into S12.
+FRONTEND-01 is COMPLETE against the criteria above. The final acceptance matrix
+in IMPLEMENTATION_STATUS.md supersedes these historical first-slice gaps with
+reference geometry/motion, representative formats, actual physical-label/offline
+reuse, bounded performance/lifecycle, save touch/controller/layout and final
+installed-package evidence. No required S10/S11 deferral or S12 blocker remains.
+This completion does not authorize a public release or claim every console has
+its own 3D shell; the truthful format map above remains the delivered contract.
