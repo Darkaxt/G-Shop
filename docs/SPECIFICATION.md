@@ -1,6 +1,12 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 40, 2026-10-14.
+Authoritative specification, revision 41, 2026-10-14.
+
+Owner visual clarification, 2026-10-14: S12 retains R-Shop's red/dark theme
+including its backgrounds, not only buttons and highlights. Socket's grey dotted
+background is not the target design. Console colors and cover artwork must not
+replace the red/dark background identity. FRONTEND-01 records the visual
+acceptance requirement; this does not authorize a separate release.
 
 Owner clarification, 2026-10-13: S12 modernizes R-Shop's existing frontend with
 Socket-inspired main-screen 3D media, labels and animations; it does not replace
@@ -10,7 +16,7 @@ required. Preserve the existing S8 emulator/companion handoff independently.
 Owner scope update, 2026-10-13: implement all 12 plan stages. This authorizes
 S12's existing FRONTEND-01 contract after S10/S11; it does not open concurrent
 implementation or authorize a release. Current execution state is maintained in
-IMPLEMENTATION_STATUS.md; S10 closed on 2026-10-14 and S11 is now ACTIVE.
+IMPLEMENTATION_STATUS.md; S0-S11 are COMPLETE and S12 is now ACTIVE.
 
 Owner clarification, 2026-10-12: retained legacy ROMs are not a second library.
 The corresponding Google Drive edition is authoritative. An identical retained

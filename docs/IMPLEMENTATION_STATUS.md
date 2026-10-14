@@ -5,11 +5,71 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current schedule — S0-S11 COMPLETE, 2026-10-14
+### Current schedule — S0-S11 COMPLETE; S12 ACTIVE, 2026-10-14
 
-S0-S11 are COMPLETE. S12 is NOT STARTED and owns the remaining frontend work.
+S0-S11 are COMPLETE. S12 is the sole ACTIVE stage and owns the remaining frontend work.
 The overall twelve-stage objective is unfinished. Historical progress notes below
 do not supersede this schedule or the closure reconciliations.
+
+### Current S12 work — ACTIVE
+
+FRONTEND-01's existing red/dark, main-display-only design is retained. First work
+includes the owner's explicit red/dark-background requirement (2026-10-14):
+Socket's grey dotted screen is reference-app UI, not the R-Shop target theme.
+Shared backgrounds and detail tint are implemented, with a real red detail
+capture and a regression rejecting console-color replacement. Representative
+library/settings/artwork-state verification remains acceptance work. First work
+is the hash-bound 0.7 reference comparison and one real physical-cartridge
+selection/install/animated-launch workflow in the existing library/detail path.
+Renderer choice remains bounded to that workflow; no second catalogue, launch
+pipeline or full engine rewrite is authorized. Remaining acceptance: reference
+geometry/motion comparison, first Thor workflow, representative format coverage,
+artwork/sticker transitions, scalable navigation/input, save-settings input/layout
+checks, measured resource/lifecycle behavior and integrated final reconciliation.
+These are internal advancement blockers while S12 stays ACTIVE, not deferrals or
+external impediments. No S10/S11 criterion is reopened.
+
+Current native evidence: the actual Game Boy card/Download/Open controls complete
+one small Drive archive installation and animated handoff to RetroArch. Android's
+top activity and the game's title screen independently confirm the handoff.
+Socket 0.7's actual cartridge rendering is now captured using one isolated test
+folder; it exposed missing shell/header details in the first recreation, now
+corrected in source. Model/material/motion fidelity is not yet accepted. Host
+geometry/lifecycle/red-background checks pass. Request 1042 compiled the earlier
+APK but failed helper post-build process observation; no verified daemon-exit
+claim is made for it. Revised-model request 1044 and final font-attribution
+request 1046 both finish build/helper 0 with the shared gate acquired and
+post-build daemon exit verified. Observed profile: two workers, parallel=false,
+Gradle maximum heap 3 GiB, Kotlin in-process configured. Test tasks are configured
+for one fork/512 MiB; these assembly commands execute no JVM tests. Native tasks
+reuse existing output; no new native-concurrency measurement is claimed. No
+memory failure or budget increase, and no competing Gradle invocation.
+
+The 1044 cold-start package renders the corrected shell/header and uses the
+normal Open control to hand off to RetroArch again, without Flutter exceptions.
+The final installed APK independently matches host SHA-256
+`34adba7430f75217098e6f4e60184d2cbd65cd8bc80a0fe85ad16a4afaa5befc`.
+Its font and complete 4,373-byte OFL license are present, with the license bytes
+matching source. The attribution-only change does not alter the verified model
+or handoff. Scoped analysis reports no issues; affected media/detail/lifecycle/
+background/license checks pass. These are first-slice evidence, not stage closure.
+
+Remaining motion evidence is explicit: the two recorded sample sets did not
+capture the launch interval; they cannot establish insertion fidelity or release
+performance. Do not repeat an action based on an uncertain result. The existing
+source timings/native handoff are established, but a valid matched motion capture
+is still required. Material fidelity, additional formats, main-library integration,
+artwork-state/input/settings and resource/lifecycle acceptance remain S12 work.
+No required gap has been deferred out of S12.
+
+Original library console choice (dashboard/null) and residency tab 0 are restored
+through the actual controls. The owned Flutter attach and all test/analysis/build
+operations are terminal; its one ADB forward is removed and unrelated forwards
+are preserved. Both displays report OFF. The tiny owned Game Boy installation,
+isolated Socket reference copy/app and private reference captures are intentional
+S12 verification inputs until comparison finishes, not a changed retention policy
+or a published collection. Retire these exact inputs at S12 cleanup; no real saves,
+BIOS, owner launcher selection or original ROM copies were removed.
 
 ### S11 closure reconciliation — COMPLETE, 2026-10-14
 

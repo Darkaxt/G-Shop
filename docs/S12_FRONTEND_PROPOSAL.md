@@ -1,6 +1,6 @@
 # S12 — 3D physical-media frontend
 
-Status: NOT STARTED.
+Status: ACTIVE (2026-10-14), after S10/S11 acceptance and verified S11 remote sync.
 Authority: SPECIFICATION.md, revision 39, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.
@@ -260,6 +260,12 @@ contract. They do not change S10/S11 acceptance:
 - Preserve the recognizable red/dark identity and existing R-Shop game identity,
   catalogue, installation, metadata, save and companion workflows. Do not create
   a parallel catalogue or launch pipeline for the visual frontend.
+- Owner clarification, 2026-10-14: preserve the red/dark theme in backgrounds
+  as well as controls. Do not adopt Socket's grey dotted background. Console
+  colors and cover artwork may complement the presentation but must not replace
+  its red/dark background identity. Verify the actual main library, game details,
+  settings and empty/loading/artwork-missing states with representative captures;
+  red buttons on an otherwise grey or console-colored screen do not satisfy this.
 - Render real physical-media geometry with rotation and insertion transitions.
   Reuse a model per console/media format with optional cached game-label artwork;
   a missing cover must still yield a recognizable physical object. Use a
@@ -310,11 +316,83 @@ sources, label composition and main-display rendering/lifecycle behavior from
 the observed reference and real proof. These are ordinary S12 design decisions,
 not reasons to stop S10 or S11.
 
+### First integrated slice — 2026-10-14
+
+The 0.7.0 hash was freshly rechecked. Its 392 encrypted scene/script envelopes
+pass their embedded checksums; private inspection reuses the earlier parser,
+without publishing keys, topology, textures or decompiled code. Game Boy's
+exterior bounds are 0.0564107 x 0.0648228 x 0.0074225 model units; its label is
+0.0439713 x 0.0390049. The scene uses the shared cartridge insertion behavior:
+0.15-second lift alongside a 0.2-second rotation, 0.2-second descent, 0.12-second
+rebound alongside 0.25-second elastic scaling, then 0.2-second settle. These
+supersede the older N64-oriented timing for this first Game Boy slice.
+
+Design choice: start with an independently constructed exterior mesh projected
+through Flutter's existing renderer, with a perspective-correct widget label.
+This retains the existing artwork/cache pipeline and avoids importing Godot or
+an additional native renderer before Thor evidence justifies one. A new engine
+and a 2D tilted cover were considered: the former adds an unproved lifecycle
+boundary; the latter cannot meet the geometry requirement. The first mesh is an
+adaptation requiring visual comparison, not a claim of recovered/exact topology.
+An OFL-licensed bundled Kalam font makes handwritten labels work offline. Its
+source is Google's fonts repository (`ofl/kalam/Kalam-Regular.ttf`); copyright
+and the complete OFL text are retained in `assets/fonts/Kalam-OFL.txt`, bundled
+and exposed alongside the existing artwork attribution through Licenses.
+
+The existing Game Boy detail view selects this presentation while retaining a
+cover-view toggle. A per-view reduced-motion control respects Android's disabled
+animations setting. Insertion joins the existing launch preparation/handoff,
+has explicit skip/dispose/background completion, and does not change downloads,
+save-conflict decisions, ownership or companions. No other media is implemented
+until the first native workflow passes. Host widget/geometry checks and scoped
+analysis pass; they are diagnostic evidence, not native feature acceptance.
+
+Reference captures use the top display only. The newly installed supplied Socket
+reference is not made the device's Home app; no owner launcher setting changes.
+The actual R-Shop first packaging request 1041 ended before build/gate acquisition:
+an unrelated elevated UniGetUI .NET installer made the helper's process-event
+subscription fail. The original installer was observed to exit without being
+interrupted. Request 1042 compiled successfully, but its helper post-build
+process-event subscription failed; verified daemon exit was not established.
+No direct Gradle or custom lock was used. The later current package verification
+is recorded in the implementation ledger; do not treat 1042 as full helper success.
+
+The actual Game Boy card and Download control queued one 32,917-byte Drive
+archive. Its normal transfer reached completed, and the existing installation
+watcher made Open available. The actual measured Open control then awaited the
+new insertion and used the existing verified native RetroArch handoff. Android
+reported RetroActivityFuture on the top display, and a host-only capture showed
+the selected game's title/copyright screen. No gameplay/save audit was added.
+This establishes the first download/animated-launch path, not full FRONTEND-01.
+
+Actual 0.7 reference rendering was obtained through its normal setup with one
+isolated test-ROM folder, not the whole owner library. Comparison exposed a
+stepped shell, side grip ribs and recessed header absent from the initial
+approximation; the independent geometry was revised accordingly. Texture/material
+fidelity and matched motion captures remain acceptance work. No recovered
+proprietary geometry or textures were added to the fork.
+
+The red-background regression first failed against the old console-color
+backgrounds. Shared backgrounds now use an opaque dark-red gradient; detail
+artwork is subordinate at 12 percent opacity. A real Thor capture confirms the
+red detail backdrop with the handwritten missing-artwork label. Representative
+settings/library and artwork-state visual acceptance remains required.
+
+The capture helper initially rejected supported display selection because this
+device prints screenrecord help on stderr. Its installed Codex/Claude copies now
+check the combined successful help output; the stderr-boundary fixture and actual
+host-only recording pass. No alternate device-storage recording was introduced.
+Both initial recording sample sets omitted the launch interval, so they do not
+prove insertion fidelity. Debug Flutter frame timings are diagnostic only;
+they include VM-observation overhead and are not release-performance acceptance.
+
 ## Reconciliation
 
-Source review and proposal recording are complete. FRONTEND-01 implementation,
-integration and runtime acceptance are not started. No candidate runtime
-criterion is claimed satisfied. The owner explicitly assigned save-management
+Source review and proposal recording are complete. FRONTEND-01 implementation
+is now ACTIVE; remaining integration and runtime acceptance are unfinished.
+The first real download/launch and red detail-background evidence above do not
+close geometry/material/motion, format coverage or performance acceptance.
+The owner explicitly assigned save-management
 touch/controller and responsive-layout verification to S12; it remains required
 for overall completion but is not a prerequisite for S10 closure. No other work
 is deferred from S10/S11 into S12.

@@ -62,7 +62,12 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+  fonts:
+    - family: Kalam
+      fonts:
+        - asset: assets/fonts/Kalam-Regular.ttf
   assets:
+    - assets/fonts/Kalam-OFL.txt
     - assets/config/emulator_families.json
     - assets/sounds/
     - assets/icon.png

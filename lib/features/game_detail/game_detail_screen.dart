@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/input/input.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/responsive/responsive.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/download_item.dart';
 import '../../models/game_item.dart';
 import '../../models/config/provider_config.dart';
@@ -35,6 +36,7 @@ import '../../widgets/console_notification.dart';
 import '../../widgets/console_hud.dart';
 import '../../widgets/download_overlay.dart';
 import '../../widgets/quick_menu.dart';
+import '../../widgets/physical_media_view.dart';
 import '../library/widgets/shelf_picker_dialog.dart';
 import 'achievements_screen.dart';
 import 'game_detail_controller.dart';
@@ -83,6 +85,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   GameDetailController? _controller;
   late InputDebouncer _debouncer;
   final _emulatorLauncher = OwnedEmulatorLauncher();
+  final _physicalMediaKey = GlobalKey<PhysicalMediaViewState>();
+  bool _openingOwnedRom = false;
   ProviderSubscription? _romChangeSubscription;
 
   // Section scroll keys for auto-scroll on D-pad navigation
@@ -520,8 +524,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   }
 
   Future<void> _openOwnedRom({bool withoutCompanion = false}) async {
+    if (_openingOwnedRom) {
+      _physicalMediaKey.currentState?.skipInsertion();
+      return;
+    }
     final game = _controller?.selectedVariant;
     if (game == null) return;
+    _openingOwnedRom = true;
     try {
       final metadata = await ref.read(gameMetadataProvider(
           (filename: game.selectionKey, systemSlug: widget.system.id)).future);
@@ -533,26 +542,33 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       await _emulatorLauncher.open(game, widget.system, widget.targetFolder,
           companionComponent: companion, prepareSave: () async {
         final artifact = game.remoteArtifact?.id;
-        if (artifact == null) return;
-        final saves = await ref.read(automaticSaveBackupsProvider.future);
-        await saves.prepareLaunch(
-            artifactId: artifact,
-            editionId: editionId,
-            reviewDeviceBackups: (job) async {
-              if (!mounted) throw PlatformException(code: 'cancelled');
-              await SaveBackupGamePanel.reviewOtherDevices(context, job);
-            },
-            reviewPcsxSaves: () => _emulatorLauncher.reviewRetroArchPcsxSaves(
-                game, widget.system, widget.targetFolder),
-            reviewRetroArchSave: (route) =>
-                _emulatorLauncher.reviewRetroArchBatterySave(
-                    game, widget.system, widget.targetFolder, route));
+        if (artifact != null) {
+          final saves = await ref.read(automaticSaveBackupsProvider.future);
+          await saves.prepareLaunch(
+              artifactId: artifact,
+              editionId: editionId,
+              reviewDeviceBackups: (job) async {
+                if (!mounted) throw PlatformException(code: 'cancelled');
+                await SaveBackupGamePanel.reviewOtherDevices(context, job);
+              },
+              reviewPcsxSaves: () => _emulatorLauncher.reviewRetroArchPcsxSaves(
+                  game, widget.system, widget.targetFolder),
+              reviewRetroArchSave: (route) =>
+                  _emulatorLauncher.reviewRetroArchBatterySave(
+                      game, widget.system, widget.targetFolder, route));
+        }
+        if (!mounted) throw PlatformException(code: 'cancelled');
+        final media = _physicalMediaKey.currentState;
+        if (media != null && !await media.playInsertion()) {
+          throw PlatformException(code: 'cancelled');
+        }
       });
     } catch (error) {
       if (!mounted) return;
       final code =
           error is PlatformException ? error.code : 'installation_unavailable';
       final message = switch (code) {
+        'cancelled' => 'Opening cancelled.',
         'save_conflict' ||
         'conflict_changed' =>
           'Choose which save to use in Save backups before opening this game.',
@@ -582,6 +598,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         _ => 'Could not open verified ROM: $code',
       };
       showConsoleNotification(context, message: message);
+    } finally {
+      _openingOwnedRom = false;
+      _physicalMediaKey.currentState?.resetInsertion();
     }
   }
 
@@ -953,7 +972,6 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                   coverUrl: richMetadata?.cachedCover ??
                       selectedVariant.cachedCoverUrl ??
                       coverUrls.firstOrNull,
-                  accentColor: widget.system.accentColor,
                 ),
               ),
               SafeArea(
@@ -1140,7 +1158,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                         AspectRatio(
                           aspectRatio: 0.75,
                           child: CoverSection(
-                            game: widget.game,
+                            game: selectedVariant,
+                            physicalMediaKey: _physicalMediaKey,
                             system: widget.system,
                             coverUrls: coverUrls,
                             cachedUrl: richMetadata?.cachedCover ??
@@ -1224,7 +1243,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           AspectRatio(
             aspectRatio: hasCardContent ? 0.85 : 0.75,
             child: CoverSection(
-              game: widget.game,
+              game: selectedVariant,
+              physicalMediaKey: _physicalMediaKey,
               system: widget.system,
               coverUrls: coverUrls,
               cachedUrl:
@@ -1678,15 +1698,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   }
 }
 
-/// Blurred cover art background with dark gradient overlay.
-/// Falls back to accent-color gradient when no cover is available.
+/// Artwork remains subordinate to R-Shop's red/dark background identity.
 class _CoverBackground extends StatelessWidget {
   final String? coverUrl;
-  final Color accentColor;
 
   const _CoverBackground({
     required this.coverUrl,
-    required this.accentColor,
   });
 
   @override
@@ -1694,70 +1711,25 @@ class _CoverBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Layer 1: Cover image or accent gradient fallback
+        const DecoratedBox(
+          decoration: BoxDecoration(gradient: AppTheme.backgroundGradient),
+        ),
         if (coverUrl != null)
-          ClipRect(
-            child: ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Image(
-                image: ImageHelper.imageProvider(coverUrl!),
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (_, __, ___) => _accentFallback(),
+          Opacity(
+            opacity: 0.12,
+            child: ClipRect(
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Image(
+                  image: ImageHelper.imageProvider(coverUrl!),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                  errorBuilder: (_, __, ___) => const SizedBox.expand(),
+                ),
               ),
             ),
-          )
-        else
-          _accentFallback(),
-        // Layer 2: Dark gradient overlay for readability
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.4),
-                Colors.black.withValues(alpha: 0.7),
-                Colors.black.withValues(alpha: 0.92),
-                Colors.black,
-                Colors.black,
-              ],
-              stops: const [0.0, 0.3, 0.55, 0.75, 1.0],
-            ),
           ),
-        ),
-        // Layer 3: Subtle accent tint (top half only)
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.center,
-              colors: [
-                accentColor.withValues(alpha: 0.15),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
       ],
-    );
-  }
-
-  Widget _accentFallback() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accentColor.withValues(alpha: 0.3),
-            accentColor.withValues(alpha: 0.1),
-            const Color(0xFF0A0A0A),
-            Colors.black,
-          ],
-          stops: const [0.0, 0.2, 0.5, 1.0],
-        ),
-      ),
     );
   }
 }

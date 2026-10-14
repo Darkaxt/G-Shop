@@ -84,6 +84,10 @@ Stream<LicenseEntry> mediaArtworkLicenses() async* {
   final license = await rootBundle.loadString('assets/media_fallbacks/COPYING');
   yield LicenseEntryWithLineBreaks(
       ['Systematic media icons'], '$notice\n\n$license');
+  final labelFontLicense =
+      await rootBundle.loadString('assets/fonts/Kalam-OFL.txt');
+  yield LicenseEntryWithLineBreaks(
+      ['Kalam handwritten labels'], labelFontLicense);
 }
 
 /// Bundled art never starts a provider/image/ROM request or an animation.

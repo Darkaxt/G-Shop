@@ -4,8 +4,9 @@ import '../../../models/game_item.dart';
 import '../../../models/system_model.dart';
 import '../../../utils/game_metadata.dart';
 import '../../../widgets/smart_cover_image.dart';
+import '../../../widgets/physical_media_view.dart';
 
-class CoverSection extends StatelessWidget {
+class CoverSection extends StatefulWidget {
   final GameItem game;
   final SystemModel system;
   final List<String> coverUrls;
@@ -14,6 +15,7 @@ class CoverSection extends StatelessWidget {
   final bool isFavorite;
   final bool isInstalled;
   final bool hasThumbnail;
+  final GlobalKey<PhysicalMediaViewState>? physicalMediaKey;
   const CoverSection({
     super.key,
     required this.game,
@@ -24,57 +26,105 @@ class CoverSection extends StatelessWidget {
     this.isFavorite = false,
     this.isInstalled = false,
     this.hasThumbnail = false,
+    this.physicalMediaKey,
   });
 
   @override
+  State<CoverSection> createState() => _CoverSectionState();
+}
+
+class _CoverSectionState extends State<CoverSection> {
+  bool _physical = true, _reducedMotion = false;
+
+  @override
   Widget build(BuildContext context) {
+    final game = widget.game, system = widget.system;
+    final physical = system.id == 'gb' && _physical;
+    final sticker = HandwrittenMediaSticker(
+        identity: game.selectionKey, title: game.displayName);
     return Column(
       children: [
         Expanded(
           child: Stack(
             children: [
               Positioned.fill(
-                child: Hero(
-                  tag: game.filename,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: system.accentColor.withValues(alpha: 0.3),
-                          blurRadius: 40,
-                          spreadRadius: -5,
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          blurRadius: 25,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            width: 1,
+                child: physical
+                    ? PhysicalMediaView(
+                        key: widget.physicalMediaKey,
+                        identity: game.selectionKey,
+                        title: game.displayName,
+                        reducedMotion: _reducedMotion,
+                        label: SmartCoverImage(
+                            systemId: system.id,
+                            urls: widget.coverUrls,
+                            cachedUrl: widget.cachedUrl,
+                            placeholder: sticker,
+                            errorWidget: sticker,
+                            fit: BoxFit.cover,
+                            hasThumbnail: widget.hasThumbnail,
+                            memCacheWidth: 640))
+                    : Hero(
+                        tag: game.filename,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    system.accentColor.withValues(alpha: 0.3),
+                                blurRadius: 40,
+                                spreadRadius: -5,
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 25,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: SmartCoverImage(
-                          systemId: system.id,
-                          urls: coverUrls,
-                          cachedUrl: cachedUrl,
-                          fit: BoxFit.contain,
-                          hasThumbnail: hasThumbnail,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: SmartCoverImage(
+                                systemId: system.id,
+                                urls: widget.coverUrls,
+                                cachedUrl: widget.cachedUrl,
+                                fit: BoxFit.contain,
+                                hasThumbnail: widget.hasThumbnail,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
               ),
-              if (isFavorite)
+              if (system.id == 'gb')
+                Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      IconButton(
+                          tooltip: physical ? 'Cover view' : '3D media',
+                          onPressed: () =>
+                              setState(() => _physical = !_physical),
+                          icon: Icon(physical
+                              ? Icons.photo_rounded
+                              : Icons.view_in_ar_rounded)),
+                      if (physical)
+                        IconButton(
+                            tooltip: 'Reduced motion',
+                            isSelected: _reducedMotion,
+                            onPressed: () => setState(
+                                () => _reducedMotion = !_reducedMotion),
+                            icon: const Icon(Icons.motion_photos_off_rounded)),
+                    ])),
+              if (widget.isFavorite)
                 Positioned(
                   top: 8,
                   left: 8,

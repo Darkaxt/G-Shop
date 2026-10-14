@@ -2013,7 +2013,7 @@ S1-S11 reconciliation. A settings-only implementation does not close S11.
 
 ## S12 — 3D physical-media frontend
 
-Status: NOT STARTED.
+Status: ACTIVE (2026-10-14), the sole ACTIVE stage after verified S11 closure.
 Authorization: implement all 12 stages, owner objective update 2026-10-13.
 Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
@@ -2028,6 +2028,10 @@ sectioned menus and the diagnostics-first route during integrated frontend work.
 Objective: modernize presentation while keeping R-Shop's red identity and its
 existing catalogue, on-demand installation and emulator workflows. Use actual
 console-specific 3D media, not a new dependency on scraped cartridge images.
+The owner's 2026-10-14 clarification includes red/dark backgrounds, not only
+controls: do not copy Socket's grey dotted theme or substitute console colors.
+Include library/detail/settings and empty/loading/missing-artwork backgrounds in
+FRONTEND-01's integrated visual verification.
 
 Execution order within S12:
 
@@ -2043,7 +2047,7 @@ event-driven readiness. Report unsupported measurements explicitly. Backend
 calls are not UI-action evidence. Use targeted screenshots/recordings for visual
 and motion fidelity, not screenshot polling. Keep hooks bounded, private and
 disabled/absent in release; no general RPC framework or retroactive mature-layout
-instrumentation. This is S12 preparation only; S12 remains NOT STARTED.
+instrumentation. The existing FRONTEND-01 contract governs this ACTIVE stage.
 
 1. Inspect/reverse engineer the supplied `socket_release_0.7.0.apk` reference,
    including main-screen physical-media geometry, labels and animations; retain

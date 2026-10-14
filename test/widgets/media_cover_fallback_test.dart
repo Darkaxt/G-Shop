@@ -149,15 +149,22 @@ void main() {
       'artwork attribution and complete license are bundled for offline access',
       () async {
     final entries = await mediaArtworkLicenses().toList();
-    expect(entries, hasLength(1));
-    expect(entries.single, isA<LicenseEntryWithLineBreaks>());
-    expect(entries.single.packages, ['Systematic media icons']);
-    final text = entries.single.paragraphs.map((p) => p.text).join('\n');
+    expect(entries, hasLength(2));
+    final icons = entries
+        .singleWhere((e) => e.packages.contains('Systematic media icons'));
+    expect(icons, isA<LicenseEntryWithLineBreaks>());
+    final text = icons.paragraphs.map((p) => p.text).join('\n');
     expect(text, contains('libretro/retroarch-assets'));
     expect(text, contains('CC BY 4.0'));
     expect(text, contains('Systematic / RetroActive theme contributors'));
     expect(text, contains('Modifications: PNG filenames renamed'));
     expect(text, contains('Section 5 -- Disclaimer of Warranties'));
+    final font = entries
+        .singleWhere((e) => e.packages.contains('Kalam handwritten labels'));
+    final fontText = font.paragraphs.map((p) => p.text).join('\n');
+    expect(fontText, contains('Indian Type Foundry'));
+    expect(fontText, contains('SIL OPEN FONT LICENSE Version 1.1'));
+    expect(fontText, contains('TERMINATION'));
   });
 
   testWidgets('loading suppression and failed URLs use the same platform asset',
