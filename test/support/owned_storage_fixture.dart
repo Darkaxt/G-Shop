@@ -36,6 +36,7 @@ class OwnedStorageFixture {
   int next = 0;
   Future<void> Function(MethodCall)? before;
   Future<void> Function(MethodCall)? after;
+  String Function(String)? canonicalRoot;
   void install() =>
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, handle);
@@ -52,7 +53,8 @@ class OwnedStorageFixture {
     final a = Map<String, dynamic>.from(call.arguments as Map);
     if (call.method == 'ownedPrepare') {
       return {
-        'destinationRoot': a['destinationRoot'],
+        'destinationRoot': canonicalRoot?.call(a['destinationRoot'] as String) ??
+            a['destinationRoot'],
         'stageRoot': '/owned',
         'destinationVolume': '1',
         'stageVolume': '1',

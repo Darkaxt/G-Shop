@@ -220,6 +220,42 @@ void main() {
     await databaseFactory.setDatabasesPath(previousDbPath);
   });
   test(
+      'build uses native canonical input and output roots before reserving transfers',
+      () async {
+    String canonical(String root) =>
+        {'base-download', 'patch-download', 'Hacks'}.contains(p.basename(root))
+            ? '$root-canonical'
+            : root;
+    boundary.canonicalRoot = canonical;
+    boundary.before = (call) async {
+      if (call.method == 'ownedPrepare') {
+        final requested = (call.arguments as Map)['destinationRoot'] as String;
+        final resolved = canonical(requested);
+        if (resolved != requested &&
+            await Directory(requested).exists() &&
+            !await Directory(resolved).exists()) {
+          // Model one native directory, not two different physical fixtures.
+          expect(await Directory(requested).list().isEmpty, isTrue);
+          await Directory(requested).rename(resolved);
+        } else {
+          await Directory(resolved).create(recursive: true);
+        }
+      }
+    };
+    final result = await build();
+    expect(result.targetRoot, endsWith('Hacks-canonical'));
+    final row = (await service.store.forGame('gba', '1379')).single;
+    expect(row['targetRoot'], result.targetRoot);
+    expect(row['state'], 'ready');
+    expect(row['scratchCleanup'], 'complete');
+    expect(applications, 1);
+    expect(runtime.requests, 2);
+    final reused = await build();
+    expect(reused.reused, isTrue);
+    expect(runtime.requests, 2);
+    expect(applications, 1);
+  });
+  test(
       'build registers independent modified edition, survives service restart and reuses exact bytes',
       () async {
     final result = await build();

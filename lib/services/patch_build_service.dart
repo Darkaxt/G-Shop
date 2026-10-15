@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -234,9 +235,9 @@ class PatchBuildService {
         extension.isEmpty) {
       throw const PatchBuildException('unsupported_base_format');
     }
-    final targetRoot = p.join(targetFolder, 'Hacks');
-    await Directory(targetRoot).create(recursive: true);
-    await storage.prepare(targetRoot);
+    final selectedTargetRoot = p.join(targetFolder, 'Hacks');
+    await Directory(selectedTargetRoot).create(recursive: true);
+    final targetRoot = (await storage.prepare(selectedTargetRoot)).destinationRoot;
     final retry = retryBuildId == null ? null : await store.get(retryBuildId);
     if (retryBuildId != null &&
         (retry == null ||
@@ -368,8 +369,11 @@ class PatchBuildService {
           artifact, rawOutput, cancellation);
       onProgress?.call('Ready to play', 1, 1);
       return result;
-    } catch (error) {
+    } catch (error, stack) {
       primaryFailure = error;
+      debugPrint('Patch build failed: type=${error.runtimeType} '
+          'issue=${_issue(error, cancellation)}');
+      debugPrintStack(stackTrace: stack, maxFrames: 12);
       await store.update(buildId, {'issue': _issue(error, cancellation)},
           state: cancellation.isCancelled ? 'cancelled' : 'failed');
       rethrow;
@@ -470,10 +474,11 @@ class PatchBuildService {
       void Function(int, int)? onProgress}) async {
     checkPatchCancellation(cancellation);
     await Directory(root).create(recursive: true);
+    final destinationRoot = (await storage.prepare(root)).destinationRoot;
     final record = await runtime.reserveTransfer(
         config: catalogue.config,
         artifact: artifact,
-        destinationRoot: root,
+        destinationRoot: destinationRoot,
         relativePath: artifact.displayName,
         archivePlatformId: archivePlatform);
     final saved = (await store.get(buildId))!;
@@ -498,7 +503,7 @@ class PatchBuildService {
     if (completed.lifecycle != TransferLifecycle.completed) {
       throw const PatchBuildException('input_download_incomplete');
     }
-    return File(p.join(root, completed.relativePath));
+    return File(p.join(completed.destinationRoot, completed.relativePath));
   }
 
   Future<void> _nativeOperation(String method, String jobId,

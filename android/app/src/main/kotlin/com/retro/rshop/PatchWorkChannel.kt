@@ -32,7 +32,9 @@ class PatchWorkChannel(private val context: Context, messenger: BinaryMessenger)
     private fun job(call: MethodCall): File {
         val id = call.argument<String>("jobId") ?: throw IllegalArgumentException()
         require(id.matches(Regex("[a-zA-Z0-9_-]{1,96}")))
-        return File(workRoot, id)
+        // Persist the same explicit native root that OwnedStorage prepares.
+        // Android's app-data aliases are not durable transfer destinations.
+        return File(workRoot, id).canonicalFile
     }
     private fun privatePath(root: File, value: String): File {
         val file = File(value).canonicalFile

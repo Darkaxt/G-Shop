@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16-S17 COMPLETE, S18 ACTIVE, 2026-10-15
+### Collection/patch extension — S16-S17 COMPLETE, S18 ACTIVE, 2026-10-16
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
@@ -27,6 +27,39 @@ Current Export config is plain credential-stripped JSON, not this capability;
 secure credentials are presently device-local. BACKUP-MIGRATE-01 distinguishes private
 encrypted migration from public sharing and destination-owned OS grants/state.
 No migration implementation or export has been started; S18 remains sole ACTIVE.
+
+Current S18 checkpoint: signed diagnostic request 1176 acquired the shared gate,
+used two workers/no parallel/3 GiB with Kotlin in-process, and completed with
+build/helper exit 0 and daemon exit verified; no memory failure. Test tasks were
+configured for one fork/512 MiB but not executed by assembly. Its installed APK
+SHA-256 is 599774def55f49695d99e2e7ef754a82621ea735f03595b0b3e031530a490e15;
+the production signer and all five immediate credential/config/import hashes
+match. The native catalogue now passes the old version-only failure and reaches
+Advance Wars. Physical R1 selected My builds and L1 returned to Available patches.
+
+Actual Build attempts fail before any input transfer reservation or ROM download.
+The fixed-field diagnostic and call stack identify DriveRuntime.reserveTransfer's
+canonical-root comparison, not a checksum/source/content error. The patch caller
+discarded OwnedStorage.prepare's explicit root. A matching host reproduction
+failed at that exact check. The cohesive correction consumes canonical input and
+output plans and returns native patch job roots canonically; immutable transfer
+checks remain unchanged. Integrated host checks pass registration, canonical-root
+cleanup, restart/reuse, publication recovery, mismatch and cancellation; unchanged
+publication/transfer checks also pass. Scoped analysis of the affected Dart files
+is clean. The regression fixture models one native directory rather than creating
+two physical alias folders. Native build/launch/reuse verification of this
+correction remains required; S18 is ACTIVE, S19-S21 NOT STARTED.
+
+Network cleanup: Thor's original router connection recovered with validated DNS.
+Task-created hotspot profiles 9/10 were removed; original profiles are preserved.
+Temporary DNS probes never configured a resolver (runtime/class errors) and their
+two exact Android folders were removed by reviewed cleanup transactions
+285be047bd1876cc94b6c8243f573ace and 0634c4fa8f075b74c96ae5a3fe5a904e.
+Another task intentionally disabled laptop sharing. Approved broker request
+aabd7f3cf8624a669e6b1186b7e1773f restored this task's original idle-shutdown flag
+without starting tethering, then verified icssvc Disabled/Stopped again. No
+hotspot/service restoration remains pending. Both Thor displays are verified OFF
+during host work. Other retained scratch/probes still support S18 acceptance.
 
 S18 native acceptance remains ACTIVE. Signed diagnostic request 1167 completed
 with build/helper exit 0, the gate acquired and daemon exit verified. The exact
@@ -66,9 +99,10 @@ parent/ancestor/name/rollback rejection, patch controller menus, publication/
 reuse and cancellation/retry. Offline guidance now distinguishes connectivity
 from genuinely changed resources. Bounded collection/page events remove the need
 to use screenshots as loading probes. Native verification of this fix and the
-Advance Wars build/launch/reuse remain required; no such build/download has yet
-been dispatched. S18 stays ACTIVE, S19/S20 NOT STARTED. Screens are off during
-host work; hotspot/service restoration is still pending after device verification.
+Advance Wars build/launch/reuse remain required. Subsequent real attempts and
+their canonical-root diagnosis are recorded in the current checkpoint above.
+S18 stays ACTIVE, S19-S21 NOT STARTED. Screens are off during host work;
+hotspot/service restoration is complete as recorded above.
 
 Collector addition: Advanced's Get metadata & covers replaces the legacy cover
 preloader, opening ScreenScraper's normal scoped play/pause/resume workspace.

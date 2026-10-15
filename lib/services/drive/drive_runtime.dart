@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../models/config/drive_source_config.dart';
@@ -158,6 +159,7 @@ class DriveRuntime {
             DriveAuthorizationIssue.cancelled);
       }
       if (plan.destinationRoot != destinationRoot) {
+        debugPrint('Drive reservation rejected: canonical_root_changed');
         throw const OwnedStorageException('changed');
       }
       final existing = await journal.transfer(id);
