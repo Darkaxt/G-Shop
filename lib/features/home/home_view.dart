@@ -24,6 +24,7 @@ import '../settings/settings_screen.dart';
 import '../game_list/game_list_screen.dart';
 import 'widgets/hero_carousel_item.dart';
 import 'widgets/home_grid_view.dart';
+import 'widgets/manufacturer_filter.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -31,8 +32,7 @@ class HomeView extends ConsumerStatefulWidget {
   ConsumerState<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends ConsumerState<HomeView>
-    with ConsoleScreenMixin {
+class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
   late PageController _pageController;
   static const int _initialPage = 5000;
   int _currentIndex = 0;
@@ -52,6 +52,9 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   /// Filtered list of systems that have a config entry.
   List<SystemModel> _configuredSystems = [];
+  List<SystemModel> _allSystems = [];
+  String? _manufacturer;
+  final _manufacturerFocus = FocusScopeNode(debugLabel: 'Manufacturer filter');
 
   @override
   String get routeId => 'home';
@@ -62,6 +65,19 @@ class _HomeViewState extends ConsumerState<HomeView>
   Map<Type, Action<Intent>> get screenActions => {
         NavigateIntent: NavigateAction(ref, onNavigate: (intent) {
           final isGrid = ref.read(homeLayoutProvider);
+          if (_manufacturerFocus.hasFocus) {
+            if (intent.direction == GridDirection.down) {
+              requestScreenFocus();
+              return true;
+            }
+            return false;
+          }
+          if (intent.direction == GridDirection.up &&
+              (!isGrid || _currentIndex < _columns)) {
+            _manufacturerFocus.requestFocus();
+            _manufacturerFocus.nextFocus();
+            return true;
+          }
           if (isGrid) {
             return _navigateGrid(intent.direction);
           } else {
@@ -75,22 +91,37 @@ class _HomeViewState extends ConsumerState<HomeView>
           }
           return false;
         }),
-        ConfirmIntent: ConfirmAction(ref, onConfirm: _navigateToCurrentSystem),
+        ConfirmIntent: ConfirmAction(ref, onConfirm: () {
+          if (_manufacturerFocus.hasFocus) {
+            final target = FocusManager.instance.primaryFocus?.context;
+            if (target != null) {
+              Actions.maybeInvoke(target, const ActivateIntent());
+            }
+          } else {
+            _navigateToCurrentSystem();
+          }
+        }),
         SearchIntent: SearchAction(ref, onSearch: _openLibrarySearch),
         AdjustColumnsIntent: CallbackAction<AdjustColumnsIntent>(
           onInvoke: (intent) {
-            if (intent.increase) { _zoomOut(); } else { _zoomIn(); }
+            if (intent.increase) {
+              _zoomOut();
+            } else {
+              _zoomIn();
+            }
             return null;
           },
         ),
-        BackIntent: OverlayGuardedAction<BackIntent>(ref,
+        BackIntent: OverlayGuardedAction<BackIntent>(
+          ref,
           onInvoke: (_) {
             if (!_debouncer.canPerformAction()) return null;
             _showExitDialogOverlay();
             return null;
           },
         ),
-        ToggleOverlayIntent: ToggleOverlayAction(ref, onToggle: toggleQuickMenu),
+        ToggleOverlayIntent:
+            ToggleOverlayAction(ref, onToggle: toggleQuickMenu),
       };
 
   @override
@@ -103,7 +134,9 @@ class _HomeViewState extends ConsumerState<HomeView>
       viewportFraction: 0.5,
       initialPage: _initialPage,
     );
-    _currentIndex = _configuredSystems.isEmpty ? 0 : _initialPage % _configuredSystems.length;
+    _currentIndex = _configuredSystems.isEmpty
+        ? 0
+        : _initialPage % _configuredSystems.length;
     _lastStablePage = _initialPage;
     _pageController.addListener(_onPageScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -117,26 +150,12 @@ class _HomeViewState extends ConsumerState<HomeView>
     });
     _visibleSystemsSub = ref.listenManual(visibleSystemsProvider, (prev, next) {
       if (next case AsyncData<List<SystemModel>>(value: final filtered)) {
-        final oldIds = _configuredSystems.map((s) => s.id).toList();
+        final oldIds = _allSystems.map((s) => s.id).toList();
         final newIds = filtered.map((s) => s.id).toList();
         final changed = oldIds.length != newIds.length ||
             !oldIds.every((id) => newIds.contains(id));
         if (!changed) return;
-        if (filtered.isEmpty) {
-          setState(() => _configuredSystems = []);
-          _gridItemKeys.clear();
-          return;
-        }
-        setState(() {
-          _configuredSystems = filtered;
-          _currentIndex = _lastStablePage % (filtered.length + 1);
-        });
-        _updateGridItemKeys();
-        if (ref.read(homeLayoutProvider)) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _scrollToSelected();
-          });
-        }
+        _replaceSystems(filtered, keepLibrary: true);
       }
     }, fireImmediately: true);
 
@@ -152,15 +171,15 @@ class _HomeViewState extends ConsumerState<HomeView>
     );
   }
 
-  Future<void> _triggerLibrarySync({Set<String> forceSystemIds = const {}}) async {
+  Future<void> _triggerLibrarySync(
+      {Set<String> forceSystemIds = const {}}) async {
     final config = await ref.read(bootstrappedConfigProvider.future);
     if (!mounted) return;
     if (config.systems.isNotEmpty) {
       final timeout = Duration(seconds: ref.read(syncTimeoutProvider));
       final cooldownMinutes = ref.read(syncCooldownProvider);
       final storage = ref.read(storageServiceProvider);
-      ref.read(librarySyncServiceProvider.notifier).syncSmart(
-          config,
+      ref.read(librarySyncServiceProvider.notifier).syncSmart(config,
           syncTimeout: timeout,
           cooldown: Duration(minutes: cooldownMinutes),
           forceSystemIds: forceSystemIds,
@@ -170,6 +189,7 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   @override
   void dispose() {
+    _manufacturerFocus.dispose();
     _visibleSystemsSub?.close();
     _syncStateSub?.close();
     _debouncer.stopHold();
@@ -209,7 +229,46 @@ class _HomeViewState extends ConsumerState<HomeView>
     }
   }
 
+  void _replaceSystems(List<SystemModel> systems, {bool keepLibrary = false}) {
+    final selectedId = _configuredSystems.isNotEmpty && !_isLibraryIndex
+        ? _getSystem(_currentIndex).id
+        : null;
+    final wasLibrary =
+        keepLibrary && _configuredSystems.isNotEmpty && _isLibraryIndex;
+    setState(() {
+      _allSystems = systems;
+      if (!systems.any((s) => s.manufacturer == _manufacturer)) {
+        _manufacturer = null;
+      }
+      _configuredSystems = systemsForManufacturer(systems, _manufacturer);
+      final index = _configuredSystems.indexWhere((s) => s.id == selectedId);
+      _currentIndex = wasLibrary
+          ? _configuredSystems.length
+          : index < 0
+              ? 0
+              : index;
+      _lastStablePage =
+          _initialPage - (_initialPage % _totalItemCount) + _currentIndex;
+    });
+    _updateGridItemKeys();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_lastStablePage);
+      }
+      if (ref.read(homeLayoutProvider)) _scrollToSelected();
+    });
+  }
+
+  void _selectManufacturer(String? manufacturer) {
+    if (_manufacturer == manufacturer) return;
+    _manufacturer = manufacturer;
+    _replaceSystems(_allSystems);
+    ref.read(feedbackServiceProvider).confirm();
+  }
+
   int get _systemCount => _configuredSystems.length;
+
   /// Total items in grid/carousel: systems + library entry
   int get _totalItemCount => _configuredSystems.length + 1;
   bool get _isLibraryIndex => _currentIndex == _configuredSystems.length;
@@ -226,8 +285,7 @@ class _HomeViewState extends ConsumerState<HomeView>
       return;
     }
     final system = _getSystem(_currentIndex);
-    final appConfig =
-        ref.read(bootstrappedConfigProvider).value;
+    final appConfig = ref.read(bootstrappedConfigProvider).value;
     final systemConfig = appConfig != null
         ? ConfigBootstrap.configForSystem(appConfig, system)
         : null;
@@ -282,8 +340,7 @@ class _HomeViewState extends ConsumerState<HomeView>
         case GridDirection.left:
           if (_currentIndex % _columns > 0) newIndex--;
         case GridDirection.right:
-          if ((_currentIndex + 1) % _columns > 0 &&
-              _currentIndex + 1 < total) {
+          if ((_currentIndex + 1) % _columns > 0 && _currentIndex + 1 < total) {
             newIndex++;
           }
         case GridDirection.up:
@@ -368,8 +425,13 @@ class _HomeViewState extends ConsumerState<HomeView>
     // Stop holding inputs before navigating
     _debouncer.stopHold();
     // Snapshot current system IDs before entering settings
-    final preSettingsIds = ref.read(bootstrappedConfigProvider).valueOrNull
-        ?.systems.map((s) => s.id).toSet() ?? <String>{};
+    final preSettingsIds = ref
+            .read(bootstrappedConfigProvider)
+            .valueOrNull
+            ?.systems
+            .map((s) => s.id)
+            .toSet() ??
+        <String>{};
     final homeContext = context;
     await Navigator.push(
       homeContext,
@@ -392,8 +454,8 @@ class _HomeViewState extends ConsumerState<HomeView>
     final config = await ref.read(bootstrappedConfigProvider.future);
     if (!mounted) return;
     // Only force-sync newly added consoles
-    final newIds = config.systems.map((s) => s.id).toSet()
-        .difference(preSettingsIds);
+    final newIds =
+        config.systems.map((s) => s.id).toSet().difference(preSettingsIds);
     if (config.systems.isNotEmpty) {
       _triggerLibrarySync(forceSystemIds: newIds);
     }
@@ -422,6 +484,7 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   List<QuickMenuItem?> _buildQuickMenuItems() {
     final l = L.of(context);
+    final manufacturer = _manufacturer;
     final hasDownloads = ref.read(hasQueueItemsProvider);
     return [
       QuickMenuItem(
@@ -442,6 +505,12 @@ class _HomeViewState extends ConsumerState<HomeView>
           label: l.home_syncAll,
           icon: Icons.sync_rounded,
           onSelect: _syncAll,
+        ),
+      if (manufacturer != null)
+        QuickMenuItem(
+          label: 'Sync $manufacturer',
+          icon: Icons.sync_rounded,
+          onSelect: () => _syncAll(manufacturer: manufacturer),
         ),
       QuickMenuItem(
         label: l.home_settings,
@@ -485,9 +554,15 @@ class _HomeViewState extends ConsumerState<HomeView>
     );
   }
 
-  void _syncAll() async {
-    final config = await ref.read(bootstrappedConfigProvider.future);
+  void _syncAll({String? manufacturer}) async {
+    final all = await ref.read(bootstrappedConfigProvider.future);
+    if (!mounted) return;
+    final config = manufacturer == null
+        ? all
+        : ConfigBootstrap.forManufacturer(all, manufacturer);
     if (config.systems.isEmpty) return;
+    // A scoped manual action must not later auto-resume unrelated consoles.
+    _resumeAutoSyncAfterManual = false;
     final syncService = ref.read(librarySyncServiceProvider.notifier);
     if (ref.read(librarySyncServiceProvider).isSyncing) {
       syncService.cancel();
@@ -500,11 +575,13 @@ class _HomeViewState extends ConsumerState<HomeView>
       syncTimeout: timeout,
       storageService: ref.read(storageServiceProvider),
     );
-    triggerRaSync(
-      ref.read(raSyncServiceProvider.notifier),
-      ref.read(storageServiceProvider),
-      force: true,
-    );
+    if (manufacturer == null) {
+      triggerRaSync(
+        ref.read(raSyncServiceProvider.notifier),
+        ref.read(storageServiceProvider),
+        force: true,
+      );
+    }
   }
 
   String _lastSyncLabel(String systemId) {
@@ -601,8 +678,11 @@ class _HomeViewState extends ConsumerState<HomeView>
 
     final isLibrary = _isLibraryIndex;
     final currentSystem = isLibrary ? null : _getSystem(_currentIndex);
-    final accentColor = isLibrary ? Colors.cyanAccent : currentSystem!.accentColor;
+    final accentColor =
+        isLibrary ? Colors.cyanAccent : currentSystem!.accentColor;
     final isGrid = ref.watch(homeLayoutProvider);
+    final syncVisible = ref.watch(
+        librarySyncServiceProvider.select((s) => s.isSyncing || s.hadFailures));
 
     if (isGrid && !_wasGrid) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -638,46 +718,65 @@ class _HomeViewState extends ConsumerState<HomeView>
           accentColor: accentColor,
           useSafeArea: false,
           padding: EdgeInsets.zero,
-          body: Stack(
-            children: [
-              if (isGrid)
-                HomeGridView(
-                  systems: _configuredSystems,
-                  selectedIndex: _currentIndex,
-                  columns: _columns,
-                  scrollController: _gridScrollController,
-                  itemKeys: _gridItemKeys,
-                  onSelect: (idx) {
-                    setState(() => _currentIndex = idx);
-                    ref.read(feedbackServiceProvider).tick();
-                  },
-                  onConfirm: _navigateToCurrentSystem,
-                  rs: rs,
-                )
-              else if (rs.isPortrait)
-                _buildPortraitLayout(rs, currentSystem, isLibrary)
-              else
-                _buildLandscapeLayout(rs, currentSystem, isLibrary),
-              if (isGrid) _buildControls(rs),
-              if (showQuickMenu)
-                QuickMenuOverlay(
-                  items: _buildQuickMenuItems(),
-                  onClose: closeQuickMenu,
+          body: Stack(children: [
+            Column(children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  top: rs.safeAreaTop +
+                      (syncVisible && rs.screenWidth < 650 ? 140 : 8),
+                  right: syncVisible && rs.screenWidth >= 650 ? 370 : 0,
                 ),
-              if (_showExitDialog)
-                ExitConfirmationOverlay(
-                  onConfirm: _exitApp,
-                  onCancel: _hideExitDialog,
-                ),
-            ],
-          ),
+                child: FocusScope(
+                    node: _manufacturerFocus,
+                    child: ManufacturerFilter(
+                        systems: _allSystems,
+                        selected: _manufacturer,
+                        onSelected: _selectManufacturer)),
+              ),
+              Expanded(
+                  child: Stack(
+                children: [
+                  if (isGrid)
+                    HomeGridView(
+                      systems: _configuredSystems,
+                      selectedIndex: _currentIndex,
+                      columns: _columns,
+                      scrollController: _gridScrollController,
+                      itemKeys: _gridItemKeys,
+                      onSelect: (idx) {
+                        setState(() => _currentIndex = idx);
+                        ref.read(feedbackServiceProvider).tick();
+                      },
+                      onConfirm: _navigateToCurrentSystem,
+                      rs: rs,
+                    )
+                  else if (rs.isPortrait)
+                    _buildPortraitLayout(rs, currentSystem, isLibrary)
+                  else
+                    _buildLandscapeLayout(rs, currentSystem, isLibrary),
+                  if (isGrid) _buildControls(rs),
+                ],
+              )),
+            ]),
+            if (showQuickMenu)
+              QuickMenuOverlay(
+                items: _buildQuickMenuItems(),
+                onClose: closeQuickMenu,
+              ),
+            if (_showExitDialog)
+              ExitConfirmationOverlay(
+                onConfirm: _exitApp,
+                onCancel: _hideExitDialog,
+              ),
+          ]),
         ),
       ),
       onKeyEvent: _handleKeyEvent,
     );
   }
 
-  Widget _buildLandscapeLayout(Responsive rs, SystemModel? currentSystem, bool isLibrary) {
+  Widget _buildLandscapeLayout(
+      Responsive rs, SystemModel? currentSystem, bool isLibrary) {
     return Stack(
       children: [
         _buildCarousel(rs),
@@ -690,7 +789,8 @@ class _HomeViewState extends ConsumerState<HomeView>
     );
   }
 
-  Widget _buildPortraitLayout(Responsive rs, SystemModel? currentSystem, bool isLibrary) {
+  Widget _buildPortraitLayout(
+      Responsive rs, SystemModel? currentSystem, bool isLibrary) {
     return Stack(
       children: [
         Column(
@@ -736,24 +836,28 @@ class _HomeViewState extends ConsumerState<HomeView>
     return countsAsync.when(
       data: (counts) {
         final c = counts[system.id];
-        if (c == null || (c.remote == 0 && c.local == 0)) return const SizedBox.shrink();
+        if (c == null || (c.remote == 0 && c.local == 0)) {
+          return const SizedBox.shrink();
+        }
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (c.remote > 0) _GameCountPill(
-                icon: Icons.cloud_outlined,
-                count: c.remote,
-                color: system.accentColor.forText,
-              ),
+              if (c.remote > 0)
+                _GameCountPill(
+                  icon: Icons.cloud_outlined,
+                  count: c.remote,
+                  color: system.accentColor.forText,
+                ),
               if (c.remote > 0 && c.local > 0) const SizedBox(width: 6),
-              if (c.local > 0) _GameCountPill(
-                icon: Icons.folder_outlined,
-                count: c.local,
-                color: system.accentColor.forText,
-              ),
+              if (c.local > 0)
+                _GameCountPill(
+                  icon: Icons.folder_outlined,
+                  count: c.local,
+                  color: system.accentColor.forText,
+                ),
             ],
           ),
         );
@@ -780,17 +884,19 @@ class _HomeViewState extends ConsumerState<HomeView>
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (totalRemote > 0) _GameCountPill(
-                icon: Icons.cloud_outlined,
-                count: totalRemote,
-                color: Colors.cyanAccent,
-              ),
+              if (totalRemote > 0)
+                _GameCountPill(
+                  icon: Icons.cloud_outlined,
+                  count: totalRemote,
+                  color: Colors.cyanAccent,
+                ),
               if (totalRemote > 0 && totalLocal > 0) const SizedBox(width: 6),
-              if (totalLocal > 0) _GameCountPill(
-                icon: Icons.folder_outlined,
-                count: totalLocal,
-                color: Colors.cyanAccent,
-              ),
+              if (totalLocal > 0)
+                _GameCountPill(
+                  icon: Icons.folder_outlined,
+                  count: totalLocal,
+                  color: Colors.cyanAccent,
+                ),
             ],
           ),
         );
@@ -918,8 +1024,7 @@ class _HomeViewState extends ConsumerState<HomeView>
               if (_pageController.hasClients) {
                 final position = _pageController.position;
                 if (position.hasContentDimensions && position.haveDimensions) {
-                  currentPage =
-                      _pageController.page ?? _initialPage.toDouble();
+                  currentPage = _pageController.page ?? _initialPage.toDouble();
                 }
               }
             } catch (e) {

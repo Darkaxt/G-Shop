@@ -1319,7 +1319,8 @@ class DriveRuntime {
   }
 
   Future<void> refreshConfig(ProviderConfig config,
-      {CancelToken? cancelToken}) async {
+      {CancelToken? cancelToken,
+      void Function(int filesRead, int foldersChecked)? onProgress}) async {
     _requireConnectedLane();
     final drive = config.drive;
     if (drive == null ||
@@ -1341,6 +1342,7 @@ class DriveRuntime {
         accountId: drive.accountId,
         rootFolderId: drive.rootFolderId,
         api: apiFor(drive),
+        onProgress: onProgress,
         cancelToken: cancellation);
     _refreshes[scope] = operation;
     _refreshCancellation[scope] = cancellation;

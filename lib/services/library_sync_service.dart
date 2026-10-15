@@ -17,7 +17,18 @@ import 'thumbnail_service.dart';
 import 'unified_game_service.dart';
 import 'drive/drive_runtime.dart';
 
+enum LibrarySyncPhase {
+  readingGames,
+  checkingSource,
+  scanningLocal,
+  updatingGames
+}
+
 class LibrarySyncState {
+  final LibrarySyncPhase phase;
+  final int processedGames;
+  final int? currentGamesTotal;
+  final int sourceFilesRead;
   final bool isSyncing;
   final int totalSystems;
   final int completedSystems;
@@ -32,6 +43,10 @@ class LibrarySyncState {
   bool get hadFailures => failedSystems.isNotEmpty;
 
   const LibrarySyncState({
+    this.phase = LibrarySyncPhase.readingGames,
+    this.processedGames = 0,
+    this.currentGamesTotal,
+    this.sourceFilesRead = 0,
     this.isSyncing = false,
     this.totalSystems = 0,
     this.completedSystems = 0,
@@ -43,6 +58,11 @@ class LibrarySyncState {
   });
 
   LibrarySyncState copyWith({
+    LibrarySyncPhase? phase,
+    int? processedGames,
+    int? currentGamesTotal,
+    int? sourceFilesRead,
+    bool resetGameProgress = false,
     bool? isSyncing,
     int? totalSystems,
     int? completedSystems,
@@ -53,6 +73,15 @@ class LibrarySyncState {
     Map<String, String>? failedSystems,
   }) {
     return LibrarySyncState(
+      phase: phase ??
+          (resetGameProgress ? LibrarySyncPhase.readingGames : this.phase),
+      processedGames:
+          processedGames ?? (resetGameProgress ? 0 : this.processedGames),
+      currentGamesTotal: resetGameProgress
+          ? currentGamesTotal
+          : currentGamesTotal ?? this.currentGamesTotal,
+      sourceFilesRead:
+          sourceFilesRead ?? (resetGameProgress ? 0 : this.sourceFilesRead),
       isSyncing: isSyncing ?? this.isSyncing,
       totalSystems: totalSystems ?? this.totalSystems,
       completedSystems: completedSystems ?? this.completedSystems,
@@ -105,6 +134,63 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
 
   LibrarySyncService() : super(const LibrarySyncState());
 
+  UnifiedGameService _gameService(Duration? timeout,
+          {bool refreshDrive = true}) =>
+      UnifiedGameService(
+        syncTimeout: timeout,
+        shareDrivePreparation: true,
+        onReadingGames: () {
+          if (mounted && state.isSyncing) {
+            state = state.copyWith(phase: LibrarySyncPhase.readingGames);
+          }
+        },
+        prepareDrive: !refreshDrive
+            ? null
+            : (config) {
+                final system = _currentlySyncingSystemId;
+                if (mounted) {
+                  state =
+                      state.copyWith(phase: LibrarySyncPhase.checkingSource);
+                }
+                return DriveRuntime.instance.refreshConfig(config,
+                    onProgress: (files, _) {
+                  if (mounted &&
+                      state.isSyncing &&
+                      system == _currentlySyncingSystemId) {
+                    state = state.copyWith(
+                        phase: LibrarySyncPhase.checkingSource,
+                        sourceFilesRead: files);
+                  }
+                });
+              },
+      );
+
+  Future<List<GameItem>> _scanLocal(SystemModel system, String folder) {
+    if (mounted) state = state.copyWith(phase: LibrarySyncPhase.scanningLocal);
+    return RomManager.scanLocalGamesIsolate(system, folder);
+  }
+
+  Future<void> _saveGames(
+    DatabaseService db,
+    String id,
+    List<GameItem> games, {
+    bool deleteOrphans = false,
+    bool forceDeleteOrphans = false,
+    Set<String> authoritativeDriveSourceIds = const {},
+  }) =>
+      db.saveGames(id, games,
+          deleteOrphans: deleteOrphans,
+          forceDeleteOrphans: forceDeleteOrphans,
+          authoritativeDriveSourceIds: authoritativeDriveSourceIds,
+          onProgress: (processed, total) {
+        if (mounted && state.isSyncing && _currentlySyncingSystemId == id) {
+          state = state.copyWith(
+              phase: LibrarySyncPhase.updatingGames,
+              processedGames: processed,
+              currentGamesTotal: total);
+        }
+      });
+
   Future<void> syncAll(
     AppConfig config, {
     Duration? syncTimeout,
@@ -123,9 +209,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout,
-        shareDrivePreparation: true,
-        prepareDrive: DriveRuntime.instance.refreshConfig);
+    final gameService = _gameService(syncTimeout);
     var completed = 0;
     final failures = <String, String>{};
     final perSystem = <String, int>{};
@@ -139,35 +223,39 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
           .firstOrNull;
       final displayName = systemModel?.name ?? systemConfig.name;
 
-      state = state.copyWith(currentSystem: displayName);
+      state =
+          state.copyWith(currentSystem: displayName, resetGameProgress: true);
       _currentlySyncingSystemId = systemConfig.id;
 
       try {
         if (systemConfig.providers.isEmpty) {
           // Local-only: scan filesystem
           if (systemModel != null) {
-            final games = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
-            await db.saveGames(systemConfig.id, games, forceDeleteOrphans: true);
+            final games =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
+            await _saveGames(db, systemConfig.id, games,
+                forceDeleteOrphans: true);
             perSystem[systemConfig.id] = games.length;
             totalGames += games.length;
           }
         } else {
           // Remote + local merge (same quality as discoverAll)
-          final remoteGames = await gameService.fetchGamesForSystem(
-            systemConfig);
+          final remoteGames =
+              await gameService.fetchGamesForSystem(systemConfig);
           final List<GameItem> games;
           if (systemModel != null) {
-            final localGames = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
+            final localGames =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
             games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
           } else {
             games = remoteGames;
           }
-          await db.saveGames(systemConfig.id, games,
+          await _saveGames(db, systemConfig.id, games,
               deleteOrphans: true,
-              forceDeleteOrphans: systemConfig.providers.every((p) => p.type != ProviderType.drive),
-              authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
+              forceDeleteOrphans: systemConfig.providers
+                  .every((p) => p.type != ProviderType.drive),
+              authoritativeDriveSourceIds:
+                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
           perSystem[systemConfig.id] = games.length;
           totalGames += games.length;
         }
@@ -179,16 +267,18 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
         // Remote failed — try to at least save local games so the system isn't empty
         if (systemModel != null && systemConfig.providers.isNotEmpty) {
           try {
-            final localGames = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
+            final localGames =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
             if (localGames.isNotEmpty) {
-              await db.saveGames(systemConfig.id, localGames);
+              await _saveGames(db, systemConfig.id, localGames);
               perSystem[systemConfig.id] = localGames.length;
               totalGames += localGames.length;
-              debugPrint('LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
+              debugPrint(
+                  'LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
             }
           } catch (localErr) {
-            debugPrint('LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
+            debugPrint(
+                'LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
           }
         }
       } finally {
@@ -257,7 +347,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout, shareDrivePreparation: true);
+    final gameService = _gameService(syncTimeout, refreshDrive: false);
     var completed = 0;
     final failures = <String, String>{};
     final perSystem = <String, int>{};
@@ -271,31 +361,35 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
           .firstOrNull;
       final displayName = systemModel?.name ?? systemConfig.name;
 
-      state = state.copyWith(currentSystem: displayName);
+      state =
+          state.copyWith(currentSystem: displayName, resetGameProgress: true);
       _currentlySyncingSystemId = systemConfig.id;
 
       try {
         if (systemConfig.providers.isEmpty) {
           if (systemModel != null) {
-            final games = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
-            await db.saveGames(systemConfig.id, games, forceDeleteOrphans: true);
+            final games =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
+            await _saveGames(db, systemConfig.id, games,
+                forceDeleteOrphans: true);
             perSystem[systemConfig.id] = games.length;
             totalGames += games.length;
           }
         } else {
-          final remoteGames = await gameService.fetchGamesForSystem(
-            systemConfig);
+          final remoteGames =
+              await gameService.fetchGamesForSystem(systemConfig);
           final List<GameItem> games;
           if (systemModel != null) {
-            final localGames = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
+            final localGames =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
             games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
           } else {
             games = remoteGames;
           }
-          await db.saveGames(systemConfig.id, games, deleteOrphans: true,
-              authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
+          await _saveGames(db, systemConfig.id, games,
+              deleteOrphans: true,
+              authoritativeDriveSourceIds:
+                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
           perSystem[systemConfig.id] = games.length;
           totalGames += games.length;
         }
@@ -306,16 +400,18 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
         failures[displayName] = _userFriendlyError(e);
         if (systemModel != null && systemConfig.providers.isNotEmpty) {
           try {
-            final localGames = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
+            final localGames =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
             if (localGames.isNotEmpty) {
-              await db.saveGames(systemConfig.id, localGames);
+              await _saveGames(db, systemConfig.id, localGames);
               perSystem[systemConfig.id] = localGames.length;
               totalGames += localGames.length;
-              debugPrint('LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
+              debugPrint(
+                  'LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
             }
           } catch (localErr) {
-            debugPrint('LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
+            debugPrint(
+                'LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
           }
         }
       } finally {
@@ -360,9 +456,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout,
-        shareDrivePreparation: true,
-        prepareDrive: DriveRuntime.instance.refreshConfig);
+    final gameService = _gameService(syncTimeout);
     var completed = 0;
     var totalGames = 0;
     final failures = <String, String>{};
@@ -381,30 +475,34 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       }
 
       final displayName = systemModel.name;
-      state = state.copyWith(currentSystem: displayName);
+      state =
+          state.copyWith(currentSystem: displayName, resetGameProgress: true);
       _currentlySyncingSystemId = systemConfig.id;
 
       try {
         final List<GameItem> games;
         if (systemConfig.providers.isEmpty) {
           // Local-only: scan filesystem via isolate
-          games = await RomManager.scanLocalGamesIsolate(
+          games = await _scanLocal(
             systemModel,
             systemConfig.targetFolder,
           );
-          await db.saveGames(systemConfig.id, games, forceDeleteOrphans: true);
+          await _saveGames(db, systemConfig.id, games,
+              forceDeleteOrphans: true);
         } else {
           // Remote + local merge
           final remoteGames = await gameService.fetchGamesForSystem(
             systemConfig,
           );
-          final localGames = await RomManager.scanLocalGamesIsolate(
+          final localGames = await _scanLocal(
             systemModel,
             systemConfig.targetFolder,
           );
           games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-          await db.saveGames(systemConfig.id, games, deleteOrphans: true,
-              authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
+          await _saveGames(db, systemConfig.id, games,
+              deleteOrphans: true,
+              authoritativeDriveSourceIds:
+                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
         }
 
         perSystem[systemConfig.id] = games.length;
@@ -415,16 +513,18 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
         failures[displayName] = _userFriendlyError(e);
         if (systemConfig.providers.isNotEmpty) {
           try {
-            final localGames = await RomManager.scanLocalGamesIsolate(
-              systemModel, systemConfig.targetFolder);
+            final localGames =
+                await _scanLocal(systemModel, systemConfig.targetFolder);
             if (localGames.isNotEmpty) {
-              await db.saveGames(systemConfig.id, localGames);
+              await _saveGames(db, systemConfig.id, localGames);
               perSystem[systemConfig.id] = localGames.length;
               totalGames += localGames.length;
-              debugPrint('LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
+              debugPrint(
+                  'LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
             }
           } catch (localErr) {
-            debugPrint('LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
+            debugPrint(
+                'LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
           }
         }
       } finally {
@@ -462,9 +562,8 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Duration? syncTimeout,
     StorageService? storageService,
   }) async {
-    final systemConfig = config.systems
-        .where((s) => s.id == systemId)
-        .firstOrNull;
+    final systemConfig =
+        config.systems.where((s) => s.id == systemId).firstOrNull;
     if (systemConfig == null) return;
 
     // Dedup: don't queue if already syncing or already queued
@@ -494,9 +593,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     );
 
     final db = DatabaseService();
-    final gameService = UnifiedGameService(syncTimeout: syncTimeout,
-        shareDrivePreparation: true,
-        prepareDrive: DriveRuntime.instance.refreshConfig);
+    final gameService = _gameService(syncTimeout);
 
     await _syncOneSystem(systemConfig, systemId, db, gameService);
 
@@ -527,9 +624,8 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
   }) async {
     while (_pendingQueue.isNotEmpty && !_isCancelled) {
       final nextId = _pendingQueue.removeAt(0);
-      final systemConfig = config.systems
-          .where((s) => s.id == nextId)
-          .firstOrNull;
+      final systemConfig =
+          config.systems.where((s) => s.id == nextId).firstOrNull;
       if (systemConfig == null) {
         // System removed from config while queued — skip it
         state = state.copyWith(completedSystems: state.completedSystems + 1);
@@ -537,6 +633,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       }
       state = state.copyWith(
         currentSystem: _displayName(nextId, systemConfig),
+        resetGameProgress: true,
       );
       await _syncOneSystem(systemConfig, nextId, db, gameService,
           storageService: storageService);
@@ -551,9 +648,8 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     UnifiedGameService gameService, {
     StorageService? storageService,
   }) async {
-    final systemModel = SystemModel.supportedSystems
-        .where((s) => s.id == systemId)
-        .firstOrNull;
+    final systemModel =
+        SystemModel.supportedSystems.where((s) => s.id == systemId).firstOrNull;
     final displayName = _displayName(systemId, systemConfig);
 
     _currentlySyncingSystemId = systemConfig.id;
@@ -561,26 +657,26 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       final List<GameItem> games;
       if (systemConfig.providers.isEmpty) {
         if (systemModel != null) {
-          games = await RomManager.scanLocalGamesIsolate(
-            systemModel, systemConfig.targetFolder);
+          games = await _scanLocal(systemModel, systemConfig.targetFolder);
         } else {
           games = [];
         }
-        await db.saveGames(systemConfig.id, games, forceDeleteOrphans: true);
+        await _saveGames(db, systemConfig.id, games, forceDeleteOrphans: true);
       } else {
-        final remoteGames = await gameService.fetchGamesForSystem(
-          systemConfig);
+        final remoteGames = await gameService.fetchGamesForSystem(systemConfig);
         if (systemModel != null) {
-          final localGames = await RomManager.scanLocalGamesIsolate(
-            systemModel, systemConfig.targetFolder);
+          final localGames =
+              await _scanLocal(systemModel, systemConfig.targetFolder);
           games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
         } else {
           games = remoteGames;
         }
-        await db.saveGames(systemConfig.id, games,
+        await _saveGames(db, systemConfig.id, games,
             deleteOrphans: true,
-            forceDeleteOrphans: systemConfig.providers.every((p) => p.type != ProviderType.drive),
-            authoritativeDriveSourceIds: UnifiedGameService.configuredDriveSourceIds(systemConfig));
+            forceDeleteOrphans: systemConfig.providers
+                .every((p) => p.type != ProviderType.drive),
+            authoritativeDriveSourceIds:
+                UnifiedGameService.configuredDriveSourceIds(systemConfig));
       }
 
       final perSystem = Map<String, int>.of(state.gamesPerSystem);
@@ -598,20 +694,22 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
       state = state.copyWith(failedSystems: failures);
       if (systemModel != null && systemConfig.providers.isNotEmpty) {
         try {
-          final localGames = await RomManager.scanLocalGamesIsolate(
-            systemModel, systemConfig.targetFolder);
+          final localGames =
+              await _scanLocal(systemModel, systemConfig.targetFolder);
           if (localGames.isNotEmpty) {
-            await db.saveGames(systemConfig.id, localGames);
+            await _saveGames(db, systemConfig.id, localGames);
             final perSystem = Map<String, int>.of(state.gamesPerSystem);
             perSystem[systemConfig.id] = localGames.length;
             state = state.copyWith(
               gamesPerSystem: perSystem,
               totalGamesFound: state.totalGamesFound + localGames.length,
             );
-            debugPrint('LibrarySync: saved ${localGames.length} local fallback games for $systemId');
+            debugPrint(
+                'LibrarySync: saved ${localGames.length} local fallback games for $systemId');
           }
         } catch (localErr) {
-          debugPrint('LibrarySync: local fallback failed for $systemId: $localErr');
+          debugPrint(
+              'LibrarySync: local fallback failed for $systemId: $localErr');
         }
       }
     } finally {
@@ -623,8 +721,10 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
 
   String _displayName(String systemId, SystemConfig systemConfig) {
     return SystemModel.supportedSystems
-        .where((s) => s.id == systemId)
-        .firstOrNull?.name ?? systemConfig.name;
+            .where((s) => s.id == systemId)
+            .firstOrNull
+            ?.name ??
+        systemConfig.name;
   }
 
   static String _userFriendlyError(Object e) =>

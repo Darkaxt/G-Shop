@@ -78,6 +78,7 @@ flutter:
     - assets/sounds/
     - assets/icon.png
     - assets/platform_icons/
+    - assets/brand_logos/
     - assets/media_fallbacks/
     - assets/media_fallbacks/systematic/
     - assets/rating_sources/

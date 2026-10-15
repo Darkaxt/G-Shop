@@ -9,6 +9,22 @@ import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'drive_exact_identity_runtime_test.dart' show exactGame;
 
+class _CommitObserver implements Database {
+  final Database inner;
+  bool committed = false;
+  _CommitObserver(this.inner);
+  @override
+  Future<T> transaction<T>(Future<T> Function(Transaction) action,
+      {bool? exclusive}) async {
+    final result = await inner.transaction(action, exclusive: exclusive);
+    committed = true;
+    return result;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late Database db;
   late DatabaseService service;
@@ -84,6 +100,42 @@ void main() {
   });
 
   // ─── Schema ─────────────────────────────────────────────
+
+  test('game progress reports actual batches and final count only after commit',
+      () async {
+    final counts = <int>[];
+    final observed = _CommitObserver(db);
+    DatabaseService.testDatabase = observed;
+    final games = List.generate(
+        205,
+        (i) =>
+            GameItem(filename: 'game$i.nes', displayName: 'Game $i', url: ''));
+    await service.saveGames('nes', games, onProgress: (done, total) {
+      expect(total, 205);
+      counts.add(done);
+      expect(observed.committed, done == total);
+    });
+    expect(counts, [0, 100, 200, 205]);
+    DatabaseService.testDatabase = db;
+    expect(await service.getGameCountsPerSystem(), {'nes': 205});
+  });
+
+  test('a failed transaction never reports the final game count', () async {
+    await db.execute(
+        "CREATE TRIGGER reject_progress BEFORE INSERT ON games WHEN NEW.filename='bad.nes' BEGIN SELECT RAISE(ABORT, 'rejected'); END");
+    final counts = <int>[];
+    await expectLater(
+        service.saveGames(
+            'nes',
+            [
+              const GameItem(filename: 'ok.nes', displayName: 'OK', url: ''),
+              const GameItem(filename: 'bad.nes', displayName: 'Bad', url: ''),
+            ],
+            onProgress: (done, _) => counts.add(done)),
+        throwsA(anything));
+    expect(counts, [0]);
+    expect(await service.getGameCountsPerSystem(), isEmpty);
+  });
 
   test('local fallback cannot erase or roll back a cached exact cloud source',
       () async {

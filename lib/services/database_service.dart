@@ -418,9 +418,11 @@ class DatabaseService {
     bool deleteOrphans = false,
     bool forceDeleteOrphans = false,
     Set<String> authoritativeDriveSourceIds = const {},
+    void Function(int processed, int total)? onProgress,
   }) async {
     final db = await database;
     await db.transaction((txn) async {
+      onProgress?.call(0, games.length);
       // 1. Delete orphans when requested.
       // forceDeleteOrphans: unconditional (safe for local filesystem scans).
       // deleteOrphans: guarded — blocks mass deletion from incomplete fetches.
@@ -492,7 +494,8 @@ class DatabaseService {
       // Do not fire membership/projection triggers for identical snapshots.
       // Compare the effective persisted values, including retained artwork;
       // IS NOT keeps nullable fields in the same atomic SQLite write boundary.
-      final batch = txn.batch();
+      var batch = txn.batch();
+      var processed = 0;
       for (final game in games) {
         // A verified local scan establishes residency, not catalogue authority.
         // In particular the offline fallback must not erase a cached source,
@@ -550,9 +553,22 @@ class DatabaseService {
               ? null
               : jsonEncode(game.remoteArtifact!.toJson()),
         ]);
+        processed++;
+        if (onProgress != null &&
+            (processed % 100 == 0 || processed == games.length)) {
+          await batch.commit(noResult: true);
+          if (processed < games.length) {
+            onProgress(processed, games.length);
+          }
+          batch = txn.batch();
+        }
       }
-      await batch.commit(noResult: true);
+      if (onProgress == null) {
+        await batch.commit(noResult: true);
+      }
     });
+    // Completion belongs to the committed transaction, not its queued SQL.
+    onProgress?.call(games.length, games.length);
   }
 
   /// Completeness is supplied explicitly by a successfully completed fetch.

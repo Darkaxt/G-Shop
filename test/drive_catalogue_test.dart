@@ -136,6 +136,22 @@ void main() {
           rootFolderId: 'root-id',
           folderId: folderId);
 
+  test('discovery progress counts read files separately from checked folders',
+      () async {
+    api.nodes['console'] = folder('console', 'root-id');
+    api.pages['root-id:'] = DriveFilePage(files: [api.nodes['console']!]);
+    api.pages['console:'] = DriveFilePage(files: [rom('game', 'console')]);
+    final observed = <(int, int)>[];
+    await store.refresh(
+        sourceId: 'source',
+        accountId: 'account',
+        rootFolderId: 'root-id',
+        api: api,
+        onProgress: (files, folders) => observed.add((files, folders)));
+    expect(observed, [(0, 0), (0, 1), (1, 2)]);
+    expect(api.listed, ['root-id:', 'console:']);
+  });
+
   test('published root page does not rebuild the observed subtree', () async {
     api.nodes['console'] = folder('console', 'root-id');
     api.pages['root-id:'] = DriveFilePage(files: [api.nodes['console']!]);

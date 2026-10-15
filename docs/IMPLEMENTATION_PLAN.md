@@ -1,6 +1,24 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 49.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 50.
+
+Current owner additions, 2026-10-15: S14 COMPLETE; S15 COMPLETE. Earlier S0-S13
+remain COMPLETE. Existing release 1.9.0 and production imported resources are
+preserved; these changes do not authorize a new public release.
+
+- S14 COMPLETE — Console game sync progress (SYNC-UI-01): add event-driven discovery and
+  actual game-update counts to the existing sync owner; render a second compact
+  popup. Integrated event/database publication and rendered widget checks pass,
+  including reset/error behavior and compact/landscape fit, with no additional
+  traversal. Evidence: IMPLEMENTATION_STATUS.md. No blockers/required deferrals.
+- S15 COMPLETE — Manufacturer logo filter (BRAND-UI-01): after S14 COMPLETE, source licensed/
+  provenance-recorded transparent PNG logos, filter existing carousel/grid systems
+  and preserve selection, All and library access. Add manufacturer-only sync via
+  the existing sync owner when not at All/root. Verify membership, real image
+  assets, touch/controller and layout without changing sync/configuration scope.
+  Integrated menu scope, carousel/grid filtering, selection, controller/touch,
+  real transparent assets and compact/landscape checks pass. Scoped analysis is
+  clean. No blockers/required deferrals; no new release or device update performed.
 
 Owner correction: S13 owns the in-app original-APK resource import, default flat
 mode and cover-to-cartridge focus reveal in both flat and 3D modes. S12 is COMPLETE

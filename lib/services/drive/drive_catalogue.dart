@@ -75,6 +75,7 @@ class DriveCatalogue {
       required String rootFolderId,
       required DriveCatalogueApi api,
       bool restart = false,
+      void Function(int filesRead, int foldersChecked)? onProgress,
       CancelToken? cancelToken}) async {
     if ([sourceId, accountId, rootFolderId].any((s) => s.isEmpty) ||
         rootFolderId == 'root') {
@@ -108,6 +109,9 @@ class DriveCatalogue {
       await _put(txn, scope, generation, root, null, '');
       return generation;
     });
+    var filesRead = 0;
+    var foldersChecked = 0;
+    onProgress?.call(filesRead, foldersChecked);
     try {
       while (true) {
         _cancelled(cancelToken);
@@ -188,6 +192,9 @@ class DriveCatalogue {
               whereArgs: [scope, generation, parent.id]);
           _cancelled(cancelToken);
         });
+        filesRead += page.files.where((file) => !file.isFolder).length;
+        if (page.nextPageToken == null) foldersChecked++;
+        onProgress?.call(filesRead, foldersChecked);
       }
       // The provider does not offer a subtree-wide snapshot transaction. Check
       // every observed folder again to reject a moved ancestor before publishing;

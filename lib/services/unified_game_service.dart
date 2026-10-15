@@ -19,10 +19,15 @@ class UnifiedGameService {
   /// Only enable for a service whose lifetime is one multi-system sync session.
   /// Separate explicit sync sessions refresh independently.
   final bool shareDrivePreparation;
+  final void Function()? onReadingGames;
   final Map<String, Future<void>> _drivePreparations = {};
 
-  UnifiedGameService({this.syncTimeout, this.fetchProviderGames, this.shareDrivePreparation = false,
-    this.prepareDrive});
+  UnifiedGameService(
+      {this.syncTimeout,
+      this.fetchProviderGames,
+      this.shareDrivePreparation = false,
+      this.prepareDrive,
+      this.onReadingGames});
 
   /// Source scope to pass to cache publication only AFTER this system's fetch
   /// succeeds. Configuration by itself never proves a complete traversal.
@@ -59,6 +64,7 @@ class UnifiedGameService {
           final key = jsonEncode([providerConfig.sourceId, providerConfig.drive?.accountId, providerConfig.drive?.rootFolderId]);
           await preparations.putIfAbsent(key, () => prepareDrive!(providerConfig));
         }
+        onReadingGames?.call();
         final fetch = fetchProviderGames?.call(providerConfig, system) ??
             ProviderFactory.getProvider(providerConfig).fetchGames(system);
         // Drive traversal owns its completion/checkpoint boundary. An outer

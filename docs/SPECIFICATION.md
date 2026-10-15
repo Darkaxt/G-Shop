@@ -1,6 +1,39 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 49, 2026-10-15.
+Authoritative specification, revision 50, 2026-10-15.
+
+### Owner additions — console sync progress and manufacturer navigation
+
+**SYNC-UI-01 (S14):** Keep console completion in the existing sync popup and add
+a second compact popup directly underneath for the current console. Show actual
+processed/total games once the merged console inventory is known, with a bounded
+progress bar. While Drive discovery or local listing has no known total, show the
+actual phase and observed source-file count where available; never invent a game
+denominator, count folders as games, or imply a whole-source scan belongs solely
+to the current console. Updating games is not downloading ROMs or scraping.
+Report progress from existing work, without a second traversal or per-game network
+calls. Reset on console changes; clear on completion/cancellation/failure. Preserve
+atomic catalogue/database publication, queue order and existing error handling.
+Verify service-to-widget transitions, exact counts, empty consoles and supported
+compact/landscape viewport fit. Progress must not report publication success before
+the database transaction commits. No live release is authorized by this addition.
+
+**BRAND-UI-01 (S15):** Add a top manufacturer selector to console browsing, using
+proper transparent PNG brand logos, not text-only tabs or generated replacement
+logos. Provide All plus brands represented by currently visible/configured systems
+(Nintendo, Sony, Sega, Atari, etc.); do not add unsupported systems to populate a
+brand. Use existing SystemModel.manufacturer membership in both carousel and grid.
+Preserve the selected console when it remains in the chosen subset, otherwise
+select the first available console; All restores the unfiltered configured set.
+Keep library/dashboard access, existing sort, sync scope, red theme, readable logos,
+accessible brand labels, focus and touch/controller navigation. Filters affect
+browsing only, not source mappings, ROMs or sync scope. Record PNG provenance and
+applicable notices. Verify subset/reset/selection and logo/layout behavior.
+When a manufacturer is selected, offer `Sync manufacturer` in the normal menu;
+refresh only its configured systems using the existing joined/cancellable sync
+owner. Root/All keeps `Sync All` and has no manufacturer-only action. The filter
+alone never initiates sync, and manufacturer sync preserves full source boundaries
+and atomic catalogue publication rather than falsely narrowing shared Drive roots.
 
 Owner S13 zoom refinement, 2026-10-15: while the box cover is present, fit the
 physical media small enough to sit inside its apparent bounds. As the box slides

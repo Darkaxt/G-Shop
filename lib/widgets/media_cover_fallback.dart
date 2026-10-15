@@ -80,6 +80,8 @@ String mediaFallbackAsset(String? systemId) =>
 
 /// Registered once at application startup; the bundled notice works offline.
 Stream<LicenseEntry> mediaArtworkLicenses() async* {
+  yield LicenseEntryWithLineBreaks(['Manufacturer brand logos'],
+      await rootBundle.loadString('assets/brand_logos/NOTICE.md'));
   final notice =
       await rootBundle.loadString('assets/media_fallbacks/NOTICE.md');
   final license = await rootBundle.loadString('assets/media_fallbacks/COPYING');

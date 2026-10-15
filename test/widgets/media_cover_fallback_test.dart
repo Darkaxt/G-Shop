@@ -150,7 +150,12 @@ void main() {
       'artwork attribution and complete license are bundled for offline access',
       () async {
     final entries = await mediaArtworkLicenses().toList();
-    expect(entries, hasLength(2));
+    expect(entries,
+        hasLength(8)); // Two artwork/font notices, five codecs, brands.
+    final brands = entries
+        .singleWhere((e) => e.packages.contains('Manufacturer brand logos'));
+    expect(brands.paragraphs.map((p) => p.text).join('\n'),
+        contains('HVR88/Monochrome-Gaming-Logos'));
     final icons = entries
         .singleWhere((e) => e.packages.contains('Systematic media icons'));
     expect(icons, isA<LicenseEntryWithLineBreaks>());

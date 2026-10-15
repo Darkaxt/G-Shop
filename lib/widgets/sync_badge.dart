@@ -30,9 +30,78 @@ class SyncBadge extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: const [
             _LibrarySyncPill(),
+            _ConsoleGameProgress(),
             _RaSyncPill(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A separate current-console card; discovery has no invented denominator.
+class _ConsoleGameProgress extends ConsumerWidget {
+  const _ConsoleGameProgress();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(librarySyncServiceProvider);
+    if (!state.isSyncing || state.currentSystem == null) {
+      return const SizedBox.shrink();
+    }
+    final rs = context.rs;
+    final label = switch (state.phase) {
+      LibrarySyncPhase.checkingSource => state.sourceFilesRead == 0
+          ? 'Checking Drive folders…'
+          : 'Checking Drive · ${state.sourceFilesRead} files read',
+      LibrarySyncPhase.readingGames => 'Reading game list…',
+      LibrarySyncPhase.scanningLocal => 'Scanning local games…',
+      LibrarySyncPhase.updatingGames =>
+        'Updating games · ${state.processedGames}/${state.currentGamesTotal ?? 0}',
+    };
+    final total = state.currentGamesTotal;
+    final value = state.phase == LibrarySyncPhase.updatingGames &&
+            total != null &&
+            total > 0
+        ? (state.processedGames / total).clamp(0.0, 1.0)
+        : null;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Container(
+        key: const ValueKey('console-game-progress'),
+        width:
+            (rs.screenWidth - 24).clamp(0, rs.isSmall ? 280 : 350).toDouble(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: .85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.cyanAccent.withValues(alpha: .3)),
+        ),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  state.phase == LibrarySyncPhase.checkingSource
+                      ? 'Drive catalogue'
+                      : state.currentSystem!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: Colors.white, fontSize: rs.isSmall ? 11 : 13)),
+              const SizedBox(height: 3),
+              Text(label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: Colors.cyanAccent.forText,
+                      fontSize: rs.isSmall ? 11 : 12)),
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                  value: value,
+                  minHeight: 3,
+                  color: Colors.cyanAccent,
+                  backgroundColor: Colors.white12),
+            ]),
       ),
     );
   }
@@ -89,7 +158,9 @@ class _LibrarySyncPillState extends ConsumerState<_LibrarySyncPill> {
           icon: Icons.sync,
           color: Colors.cyanAccent,
         ),
-        label: L.of(context).sync_progress(state.completedSystems, state.totalSystems),
+        label: L
+            .of(context)
+            .sync_progress(state.completedSystems, state.totalSystems),
         systemName: state.currentSystem,
       );
     }
@@ -220,8 +291,9 @@ class _RaSyncPillState extends ConsumerState<_RaSyncPill> {
           icon: Icons.emoji_events,
           color: _raColor,
         ),
-        label:
-            L.of(context).sync_raProgress(state.completedSystems, state.totalSystems),
+        label: L
+            .of(context)
+            .sync_raProgress(state.completedSystems, state.totalSystems),
         systemName: state.currentSystem,
       );
     } else {
@@ -289,8 +361,7 @@ class _SyncPillContent extends StatelessWidget {
           leadingIcon,
           const SizedBox(width: 6),
           ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: rs.isSmall ? 200 : 300),
+            constraints: BoxConstraints(maxWidth: rs.isSmall ? 200 : 300),
             child: Text(
               label,
               style: TextStyle(
@@ -305,8 +376,7 @@ class _SyncPillContent extends StatelessWidget {
           if (systemName != null) ...[
             const SizedBox(width: 4),
             ConstrainedBox(
-              constraints:
-                  BoxConstraints(maxWidth: rs.isSmall ? 100 : 150),
+              constraints: BoxConstraints(maxWidth: rs.isSmall ? 100 : 150),
               child: Text(
                 systemName!,
                 style: TextStyle(

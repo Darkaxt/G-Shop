@@ -5,6 +5,50 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current additions — S14 COMPLETE; S15 COMPLETE, 2026-10-15
+
+Authority revision 50, already authorized by the owner's popup and brand/logo
+requests. S14 owns SYNC-UI-01: actual per-console game counts beneath console
+completion, with honest unknown-total/source-discovery phases. S14 acceptance
+passes: real Drive page events count files separately from folders without extra
+requests; the existing sync owner resets progress for each console and forwards
+actual 100-game update batches while retaining one atomic transaction. A real
+SQLite commit observer and rejection trigger verify no premature final count or
+partial publication. Existing database callers without progress keep their prior
+single-batch behavior. Rendered Flutter widget checks verify stacked cards,
+unknown totals, console changes, terminal removal, empty consoles and 320x568 /
+832x468 viewport fit. Focused catalogue/database/sync/provider/widget checks pass;
+analysis found no errors/warnings, only pre-existing runtime brace-style infos.
+No native build, production update or external Drive refresh was required/performed.
+Closure assessment: the existing sync owner owns progress, with no second engine,
+timer or required consolidation. S14 blockers/deferrals: none.
+S15 owns BRAND-UI-01 and manufacturer-scoped sync. The integrated home view uses
+original transparent PNG marks from the pinned HVR88 collection, with attribution
+bundled in About/licences. All stays reachable outside the scrolling brand row.
+Carousel/grid membership and selected-console preservation pass rendered checks;
+touch and controller focus/confirm paths pass. The actual menu callback passes
+only Sega systems into the existing sync owner, leaves the original configuration
+unchanged and removes the scoped action at All. Shared source traversal boundaries
+are preserved; unrelated automatic console sync and global achievement sync are
+not started by the scoped action. Raster evidence at 320x568 and 832x468 confirms
+real PNG rendering, red theme and separation from both progress cards. Host widget
+test typography is synthetic; no native-device visual claim is made. Asset decode,
+membership, configuration, licence and existing empty-source home checks pass.
+Current scoped analysis reports no issues. Final reconciliation against revision
+50 passes SYNC-UI-01 and BRAND-UI-01: implemented and integrated host workflows,
+no additional source traversal, preserved source/configuration boundaries and
+honest progress/publication state. No native build or Gradle command was run;
+there is no gate-acquisition or effective JVM-profile claim for this addition.
+Closure assessment: manufacturer filtering and sync use the existing registry,
+configuration and sync owner; no required consolidation or second sync engine.
+Existing S0-S13 and 1.9.0 handover remain COMPLETE. No required deferrals or
+external blocker. Installed production remains 1.9.0; no new APK is deployed.
+Reviewed cleanup transaction `b05af5b5d027365153979632973506f5` is applied:
+task-only raster evidence and regenerable Flutter host-test build output removed,
+112,170,985 bytes reclaimed. Source assets and device/user data are preserved.
+Design: extend existing sync state/events and pill layout; do not introduce a
+second sync engine, fake totals, elapsed-time progress or another traversal.
+
 ### Current stage — S13 COMPLETE, 2026-10-15
 
 S12 is COMPLETE after current native rendering/material acceptance and the
