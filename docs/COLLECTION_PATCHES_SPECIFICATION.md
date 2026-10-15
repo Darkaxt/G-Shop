@@ -1,6 +1,6 @@
 # Collection navigation, rankings and reproducible ROM patching
 
-Authoritative extension to SPECIFICATION.md revision 54. Revision 1, 2026-10-15.
+Authoritative extension to SPECIFICATION.md revision 55. Revision 2, 2026-10-15.
 Authorization: already_authorized; owner requested the full specification and
 implementation, then explicitly authorized useful ROM-folder reorganization in
 Google Drive and requested evaluation of UniPatcher. The owner subsequently
@@ -18,7 +18,9 @@ Metadata and build recipes are portable; device installation state is separate.
 
 Preserve cloud/local merged identity, existing sources/authentication, save
 conflicts, companion launching, imported media, red theme and protected cache
-entries. No unrelated emulator work, full artwork scrape, ROM mirroring, private
+entries. The owner additionally authorizes S20's bounded Top 25 artwork scrape
+and rendering verification; this does not authorize a full-collection scrape.
+No unrelated emulator work, ROM mirroring, private
 data publication or speculative framework. Do not overwrite original ROMs.
 
 ## 2. Evidence and current defects
@@ -288,10 +290,46 @@ root without edits, current representative real indexes parse, and any actual
 move has verified mappings/references/content. No move is required to claim this
 criterion if the inspected structure already meets the contract.
 
+### ART-VERIFY-01 — Top 25 artwork and README evidence (S20)
+
+Owner authorization, 2026-10-15: run scraping for the Top 25 of each console to
+verify cartridge rendering, then use verified Thor screenshots in the README.
+This supersedes the prior restriction on agent-started scraping only for this
+bounded operation. Select up to 25 unique canonical games per configured console
+from the collection's existing accepted overall scores, descending with the
+normal deterministic tie-breaks. Fewer eligible ranked games is sufficient; do
+not invent rankings, substitute an alphabetical tail, or initiate collection-wide
+rating gathering merely to fill the sample. Record selected/eligible counts and
+consoles without eligible scores honestly.
+
+Use the existing ScreenScraper collector, credentials, quota handling, durable
+pause/resume and reconnectable shared metadata/artwork area. Preserve existing
+richer metadata and game identity. Do not introduce another scraper, scheduler,
+ROM download, source migration or save/gameplay verification for this pass.
+
+Verify artwork roles separately: library covers use box art; flat media and
+imported 3D models use the appropriate cartridge/disc label texture. Missing
+provider label art uses the existing titled fallback rather than putting box art
+into a cartridge texture slot. Preserve the owner's imported resources and red
+theme. Verify representative real Thor rendering for the available physical-media
+families, supported flat/3D modes, and an honest missing-art fallback. Use collector
+outcomes/asset-role evidence for the whole bounded sample and targeted screenshots
+for visual acceptance, not a screenshot stream or a screenshot for every game.
+
+Acceptance: the bounded selection is inspectable and excludes unranked/duplicate
+editions; real collector work finishes or exposes a concrete provider impediment
+without widening scope; results distinguish successful/missing/review-required
+artwork. Correct any reproducible role/rendering defect and reverify affected
+flows. Update README.md with actual verified Thor examples and accurate feature
+claims, without credentials, private inventories or ROM payloads. Switch both
+Thor screens off when device work is finished. A public release is not implied.
+
 ## 4. Integrated execution, design and delivery
 
 S16 ranking correction is first; S17 navigation follows; S18 patch workflow uses
-S17's categories; S19 sharing/layout/final integration follows S18. Only one stage
+S17's categories; S19 sharing/layout integration follows S18; S20 performs the
+authorized bounded artwork pass and README update before final reconciliation.
+Only one stage
 is ACTIVE. If real external verification becomes unavailable, record the precise
 criterion and park it before independent later work; no prerequisite bypass.
 No artificial preparation stage or per-component acceptance milestones.

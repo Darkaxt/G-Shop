@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 54, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 55, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-15
@@ -9,13 +9,16 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 54, including
 | --- | --- | --- | --- |
 | S16 Collection rankings | COMPLETE | RANK-01: scoped ratings-only refresh, honest coverage, verified edition grouping, Top 100 then A-Z; legacy cover entry and home console/manufacturer/all Scrape submenu use ScreenScraper collector | Integrated provider/database/controller/widget flow, collector scopes/ownership, Sync/Scrape controller navigation and real GBA ranked order |
 | S17 Collection navigation | COMPLETE | NAV-01, CAT-01, CACHE-UI-02, INPUT-01: manufacturer/type/chronological console navigation, Commercial/Hacks classification and app-wide controller wiring reconciliation, including L1/R1 tabs; patch entry wired only with S18 | Shared carousel/grid/library order, focused controller gap checks, cache content/dialog/Apply flow and native navigation |
-| S18 Reproducible patch builds | NOT STARTED | PATCH-01, PATCH-02, CAT-01 patch action: indexed compatible game -> engine -> tracked playable result and reuse | Real indexed GBA build/launch/reuse plus inventoried engine, mismatch/cancel/persistence checks |
+| S18 Reproducible patch builds | ACTIVE | PATCH-01, PATCH-02, CAT-01 patch action: indexed compatible game -> engine -> tracked playable result and reuse | Real indexed GBA build/launch/reuse plus inventoried engine, mismatch/cancel/persistence checks |
 | S19 Sharing/layout/integration | NOT STARTED | SHARE-01, LAYOUT-01: portable shared recipes, share/import, documented compatible Drive layout, any justified source moves, final reconciliation | Independent roots/import/reconnect, privacy/export checks, layout fixtures, affected integrated/native verification |
+| S20 Top 25 artwork and README | NOT STARTED | ART-VERIFY-01: scrape up to 25 accepted ranked unique games per configured console, verify box/media-label roles and flat/imported 3D rendering, update README with Thor examples | Bounded selection/outcomes, real collector results, representative native media-family/fallback checks and inspected screenshots |
 
-S16 and S17 host/native criteria pass. No implementation stage is ACTIVE at this
-closure boundary; S18 is next. S17 has no blockers or required deferrals.
+S16 and S17 host/native criteria pass. S18 is the sole ACTIVE stage. S17 has no
+blockers or required deferrals; S18's implementation and real patch workflow remain.
 S18 owns engine/licensing evaluation and patch-category interaction; S19 owns
-portable sharing/layout. These do not excuse an unmet S16 criterion. Prior
+portable sharing/layout. Owner-authorized S20 follows with a bounded artwork pass
+and README evidence, not a full-collection scrape or a new ratings operation.
+These do not excuse an unmet S16 criterion. Prior
 S0-S15/QA1/release handover remains complete; no concurrent implementation stage.
 No new public release is authorized by the extension. Current evidence and exact
 blockers/deferrals are maintained in IMPLEMENTATION_STATUS.md.

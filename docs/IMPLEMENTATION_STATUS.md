@@ -5,13 +5,34 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16-S17 COMPLETE, 2026-10-15
+### Collection/patch extension — S16-S17 COMPLETE, S18 ACTIVE, 2026-10-15
 
-Authority revision 54 and COLLECTION_PATCHES_SPECIFICATION.md revision 1.
+Authority revision 55 and COLLECTION_PATCHES_SPECIFICATION.md revision 2.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17 is COMPLETE; S18-S19 are NOT STARTED. Earlier completed
+COMPLETE; S17 is COMPLETE; S18 is the sole ACTIVE stage; S19 and S20 are NOT STARTED. Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
+
+Owner-authorized addition: S20 will run the existing collector for up to 25
+accepted ranked unique games per configured console (fewer where fewer qualify),
+verify box-art versus cartridge/disc-label roles in flat/imported 3D rendering,
+and update README with actual Thor screenshots. No scrape has been started for
+this addition. It does not authorize full-collection scraping, invented rankings
+or a new public release. S18's real build/launch/reuse acceptance remains current;
+S20 is separately assigned new scope, not a deferral excusing S18.
+
+S18 native acceptance remains ACTIVE: the installed patch screen reads the GBA
+console index and first games, then fails at cursor 2 before Advance Wars. The
+local first-page source indexes parse and the live device catalogue's Advance
+Wars JSON sizes/MD5 values match the producer files. No build/download action has
+been dispatched for Advance Wars. The generic catch hides the actual boundary
+failure; fixed-code-only diagnostics are queued as managed request 1167. Request
+1165 acquired the gate but failed at final assembly because its invocation omitted
+the existing private-signing environment loader; build/helper exit 1 and daemon
+exit were verified. The retry loads the same existing identity, not a new key.
+This is an internal advancement blocker to PATCH-01's
+real build/launch/reuse criterion until the failure is identified and resolved,
+not grounds to park S18 or begin S19/S20. Thor screens are off during packaging.
 
 Collector addition: Advanced's Get metadata & covers replaces the legacy cover
 preloader, opening ScreenScraper's normal scoped play/pause/resume workspace.
@@ -196,12 +217,36 @@ existing Actions/Focus ownership and identity fingerprints remain authoritative;
 the proven category-only canonical rewrite was removed rather than adding a
 parallel migration/input framework. No further required consolidation was found.
 This is an in-place verification update, not a new public release.
+
+S18 acceptance blockers (internal, implementable): PATCH-01/PATCH-02 and CAT-01's
+patch action require the source-index reader, exact base/patch validation, reviewed
+UniPatcher integration, existing transfer/publication/launch wiring and durable
+recipe/reuse handling. Resolution is the integrated indexed Advance Wars build,
+launch and second-selection reuse with the assigned focused format/preservation
+checks. No patch feature is claimed delivered yet. S19 depends on this workflow;
+its portable sharing/layout criteria are not S18 deferrals. No other stage ACTIVE.
 S18 owns UniPatcher/engine licensing and
 format evaluation; owner now authorizes GPL-compatible combined distribution with
 upstream notices retained and Darkaxt attribution, so licensing preference is not
 an external blocker. S17 additionally owns CACHE-UI-02: reproduce/repair the
 reported rail-only cache controller navigation and verify content/dialog/Apply
 access. S19 owns shared portable recipes and actual layout guide.
+S18 implementation checkpoint: compatible indexed games, Available patches / My
+builds, fingerprinted private build output, normal installation/library routing,
+exact-result reuse, publication retry and cancelled-input retry are connected.
+Focused host workflow checks pass for registration, restart/reuse, changed-result
+rejection, cancellation/join/retry, failed-publication recovery and the real v39
+to v40 additive DB upgrade. Patch menu L1/R1, A/details, B/back and layout checks
+pass at 1920x1080 and 800x450; affected library discovery checks still pass.
+Publication tests exposed and fixed a non-reentrant reservation/publication lock
+deadlock and verified rename/copy/restart/collision preservation with the real
+journal. This is host evidence, not completion of the real Thor acceptance.
+The completed metadata-only source-index inventory covered 54 console roots and
+found IPS, BPS, UPS, PPF, XDelta/VCDIFF, DPS and EBP resources. DPS and EBP are
+therefore required engine coverage, not optional deferrals. Maintained engine
+source and bundled notices record UniPatcher and its pinned native dependencies;
+the original upstream MIT grant remains intact, combined engine builds are GPL
+compatible, and no private ROM fixture is included in the repository.
 Google Drive ROM-folder moves are authorized if useful, not mandatory; inspected
 GBA structure already has schema-2 indexes, exact base/member fingerprints and
 extracted patch payload hashes. Do not reorganize that working structure merely
