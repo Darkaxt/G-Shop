@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:retro_eshop/services/owned_emulator_launcher.dart';
 
 // Host wiring regression, not a substitute for the native launch/restore proof.
 // Dolphin 2606 finishes MainActivity before EmulationActivity opens the ROM, so
@@ -9,16 +10,13 @@ void main() {
   test('Sega cartridge launch menus name RetroArch rather than Dolphin', () {
     final source = File('lib/features/game_detail/game_detail_screen.dart')
         .readAsStringSync();
-    final retroArchMenu = RegExp(
-      r"label: const \{([^}]+)\}\.contains\(widget\.system\.id\)\s*\? 'Open in RetroArch'",
-    ).firstMatch(source);
-    expect(retroArchMenu, isNotNull);
-    final consoles = RegExp(r"'([^']+)'")
-        .allMatches(retroArchMenu!.group(1)!)
-        .map((match) => match.group(1)!)
-        .toSet();
-    expect(consoles, containsAll(['megadrive', 'mastersystem', 'sg1000']));
-    expect(consoles.intersection({'gc', 'wii', 'psp', 'ps2', 'wiiu'}), isEmpty);
+    expect(source, contains('OwnedEmulatorLauncher.emulatorName(widget.system.id)'));
+    for (final platform in ['megadrive', 'mastersystem', 'sg1000']) {
+      expect(OwnedEmulatorLauncher.emulatorName(platform), 'RetroArch');
+    }
+    for (final platform in ['gc', 'wii', 'psp', 'ps2', 'wiiu']) {
+      expect(OwnedEmulatorLauncher.emulatorName(platform), isNot('RetroArch'));
+    }
   });
   test('read-only local inspection reaches the native storage dispatcher', () {
     final source =
@@ -38,7 +36,7 @@ void main() {
     expect(grant, greaterThan(preflight));
     expect(grant, lessThan(start));
     expect(source.substring(preflight, grant),
-        contains('if (!retroArch && !psp && !ps2 && !wiiu)'));
+        contains('if (!retroArch && !psp && !ps2 && !wiiu && !nds)'));
     expect(source.substring(grant, start),
         isNot(contains('FLAG_GRANT_PREFIX_URI_PERMISSION')));
     expect(source.substring(grant, start),

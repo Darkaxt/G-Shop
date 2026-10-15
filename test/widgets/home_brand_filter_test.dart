@@ -57,6 +57,70 @@ class _RecordingSync extends LibrarySyncService {
 }
 
 void main() {
+  for (final size in [const Size(1920, 1080), const Size(640, 360)]) {
+    testWidgets('home type filters retain valid selection and hybrid at $size',
+        (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({'home_layout': true});
+      FlutterSecureStorage.setMockInitialValues({});
+      final storage = StorageService();
+      await storage.init();
+      final systems = [
+        for (final id in [
+          'switch',
+          'snes',
+          'gba',
+          'nes',
+          'gb',
+          'wonderswan',
+          'psp'
+        ])
+          SystemModel.supportedSystems.firstWhere((s) => s.id == id)
+      ];
+      await tester.pumpWidget(ProviderScope(overrides: [
+        storageServiceProvider.overrideWithValue(storage),
+        visibleSystemsProvider.overrideWith((_) async => systems),
+        bootstrappedConfigProvider.overrideWith((_) async => AppConfig.empty),
+        librarySyncServiceProvider.overrideWith((_) => _RecordingSync()),
+        systemSourceCountsProvider.overrideWith((_) async => {}),
+        hasQueueItemsProvider.overrideWithValue(false),
+        audioManagerProvider.overrideWithValue(_SilentAudio()),
+      ], child: GlobalInputWrapper(child: createTestApp(const HomeView()))));
+      await tester.pumpAndSettle();
+      Future<void> select(String key) async {
+        final item = find.byKey(ValueKey(key));
+        await tester.ensureVisible(item);
+        await tester.tap(item);
+        await tester.pumpAndSettle();
+      }
+
+      List<String> ids() => tester
+          .widget<HomeGridView>(find.byType(HomeGridView))
+          .systems
+          .map((s) => s.id)
+          .toList();
+      await select('brand-Nintendo');
+      expect(ids(), ['nes', 'gb', 'snes', 'gba', 'switch']);
+      await select('type-handheld');
+      expect(ids(), ['gb', 'gba', 'switch']);
+      await select('brand-All');
+      expect(ids(), ['gb', 'wonderswan', 'gba', 'psp', 'switch']);
+      await select('type-All');
+      expect(
+          ids(), ['nes', 'gb', 'snes', 'wonderswan', 'gba', 'psp', 'switch']);
+      await select('brand-Bandai');
+      expect(ids(), ['wonderswan']);
+      expect(find.byKey(const ValueKey('system-type-filter')), findsNothing);
+      await select('brand-All');
+      expect(ids(), hasLength(7));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+  }
   testWidgets(
       'home scraping scopes use the collector without automatic requests',
       (tester) async {
@@ -299,6 +363,10 @@ void main() {
     Actions.invoke(filterContext, const NavigateIntent(GridDirection.up));
     await tester.pump();
     expect(FocusManager.instance.primaryFocus?.nearestScope?.debugLabel,
+        'System type filter');
+    Actions.invoke(filterContext, const NavigateIntent(GridDirection.up));
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus?.nearestScope?.debugLabel,
         'Manufacturer filter');
     Actions.invoke(filterContext, const NavigateIntent(GridDirection.right));
     await tester.pump();
@@ -311,6 +379,8 @@ void main() {
         'Nintendo');
     Actions.invoke(filterContext, const NavigateIntent(GridDirection.down));
     await tester.pump();
+    expect(find.byKey(const ValueKey('system-type-filter')), findsNothing,
+        reason: 'This configured Nintendo scope has home consoles only');
     expect(homeFocus.hasPrimaryFocus, isTrue);
     await tester.ensureVisible(find.byKey(const ValueKey('brand-Sega')));
     await tester.tap(find.byKey(const ValueKey('brand-Sega')));

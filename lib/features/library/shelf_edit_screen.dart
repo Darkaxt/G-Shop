@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/input/input.dart';
@@ -14,8 +15,10 @@ import 'widgets/text_input_dialog.dart';
 
 class ShelfEditScreen extends ConsumerStatefulWidget {
   final CustomShelf? shelf;
-  final List<({String filename, String displayName, String systemSlug})> allGameRecords;
-  const ShelfEditScreen({super.key, this.shelf, this.allGameRecords = const []});
+  final List<({String filename, String displayName, String systemSlug})>
+      allGameRecords;
+  const ShelfEditScreen(
+      {super.key, this.shelf, this.allGameRecords = const []});
 
   @override
   ConsumerState<ShelfEditScreen> createState() => _ShelfEditScreenState();
@@ -28,6 +31,7 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
   late List<String> _excludedGameIds;
   late List<String> _manualGameIds;
   int _focusedField = 0;
+  final _fieldKeys = <int, GlobalKey>{};
   bool _showSystemSelector = false;
   int _systemSelectorRuleIndex = -1;
   bool _showGameListOverlay = false;
@@ -41,7 +45,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
     if (_filterRules.isEmpty) return _manualGameIds;
     final filterMatched = <String>{};
     for (final r in widget.allGameRecords) {
-      if (_filterRules.any((rule) => rule.matches(r.displayName, r.systemSlug))) {
+      if (_filterRules
+          .any((rule) => rule.matches(r.displayName, r.systemSlug))) {
         filterMatched.add(r.filename);
       }
     }
@@ -77,12 +82,12 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
 
   int get _saveIndex =>
       (_resetOrderIndex >= 0
-              ? _resetOrderIndex
-              : _addedGamesIndex >= 0
-                  ? _addedGamesIndex
-                  : _hiddenGamesIndex >= 0
-                      ? _hiddenGamesIndex
-                      : _addFilterIndex) +
+          ? _resetOrderIndex
+          : _addedGamesIndex >= 0
+              ? _addedGamesIndex
+              : _hiddenGamesIndex >= 0
+                  ? _hiddenGamesIndex
+                  : _addFilterIndex) +
       1;
 
   int get _deleteIndex => _isEditing ? _saveIndex + 1 : -1;
@@ -90,17 +95,37 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
 
   @override
   String get routeId => 'shelf_edit';
+  @override
+  Map<ShortcutActivator, Intent> get additionalShortcuts => {
+        const SingleActivator(LogicalKeyboardKey.gameButtonX,
+            includeRepeats: false): const MenuIntent(),
+      };
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
-        NavigateIntent: OverlayGuardedAction<NavigateIntent>(ref,
-          onInvoke: (intent) { _navigate(intent.direction); return null; },
+        MenuIntent: OverlayGuardedAction<MenuIntent>(ref, onInvoke: (_) {
+          _removeFocusedRule();
+          return null;
+        }),
+        NavigateIntent: OverlayGuardedAction<NavigateIntent>(
+          ref,
+          onInvoke: (intent) {
+            _navigate(intent.direction);
+            return null;
+          },
         ),
-        ConfirmIntent: OverlayGuardedAction<ConfirmIntent>(ref,
-          onInvoke: (_) { _confirm(); return null; },
+        ConfirmIntent: OverlayGuardedAction<ConfirmIntent>(
+          ref,
+          onInvoke: (_) {
+            _confirm();
+            return null;
+          },
         ),
         BackIntent: CallbackAction<BackIntent>(
-          onInvoke: (_) { _handleBack(); return null; },
+          onInvoke: (_) {
+            _handleBack();
+            return null;
+          },
         ),
         ToggleOverlayIntent: ToggleOverlayAction(ref, onToggle: () {}),
       };
@@ -136,6 +161,24 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
           _openSystemSelector(_focusedField - 1);
         }
     }
+    if (direction == GridDirection.up || direction == GridDirection.down) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _fieldKeys[_focusedField]?.currentContext;
+        if (mounted && target != null) {
+          Scrollable.ensureVisible(target,
+              duration: const Duration(milliseconds: 150));
+        }
+      });
+    }
+  }
+
+  void _removeFocusedRule() {
+    if (_focusedField < 1 || _focusedField > _filterRules.length) return;
+    ref.read(feedbackServiceProvider).tick();
+    setState(() {
+      _filterRules.removeAt(_focusedField - 1);
+      _focusedField = _focusedField.clamp(0, _fieldCount - 1);
+    });
   }
 
   void _confirm() {
@@ -191,7 +234,7 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
   }
 
   Future<void> _editName() async {
-    final result = await showDialog<String>(
+    final result = await showConsoleDialog<String>(
       context: context,
       builder: (ctx) => TextInputDialog(
         title: L.of(ctx).shelfEdit_shelfName,
@@ -207,7 +250,7 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
 
   Future<void> _editFilterText(int index) async {
     final rule = _filterRules[index];
-    final result = await showDialog<String>(
+    final result = await showConsoleDialog<String>(
       context: context,
       builder: (ctx) => TextInputDialog(
         title: L.of(ctx).shelfEdit_filterText,
@@ -306,7 +349,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                             _buildField(
                               index: 0,
                               label: l.shelfEdit_nameSection,
-                              value: _name.isEmpty ? l.shelfEdit_tapToSet : _name,
+                              value:
+                                  _name.isEmpty ? l.shelfEdit_tapToSet : _name,
                               icon: Icons.label_rounded,
                               rs: rs,
                             ),
@@ -337,7 +381,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                                 padding: EdgeInsets.only(top: rs.spacing.sm),
                                 child: _buildField(
                                   index: _hiddenGamesIndex,
-                                  label: l.shelfEdit_hiddenGamesCount(_excludedGameIds.length),
+                                  label: l.shelfEdit_hiddenGamesCount(
+                                      _excludedGameIds.length),
                                   value: '',
                                   icon: Icons.visibility_off_rounded,
                                   rs: rs,
@@ -349,7 +394,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                                 padding: EdgeInsets.only(top: rs.spacing.sm),
                                 child: _buildField(
                                   index: _addedGamesIndex,
-                                  label: l.shelfEdit_addedGamesCount(_trulyManualGameIds.length),
+                                  label: l.shelfEdit_addedGamesCount(
+                                      _trulyManualGameIds.length),
                                   value: '',
                                   icon: Icons.checklist_rounded,
                                   rs: rs,
@@ -409,10 +455,14 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                     setState(() {
                       if (_gameListOverlayMode == GameListOverlayMode.hidden) {
                         _excludedGameIds.remove(id);
-                        if (_excludedGameIds.isEmpty) _showGameListOverlay = false;
+                        if (_excludedGameIds.isEmpty) {
+                          _showGameListOverlay = false;
+                        }
                       } else {
                         _manualGameIds.remove(id);
-                        if (_trulyManualGameIds.isEmpty) _showGameListOverlay = false;
+                        if (_trulyManualGameIds.isEmpty) {
+                          _showGameListOverlay = false;
+                        }
                       }
                     });
                   },
@@ -423,7 +473,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                       } else {
                         // Remove only truly-manual IDs from manualGameIds
                         final toRemove = _trulyManualGameIds.toSet();
-                        _manualGameIds.removeWhere((id) => toRemove.contains(id));
+                        _manualGameIds
+                            .removeWhere((id) => toRemove.contains(id));
                       }
                       _showGameListOverlay = false;
                     });
@@ -432,7 +483,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                 ),
               if (_showSystemSelector)
                 SystemSelectorOverlay(
-                  selectedSlugs: _filterRules[_systemSelectorRuleIndex].systemSlugs,
+                  selectedSlugs:
+                      _filterRules[_systemSelectorRuleIndex].systemSlugs,
                   onChanged: (slugs) {
                     setState(() {
                       _filterRules[_systemSelectorRuleIndex] =
@@ -444,6 +496,9 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                 ),
               if (!_showSystemSelector && !_showGameListOverlay)
                 ConsoleHud(
+                  x: _focusedField > 0 && _focusedField <= _filterRules.length
+                      ? HudAction(l.common_remove, onTap: _removeFocusedRule)
+                      : null,
                   a: HudAction(l.common_select, onTap: _confirm),
                   b: HudAction(l.common_back, onTap: _handleBack),
                 ),
@@ -468,19 +523,14 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: GestureDetector(
+        key: _fieldKeys.putIfAbsent(fieldIndex, GlobalKey.new),
         onTap: () {
           setState(() => _focusedField = fieldIndex);
           _editFilterText(ruleIndex);
         },
         onLongPress: () {
-          // Remove filter rule
-          ref.read(feedbackServiceProvider).tick();
-          setState(() {
-            _filterRules.removeAt(ruleIndex);
-            if (_focusedField >= _fieldCount) {
-              _focusedField = _fieldCount - 1;
-            }
-          });
+          _focusedField = fieldIndex;
+          _removeFocusedRule();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
@@ -516,7 +566,8 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
                       style: TextStyle(
                         fontSize: rs.isSmall ? 12 : 13,
                         color: isFocused ? Colors.white : Colors.white70,
-                        fontWeight: isFocused ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isFocused ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
                     Text(
@@ -558,6 +609,7 @@ class _ShelfEditScreenState extends ConsumerState<ShelfEditScreen>
     final color = accentColor ?? Colors.cyanAccent;
 
     return GestureDetector(
+      key: _fieldKeys.putIfAbsent(index, GlobalKey.new),
       onTap: () {
         setState(() => _focusedField = index);
         _confirm();

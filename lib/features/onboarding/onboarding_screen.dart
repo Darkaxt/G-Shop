@@ -47,6 +47,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (isOverlayExpanded) return KeyEventResult.handled;
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    if (event.logicalKey == LogicalKeyboardKey.gameButtonSelect &&
+        ref.read(onboardingControllerProvider).currentStep ==
+            OnboardingStep.welcome) {
+      _importConfig();
+      return KeyEventResult.handled;
+    }
+
     if (!ref.read(inputDebouncerProvider).canPerformAction()) {
       return KeyEventResult.handled;
     }
@@ -69,7 +76,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await controller.exportConfig();
     } catch (e) {
       if (!mounted) return;
-      showErrorNotification(context, ref, message: L.of(context).onboarding_exportFailed(getUserFriendlyError(e)));
+      showErrorNotification(context, ref,
+          message:
+              L.of(context).onboarding_exportFailed(getUserFriendlyError(e)));
     }
   }
 
@@ -78,12 +87,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (!mounted) return;
     if (result.cancelled) return;
     if (result.error != null) {
-      showErrorNotification(context, ref, message: L.of(context).onboarding_invalidConfig(result.error!));
+      showErrorNotification(context, ref,
+          message: L.of(context).onboarding_invalidConfig(result.error!));
     } else {
-      ref.read(onboardingControllerProvider.notifier).loadFromConfig(result.config!);
+      ref
+          .read(onboardingControllerProvider.notifier)
+          .loadFromConfig(result.config!);
       // Refresh sources so the notifier picks up any imported sources.
       ref.read(sourcesProvider.notifier).replaceAll(result.config!.sources);
-      showSuccessNotification(context, ref, message: L.of(context).onboarding_configImported);
+      showSuccessNotification(context, ref,
+          message: L.of(context).onboarding_configImported);
     }
   }
 
@@ -95,7 +108,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     try {
       final config = await controller.buildFinalConfig();
-      final jsonString = const JsonEncoder.withIndent('  ').convert(config.toJson());
+      final jsonString =
+          const JsonEncoder.withIndent('  ').convert(config.toJson());
       await ref.read(configStorageServiceProvider).saveConfig(jsonString);
       await storage.setOnboardingCompleted(true);
       // Re-run the SourcesNotifier rebuild so the resolver injects
@@ -109,7 +123,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ref.invalidate(bootstrappedConfigProvider);
     } catch (e) {
       if (!mounted) return;
-      showErrorNotification(context, ref, message: L.of(context).onboarding_failedToSave(getUserFriendlyError(e)));
+      showErrorNotification(context, ref,
+          message:
+              L.of(context).onboarding_failedToSave(getUserFriendlyError(e)));
       return;
     }
     if (!mounted) return;
@@ -197,7 +213,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // drop in a JSON config without going through any setup wizard.
     if (state.currentStep == OnboardingStep.welcome) {
       return ConsoleHud(
-        select: HudAction(L.of(context).onboarding_importConfig, onTap: _importConfig),
+        select: HudAction(L.of(context).onboarding_importConfig,
+            onTap: _importConfig),
       );
     }
 

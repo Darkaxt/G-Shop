@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/input/input.dart';
 import '../../models/config/drive_source_config.dart';
 import '../../models/config/source.dart';
 import '../../providers/app_providers.dart';
@@ -70,8 +71,10 @@ class DriveSourceSetupScreen extends ConsumerStatefulWidget {
       _DriveSourceSetupScreenState();
 }
 
-class _DriveSourceSetupScreenState
-    extends ConsumerState<DriveSourceSetupScreen> {
+class _DriveSourceSetupScreenState extends ConsumerState<DriveSourceSetupScreen>
+    with ConsoleScreenMixin {
+  @override
+  String get routeId => 'drive-source-setup';
   static const int _maxFolderEntries = 5000;
   late final TextEditingController _name;
   late final TextEditingController _serverClientId;
@@ -307,148 +310,155 @@ class _DriveSourceSetupScreenState
         _selectedRoot != null &&
         _name.text.trim().isNotEmpty &&
         _serverClientId.text.trim().isNotEmpty;
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppTheme.backgroundColor,
-        foregroundColor: Colors.white,
-        title: const Text('Add Google Drive source'),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              key: ValueKey(current?.id),
-              padding: const EdgeInsets.all(24),
-              children: [
-                Text(
-                  connectionHeading,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '$connectionHelp Google grants read-only access to the entire selected account; the chosen library folder is an app-enforced boundary, not a folder-scoped OAuth permission.',
-                  style: const TextStyle(color: Colors.white60),
-                ),
-                const SizedBox(height: 18),
-                Shortcuts(
-                  // Keep application search/favorite keys out of text entry,
-                  // just as the folder mapper does for its search field.
-                  shortcuts: const {
-                    SingleActivator(LogicalKeyboardKey.keyI):
-                        DoNothingAndStopPropagationIntent(),
-                    SingleActivator(LogicalKeyboardKey.keyF):
-                        DoNothingAndStopPropagationIntent(),
-                  },
-                  child: TextField(
-                    key: const Key('drive_source_name'),
-                    controller: _name,
-                    enabled: !_busy,
-                    style: const TextStyle(color: Colors.white),
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'Source name',
-                      labelStyle: TextStyle(color: Colors.white70),
+    return buildWithActions(
+        Scaffold(
+          backgroundColor: AppTheme.backgroundColor,
+          appBar: AppBar(
+            backgroundColor: AppTheme.backgroundColor,
+            foregroundColor: Colors.white,
+            title: const Text('Add Google Drive source'),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: ListView(
+                  key: ValueKey(current?.id),
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    Text(
+                      connectionHeading,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Shortcuts(
-                  shortcuts: const {
-                    SingleActivator(LogicalKeyboardKey.keyI):
-                        DoNothingAndStopPropagationIntent(),
-                    SingleActivator(LogicalKeyboardKey.keyF):
-                        DoNothingAndStopPropagationIntent(),
-                  },
-                  child: TextField(
-                    key: const Key('drive_server_client_id'),
-                    controller: _serverClientId,
-                    enabled: !_busy && _connection == null,
-                    autocorrect: false,
-                    style: const TextStyle(color: Colors.white),
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'Public Web OAuth client ID',
-                      labelStyle: TextStyle(color: Colors.white70),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$connectionHelp Google grants read-only access to the entire selected account; the chosen library folder is an app-enforced boundary, not a folder-scoped OAuth permission.',
+                      style: const TextStyle(color: Colors.white60),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  style: AppTheme.primaryButtonStyle,
-                  onPressed: _busy ? null : _connect,
-                  icon: const Icon(Icons.login),
-                  label: Text(_connection == null ? 'Connect' : 'Reconnect'),
-                ),
-                if (current != null) ...[
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 4,
-                    children: [
-                      for (var i = 0; i < _breadcrumbs.length; i++)
-                        TextButton(
-                          onPressed: _busy ? null : () => _backTo(i),
-                          child: Text(_breadcrumbs[i].name),
+                    const SizedBox(height: 18),
+                    Shortcuts(
+                      // Keep application search/favorite keys out of text entry,
+                      // just as the folder mapper does for its search field.
+                      shortcuts: const {
+                        SingleActivator(LogicalKeyboardKey.keyI):
+                            DoNothingAndStopPropagationIntent(),
+                        SingleActivator(LogicalKeyboardKey.keyF):
+                            DoNothingAndStopPropagationIntent(),
+                      },
+                      child: TextField(
+                        key: const Key('drive_source_name'),
+                        controller: _name,
+                        enabled: !_busy,
+                        style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          labelText: 'Source name',
+                          labelStyle: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Shortcuts(
+                      shortcuts: const {
+                        SingleActivator(LogicalKeyboardKey.keyI):
+                            DoNothingAndStopPropagationIntent(),
+                        SingleActivator(LogicalKeyboardKey.keyF):
+                            DoNothingAndStopPropagationIntent(),
+                      },
+                      child: TextField(
+                        key: const Key('drive_server_client_id'),
+                        controller: _serverClientId,
+                        enabled: !_busy && _connection == null,
+                        autocorrect: false,
+                        style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          labelText: 'Public Web OAuth client ID',
+                          labelStyle: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      style: AppTheme.primaryButtonStyle,
+                      onPressed: _busy ? null : _connect,
+                      icon: const Icon(Icons.login),
+                      label:
+                          Text(_connection == null ? 'Connect' : 'Reconnect'),
+                    ),
+                    if (current != null) ...[
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          for (var i = 0; i < _breadcrumbs.length; i++)
+                            TextButton(
+                              onPressed: _busy ? null : () => _backTo(i),
+                              child: Text(_breadcrumbs[i].name),
+                            ),
+                        ],
+                      ),
+                      FilledButton.tonalIcon(
+                        onPressed: _busy
+                            ? null
+                            : () => setState(() => _selectedRoot = current),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text('Use this folder'),
+                      ),
+                      if (_selectedRoot != null)
+                        Text(
+                          'Selected: ${_selectedRoot!.name}',
+                          style:
+                              const TextStyle(color: Colors.lightGreenAccent),
+                        ),
+                      const Divider(color: Colors.white24),
+                      for (final child in _children)
+                        ListTile(
+                          enabled: !_busy && child.isFolder,
+                          leading: Icon(
+                            child.isFolder ? Icons.folder : Icons.block,
+                            color: child.isFolder
+                                ? Colors.blueAccent
+                                : Colors.white38,
+                          ),
+                          title: Text(
+                            child.unsupportedReason == null
+                                ? child.name
+                                : '${child.name} — unsupported ${child.unsupportedReason}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          onTap:
+                              child.isFolder ? () => _openFolder(child) : null,
                         ),
                     ],
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: _busy
-                        ? null
-                        : () => setState(() => _selectedRoot = current),
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Use this folder'),
-                  ),
-                  if (_selectedRoot != null)
-                    Text(
-                      'Selected: ${_selectedRoot!.name}',
-                      style: const TextStyle(color: Colors.lightGreenAccent),
-                    ),
-                  const Divider(color: Colors.white24),
-                  for (final child in _children)
-                    ListTile(
-                      enabled: !_busy && child.isFolder,
-                      leading: Icon(
-                        child.isFolder ? Icons.folder : Icons.block,
-                        color:
-                            child.isFolder ? Colors.blueAccent : Colors.white38,
+                    if (_busy) ...[
+                      const SizedBox(height: 16),
+                      const Center(child: CircularProgressIndicator()),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.redAccent),
                       ),
-                      title: Text(
-                        child.unsupportedReason == null
-                            ? child.name
-                            : '${child.name} — unsupported ${child.unsupportedReason}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      onTap: child.isFolder ? () => _openFolder(child) : null,
+                    ],
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      style: AppTheme.primaryButtonStyle,
+                      onPressed: canSave ? _save : null,
+                      child: const Text('Save source'),
                     ),
-                ],
-                if (_busy) ...[
-                  const SizedBox(height: 16),
-                  const Center(child: CircularProgressIndicator()),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                FilledButton(
-                  style: AppTheme.primaryButtonStyle,
-                  onPressed: canSave ? _save : null,
-                  child: const Text('Save source'),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+        localFocusScope: true,
+        materialControls: true);
   }
 }

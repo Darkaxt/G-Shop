@@ -1536,11 +1536,13 @@ void main() {
       final save=_NativeFile(990)..bytes=[42];
       native.files['/roms/Group.sav']=save;
       var lost=false;
-      if(interrupted)native.after=(call) async {
+      if(interrupted) {
+        native.after=(call) async {
         if(call.method=='ownedQuarantine' && (call.arguments as Map)['relativePath']=='Group 1.chd' && !lost) {
           lost=true;throw StateError('lost group quarantine receipt');
         }
-      };
+        };
+      }
       final operation=remover().remove(installs.first,policyDriven:true,groupMembers:[installs.last]);
       if(interrupted) {
         await expectLater(operation,throwsA(isA<OwnedStorageException>()));

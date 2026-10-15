@@ -267,8 +267,11 @@ void main() {
         ))));
     await tester.pump();
     final firstSelector = find.byType(OutlinedButton).first;
-    await tester.tap(firstSelector);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
     await tester.tap(find.widgetWithText(ListTile, 'SNES · first'));
     await tester.pumpAndSettle();
     expect(
@@ -282,8 +285,11 @@ void main() {
     expect(
         find.descendant(of: firstSelector, matching: find.text('SNES · first')),
         findsOneWidget);
-    await tester.tap(firstSelector);
+    // B restores the triggering Material control; A must reopen that selector
+    // without invoking a global game-list action.
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
     await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(

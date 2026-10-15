@@ -22,14 +22,17 @@ void main() {
       expect(png.any((p) => p.a > 0), isTrue, reason: '$brand visible content');
     }
   });
-  test('manufacturer membership and sync scope preserve order/configuration',
+  test('manufacturer chronology leaves sync configuration order untouched',
       () {
     final systems = SystemModel.supportedSystems
         .where((s) => ['nes', 'psp', 'snes', 'megadrive'].contains(s.id))
         .toList();
     expect(systemsForManufacturer(systems, 'Nintendo').map((s) => s.id),
         ['nes', 'snes']);
-    expect(systemsForManufacturer(systems, null), systems);
+    final originalIds = systems.map((s) => s.id).toList();
+    expect(systemsForManufacturer(systems, null).map((s) => s.id),
+        ['nes', 'megadrive', 'snes', 'psp']);
+    expect(systems.map((s) => s.id), originalIds);
     final config = AppConfig(systems: [
       for (final s in systems)
         SystemConfig(

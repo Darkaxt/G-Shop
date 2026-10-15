@@ -108,8 +108,9 @@ void main() {
         findsOneWidget);
     semantics.dispose();
     await tester.pumpWidget(card(score(stale: true, original: true)));
-    expect(find.textContaining('Stale score'), findsOneWidget);
-    expect(find.textContaining('Original game'), findsOneWidget);
+    final explanation = tester.widget<Tooltip>(find.byType(Tooltip).first).message!;
+    expect(explanation, contains('Needs a fresh rating'));
+    expect(explanation, contains('Original game'));
     await tester.pumpWidget(card(score(), enabled: false));
     expect(find.text('90/100'), findsNothing);
     expect(find.byKey(const ValueKey('rating-source-igdb')), findsNothing);
@@ -152,11 +153,12 @@ void main() {
           width: compact ? 100 : 240,
           screen: compact ? const Size(640, 360) : const Size(1280, 720)));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('A long game title'), findsOneWidget);
+      // Missing artwork has a handwritten media label as well as the footer.
+      expect(find.textContaining('A long game title'), findsNWidgets(2));
       expect(find.text('PSX'), findsOneWidget);
       expect(find.byIcon(Icons.favorite), findsOneWidget);
       expect(find.text('99'), findsOneWidget);
-      final title = tester.getRect(find.textContaining('A long game title'));
+      final title = tester.getRect(find.textContaining('A long game title').last);
       final badge = tester.getRect(find.byKey(const ValueKey('cover-rating')));
       expect(badge.bottom, lessThanOrEqualTo(title.top));
       final trophy =

@@ -431,11 +431,13 @@ void main() {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (
       id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
-      displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
+      displayName TEXT NOT NULL, filename TEXT, is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
     await LibraryQuery.install(db);
     for (final (platform, title) in requestedSample) {
-      await db.insert('games', {'systemSlug': platform, 'displayName': title});
+      await db.insert('games', {
+        'systemSlug': platform, 'displayName': title, 'filename': '$title.7z'
+      });
     }
     final jobs = MetadataRefreshJobs(Future.value(db));
     final store = LibraryStore(Future.value(db));
@@ -582,11 +584,12 @@ void main() {
     await MetadataRefreshJobs.install(db);
     await db.execute('''CREATE TABLE games (
       id INTEGER PRIMARY KEY AUTOINCREMENT, systemSlug TEXT NOT NULL,
-      displayName TEXT NOT NULL, is_folder INTEGER NOT NULL DEFAULT 0,
+      displayName TEXT NOT NULL, filename TEXT, is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
     await LibraryQuery.install(db);
     await db.insert(
-        'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World'});
+        'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World',
+          'filename': 'Super Mario World.sfc'});
     final jobs = MetadataRefreshJobs(Future.value(db));
     final provider = ScreenScraperProvider(
         readDeveloperCredentials: () async => developer,

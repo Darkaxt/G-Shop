@@ -271,6 +271,8 @@ class EditionIdentity {
   static const _contentTagAliases = {
     'official': 'official',
     'hack': 'Hack',
+    'hacks': 'Hack',
+    'color hacks': 'Hack',
     't-eng': 'T-Eng',
     't-en': 'T-Eng',
     'dub': 'Dub',
@@ -304,6 +306,24 @@ class EditionIdentity {
   /// provenance belongs in [evidence]; unfamiliar tags are preserved.
   final Set<String> tags;
   final bool? isTranslation;
+
+  /// Source-layout navigation only, never a claim of official ROM identity.
+  final String? collectionCategory;
+  String get contentCategory {
+    if (isTranslation == true ||
+        tags.any({'Hack', 'T-Eng', 'Dub', 'Undub', 'Uncensor'}.contains)) {
+      return 'hacks';
+    }
+    if (tags.contains('homebrew')) return 'homebrew';
+    if (tags.contains('demo')) return 'demo';
+    if (tags.length == 1 && tags.contains('official')) return 'commercial';
+    if (tags.isNotEmpty) return 'unknown';
+    return {'commercial', 'hacks', 'homebrew', 'demo'}
+            .contains(collectionCategory)
+        ? collectionCategory!
+        : 'unknown';
+  }
+
   final List<String> translatedLanguages;
   final List<EditionMember> members;
   final List<IdentityEvidence> evidence;
@@ -319,6 +339,7 @@ class EditionIdentity {
     this.patchId,
     Set<String> tags = const {},
     this.isTranslation,
+    this.collectionCategory,
     List<String> translatedLanguages = const [],
     List<EditionMember> members = const [],
     List<IdentityEvidence> evidence = const [],
@@ -344,6 +365,7 @@ class EditionIdentity {
         patchId: json['patchId'] as String?,
         tags: _strings(json['tags']).toSet(),
         isTranslation: json['isTranslation'] as bool?,
+        collectionCategory: json['collectionCategory'] as String?,
         translatedLanguages: _strings(json['translatedLanguages']),
         members: (json['members'] as List? ?? const [])
             .map((item) => EditionMember.fromJson(item as Map<String, dynamic>))
@@ -362,6 +384,8 @@ class EditionIdentity {
         if (patchId != null) 'patchId': patchId,
         'tags': tags.toList()..sort(),
         if (isTranslation != null) 'isTranslation': isTranslation,
+        if (collectionCategory != null)
+          'collectionCategory': collectionCategory,
         'translatedLanguages': translatedLanguages,
         'members': members.map((item) => item.toJson()).toList(),
         'evidence': evidence.map((item) => item.toJson()).toList(),

@@ -37,6 +37,7 @@ import '../../utils/game_merge_helper.dart';
 import '../../utils/image_helper.dart';
 import '../game_detail/game_detail_screen.dart';
 import '../settings/metadata_settings_screen.dart';
+import '../home/widgets/manufacturer_filter.dart';
 import '../game_detail/widgets/cover_section.dart';
 import '../game_list/logic/filter_state.dart';
 import '../game_list/widgets/filter_overlay.dart';
@@ -59,7 +60,13 @@ enum ReorderState { none, selecting, grabbed }
 
 class LibraryScreen extends ConsumerStatefulWidget {
   final bool openSearch;
-  const LibraryScreen({super.key, this.openSearch = false});
+  final String? initialManufacturer;
+  final SystemType? initialSystemType;
+  const LibraryScreen(
+      {super.key,
+      this.openSearch = false,
+      this.initialManufacturer,
+      this.initialSystemType});
 
   @override
   ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
@@ -70,8 +77,34 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   static const _fixedTabCount = 3;
   int _selectedTab = 0; // 0=All, 1=Installed, 2=Favorites, 3+=Shelves
   String? _selectedConsole;
+  String? _manufacturer;
+  String? _category;
+  SystemType? _systemType;
+  final _brandFocus = FocusScopeNode(debugLabel: 'Library brands');
+  final _typeFocus = FocusScopeNode(debugLabel: 'Library types');
+  List<SystemModel> get _browseSystems {
+    final slugs = _visibleGames.map((g) => g.systemSlug).toSet();
+    return SystemModel.supportedSystems
+        .where((s) => slugs.contains(s.id))
+        .toList();
+  }
+
+  bool get _hasTypes =>
+      availableSystemTypes(_browseSystems, _manufacturer).length > 1;
+  bool _matchesBrowse(String slug) {
+    if (_manufacturer == null && _systemType == null) return true;
+    final system =
+        SystemModel.supportedSystems.where((s) => s.id == slug).firstOrNull;
+    return system != null &&
+        (_manufacturer == null || system.manufacturer == _manufacturer) &&
+        (_systemType == null || system.types.contains(_systemType));
+  }
+
+  Iterable<LibraryEntry> get _browseGames =>
+      _visibleGames.where((g) => _matchesBrowse(g.systemSlug));
   bool _globalDiscoveryRequested = false;
   bool _consoleNavigation = false;
+  bool _categoryNavigation = false;
   int _dashboardColumns = 1;
   List<LibraryConsoleSummary> _consoleSummaries = const [];
   bool get _isDashboard =>
@@ -82,13 +115,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   int get _visibleCount =>
       _isDashboard ? _consoleSummaries.length : _filteredGames.length;
   Iterable<LibraryEntry> get _scopedGames => _selectedConsole == null
-      ? _visibleGames
-      : _visibleGames.where((g) => g.systemSlug == _selectedConsole);
+      ? _browseGames
+      : _browseGames.where((g) => g.systemSlug == _selectedConsole);
   Set<String> get _rankingPlatforms => _selectedConsole == null
-      ? _filters.selectedPlatforms
+      ? (_manufacturer == null && _systemType == null
+          ? _filters.selectedPlatforms
+          : systemsForManufacturer(_browseSystems, _manufacturer,
+                  type: _systemType)
+              .map((s) => s.id)
+              .where((id) =>
+                  _filters.selectedPlatforms.isEmpty ||
+                  _filters.selectedPlatforms.contains(id))
+              .toSet())
       : {_selectedConsole!};
   LibrarySortMode _sortMode = LibrarySortMode.featured;
   bool get _needsDiscovery =>
+      _category != null ||
       _filters.hasMetadataFilters ||
       (!_isShelfTab && _sortMode == LibrarySortMode.featured);
   List<CustomShelf> _shelves = [];
@@ -304,7 +346,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   void onSearchSelectionReset() => _currentIndex = 0;
 
-  // L1/R1 zoom and L2/R2 tabs are handled by global shortcuts.
+  // L1/R1 own the current tab row; L2/R2 remain aliases and PageUp/Down zoom.
 
   @override
   Map<Type, Action<Intent>> get screenActions {
@@ -368,6 +410,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   void initState() {
     super.initState();
+    _manufacturer = widget.initialManufacturer;
+    _systemType = widget.initialSystemType;
     _columns = ref.read(gridColumnsProvider('library'));
     _debouncer = ref.read(inputDebouncerProvider);
     _shelves = ref.read(customShelvesProvider);
@@ -429,6 +473,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _debouncer.stopHold();
     _focusManager.dispose();
     _scrollController.dispose();
+    _brandFocus.dispose();
+    _typeFocus.dispose();
     disposeSearch();
     _scrollSuppression.dispose();
     _selectedIndexNotifier.dispose();
@@ -603,10 +649,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             _installationState.legacyAliasesBySystem[system.key] ?? const {}))
           system.value[item]!,
     ];
-    _consoleSummaries = LibraryConsoleSummary.fromEntries(_visibleGames,
+    if (_manufacturer != null &&
+        !_browseSystems.any((s) => s.manufacturer == _manufacturer)) {
+      _manufacturer = null;
+    }
+    final types = availableSystemTypes(_browseSystems, _manufacturer);
+    if (types.length <= 1 || !types.contains(_systemType)) _systemType = null;
+    _consoleSummaries = LibraryConsoleSummary.fromEntries(_browseGames.toList(),
         isInstalled: _isGameInstalled,
         favorites: _favoriteIds,
         installation: _installationState);
+    if (_selectedConsole != null &&
+        !_consoleSummaries.any((s) => s.slug == _selectedConsole)) {
+      _selectedConsole = _consoleSummaries.firstOrNull?.slug;
+      _restoreFilters();
+    }
     if (!_queryingDiscovery && _currentIndex < _filteredGames.length) {
       final entry = _filteredGames[_currentIndex];
       _focusedKey = coverRatingKey(entry.systemSlug, entry.selectionKey);
@@ -692,6 +749,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       }
     }
 
+    if ((_manufacturer != null || _systemType != null) &&
+        _selectedConsole == null &&
+        _filters.selectedPlatforms.isNotEmpty &&
+        _rankingPlatforms.isEmpty) {
+      games = [];
+    }
     if (_needsDiscovery) {
       _discoveryEntries = games;
       setState(() {
@@ -739,12 +802,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         final filters = _filters;
         final entries = _discoveryEntries;
         try {
+          if (entries.isEmpty) {
+            _discovery = LibraryDiscoveryResult(
+                groups: const {},
+                genres: const [],
+                collectionGames: 0,
+                rankedGames: 0,
+                totalMatches: 0);
+            _queryingDiscovery = false;
+            _publishGames([]);
+            return;
+          }
           await ref.read(cachedMetadataReadinessProvider.future);
           if (!mounted) return;
           final result =
               await LibraryQuery(ref.read(libraryDbProvider).database).discover(
                   filter: LibraryQueryFilter(
                       platformIds: _rankingPlatforms,
+                      category: _category,
                       tags: filters.selectedTags,
                       genres: filters.selectedGenres,
                       top: filters.top,
@@ -785,7 +860,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               groups[key] = group.key;
             }
           }
-          if (!filters.hasMetadataFilters) {
+          if (!filters.hasMetadataFilters && _category == null) {
             // Browsing order must not hide files whose identity is unresolved.
             // They cannot be ranked, but remain visible in the A-Z remainder.
             for (final entry in entries) {
@@ -900,6 +975,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // --- Tab Navigation ---
 
   void _nextTab() {
+    if (_cycleBrowseFilter(1)) return;
+    if (_categoryNavigation) {
+      _cycleCategory(1);
+      return;
+    }
+    if (_consoleNavigation) {
+      _navigateGrid(GridDirection.right);
+      return;
+    }
     if (_reorderState != ReorderState.none) return;
     ref.read(feedbackServiceProvider).tick();
     _shelves = ref.read(customShelvesProvider);
@@ -914,6 +998,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _prevTab() {
+    if (_cycleBrowseFilter(-1)) return;
+    if (_categoryNavigation) {
+      _cycleCategory(-1);
+      return;
+    }
+    if (_consoleNavigation) {
+      _navigateGrid(GridDirection.left);
+      return;
+    }
     if (_reorderState != ReorderState.none) return;
     ref.read(feedbackServiceProvider).tick();
     _shelves = ref.read(customShelvesProvider);
@@ -984,6 +1077,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _debouncer.stopHold();
     setState(() {
       _selectedConsole = slug;
+      _categoryNavigation = false;
       _globalDiscoveryRequested = false;
       if (slug == null) _selectedTab = 0;
       _currentIndex = 0;
@@ -1001,7 +1095,88 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     requestScreenFocus();
   }
 
+  void _setBrowseScope(String? brand, SystemType? type) {
+    _manufacturer = brand;
+    final types = availableSystemTypes(_browseSystems, brand);
+    _systemType = types.length > 1 && types.contains(type) ? type : null;
+    final selected = _selectedConsole;
+    final systems =
+        systemsForManufacturer(_browseSystems, brand, type: _systemType);
+    _selectConsole(selected == null || _matchesBrowse(selected)
+        ? selected
+        : systems.firstOrNull?.id);
+  }
+
+  bool _cycleBrowseFilter(int delta) {
+    if (_typeFocus.hasFocus && _hasTypes) {
+      final values = <SystemType?>[
+        null,
+        ...SystemType.values
+            .where(availableSystemTypes(_browseSystems, _manufacturer).contains)
+      ];
+      _setBrowseScope(_manufacturer,
+          values[(values.indexOf(_systemType) + delta) % values.length]);
+      _typeFocus.requestFocus();
+      _typeFocus.nextFocus();
+      return true;
+    }
+    if (_brandFocus.hasFocus) {
+      final brands = _browseSystems.map((s) => s.manufacturer).toSet().toList()
+        ..sort();
+      final values = <String?>[null, ...brands];
+      _setBrowseScope(
+          values[(values.indexOf(_manufacturer) + delta) % values.length],
+          _systemType);
+      _brandFocus.requestFocus();
+      _brandFocus.nextFocus();
+      return true;
+    }
+    return false;
+  }
+
+  void _selectCategory(String? category) {
+    _category = category;
+    _currentIndex = 0;
+    _focusedKey = _focusedGroup = null;
+    _applyFilters();
+    _scrollToTop();
+  }
+
+  void _cycleCategory(int delta) {
+    const values = [null, 'commercial', 'hacks'];
+    _selectCategory(
+        values[(values.indexOf(_category) + delta) % values.length]);
+  }
+
   void _navigateGrid(GridDirection direction) {
+    if (_categoryNavigation) {
+      if (direction == GridDirection.left || direction == GridDirection.right) {
+        _cycleCategory(direction == GridDirection.left ? -1 : 1);
+      } else {
+        setState(() {
+          _categoryNavigation = false;
+          _consoleNavigation = direction == GridDirection.up;
+        });
+      }
+      return;
+    }
+    if (_brandFocus.hasFocus || _typeFocus.hasFocus) {
+      if (direction == GridDirection.down && _typeFocus.hasFocus ||
+          direction == GridDirection.down &&
+              _brandFocus.hasFocus &&
+              !_hasTypes) {
+        requestScreenFocus();
+        setState(() => _consoleNavigation = true);
+      } else {
+        primaryFocus?.focusInDirection(switch (direction) {
+          GridDirection.up => TraversalDirection.up,
+          GridDirection.down => TraversalDirection.down,
+          GridDirection.left => TraversalDirection.left,
+          GridDirection.right => TraversalDirection.right,
+        });
+      }
+      return;
+    }
     final columns = _isDashboard ? _dashboardColumns : _columns;
     if (_consoleNavigation) {
       final slugs = [null, ..._consoleSummaries.map((s) => s.slug)];
@@ -1011,7 +1186,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             .clamp(0, slugs.length - 1);
         _selectConsole(slugs[next]);
       } else if (direction == GridDirection.down) {
-        setState(() => _consoleNavigation = false);
+        setState(() {
+          _consoleNavigation = false;
+          _categoryNavigation = _selectedConsole != null;
+        });
+      } else if (direction == GridDirection.up) {
+        if (!_isDashboard) {
+          _selectConsole(null);
+          _consoleNavigation = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final target = _hasTypes ? _typeFocus : _brandFocus;
+            target.requestFocus();
+            target.nextFocus();
+          });
+          return;
+        }
+        final target = _hasTypes ? _typeFocus : _brandFocus;
+        target.requestFocus();
+        target.nextFocus();
       }
       return;
     }
@@ -1168,6 +1361,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _handleConfirm() {
+    if (_categoryNavigation) {
+      setState(() => _categoryNavigation = false);
+      return;
+    }
+    if (_brandFocus.hasFocus || _typeFocus.hasFocus) {
+      final target = primaryFocus?.context;
+      if (target != null) Actions.maybeInvoke(target, const ActivateIntent());
+      return;
+    }
     if (_consoleNavigation) {
       setState(() => _consoleNavigation = false);
       return;
@@ -1190,6 +1392,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _handleBack() {
+    if (_categoryNavigation) {
+      setState(() => _categoryNavigation = false);
+      return;
+    }
+    if (_brandFocus.hasFocus || _typeFocus.hasFocus) {
+      requestScreenFocus();
+      return;
+    }
     if (_isFiltering) {
       _closeFilter();
       return;
@@ -1478,13 +1688,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       QuickMenuItem(
         label: l.library_zoomIn,
         icon: Icons.zoom_in_rounded,
-        shortcutHint: 'L',
         onSelect: () => _adjustColumns(true),
       ),
       QuickMenuItem(
         label: l.library_zoomOut,
         icon: Icons.zoom_out_rounded,
-        shortcutHint: 'R',
         onSelect: () => _adjustColumns(false),
       ),
       QuickMenuItem(
@@ -1813,6 +2021,46 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 ],
               ),
               SizedBox(height: rs.isSmall ? 6 : 10),
+              if (_isDashboard)
+                FocusScope(
+                    node: _brandFocus,
+                    child: ManufacturerFilter(
+                        systems: _browseSystems,
+                        selected: _manufacturer,
+                        onSelected: (value) =>
+                            _setBrowseScope(value, _systemType))),
+              if (_isDashboard && _hasTypes)
+                FocusScope(
+                    node: _typeFocus,
+                    child: SystemTypeFilter(
+                        systems: _browseSystems,
+                        manufacturer: _manufacturer,
+                        selected: _systemType,
+                        onSelected: (value) =>
+                            _setBrowseScope(_manufacturer, value))),
+              if (!_isDashboard)
+                TextButton.icon(
+                  key: const ValueKey('library-browse-parent'),
+                  onPressed: () => _selectConsole(null),
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  label: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (_manufacturer case final brand?)
+                      Image.asset(
+                          'assets/brand_logos/${manufacturerLogos[brand]}.png',
+                          width: 72,
+                          height: 22,
+                          fit: BoxFit.contain,
+                          color: Colors.white)
+                    else
+                      const Text('All manufacturers'),
+                    if (_systemType != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(_systemType!.icon, size: 18),
+                      const SizedBox(width: 4),
+                      Text(_systemType!.label),
+                    ],
+                  ]),
+                ),
               LibraryTabs(
                 key: const ValueKey('library-console-tabs'),
                 selectedTab: _selectedConsole == null
@@ -1837,12 +2085,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 },
               ),
               const SizedBox(height: 8),
-              LibraryTabs(
-                selectedTab: _selectedTab,
-                tabs: tabs,
-                accentColor: Colors.cyanAccent,
-                onTap: _selectTab,
-              ),
+              Row(children: [
+                if (_selectedConsole != null) ...[
+                  Expanded(
+                      child: LibraryTabs(
+                    key: const ValueKey('library-category-tabs'),
+                    focused: _categoryNavigation,
+                    selectedTab: _category == null
+                        ? 0
+                        : _category == 'commercial'
+                            ? 1
+                            : 2,
+                    tabs: const [
+                      LibraryTab(label: 'All'),
+                      LibraryTab(label: 'Commercial'),
+                      LibraryTab(label: 'Hacks')
+                    ],
+                    onTap: (index) =>
+                        _selectCategory([null, 'commercial', 'hacks'][index]),
+                  )),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                    child: LibraryTabs(
+                  key: const ValueKey('library-status-tabs'),
+                  selectedTab: _selectedTab,
+                  tabs: tabs,
+                  accentColor: Colors.cyanAccent,
+                  onTap: _selectTab,
+                )),
+              ]),
             ],
           ),
         ),
@@ -1955,7 +2227,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       final l = L.of(context);
       final String title;
       final String? subtitle;
-      if (_filters.isNotEmpty) {
+      if (_filters.isNotEmpty || _category != null) {
         title = l.filter_noMatches;
         subtitle = null;
       } else if (_searchQuery.isNotEmpty) {

@@ -35,6 +35,9 @@ class OverlayPriorityManager extends StateNotifier<OverlayPriority> {
   /// Releases the exact entry identified by [token].
   /// Returns true if the token was found and removed.
   bool release(int token) {
+    // Overlay disposal is deferred beyond widget finalization. Once the app
+    // scope closes, there is no live input-priority state left to release.
+    if (!mounted) return false;
     final before = _stack.length;
     _stack.removeWhere((e) => e.token == token);
     final didRemove = _stack.length < before;
@@ -45,6 +48,7 @@ class OverlayPriorityManager extends StateNotifier<OverlayPriority> {
   /// Removes the first entry matching [priority].
   /// Use for suspend/resume patterns where no token is available.
   void releaseByPriority(OverlayPriority priority) {
+    if (!mounted) return;
     final idx = _stack.indexWhere((e) => e.priority == priority);
     if (idx >= 0) {
       _stack.removeAt(idx);
@@ -129,6 +133,9 @@ class FocusStateManager extends StateNotifier<Map<String, FocusStateEntry>> {
     FocusNode? savedFocusNode,
     Map<String, dynamic> metadata = const {},
   }) {
+    // Route disposal defers writes beyond widget finalization. A closed
+    // ProviderScope no longer owns restoration state for that deferred write.
+    if (!mounted) return;
     final existing = state[routeId];
     state = {
       ...state,

@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/input/app_intents.dart';
 import '../../core/input/console_screen_mixin.dart';
+import '../../core/input/global_input_wrapper.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
@@ -123,14 +124,7 @@ class _SaveBackupSettingsScreenState
   Widget _navigationItem(SaveBackupSection section) {
     final selected = _section == section;
     void select() {
-      _sectionFocus[section]!.requestFocus();
-      if (_contentScroll.hasClients) _contentScroll.jumpTo(0);
-      setState(() {
-        _section = section;
-        if (section == SaveBackupSection.emulators) {
-          _coverage = _readCoverage();
-        }
-      });
+      _selectSection(section);
     }
 
     return Padding(
@@ -173,8 +167,27 @@ class _SaveBackupSettingsScreenState
 
   @override
   String get routeId => 'save_backup_settings';
+  void _selectSection(SaveBackupSection section) {
+    _sectionFocus[section]!.requestFocus();
+    if (_contentScroll.hasClients) _contentScroll.jumpTo(0);
+    setState(() {
+      _section = section;
+      if (section == SaveBackupSection.emulators) _coverage = _readCoverage();
+    });
+  }
+
   @override
   Map<Type, Action<Intent>> get screenActions => {
+        TabLeftIntent: CallbackAction<TabLeftIntent>(onInvoke: (_) {
+          _selectSection(SaveBackupSection
+              .values[(_section.index - 1) % SaveBackupSection.values.length]);
+          return null;
+        }),
+        TabRightIntent: CallbackAction<TabRightIntent>(onInvoke: (_) {
+          _selectSection(SaveBackupSection
+              .values[(_section.index + 1) % SaveBackupSection.values.length]);
+          return null;
+        }),
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
           _back();
           return null;
@@ -554,7 +567,7 @@ class _SaveBackupSettingsScreenState
               (emulator: emulator.registration, preset: preset)
       ];
       if (!mounted || _leaving) return;
-      final selected = await showDialog<
+      final selected = await showConsoleDialog<
               ({EmulatorRegistration emulator, EmulatorSavePreset preset})>(
           context: context,
           builder: (context) => AlertDialog(
@@ -1706,7 +1719,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
     final job = widget.job;
     if (job.busy) return;
     final reviewed = job.conflicts.map((h) => h.generationId).toSet();
-    final accepted = await showDialog<bool>(
+    final accepted = await showConsoleDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
               title: Text(cloudId == null
@@ -1780,7 +1793,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
         ? 'Exit ${widget.job.emulatorLabel} safely and keep it closed during restore. '
             'R-Shop checks that it has exited before replacing a save; it never stops the emulator automatically.'
         : 'Close the game in RetroArch before continuing.';
-    final accepted = await showDialog<bool>(
+    final accepted = await showConsoleDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
               title: Text(rollback
@@ -1834,7 +1847,7 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
         };
     var selectedFiles = rememberedFiles(selected);
     var section = _DeviceImportSection.source;
-    final choice = await showDialog<
+    final choice = await showConsoleDialog<
             ({SaveBackupManifest copy, String action, Set<String> files})>(
         context: context,
         builder: (context) => StatefulBuilder(builder: (context, update) {
@@ -1842,141 +1855,168 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
               final device = selected.binding.deviceId;
               final shortDevice =
                   device.length > 12 ? '${device.substring(0, 12)}…' : device;
-              return AlertDialog(
-                icon: const Icon(Icons.devices_outlined),
-                title: const Text('Import from another device'),
-                content: SizedBox(
-                  width: 600,
-                  height: MediaQuery.sizeOf(context).height * .48,
-                  child: Column(
-                    children: [
-                      SegmentedButton<_DeviceImportSection>(
-                        segments: const [
-                          ButtonSegment(
-                              value: _DeviceImportSection.source,
-                              icon: Icon(Icons.devices_outlined),
-                              label: Text('Source',
-                                  key: ValueKey('save-device-source-section'))),
-                          ButtonSegment(
-                              value: _DeviceImportSection.files,
-                              icon: Icon(Icons.folder_open_outlined),
-                              label: Text('Files',
-                                  key: ValueKey('save-device-files-section'))),
-                        ],
-                        selected: {section},
-                        onSelectionChanged: (value) =>
-                            update(() => section = value.single),
-                      ),
-                      const SizedBox(height: 12),
-                      Expanded(
-                          child: ListView(children: [
-                        if (section == _DeviceImportSection.source) ...[
-                          DropdownButtonFormField<SaveBackupManifest>(
-                            key: const ValueKey('save-device-source'),
-                            initialValue: selected,
-                            isExpanded: true,
-                            decoration:
-                                const InputDecoration(labelText: 'Source'),
-                            items: [
-                              for (final copy in copies)
-                                DropdownMenuItem(
-                                    value: copy,
-                                    child: Text(
-                                        'Device ${copy.binding.deviceId.length > 12 ? '${copy.binding.deviceId.substring(0, 12)}…' : copy.binding.deviceId} · ${MaterialLocalizations.of(context).formatShortDate(copy.createdAt.toLocal())}',
-                                        overflow: TextOverflow.ellipsis))
+              return ScreenActionsWrapper(
+                  screenActions: {
+                    TabLeftIntent: CallbackAction<TabLeftIntent>(onInvoke: (_) {
+                      update(() => section =
+                          section == _DeviceImportSection.source
+                              ? _DeviceImportSection.files
+                              : _DeviceImportSection.source);
+                      return null;
+                    }),
+                    TabRightIntent:
+                        CallbackAction<TabRightIntent>(onInvoke: (_) {
+                      update(() => section =
+                          section == _DeviceImportSection.source
+                              ? _DeviceImportSection.files
+                              : _DeviceImportSection.source);
+                      return null;
+                    }),
+                  },
+                  child: AlertDialog(
+                    icon: const Icon(Icons.devices_outlined),
+                    title: const Text('Import from another device'),
+                    content: SizedBox(
+                      width: 600,
+                      height: MediaQuery.sizeOf(context).height * .48,
+                      child: Column(
+                        children: [
+                          SegmentedButton<_DeviceImportSection>(
+                            segments: const [
+                              ButtonSegment(
+                                  value: _DeviceImportSection.source,
+                                  icon: Icon(Icons.devices_outlined),
+                                  label: Text('Source',
+                                      key: ValueKey(
+                                          'save-device-source-section'))),
+                              ButtonSegment(
+                                  value: _DeviceImportSection.files,
+                                  icon: Icon(Icons.folder_open_outlined),
+                                  label: Text('Files',
+                                      key: ValueKey(
+                                          'save-device-files-section'))),
                             ],
-                            onChanged: (copy) {
-                              if (copy == null) return;
-                              update(() {
-                                selected = copy;
-                                includeGroup = false;
-                                selectedFiles = rememberedFiles(copy);
-                              });
-                            },
+                            selected: {section},
+                            onSelectionChanged: (value) =>
+                                update(() => section = value.single),
                           ),
                           const SizedBox(height: 12),
-                          ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                  ignored ? Icons.block : Icons.cloud_outlined),
-                              title: Text('Device $shortDevice'),
-                              subtitle: Text(
-                                  '${selected.binding.kind.label} · ${selected.members.length} files${ignored ? ' · Ignored' : ''}')),
-                          const Text(
-                              'A newer date is only a suggestion. Open Files to choose what to import.'),
-                          const SizedBox(height: 12),
-                          const Text(
-                              'Close the game first. Your current copy is kept for Undo; cloud copies are kept too.'),
-                        ] else ...[
-                          if (selected.binding.kind != SaveBackupKind.companion)
-                            CheckboxListTile(
-                              key: const ValueKey('save-device-group'),
-                              contentPadding: EdgeInsets.zero,
-                              value: includeGroup,
-                              title: const Text('Complete save group'),
-                              subtitle: const Text(
-                                  'These files need to stay together.'),
-                              onChanged: (value) =>
-                                  update(() => includeGroup = value ?? false),
-                            ),
-                          if (selected.binding.kind == SaveBackupKind.companion)
-                            const Text('Choose the companion files to import.'),
-                          for (final member in selected.members)
-                            if (selected.binding.kind ==
-                                SaveBackupKind.companion)
-                              CheckboxListTile(
-                                  key: ValueKey(
-                                      'save-device-file-${member.relativePath}'),
-                                  contentPadding: EdgeInsets.zero,
-                                  value: selectedFiles
-                                      .contains(member.relativePath),
-                                  secondary: const Icon(
-                                      Icons.insert_drive_file_outlined),
-                                  title: Text(member.relativePath),
-                                  subtitle: Text('${member.sizeBytes} bytes'),
-                                  onChanged: (value) => update(() {
-                                        if (value == true) {
-                                          selectedFiles
-                                              .add(member.relativePath);
-                                        } else {
-                                          selectedFiles
-                                              .remove(member.relativePath);
-                                        }
-                                      }))
-                            else
+                          Expanded(
+                              child: ListView(children: [
+                            if (section == _DeviceImportSection.source) ...[
+                              DropdownButtonFormField<SaveBackupManifest>(
+                                key: const ValueKey('save-device-source'),
+                                initialValue: selected,
+                                isExpanded: true,
+                                decoration:
+                                    const InputDecoration(labelText: 'Source'),
+                                items: [
+                                  for (final copy in copies)
+                                    DropdownMenuItem(
+                                        value: copy,
+                                        child: Text(
+                                            'Device ${copy.binding.deviceId.length > 12 ? '${copy.binding.deviceId.substring(0, 12)}…' : copy.binding.deviceId} · ${MaterialLocalizations.of(context).formatShortDate(copy.createdAt.toLocal())}',
+                                            overflow: TextOverflow.ellipsis))
+                                ],
+                                onChanged: (copy) {
+                                  if (copy == null) return;
+                                  update(() {
+                                    selected = copy;
+                                    includeGroup = false;
+                                    selectedFiles = rememberedFiles(copy);
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
                               ListTile(
-                                  dense: true,
-                                  leading: const Icon(
-                                      Icons.insert_drive_file_outlined),
-                                  title: Text(member.relativePath),
-                                  subtitle: Text('${member.sizeBytes} bytes')),
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(ignored
+                                      ? Icons.block
+                                      : Icons.cloud_outlined),
+                                  title: Text('Device $shortDevice'),
+                                  subtitle: Text(
+                                      '${selected.binding.kind.label} · ${selected.members.length} files${ignored ? ' · Ignored' : ''}')),
+                              const Text(
+                                  'A newer date is only a suggestion. Open Files to choose what to import.'),
+                              const SizedBox(height: 12),
+                              const Text(
+                                  'Close the game first. Your current copy is kept for Undo; cloud copies are kept too.'),
+                            ] else ...[
+                              if (selected.binding.kind !=
+                                  SaveBackupKind.companion)
+                                CheckboxListTile(
+                                  key: const ValueKey('save-device-group'),
+                                  contentPadding: EdgeInsets.zero,
+                                  value: includeGroup,
+                                  title: const Text('Complete save group'),
+                                  subtitle: const Text(
+                                      'These files need to stay together.'),
+                                  onChanged: (value) => update(
+                                      () => includeGroup = value ?? false),
+                                ),
+                              if (selected.binding.kind ==
+                                  SaveBackupKind.companion)
+                                const Text(
+                                    'Choose the companion files to import.'),
+                              for (final member in selected.members)
+                                if (selected.binding.kind ==
+                                    SaveBackupKind.companion)
+                                  CheckboxListTile(
+                                      key: ValueKey(
+                                          'save-device-file-${member.relativePath}'),
+                                      contentPadding: EdgeInsets.zero,
+                                      value: selectedFiles
+                                          .contains(member.relativePath),
+                                      secondary: const Icon(
+                                          Icons.insert_drive_file_outlined),
+                                      title: Text(member.relativePath),
+                                      subtitle:
+                                          Text('${member.sizeBytes} bytes'),
+                                      onChanged: (value) => update(() {
+                                            if (value == true) {
+                                              selectedFiles
+                                                  .add(member.relativePath);
+                                            } else {
+                                              selectedFiles
+                                                  .remove(member.relativePath);
+                                            }
+                                          }))
+                                else
+                                  ListTile(
+                                      dense: true,
+                                      leading: const Icon(
+                                          Icons.insert_drive_file_outlined),
+                                      title: Text(member.relativePath),
+                                      subtitle:
+                                          Text('${member.sizeBytes} bytes')),
+                            ],
+                          ])),
                         ],
-                      ])),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton.icon(
-                      key: const ValueKey('save-device-cancel'),
-                      autofocus: true,
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                      label: const Text('Cancel')),
-                  TextButton.icon(
-                      key: const ValueKey('save-device-ignore'),
-                      onPressed: () => Navigator.pop(context, (
-                            copy: selected,
-                            action: ignored ? 'suggest' : 'ignore',
-                            files: <String>{},
-                          )),
-                      icon: Icon(
-                          ignored ? Icons.notifications_outlined : Icons.block),
-                      label: Text(ignored ? 'Suggest' : 'Ignore')),
-                  FilledButton.icon(
-                      key: const ValueKey('save-device-import'),
-                      style: AppTheme.primaryButtonStyle,
-                      onPressed:
-                          (selected.binding.kind == SaveBackupKind.companion
+                      ),
+                    ),
+                    actions: [
+                      TextButton.icon(
+                          key: const ValueKey('save-device-cancel'),
+                          autofocus: true,
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                          label: const Text('Cancel')),
+                      TextButton.icon(
+                          key: const ValueKey('save-device-ignore'),
+                          onPressed: () => Navigator.pop(context, (
+                                copy: selected,
+                                action: ignored ? 'suggest' : 'ignore',
+                                files: <String>{},
+                              )),
+                          icon: Icon(ignored
+                              ? Icons.notifications_outlined
+                              : Icons.block),
+                          label: Text(ignored ? 'Suggest' : 'Ignore')),
+                      FilledButton.icon(
+                          key: const ValueKey('save-device-import'),
+                          style: AppTheme.primaryButtonStyle,
+                          onPressed: (selected.binding.kind ==
+                                      SaveBackupKind.companion
                                   ? selectedFiles.isNotEmpty
                                   : includeGroup)
                               ? () => Navigator.pop(context, (
@@ -1990,10 +2030,10 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
                                                 .map((m) => m.relativePath)),
                                   ))
                               : null,
-                      icon: const Icon(Icons.download_outlined),
-                      label: const Text('Import')),
-                ],
-              );
+                          icon: const Icon(Icons.download_outlined),
+                          label: const Text('Import')),
+                    ],
+                  ));
             }));
     if (choice == null || !context.mounted || job.busy) return;
     if (choice.action == 'import') {

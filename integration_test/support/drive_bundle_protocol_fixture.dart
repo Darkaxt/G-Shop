@@ -60,6 +60,24 @@ class BundleFixtureTransport implements HttpClientAdapter {
   @override
   Future<ResponseBody> fetch(RequestOptions options,
       Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+    if (options.uri.path == '/batch/drive/v3') {
+      final requests = RegExp(r'GET (/drive/v3/files/[^ ]+) HTTP/1.1')
+          .allMatches(options.data as String).toList();
+      final response = StringBuffer();
+      for (var index = 0; index < requests.length; index++) {
+        final id = Uri.parse(requests[index][1]!).pathSegments.last;
+        final node = nodes[id];
+        response.write('--bundle_batch\r\nContent-Type: application/http\r\n'
+            'Content-ID: <response-folder-$index>\r\n\r\n'
+            'HTTP/1.1 ${node == null ? 404 : 200} Status\r\n'
+            'Content-Type: application/json\r\n\r\n'
+            '${jsonEncode(node?.toJson() ?? {})}\r\n');
+      }
+      response.write('--bundle_batch--\r\n');
+      return ResponseBody.fromString(response.toString(), 200, headers: {
+        'content-type': ['multipart/mixed; boundary=bundle_batch']
+      });
+    }
     final id = options.path.split('/').last;
     if (options.queryParameters['alt'] == 'media') {
       media.add(id);

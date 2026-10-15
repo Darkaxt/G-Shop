@@ -80,6 +80,7 @@ class _Catalogue extends DriveCatalogue {
       required String rootFolderId,
       required DriveCatalogueApi api,
       bool restart = false,
+      void Function(int, int)? onProgress,
       CancelToken? cancelToken}) async {
     started.complete();
     await cancelToken!.whenCancel;
@@ -696,8 +697,10 @@ void main() {
       if (failure=='revoked')fixture.metadata.rejectedStatus=403;
       if (failure=='missing_cloud')fixture.metadata.rejectedStatus=404;
       if (failure=='changed_local')fixture.native.targetChanged=true;
-      if (failure=='truncated_cloud') fixture.media.mediaResponse = (_,__) async =>
-          ResponseBody(Stream.value(Uint8List.fromList([1,2])),200,headers:{'content-length':['2']});
+      if (failure=='truncated_cloud') {
+        fixture.media.mediaResponse = (_,__) async =>
+            ResponseBody(Stream.value(Uint8List.fromList([1,2])),200,headers:{'content-length':['2']});
+      }
       await cache.reconcile();
       expect(cache.removedGames,0);
       expect(cache.issue,isNotNull);

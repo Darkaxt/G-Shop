@@ -64,6 +64,7 @@ class _FakeStorageService extends StorageService {
     await ratingsWrite?.future;
     ratingsEnabled = enabled;
   }
+
   @override
   Future<void> setHideEmptyConsoles(bool value) async {}
   @override
@@ -110,7 +111,8 @@ class _FakeStorageService extends StorageService {
 // ─── Tests ───────────────────────────────────────────────
 
 void main() {
-  test('overlay toggles preserve rapid requests in acknowledged write order', () async {
+  test('overlay toggles preserve rapid requests in acknowledged write order',
+      () async {
     final storage = _FakeStorageService();
     final notifier = RatingOverlaysNotifier(storage);
     addTearDown(notifier.dispose);
@@ -127,7 +129,8 @@ void main() {
     expect(storage.ratingsEnabled, isTrue);
   });
 
-  test('failed overlay save keeps the prior preference and permits retry', () async {
+  test('failed overlay save keeps the prior preference and permits retry',
+      () async {
     final storage = _FakeStorageService()..failRatingsSave = true;
     final notifier = RatingOverlaysNotifier(storage);
     addTearDown(notifier.dispose);
@@ -281,8 +284,7 @@ void main() {
     testWidgets('renders My Sources navigation tile', (tester) async {
       await tester.pumpWidget(buildTab());
       expect(find.text('My Sources'), findsOneWidget);
-      expect(find.text('Add or manage RomM, SMB, FTP servers'),
-          findsOneWidget);
+      expect(find.text('Add or manage RomM, SMB, FTP servers'), findsOneWidget);
     });
 
     testWidgets('renders Console Settings navigation tile', (tester) async {
@@ -297,25 +299,29 @@ void main() {
 
     testWidgets('renders Home Layout toggle', (tester) async {
       await tester.pumpWidget(buildTab());
+      await tester.scrollUntilVisible(find.text('HOME LAYOUT'), 250);
       expect(find.text('HOME LAYOUT'), findsOneWidget);
       expect(find.text('Horizontal Carousel'), findsOneWidget);
     });
 
-    testWidgets('cover score toggle persists through the real settings tile', (tester) async {
+    testWidgets('cover score toggle persists through the real settings tile',
+        (tester) async {
       await tester.pumpWidget(buildTab());
       final toggle = find.text('COVER RATINGS');
-      await tester.ensureVisible(toggle);
+      await tester.scrollUntilVisible(toggle, 250);
       await tester.tap(toggle);
       await tester.pump();
       expect(fakeStorage.ratingsEnabled, isFalse);
       expect(fakeStorage.ratingWrites, [false]);
     });
 
-    testWidgets('failed cover score preference is shown without an unhandled error', (tester) async {
+    testWidgets(
+        'failed cover score preference is shown without an unhandled error',
+        (tester) async {
       fakeStorage.failRatingsSave = true;
       await tester.pumpWidget(buildTab());
       final toggle = find.text('COVER RATINGS');
-      await tester.ensureVisible(toggle);
+      await tester.scrollUntilVisible(toggle, 250);
       await tester.tap(toggle);
       await tester.pump();
       expect(fakeStorage.ratingsEnabled, isTrue);
@@ -343,7 +349,7 @@ void main() {
       expect(find.text('Save backups'), findsOneWidget);
       expect(find.text('Console Settings'), findsOneWidget);
       expect(find.text('RetroAchievements'), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsNWidgets(5));
+      expect(find.byIcon(Icons.chevron_right), findsNWidgets(7));
     });
   });
 

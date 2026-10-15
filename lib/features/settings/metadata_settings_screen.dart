@@ -133,6 +133,14 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
+        TabLeftIntent: CallbackAction<TabLeftIntent>(onInvoke: (_) {
+          _cycleSection(-1);
+          return null;
+        }),
+        TabRightIntent: CallbackAction<TabRightIntent>(onInvoke: (_) {
+          _cycleSection(1);
+          return null;
+        }),
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
           _back();
           return null;
@@ -154,6 +162,20 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
           return null;
         }),
       };
+
+  void _cycleSection(int delta) {
+    final state = ref.read(metadataControlsProvider);
+    final current = _section == 'provider' ? state.providerId : _section;
+    const sections = ['screenscraper', 'igdb', 'storage', 'esde'];
+    final next =
+        sections[(sections.indexOf(current) + delta) % sections.length];
+    if (next == 'screenscraper' || next == 'igdb') {
+      if (state.busy || state.loading) return;
+      _selectProvider(next);
+    } else {
+      setState(() => _section = next);
+    }
+  }
 
   void _clearFields() {
     _username.clear();
@@ -254,7 +276,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
         dialogTitle: l.metadata_esDeReviewArtwork);
     final path = selected?.files.single.path;
     if (!mounted || path == null) return;
-    final accepted = await showDialog<bool>(
+    final accepted = await showConsoleDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
                 title: Text(l.metadata_esDeReviewArtwork),
@@ -404,7 +426,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
     final l = L.of(context);
     final controls = ref.read(metadataControlsProvider.notifier);
     var page = controls.savedJobs();
-    final selected = await showDialog<int>(
+    final selected = await showConsoleDialog<int>(
         context: context,
         builder: (dialogContext) => ScreenActionsWrapper(
             screenActions: _dialogActions(dialogContext),
@@ -480,7 +502,9 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   }
 
   Map<Type, Action<Intent>> _dialogActions(BuildContext dialogContext) => {
-        ...screenActions,
+        for (final action in screenActions.entries)
+          if (action.key != TabLeftIntent && action.key != TabRightIntent)
+            action.key: action.value,
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
           Navigator.pop(dialogContext);
           return null;
@@ -505,7 +529,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
     _clearFields();
     _invalid = false;
     final l = L.of(context);
-    await showDialog<void>(
+    await showConsoleDialog<void>(
       context: context,
       builder: (dialogContext) => ScreenActionsWrapper(
         screenActions: _dialogActions(dialogContext),

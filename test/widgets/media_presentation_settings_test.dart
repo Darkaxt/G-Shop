@@ -54,7 +54,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(MediaSettingsScreen), findsOneWidget);
     expect(container.read(mediaPresentationProvider).enabled, isFalse);
-    await tester.tap(find.text('Presentation'));
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('media-enable-3d')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonLeft1);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('media-enable-3d')), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
     await tester.pumpAndSettle();
     expect(
         tester

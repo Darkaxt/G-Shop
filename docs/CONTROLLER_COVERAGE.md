@@ -32,7 +32,7 @@ repairs; S18/S19 must apply the same contract to their new menus.
 | Download queue | Explicit selection, scroll, A/B/Y/reorder | Preserve status actions and queue reorder/close |
 | OS-owned account/file pickers | External Android activities | Device-specific boundary smoke, not app-owned source assertions |
 
-## Concrete findings awaiting main reproduction
+## Original source findings and main adjudication
 
 1. SettingsTabs uses GestureDetector without focus/activation
    (`lib/features/settings/widgets/settings_tabs.dart:34`). L2/R2 is present in
@@ -63,5 +63,35 @@ repairs; S18/S19 must apply the same contract to their new menus.
    parent navigation is suppressed at its overlay priority. Verify native
    framework behavior and add the missing route if confirmed.
 
-Status: source map completed; runtime adjudication/fixes NOT STARTED (S17).
-No source-review finding is represented as a verified fixed/native-tested result.
+Status: S17 ACTIVE. Findings 1-9 are integrated into the existing input paths.
+Focused rendered host checks pass main header/bumper/content ownership,
+cache policy/dropdowns/dialog/Apply/pins, Drive connection/mapping dialogs,
+metadata/save/media sections, shelf removal/scroll and long Game Info scrolling.
+The cache rail-only reproduction traced to the full-page restoration node being
+a directional traversal candidate; skipTraversal preserves explicit restoration
+while allowing rail -> real content. Dialogs get their own Material action scope.
+Deferred focus/overlay writes respect their owning app scope's disposal.
+Configuration/onboarding shortcuts are wired to their existing import/export
+callbacks; detail Display aliases use the same cover/motion state as touch icons.
+No second controller framework, worker or product feature was introduced.
+
+Host evidence: controller_menu_contract_test.dart, rom_cache_settings_test.dart,
+drive_source_setup_screen_test.dart, drive_source_mappings_screen_test.dart,
+metadata_settings_test.dart, save_backup_settings_test.dart,
+media_presentation_settings_test.dart, home_brand_filter_test.dart and
+library_discovery_test.dart. Existing source_menu_navigation_test.dart and
+search_navigation_priority_test.dart remain in the integrated regression scope.
+Broad regression findings were adjudicated and affected checks freshly passed,
+including configuration/onboarding shortcuts, existing popup/overlay paths and
+metadata workflows. Android key-event smoke on Thor verifies Settings selection,
+General/Audio R1/L1 switching, cache rail-to-content movement, A opening its pool
+dropdown and retention dialog, B cancellation/return and R1 section switching.
+Native Library checks retain manufacturer/type scope and chronological console
+tabs; L1 switches Hacks to Commercial with visible category focus and the
+unchanged honest Best 24 GBA prefix. No policy/pin/ROM changes were needed.
+These are actual Android event/render checks, not a claim that a human exercised
+every physical controller button or every OS-owned account/file picker. Host
+checks cover those app-owned handoffs and remain distinct from OS behavior.
+Both displays were verified OFF after this smoke. S17 remains ACTIVE until the
+final category/identity correction APK and preservation reconciliation pass;
+its original queued Gradle request is retained, not relaunched.

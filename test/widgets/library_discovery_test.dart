@@ -247,6 +247,8 @@ void main() {
     await tester.tap(find.text('FAVORITES').first);
     await tester.pumpAndSettle();
     expect(find.byType(BaseGameCard), findsOneWidget);
+    await tester.ensureVisible(find.text('MANUAL').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('MANUAL').first);
     await tester.pumpAndSettle();
     expect(find.byType(BaseGameCard), findsOneWidget);
@@ -568,6 +570,32 @@ void defineLibraryDiscoveryChecks({
     await tester.pumpAndSettle();
     expect(find.text('Best 6 · A-Z'), findsOneWidget,
         reason: 'A sparse rated collection advertises only its actual prefix');
+    final categories = find.byKey(const ValueKey('library-category-tabs'));
+    await tester
+        .tap(find.descendant(of: categories, matching: find.text('HACKS')));
+    await tester.pumpAndSettle();
+    await expectCards(['Game 02', 'Game 12']);
+    await tester.tap(find.text('INSTALLED').first);
+    await tester.pumpAndSettle();
+    await expectCards(['Game 02']);
+    await tester.ensureVisible(find.descendant(
+        of: find.byKey(const ValueKey('library-status-tabs')),
+        matching: find.text('ALL')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('library-status-tabs')),
+        matching: find.text('ALL')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+        find.descendant(of: categories, matching: find.text('COMMERCIAL')));
+    await tester.pumpAndSettle();
+    await expectCards(['Game 04', 'Game 06', 'Game 08', 'Game 10']);
+    await tester
+        .tap(find.descendant(of: categories, matching: find.text('ALL')));
+    await tester.pumpAndSettle();
+    await expectCards([
+      for (var i = 2; i <= 12; i += 2) 'Game ${i.toString().padLeft(2, '0')}'
+    ]);
     // Default browsing follows actual score changes, not the catalogue's A-Z
     // order or a fixed downloaded Top list. Fewer than 100 remains valid.
     final savedRating = (await db.query('library_metadata',
@@ -662,7 +690,13 @@ void defineLibraryDiscoveryChecks({
     await tester.tap(find.text('FAVORITES').first);
     await tester.pumpAndSettle();
     await expectCards(['Game 02']);
-    await tester.tap(find.text('ALL').first);
+    await tester.ensureVisible(find.descendant(
+        of: find.byKey(const ValueKey('library-status-tabs')),
+        matching: find.text('ALL')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('library-status-tabs')),
+        matching: find.text('ALL')));
     await tester.pumpAndSettle();
     await expectCards(evenGames);
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonY);
@@ -681,10 +715,18 @@ void defineLibraryDiscoveryChecks({
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing,
         reason: 'B closes console-scoped search');
+    await tester.ensureVisible(find.text('MANUAL').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('MANUAL').first);
     await tester.pumpAndSettle();
     await expectCards(['Game 12']);
-    await tester.tap(find.text('ALL').first);
+    await tester.ensureVisible(find.descendant(
+        of: find.byKey(const ValueKey('library-status-tabs')),
+        matching: find.text('ALL')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+        of: find.byKey(const ValueKey('library-status-tabs')),
+        matching: find.text('ALL')));
     await tester.pumpAndSettle();
     // Up enters console navigation; Left selects PS1, then Dashboard. A/Down
     // returns to content, preserving L2/R2's existing status-tab behavior.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/util/color_contrast.dart';
+import '../../../core/widgets/console_focusable.dart';
 
 class SettingsTabs extends StatelessWidget {
   final int selectedTab;
@@ -30,8 +31,9 @@ class SettingsTabs extends StatelessWidget {
 
         return Padding(
           padding: EdgeInsets.only(right: i < tabs.length - 1 ? 2.0 : 0.0),
-          child: GestureDetector(
-            onTap: onTap != null ? () => onTap!(i) : null,
+          child: ConsoleFocusable(
+            focusScale: 1,
+            onSelect: onTap != null ? () => onTap!(i) : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               padding: EdgeInsets.symmetric(

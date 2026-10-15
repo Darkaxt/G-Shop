@@ -23,6 +23,7 @@ class LibraryQueryFilter {
   final bool matchAllTags, ratingOrder, includeVariants;
   final int? top, featuredTop;
   final String? search, manualViewId;
+  final String? category;
   final int limit, offset;
   LibraryQueryFilter(
       {Set<String> platformIds = const {},
@@ -37,6 +38,7 @@ class LibraryQueryFilter {
       this.top,
       this.featuredTop,
       this.search,
+      this.category,
       this.manualViewId,
       this.limit = 50,
       this.offset = 0})
@@ -387,6 +389,7 @@ class LibraryQuery {
               txn,
               LibraryQueryFilter(
                   platformIds: filter.platformIds,
+                  category: filter.category,
                   tags: filter.tags,
                   genres: filter.genres,
                   regions: filter.regions,
@@ -452,7 +455,11 @@ class LibraryQuery {
     return List.unmodifiable(rows.map((r) => r['value'] as String));
   }
 
-  static String _policy(List<AssessedOverallScoreBasis> bases) => sha256
+  // Category facets are derived data. Version their projection with the score
+  // policy so an existing clean installation rebuilds them on its first query,
+  // without changing game identities or requiring a new metadata scrape.
+  static String _policy(List<AssessedOverallScoreBasis> bases) =>
+      'collection-categories-v1:${sha256
       .convert(utf8.encode(jsonEncode(bases
           .map((b) => [
                 b.sourceId,
@@ -465,10 +472,28 @@ class LibraryQuery {
                 b.unknownCountAssessment
               ])
           .toList())))
-      .toString();
+      .toString()}';
 
   static Future<void> _refresh(
       DatabaseExecutor db, List<AssessedOverallScoreBasis> bases) async {
+    final fingerprint = _policy(bases);
+    final policies = await db.query('library_query_policy', where: 'id = 1');
+    if (policies.isEmpty || policies.single['fingerprint'] != fingerprint) {
+      await db.insert(
+          'library_query_policy', {'id': 1, 'fingerprint': fingerprint},
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.execute('''INSERT OR IGNORE INTO library_query_dirty
+        SELECT edition_id FROM library_editions''');
+      if (policies.isNotEmpty &&
+          !(policies.single['fingerprint'] as String)
+              .startsWith('collection-categories-v1:')) {
+        // Only the category-index upgrade needs to recapture source ancestry.
+        // A subsequent score-policy change rebuilds derived projections without
+        // rewriting the unchanged catalogue identities for every cached file.
+        await db.execute('''INSERT OR IGNORE INTO library_query_cache_dirty
+          SELECT id FROM games WHERE is_folder=0''');
+      }
+    }
     // A newly indexed file is collection membership even before it is scraped.
     // Capture only committed cache changes, not the whole catalogue per filter.
     while (true) {
@@ -482,15 +507,6 @@ class LibraryQuery {
         await db.delete('library_query_cache_dirty',
             where: 'cache_row_id = ?', whereArgs: [id]);
       }
-    }
-    final fingerprint = _policy(bases);
-    final policies = await db.query('library_query_policy', where: 'id = 1');
-    if (policies.isEmpty || policies.single['fingerprint'] != fingerprint) {
-      await db.insert(
-          'library_query_policy', {'id': 1, 'fingerprint': fingerprint},
-          conflictAlgorithm: ConflictAlgorithm.replace);
-      await db.execute('''INSERT OR IGNORE INTO library_query_dirty
-        SELECT edition_id FROM library_editions''');
     }
     while (true) {
       final rows = await db.rawQuery('''SELECT d.edition_id,
@@ -619,6 +635,7 @@ class LibraryQuery {
         }
         final facets = {
           'tag': _contentTags(edition),
+          'category': {edition.contentCategory},
           'genre': genres,
           'region': edition.regions.toSet(),
           'language': edition.languages.toSet()
@@ -975,6 +992,11 @@ class LibraryQuery {
   }
 
   static void _validate(LibraryQueryFilter filter) {
+    if (filter.category != null &&
+        !{'commercial', 'hacks', 'homebrew', 'demo', 'unknown'}
+            .contains(filter.category)) {
+      throw ArgumentError('Invalid collection category');
+    }
     if (filter.limit < 1 ||
         filter.limit > 128 ||
         filter.offset < 0 ||
@@ -1030,6 +1052,7 @@ class LibraryQuery {
     }
     for (final facet in {
       'tag': filter.tags,
+      'category': {if (filter.category != null) filter.category!},
       'genre': filter.genres,
       'region': filter.regions,
       'language': filter.languages

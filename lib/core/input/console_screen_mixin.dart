@@ -21,7 +21,10 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   @override
   void initState() {
     super.initState();
-    screenFocusNode = FocusNode(debugLabel: 'Screen_$routeId');
+    // Restoration is explicit. This full-page node is not a directional target:
+    // its viewport-sized rectangle otherwise intercepts rail -> content moves.
+    screenFocusNode =
+        FocusNode(debugLabel: 'Screen_$routeId', skipTraversal: true);
     _focusStateManager = ref.read(focusStateManagerProvider.notifier);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -97,11 +100,11 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     Map<String, dynamic>? metadata,
   }) {
     _focusStateManager.saveFocusState(
-          routeId,
-          selectedIndex: selectedIndex,
-          focusedElementId: focusedElementId,
-          metadata: metadata ?? const {},
-        );
+      routeId,
+      selectedIndex: selectedIndex,
+      focusedElementId: focusedElementId,
+      metadata: metadata ?? const {},
+    );
   }
 
   FocusStateEntry? getSavedFocusState() {
@@ -112,7 +115,8 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   Widget buildWithActions(Widget child,
       {KeyEventResult Function(FocusNode, KeyEvent)? onKeyEvent,
-      bool localFocusScope = false}) {
+      bool localFocusScope = false,
+      bool materialControls = false}) {
     final content = Focus(
       focusNode: screenFocusNode,
       onKeyEvent: onKeyEvent,
@@ -122,6 +126,7 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     return ScreenActionsWrapper(
       screenActions: screenActions,
       additionalShortcuts: additionalShortcuts,
+      materialControls: materialControls,
       // The screen's own restoration node must be inside this scope too.
       // An inner scope around controls alone still lets unfocus fall back to
       // the route scope outside Actions after a focused control is removed.

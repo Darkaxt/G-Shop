@@ -843,6 +843,12 @@ void main() {
     final status = find.byKey(const ValueKey('save-nav-status'));
     expect(tester.getRect(area).right,
         lessThan(tester.getRect(find.byType(SaveBackupSetupPanel)).left));
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('save-content-backup')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonLeft1);
+    await tester.pumpAndSettle();
+    expect(find.byType(SaveBackupSetupPanel), findsOneWidget);
     await tester.tap(status);
     await tester.pumpAndSettle();
     expect(find.byType(SaveBackupSetupPanel), findsNothing);

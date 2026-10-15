@@ -38,12 +38,12 @@ class _ShelfPickerDialog extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_ShelfPickerDialog> createState() =>
-      _ShelfPickerDialogState();
+  ConsumerState<_ShelfPickerDialog> createState() => _ShelfPickerDialogState();
 }
 
 class _ShelfPickerDialogState extends ConsumerState<_ShelfPickerDialog> {
   int _focusedIndex = 0;
+  final _itemKeys = <int, GlobalKey>{};
   final FocusNode _focusNode = FocusNode(debugLabel: 'ShelfPicker');
 
   @override
@@ -65,6 +65,16 @@ class _ShelfPickerDialogState extends ConsumerState<_ShelfPickerDialog> {
     ref.read(feedbackServiceProvider).confirm();
     Navigator.pop(context);
     widget.onSelect(widget.shelves[index].id);
+  }
+
+  void _scrollToFocused() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _itemKeys[_focusedIndex]?.currentContext;
+      if (mounted && target != null) {
+        Scrollable.ensureVisible(target,
+            duration: const Duration(milliseconds: 150));
+      }
+    });
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -89,6 +99,7 @@ class _ShelfPickerDialogState extends ConsumerState<_ShelfPickerDialog> {
     if (key == LogicalKeyboardKey.arrowUp) {
       if (_focusedIndex > 0) {
         setState(() => _focusedIndex--);
+        _scrollToFocused();
         ref.read(feedbackServiceProvider).tick();
       }
       return KeyEventResult.handled;
@@ -96,6 +107,7 @@ class _ShelfPickerDialogState extends ConsumerState<_ShelfPickerDialog> {
     if (key == LogicalKeyboardKey.arrowDown) {
       if (_focusedIndex < widget.shelves.length - 1) {
         setState(() => _focusedIndex++);
+        _scrollToFocused();
         ref.read(feedbackServiceProvider).tick();
       }
       return KeyEventResult.handled;
@@ -120,108 +132,112 @@ class _ShelfPickerDialogState extends ConsumerState<_ShelfPickerDialog> {
           child: Material(
             type: MaterialType.transparency,
             child: Container(
-            width: rs.isPortrait ? rs.screenWidth * 0.8 : (rs.screenWidth * 0.4).clamp(260, 380),
-            constraints: BoxConstraints(maxHeight: (rs.screenHeight * 0.6).clamp(250, 350)),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.circular(rs.radius.lg),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  blurRadius: 24,
+              width: rs.isPortrait
+                  ? rs.screenWidth * 0.8
+                  : (rs.screenWidth * 0.4).clamp(260, 380),
+              constraints: BoxConstraints(
+                  maxHeight: (rs.screenHeight * 0.6).clamp(250, 350)),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(rs.radius.lg),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.all(rs.spacing.md),
-                  child: Text(
-                    widget.title,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: rs.isSmall ? 12 : 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    blurRadius: 24,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(rs.spacing.md),
+                    child: Text(
+                      widget.title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: rs.isSmall ? 12 : 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
-                ),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.only(bottom: rs.spacing.md),
-                    itemCount: widget.shelves.length,
-                    itemBuilder: (context, index) {
-                      final shelf = widget.shelves[index];
-                      final isFocused = _focusedIndex == index;
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.only(bottom: rs.spacing.md),
+                      itemCount: widget.shelves.length,
+                      itemBuilder: (context, index) {
+                        final shelf = widget.shelves[index];
+                        final isFocused = _focusedIndex == index;
 
-                      return GestureDetector(
-                        onTap: () => _select(index),
-                        child: MouseRegion(
-                          onEnter: (_) =>
-                              setState(() => _focusedIndex = index),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: rs.spacing.md,
-                              vertical: rs.isSmall ? 10 : 12,
-                            ),
-                            color: isFocused
-                                ? Colors.cyanAccent.withValues(alpha: 0.12)
-                                : Colors.transparent,
-                            child: Row(
-                              children: [
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  width: 3,
-                                  height: 18,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(2),
+                        return GestureDetector(
+                          key: _itemKeys.putIfAbsent(index, GlobalKey.new),
+                          onTap: () => _select(index),
+                          child: MouseRegion(
+                            onEnter: (_) =>
+                                setState(() => _focusedIndex = index),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: rs.spacing.md,
+                                vertical: rs.isSmall ? 10 : 12,
+                              ),
+                              color: isFocused
+                                  ? Colors.cyanAccent.withValues(alpha: 0.12)
+                                  : Colors.transparent,
+                              child: Row(
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    width: 3,
+                                    height: 18,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(2),
+                                      color: isFocused
+                                          ? Colors.cyanAccent
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                  SizedBox(width: rs.spacing.sm),
+                                  Icon(
+                                    Icons.collections_bookmark_rounded,
+                                    size: 16,
                                     color: isFocused
                                         ? Colors.cyanAccent
-                                        : Colors.transparent,
+                                        : Colors.grey[500],
                                   ),
-                                ),
-                                SizedBox(width: rs.spacing.sm),
-                                Icon(
-                                  Icons.collections_bookmark_rounded,
-                                  size: 16,
-                                  color: isFocused
-                                      ? Colors.cyanAccent
-                                      : Colors.grey[500],
-                                ),
-                                SizedBox(width: rs.spacing.sm),
-                                Expanded(
-                                  child: Text(
-                                    shelf.name,
-                                    style: TextStyle(
-                                      fontSize: rs.isSmall ? 13 : 14,
-                                      fontWeight: isFocused
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                      color: isFocused
-                                          ? Colors.white
-                                          : Colors.white70,
+                                  SizedBox(width: rs.spacing.sm),
+                                  Expanded(
+                                    child: Text(
+                                      shelf.name,
+                                      style: TextStyle(
+                                        fontSize: rs.isSmall ? 13 : 14,
+                                        fontWeight: isFocused
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        color: isFocused
+                                            ? Colors.white
+                                            : Colors.white70,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ),

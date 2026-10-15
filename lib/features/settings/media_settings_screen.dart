@@ -30,6 +30,14 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
+        TabLeftIntent: CallbackAction<TabLeftIntent>(onInvoke: (_) {
+          setState(() => _section = 1 - _section);
+          return null;
+        }),
+        TabRightIntent: CallbackAction<TabRightIntent>(onInvoke: (_) {
+          setState(() => _section = 1 - _section);
+          return null;
+        }),
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
           Navigator.maybePop(context);
           return null;

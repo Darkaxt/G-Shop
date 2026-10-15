@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 
+enum SystemType {
+  homeConsole('Home consoles', Icons.tv),
+  handheld('Handhelds', Icons.videogame_asset_outlined),
+  arcade('Arcade', Icons.sports_esports_outlined),
+  computer('Computers', Icons.computer);
+
+  final String label;
+  final IconData icon;
+  const SystemType(this.label, this.icon);
+}
+
 class SystemModel {
   final String id;
   final String name;
   final String manufacturer;
   final int releaseYear;
+  final Set<SystemType> types;
   final bool isZipped;
   final String libretroId;
   final List<String> romExtensions;
@@ -18,6 +30,7 @@ class SystemModel {
     required this.name,
     required this.manufacturer,
     required this.releaseYear,
+    this.types = const {SystemType.homeConsole},
     this.isZipped = true,
     this.libretroId = '',
     this.romExtensions = const [],
@@ -26,6 +39,24 @@ class SystemModel {
     this.multiFileExtensions,
     this.raConsoleId,
   });
+
+  static int compareChronologically(SystemModel a, SystemModel b) {
+    final year = a.releaseYear.compareTo(b.releaseYear);
+    if (year != 0) return year;
+    final name = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    return name != 0 ? name : a.id.compareTo(b.id);
+  }
+
+  static int compareIdsChronologically(String a, String b) {
+    final first = supportedSystems.where((s) => s.id == a).firstOrNull;
+    final second = supportedSystems.where((s) => s.id == b).firstOrNull;
+    if (first != null && second != null) {
+      return compareChronologically(first, second);
+    }
+    if (first != null) return -1;
+    if (second != null) return 1;
+    return a.toLowerCase().compareTo(b.toLowerCase());
+  }
 
   /// Whether this system has RetroAchievements support.
   bool get hasRetroAchievements => raConsoleId != null;
@@ -127,6 +158,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'switch',
+      types: {SystemType.homeConsole, SystemType.handheld},
       name: 'Nintendo Switch',
       manufacturer: 'Nintendo',
       releaseYear: 2017,
@@ -138,6 +170,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'gb',
+      types: {SystemType.handheld},
       name: 'Game Boy',
       manufacturer: 'Nintendo',
       releaseYear: 1989,
@@ -150,6 +183,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'gbc',
+      types: {SystemType.handheld},
       name: 'Game Boy Color',
       manufacturer: 'Nintendo',
       releaseYear: 1998,
@@ -162,6 +196,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'gba',
+      types: {SystemType.handheld},
       name: 'Game Boy Advance',
       manufacturer: 'Nintendo',
       releaseYear: 2001,
@@ -174,6 +209,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'nds',
+      types: {SystemType.handheld},
       name: 'Nintendo DS',
       manufacturer: 'Nintendo',
       releaseYear: 2004,
@@ -210,6 +246,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'dsi',
+      types: {SystemType.handheld},
       name: 'Nintendo DSi',
       manufacturer: 'Nintendo',
       releaseYear: 2008,
@@ -222,6 +259,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'n3ds',
+      types: {SystemType.handheld},
       name: 'Nintendo 3DS',
       manufacturer: 'Nintendo',
       releaseYear: 2011,
@@ -272,6 +310,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'psp',
+      types: {SystemType.handheld},
       name: 'PlayStation Portable',
       manufacturer: 'Sony',
       releaseYear: 2004,
@@ -284,6 +323,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'psvita',
+      types: {SystemType.handheld},
       name: 'PlayStation Vita',
       manufacturer: 'Sony',
       releaseYear: 2011,
@@ -320,6 +360,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'gamegear',
+      types: {SystemType.handheld},
       name: 'Game Gear',
       manufacturer: 'Sega',
       releaseYear: 1990,
@@ -421,6 +462,7 @@ class SystemModel {
     // ===== SNK =====
     SystemModel(
       id: 'ngp',
+      types: {SystemType.handheld},
       name: 'Neo Geo Pocket',
       manufacturer: 'SNK',
       releaseYear: 1998,
@@ -447,6 +489,7 @@ class SystemModel {
     // ===== BANDAI =====
     SystemModel(
       id: 'wonderswan',
+      types: {SystemType.handheld},
       name: 'WonderSwan',
       manufacturer: 'Bandai',
       releaseYear: 1999,
@@ -499,6 +542,7 @@ class SystemModel {
     // ===== MICROSOFT =====
     SystemModel(
       id: 'msx',
+      types: {SystemType.computer},
       name: 'MSX',
       manufacturer: 'Microsoft',
       releaseYear: 1983,
@@ -512,6 +556,7 @@ class SystemModel {
     // ===== AMSTRAD =====
     SystemModel(
       id: 'amstradcpc',
+      types: {SystemType.computer},
       name: 'Amstrad CPC',
       manufacturer: 'Amstrad',
       releaseYear: 1984,
@@ -599,6 +644,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'lynx',
+      types: {SystemType.handheld},
       name: 'Atari Lynx',
       manufacturer: 'Atari',
       releaseYear: 1989,
@@ -624,6 +670,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'atarist',
+      types: {SystemType.computer},
       name: 'Atari ST',
       manufacturer: 'Atari',
       releaseYear: 1985,
@@ -651,6 +698,7 @@ class SystemModel {
     // ===== COMMODORE =====
     SystemModel(
       id: 'c64',
+      types: {SystemType.computer},
       name: 'Commodore 64',
       manufacturer: 'Commodore',
       releaseYear: 1982,
@@ -663,6 +711,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'vic20',
+      types: {SystemType.computer},
       name: 'VIC-20',
       manufacturer: 'Commodore',
       releaseYear: 1980,
@@ -675,6 +724,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'amiga',
+      types: {SystemType.computer},
       name: 'Amiga',
       manufacturer: 'Commodore',
       releaseYear: 1985,
@@ -688,6 +738,7 @@ class SystemModel {
     // ===== SINCLAIR =====
     SystemModel(
       id: 'zxspectrum',
+      types: {SystemType.computer},
       name: 'ZX Spectrum',
       manufacturer: 'Sinclair',
       releaseYear: 1982,
@@ -701,6 +752,7 @@ class SystemModel {
     // ===== TANGERINE =====
     SystemModel(
       id: 'oric',
+      types: {SystemType.computer},
       name: 'Oric',
       manufacturer: 'Tangerine',
       releaseYear: 1983,
@@ -714,6 +766,7 @@ class SystemModel {
     // ===== SHARP =====
     SystemModel(
       id: 'x68000',
+      types: {SystemType.computer},
       name: 'Sharp X68000',
       manufacturer: 'Sharp',
       releaseYear: 1987,
@@ -726,6 +779,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'x1',
+      types: {SystemType.computer},
       name: 'Sharp X1',
       manufacturer: 'Sharp',
       releaseYear: 1982,
@@ -739,6 +793,7 @@ class SystemModel {
     // ===== FUJITSU =====
     SystemModel(
       id: 'fmtowns',
+      types: {SystemType.computer},
       name: 'FM Towns',
       manufacturer: 'Fujitsu',
       releaseYear: 1989,
@@ -781,6 +836,7 @@ class SystemModel {
     // ===== APPLE =====
     SystemModel(
       id: 'appleii',
+      types: {SystemType.computer},
       name: 'Apple II',
       manufacturer: 'Apple',
       releaseYear: 1977,
@@ -794,6 +850,7 @@ class SystemModel {
     // ===== NOKIA =====
     SystemModel(
       id: 'ngage',
+      types: {SystemType.handheld},
       name: 'N-Gage',
       manufacturer: 'Nokia',
       releaseYear: 2003,
@@ -820,6 +877,7 @@ class SystemModel {
     // ===== ARCADE =====
     SystemModel(
       id: 'arcade',
+      types: {SystemType.arcade},
       name: 'Arcade',
       manufacturer: 'Various',
       releaseYear: 1978,
@@ -833,6 +891,7 @@ class SystemModel {
     // ===== DOS =====
     SystemModel(
       id: 'dos',
+      types: {SystemType.computer},
       name: 'DOS',
       manufacturer: 'Microsoft',
       releaseYear: 1981,
@@ -846,6 +905,7 @@ class SystemModel {
     // ===== NINTENDO =====
     SystemModel(
       id: 'gameandwatch',
+      types: {SystemType.handheld},
       name: 'Game & Watch',
       manufacturer: 'Nintendo',
       releaseYear: 1980,
@@ -859,6 +919,7 @@ class SystemModel {
     // ===== FANTASY =====
     SystemModel(
       id: 'tic80',
+      types: {SystemType.computer},
       name: 'TIC-80',
       manufacturer: 'Nesbox',
       releaseYear: 2017,
@@ -871,6 +932,7 @@ class SystemModel {
     ),
     SystemModel(
       id: 'pico8',
+      types: {SystemType.computer},
       name: 'PICO-8',
       manufacturer: 'Lexaloffle',
       releaseYear: 2015,

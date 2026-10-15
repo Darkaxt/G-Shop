@@ -69,13 +69,15 @@ void main() {
     await MetadataRefreshJobs.install(db);
     await db
         .execute('''CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT,
-      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL,
+      systemSlug TEXT NOT NULL, displayName TEXT NOT NULL, filename TEXT,
       is_folder INTEGER NOT NULL DEFAULT 0, artifact_key TEXT, remote_artifact TEXT)''');
     store = LibraryStore(Future.value(db));
     jobs = MetadataRefreshJobs(Future.value(db));
     provider = _Provider();
     for (final name in ['Successful', 'Unmatched', 'Failed']) {
-      await db.insert('games', {'systemSlug': 'snes', 'displayName': name});
+      await db.insert('games', {
+        'systemSlug': 'snes', 'displayName': name, 'filename': '$name.sfc'
+      });
     }
   });
   tearDown(() async {

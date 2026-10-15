@@ -71,6 +71,16 @@ class _RomCacheSettingsState extends ConsumerState<RomCacheSettingsScreen>
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
+        TabLeftIntent: CallbackAction<TabLeftIntent>(onInvoke: (_) {
+          setState(() => _section = _CacheSection
+              .values[(_section.index - 1) % _CacheSection.values.length]);
+          return null;
+        }),
+        TabRightIntent: CallbackAction<TabRightIntent>(onInvoke: (_) {
+          setState(() => _section = _CacheSection
+              .values[(_section.index + 1) % _CacheSection.values.length]);
+          return null;
+        }),
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
           Navigator.maybePop(context);
           return null;
@@ -163,7 +173,7 @@ class _RomCacheSettingsState extends ConsumerState<RomCacheSettingsScreen>
             : 1;
     var currentText = raw == null ? '' : (raw / divisor).toString();
     String? error;
-    final value = await showDialog<({bool inherit, int? value})>(
+    final value = await showConsoleDialog<({bool inherit, int? value})>(
         context: context,
         builder: (context) => StatefulBuilder(
             builder: (context, update) => AlertDialog(

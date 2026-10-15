@@ -607,7 +607,20 @@ class LibraryStore {
         // The identity transaction already indexed unchanged records. A query
         // following durable recovery must not rebuild that graph a second time.
         // Real changes still use the same component correction/invalidation path.
-        if (gameChanged || editionChanged) {
+        final identityChanged = gameChanged ||
+            (editionChanged &&
+                (existingEdition.isEmpty ||
+                    metadataIdentity({
+                          'game_json': gameRow['record_json'],
+                          'edition_json': existingEdition.single['record_json'],
+                        }) !=
+                        metadataIdentity({
+                          'game_json': gameRow['record_json'],
+                          'edition_json': editionRow['record_json'],
+                        })));
+        // Presentation-only categories already invalidate their query facets;
+        // they do not alter the canonical identity graph or its score bindings.
+        if (identityChanged) {
           await indexCanonicalGroups(db, editionId: edition.id);
         }
         yield editionId;
@@ -735,7 +748,12 @@ class LibraryStore {
         return edition;
       }
     }
-    if (declarations.isEmpty && previous.isEmpty) return edition;
+    if (declarations.isEmpty && previous.isEmpty) {
+      // A completely traversed published source root supplies the normal-ROM
+      // navigation category, not an official-release or scoring assertion.
+      return EditionIdentity.fromJson(
+          {...edition.toJson(), 'collectionCategory': 'commercial'});
+    }
     if (generatedOfficial) edition = _retireExactRomClassification(edition);
     final evidence = edition.evidence
         .where((e) => !owned(e))
@@ -759,6 +777,7 @@ class LibraryStore {
     }
     final record = {
       ...edition.toJson(),
+      'collectionCategory': declarations.isEmpty ? 'commercial' : null,
       'tags': tags.toList()..sort(),
       'translatedLanguages': languages,
       'evidence': evidence
@@ -1269,6 +1288,7 @@ class LibraryStore {
     game.remove('title');
     final edition =
         jsonDecode(row['edition_json'] as String) as Map<String, dynamic>;
+    edition.remove('collectionCategory'); // Navigation is not content identity.
     if (providerId == null) {
       // Canonical grouping and pre-v26 records retain the full identity key.
       return sha256

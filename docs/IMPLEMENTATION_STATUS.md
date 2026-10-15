@@ -87,11 +87,88 @@ S16 reconciliation: RANK-01 passes its host and real-device criteria; no blocker
 or required deferrals remain. Closure assessment: the shared collector opener,
 existing durable job snapshots and query invalidation retain one metadata owner;
 no new scheduler or duplicated scoring logic, and no required consolidation found.
-S17 acceptance blockers (internal, implementation continues): type/chronological
-navigation, categories and complete app-owned controller wiring (including L1/R1
-tabs) remain to implement and verify. These block S17 closure and dependent S18
-navigation, not continued S17 work. No external execution blocker or current-stage
-tracked deferral. S18 owns UniPatcher/engine licensing and
+S17 integrated host checkpoint: explicit system types and shared chronological
+ordering now drive carousel/grid/library navigation. Nintendo home/handheld,
+hybrid uniqueness, tie/reset and represented-type suppression pass registry and
+rendered home checks at 1920x1080 and 640x360. Library retains parent scope via a
+compact breadcrumb; category and status controls share a row to preserve media
+preview space. Commercial/Hacks intersect existing tags, Installed, Favorites,
+search and canonical Top without inventing official ROM identity or scores.
+Published folder-ancestry fixtures cover normal root, nested Hacks, Color Hacks,
+T-En/Undub/Uncensor and homebrew/demo. Category-only changes retain metadata binds.
+
+Controller repairs use existing Actions/Focus ownership: L1/R1 override zoom on
+tabbed pages, L2/R2 remain aliases, and PageUp/Down retain grid zoom. Full-page
+restoration nodes no longer intercept directional traversal. Material popup
+routes own activate/back/directions; main settings headers are focusable. Host
+checks pass the full cache switch/dropdown/dialog/Apply/game-pin path, main tabs,
+Drive connection/mapping return focus, metadata/save/media sections, shelf
+removal/offscreen selection and Game Info scrolling. Deferred focus/overlay
+release cannot write into a closed app scope. A newly added metadata test
+initially awaited real SQLite work from the synthetic widget clock; that failed
+run was cancelled through its original tool session, and the corrected test
+joins the controller's real load in runAsync. No duplicate workload or orphan
+tester remained. The coherent affected host workload passes (2026-10-15).
+
+Subsequent upgrade reproduction: an existing clean database lacked the new
+category facets even though fresh fixtures passed. The query projection now
+versions its derived category index and reconciles existing source/tag facts
+through the normal bounded query owner, without a schema/identity change,
+provider requests or ROM reads. Its failing reproduction was observed in the
+broad run; fresh affected verification now passes the old clean-database upgrade
+and the bounded score-policy rebuild. Only the category revision recaptures
+source ancestry; an ordinary score-policy change keeps the existing paged
+projection path. Full analysis and the subsequent changed-file analysis are
+clean. The broad run also exposed stale
+test-only expectations for existing schema 39, the established emulator-name
+resolver and Drive's batch metadata protocol; fixtures are aligned without
+changing those production contracts or weakening data/grant assertions.
+
+Host reconciliation: the broad run failed and is retained as diagnostic evidence,
+not reported as passing. All non-live failures were traced and repaired, then
+affected checks freshly passed: shared controller/menu ownership, configuration
+import/export, migration/data preservation, category/ranking queries, existing
+metadata artwork/detail/match-correction workflows and compact layout. Tests now
+scroll clipped status/shelf tabs before tapping, and the reviewed cover golden
+includes the previously authorized handwritten fallback label. Existing RomM
+live checks require their unavailable localhost service; no RomM change is part
+of S17 and no live RomM pass is claimed. The live-tagged collector fixture's
+missing filename was corrected without issuing a provider request.
+The final 30,000-game query check passed with 128-row identity/metadata bounds,
+268,709,888-byte peak test RSS, 61,199 ms initial projection and 1,728 ms for two
+warm filtered queries. These are host fixture measurements, not Android timings.
+All test workloads were joined sequentially; no memory-related failure occurred.
+
+Native checkpoint: ticket 1153 acquired the shared gate and build/helper exited
+0 with daemon exit verified. In-place installation preserved the production
+signer. Actual Android controller events open Settings, switch General/Audio
+with R1/L1, enter cache content, open/cancel its pool dropdown and numeric dialog,
+and switch cache sections. Nintendo/Handheld Library navigation shows Game &
+Watch, GB, GBC, GBA, NDS, DSi, 3DS, Switch chronologically; category browsing
+renders translated/color-hack entries, and L1 changes Hacks to Commercial.
+The read-only GBA snapshot reports 7,335 commercial / 339 hacks, category revision
+installed and no dirty rows, preserving 67 IGDB and 140 ScreenScraper records.
+No manually requested sync, scrape, ROM download or eviction was started.
+Normal startup did resume the existing automatic catalogue sync (its local-scan
+indicator was visible); do not claim startup itself performs no catalogue work.
+
+That native upgrade exposed unnecessary canonical-graph rebuilding for a
+navigation-only category change while SQLite held its transaction. The existing
+identity fingerprint already excludes this presentation field. A failing SQL
+trigger-audit reproduction proved the graph was nevertheless rewritten; capture
+now reindexes only when that identity changes. Fresh catalogue/query/migration
+checks pass both zero graph writes for category-only restoration and graph
+recomputation for actual modification changes. No new scheduler, timeout or
+background migration was added. Initial device upgrade completed without
+interruption; no improved Android upgrade timing is claimed for the new fix.
+
+S17 acceptance blockers: final signed build/update/preservation reconciliation
+remains (NAV-01/CACHE-UI-02/INPUT-01). Request 1156 is retained in its original
+managed session while the shared gate waits for existing Gradle activity. It
+packages the verified identity separation; earlier artifacts are not substituted
+for its final update. This blocks S17 closure and dependent S18 navigation, not
+continued observation of the original request.
+No current-stage tracked deferral. S18 owns UniPatcher/engine licensing and
 format evaluation; owner now authorizes GPL-compatible combined distribution with
 upstream notices retained and Darkaxt attribution, so licensing preference is not
 an external blocker. S17 additionally owns CACHE-UI-02: reproduce/repair the

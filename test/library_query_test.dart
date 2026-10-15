@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1401,6 +1402,56 @@ void main() {
   });
 
   test(
+      'collection categories intersect tags and Top without borrowing identity',
+      () async {
+    final official = await seed(1, score: 90, tags: {'official'});
+    final translated = await seed(2, score: 80, tags: {'T-Eng'});
+    await seed(3, tags: {'homebrew'});
+    await seed(4, tags: {'demo'});
+    final unknown = await seed(5, tags: {});
+    expect(
+        (await read(filter: LibraryQueryFilter(category: 'commercial')))
+            .items
+            .map((item) => item.editionId),
+        [official]);
+    expect(
+        (await read(
+                filter: LibraryQueryFilter(category: 'hacks', tags: {'T-Eng'})))
+            .items
+            .map((item) => item.editionId),
+        [translated]);
+    expect(
+        (await read(filter: LibraryQueryFilter(category: 'hacks', top: 1)))
+            .items,
+        isEmpty);
+    expect((await read()).items, hasLength(5),
+        reason: 'All retains unknown, demo and homebrew');
+    final edition = (await store.edition(unknown))!;
+    final game = (await store.game(edition.gameId))!;
+    final before = LibraryStore.metadataIdentity({
+      'game_json': jsonEncode(game.toJson()),
+      'edition_json': jsonEncode(edition.toJson())
+    }, providerId: 'igdb');
+    final located = EditionIdentity.fromJson(
+        {...edition.toJson(), 'collectionCategory': 'commercial'});
+    await store.putEdition(located);
+    expect(
+        LibraryStore.metadataIdentity({
+          'game_json': jsonEncode(game.toJson()),
+          'edition_json': jsonEncode(located.toJson())
+        }, providerId: 'igdb'),
+        before,
+        reason:
+            'Source layout category is not a ROM or metadata identity change');
+    expect(
+        (await read(filter: LibraryQueryFilter(category: 'commercial'))).items,
+        hasLength(2));
+    expect(located.tags, isEmpty,
+        reason:
+            'Commercial navigation must not invent an official-release fact');
+  });
+
+  test(
       'sparse coverage absent assessment and provider-only records stay honest',
       () async {
     await seed(1, score: 90);
@@ -1420,6 +1471,30 @@ void main() {
     expect(unapproved.rankedGames, 0);
     expect(
         (await query.page(filter: LibraryQueryFilter())).items, hasLength(3));
+  });
+
+  test('pre-category projection rebuilds on normal query without a new scrape',
+      () async {
+    final edition = await seed(1, score: 90);
+    await read();
+    final facts = await db.query('library_metadata');
+    // Exact fingerprint shape used by production before category facets existed.
+    final oldFingerprint = sha256.convert(utf8.encode(jsonEncode([
+      [basis.sourceId, basis.kind.name, basis.scaleMinimum, basis.scaleMaximum,
+        basis.platformIds.toList()..sort(), basis.minimumVoteCount,
+        basis.assessmentReference, basis.unknownCountAssessment]
+    ]))).toString();
+    await db.update('library_query_policy', {'fingerprint': oldFingerprint});
+    await db.delete('library_query_facets', where: 'dimension=?',
+        whereArgs: ['category']);
+    await db.delete('library_query_dirty');
+    await db.delete('library_query_cache_dirty');
+    final result = await read(filter: LibraryQueryFilter(category: 'commercial'));
+    expect(result.items.map((item) => item.editionId), [edition]);
+    expect(result.items.single.score!.rating.normalizedValue, 90);
+    expect(await db.query('library_metadata'), facts);
+    expect(await db.query('library_query_dirty'), isEmpty);
+    expect(await db.query('library_query_cache_dirty'), isEmpty);
   });
 
   test('add remove score and pending refresh changes recompute without refills',

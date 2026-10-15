@@ -37,6 +37,18 @@ class _ConfigModeScreenState extends ConsumerState<ConfigModeScreen>
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
+        ToggleOverlayIntent: CallbackAction<ToggleOverlayIntent>(onInvoke: (_) {
+          if (!ref.read(onboardingControllerProvider).hasConsoleSelected) {
+            _exportConfig();
+          }
+          return null;
+        }),
+        FavoriteIntent: CallbackAction<FavoriteIntent>(onInvoke: (_) {
+          if (!ref.read(onboardingControllerProvider).hasConsoleSelected) {
+            _importConfig();
+          }
+          return null;
+        }),
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
           _handleBack();
           return null;
@@ -205,6 +217,7 @@ class _ConfigModeScreenState extends ConsumerState<ConfigModeScreen>
           ),
         ),
       ),
+      localFocusScope: true,
     );
   }
 

@@ -38,46 +38,58 @@ class GameDetailOverlay extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.goBack, includeRepeats: false):
             onClose,
       },
-      child: Focus(
-        autofocus: true,
-        child: Container(
-          color: Colors.black.withValues(alpha: 0.85),
-          child: SafeArea(
-            child: Center(
-              child: Container(
-                margin: const EdgeInsets.all(24),
-                constraints: BoxConstraints(
-                  maxWidth: (rs.screenWidth - 48).clamp(280, 520),
-                  maxHeight: (rs.screenHeight - 48).clamp(300, 600),
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      blurRadius: 20,
+      child: Shortcuts(
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.arrowDown):
+                ScrollIntent(direction: AxisDirection.down),
+            SingleActivator(LogicalKeyboardKey.arrowUp):
+                ScrollIntent(direction: AxisDirection.up),
+            SingleActivator(LogicalKeyboardKey.pageDown): ScrollIntent(
+                direction: AxisDirection.down, type: ScrollIncrementType.page),
+            SingleActivator(LogicalKeyboardKey.pageUp): ScrollIntent(
+                direction: AxisDirection.up, type: ScrollIncrementType.page),
+          },
+          child: Focus(
+            autofocus: true,
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.85),
+              child: SafeArea(
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.all(24),
+                    constraints: BoxConstraints(
+                      maxWidth: (rs.screenWidth - 48).clamp(280, 520),
+                      maxHeight: (rs.screenHeight - 48).clamp(300, 600),
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildHeader(),
-                    const Divider(color: Colors.grey, height: 1),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: _buildContent(l),
-                      ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 20,
+                        ),
+                      ],
                     ),
-                  ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildHeader(),
+                        const Divider(color: Colors.grey, height: 1),
+                        Flexible(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child:
+                                Focus(autofocus: true, child: _buildContent(l)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
+          )),
     );
   }
 

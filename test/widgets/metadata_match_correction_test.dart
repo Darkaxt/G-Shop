@@ -124,6 +124,8 @@ void defineMetadataMatchCorrectionChecks({
             home: MetadataSettingsScreen(
                 cacheRowId: 1, editionId: id, gameTitle: game.title))));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('metadata-open-scraping')));
+    await tester.pumpAndSettle();
     final discover = find.byKey(const ValueKey('metadata-rediscover'));
     expect(discover, findsOneWidget);
     await tester.ensureVisible(discover);
@@ -137,7 +139,7 @@ void defineMetadataMatchCorrectionChecks({
     expect(provider.calls.single.editionId, id);
     expect((await store.game(game.id))!.providerIds['screenscraper'], '99');
     expect((await store.metadata(id, 'screenscraper'))!.toJson(), old.toJson());
-    expect(find.text('Review cached matches'), findsOneWidget);
+    expect(find.text('Review possible matches'), findsOneWidget);
     await checkpoint?.call('match-correction-preserved', tester);
     final candidate = find.byKey(ValueKey('review-candidate-$id'));
     await tester.ensureVisible(candidate);

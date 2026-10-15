@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/input/input.dart';
 import '../../models/config/app_config.dart';
 import '../../models/config/source.dart';
 import '../../models/system_model.dart';
@@ -30,7 +31,9 @@ class DriveSourceMappingsScreen extends ConsumerStatefulWidget {
 }
 
 class _DriveSourceMappingsScreenState
-    extends ConsumerState<DriveSourceMappingsScreen> {
+    extends ConsumerState<DriveSourceMappingsScreen> with ConsoleScreenMixin {
+  @override
+  String get routeId => 'drive-source-mappings';
   List<DriveFile>? _folders;
   final Map<String, String?> _selectedBySystem = {};
   final Map<String, String> _persistedBySystem = {};
@@ -127,59 +130,62 @@ class _DriveSourceMappingsScreenState
   Widget build(BuildContext context) {
     final config =
         ref.watch(bootstrappedConfigProvider).valueOrNull ?? AppConfig.empty;
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppTheme.backgroundColor,
-        foregroundColor: Colors.white,
-        title: const Text('Map Drive folders'),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: _folders == null && _error == null
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      const Text(
-                        'Choose only folders observed in the last successful Drive refresh. Empty selections disable this source for that system.',
-                        style: TextStyle(color: Colors.white60),
+    return buildWithActions(
+        Scaffold(
+          backgroundColor: AppTheme.backgroundColor,
+          appBar: AppBar(
+            backgroundColor: AppTheme.backgroundColor,
+            foregroundColor: Colors.white,
+            title: const Text('Map Drive folders'),
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: _folders == null && _error == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        padding: const EdgeInsets.all(24),
+                        children: [
+                          const Text(
+                            'Choose only folders observed in the last successful Drive refresh. Empty selections disable this source for that system.',
+                            style: TextStyle(color: Colors.white60),
+                          ),
+                          const SizedBox(height: 18),
+                          for (final system in SystemModel.supportedSystems)
+                            _mappingRow(system.id, system.name),
+                          for (final system in config.systems)
+                            if (!SystemModel.supportedSystems
+                                .any((known) => known.id == system.id))
+                              _unsupportedExistingRow(system.id, system.name),
+                          if (_error != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              style: const TextStyle(color: Colors.redAccent),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          FilledButton(
+                            style: AppTheme.primaryButtonStyle,
+                            onPressed: _busy || _folders == null ? null : _save,
+                            child: _busy
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Text('Save mappings'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 18),
-                      for (final system in SystemModel.supportedSystems)
-                        _mappingRow(system.id, system.name),
-                      for (final system in config.systems)
-                        if (!SystemModel.supportedSystems
-                            .any((known) => known.id == system.id))
-                          _unsupportedExistingRow(system.id, system.name),
-                      if (_error != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          _error!,
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      FilledButton(
-                        style: AppTheme.primaryButtonStyle,
-                        onPressed: _busy || _folders == null ? null : _save,
-                        child: _busy
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Save mappings'),
-                      ),
-                    ],
-                  ),
+              ),
+            ),
           ),
         ),
-      ),
-    );
+        localFocusScope: true,
+        materialControls: true);
   }
 
   Widget _mappingRow(String systemId, String fallbackName) {
@@ -253,7 +259,7 @@ class _DriveSourceMappingsScreenState
     var query = '';
     // One selector owns one lazy option list. Closed console rows never build
     // or lay out the entire source's folder options in hidden dropdown stacks.
-    final choice = await showDialog<({String? id})>(
+    final choice = await showConsoleDialog<({String? id})>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (context, update) {
         final filtered = options

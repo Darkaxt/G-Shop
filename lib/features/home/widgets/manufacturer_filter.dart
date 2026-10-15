@@ -21,10 +21,64 @@ const manufacturerLogos = <String, String>{
 };
 
 List<SystemModel> systemsForManufacturer(
+        List<SystemModel> systems, String? brand, {SystemType? type}) =>
+    systems
+        .where((s) =>
+            (brand == null || s.manufacturer == brand) &&
+            (type == null || s.types.contains(type)))
+        .toList()
+      ..sort(SystemModel.compareChronologically);
+
+Set<SystemType> availableSystemTypes(
         List<SystemModel> systems, String? brand) =>
-    brand == null
-        ? List.of(systems)
-        : systems.where((s) => s.manufacturer == brand).toList();
+    {
+      for (final system in systems)
+        if (brand == null || system.manufacturer == brand) ...system.types,
+    };
+
+class SystemTypeFilter extends StatelessWidget {
+  final List<SystemModel> systems;
+  final String? manufacturer;
+  final SystemType? selected;
+  final ValueChanged<SystemType?> onSelected;
+  const SystemTypeFilter(
+      {super.key,
+      required this.systems,
+      this.manufacturer,
+      this.selected,
+      required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final available = availableSystemTypes(systems, manufacturer);
+    if (available.length <= 1) return const SizedBox.shrink();
+    return SizedBox(
+        height: 48,
+        key: const ValueKey('system-type-filter'),
+        child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            children: [
+              for (final type in <SystemType?>[
+                null,
+                ...SystemType.values.where(available.contains)
+              ])
+                Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: TextButton.icon(
+                      key: ValueKey('type-${type?.name ?? 'All'}'),
+                      onPressed: () => onSelected(type),
+                      icon: Icon(type?.icon ?? Icons.apps, size: 18),
+                      label: Text(type?.label ?? 'All'),
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: selected == type
+                              ? const Color(0xFFB71C1C)
+                              : Colors.black54),
+                    )),
+            ]));
+  }
+}
 
 class ManufacturerFilter extends StatelessWidget {
   final List<SystemModel> systems;

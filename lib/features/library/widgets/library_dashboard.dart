@@ -65,7 +65,8 @@ class LibraryConsoleSummary {
           unknownSourceSizes: unknown,
           managedBytes: installation.managedBytesBySystem[group.key]));
     }
-    result.sort((a, b) => consoleName(a.slug).compareTo(consoleName(b.slug)));
+    result
+        .sort((a, b) => SystemModel.compareIdsChronologically(a.slug, b.slug));
     return result;
   }
 

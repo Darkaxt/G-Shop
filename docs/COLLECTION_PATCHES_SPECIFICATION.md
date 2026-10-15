@@ -297,6 +297,12 @@ criterion and park it before independent later work; no prerequisite bypass.
 No artificial preparation stage or per-component acceptance milestones.
 
 Use existing sectioned settings, icon/transport actions and controller contracts.
+NAV-01 layout: the Library dashboard exposes manufacturer and the conditional
+type row. Console pages retain that scope through a compact parent breadcrumb,
+chronological console tabs and category/status controls, rather than permanently
+stacking every parent-level filter above the game grid. Returning to the dashboard
+keeps the scope; each All choice resets only its corresponding filter. Keep game
+content visible at compact landscape sizes; no viewport-spanning settings roll.
 No long single-page settings roll, paragraphs inside buttons or debug UI in the
 production build. Preserve compact and Thor landscape viewport fit and OLED-off
 cleanup. Logs/state are primary diagnostics; targeted screenshots prove visuals.

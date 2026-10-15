@@ -3,12 +3,12 @@ import '../../../core/responsive/responsive.dart';
 
 class LibraryTab {
   final String label;
-  final int count;
+  final int? count;
   final bool isCustomShelf;
 
   const LibraryTab({
     required this.label,
-    required this.count,
+    this.count,
     this.isCustomShelf = false,
   });
 }
@@ -107,7 +107,9 @@ class _LibraryTabsState extends State<LibraryTabs> {
             child: Semantics(
                 button: true,
                 selected: isActive,
-                label: '${tab.label}, ${tab.count}',
+                label: tab.count == null
+                    ? tab.label
+                    : '${tab.label}, ${tab.count}',
                 child: GestureDetector(
                   onTap: widget.onTap != null ? () => widget.onTap!(i) : null,
                   child: AnimatedContainer(
@@ -157,29 +159,30 @@ class _LibraryTabsState extends State<LibraryTabs> {
                             letterSpacing: 1.0,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? widget.accentColor.withValues(alpha: 0.3)
-                                : Colors.white.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${tab.count}',
-                            style: TextStyle(
-                              fontSize: countFontSize,
-                              fontWeight: FontWeight.w600,
+                        if (tab.count != null) const SizedBox(width: 4),
+                        if (tab.count != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
                               color: isActive
-                                  ? widget.accentColor
-                                  : Colors.grey[600],
+                                  ? widget.accentColor.withValues(alpha: 0.3)
+                                  : Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${tab.count}',
+                              style: TextStyle(
+                                fontSize: countFontSize,
+                                fontWeight: FontWeight.w600,
+                                color: isActive
+                                    ? widget.accentColor
+                                    : Colors.grey[600],
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),

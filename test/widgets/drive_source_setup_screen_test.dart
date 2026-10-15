@@ -130,7 +130,15 @@ void main() {
     expect(find.text('Setup required'), findsNothing);
     expect(
         find.textContaining('Create a public Web OAuth client'), findsNothing);
-    await tester.tap(find.text('Connect'));
+    await tester.pumpAndSettle();
+    for (var i = 0;
+        i < 6 && !Focus.of(tester.element(find.text('Connect'))).hasFocus;
+        i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+    }
+    expect(Focus.of(tester.element(find.text('Connect'))).hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
     await tester.pump();
     await tester.pump();
     expect(find.text('Connected to Google Drive'), findsOneWidget);

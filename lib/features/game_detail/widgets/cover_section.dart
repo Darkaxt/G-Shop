@@ -46,11 +46,14 @@ class CoverSection extends StatefulWidget {
   });
 
   @override
-  State<CoverSection> createState() => _CoverSectionState();
+  CoverSectionState createState() => CoverSectionState();
 }
 
-class _CoverSectionState extends State<CoverSection> {
+class CoverSectionState extends State<CoverSection> {
   bool _physical = true, _reducedMotion = false;
+  bool get physical => _physical;
+  void toggleView() => setState(() => _physical = !_physical);
+  void toggleMotion() => setState(() => _reducedMotion = !_reducedMotion);
 
   @override
   Widget build(BuildContext context) {
@@ -160,8 +163,7 @@ class _CoverSectionState extends State<CoverSection> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       IconButton(
                           tooltip: physical ? 'Cover view' : 'Media preview',
-                          onPressed: () =>
-                              setState(() => _physical = !_physical),
+                          onPressed: toggleView,
                           icon: Icon(physical
                               ? Icons.photo_rounded
                               : Icons.album_outlined)),
@@ -169,8 +171,7 @@ class _CoverSectionState extends State<CoverSection> {
                         IconButton(
                             tooltip: 'Reduced motion',
                             isSelected: _reducedMotion,
-                            onPressed: () => setState(
-                                () => _reducedMotion = !_reducedMotion),
+                            onPressed: toggleMotion,
                             icon: const Icon(Icons.motion_photos_off_rounded)),
                     ])),
               if (widget.isFavorite)

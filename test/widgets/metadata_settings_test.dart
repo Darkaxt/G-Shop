@@ -101,6 +101,22 @@ void main() {
     expect(provider.calls, isEmpty);
     expect(igdb.calls, isEmpty);
     expect(controls.state.report, isNull);
+    await tester.runAsync(() async {
+      await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+      await controls.load();
+    });
+    await tester.pumpAndSettle();
+    expect(controls.state.providerId, 'igdb');
+    await tester.runAsync(() async {
+      await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonLeft1);
+      await controls.load();
+    });
+    await tester.pumpAndSettle();
+    expect(controls.state.providerId, 'screenscraper');
+    expect(provider.calls, isEmpty);
+    expect(igdb.calls, isEmpty);
+    await tester.tap(find.byKey(const ValueKey('metadata-open-scraping')));
+    await tester.pumpAndSettle();
     // Start explicitly from the collector and prove it uses the same owner.
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const ValueKey('metadata-refresh')));

@@ -55,28 +55,54 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
   List<SystemModel> _configuredSystems = [];
   List<SystemModel> _allSystems = [];
   String? _manufacturer;
+  SystemType? _systemType;
   final _manufacturerFocus = FocusScopeNode(debugLabel: 'Manufacturer filter');
+  final _typeFocus = FocusScopeNode(debugLabel: 'System type filter');
+  bool get _hasTypes =>
+      availableSystemTypes(_allSystems, _manufacturer).length > 1;
 
   @override
   String get routeId => 'home';
 
-  // L1/R1 zoom shortcuts are handled by global shortcuts.
+  // L1/R1 browse filter tabs; PageUp/PageDown retain grid zoom.
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
+        TabLeftIntent:
+            TabLeftAction(ref, onTabLeft: () => _cycleBrowseFilter(-1)),
+        TabRightIntent:
+            TabRightAction(ref, onTabRight: () => _cycleBrowseFilter(1)),
         NavigateIntent: NavigateAction(ref, onNavigate: (intent) {
           final isGrid = ref.read(homeLayoutProvider);
-          if (_manufacturerFocus.hasFocus) {
+          if (_typeFocus.hasFocus) {
             if (intent.direction == GridDirection.down) {
               requestScreenFocus();
+              return true;
+            }
+            if (intent.direction == GridDirection.up) {
+              _manufacturerFocus.requestFocus();
+              _manufacturerFocus.nextFocus();
+              return true;
+            }
+            return false;
+          }
+          if (_manufacturerFocus.hasFocus) {
+            if (intent.direction == GridDirection.down) {
+              if (_hasTypes) {
+                _typeFocus.requestFocus();
+                _typeFocus.nextFocus();
+              } else {
+                requestScreenFocus();
+              }
               return true;
             }
             return false;
           }
           if (intent.direction == GridDirection.up &&
               (!isGrid || _currentIndex < _columns)) {
-            _manufacturerFocus.requestFocus();
-            _manufacturerFocus.nextFocus();
+            final target = _hasTypes ? _typeFocus : _manufacturerFocus;
+            target.requestFocus();
+            target.nextFocus();
             return true;
           }
           if (isGrid) {
@@ -93,7 +119,7 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
           return false;
         }),
         ConfirmIntent: ConfirmAction(ref, onConfirm: () {
-          if (_manufacturerFocus.hasFocus) {
+          if (_manufacturerFocus.hasFocus || _typeFocus.hasFocus) {
             final target = FocusManager.instance.primaryFocus?.context;
             if (target != null) {
               Actions.maybeInvoke(target, const ActivateIntent());
@@ -191,6 +217,7 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
   @override
   void dispose() {
     _manufacturerFocus.dispose();
+    _typeFocus.dispose();
     _visibleSystemsSub?.close();
     _syncStateSub?.close();
     _debouncer.stopHold();
@@ -241,7 +268,10 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
       if (!systems.any((s) => s.manufacturer == _manufacturer)) {
         _manufacturer = null;
       }
-      _configuredSystems = systemsForManufacturer(systems, _manufacturer);
+      final types = availableSystemTypes(systems, _manufacturer);
+      if (types.length <= 1 || !types.contains(_systemType)) _systemType = null;
+      _configuredSystems =
+          systemsForManufacturer(systems, _manufacturer, type: _systemType);
       final index = _configuredSystems.indexWhere((s) => s.id == selectedId);
       _currentIndex = wasLibrary
           ? _configuredSystems.length
@@ -266,6 +296,30 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
     _manufacturer = manufacturer;
     _replaceSystems(_allSystems);
     ref.read(feedbackServiceProvider).confirm();
+  }
+
+  void _selectType(SystemType? type) {
+    if (_systemType == type) return;
+    _systemType = type;
+    _replaceSystems(_allSystems);
+  }
+
+  void _cycleBrowseFilter(int delta) {
+    if (_typeFocus.hasFocus && _hasTypes) {
+      final values = <SystemType?>[
+        null,
+        ...SystemType.values
+            .where(availableSystemTypes(_allSystems, _manufacturer).contains)
+      ];
+      _selectType(
+          values[(values.indexOf(_systemType) + delta) % values.length]);
+    } else {
+      final brands = _allSystems.map((s) => s.manufacturer).toSet().toList()
+        ..sort();
+      final values = <String?>[null, ...brands];
+      _selectManufacturer(
+          values[(values.indexOf(_manufacturer) + delta) % values.length]);
+    }
   }
 
   int get _systemCount => _configuredSystems.length;
@@ -306,7 +360,8 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const LibraryScreen(),
+        builder: (context) => LibraryScreen(
+            initialManufacturer: _manufacturer, initialSystemType: _systemType),
       ),
     );
   }
@@ -468,7 +523,10 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const LibraryScreen(openSearch: true),
+        builder: (context) => LibraryScreen(
+            openSearch: true,
+            initialManufacturer: _manufacturer,
+            initialSystemType: _systemType),
       ),
     );
   }
@@ -774,6 +832,14 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
                         selected: _manufacturer,
                         onSelected: _selectManufacturer)),
               ),
+              if (_hasTypes)
+                FocusScope(
+                    node: _typeFocus,
+                    child: SystemTypeFilter(
+                        systems: _allSystems,
+                        manufacturer: _manufacturer,
+                        selected: _systemType,
+                        onSelected: _selectType)),
               Expanded(
                   child: Stack(
                 children: [

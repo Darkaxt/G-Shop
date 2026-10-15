@@ -49,7 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   @override
   String get routeId => 'settings';
 
-  // L2/R2 tab shortcuts are handled by global shortcuts.
+  // The shared wrapper maps L1/R1 to these actions; L2/R2 remain aliases.
 
   @override
   Map<Type, Action<Intent>> get screenActions => {
@@ -295,6 +295,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
         ),
       ),
+      localFocusScope: true,
     );
   }
 

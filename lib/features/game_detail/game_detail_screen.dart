@@ -86,6 +86,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
   late InputDebouncer _debouncer;
   final _emulatorLauncher = OwnedEmulatorLauncher();
   final _physicalMediaKey = GlobalKey<PhysicalMediaViewState>();
+  final _coverSectionKey = GlobalKey<CoverSectionState>();
   bool _openingOwnedRom = false;
   ProviderSubscription? _romChangeSubscription;
 
@@ -647,6 +648,19 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
         ref.read(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final raMatch = raMatches[variant.raMatchKey];
     return [
+      QuickMenuItem(label: 'Display', icon: Icons.album_outlined, children: [
+        QuickMenuItem(
+            label: _coverSectionKey.currentState?.physical == true
+                ? 'Cover view'
+                : 'Media preview',
+            icon: Icons.photo_outlined,
+            onSelect: () => _coverSectionKey.currentState?.toggleView()),
+        if (_coverSectionKey.currentState?.physical == true)
+          QuickMenuItem(
+              label: 'Reduced motion',
+              icon: Icons.motion_photos_off_outlined,
+              onSelect: () => _coverSectionKey.currentState?.toggleMotion()),
+      ]),
       if (editionId != null &&
           (RetroArchBatteryRoute.forPlatform(widget.system.id) != null ||
               const {'psp', 'nds', 'psx'}.contains(widget.system.id)) &&
@@ -1166,6 +1180,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                         AspectRatio(
                           aspectRatio: 0.75,
                           child: CoverSection(
+                            key: _coverSectionKey,
                             game: selectedVariant,
                             physicalMediaKey: _physicalMediaKey,
                             physicalMediaEnabled:
@@ -1259,6 +1274,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           AspectRatio(
             aspectRatio: hasCardContent ? 0.85 : 0.75,
             child: CoverSection(
+              key: _coverSectionKey,
               game: selectedVariant,
               physicalMediaKey: _physicalMediaKey,
               physicalMediaEnabled:
