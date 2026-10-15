@@ -368,12 +368,16 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       });
 
   Future<void> refresh(
-          {String? systemSlug, List<String>? systemSlugs, int? cacheRowId}) =>
+          {String? systemSlug,
+          List<String>? systemSlugs,
+          int? cacheRowId,
+          bool ratingsOnly = false}) =>
       _perform(() async {
         final job = await _jobs.createFromCatalogue(
             providerId: state.providerId,
             systemSlug: systemSlug,
             systemSlugs: systemSlugs,
+            ratingsOnly: ratingsOnly,
             cacheRowId: cacheRowId);
         _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;

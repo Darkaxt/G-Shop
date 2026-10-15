@@ -8,6 +8,11 @@ existing-page fixes; later patch/share pages are verified in S18/S19.
 
 ## Coverage map
 
+Owner clarification (2026-10-15): R1/L1 are next/previous tabs on tabbed surfaces;
+override conflicting global zoom actions there. All app-owned menus, nested
+menus and dialogs need D-pad, confirm and back/cancel. S17 owns these checks and
+repairs; S18/S19 must apply the same contract to their new menus.
+
 | Surface | Existing source wiring | Remaining required verification |
 | --- | --- | --- |
 | Main settings | First content focus, list actions, L2/R2 tab actions | D-pad tab focus/activation and action ownership after route/tab changes |

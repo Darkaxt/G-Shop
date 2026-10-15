@@ -137,6 +137,13 @@ usable direction/activate/back/scroll route for its advertised controls. Patch
 pages added in S18 and sharing pages in S19 receive the same contract in their
 owning stages. Read-only review creates no concurrent implementation stage.
 
+Owner clarification, 2026-10-15: all app-owned menus, nested menus and dialogs
+must support the controller. R1/L1 switch next/previous tabs on every tabbed
+surface, including General/Audio/Advanced/About and library/settings sections.
+These tab actions take precedence over conflicting global zoom shortcuts on
+those surfaces. Keep D-pad tab selection/activation, content navigation, A/confirm
+and B/back/cancel usable. Existing nonconflicting shortcuts may remain aliases.
+
 Acceptance: a source-to-rendered test coverage map, focused controller regressions
 for confirmed gaps, and a bounded real Thor walk through the reported main tabs,
 cache controls/dialogs/Apply and representative nested routes. Explain genuine

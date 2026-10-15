@@ -5,13 +5,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16 ACTIVE, 2026-10-15
+### Collection/patch extension — S16 COMPLETE, S17 ACTIVE, 2026-10-15
 
 Authority revision 54 and COLLECTION_PATCHES_SPECIFICATION.md revision 1.
-Implementation/folder reorganization authorization is already granted. S17-S19
-are NOT STARTED; earlier completed scope is unchanged. Current acceptance: none
-of the ranking/navigation/patch stages is complete. ScreenScraper entry wiring
-and its console/manufacturer/all selection are implemented and host-verified.
+Implementation/folder reorganization authorization is already granted. S16 is
+COMPLETE; S17 is the sole ACTIVE stage; S18-S19 are NOT STARTED. Earlier completed
+scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
+selection are implemented and host-verified.
 
 Collector addition: Advanced's Get metadata & covers replaces the legacy cover
 preloader, opening ScreenScraper's normal scoped play/pause/resume workspace.
@@ -40,13 +40,58 @@ output and obsolete golden diagnostics (1,157,437,037 bytes total), with no
 residuals. The maintained golden baselines and source are retained. No Gradle gate
 was used for tests, static analysis or cleanup; no memory-related failure occurred.
 
-S16 blockers (internal, work continues): no scoped ratings-only refresh integrated
-with the existing metadata owner; zero/partial ranking feedback still advertises
-Best 100 without useful scores; verified regional grouping and refresh-to-order
-need affected integration checks. Resolution: implement RANK-01 and demonstrate
-real GBA ratings/order without full artwork or ROM downloads. S16 cannot complete
-or ordinarily advance until those checks pass. No external execution blocker.
-No current-stage tracked deferrals. S18 owns UniPatcher/engine licensing and
+S16 host checkpoint: Library's Get ratings opens the existing IGDB owner with an
+explicit console/selected-systems scope. Play creates a durable ratings-only
+snapshot, pause/resume joins the same worker, and persisted results invalidate
+the library query. Entries without a verified IGDB ID or current bound
+ScreenScraper release facts are recorded for review without pointless searches.
+Normal full metadata collection is unchanged. The featured badge now reports
+the actual eligible prefix (up to 100), or alphabetical/needs-rating status when
+empty, with compact-width ellipsis. The integrated rendered host workflow proves
+refresh -> persisted higher score -> nonalphabetical first card; zero/partial
+coverage, canonical regional grouping, ambiguity, hack score independence,
+manual order and alphabetical remainder pass their affected query/UI checks.
+Scoped analysis reports no issues (2026-10-15). Host raster tests cannot prove
+Impeller 3D rendering; their existing imported-preview fixture now explicitly
+enables imported media, preserving the flat default rather than assuming 3D.
+
+S16 native acceptance: the real Library GBA Get ratings entry opened the existing
+IGDB collector with gba selected and no implicit start. One explicit Play created
+the durable scoped job, completed 110 coalesced lookups, and retained 67
+corroborated official-release records (50 with scores), leaving ambiguous/unmatched
+and unavailable-identity entries reviewable. Existing 140 hash-bound ScreenScraper
+records were preserved. The current projection has 24 policy-eligible ranked
+games, no dirty editions/artifacts, and the actual Library shows Best 24 / A-Z:
+Mega Man Zero 3 precedes Kirby & The Amazing Mirror and Pokemon FireRed, instead
+of alphabetical 007. Unranked files remain in the remainder. No ROM download or
+artwork collector was started. A menu changed height while initial data loaded;
+the incidental Favorite tap was undone and the exact-selection favorite count
+returned to its original one. No sources/accounts/saves/ROMs were changed.
+
+Signed verification APK SHA-256
+5c517764b11baa7cfa88e23d04bb02410667d5ddbb6e394652141303084d47aa,
+69,684,105 bytes, unchanged production signer/package/version/UID. In-place ADB
+install returned Success; configuration, emulator mappings, secure credential/key
+stores and imported-resource pointer retained their before/after SHA-256 hashes.
+This is a local verification build, not a new public 1.9.1 asset or release.
+Gate ticket 1140 acquired Local\\Darka.AndroidGradleBuildGate; app release unit
+tests and assembleRelease passed. Observed Gradle 9.1.0: two workers, no parallel,
+3 GiB heap, Kotlin in-process, Test forks one/512 MiB/fail-fast. App Ninja rules
+use the existing one-slot compile/link pool; other plugins' environment hints are
+not a proven host-wide native cap. No memory failure; build/helper exit 0 and
+post_build_daemons.exit_verified true. Both physical displays and committed
+states were verified OFF afterward. Host/device task scratch remains needed for
+the ongoing extension and will receive reviewed cleanup when expendable.
+
+S16 reconciliation: RANK-01 passes its host and real-device criteria; no blockers
+or required deferrals remain. Closure assessment: the shared collector opener,
+existing durable job snapshots and query invalidation retain one metadata owner;
+no new scheduler or duplicated scoring logic, and no required consolidation found.
+S17 acceptance blockers (internal, implementation continues): type/chronological
+navigation, categories and complete app-owned controller wiring (including L1/R1
+tabs) remain to implement and verify. These block S17 closure and dependent S18
+navigation, not continued S17 work. No external execution blocker or current-stage
+tracked deferral. S18 owns UniPatcher/engine licensing and
 format evaluation; owner now authorizes GPL-compatible combined distribution with
 upstream notices retained and Darkaxt attribution, so licensing preference is not
 an external blocker. S17 additionally owns CACHE-UI-02: reproduce/repair the

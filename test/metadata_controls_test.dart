@@ -12,6 +12,7 @@ import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
+import 'package:retro_eshop/models/library_identity.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class MemorySecrets implements MetadataSecretStorage {
@@ -147,6 +148,47 @@ class _ThrowOnceCache extends MetadataArtworkCache {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('ratings-only snapshot does not request unidentifiable games on resume',
+      () async {
+    final db = await controlsDatabase();
+    final store = LibraryStore(Future.value(db));
+    final id = (await db.transaction((txn) =>
+            LibraryStore.catalogueEditions(txn, cacheRowId: 1).toList()))
+        .single;
+    final edition = (await store.edition(id))!;
+    final game = (await store.game(edition.gameId))!;
+    await store.putGame(GameIdentity.fromJson({
+      ...game.toJson(),
+      'matchStatus': 'manuallyMatched',
+      'providerIds': {'igdb': '42'}
+    }));
+    final provider = ControlsProvider('igdb');
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'igdb': provider, 'screenscraper': ControlsProvider()},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+    });
+    await controls.load();
+    await controls.selectProvider('igdb');
+    final snapshot = controls.refresh(ratingsOnly: true);
+    await controls.pause();
+    await snapshot;
+    expect(provider.calls, isEmpty);
+    await controls.resume();
+    expect(controls.state.error, isFalse);
+    expect(controls.state.report!.state, 'completed');
+    expect(controls.state.report!.counts, {'needsReview': 1, 'unmatched': 1});
+    expect(provider.calls, hasLength(1));
+    expect(provider.calls.single.verifiedProviderGameId, '42');
+    expect(provider.calls.single.platformId, 'psx');
+  });
   test('manufacturer refresh snapshots only its explicit console IDs',
       () async {
     final db = await controlsDatabase();

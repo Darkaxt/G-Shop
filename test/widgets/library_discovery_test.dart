@@ -28,11 +28,16 @@ import 'package:retro_eshop/services/sources_notifier.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
+import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:retro_eshop/services/metadata/metadata_provider.dart';
+import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import 'package:retro_eshop/widgets/physical_media_view.dart';
 import '../helpers/pump_helpers.dart';
+import '../metadata_controls_test.dart' show MemorySecrets, ControlsProvider;
 
 class _Database extends DatabaseService {
   final Database db;
@@ -358,8 +363,10 @@ void defineLibraryDiscoveryChecks({
                 retrievedAt: at)!
           ]));
     }
-    SharedPreferences.setMockInitialValues(
-        {'physical_media_reduced_motion': true});
+    SharedPreferences.setMockInitialValues({
+      'physical_media_reduced_motion': true,
+      'physical_media_enabled': true,
+    });
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
     await storage.init();
@@ -374,10 +381,42 @@ void defineLibraryDiscoveryChecks({
           createdAt: at)
     ]);
     final metadataScopes = _MetadataScopeObserver();
-    final container = ProviderContainer(observers: [
+    final igdb = ControlsProvider('igdb');
+    igdb.reply = (request, _) async {
+      final previous = (await store.metadata(request.editionId, 'igdb'))!;
+      final updated = previous.toJson();
+      updated['refreshGeneration'] = request.refreshGeneration;
+      if (request.verifiedProviderGameId == '10') {
+        (updated['ratings'] as List).first['rawValue'] = 99.5;
+      }
+      return MetadataLookupResult(
+          status: MetadataLookupStatus.matched,
+          record: MetadataRecord.fromJson(updated),
+          message: 'Fresh fixture rating');
+    };
+    late ProviderContainer container;
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'igdb': igdb, 'screenscraper': ControlsProvider()},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        readRomHeader: (_, __, ___) =>
+            throw StateError('Ratings must not read ROM bytes'),
+        readArchiveIdentifier: (_, __, ___) =>
+            throw StateError('Ratings must not read archives'),
+        catalogueChanged: () =>
+            container.read(gameDbChangedProvider.notifier).state++);
+    await controls.load();
+    container = ProviderContainer(observers: [
       metadataScopes
     ], overrides: [
       libraryDbProvider.overrideWithValue(_Database(db)),
+      metadataControlsProvider.overrideWith((_) => controls),
+      // These existing preview assertions exercise the enabled/imported mode;
+      // the application's unimported default remains flat (S13).
+      mediaPresentationProvider.overrideWith(
+          (_) => MediaPresentationNotifier(storage, resourcesAvailable: true)),
       storageServiceProvider.overrideWithValue(storage),
       bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
       installedFilesProvider.overrideWith((ref) async => InstalledFilesState(
@@ -393,6 +432,7 @@ void defineLibraryDiscoveryChecks({
           .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
     ]);
     addTearDown(container.dispose);
+    addTearDown(controls.close);
     Widget app({double textScale = 1}) => UncontrolledProviderScope(
         container: container,
         child: createTestApp(Builder(
@@ -526,7 +566,8 @@ void defineLibraryDiscoveryChecks({
     // collection-wide Top 10. Selecting the dashboard never opens the ROM dump.
     await tester.tap(find.byKey(const ValueKey('console-summary-ps2')));
     await tester.pumpAndSettle();
-    expect(find.text('Best 100 · A-Z'), findsOneWidget);
+    expect(find.text('Best 6 · A-Z'), findsOneWidget,
+        reason: 'A sparse rated collection advertises only its actual prefix');
     // Default browsing follows actual score changes, not the catalogue's A-Z
     // order or a fixed downloaded Top list. Fewer than 100 remains valid.
     final savedRating = (await db.query('library_metadata',
@@ -534,14 +575,34 @@ void defineLibraryDiscoveryChecks({
             where: 'edition_id = ?',
             whereArgs: [editions[10]]))
         .single['record_json'] as String;
-    final changedRating = jsonDecode(savedRating) as Map<String, dynamic>;
-    (changedRating['ratings'] as List).first['rawValue'] = 99.5;
-    await store.putMetadata(MetadataRecord.fromJson(changedRating));
-    container.read(gameDbChangedProvider.notifier).state++;
+    await tester.tap(find.text('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get ratings'));
+    await tester.pumpAndSettle();
+    final collector = tester
+        .widget<MetadataSettingsScreen>(find.byType(MetadataSettingsScreen));
+    expect(collector.systemSlug, 'ps2');
+    expect(collector.ratingsOnly, isTrue);
+    expect(controls.state.providerId, 'igdb');
+    expect(igdb.calls, isEmpty,
+        reason: 'Opening the scope never starts a scrape');
+    await tester.tap(find.byKey(const ValueKey('metadata-refresh')));
+    await controls.pause();
+    if (controls.state.report!.state != 'completed') await controls.resume();
+    expect(controls.state.error, isFalse);
+    expect(igdb.calls.map((call) => call.platformId).toSet(), {'ps2'});
+    expect(controls.state.artworkReport, isNull);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('metadata-back')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('metadata-back')));
     await tester.pumpAndSettle();
     expect(cards().first, 'Game 10',
         reason: 'Top-first order must beat alphabetical order');
-    await store.putMetadata(MetadataRecord.fromJson(jsonDecode(savedRating)));
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...jsonDecode(savedRating) as Map<String, dynamic>,
+      'refreshGeneration': controls.state.report!.generation
+    }));
     container.read(gameDbChangedProvider.notifier).state++;
     await tester.pumpAndSettle();
     expect(cards().first, 'Game 02');
@@ -570,7 +631,9 @@ void defineLibraryDiscoveryChecks({
     }
     await container.read(mediaPresentationProvider.notifier).toggleMedia();
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('library-media-preview')), findsNothing);
+    expect(find.byKey(const ValueKey('library-media-preview')), findsOneWidget);
+    expect(find.byType(PhysicalMediaView), findsNothing,
+        reason: 'Disabling imported 3D media keeps the default flat preview');
     await container.read(mediaPresentationProvider.notifier).toggleMedia();
     await tester.pumpAndSettle();
     expect(metadataScopes.covers, ['ps2'],
@@ -580,6 +643,7 @@ void defineLibraryDiscoveryChecks({
       for (var i = 2; i <= 12; i += 2) 'Game ${i.toString().padLeft(2, '0')}'
     ];
     await expectCards(evenGames);
+    expect(find.text('Best 6 · A-Z'), findsOneWidget);
     expect(storage.getLibraryConsole(), 'ps2');
     await tester.tap(find.byIcon(Icons.filter_alt_rounded).first);
     await tester.pumpAndSettle();
@@ -798,6 +862,7 @@ void defineLibraryDiscoveryChecks({
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonX);
     await tester.pumpAndSettle();
     await expectCards(evenGames);
+    expect(find.text('A-Z · Needs a fresh rating'), findsOneWidget);
     await checkpoint?.call('library-unrated-browsable', tester);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();

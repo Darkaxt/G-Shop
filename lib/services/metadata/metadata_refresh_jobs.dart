@@ -308,6 +308,7 @@ class MetadataRefreshJobs {
       {required String providerId,
       String? systemSlug,
       List<String>? systemSlugs,
+      bool ratingsOnly = false,
       int? cacheRowId}) {
     if (systemSlug?.trim().isEmpty == true ||
         (systemSlugs != null &&
@@ -315,6 +316,7 @@ class MetadataRefreshJobs {
                 systemSlugs.any((id) => id.trim().isEmpty) ||
                 systemSlug != null ||
                 cacheRowId != null)) ||
+        (ratingsOnly && providerId != 'igdb') ||
         (cacheRowId != null && cacheRowId < 1)) {
       throw ArgumentError('Catalogue scope is invalid');
     }
@@ -322,6 +324,7 @@ class MetadataRefreshJobs {
     final systems = (systemSlugs?.toSet().toList())?..sort();
     return _create(
         providerId: providerId,
+        ratingsOnly: ratingsOnly,
         editions: (txn) async* {
           if (systems == null) {
             yield* LibraryStore.catalogueEditions(txn,
@@ -623,6 +626,7 @@ class MetadataRefreshJobs {
       String? collectionGeneration,
       bool recordMissingIdentities = false,
       bool matchReview = false,
+      bool ratingsOnly = false,
       required Stream<String> Function(Transaction) editions}) async {
     if (providerId.trim().isEmpty ||
         collectionGeneration?.trim().isEmpty == true) {
@@ -725,7 +729,16 @@ class MetadataRefreshJobs {
                   LibraryStore.metadataIdentity(row, providerId: providerId),
               'request_json':
                   request == null ? null : jsonEncode(request.toJson()),
-              'status': request == null ? 'unsupportedPlatform' : 'pending',
+              // A bare search candidate cannot supply an accepted rank. Record
+              // that limitation without spending a pointless provider request;
+              // resume keeps this same snapshot and its eligible requests.
+              'status': request == null
+                  ? 'unsupportedPlatform'
+                  : ratingsOnly &&
+                          request.verifiedProviderGameId == null &&
+                          request.corroboration == null
+                      ? 'needsReview'
+                      : 'pending',
             },
             conflictAlgorithm: ConflictAlgorithm.ignore);
       }

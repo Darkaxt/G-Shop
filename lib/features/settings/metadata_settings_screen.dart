@@ -23,21 +23,40 @@ import 'metadata_progress_feedback.dart';
 
 /// All entry points share the same durable collector, never a second worker.
 Future<void> openScreenScraperCollector(BuildContext context, WidgetRef ref,
-    {String? systemSlug, List<String>? systemSlugs, String? scopeLabel}) async {
+        {String? systemSlug, List<String>? systemSlugs, String? scopeLabel}) =>
+    _openCollector(context, ref,
+        providerId: 'screenscraper',
+        systemSlug: systemSlug,
+        systemSlugs: systemSlugs,
+        scopeLabel: scopeLabel);
+
+Future<void> openRatingsCollector(BuildContext context, WidgetRef ref,
+        {String? systemSlug, List<String>? systemSlugs}) =>
+    _openCollector(context, ref,
+        providerId: 'igdb',
+        ratingsOnly: true,
+        systemSlug: systemSlug,
+        systemSlugs: systemSlugs);
+
+Future<void> _openCollector(BuildContext context, WidgetRef ref,
+    {required String providerId,
+    String? systemSlug,
+    List<String>? systemSlugs,
+    String? scopeLabel,
+    bool ratingsOnly = false}) async {
   final systems =
       systemSlugs == null ? null : List<String>.unmodifiable(systemSlugs);
   if (systems?.isEmpty == true) return;
   final controls = ref.read(metadataControlsProvider.notifier);
   if (ref.read(metadataControlsProvider).loading) await controls.load();
   if (!context.mounted) return;
-  if (ref.read(metadataControlsProvider).providerId != 'screenscraper') {
-    await controls.selectProvider('screenscraper');
+  if (ref.read(metadataControlsProvider).providerId != providerId) {
+    await controls.selectProvider(providerId);
   }
   if (!context.mounted) return;
-  if (ref.read(metadataControlsProvider).providerId != 'screenscraper') {
+  if (ref.read(metadataControlsProvider).providerId != providerId) {
     showConsoleNotification(context,
-        message:
-            'Pause the current metadata job before switching to ScreenScraper.');
+        message: 'Pause the current metadata job before switching providers.');
     return;
   }
   await Navigator.push(
@@ -47,6 +66,7 @@ Future<void> openScreenScraperCollector(BuildContext context, WidgetRef ref,
               systemSlug: systemSlug,
               systemSlugs: systems,
               scopeLabel: scopeLabel,
+              ratingsOnly: ratingsOnly,
               openCollector: true)));
 }
 
@@ -57,6 +77,7 @@ class MetadataSettingsScreen extends ConsumerStatefulWidget {
   final List<String>? systemSlugs;
   final String? scopeLabel;
   final bool openCollector;
+  final bool ratingsOnly;
   const MetadataSettingsScreen(
       {super.key,
       this.systemSlug,
@@ -65,7 +86,8 @@ class MetadataSettingsScreen extends ConsumerStatefulWidget {
       this.editionId,
       this.systemSlugs,
       this.scopeLabel,
-      this.openCollector = false});
+      this.openCollector = false,
+      this.ratingsOnly = false});
   @override
   ConsumerState<MetadataSettingsScreen> createState() =>
       _MetadataSettingsScreenState();
@@ -640,6 +662,10 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
     final controls = ref.read(metadataControlsProvider.notifier);
     final report = state.report;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (widget.ratingsOnly && state.providerId == 'igdb') ...[
+        const Text('Refresh ratings without downloading ROMs or artwork.'),
+        const SizedBox(height: 12),
+      ],
       if (widget.cacheRowId != null)
         Text(
             '${l.metadata_gameScope}: ${widget.gameTitle ?? widget.cacheRowId}')
@@ -684,6 +710,8 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                     systemSlug: _scope == _selectedSystems ? null : _scope,
                     systemSlugs:
                         _scope == _selectedSystems ? widget.systemSlugs : null,
+                    ratingsOnly:
+                        widget.ratingsOnly && state.providerId == 'igdb',
                     cacheRowId: widget.cacheRowId)
                 : null),
         _transportButton(l.metadata_pause, 'metadata-pause',

@@ -36,6 +36,7 @@ import '../../utils/game_metadata.dart';
 import '../../utils/game_merge_helper.dart';
 import '../../utils/image_helper.dart';
 import '../game_detail/game_detail_screen.dart';
+import '../settings/metadata_settings_screen.dart';
 import '../game_detail/widgets/cover_section.dart';
 import '../game_list/logic/filter_state.dart';
 import '../game_list/widgets/filter_overlay.dart';
@@ -1496,6 +1497,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           label: l.filter_title,
           icon: Icons.filter_alt_rounded,
           onSelect: _openFilter),
+      if (!_isDashboard)
+        QuickMenuItem(
+            label: 'Get ratings',
+            icon: Icons.star_outline_rounded,
+            onSelect: () => openRatingsCollector(context, ref,
+                systemSlug: _selectedConsole,
+                systemSlugs:
+                    _selectedConsole == null && _rankingPlatforms.isNotEmpty
+                        ? _rankingPlatforms.toList()
+                        : null)),
       if (_filteredGames.isNotEmpty) ...[
         QuickMenuItem(
           label:
@@ -1756,7 +1767,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                           ? l.filter_title
                           : l.filter_activeCount(_filters.activeCount))),
                   // Sort indicator
-                  Container(
+                  Flexible(
+                      child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 3,
@@ -1777,13 +1789,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                                 l.library_sortIndicatorManual,
                             }
                           : switch (_sortMode) {
-                              LibrarySortMode.featured =>
-                                '${l.filter_topLimit(100)} · ${l.library_sortIndicatorAZ}',
+                              LibrarySortMode.featured => _queryingDiscovery
+                                  ? l.filter_querying
+                                  : (_discovery?.featuredRanks.isNotEmpty ==
+                                          true
+                                      ? '${l.filter_topLimit(_discovery!.featuredRanks.length)} · ${l.library_sortIndicatorAZ}'
+                                      : '${l.library_sortIndicatorAZ} · ${l.metadata_staleScore}'),
                               LibrarySortMode.alphabetical =>
                                 l.library_sortIndicatorAZ,
                               LibrarySortMode.bySystem =>
                                 l.library_sortIndicatorBySystem,
                             },
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: rs.isSmall ? 9 : 10,
                         fontWeight: FontWeight.w600,
@@ -1791,7 +1809,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                         letterSpacing: 1,
                       ),
                     ),
-                  ),
+                  )),
                 ],
               ),
               SizedBox(height: rs.isSmall ? 6 : 10),
