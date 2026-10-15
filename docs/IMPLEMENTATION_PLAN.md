@@ -3,9 +3,9 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 49.
 
 Owner correction: S13 owns the in-app original-APK resource import, default flat
-mode and cover-to-cartridge focus reveal in both flat and 3D modes. S12 remains
-the sole ACTIVE stage; S13 is NOT STARTED and depends on its model/renderer
-integration. Public delivery follows S13's asset-free package acceptance. No host
+mode and cover-to-cartridge focus reveal in both flat and 3D modes. S12 is COMPLETE
+after the 2026-10-15 native/cumulative reconciliation; S13 is the sole ACTIVE stage.
+Public delivery follows S13's asset-free package acceptance. No host
 conversion requirement for the user or private-release workaround. Earlier
 publication-routing notes below are superseded.
 
@@ -2035,10 +2035,10 @@ S1-S11 reconciliation. A settings-only implementation does not close S11.
 
 ## S12 — 3D physical-media frontend
 
-Status: ACTIVE. The owner's all-source-model/artwork correction supersedes the
-2026-10-14 representative-model closure. Current acceptance gaps and evidence are
+Status: COMPLETE. The owner's all-source-model/artwork correction supersedes the
+2026-10-14 representative-model closure. Current reconciled evidence is
 recorded at the top of IMPLEMENTATION_STATUS.md and S12_FRONTEND_PROPOSAL.md.
-S13 remains NOT STARTED; release requires both stages' reconciled acceptance.
+S13 is ACTIVE; release requires both stages' reconciled acceptance.
 Authorization: implement all 12 stages, owner objective update 2026-10-13.
 Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
@@ -2110,8 +2110,8 @@ reconciliation in IMPLEMENTATION_STATUS.md before closure. S10/S11 are not reope
 
 ## S13 — Local Socket resource import and cover reveal
 
-Status: NOT STARTED. Owner-assigned stage, specification revision 49.
-Prerequisite: S12 COMPLETE; do not implement concurrently. Existing unconnected
+Status: ACTIVE. Owner-assigned stage, specification revision 49.
+Prerequisite: S12 COMPLETE (2026-10-15); do not implement concurrently. Existing unconnected
 format-conversion exploration produced before this stage assignment is not an
 integrated importer or acceptance evidence. Preserve it for review when S13 starts.
 

@@ -8,8 +8,8 @@ left, smoothly restore the media's normal selected-preview zoom in the same
 animation. Apply this to flat and imported-3D modes without reshaping source
 geometry. The cover must dominate the initial boxed composition, not permanently
 shrink the final cartridge. Missing/loading/failed box art or reduced motion skips
-the reveal and starts directly at normal media zoom. This remains planned S13
-behavior; S12 source-model fidelity work is still the sole ACTIVE stage.
+the reveal and starts directly at normal media zoom. This is S13 behavior;
+S12 source-model integration is its prerequisite, not concurrent implementation.
 
 Owner stage/design direction, 2026-10-14: assign the original-APK importer to S13,
 after S12's source-model integration. S13 also owns the focus reveal in BOTH flat
@@ -20,7 +20,7 @@ directly, never an animated placeholder. Reduced motion also skips the reveal.
 Preserve the red background, box/physical-label roles, selection/launch identity,
 one selected animated preview and existing touch/controller behavior. Default
 flat mode and local APK import belong to S13; do not implement S13 concurrently
-with ACTIVE S12. The next public asset-free release requires S13 acceptance too.
+with an ACTIVE S12. The next public asset-free release requires S13 acceptance too.
 
 Owner correction, 2026-10-14: the selected delivery mechanism is an in-app Socket
 APK resource importer, like a game recomp importing its original ROM resources.

@@ -1,8 +1,12 @@
 # S12 — 3D physical-media frontend
 
-Status: ACTIVE (reopened 2026-10-14). The owner reports the GBA selected preview
-falling back to a flat image. The earlier representative-only completion claim
-does not establish integration of the reference's other console formats.
+Status: COMPLETE (reopened 2026-10-14, reconciled 2026-10-15). Current all-source
+acceptance is recorded at the top of IMPLEMENTATION_STATUS.md: native 16-variant
+rendering/materials/cached labels and Library workflows, inspected source captures,
+source-bound motion/insertion contracts and applicable unchanged real handoff,
+input, cache and lifecycle evidence. The earlier representative-only completion
+claim did not establish this expanded coverage. Historical pending notes below
+record the investigation at that time, not the current remaining-work list.
 Authority: SPECIFICATION.md, revision 49, section 6f.
 Authorization: owner requested review on 2026-10-12 and authorized implementation
 through the all-12-stages objective update on 2026-10-13.

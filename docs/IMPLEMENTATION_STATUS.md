@@ -5,7 +5,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current correction — S12 ACTIVE, 2026-10-14
+### Current stage — S13 ACTIVE, 2026-10-15
+
+S12 is COMPLETE after current native rendering/material acceptance and the
+cumulative FRONTEND-01 reconciliation below. S13 alone receives implementation:
+local original-APK import, persistent validated resources, flat default, and the
+cover reveal with synchronized media zoom. All S13 acceptance groups remain
+unsatisfied until integrated and verified; the two untracked exploration files
+are inputs for review, not delivered functionality. R3 remains BLOCKED on S13
+and the signed asset-free public-release/handover requirements.
+
+| S12 acceptance boundary | Current evidence and applicability |
+| --- | --- |
+| Source geometry, bindings and motion | All 16 original indexed variants are native-rendered, mapped to the existing 19 families. Source buffer hashes, UVs, timing/pose contracts and native insertion controls are inspected. Vita retains its actual 2,627-triangle import and existing animation script; its absent exported scene/no UV is explicitly represented by the documented planar-label/shared-rest adaptation, not fabricated recovered data. No Xbox/Android support is added. |
+| Material/reference appearance | Request 1115's Thor captures and unchanged NES brightness criterion pass after the source radiance-unit repair; UMD title clears its source badge and SNES PAL material maps render. Source NES/UMD captures are inspected alongside current output. This is default source-material integration, not a claim to duplicate every optional Godot finish or pixel-identical engine output. |
+| Physical label versus box art | Current actual CoverSection bindings, native cached-raster update and focused role tests pass. The earlier normal GoldenEye refresh/provider-closed cache rebuild and distinct detail/grid captures remain applicable to unchanged typed selectors/cache. No historical 007 Everything or Nothing cache record exists to reconstruct the earlier image; the current standardized role correction is verified, not a per-game guess or new scrape prerequisite. |
+| Selection, launch and lifecycle | Current focused source-pose/insertion/joins/cancel/background/return and exact owned-emulator handoff checks pass. Diff from the real-handoff fix shows game-detail launch code unchanged; additions there only pass typed physical-label/GBC evidence. Earlier normal Drive installation -> Open -> real RetroArch game screen, retained inserted pose/actual return, native source-renderer insertion controls and scalable navigation remain applicable. No mock is presented as a new real launch. |
+| Library, theme, settings and inputs | Current native Top/tag/console/shelf/score-update/unrated workflows pass; current inspected library capture shows named 2D fallback stickers and red background. Earlier unchanged native Display/reduced-motion and sectioned save setup/status/restore-cancel/controller evidence remains applicable; no save logic or emulator coverage is reopened. |
+| Resources and cleanup | Current UMD timings are within the existing separate frame budgets; all source HDR levels and selected-view identity are verified. Debug RSS is explicitly scoped. Current temporary app/forward/baseline are cleaned and both displays OFF. Private source/oracle/captures remain required S13 comparison inputs, not expendable trash or public payloads. |
+
+S12 blockers: none. Required tracked deferrals out of S12: none. S13's importer
+and reveal were explicitly assigned independent later-stage requirements, not
+waivers of S12 acceptance. Closure assessment finds one selected renderer and
+the existing launch/cache authorities, with no required consolidation. A focused
+current model/media/owned-launch run exits 0; desktop Impeller rejection is an
+expected backend diagnostic, not GPU acceptance. Native GPU evidence is 1115.
+
+### S12 verification record — reopened 2026-10-14, closed 2026-10-15
 
 Current native result, 2026-10-15: original request 1115 completed with build and
 helper exit 0, gate acquired, two workers, parallel=false, 3 GiB Gradle heap and
