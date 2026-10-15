@@ -3,6 +3,16 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+      'source studio environment keeps its HDR mip chain and camera-relative light',
+      () async {
+    final sky = await SocketMediaModel.loadEnvironment();
+    expect(sky.data['format'], 'astc4x4HDR');
+    expect(sky.data['mips'], hasLength(11));
+    expect(sky.pixels.lengthInBytes, 699088);
+    expect(sky.data['lightDirection'][1], closeTo(.8141155243, 1e-8));
+    expect(sky.data['lightDirection'][2], greaterThan(0));
+  });
   test('selected pose retains source Euler angles before camera conversion',
       () {
     final pose = SocketMediaPose.sample(

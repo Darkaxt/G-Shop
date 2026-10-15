@@ -10,6 +10,7 @@ Future<void> main() => integrationDriver(
         'normal-cover-snes_pal',
         'normal-cover-genesis',
         'normal-cover-snes_us',
+        'normal-cached-label-psp',
         'library-top-10-scope'
       }.contains(name)) {
         return false;

@@ -47,6 +47,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'triangles': _renderer?.model.triangles,
         'surfaces': _renderer?.model.surfaces.length,
         'materialTextures': _renderer?.textures.length,
+        'environmentMipLevels': _renderer?.environment.mipLevelCount,
         'labelReady': _labelTexture != null,
         'frameRendered': frameRendered,
         'error': _error?.toString(),
@@ -309,10 +310,12 @@ class SocketMediaGpu {
   final gpu.DeviceBuffer mesh;
   final Map<String, gpu.Texture> textures;
   final gpu.Texture white, flatNormal;
+  final gpu.Texture environment;
+  final Map<String, dynamic> environmentData;
   gpu.GpuImageSurface? _surface;
   gpu.Texture? _depth;
   SocketMediaGpu._(this.model, this.pipeline, this.mesh, this.textures,
-      this.white, this.flatNormal);
+      this.white, this.flatNormal, this.environment, this.environmentData);
 
   static Float32List materialUniforms(Map<String, dynamic> material,
       {bool isLabel = false, bool isDisc = false}) {
@@ -351,6 +354,24 @@ class SocketMediaGpu {
   static Future<SocketMediaGpu> load(PhysicalMediaFormat format) async {
     final context = gpu.gpuContext;
     final model = await SocketMediaModel.load(format);
+    final sky = await SocketMediaModel.loadEnvironment();
+    if (!context.supportsTextureFormat(gpu.PixelFormat.astc4x4HDR)) {
+      throw StateError(
+          'Source HDR environment requires ASTC HDR texture support');
+    }
+    final environment = context.createTexture(gpu.StorageMode.hostVisible,
+        sky.data['width'] as int, sky.data['height'] as int,
+        format: gpu.PixelFormat.astc4x4HDR,
+        enableRenderTargetUsage: false,
+        mipLevelCount: (sky.data['mips'] as List).length);
+    for (var level = 0; level < environment.mipLevelCount; level++) {
+      final range = sky.data['mips'][level] as Map;
+      environment.overwrite(
+          sky.pixels.buffer.asByteData(
+              sky.pixels.offsetInBytes + (range['offset'] as int),
+              range['length'] as int),
+          mipLevel: level);
+    }
     final library = await gpu.ShaderLibrary.fromAsset(
         'assets/shaders/socket_media.shaderbundle');
     if (library == null) {
@@ -409,7 +430,9 @@ class SocketMediaGpu {
         context.createDeviceBufferWithCopy(model.mesh),
         textures,
         pixel([255, 255, 255, 255]),
-        pixel([128, 128, 255, 255]));
+        pixel([128, 128, 255, 255]),
+        environment,
+        sky.data);
   }
 
   void paint(Canvas canvas, Size size, double ratio, SocketMediaPose pose,
@@ -446,6 +469,26 @@ class SocketMediaGpu {
       final projection = cameraProjection(size.width, size.height, units);
       final base = modelTransform(model, pose);
       final uniforms = context.createHostBuffer(blockLengthInBytes: 16 * 1024);
+      final direction = (environmentData['lightDirection'] as List).cast<num>();
+      pass.bindUniform(
+          pipeline.fragmentShader.getUniformSlot('EnvironmentInfo'),
+          uniforms.emplace(Float32List.fromList([
+            ...direction.map((v) => v.toDouble()),
+            (environmentData['lightEnergy'] as num).toDouble(),
+            (environment.mipLevelCount - 1).toDouble(),
+            (environmentData['ambientEnergy'] as num).toDouble(),
+            (environmentData['reflectionEnergy'] as num).toDouble(),
+            (environmentData['exposure'] as num).toDouble(),
+          ]).buffer.asByteData()));
+      pass.bindTexture(
+          pipeline.fragmentShader.getUniformSlot('environment_map'),
+          environment,
+          sampler: gpu.SamplerOptions(
+              minFilter: gpu.MinMagFilter.linear,
+              magFilter: gpu.MinMagFilter.linear,
+              mipFilter: gpu.MipFilter.linear,
+              widthAddressMode: gpu.SamplerAddressMode.repeat,
+              heightAddressMode: gpu.SamplerAddressMode.clampToEdge));
       final ordered = [...model.surfaces]..sort((a, b) =>
           ((a['material']['color'][3] as num) < 1 ? 1 : 0)
               .compareTo((b['material']['color'][3] as num) < 1 ? 1 : 0));

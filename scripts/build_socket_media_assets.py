@@ -18,6 +18,27 @@ from socket_resources import APK_SHA256, SocketArchive, decode_script, scene_nod
 IDENTITY = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
 
 
+def compressed_environment(data):
+    """Keep the supplied HDR studio panorama's exact ASTC mip chain."""
+    if len(data) < 52 or data[:4] != b'GST2':
+        raise ValueError('Expected source environment texture')
+    kind, width, height, extra_mips, fmt = struct.unpack_from('<IHHII', data, 36)
+    if kind != 0 or fmt != 36 or not width or not height:
+        raise ValueError('Expected source ASTC 4x4 HDR environment')
+    if extra_mips != int(math.log2(max(width, height))):
+        raise ValueError('Source environment mip chain is incomplete')
+    levels, offset = [], 0
+    for level in range(extra_mips + 1):
+        w, h = max(1, width >> level), max(1, height >> level)
+        length = ((w + 3) // 4) * ((h + 3) // 4) * 16
+        levels.append({'offset': offset, 'length': length})
+        offset += length
+    blocks = data[52:]
+    if len(blocks) != offset:
+        raise ValueError('Source environment blocks are truncated or oversized')
+    return {'width': width, 'height': height, 'format': 'astc4x4HDR', 'mips': levels}, blocks
+
+
 def shader_defaults(archive, path, ancestors=()):
     """Read numeric source declarations, including the actual casing include.
 
@@ -181,6 +202,43 @@ class MediaBuilder:
         self.output.mkdir(parents=True, exist_ok=True)
         self.textures = {}
         self.recipes = []
+
+    def environment(self):
+        scene = self.archive.load('res://scenes/main.tscn')
+        nodes = scene_nodes(scene)
+        camera = next(n for n in nodes if n['type'] == 'Camera3D')['properties']
+        light = next(n for n in nodes if n['type'] == 'DirectionalLight3D')['properties']
+        environment = next(n for n in nodes if n['type'] == 'WorldEnvironment')['properties']
+        env, context = self.archive.reference(environment['environment'], scene)
+        sky, context = self.archive.reference(env['properties']['sky'], context)
+        sky_material, context = self.archive.reference(sky['properties']['sky_material'], context)
+        panorama = sky_material['properties']['panorama']
+        path = context['external'][panorama['index']][1]
+        member = self.archive.resolve(path)
+        source = self.archive.plain(member)
+        result, blocks = compressed_environment(source)
+        basis = camera['transform']['values'][:9]
+        direction = light['transform']['values'][:9]
+        world = [direction[2], direction[5], direction[8]]
+        # Camera is an orthonormal Basis; inverse is its transpose.
+        result.update({
+            'apkSha256': APK_SHA256, 'file': 'environment.astc',
+            'source': path, 'sourceMember': member,
+            'sourceSha256': hashlib.sha256(source).hexdigest(),
+            'pixelsSha256': hashlib.sha256(blocks).hexdigest(),
+            'sourceSceneSha256': hashlib.sha256(self.archive.plain(scene['member'])).hexdigest(),
+            'lightDirection': [sum(basis[c * 3 + r] * world[c] for c in range(3)) for r in range(3)],
+            'lightEnergy': light.get('light_energy', 1),
+            'ambientEnergy': env['properties'].get('ambient_light_energy', 1),
+            'reflectionEnergy': sky_material['properties'].get('energy_multiplier', 1),
+            'exposure': env['properties'].get('tonemap_exposure', 1),
+        })
+        if (env['properties'].get('ambient_light_source') != 3 or
+                env['properties'].get('reflected_light_source') != 2):
+            raise ValueError('Unexpected source environment lighting contract')
+        (self.output / result['file']).write_bytes(blocks)
+        (self.output / 'environment.json').write_text(json.dumps(result, separators=(',', ':')), encoding='utf-8')
+        return result
 
     def graph(self, path):
         scene = self.archive.load(path)
@@ -534,6 +592,7 @@ def main():
     archive = SocketArchive(args.apk)
     builder = MediaBuilder(archive, args.output, pathlib.Path(args.tokenizer_header).read_text())
     try:
+        environment = builder.environment()
         names = [n.rsplit('/', 1)[1].split('.')[0] for n in archive.zip.namelist()
                  if n.startswith('assets/scenes/selectables/cart_') and n.endswith('.tscn.remap') and 'android' not in n]
         models = []
@@ -543,12 +602,14 @@ def main():
             print(json.dumps(model))
         models.append(builder.build('vita', 'res://models/vita/vita.fbx'))
         print(json.dumps(models[-1]))
-        manifest = {'apkSha256': APK_SHA256, 'models': models, 'textures': list(builder.textures.values())}
+        manifest = {'apkSha256': APK_SHA256, 'models': models, 'textures': list(builder.textures.values()),
+                    'environment': environment}
         (builder.output / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
         if args.recipe_output:
             recipe = {'schema': 1, 'apkSha256': APK_SHA256,
                       'apkSize': pathlib.Path(args.apk).stat().st_size,
-                      'models': builder.recipes, 'textures': list(builder.textures.values())}
+                      'models': builder.recipes, 'textures': list(builder.textures.values()),
+                      'environment': environment}
             pathlib.Path(args.recipe_output).write_text(json.dumps(recipe, separators=(',', ':')), encoding='utf-8')
     finally:
         archive.close()

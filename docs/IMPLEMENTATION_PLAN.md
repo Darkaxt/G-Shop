@@ -2035,9 +2035,10 @@ S1-S11 reconciliation. A settings-only implementation does not close S11.
 
 ## S12 — 3D physical-media frontend
 
-Status: COMPLETE (2026-10-14). All assigned acceptance criteria are verified in
-IMPLEMENTATION_STATUS.md's final S12/full-specification reconciliation; no required
-blocker or tracked deferral remains. No release is authorized.
+Status: ACTIVE. The owner's all-source-model/artwork correction supersedes the
+2026-10-14 representative-model closure. Current acceptance gaps and evidence are
+recorded at the top of IMPLEMENTATION_STATUS.md and S12_FRONTEND_PROPOSAL.md.
+S13 remains NOT STARTED; release requires both stages' reconciled acceptance.
 Authorization: implement all 12 stages, owner objective update 2026-10-13.
 Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
@@ -2102,9 +2103,10 @@ Evidence required: observed reference report, reproducible Thor rendering and
 resource measurements, real normal launch workflow, integrated controller/touch
 navigation and regression evidence. The Game Boy Drive installation and animated
 native handoff establish the first real workflow. Final reference comparison,
-representative formats, physical-label refresh/offline reuse, integrated input/
-lifecycle and installed-package/cleanup acceptance are verified in
-IMPLEMENTATION_STATUS.md. No S12 advancement blocker remains; S10/S11 are not reopened.
+representative-format, input/lifecycle and package/cleanup evidence remains usable
+where unchanged. The recovered all-format renderer still requires current
+material/reference, cached-label/performance and affected launch/lifecycle
+reconciliation in IMPLEMENTATION_STATUS.md before closure. S10/S11 are not reopened.
 
 ## S13 — Local Socket resource import and cover reveal
 

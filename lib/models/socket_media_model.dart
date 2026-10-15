@@ -93,6 +93,47 @@ class SocketMediaModel {
   int get triangles =>
       surfaces.fold(0, (n, s) => n + (s['indexCount'] as int) ~/ 3);
 
+  static Future<({Map<String, dynamic> data, ByteData pixels})> loadEnvironment(
+      {AssetBundle? bundle}) async {
+    final assets = bundle ?? rootBundle;
+    final data =
+        jsonDecode(await assets.loadString('${assetRoot}environment.json'))
+            as Map<String, dynamic>;
+    if (data['apkSha256'] != apkSha256 ||
+        data['format'] != 'astc4x4HDR' ||
+        data['width'] != 1024 ||
+        data['height'] != 512) {
+      throw const FormatException(
+          'Physical-media environment identity mismatch');
+    }
+    final pixels = await assets.load('$assetRoot${data['file']}');
+    if (sha256
+            .convert(pixels.buffer
+                .asUint8List(pixels.offsetInBytes, pixels.lengthInBytes))
+            .toString() !=
+        data['pixelsSha256']) {
+      throw const FormatException(
+          'Physical-media environment checksum mismatch');
+    }
+    final mips = data['mips'] as List;
+    var offset = 0;
+    if (mips.length != 11) {
+      throw const FormatException('Incomplete environment mip chain');
+    }
+    for (var level = 0; level < mips.length; level++) {
+      final w = math.max(1, 1024 >> level), h = math.max(1, 512 >> level);
+      final length = ((w + 3) ~/ 4) * ((h + 3) ~/ 4) * 16;
+      if (mips[level]['offset'] != offset || mips[level]['length'] != length) {
+        throw const FormatException('Invalid environment mip range');
+      }
+      offset += length;
+    }
+    if (offset != pixels.lengthInBytes) {
+      throw const FormatException('Invalid environment payload length');
+    }
+    return (data: data, pixels: pixels);
+  }
+
   static Future<SocketMediaModel> load(PhysicalMediaFormat format,
       {AssetBundle? bundle}) async {
     final assets = bundle ?? rootBundle;

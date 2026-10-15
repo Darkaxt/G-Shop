@@ -574,9 +574,10 @@ library integration. Target the Thor's supported 60-Hz presentation budget:
 steady-state build and raster P95 each below 16.67 ms, measured separately (their
 percentiles are not additive FPS proof). Final measurements must include rapid
 navigation/background recovery and identify debug/observer overhead.
-Keep exactly one animated selected-media preview, shared immutable geometry per
-format (at most 256 exterior faces for the current three formats), and the
-existing 640-pixel selected-label decode limit. This bounds the label bitmap to
+Keep exactly one animated selected-media preview and immutable source geometry
+per format. The former 256-exterior-face limit applied only to the superseded
+independent three-format implementation, not the owner's recovered source meshes.
+Keep the existing 640-pixel selected-label decode limit. This bounds the label bitmap to
 1,638,400 RGBA bytes; it is not a cap on the whole shared artwork cache or app.
 Compare integrated native memory/residency with the recorded first-slice baseline;
 do not claim model-only memory from aggregate app PSS.
@@ -603,10 +604,9 @@ The N64/disc meshes follow the native 0.7 silhouette/label/hub comparison, while
 using independent geometry and shading rather than redistributing Socket assets.
 Their fixtures are non-playable renderer references, not emulator-launch evidence.
 
-FRONTEND-01 is COMPLETE against the criteria above. The final acceptance matrix
-in IMPLEMENTATION_STATUS.md supersedes these historical first-slice gaps with
-reference geometry/motion, representative formats, actual physical-label/offline
-reuse, bounded performance/lifecycle, save touch/controller/layout and final
-installed-package evidence. No required S10/S11 deferral or S12 blocker remains.
-This completion does not authorize a public release or claim every console has
-its own 3D shell; the truthful format map above remains the delivered contract.
+Historical representative-model closure (superseded): the 2026-10-14 acceptance
+matrix verified those three independent formats, physical-label/offline reuse,
+bounded performance/lifecycle and save touch/controller/layout. The owner's
+subsequent all-source-model correction reopens S12. The current console ledger
+and top of IMPLEMENTATION_STATUS.md govern remaining acceptance; the historical
+map above does not replace the recovered 16-variant/19-family requirement.

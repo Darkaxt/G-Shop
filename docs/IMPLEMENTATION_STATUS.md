@@ -63,9 +63,22 @@ change is reverted. Actual `scenes/main.tscn` inspection identifies the differin
 light: source camera-relative direction is (0.3154230118, 0.8141155243,
 0.4875697494), not the renderer's invented (-0.6, -0.8, 1.7). The shader now uses
 the source direction. Scoped analysis and shader compilation pass. Native
-acceptance is pending original gated request 1103
-(`721744e55b5a47d2a40e0114285d7fdb`); do not call this lighting fix verified yet.
-Failed native app/forward were cleaned and both displays confirmed OFF.
+request 1103 (`721744e55b5a47d2a40e0114285d7fdb`) passed build/gate/daemon
+lifecycle, but native NES front RGB was 82, below the unchanged source-gray
+regression range. Direction alone did not resolve the missing illumination.
+Its temporary app/forward were cleaned and both displays confirmed OFF.
+
+Source environment correction, 2026-10-15: the source shader explicitly uses a
+white metallic default; replacing it with black would incorrectly change its
+material. The actual missing dependency is main.tscn's studio HDR sky, used for
+both ambient light and reflections. The converter now preserves its exact
+699,088 ASTC-HDR bytes and 11 contiguous mip levels, bound to source/APK checksums.
+The selected renderer uploads these levels and uses source energy/direction,
+environment lighting and linear/sRGB boundaries instead of a flat ambient term.
+Focused converter/model/widget checks, scoped analysis and shader compilation
+pass. These are not native fidelity evidence. Original gated request 1106 is
+retained for all-format native rendering, NES brightness, UMD fallback placement,
+cached-label identity/reuse and measured frame-budget acceptance. S12 stays ACTIVE.
 
 Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
 recovered variants with completed label/GPU readiness. Native Library checks

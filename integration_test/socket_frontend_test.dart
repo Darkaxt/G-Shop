@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:integration_test/integration_test.dart';
@@ -132,6 +134,8 @@ void main() {
       final result = await key.currentState!.renderReady;
       expect(result['error'], isNull, reason: format.name);
       expect(result['frameRendered'], isTrue, reason: format.name);
+      expect(result['environmentMipLevels'], 11,
+          reason: 'Source HDR studio lighting must reach the actual GPU');
       const materialTextureCounts = {
         PhysicalMediaFormat.nes: 2,
         PhysicalMediaFormat.psp: 4,
@@ -150,6 +154,90 @@ void main() {
       }
     }
     binding.reportData!['normalCovers'] = results;
+    await tester.pumpWidget(const SizedBox());
+  }, timeout: Timeout.none);
+
+  testWidgets(
+      'native selected UMD reuses a cached raster and stays within the frame budget',
+      (tester) async {
+    final key = GlobalKey<PhysicalMediaViewState>();
+    final system =
+        SystemModel.supportedSystems.singleWhere((s) => s.id == 'psp');
+    const game = GameItem(
+        filename: 'Cached raster fixture (USA).iso',
+        displayName: 'Cached raster fixture',
+        url: '');
+    Widget view(String? label) => MaterialApp(
+        home: Scaffold(
+            backgroundColor: const Color(0xff39070d),
+            body: CoverSection(
+                game: game,
+                system: system,
+                physicalMediaKey: key,
+                coverUrls: const [],
+                physicalLabelUrl: label,
+                metadata: GameMetadata.parse(game.filename))));
+    await tester.pumpWidget(view(null));
+    await tester.pump();
+    expect((await key.currentState!.renderReady)['error'], isNull);
+    final original = key.currentState;
+    // Existing licensed raster is synthetic texture evidence, not a claim of
+    // provider matching. App-private fixture disappears with the test APK.
+    final raster =
+        await rootBundle.load('assets/media_fallbacks/systematic/psp.png');
+    final temp =
+        await Directory.systemTemp.createTemp('rshop-s12-cached-label-');
+    final file = File('${temp.path}/label.png');
+    await file.writeAsBytes(
+        raster.buffer.asUint8List(raster.offsetInBytes, raster.lengthInBytes));
+    await precacheImage(ResizeImage(FileImage(file), width: 640),
+        tester.element(find.byType(CoverSection)));
+    await tester.pumpWidget(view(file.uri.toString()));
+    await tester.pump();
+    final ready = await key.currentState!.renderReady;
+    expect(ready['error'], isNull);
+    expect(ready['labelReady'], isTrue);
+    expect(key.currentState, same(original));
+    expect(ready['identity'], game.selectionKey);
+    expect(find.byType(Image), findsOneWidget);
+    binding.reportData!['native-cached-raster-same-identity'] = true;
+    await capture('normal-cached-label-psp', tester);
+
+    final frames = <ui.FrameTiming>[];
+    final done = Completer<void>();
+    void timings(List<ui.FrameTiming> batch) {
+      frames.addAll(batch);
+      if (frames.length >= 130 && !done.isCompleted) done.complete();
+    }
+
+    binding.addTimingsCallback(timings);
+    try {
+      await done.future;
+    } finally {
+      binding.removeTimingsCallback(timings);
+    }
+    final steady = frames.skip(10).take(120).toList();
+    int percentile(List<int> values) {
+      values.sort();
+      return values[(values.length * .95).ceil() - 1];
+    }
+
+    final build =
+        percentile(steady.map((f) => f.buildDuration.inMicroseconds).toList());
+    final rasterTime =
+        percentile(steady.map((f) => f.rasterDuration.inMicroseconds).toList());
+    final status = await File('/proc/self/status').readAsLines();
+    binding.reportData!['native-umd-steady'] = {
+      'frames': steady.length,
+      'warmupFrames': 10,
+      'buildP95Us': build,
+      'rasterP95Us': rasterTime,
+      'rss': status.where((s) => s.startsWith('VmRSS:')).firstOrNull,
+      'scope':
+          'isolated native debug UI timings; not physical presentation or whole-library RSS',
+    };
+    expect(build, lessThan(16667));
+    expect(rasterTime, lessThan(16667));
     await tester.pumpWidget(const SizedBox());
   }, timeout: Timeout.none);
 

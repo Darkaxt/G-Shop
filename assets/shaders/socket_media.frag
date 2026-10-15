@@ -5,6 +5,11 @@ uniform FragInfo {
   vec4 flags; // casing shader, label, disc metal, AO strength
   vec4 channels; // source roughness, metallic and AO channel selectors
 } material;
+uniform EnvironmentInfo {
+  vec4 light; // camera-relative direction xyz, source energy
+  vec4 sky; // last mip, ambient energy, reflection energy, exposure
+} environment;
+uniform sampler2D environment_map;
 uniform sampler2D albedo_map;
 uniform sampler2D roughness_map;
 uniform sampler2D metallic_map;
@@ -23,15 +28,36 @@ float source_channel(vec4 sampled, float channel) {
   return dot(sampled.rgb, vec3(0.333333));
 }
 
+vec3 from_srgb(vec3 value) {
+  return mix(value / 12.92, pow((value + 0.055) / 1.055, vec3(2.4)),
+             step(vec3(0.04045), value));
+}
+
+vec3 to_srgb(vec3 value) {
+  value = max(value, vec3(0.0));
+  return mix(value * 12.92, 1.055 * pow(value, vec3(1.0 / 2.4)) - 0.055,
+             step(vec3(0.0031308), value));
+}
+
+vec3 studio(vec3 direction, float lod) {
+  // The source camera faces -Z; panorama lookup remains in source world space.
+  vec3 world = normalize(vec3(-direction.x, direction.y, -direction.z));
+  vec2 uv = vec2(atan(world.x, world.z) / 6.2831853 + 0.5,
+                 acos(clamp(world.y, -1.0, 1.0)) / 3.14159265);
+  return textureLod(environment_map, uv, lod).rgb;
+}
+
 void main() {
   vec2 uv = v_uv * material.uv_info.x + material.uv_info.yz;
   vec4 sampled = texture(albedo_map, uv);
   if (material.flags.y > 0.5) sampled.rgb /= max(sampled.a, 0.00001);
-  vec3 base = sampled.rgb * material.color.rgb;
+  sampled.rgb = from_srgb(sampled.rgb);
+  vec3 color = from_srgb(material.color.rgb);
+  vec3 base = sampled.rgb * color;
   if (material.flags.x > 0.5) {
     vec3 textured = mix(vec3(1.0), sampled.rgb, material.uv_info.w);
     float luma = dot(textured, vec3(0.299, 0.587, 0.114));
-    base = mix(textured, material.color.rgb * luma, material.pbr.w);
+    base = mix(textured, color * luma, material.pbr.w);
   }
   float alpha = sampled.a * material.color.a;
   if (alpha < 0.002) discard;
@@ -46,9 +72,7 @@ void main() {
   n = normalize(mat3(t * invLength, b * invLength, n) * tangentNormal);
   if (!gl_FrontFacing) n = -n;
   vec3 view = normalize(vec3(0.0, 0.0, 4.0) - v_position);
-  // Socket main scene's DirectionalLight3D +Z, transformed by its -Z camera.
-  // The prior invented bottom-side light shadowed the tilted cartridge front.
-  vec3 light = normalize(vec3(0.3154230118, 0.8141155243, 0.4875697494));
+  vec3 light = normalize(environment.light.xyz);
   vec3 halfVector = normalize(view + light);
   float ndl = max(dot(n, light), 0.0), ndv = max(dot(n, view), 0.001);
   float ndh = max(dot(n, halfVector), 0.0), vdh = max(dot(view, halfVector), 0.0);
@@ -63,11 +87,17 @@ void main() {
   float k = (rough + 1.0) * (rough + 1.0) / 8.0;
   float geometry = ndl / (ndl * (1.0 - k) + k) * ndv / (ndv * (1.0 - k) + k);
   vec3 specular = distribution * geometry * fresnel / max(4.0 * ndl * ndv, 0.001);
-  vec3 lit = (base * (1.0 - metal) * ndl + specular * ndl) * 0.85 + base * 0.35 * ao;
+  vec3 ambientFresnel = f0 + (max(vec3(1.0 - rough), f0) - f0) * pow(1.0 - ndv, 5.0);
+  vec3 diffuseSky = studio(n, environment.sky.x) * base * (1.0 - metal) *
+      (1.0 - ambientFresnel) * environment.sky.y;
+  vec3 reflectedSky = studio(reflect(-view, n), rough * environment.sky.x) *
+      ambientFresnel * environment.sky.z;
+  vec3 lit = (base * (1.0 - metal) * ndl + specular * ndl) * environment.light.w +
+      (diffuseSky + reflectedSky) * ao;
   if (material.flags.z > 0.5) {
     float angle = atan(v_uv.y - 0.5, v_uv.x - 0.5) + dot(n, view) * 8.0;
     vec3 rainbow = 0.5 + 0.5 * cos(angle + vec3(0.0, 2.094, 4.188));
     lit += rainbow * pow(1.0 - ndv, 2.0) * 0.2;
   }
-  frag_color = vec4(lit * alpha, alpha);
+  frag_color = vec4(to_srgb(lit * environment.sky.w) * alpha, alpha);
 }

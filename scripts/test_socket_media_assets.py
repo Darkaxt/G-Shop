@@ -7,6 +7,19 @@ import build_socket_media_assets as media
 
 
 class MediaConversionTest(unittest.TestCase):
+    def test_source_hdr_environment_preserves_astc_blocks_and_mip_ranges(self):
+        payload = bytes(range(112))
+        source = b'GST2' + bytes(32) + struct.pack('<IHHII', 0, 8, 8, 3, 36) + payload
+        description, blocks = media.compressed_environment(source)
+        self.assertEqual(blocks, payload)
+        self.assertEqual(description['format'], 'astc4x4HDR')
+        self.assertEqual((description['width'], description['height']), (8, 8))
+        self.assertEqual(description['mips'], [
+            {'offset': 0, 'length': 64}, {'offset': 64, 'length': 16},
+            {'offset': 80, 'length': 16}, {'offset': 96, 'length': 16}])
+        with self.assertRaises(ValueError):
+            media.compressed_environment(source[:-1])
+
     def test_internal_material_gradient_is_bound_and_keeps_source_pixels(self):
         class Source:
             def reference(self, value, scene):
