@@ -1,10 +1,21 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 50.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 52.
+
+QA1 ACTIVE — Integrated QA remediation (QA-REVIEW-01): sequential read-only
+reviews of (1) Drive/downloads, (2) saves/cache, (3) metadata/UI. Main reproduces
+and adjudicates findings, batches confirmed in-scope corrections, runs focused
+feature verification and records every disposition before committing. No second
+ACTIVE stage, speculative feature expansion or concurrent test workloads.
 
 Current owner additions, 2026-10-15: S14 COMPLETE; S15 COMPLETE. Earlier S0-S13
 remain COMPLETE. Existing release 1.9.0 and production imported resources are
 preserved; these changes do not authorize a new public release.
+
+Owner-authorized device delivery, 2026-10-15: package 1.9.1/code 15 through the
+shared build gate, verify production signature/content, install in place on Thor,
+verify preserved configuration/import and real startup/brand navigation, then
+switch both screens off. No new public release or bulk game operation.
 
 - S14 COMPLETE — Console game sync progress (SYNC-UI-01): add event-driven discovery and
   actual game-update counts to the existing sync owner; render a second compact

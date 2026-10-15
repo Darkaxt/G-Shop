@@ -595,7 +595,8 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     final db = DatabaseService();
     final gameService = _gameService(syncTimeout);
 
-    await _syncOneSystem(systemConfig, systemId, db, gameService);
+    await _syncOneSystem(systemConfig, systemId, db, gameService,
+        storageService: storageService);
 
     // Process any systems that were queued while the first was syncing
     await _processQueue(config, db, gameService,

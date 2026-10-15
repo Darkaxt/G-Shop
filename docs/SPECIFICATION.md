@@ -1,6 +1,24 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 50, 2026-10-15.
+Authoritative specification, revision 52, 2026-10-15.
+
+**QA-REVIEW-01 (QA1, owner-authorized 2026-10-15):** perform bounded QA reviews of
+Drive/download ownership, save sync/managed cache, and metadata/library/settings
+integration. Use at most one read-only reviewer at a time, with the inherited
+main-agent model at Low effort; no reviewer builds, device changes or credentials.
+Main verifies each concrete finding against reachable behavior and existing
+requirements, implements confirmed defects with focused regression/integration
+evidence, and reconciles all findings before closure. Do not turn speculative
+edge cases, microoptimizations or new features into mandatory work. Preserve user
+data, source boundaries, save conflict protection and the authorized deployment.
+Commit/synchronize verified fixes. Public publication remains separately gated.
+
+Owner deployment authorization, 2026-10-15: deploy the integrated S14/S15 changes
+to the connected AYN Thor as an in-place signed production update (1.9.1/code 15).
+Preserve package, signer, UID, configured sources/API credentials, imported Socket
+resources and user data. Verify installed APK identity, startup and manufacturer
+navigation/menu; leave both physical displays off afterward. This authorizes a
+device update, not a new GitHub release or a new bulk sync/scrape/ROM operation.
 
 ### Owner additions — console sync progress and manufacturer navigation
 

@@ -5,6 +5,45 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current QA — QA1 ACTIVE, 2026-10-15
+
+Authority revision 52. Three sequential read-only reviewers used inherited model
+and explicit Low effort; none edited files, ran tests/builds or accessed devices,
+network or credentials. Main owns all adjudication and corrections.
+
+- Drive/downloads: one reachable defect confirmed. `syncSystem` did not forward
+  its supplied storage service to the first console, so persisted Last sync stayed
+  stale while queued consoles updated correctly. A real SQLite/local-scan/queue
+  regression failed with the first console's timestamp null; forwarding the same
+  storage service passes, including reopening settings and checking both consoles.
+  The affected database/sync/home/brand/progress checks pass. The unused
+  `discoverAll` completer observation is not user-reachable and is not promoted
+  into speculative remediation work.
+- Saves/cache: no actionable finding in the inspected late-upload conflict,
+  device-specific companion identity, configured-root and protected eviction paths.
+  This was source review, not a fresh live watch/eviction or syscall audit.
+- Metadata/UI: no actionable finding in inspected matching/rating/tag/Top,
+  local/cloud merge, shared publication, brand scope and progress contracts.
+  Existing manual shelf ordering is intentional, not an alleged ranking defect.
+  This was source review; native brand navigation remains part of device delivery.
+
+Main-agent verification additionally exposed two obsolete test-double signatures
+for the new optional database progress callback. Updated both overrides, keeping
+the controlled fake's completion callback after its simulated commit. Library
+query/controller checks now compile and pass. Fresh focused checks also pass
+offline late-upload conflict detection, cross-device restore exclusion, preserved
+conflicts, protected pins/sample/active cache entries and unified/per-console
+rotation. These are fixture-based checks, not destructive live save/cache tests.
+Scoped analysis of the production fix/regression reports no issues.
+
+Remaining: final signed packaging and authorized Thor update with preservation/
+startup/UI evidence. No external impediment or tracked deferral.
+The first signed build passed native tests/assembly through gate ticket 1123;
+build/helper exits are zero, observed workers 2, parallel false, Gradle heap 3 GiB,
+Kotlin in-process, test forks 1/512 MiB. No memory failure; daemon exit verified.
+The confirmed Dart fix will be included before installation, not left in a later
+device update. No public release or new bulk game operation is authorized.
+
 ### Current additions — S14 COMPLETE; S15 COMPLETE, 2026-10-15
 
 Authority revision 50, already authorized by the owner's popup and brand/logo

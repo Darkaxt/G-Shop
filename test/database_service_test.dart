@@ -1,9 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:retro_eshop/models/config/app_config.dart';
+import 'package:retro_eshop/models/config/system_config.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/services/library_sync_service.dart';
+import 'package:retro_eshop/services/storage_service.dart';
+import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
@@ -100,6 +107,36 @@ void main() {
   });
 
   // ─── Schema ─────────────────────────────────────────────
+
+  test('single-console and queued sync both persist their successful time',
+      () async {
+    await TransferJournalSchema.install(db);
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final sync = LibrarySyncService();
+    addTearDown(sync.dispose);
+    final config = AppConfig(systems: [
+      for (final id in ['nes', 'snes'])
+        SystemConfig(
+            id: id,
+            name: id,
+            targetFolder: 'D:/Temp/rshop-thor-deploy-20261015/empty-$id',
+            providers: const []),
+    ]);
+    final first = sync.syncSystem('nes', config, storageService: storage);
+    await sync.syncSystem('snes', config, storageService: storage);
+    expect(sync.state.totalSystems, 2);
+    await first;
+    expect(sync.state.failedSystems, isEmpty);
+    expect(sync.state.completedSystems, 2);
+    expect(sync.state.isSyncing, isFalse);
+    final reopened = StorageService();
+    await reopened.init();
+    expect(reopened.getLastSyncTime('nes'), isNotNull);
+    expect(reopened.getLastSyncTime('snes'), isNotNull);
+  });
 
   test('game progress reports actual batches and final count only after commit',
       () async {

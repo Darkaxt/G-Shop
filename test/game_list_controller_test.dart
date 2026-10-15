@@ -36,11 +36,12 @@ class FakeDatabaseService extends DatabaseService {
   Future<List<GameItem>> getGames(String systemSlug) async => cachedGames;
 
   @override
-  Future<void> saveGames(String systemSlug, List<GameItem> games, {bool deleteOrphans = false, bool forceDeleteOrphans = false, Set<String> authoritativeDriveSourceIds = const {}}) async {
+  Future<void> saveGames(String systemSlug, List<GameItem> games, {bool deleteOrphans = false, bool forceDeleteOrphans = false, Set<String> authoritativeDriveSourceIds = const {}, void Function(int processed, int total)? onProgress}) async {
     savedSystemSlug = systemSlug;
     savedGames = games;
     lastDeleteOrphans = deleteOrphans || forceDeleteOrphans;
     lastAuthoritativeDriveSourceIds = Set.of(authoritativeDriveSourceIds);
+    onProgress?.call(games.length, games.length);
   }
 
   @override
@@ -81,6 +82,7 @@ class ControlledCommitDatabaseService extends FakeDatabaseService {
     bool deleteOrphans = false,
     bool forceDeleteOrphans = false,
     Set<String> authoritativeDriveSourceIds = const {},
+    void Function(int processed, int total)? onProgress,
   }) async {
     entered.complete();
     await allowCommit.future;
@@ -88,6 +90,7 @@ class ControlledCommitDatabaseService extends FakeDatabaseService {
         deleteOrphans: deleteOrphans, forceDeleteOrphans: forceDeleteOrphans,
         authoritativeDriveSourceIds: authoritativeDriveSourceIds);
     committed = true;
+    onProgress?.call(games.length, games.length);
   }
 }
 
