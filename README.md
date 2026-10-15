@@ -1,164 +1,115 @@
-# 🎮 R-Shop
+# R-Shop — cloud library, handheld first
 
-> **Fork implementation in progress:** Google Drive on-demand storage and fresh
-> metadata, rating overlays, and metadata-backed filters are **not ready for use**.
-> Identity, authorization and metadata foundations are being implemented; normal
-> source/queue/UI integration and live acceptance remain. Start with the
-> [authoritative specification](docs/SPECIFICATION.md),
-> [staged plan](docs/IMPLEMENTATION_PLAN.md), and
-> [implementation status](docs/IMPLEMENTATION_STATUS.md), and
-> [development setup](docs/DEVELOPMENT_SETUP.md).
+A fork of [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-Shop) for keeping a large retro collection in Google Drive and downloading games when you want to play. Keep the controller-first frontend, add richer discovery, and spend your SD space on the games you actually use.
 
-**The fastest way to turn your retro library into a console-like experience on Android.**
+[Download the latest APK](https://github.com/Darkaxt/R-Shop/releases/latest) · [Add to Obtainium / ObtainX](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Darkaxt/R-Shop) · [Upstream project](https://github.com/AverageConsumer/R-Shop)
 
-R-Shop is a controller-first game manager for Android handhelds and TVs. Connect your local folders, RomM server, or network shares, and browse your collection through a polished UI that feels closer to an eShop than a file browser.
+Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current release: **1.9.1**
 
 <p align="center">
-  <a href="https://averageconsumer.github.io/R-Shop/">
-    <img src="screenshots/console_list.png" width="700" alt="R-Shop Console Overview" />
-  </a>
+  <img src="screenshots/thor/gba-library-up.png" width="960" alt="R-Shop on AYN Thor: GBA console tab, cloud download badges, box covers and an imported 3D cartridge with a handwritten title label" />
 </p>
+
+*Real Thor capture running the published production APK. The preview uses resources imported locally from the owner's original Socket APK; those resources are not bundled with R-Shop.*
+
+## What changes from the original?
+
+The original R-Shop provides the controller-first foundation: local libraries, RomM pairing, SMB/FTP/Web sources, downloads, favorites and RetroAchievements. This fork builds on that work rather than replacing it.
+
+| Area | Original workflow | Added in this fork |
+| --- | --- | --- |
+| Game sources | Local folders, RomM, SMB, FTP and Web | Native Google Drive sign-in and private, read-only ROM folders; download on demand without mirroring the SD card |
+| Library browsing | Library-wide grid, Installed, Favorites and search | Console tabs and a dashboard with catalogue, installed/downloadable counts and storage information |
+| Console navigation | Console carousel or grid | Transparent manufacturer logos, brand filtering and **Sync manufacturer** |
+| Game information | Automatic artwork and metadata | Independent ScreenScraper/IGDB gathering, source-attributed ratings, cover overlays and reviewable matching |
+| Discovery | Browse/search the collection | Dynamic Best 10/25/50/100 filters and independent Hack, T-Eng, Dub, Undub and Uncensor tags |
+| Artwork storage | Existing cover/metadata workflow | Reconnectable shared metadata/artwork folder and optional ES-DE publication |
+| Local storage | Download games for local use | Configurable retention, rotation and budgets, unified or per-console; pins and protected games |
+| Saves and related files | Emulator-managed files | Opt-in Drive backups, restore/conflict handling, queued offline changes and configurable monitored save locations |
+| Physical media | Flat cover presentation | Format-specific flat fallbacks, handwritten missing-art labels, optional imported 3D media and box-to-cartridge focus animation |
+| Dual-screen play | Normal game launching | Per-ROM companion selection: emulator above, linked Android app below on supported devices |
+| Sync feedback | Overall progress | Second current-console progress card with real game counts once the inventory is known |
+
+Comparison baseline: upstream's [README](https://github.com/AverageConsumer/R-Shop/blob/d615f87277617cbf3a12a6445b3c71d42cf72539/README.md) and [source types](https://github.com/AverageConsumer/R-Shop/blob/d615f87277617cbf3a12a6445b3c71d42cf72539/lib/models/config/source.dart), reviewed on 2026-10-15. The upstream column summarizes that baseline, not an exhaustive claim about every upstream capability or future release.
+
+## A tour on AYN Thor
+
+Unaltered 1920 × 1080 captures from the Thor's upper display, running **1.9.1/code 15**. Counts and artwork reflect this collection, not bundled content or complete metadata coverage. Open an image to inspect the full-size view.
+
+### Browse by manufacturer, sync only that brand
+
+Choose Nintendo, Sony, Sega, Atari or another represented manufacturer. **All** restores the full console list; **Sync Atari**, for example, refreshes that brand's configured consoles without changing source mappings.
 
 <p align="center">
-  <a href="https://github.com/averageconsumer/R-Shop/releases">
-    <img src="https://img.shields.io/badge/Download-Latest_APK-brightgreen?style=for-the-badge&logo=android&logoColor=white" alt="Download latest APK" />
-  </a>
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/averageconsumer/r-shop">
-    <img src="https://img.shields.io/badge/Get_it_on-Obtainium-blue?style=for-the-badge" alt="Get it on Obtainium" />
-  </a>
-  <a href="https://averageconsumer.github.io/R-Shop/">
-    <img src="https://img.shields.io/badge/Website-Visit_R--Shop-blueviolet?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Visit website" />
-  </a>
-  <a href="https://discord.gg/xVT26BHGqh">
-    <img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord" />
-  </a>
+  <img src="screenshots/thor/manufacturer-navigation-up.png" width="440" alt="Manufacturer logo selector above the NES carousel" />
+  <img src="screenshots/thor/manufacturer-sync-up.png" width="440" alt="Atari selected, with Sync Atari alongside console and Sync All actions" />
 </p>
+
+### A dashboard instead of an endless All Games wall
+
+See the collection, what is installed and what can be downloaded, then enter one console. Source-library size is distinct from managed local storage; unknown sizes are not invented.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.0-blue?style=flat-square" alt="Version" />
-  <img src="https://img.shields.io/badge/platform-Android-brightgreen?style=flat-square" alt="Platform" />
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
-  <img src="https://img.shields.io/github/stars/averageconsumer/R-Shop?style=flat-square&color=yellow" alt="GitHub stars" />
+  <img src="screenshots/thor/console-dashboard-up.png" width="880" alt="Console dashboard with catalogue, installed, downloadable, favorites and size metrics" />
 </p>
 
----
+### Find the best-rated games in your own collection
 
-## Why R-Shop?
-
-Most retro setups are powerful, but they still feel like setups.
-
-R-Shop focuses on the part people actually care about: **getting into their games fast**, with a UI that feels good on a handheld, a controller, or the couch.
-
-It removes as much setup friction as possible:
-
-- **QR pairing for RomM** so users can connect in seconds
-- **Automatic source and system mapping** using known naming conventions
-- **Automatic metadata and artwork** with no account required
-- **Automatic RetroAchievements matching** when available
-- **Manual overrides only when needed**, not as the default path
-
-The goal is simple: **scan, connect, browse, play.**
-
----
-
-## What makes it different
-
-### 🎮 Console-like by design
-Built around controllers first, not bolted on later. D-pad navigation, focus handling, layout decisions, and game flow are designed to feel native on Android handhelds and TV setups.
-
-### ⚡ Fast setup, low friction
-R-Shop is at its best when it makes complicated retro-library setup feel trivial. Local folders, RomM, SMB, FTP, and Web sources can all feed the same experience.
-
-### 🧠 Smart defaults
-Systems are mapped automatically where possible. RomM sources map automatically. Metadata comes in automatically. RetroAchievements can match automatically. You step in only when something needs correction.
-
-### 🌐 Multi-source library, one front end
-Merge games from multiple providers into a single clean library instead of juggling separate tools, launchers, or source-specific views.
-
----
-
-## Features
-
-- **Controller-first UI** for Android handhelds and TV devices
-- **Unified Sources screen** for RomM, SMB, FTP, Web, and local libraries
-- **QR-based RomM pairing** with token auth and re-pair support
-- **Automatic system mapping** for local and network libraries
-- **Automatic metadata and cover art** with no manual login required
-- **RetroAchievements integration** with game matching, progress, and badges
-- **Library-wide browsing** with Installed, Favorites, search, and zoom controls
-- **Background-ready download queue** with live progress on cards and buttons
-- **Per-card source indicators** showing where each game is available
-- **One-question onboarding** that adapts to how users store their ROMs
-
----
-
-## Screenshots
+Best 25 means up to 25 qualifying games in the selected collection/console scope, not a downloaded Top list. Rankings use the accepted overall-score policy; insufficient coverage is shown explicitly. Unrated games receive no fabricated scores, and a hack does not inherit the original game's rating. Default featured order places up to the best 100 first, followed by the rest alphabetically.
 
 <p align="center">
-  <img src="screenshots/console_list.png" width="400" alt="Console overview" />
-  <img src="screenshots/rom_list.png" width="400" alt="ROM list" />
+  <img src="screenshots/thor/ranking-filters-up.png" width="880" alt="Best 10 and Best 25 filters, score basis and incomplete rating coverage" />
 </p>
+
+The example intentionally shows incomplete GBA rating coverage. Gather metadata to populate ratings and overlays; this demonstrates the controls, not a completed collection-wide scrape.
+
+### Metadata settings with real sections
+
+ScreenScraper, IGDB, shared storage and ES-DE sharing have separate navigation sections. Keep gathered information and artwork outside the app so they can be reconnected after reinstall; this does not back up account credentials or downloaded-game ownership records.
+
 <p align="center">
-  <img src="screenshots/detail_screen.png" width="400" alt="Game detail screen" />
-  <img src="screenshots/download_queue.png" width="400" alt="Download queue" />
+  <img src="screenshots/thor/metadata-provider-up.png" width="440" alt="Sectioned metadata settings with saved ScreenScraper access and no exposed credentials" />
+  <img src="screenshots/thor/shared-metadata-up.png" width="440" alt="Shared metadata folder beside separate provider and ES-DE sharing sections" />
 </p>
+
+### Keep storage and save backups under your control
+
+Configure cache retention and rotation globally or by console. Automatic cleanup is opt-in and applies to verified cloud-backed, managed ROMs—not arbitrary folders, saves or BIOS. Save backups use a separate private Drive area, preserve conflicts and queue offline changes for later synchronization.
+
 <p align="center">
-  <img src="screenshots/smb_setup.png" width="400" alt="Source setup" />
+  <img src="screenshots/thor/cache-retention-up.png" width="440" alt="ROM cache policy, consoles, games and status sections with rotation and retention controls" />
+  <img src="screenshots/thor/save-backups-up.png" width="440" alt="Drive backup area and separate backup, restore/conflicts, status and emulator sections" />
 </p>
 
----
+The cache image shows the owner's current policy, not a requirement to enable deletion. Save monitoring requires the appropriate folder grant or configured root-access path; it is not whole-device synchronization.
 
-## Supported systems
+## Install and set up
 
-R-Shop supports **66 systems** with icons, RetroAchievements integration, and automatic folder mapping.
+1. Get `app-release.apk` from this fork's [latest release](https://github.com/Darkaxt/R-Shop/releases/latest), or track `https://github.com/Darkaxt/R-Shop` in Obtainium/ObtainX.
+2. Add your sources in **Settings → My Sources**. Existing local, RomM, SMB, FTP and Web workflows remain available.
+3. For Drive, authorize your account and select/map your own folders. Google OAuth application registration is required; the maintainer's private testing registration is not unrestricted public access. See [setup notes](docs/DEVELOPMENT_SETUP.md) when configuring your own clients.
+4. Configure ScreenScraper/IGDB in **Settings → Game metadata** for fresh metadata and ratings. ScreenScraper needs user and authorized application credentials; IGDB needs application credentials. They are not included in the APK. Gathering metadata is separate from refreshing the game catalogue.
+5. Optionally connect shared metadata/ES-DE folders, set cache policy, select save locations and link per-game companions. Root supports emulator-private locations where ordinary access is insufficient; basic library browsing does not require root.
+6. Flat media previews are the default. Optionally import your own supported original **Socket Launcher 0.7 APK** in **Settings → Media previews**, then explicitly enable 3D. Missing/loading artwork and reduced motion skip the box reveal.
 
-Highlights include:
-- **Nintendo:** NES, SNES, N64, GameCube, Wii, Wii U, Switch, GB, GBC, GBA, NDS, 3DS, DSi, Virtual Boy, FDS, Game & Watch
-- **Sony:** PlayStation, PS2, PS3, PSP, PS Vita
-- **Sega:** Master System, Mega Drive, Game Gear, Sega CD, 32X, Saturn, Dreamcast, SG-1000
-- **Atari:** 2600, 5200, 7800, Lynx, Jaguar, Jaguar CD, ST
-- **NEC:** TurboGrafx-16, TurboGrafx-CD, PC-FX
-- **SNK:** Neo Geo Pocket, Neo Geo CD
-- **Others:** WonderSwan, ColecoVision, Intellivision, Vectrex, MSX, Amstrad CPC, Commodore 64, Amiga, ZX Spectrum, Arcade, DOS, and more
+Updates retain `com.darkaxt.rshop` and its production signing identity. This differs from upstream's package, so installing alongside upstream does not automatically migrate upstream's app-private data. Release assets include checksums and source/build provenance.
 
----
+## What is—and is not—synced
 
-## Installation
+- Drive ROM sources are read-only. R-Shop does not upload ROMs or mirror the SD card into Drive.
+- Games download before launch; this is not ROM streaming.
+- Save/companion backups are separately configured, opt-in writes. Late uploads recheck remote conflicts instead of blindly overwriting another device.
+- Removing a managed local game does not remove its cloud ROM. Cache cleanup does not authorize deleting unrelated files.
+- Scores, artwork, BIOS, ROMs, provider credentials and Socket resources are not bundled.
 
-### Obtainium
-The easiest way to install and stay up to date:
+## Upstream heritage and documentation
 
-[![Get it on Obtainium](https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png)](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/averageconsumer/r-shop)
+Thanks to [AverageConsumer and upstream contributors](https://github.com/AverageConsumer/R-Shop) for the original frontend, controller navigation, source integrations, queue, achievements and artwork foundation. Existing upstream screenshots remain in `screenshots/`; the gallery above is specifically this fork on Thor.
 
-### Manual APK
-Download the latest APK from the [Releases](../../releases) page.
+[Specification](docs/SPECIFICATION.md) · [Plan](docs/IMPLEMENTATION_PLAN.md) · [Verified status](docs/IMPLEMENTATION_STATUS.md) · [Development setup](docs/DEVELOPMENT_SETUP.md) · [Upstream user guide](docs/USER_GUIDE.md) · [Contributing](CONTRIBUTING.md)
 
----
-
-## Getting started
-
-1. Install R-Shop
-2. Choose how your library is stored
-3. Connect a local folder, network source, or RomM server
-4. Let R-Shop map systems and pull metadata automatically
-5. Browse, download, and play
-
-For a full walkthrough, see the [User Guide](docs/USER_GUIDE.md).
-
----
-
-## Philosophy
-
-R-Shop does **not** host or distribute ROMs.
-
-It is a library management and browsing tool for content users already own or legally access through their own servers, directories, and devices.
-
----
-
-## Contributing
-
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+R-Shop manages content you own or may legally access; it does not host or distribute games. Game artwork and brand marks belong to their respective owners. Included third-party notices remain applicable. Imported Socket resources remain local and are not redistributed in source or APK releases.
 
 ## License
 
-MIT
+[MIT](LICENSE), with third-party notices applying to their respective assets and dependencies.

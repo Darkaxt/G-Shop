@@ -5,6 +5,25 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### README showcase — COMPLETE, 2026-10-15
+
+Owner requested public repository documentation with real Thor screenshots and
+comparison against the original. README now leads with this fork's release and
+updater URLs, credits upstream, compares its pinned documented/source baseline,
+and explains actual OAuth/provider/import setup requirements. Nine unaltered
+1920x1080 production captures illustrate cloud/physical-media browsing, dashboard,
+manufacturer navigation/scoped menu, ranking controls, metadata sections/shared
+storage, cache policy and save backups. Images were individually inspected for
+correct view, privacy and current loaded state; incomplete score coverage is
+explicitly described rather than presented as a fresh scrape. No new bulk sync,
+scrape, download, backup, restore or data removal was triggered for the gallery.
+GitHub Markdown rendering preserves the comparison table and nine images; all
+15 relative link/image references resolve locally and PNG dimensions pass.
+Both physical displays/committed states are OFF. Cleanup transaction
+25e38bdd05fca0d662f6b42752bf9d6c removed only nine unused/loading/duplicate captures
+(9,685,098 bytes); selected deliverables and existing upstream images are retained.
+Documentation-only work does not reopen S0-S15/QA1 or require a new Gradle build.
+
 ### Public 1.9.1 handover — R1/R2/R3 COMPLETE, 2026-10-15
 
 Authority revision 53 explicitly authorizes public publication and installation
