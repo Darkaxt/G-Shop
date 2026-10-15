@@ -5,11 +5,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16 COMPLETE, S17 ACTIVE, 2026-10-15
+### Collection/patch extension — S16-S17 COMPLETE, 2026-10-15
 
 Authority revision 54 and COLLECTION_PATCHES_SPECIFICATION.md revision 1.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17 is the sole ACTIVE stage; S18-S19 are NOT STARTED. Earlier completed
+COMPLETE; S17 is COMPLETE; S18-S19 are NOT STARTED. Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
 
@@ -162,13 +162,41 @@ recomputation for actual modification changes. No new scheduler, timeout or
 background migration was added. Initial device upgrade completed without
 interruption; no improved Android upgrade timing is claimed for the new fix.
 
-S17 acceptance blockers: final signed build/update/preservation reconciliation
-remains (NAV-01/CACHE-UI-02/INPUT-01). Request 1156 is retained in its original
-managed session while the shared gate waits for existing Gradle activity. It
-packages the verified identity separation; earlier artifacts are not substituted
-for its final update. This blocks S17 closure and dependent S18 navigation, not
-continued observation of the original request.
-No current-stage tracked deferral. S18 owns UniPatcher/engine licensing and
+S17 final acceptance: the original request 1156 acquired the shared mutex after
+GameNative's healthy build released it. Its shell/owned process identities and
+task/test progress were checked under the owner's conditional cancellation
+instruction; no cancellation was needed or sent. The old diagnostic response was
+refused as stale because progress had resumed. R-Shop build/helper exit 0,
+completion verified and post-build daemon exit verified; no surviving daemon or
+memory failure was reported. Observed Gradle 9.1.0: two workers, parallel false,
+3 GiB heap with Kotlin in-process sharing that budget. Test-task configuration
+retains one fork/512 MiB/fail-fast; assembleRelease did not execute Test tasks.
+Native environment budget is two, not a proven universal plugin concurrency cap;
+existing app compile/link pools remain bounded and unchanged.
+
+The exact signed final APK (69,684,105 bytes), SHA-256
+a62cc6900a50b637faff30bf307179f441579e44075219caa5d440ac986b8a94,
+was installed in place successfully and its device base.apk hash matches.
+Production signer, com.darkaxt.rshop, 1.9.1/code 15 and UID 10167 are retained.
+Immediately before/after this update, secure credential/key stores, config.json,
+emulator_families.json and imported-media active.json hashes are identical.
+Normal activity launch returned Status ok; current-start logs report all systems
+fresh and sync skipped, with no current-start fatal/unhandled exception observed.
+The old October 13 crash in a reused PID log is not a crash of this build.
+Read-only GBA projection retains 7,335 commercial / 339 hacks, no dirty rows,
+67 IGDB and 140 ScreenScraper records and the completed existing ratings job.
+Unchanged frontend/controller native evidence above applies to this final
+backend-only correction; no duplicate menu walk or provider refresh was needed.
+Both physical displays and committed states were verified OFF afterward.
+
+S17 reconciliation: NAV-01, CAT-01's Commercial/Hacks scope, CACHE-UI-02 and
+INPUT-01 pass their assigned host/native criteria. No blockers or required
+deferrals remain. Closure assessment: shared system ordering/category queries,
+existing Actions/Focus ownership and identity fingerprints remain authoritative;
+the proven category-only canonical rewrite was removed rather than adding a
+parallel migration/input framework. No further required consolidation was found.
+This is an in-place verification update, not a new public release.
+S18 owns UniPatcher/engine licensing and
 format evaluation; owner now authorizes GPL-compatible combined distribution with
 upstream notices retained and Darkaxt attribution, so licensing preference is not
 an external blocker. S17 additionally owns CACHE-UI-02: reproduce/repair the

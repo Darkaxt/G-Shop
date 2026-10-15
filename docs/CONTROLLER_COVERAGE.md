@@ -63,7 +63,7 @@ repairs; S18/S19 must apply the same contract to their new menus.
    parent navigation is suppressed at its overlay priority. Verify native
    framework behavior and add the missing route if confirmed.
 
-Status: S17 ACTIVE. Findings 1-9 are integrated into the existing input paths.
+Status: S17 COMPLETE. Findings 1-9 are integrated into the existing input paths.
 Focused rendered host checks pass main header/bumper/content ownership,
 cache policy/dropdowns/dialog/Apply/pins, Drive connection/mapping dialogs,
 metadata/save/media sections, shelf removal/scroll and long Game Info scrolling.
@@ -92,6 +92,8 @@ unchanged honest Best 24 GBA prefix. No policy/pin/ROM changes were needed.
 These are actual Android event/render checks, not a claim that a human exercised
 every physical controller button or every OS-owned account/file picker. Host
 checks cover those app-owned handoffs and remain distinct from OS behavior.
-Both displays were verified OFF after this smoke. S17 remains ACTIVE until the
-final category/identity correction APK and preservation reconciliation pass;
-its original queued Gradle request is retained, not relaunched.
+Both displays were verified OFF after this smoke. The final category/identity
+correction APK passed its original gated build and in-place preservation check;
+its installed SHA-256 matches the verified host artifact. No frontend/input code
+changed after the applicable native smoke. S17's assigned criteria are COMPLETE;
+new S18/S19 patch/share menus must retain and verify the same controller contract.
