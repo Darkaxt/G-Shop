@@ -2,11 +2,16 @@
 
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 52.
 
-QA1 ACTIVE — Integrated QA remediation (QA-REVIEW-01): sequential read-only
+QA1 COMPLETE — Integrated QA remediation (QA-REVIEW-01): sequential read-only
 reviews of (1) Drive/downloads, (2) saves/cache, (3) metadata/UI. Main reproduces
 and adjudicates findings, batches confirmed in-scope corrections, runs focused
 feature verification and records every disposition before committing. No second
 ACTIVE stage, speculative feature expansion or concurrent test workloads.
+All review findings are adjudicated; the confirmed sync defect and test-fixture
+contract defect are fixed and verified. Signed 1.9.1 is installed in place on Thor;
+preservation, native startup/brand/progress checks and reviewed cleanup pass.
+No blockers or required deferrals remain. See IMPLEMENTATION_STATUS.md for scope
+limits, installed identity, resource profile and delivery evidence.
 
 Current owner additions, 2026-10-15: S14 COMPLETE; S15 COMPLETE. Earlier S0-S13
 remain COMPLETE. Existing release 1.9.0 and production imported resources are

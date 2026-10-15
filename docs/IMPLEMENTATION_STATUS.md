@@ -5,7 +5,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current QA — QA1 ACTIVE, 2026-10-15
+### Current QA — QA1 COMPLETE, 2026-10-15
 
 Authority revision 52. Three sequential read-only reviewers used inherited model
 and explicit Low effort; none edited files, ran tests/builds or accessed devices,
@@ -36,13 +36,56 @@ conflicts, protected pins/sample/active cache entries and unified/per-console
 rotation. These are fixture-based checks, not destructive live save/cache tests.
 Scoped analysis of the production fix/regression reports no issues.
 
-Remaining: final signed packaging and authorized Thor update with preservation/
-startup/UI evidence. No external impediment or tracked deferral.
+Remaining acceptance criteria: none. All reviewer findings are adjudicated and the
+confirmed corrections, integrated host workflows and authorized installed release
+are verified. Blockers: none. Required tracked deferrals: none. Closure assessment:
+the fixes restore existing argument/contract propagation; no new abstraction,
+background process or required consolidation was introduced. S0-S15 remain COMPLETE.
 The first signed build passed native tests/assembly through gate ticket 1123;
 build/helper exits are zero, observed workers 2, parallel false, Gradle heap 3 GiB,
 Kotlin in-process, test forks 1/512 MiB. No memory failure; daemon exit verified.
 The confirmed Dart fix will be included before installation, not left in a later
 device update. No public release or new bulk game operation is authorized.
+
+#### Device-only 1.9.1 handover — verified 2026-10-15
+
+- Gate ticket 1126 acquired the same shared mutex after GameNative released its
+  earlier request. Final build/helper exits are zero, daemon exit is verified,
+  observed workers 2, parallel false, Gradle maximum heap 3 GiB; Kotlin remains
+  in-process. Test task profile: one fork/512 MiB. Native tests correctly reused
+  the unchanged passing 1123 result; app Ninja compile/link pools remain one.
+  No memory failure or budget increase; plugin/native environment hints are not
+  claimed as a universal concurrency cap.
+- Installed in place on Thor `bfa98654`: `com.darkaxt.rshop`, 1.9.1/code 15,
+  UID 10167 unchanged. Host and installed base APK SHA-256 both equal
+  `2453fcd6ef2532afc929fb09ada36bb74a8bec263289eb9d1b2e86d72f447a9d`
+  (69,684,105 bytes). Production signer remains
+  `075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
+  No debuggable flag; 27 PNG marks bundled; no recovered Socket resource directory
+  or private environment/signing files bundled. No GitHub release was created.
+- Before/after hashes match for source configuration, imported-resource active
+  pointer, shared emulator-family configuration and both encrypted credential/key
+  stores. All eight checked non-timestamp save/Drive/physical-media preferences
+  also match. No ROM, save, metadata scrape or account migration was requested.
+- Actual release startup reaches Home without onboarding/sign-in. Touch selects
+  Atari and exposes `Sync Atari` beside the existing console/All actions. Android
+  keyboard Up/Right/Confirm selects Atari with visible focus; this is not claimed
+  as a new physical-controller hardware test. Real startup smart-sync shows the
+  second current-console phase popup below console completion and later clears it.
+  No new bulk sync action was invoked. Root All was restored afterward.
+- Relevant process logs show no startup fatal/unhandled exception. App UI evidence
+  was captured on the authorized upper display only, not via UIAutomator or a live
+  stream. Both physical display states and committed states are OFF; device asleep.
+  Native verification used the installed release, not a debug APK or synthetic UI.
+- Reviewed cleanup is applied: output/captures transaction
+  `25fe20583cec85a9acfef187d6f616f7`, exact three hard-link pairs
+  `dcaf404a209004794602d1aadacc8c63`, and owned completed-build logs
+  `c28d32a335e9f9070ccd6ec31f89d946`. Every signed-manifest member was inspected
+  within the exact generated roots. Six native compile-database link names were
+  separately verified with fsutil and removed through the explicit hard-link
+  contract; no broad deletion or cleanup Gradle-gate acquisition occurred.
+  Build/capture roots and the two expendable log files are absent. Original APKs,
+  signing identity, source assets, shared caches and all device/user data remain.
 
 ### Current additions — S14 COMPLETE; S15 COMPLETE, 2026-10-15
 
