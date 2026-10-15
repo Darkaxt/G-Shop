@@ -227,6 +227,7 @@ class MediaBuilder:
             'sourceSha256': hashlib.sha256(source).hexdigest(),
             'pixelsSha256': hashlib.sha256(blocks).hexdigest(),
             'sourceSceneSha256': hashlib.sha256(self.archive.plain(scene['member'])).hexdigest(),
+            'sourceSceneMember': scene['member'],
             'lightDirection': [sum(basis[c * 3 + r] * world[c] for c in range(3)) for r in range(3)],
             # Godot RD multiplies nonphysical directional energy by PI. The
             # hash-bound project uses the default nonphysical light units.
@@ -308,6 +309,7 @@ class MediaBuilder:
         image.save(self.output / filename)
         result = {'file': filename, 'source': path, 'sourceMember': member,
                   'sourceSha256': hashlib.sha256(data).hexdigest(),
+                  'pixelsSha256': hashlib.sha256(image.tobytes()).hexdigest(),
                   'width': width, 'height': height, 'format': fmt}
         self.textures[path] = result
         return result
@@ -383,6 +385,7 @@ class MediaBuilder:
         Image.frombytes('RGBA', (width, height), pixels).save(self.output / filename)
         result = {'file': filename, 'source': identity, 'sourceMember': scene['member'],
                   'sourceSha256': digest, 'sourceType': tree['type'], 'sourceTree': tree,
+                  'pixelsSha256': hashlib.sha256(pixels).hexdigest(),
                   'width': width, 'height': height, 'format': 'source-procedural-rgba8'}
         self.textures[identity] = result
         return result
@@ -545,9 +548,12 @@ class MediaBuilder:
         # Public importer recipes describe where/how to read the owner's APK.
         # They contain no source geometry, image pixels, script tokens or key.
         recipe = {k: v for k, v in model.items() if k != 'animationTokens'}
+        recipe['animationMember'] = script_member
         recipe['normalizationCenter'] = center
         recipe['surfaces'] = []
-        numeric_properties = {'roughness', 'metallic', 'shader_parameter/roughness_scale',
+        numeric_properties = {'roughness', 'metallic', 'normal_scale',
+                              'roughness_texture_channel', 'metallic_texture_channel', 'ao_texture_channel',
+                              'shader_parameter/metallic_impact', 'shader_parameter/roughness_scale',
                               'shader_parameter/metallic_scale', 'shader_parameter/normal_depth',
                               'shader_parameter/tint_strength', 'shader_parameter/uv_scale',
                               'shader_parameter/uv_offset', 'shader_parameter/albedo_impact',
@@ -610,9 +616,15 @@ def main():
                     'environment': environment}
         (builder.output / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
         if args.recipe_output:
+            textures = []
+            for texture in builder.textures.values():
+                description = dict(texture)
+                if description['format'] == 'source-procedural-rgba8':
+                    description['resourceSha256'] = hashlib.sha256(archive.plain(description['sourceMember'])).hexdigest()
+                textures.append(description)
             recipe = {'schema': 1, 'apkSha256': APK_SHA256,
                       'apkSize': pathlib.Path(args.apk).stat().st_size,
-                      'models': builder.recipes, 'textures': list(builder.textures.values()),
+                      'models': builder.recipes, 'textures': textures,
                       'environment': environment}
             pathlib.Path(args.recipe_output).write_text(json.dumps(recipe, separators=(',', ':')), encoding='utf-8')
     finally:

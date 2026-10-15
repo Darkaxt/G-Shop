@@ -1981,8 +1981,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     return LayoutBuilder(builder: (context, constraints) {
       final media = ref.watch(mediaPresentationProvider);
-      final showPreview =
-          media.enabled && !rs.isPortrait && constraints.maxWidth >= 720;
+      final showPreview = !rs.isPortrait && constraints.maxWidth >= 720;
       final previewWidth = showPreview ? constraints.maxWidth * 0.28 : 0.0;
       return Row(children: [
         if (showPreview)
@@ -1992,22 +1991,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 valueListenable: _selectedIndexNotifier,
                 builder: (context, index, _) => _buildMediaPreview(
                     _filteredGames[index.clamp(0, _filteredGames.length - 1)],
-                    media),
+                    media,
+                    _coverDecodeWidth(rs, constraints.maxWidth - previewWidth)),
               )),
         Expanded(child: _buildGrid(rs, constraints.maxWidth - previewWidth)),
       ]);
     });
   }
 
-  Widget _buildGrid(Responsive rs, double availableWidth) {
+  int _coverDecodeWidth(Responsive rs, double availableWidth) {
     final deviceMemory = ref.read(deviceMemoryProvider);
     final gridPadding = rs.spacing.lg * 2;
     final spacing = rs.isSmall ? 10.0 : 16.0;
     final gridWidth = availableWidth - gridPadding;
     final itemWidth = (gridWidth - (_columns - 1) * spacing) / _columns;
     final dpr = MediaQuery.of(context).devicePixelRatio;
-    final optimalCacheWidth =
-        (itemWidth * dpr).round().clamp(150, deviceMemory.memCacheWidthMax);
+    return (itemWidth * dpr).round().clamp(150, deviceMemory.memCacheWidthMax);
+  }
+
+  Widget _buildGrid(Responsive rs, double availableWidth) {
+    final deviceMemory = ref.read(deviceMemoryProvider);
+    final optimalCacheWidth = _coverDecodeWidth(rs, availableWidth);
 
     return NotificationListener<ScrollNotification>(
       onNotification: _handleScrollNotification,
@@ -2162,8 +2166,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     );
   }
 
-  Widget _buildMediaPreview(
-      LibraryEntry entry, ({bool enabled, bool reducedMotion}) media) {
+  Widget _buildMediaPreview(LibraryEntry entry,
+      ({bool enabled, bool reducedMotion}) media, int coverDecodeWidth) {
     final system = SystemModel.supportedSystems
         .where((system) => system.id == entry.systemSlug)
         .firstOrNull;
@@ -2202,6 +2206,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       ImageHelper.getCoverUrlsForSingle(system, entry.filename),
                   physicalLabelUrl: physicalMetadata?.cachedSupportTexture,
                   gbcDualMode: physicalMetadata?.gbcDualMode,
+                  boxArtDecodeWidth: coverDecodeWidth,
                   cachedUrl: _metadataCovers[coverRatingKey(
                           entry.systemSlug, entry.selectionKey)] ??
                       entry.coverUrl,

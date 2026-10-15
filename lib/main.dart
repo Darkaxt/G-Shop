@@ -20,6 +20,7 @@ import 'services/crash_log_service.dart';
 import 'services/device_info_service.dart';
 import 'services/image_cache_service.dart';
 import 'services/storage_service.dart';
+import 'services/socket_media_import.dart';
 import 'services/haptic_service.dart';
 import 'services/audio_manager.dart';
 import 'services/database_service.dart';
@@ -74,6 +75,13 @@ void main() {
 
     final storageService = StorageService();
     await storageService.init();
+    await SocketMediaImport.instance.initialize();
+    // Old 3D preferences without a local import cannot enable a missing renderer.
+    // Importing later leaves the current flat choice unchanged until explicit opt-in.
+    if (!SocketMediaImport.instance.available &&
+        storageService.getPhysicalMediaEnabled()) {
+      await storageService.setPhysicalMediaEnabled(false);
+    }
 
     final hapticService = HapticService();
     hapticService.setEnabled(storageService.getHapticEnabled());
@@ -117,6 +125,8 @@ void main() {
     runApp(
       ProviderScope(
         overrides: [
+          socketMediaImportProvider
+              .overrideWith((ref) => SocketMediaImport.instance),
           crashLogServiceProvider.overrideWithValue(crashLogService),
           storageServiceProvider.overrideWithValue(storageService),
           hapticServiceProvider.overrideWithValue(hapticService),

@@ -10,3 +10,7 @@ target_compile_features(rshop_owned_storage PRIVATE cxx_std_17)
 target_compile_definitions(rshop_owned_storage PRIVATE _FILE_OFFSET_BITS=64)
 target_compile_options(rshop_owned_storage PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(rshop_owned_storage PRIVATE dl)
+add_library(rshop_media_import SHARED media_import_jni.cpp media_codecs/etc.cpp)
+target_compile_features(rshop_media_import PRIVATE cxx_std_17)
+# FastNoiseLite's source hash arithmetic intentionally wraps signed integers.
+target_compile_options(rshop_media_import PRIVATE -ffp-contract=off -fwrapv)

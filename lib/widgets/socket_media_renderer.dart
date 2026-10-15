@@ -30,6 +30,7 @@ class SocketMediaRenderer extends StatefulWidget {
 class SocketMediaRendererState extends State<SocketMediaRenderer> {
   final _labelKey = GlobalKey();
   SocketMediaGpu? _renderer;
+  AssetBundle? _resources;
   ui.Image? _labelImage;
   gpu.Texture? _labelTexture;
   Object? _error;
@@ -76,7 +77,8 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   void didUpdateWidget(SocketMediaRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.format != widget.format ||
-        oldWidget.identity != widget.identity) {
+        oldWidget.identity != widget.identity ||
+        _resources != SocketMediaModel.importedBundle) {
       _load();
     } else if (oldWidget.label != widget.label) {
       if (!_ready.isCompleted) {
@@ -94,6 +96,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   }
 
   Future<void> _load() async {
+    _resources = SocketMediaModel.importedBundle;
     if (_generation > 0 && !_ready.isCompleted) {
       _ready.complete({...snapshot, 'error': 'View replaced before readiness'});
     }
@@ -433,8 +436,8 @@ class SocketMediaGpu {
       final maps = (surface['material']['textures'] as Map?) ?? const {};
       for (final file in maps.values.cast<String>()) {
         if (textures.containsKey(file)) continue;
-        final data =
-            await rootBundle.load('${SocketMediaModel.assetRoot}$file');
+        final data = await SocketMediaModel.importedBundle!
+            .load('${SocketMediaModel.assetRoot}$file');
         final codec = await ui.instantiateImageCodec(
             data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
         final image = (await codec.getNextFrame()).image;

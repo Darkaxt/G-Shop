@@ -7,6 +7,7 @@ import '../config_mode_screen.dart';
 import '../metadata_settings_screen.dart';
 import '../save_backup_settings_screen.dart';
 import '../rom_cache_settings_screen.dart';
+import '../media_settings_screen.dart';
 import '../models/settings_entry.dart';
 import '../sources_screen.dart';
 import 'settings_list_view.dart';
@@ -32,7 +33,6 @@ class SettingsGeneralTab extends ConsumerWidget {
     final isHomeGrid = ref.watch(homeLayoutProvider);
     final hideEmpty = ref.watch(hideEmptyConsolesProvider);
     final ratingOverlays = ref.watch(ratingOverlaysProvider);
-    final media = ref.watch(mediaPresentationProvider);
     final layout = ref.watch(controllerLayoutProvider);
     final localeOverride = ref.watch(localeProvider);
     final localeName = localeOverride == null
@@ -99,42 +99,12 @@ class SettingsGeneralTab extends ConsumerWidget {
           ),
         ]),
         SettingsSection(l.settings_sectionDisplay, [
-          SettingsEntry.toggle(
-            title: '3D media',
+          SettingsEntry.nav(
+            title: 'Media previews',
             icon: Icons.view_in_ar_rounded,
-            subtitle: 'Physical-media previews in the library and game details',
-            value: media.enabled,
-            onChanged: () async {
-              try {
-                await ref
-                    .read(mediaPresentationProvider.notifier)
-                    .toggleMedia();
-              } catch (error) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content:
-                        Text(l.onboarding_failedToSave(error.toString()))));
-              }
-            },
-          ),
-          SettingsEntry.toggle(
-            title: 'Reduced motion',
-            icon: Icons.motion_photos_off_rounded,
-            subtitle:
-                'Keep previews still and open games without insertion animations',
-            value: media.reducedMotion,
-            onChanged: () async {
-              try {
-                await ref
-                    .read(mediaPresentationProvider.notifier)
-                    .toggleMotion();
-              } catch (error) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content:
-                        Text(l.onboarding_failedToSave(error.toString()))));
-              }
-            },
+            subtitle: 'Flat or imported 3D media and motion',
+            onSelect: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const MediaSettingsScreen())),
           ),
           SettingsEntry.toggle(
             title: l.metadata_ratingOverlays,

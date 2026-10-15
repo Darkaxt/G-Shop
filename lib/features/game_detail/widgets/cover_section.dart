@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../models/game_item.dart';
 import '../../../models/system_model.dart';
 import '../../../utils/game_metadata.dart';
 import '../../../widgets/smart_cover_image.dart';
 import '../../../widgets/physical_media_view.dart';
+import '../../../widgets/media_cover_fallback.dart';
+import '../../../widgets/cover_reveal.dart';
+import '../../../services/image_cache_service.dart';
 
 class CoverSection extends StatefulWidget {
   final GameItem game;
@@ -13,6 +18,7 @@ class CoverSection extends StatefulWidget {
   final String? cachedUrl;
   final String? physicalLabelUrl;
   final String? gbcDualMode;
+  final int? boxArtDecodeWidth;
   final GameMetadataFull metadata;
   final bool isFavorite;
   final bool isInstalled;
@@ -28,12 +34,13 @@ class CoverSection extends StatefulWidget {
     this.cachedUrl,
     this.physicalLabelUrl,
     this.gbcDualMode,
+    this.boxArtDecodeWidth,
     required this.metadata,
     this.isFavorite = false,
     this.isInstalled = false,
     this.hasThumbnail = false,
     this.physicalMediaKey,
-    this.physicalMediaEnabled = true,
+    this.physicalMediaEnabled = false,
     this.reducedMotion = false,
     this.showPresentationControls = true,
   });
@@ -50,7 +57,22 @@ class _CoverSectionState extends State<CoverSection> {
     final game = widget.game, system = widget.system;
     final format = PhysicalMediaFormat.forSystem(system.id,
         region: widget.metadata.region.name, dualMode: widget.gbcDualMode);
-    final physical = format != null && _physical && widget.physicalMediaEnabled;
+    final physical = _physical;
+    final threeD = format != null && widget.physicalMediaEnabled;
+    final url = widget.cachedUrl ?? widget.coverUrls.firstOrNull;
+    final ImageProvider? originalBoxArt;
+    if (url == null) {
+      originalBoxArt = null;
+    } else if (url.startsWith('file://')) {
+      originalBoxArt = FileImage(File.fromUri(Uri.parse(url)));
+    } else {
+      originalBoxArt = CachedNetworkImageProvider(url,
+          cacheManager: GameCoverCacheManager.instance);
+    }
+    final ImageProvider? boxArt = originalBoxArt == null
+        ? null
+        : ResizeImage.resizeIfNeeded(
+            widget.boxArtDecodeWidth, null, originalBoxArt);
     final sticker = HandwrittenMediaSticker(
         identity: game.selectionKey,
         title: game.displayName,
@@ -63,20 +85,31 @@ class _CoverSectionState extends State<CoverSection> {
             children: [
               Positioned.fill(
                 child: physical
-                    ? PhysicalMediaView(
-                        key: widget.physicalMediaKey,
-                        identity: game.selectionKey,
-                        title: game.displayName,
-                        format: format,
+                    ? CoverReveal(
+                        identity: '${system.id}:${game.selectionKey}',
+                        boxArt: boxArt,
                         reducedMotion: _reducedMotion || widget.reducedMotion,
-                        label: SmartCoverImage(
-                            systemId: system.id,
-                            urls: const [],
-                            cachedUrl: widget.physicalLabelUrl,
-                            placeholder: sticker,
-                            errorWidget: sticker,
-                            fit: BoxFit.fill,
-                            memCacheWidth: 640))
+                        media: threeD
+                            ? PhysicalMediaView(
+                                key: widget.physicalMediaKey,
+                                identity: game.selectionKey,
+                                title: game.displayName,
+                                format: format,
+                                reducedMotion:
+                                    _reducedMotion || widget.reducedMotion,
+                                label: SmartCoverImage(
+                                    systemId: system.id,
+                                    urls: const [],
+                                    cachedUrl: widget.physicalLabelUrl,
+                                    placeholder: sticker,
+                                    errorWidget: sticker,
+                                    fit: BoxFit.fill,
+                                    memCacheWidth: 640))
+                            : MediaCoverFallback(
+                                systemId: system.id,
+                                title: game.displayName,
+                                identity: game.selectionKey,
+                                backgroundColor: Colors.transparent))
                     : Hero(
                         tag: game.filename,
                         child: Container(
@@ -120,20 +153,18 @@ class _CoverSectionState extends State<CoverSection> {
                         ),
                       ),
               ),
-              if (format != null &&
-                  widget.physicalMediaEnabled &&
-                  widget.showPresentationControls)
+              if (widget.showPresentationControls)
                 Positioned(
                     top: 4,
                     right: 4,
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       IconButton(
-                          tooltip: physical ? 'Cover view' : '3D media',
+                          tooltip: physical ? 'Cover view' : 'Media preview',
                           onPressed: () =>
                               setState(() => _physical = !_physical),
                           icon: Icon(physical
                               ? Icons.photo_rounded
-                              : Icons.view_in_ar_rounded)),
+                              : Icons.album_outlined)),
                       if (physical)
                         IconButton(
                             tooltip: 'Reduced motion',

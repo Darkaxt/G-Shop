@@ -1,0 +1,9 @@
+R-Shop local media import
+
+Texture2DDecoder ETC/EAC decoder: MIT, K0lb3 and credited original authors.
+FastNoiseLite: MIT, Jordan Peck and contributors; header from Godot 4.5.
+Zstd JNI bindings: BSD 2-Clause, luben and contributors.
+Zstandard: BSD 3-Clause, Meta Platforms, Inc. and affiliates.
+
+Complete notices are included alongside this file. No Socket engine, model,
+texture, animation script or original APK is distributed with R-Shop.

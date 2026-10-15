@@ -10,9 +10,15 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 S12 is COMPLETE after current native rendering/material acceptance and the
 cumulative FRONTEND-01 reconciliation below. S13 alone receives implementation:
 local original-APK import, persistent validated resources, flat default, and the
-cover reveal with synchronized media zoom. All S13 acceptance groups remain
-unsatisfied until integrated and verified; the two untracked exploration files
-are inputs for review, not delivered functionality. R3 remains BLOCKED on S13
+cover reveal with synchronized media zoom. The importer, sectioned Settings,
+flat default and shared flat/3D reveal are now wired. Current focused host checks
+verify all 16 mesh conversions against the owner APK oracle, preference gating,
+wrong-file preservation, platform byte-view PNG encoding, synchronized cover
+exit/zoom, no-art/reduced-motion skips and route-leave cancellation. Desktop
+GPU rejection is expected and is not native rendering evidence. The actual
+Android picker/import, decoded texture equality, restart persistence and native
+reveal remain advancement blockers pending the focused Thor workflow; S13 stays
+ACTIVE. R3 remains BLOCKED on S13
 and the signed asset-free public-release/handover requirements.
 
 | S12 acceptance boundary | Current evidence and applicability |

@@ -89,6 +89,11 @@ Stream<LicenseEntry> mediaArtworkLicenses() async* {
       await rootBundle.loadString('assets/fonts/Kalam-OFL.txt');
   yield LicenseEntryWithLineBreaks(
       ['Kalam handwritten labels'], labelFontLicense);
+  for (final file in ['NOTICE.txt', 'Texture2DDecoder-LICENSE.txt', 'FastNoiseLite-LICENSE.txt',
+    'Zstd-JNI-LICENSE.txt', 'Zstandard-LICENSE.txt']) {
+    yield LicenseEntryWithLineBreaks(['Local media import codecs'],
+        await rootBundle.loadString('assets/media_import_licenses/$file'));
+  }
 }
 
 /// Bundled art never starts a provider/image/ROM request or an animation.
@@ -97,6 +102,7 @@ class MediaCoverFallback extends StatelessWidget {
   final String? title, identity;
   final double? width;
   final double? height;
+  final Color backgroundColor;
 
   const MediaCoverFallback(
       {super.key,
@@ -104,14 +110,15 @@ class MediaCoverFallback extends StatelessWidget {
       this.title,
       this.identity,
       this.width,
-      this.height});
+      this.height,
+      this.backgroundColor = const Color(0xFF182326)});
 
   @override
   Widget build(BuildContext context) => SizedBox(
         width: width,
         height: height,
         child: ColoredBox(
-          color: const Color(0xFF182326),
+          color: backgroundColor,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Center(

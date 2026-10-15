@@ -11,10 +11,13 @@ import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/utils/game_metadata.dart';
+import '../helpers/socket_media_oracle.dart';
 
 // Host checks cover binding, artwork roles and the existing launch lifecycle.
 // Actual indexed GPU rendering is checked on Android, not inferred from these.
 void main() {
+  setUpAll(useSocketOracle);
+  tearDownAll(() => SocketMediaModel.importedBundle = null);
   testWidgets('UMD fallback uses the disc layout away from the central badge',
       (tester) async {
     final system =
@@ -26,6 +29,7 @@ void main() {
       game: game,
       system: system,
       coverUrls: const [],
+      physicalMediaEnabled: true,
       reducedMotion: true,
       metadata: GameMetadata.parse(game.filename),
     )));
@@ -101,7 +105,7 @@ void main() {
           reason: '${format.name}: U increases right');
       expect(down, lessThan(0), reason: '${format.name}: V increases down');
     }
-  });
+  }, skip: socketOracleRoot.isEmpty ? 'Requires private owner APK oracle' : false);
 
   test('camera depth keeps the positive-Z label in front of the casing back',
       () {
@@ -159,7 +163,8 @@ void main() {
     final label = tester.widget<SmartCoverImage>(find.byType(SmartCoverImage));
     expect(label.cachedUrl, isNull);
     expect(label.urls, isEmpty);
-    await tester.pumpWidget(view(false));
+    await tester.tap(find.byTooltip('Cover view'));
+    await tester.pump();
     expect(
         tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
         cover);
@@ -179,6 +184,7 @@ void main() {
             system: system,
             coverUrls: const [],
             cachedUrl: 'file:///box.png',
+            physicalMediaEnabled: true,
             physicalLabelUrl: 'file:///label.png',
             gbcDualMode: 'no',
             metadata: GameMetadata.parse(game.filename))));
@@ -208,6 +214,7 @@ void main() {
             system: system,
             coverUrls: const [],
             physicalLabelUrl: label,
+            physicalMediaEnabled: true,
             reducedMotion: true,
             physicalMediaKey: key,
             metadata: GameMetadata.parse(game.filename)));

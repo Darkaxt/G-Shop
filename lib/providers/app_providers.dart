@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/storage_service.dart';
+import '../services/socket_media_import.dart';
 export '../services/storage_service.dart' show ControllerLayout;
 import '../services/haptic_service.dart';
 import '../services/audio_manager.dart';
@@ -327,20 +328,31 @@ final ratingOverlaysProvider =
 class MediaPresentationNotifier
     extends StateNotifier<({bool enabled, bool reducedMotion})> {
   final StorageService _storage;
+  bool _resourcesAvailable;
   Future<void> _pending = Future<void>.value();
-  MediaPresentationNotifier(this._storage)
-      : super((
-          enabled: _storage.getPhysicalMediaEnabled(),
+  MediaPresentationNotifier(this._storage, {bool resourcesAvailable = false})
+      : _resourcesAvailable = resourcesAvailable,
+        super((
+          enabled: resourcesAvailable && _storage.getPhysicalMediaEnabled(),
           reducedMotion: _storage.getReducedMediaMotion()
         ));
 
   Future<void> toggleMedia() => _change(media: true);
   Future<void> toggleMotion() => _change(media: false);
+  void resourcesChanged(bool available) {
+    _resourcesAvailable = available;
+    if (!available && state.enabled) {
+      state = (enabled: false, reducedMotion: state.reducedMotion);
+    }
+  }
 
   Future<void> _change({required bool media}) {
     final operation = _pending.then((_) async {
       if (!mounted) return;
       final next = media ? !state.enabled : !state.reducedMotion;
+      if (media && next && !_resourcesAvailable) {
+        throw StateError('Import the original APK first');
+      }
       if (media) {
         await _storage.setPhysicalMediaEnabled(next);
       } else {
@@ -359,12 +371,17 @@ class MediaPresentationNotifier
   }
 }
 
+final socketMediaImportProvider =
+    ChangeNotifierProvider<SocketMediaImport>((ref) => SocketMediaImport());
+
 final mediaPresentationProvider = StateNotifierProvider<
-    MediaPresentationNotifier,
-    ({
-      bool enabled,
-      bool reducedMotion
-    })>((ref) => MediaPresentationNotifier(ref.read(storageServiceProvider)));
+    MediaPresentationNotifier, ({bool enabled, bool reducedMotion})>((ref) {
+  final notifier = MediaPresentationNotifier(ref.read(storageServiceProvider),
+      resourcesAvailable: ref.read(socketMediaImportProvider).available);
+  ref.listen<bool>(socketMediaImportProvider.select((s) => s.available),
+      (_, available) => notifier.resourcesChanged(available));
+  return notifier;
+});
 
 class HideEmptyConsolesNotifier extends StateNotifier<bool> {
   final StorageService _storage;

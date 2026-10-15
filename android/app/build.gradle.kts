@@ -113,6 +113,8 @@ dependencies {
     implementation("com.hierynomus:smbj:0.13.0")
     // Bounded raw LZMA/LZMA2 decoding for the validated single-ROM N64 7z route.
     implementation("org.tukaani:xz:1.12")
+    // Godot resource blocks from the user's locally selected APK.
+    implementation("com.github.luben:zstd-jni:1.5.7-11@aar")
     testImplementation("junit:junit:4.13.2")
 }
 

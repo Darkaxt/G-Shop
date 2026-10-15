@@ -76,6 +76,7 @@ enum PhysicalMediaFormat {
 /// GPU resources belong to the selected view, not a cache of every console.
 class SocketMediaModel {
   static const assetRoot = 'assets/socket_media/';
+  static AssetBundle? importedBundle;
   static const apkSha256 =
       'bccf6bf5beccf5155645638e52a20f6e6e6deed902bd23b6b69ae7060c04bd70';
   final Map<String, dynamic> data;
@@ -95,7 +96,10 @@ class SocketMediaModel {
 
   static Future<({Map<String, dynamic> data, ByteData pixels})> loadEnvironment(
       {AssetBundle? bundle}) async {
-    final assets = bundle ?? rootBundle;
+    final assets = bundle ?? importedBundle;
+    if (assets == null) {
+      throw StateError('Import the original APK before enabling 3D media');
+    }
     final data =
         jsonDecode(await assets.loadString('${assetRoot}environment.json'))
             as Map<String, dynamic>;
@@ -136,7 +140,10 @@ class SocketMediaModel {
 
   static Future<SocketMediaModel> load(PhysicalMediaFormat format,
       {AssetBundle? bundle}) async {
-    final assets = bundle ?? rootBundle;
+    final assets = bundle ?? importedBundle;
+    if (assets == null) {
+      throw StateError('Import the original APK before enabling 3D media');
+    }
     final json = jsonDecode(
             await assets.loadString('$assetRoot${format.assetName}.json'))
         as Map<String, dynamic>;

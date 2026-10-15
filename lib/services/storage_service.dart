@@ -330,7 +330,7 @@ class StorageService {
 
   bool getPhysicalMediaEnabled() {
     _ensureInitialized();
-    return _prefs!.getBool(_physicalMediaKey) ?? true;
+    return _prefs!.getBool(_physicalMediaKey) ?? false;
   }
 
   bool getReducedMediaMotion() {

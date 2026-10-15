@@ -33,6 +33,7 @@ class MainActivity : FlutterActivity() {
     private var ownedStorage: OwnedStorageService? = null
     private var romCacheChannel: MethodChannel? = null
     private var saveCapture: SaveCaptureService? = null
+    private var socketImport: SocketImportChannel? = null
     private val saveOperationOwner = java.util.UUID.randomUUID().toString()
     private var saveBackgroundChannel: MethodChannel? = null
 
@@ -74,6 +75,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        socketImport = SocketImportChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         SaveOperationChannel.attach(flutterEngine.dartExecutor.binaryMessenger, saveOperationOwner)
         saveBackgroundChannel = SaveBackgroundChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
         romCacheChannel = RomCacheChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger,true)
@@ -301,6 +303,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        socketImport?.dispose()
         val captures = saveCapture
         if (captures != null) captures.shutdown { SaveOperationChannel.detach(saveOperationOwner) }
         else SaveOperationChannel.detach(saveOperationOwner)
