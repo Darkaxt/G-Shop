@@ -1,0 +1,107 @@
+/*
+Copyright (C) 2014, 2020, 2021 Boris Timofeev
+
+This file is part of UniPatcher.
+
+UniPatcher is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+UniPatcher is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with UniPatcher.  If not, see <http://www.gnu.org/licenses/>.
+*/
+package org.emunix.unipatcher.tools
+
+import org.emunix.unipatcher.R
+import org.emunix.unipatcher.helpers.ResourceProvider
+import org.emunix.unipatcher.utils.FileUtils
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+
+class SnesSmcHeader {
+    fun isRomHasSmcHeader(romSize: Long): Boolean {
+        return romSize and 0x7fff == 512L
+    }
+
+    /**
+     * Copy [romFile] without SMC header to [outputFile]
+     * @param romFile the file from which you want to remove the smc header
+     * @param outputFile the file in which you want to save rom without smc header
+     * @param headerFile optional file to save the removed SMC header to
+     * @param resourceProvider application resource provider
+     * @throws RomException if [romFile] has no SMC header
+     */
+    @Throws(IOException::class, RomException::class)
+    fun deleteSnesSmcHeader(romFile: File, outputFile: File, headerFile: File?, resourceProvider: ResourceProvider, fileUtils: FileUtils) {
+        if (!isRomHasSmcHeader(romFile.length())) {
+            throw RomException(resourceProvider.getString(R.string.snes_rom_has_no_smc_header))
+        }
+
+        FileInputStream(romFile).use { input ->
+            FileOutputStream(outputFile).use { output ->
+                if (headerFile != null) {
+                    FileOutputStream(headerFile).use { headerOutput ->
+                        var header = ByteArray(SMC_HEADER_SIZE)
+                        var offset = 0
+                        while (offset < SMC_HEADER_SIZE) {
+                            val read = input.read(header, offset, SMC_HEADER_SIZE - offset)
+                            if (read == -1) break
+                            offset += read
+                        }
+                        if (offset < SMC_HEADER_SIZE) {
+                            header = header.copyOf(offset)
+                        }
+                        headerOutput.write(header)
+                    }
+                } else {
+                    fileUtils.skipFully(input, SMC_HEADER_SIZE.toLong())
+                }
+                fileUtils.copy(input, output)
+            }
+        }
+    }
+
+    /**
+     * Copy [romFile] with SMC header to [outputFile]
+     * @param romFile the file to which you want to add the smc header
+     * @param outputFile the file in which you want to save rom with smc header
+     * @param headerFile optional header to use instead of the default zero-filled one
+     * @param resourceProvider application resource provider
+     * @throws RomException if [romFile] already has SMC header
+     */
+    @Throws(IOException::class, RomException::class)
+    fun addSnesSmcHeader(romFile: File, outputFile: File, headerFile: File?, resourceProvider: ResourceProvider, fileUtils: FileUtils) {
+        if (isRomHasSmcHeader(romFile.length())) {
+            throw RomException(resourceProvider.getString(R.string.snes_rom_has_smc_header))
+        }
+
+        val inputStream = FileInputStream(romFile)
+        val outputStream = FileOutputStream(outputFile)
+
+        inputStream.use { input ->
+            outputStream.use { output ->
+                if (headerFile == null) {
+                    output.write(ByteArray(SMC_HEADER_SIZE))
+                } else {
+                    FileInputStream(headerFile).use { headerStream ->
+                        val header = ByteArray(SMC_HEADER_SIZE)
+                        output.write(header, 0, headerStream.read(header))
+                    }
+                }
+                fileUtils.copy(input, output)
+            }
+        }
+    }
+
+    companion object {
+        private const val SMC_HEADER_SIZE = 512
+    }
+}

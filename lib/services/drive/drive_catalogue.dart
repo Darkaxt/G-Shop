@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:sqflite/sqflite.dart';
+import '../../models/library_identity.dart';
 
 import 'drive_api.dart';
+import 'drive_media.dart';
+import 'drive_verification.dart';
 
 class DriveCatalogueException implements Exception {
   final String code;
@@ -369,6 +372,56 @@ class DriveCatalogue {
       throw const DriveCatalogueException('unsupportedArtifact');
     }
     return file;
+  }
+
+  /// Reconcile only a byte-identical patch-index metadata revision, after its
+  /// live ancestry was verified. No path, parent, content or generation changes.
+  Future<void> reconcilePatchIndexRevision({
+    required String sourceId,
+    required String accountId,
+    required String rootFolderId,
+    required int generation,
+    required RemoteArtifact expected,
+    required DriveFile current,
+    required CancelToken cancellation,
+  }) async {
+    if (!{'index.json', 'game.json'}.contains(expected.displayName) ||
+        current.name != expected.displayName ||
+        expected.id.sourceId != sourceId ||
+        expected.id.accountId != accountId) {
+      throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+    }
+    DriveVerification(expected).requirePatchIndexMetadataRevision(current);
+    final db = await _database;
+    final scope = scopeKey(sourceId, accountId, rootFolderId);
+    await db.transaction((txn) async {
+      _cancelled(cancellation);
+      final state = await txn.query('drive_catalogue_state',
+          columns: ['active'], where: 'scope=?', whereArgs: [scope]);
+      if (state.isEmpty || state.single['active'] != generation) {
+        throw const DriveCatalogueException('snapshotChanged');
+      }
+      final rows = await txn.query('drive_catalogue_entries',
+          columns: ['record_json'],
+          where: 'scope=? AND generation=? AND file_id=? AND is_folder=0',
+          whereArgs: [scope, generation, expected.id.providerFileId]);
+      if (rows.length != 1) {
+        throw const DriveCatalogueException('artifactUnavailable');
+      }
+      final cached = DriveFile.fromJson(
+          jsonDecode(rows.single['record_json'] as String)
+              as Map<String, dynamic>);
+      DriveVerification(expected).requireCurrent(cached);
+      if (cached.name != expected.displayName) {
+        throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+      }
+      _cancelled(cancellation);
+      await txn.update('drive_catalogue_entries',
+          {'record_json': jsonEncode(current.toJson())},
+          where: 'scope=? AND generation=? AND file_id=? AND is_folder=0',
+          whereArgs: [scope, generation, expected.id.providerFileId]);
+      _cancelled(cancellation);
+    });
   }
 
   /// Paged descendants of an observed folder ID, never a path-prefix match.

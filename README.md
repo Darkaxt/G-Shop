@@ -112,4 +112,7 @@ R-Shop manages content you own or may legally access; it does not host or distri
 
 ## License
 
-[MIT](LICENSE), with third-party notices applying to their respective assets and dependencies.
+The original upstream code retains its [MIT grant](LICENSE). The combined build
+containing the UniPatcher engine is GPL-3.0-or-later, with Darkaxt integration
+credit and preserved [third-party notices](assets/patch_engine_licenses/NOTICE.txt).
+Corresponding patch-engine source is included under `android/patch-engine`.

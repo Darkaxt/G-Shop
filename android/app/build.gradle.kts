@@ -107,6 +107,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":patch-engine"))
     // Match the endorsed sign-in plugin; used only for microG's native cache
     // invalidation boundary, not a second sign-in or account provider.
     implementation("com.google.android.gms:play-services-auth:21.6.0")

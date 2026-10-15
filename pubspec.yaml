@@ -73,6 +73,7 @@ flutter:
     - assets/fonts/Kalam-OFL.txt
     - assets/socket_import_recipe.json
     - assets/media_import_licenses/
+    - assets/patch_engine_licenses/
     - assets/shaders/socket_media.shaderbundle
     - assets/config/emulator_families.json
     - assets/sounds/

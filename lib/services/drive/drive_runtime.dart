@@ -694,6 +694,55 @@ class DriveRuntime {
           destinationRoot: destinationRoot,
           relativePath: relativePath);
 
+  /// Read a bounded, exact JSON patch index through the existing account lane.
+  /// ROM bodies and patch payloads still use the journaled transfer owner.
+  Future<Map<String, dynamic>> readPatchIndex({
+    required ProviderConfig config,
+    required RemoteArtifact artifact,
+    required CancelToken cancellation,
+  }) async {
+    _requireConnectedLane();
+    _requireArtifactSource(config, artifact);
+    if (!{'index.json', 'game.json'}.contains(artifact.displayName) ||
+        (artifact.sizeBytes ?? 0) <= 0 ||
+        artifact.sizeBytes! > 4 * 1024 * 1024 ||
+        _metadataHeaders.containsKey(cancellation)) {
+      throw const DriveTransferException(DriveTransferIssue.invalidSource);
+    }
+    final operation = () async {
+      final drive = config.drive!;
+      final boundary = DriveDownloadBoundary(config: config,
+          artifact: artifact, catalogue: catalogue, api: apiFor(drive));
+      final selected = await boundary.reconcilePatchIndexRevision(
+          cancellation: cancellation);
+      final selectedBoundary = DriveDownloadBoundary(config: config,
+          artifact: selected, catalogue: catalogue, api: apiFor(drive));
+      final media = _mediaApis.putIfAbsent(drive.accountId,
+          () => _createMediaApi(authorizationFor(drive.serverClientId),
+              drive.accountId));
+      final response = await media.open(selected, offset: 0,
+          cancelToken: cancellation);
+      final bytes = BytesBuilder(copy: false);
+      await DriveVerification(selected).verifyBytes(response.bytes.map((chunk) {
+        bytes.add(chunk);
+        return chunk;
+      }), cancellation: cancellation);
+      await selectedBoundary.revalidate(cancellation: cancellation);
+      return bytes.takeBytes();
+    }();
+    // Reuse disconnect's existing cancellation/join ownership for metadata IO.
+    _metadataHeaders[cancellation] = operation;
+    try {
+      final decoded = jsonDecode(utf8.decode(await operation));
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('invalid_patch_index_object');
+      }
+      return decoded;
+    } finally {
+      _metadataHeaders.remove(cancellation);
+    }
+  }
+
   /// Read only the supported CHD header, within the existing account/source lane.
   /// This is metadata evidence, not verification or installation of ROM bytes.
   Future<Uint8List> readMetadataHeader(

@@ -29,6 +29,7 @@ import '../../services/metadata/effective_overall_rating.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/config_bootstrap.dart';
 import '../../services/library_query.dart';
+import '../../services/source_resolver.dart';
 import '../../utils/friendly_error.dart';
 import '../../services/input_debouncer.dart';
 import '../../services/thumbnail_service.dart';
@@ -48,6 +49,7 @@ import '../../widgets/quick_menu.dart';
 import '../../widgets/physical_media_view.dart';
 import '../../widgets/selection_aware_item.dart';
 import 'shelf_edit_screen.dart';
+import 'patch_library_screen.dart';
 import 'widgets/library_entry.dart';
 import 'widgets/library_dashboard.dart';
 import 'widgets/library_tabs.dart';
@@ -629,6 +631,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     if (initialLoad && widget.openSearch) {
       openSearch();
     }
+    debugPrint('Library collection loaded: games=${_visibleGames.length} '
+        'console=${_selectedConsole ?? "dashboard"}');
   }
 
   void _applyFilters() {
@@ -1135,6 +1139,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _selectCategory(String? category) {
+    if (category == 'patches') {
+      unawaited(_openPatchLibrary());
+      return;
+    }
     _category = category;
     _currentIndex = 0;
     _focusedKey = _focusedGroup = null;
@@ -1143,9 +1151,51 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _cycleCategory(int delta) {
-    const values = [null, 'commercial', 'hacks'];
+    const values = [null, 'commercial', 'hacks', 'patches'];
     _selectCategory(
         values[(values.indexOf(_category) + delta) % values.length]);
+  }
+
+  Future<void> _openPatchLibrary() async {
+    final console = _selectedConsole;
+    if (console == null) return;
+    final config =
+        ref.read(bootstrappedConfigProvider).value ?? AppConfig.empty;
+    final system =
+        SystemModel.supportedSystems.where((s) => s.id == console).firstOrNull;
+    if (system == null) return;
+    final mapping = ConfigBootstrap.configForSystem(config, system);
+    if (mapping == null || mapping.targetFolder.isEmpty) {
+      setState(() => _discoveryError =
+          'Set up this console’s game folder before opening Patches.');
+      return;
+    }
+    suspendSearchOverlay();
+    try {
+      await Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+              builder: (_) => PatchLibraryScreen(
+                  system: system,
+                  targetFolder: mapping.targetFolder,
+                  providers:
+                      SourceResolver.providersFor(mapping, config.sources),
+                  collection: _visibleGames
+                      .where((entry) => entry.systemSlug == console)
+                      .map((entry) => GameItem(
+                          filename: entry.filename,
+                          displayName: entry.displayName,
+                          url: entry.url,
+                          cachedCoverUrl: entry.coverUrl,
+                          providerConfig: entry.providerConfig,
+                          remoteArtifact: entry.remoteArtifact))
+                      .toList())));
+    } finally {
+      if (mounted) {
+        resumeSearchOverlay();
+        await _loadData();
+      }
+    }
   }
 
   void _navigateGrid(GridDirection direction) {
@@ -2099,10 +2149,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                     tabs: const [
                       LibraryTab(label: 'All'),
                       LibraryTab(label: 'Commercial'),
-                      LibraryTab(label: 'Hacks')
+                      LibraryTab(label: 'Hacks'),
+                      LibraryTab(label: 'Patches')
                     ],
-                    onTap: (index) =>
-                        _selectCategory([null, 'commercial', 'hacks'][index]),
+                    onTap: (index) => _selectCategory(
+                        [null, 'commercial', 'hacks', 'patches'][index]),
                   )),
                   const SizedBox(width: 12),
                 ],

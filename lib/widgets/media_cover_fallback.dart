@@ -91,10 +91,30 @@ Stream<LicenseEntry> mediaArtworkLicenses() async* {
       await rootBundle.loadString('assets/fonts/Kalam-OFL.txt');
   yield LicenseEntryWithLineBreaks(
       ['Kalam handwritten labels'], labelFontLicense);
-  for (final file in ['NOTICE.txt', 'Texture2DDecoder-LICENSE.txt', 'FastNoiseLite-LICENSE.txt',
-    'Zstd-JNI-LICENSE.txt', 'Zstandard-LICENSE.txt']) {
+  for (final file in [
+    'NOTICE.txt',
+    'Texture2DDecoder-LICENSE.txt',
+    'FastNoiseLite-LICENSE.txt',
+    'Zstd-JNI-LICENSE.txt',
+    'Zstandard-LICENSE.txt'
+  ]) {
     yield LicenseEntryWithLineBreaks(['Local media import codecs'],
         await rootBundle.loadString('assets/media_import_licenses/$file'));
+  }
+}
+
+Stream<LicenseEntry> patchEngineLicenses() async* {
+  for (final file in [
+    'NOTICE.txt',
+    'GPL-3.0.txt',
+    'XDelta-GPL-2.0.txt',
+    'GLib-LGPL-2.0.txt',
+    'PCRE.txt',
+    'XZ.txt'
+  ]) {
+    yield LicenseEntryWithLineBreaks(
+        ['UniPatcher and native patch dependencies'],
+        await rootBundle.loadString('assets/patch_engine_licenses/$file'));
   }
 }
 

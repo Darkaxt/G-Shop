@@ -21,18 +21,47 @@ this addition. It does not authorize full-collection scraping, invented rankings
 or a new public release. S18's real build/launch/reuse acceptance remains current;
 S20 is separately assigned new scope, not a deferral excusing S18.
 
-S18 native acceptance remains ACTIVE: the installed patch screen reads the GBA
-console index and first games, then fails at cursor 2 before Advance Wars. The
-local first-page source indexes parse and the live device catalogue's Advance
-Wars JSON sizes/MD5 values match the producer files. No build/download action has
-been dispatched for Advance Wars. The generic catch hides the actual boundary
-failure; fixed-code-only diagnostics are queued as managed request 1167. Request
-1165 acquired the gate but failed at final assembly because its invocation omitted
-the existing private-signing environment loader; build/helper exit 1 and daemon
-exit were verified. The retry loads the same existing identity, not a new key.
-This is an internal advancement blocker to PATCH-01's
-real build/launch/reuse criterion until the failure is identified and resolved,
-not grounds to park S18 or begin S19/S20. Thor screens are off during packaging.
+S18 native acceptance remains ACTIVE. Signed diagnostic request 1167 completed
+with build/helper exit 0, the gate acquired and daemon exit verified. The exact
+installed APK hash is d35208ad53fa81cc39e80b9d8f6b17b88280a229dbe18527c3a0d6e9c58083aa;
+the production signer and all five immediate pre/post-install credential/config/
+import hashes match. Request 1165 had failed because its invocation omitted the
+existing signing environment loader (build/helper exit 1, daemon exit verified),
+not memory exhaustion. Both used two workers/no parallel/3 GiB with Kotlin
+in-process; no memory failure or raised budget. Assembly configured but did not
+execute one-fork/512 MiB Test tasks. Existing native job pools are unchanged.
+
+Diagnostics separated two failures: microG crashed on an uncaught DNS lookup
+while Thor Wi-Fi was disconnected; the router rejects its saved 5/6 GHz
+associations. The previously authorized laptop hotspot was enabled after broker
+request 851e634ffde1494282dabc719fe7c535 approved changing only icssvc from
+Disabled/Stopped to Manual/Running. Thor connected and hostname resolution and
+Drive authorization recovered. The failed newly created 2.4 GHz test profile was
+removed; original saved networks remain. Hotspot shutdown and restoring icssvc to
+Disabled/Stopped remain required operational cleanup after native testing.
+
+Request 1170 completed with build/helper exit 0, gate/profile/daemon exit verified
+and no memory failure. Its in-place APK hash is
+0bd67562ce46b442b0d7b2316872dded28a8567bfd4bb28291e672eaf28402a8;
+immediate credential/config/import hashes were preserved. Native fixed-field
+diagnostics prove the Advance Wars rejection is version-only: identity, parent,
+size, modification time, download capability and every checksum agree. Exact
+connector reads corroborate sizes/time/parents but do not expose the other fields.
+
+The observed failure has a host reproduction and a cohesive fix: only patch JSON
+indexes can reconcile a higher metadata revision with unchanged names/byte
+contracts and fully validated original ancestry. The existing catalogue owner
+compare-and-sets the exact old record in the still-active generation, with no
+rescan or Drive mutation. Index bytes and the current source remain validated
+before and after media IO. Ordinary ROM/patch transfers still reject version
+drift. Affected host workflows pass version-only reading, changed-content/
+parent/ancestor/name/rollback rejection, patch controller menus, publication/
+reuse and cancellation/retry. Offline guidance now distinguishes connectivity
+from genuinely changed resources. Bounded collection/page events remove the need
+to use screenshots as loading probes. Native verification of this fix and the
+Advance Wars build/launch/reuse remain required; no such build/download has yet
+been dispatched. S18 stays ACTIVE, S19/S20 NOT STARTED. Screens are off during
+host work; hotspot/service restoration is still pending after device verification.
 
 Collector addition: Advanced's Get metadata & covers replaces the legacy cover
 preloader, opening ScreenScraper's normal scoped play/pause/resume workspace.

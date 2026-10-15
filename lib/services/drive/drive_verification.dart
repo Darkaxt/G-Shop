@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../models/library_identity.dart';
 import 'drive_api.dart';
@@ -54,8 +53,49 @@ class DriveVerification {
             current.modifiedAt != expected.modifiedAt) ||
         checksums.entries.any((hash) =>
             current.checksums[hash.key]?.toLowerCase() != hash.value)) {
+      // Fixed field names/booleans only: snapshot failures must be diagnosable
+      // without exposing accounts, file IDs, paths, hashes or credentials.
+      debugPrint('Drive snapshot mismatch: '
+          'binary=${!current.isSupportedBinary} '
+          'identity=${current.id != expected.id.providerFileId} '
+          'parent=${current.parents.length != 1 || current.parents.single != expected.parentId} '
+          'download=${current.canDownload != true} '
+          'version=${current.version != expected.version} '
+          'size=${current.sizeBytes != expected.sizeBytes} '
+          'modified=${expected.modifiedAt != null && current.modifiedAt != expected.modifiedAt} '
+          'checksums=${checksums.entries.where((hash) => current.checksums[hash.key]?.toLowerCase() != hash.value).map((hash) => hash.key).join(",")}');
       throw const DriveTransferException(DriveTransferIssue.sourceChanged);
     }
+  }
+
+  /// Index content is unchanged, but Drive may advance its metadata version.
+  /// This never permits a changed byte contract, name, identity or parent.
+  RemoteArtifact requirePatchIndexMetadataRevision(DriveFile current) {
+    if (!{'index.json', 'game.json'}.contains(expected.displayName) ||
+        current.name != expected.displayName) {
+      throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+    }
+    if (current.version == expected.version) {
+      requireCurrent(current);
+      return expected;
+    }
+    final before = BigInt.tryParse(expected.version ?? '');
+    final after = BigInt.tryParse(current.version ?? '');
+    if (before == null || after == null || after <= before) {
+      throw const DriveTransferException(DriveTransferIssue.sourceChanged);
+    }
+    final updated = RemoteArtifact(
+        id: expected.id,
+        parentId: expected.parentId,
+        displayPath: expected.displayPath,
+        displayName: expected.displayName,
+        sizeBytes: expected.sizeBytes,
+        modifiedAt: expected.modifiedAt,
+        version: current.version,
+        providerChecksums: expected.providerChecksums,
+        canDownload: expected.canDownload);
+    DriveVerification(updated).requireCurrent(current);
+    return updated;
   }
 
   Future<Map<String, String>> verifyBytes(Stream<Uint8List> bytes,

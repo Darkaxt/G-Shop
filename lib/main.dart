@@ -56,6 +56,7 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     LicenseRegistry.addLicense(mediaArtworkLicenses);
+    LicenseRegistry.addLicense(patchEngineLicenses);
     installGamepadKeyFix();
 
     // Initialize crash log service early

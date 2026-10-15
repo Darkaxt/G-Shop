@@ -1,9 +1,9 @@
-import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/drive/drive_api.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
@@ -60,6 +60,23 @@ Matcher issue(DriveTransferIssue value) =>
     isA<DriveTransferException>().having((e) => e.issue, 'issue', value);
 
 void main() {
+  test('snapshot rejection identifies changed fields without private values',
+      () {
+    final messages = <String>[];
+    final original = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) messages.add(message);
+    };
+    addTearDown(() => debugPrint = original);
+    expect(
+        () =>
+            DriveVerification(snapshot()).requireCurrent(current(version: '2')),
+        throwsA(issue(DriveTransferIssue.sourceChanged)));
+    expect(messages.single, contains('version=true'));
+    expect(messages.single, contains('size=false'));
+    expect(messages.single, isNot(contains('fixture.chd')));
+    expect(messages.single, isNot(contains(_hashes['md5']!)));
+  });
   test('verifies exact bytes and returns local sha256 with provider checksums',
       () async {
     final verification =

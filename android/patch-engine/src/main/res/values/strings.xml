@@ -1,0 +1,19 @@
+<resources>
+    <string name="snes_rom_has_no_smc_header">This ROM has no SMC header</string>
+    <string name="snes_rom_has_smc_header">This ROM already has an SMC header</string>
+    <string name="notify_error_failed_load_lib_xdelta3">Failed to load XDelta library</string>
+    <string name="notify_error_not_aps_patch">Not a valid APS patch</string>
+    <string name="notify_error_not_bps_patch">Not a valid BPS patch</string>
+    <string name="notify_error_not_dps_patch">Not a valid DPS patch</string>
+    <string name="notify_error_not_ebp_patch">Not a valid EBP patch</string>
+    <string name="notify_error_not_ips_patch">Not a valid IPS patch</string>
+    <string name="notify_error_not_ppf_patch">Not a valid PPF patch</string>
+    <string name="notify_error_not_ups_patch">Not a valid UPS patch</string>
+    <string name="notify_error_not_xdelta3_patch">Not a valid XDelta patch</string>
+    <string name="notify_error_patch_corrupted">The patch file is corrupted</string>
+    <string name="notify_error_rom_not_compatible_with_patch">This ROM is not compatible with the patch</string>
+    <string name="notify_error_unable_open_file">Unable to open file</string>
+    <string name="notify_error_unknown">Unknown error</string>
+    <string name="notify_error_wrong_checksum_after_patching">File have the wrong checksum after it was patched</string>
+    <string name="notify_error_xdelta3_internal_error">XDelta internal error</string>
+</resources>

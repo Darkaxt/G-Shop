@@ -18,11 +18,12 @@ import 'metadata/metadata_artwork_cache.dart';
 import 'drive/drive_catalogue.dart';
 import 'transfer_journal.dart';
 import 'rom_cache_store.dart';
+import 'patch_build_store.dart';
 
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 39;
+  static const int _dbVersion = 40;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -71,6 +72,7 @@ class DatabaseService {
     await MetadataRefreshJobs.install(db);
     await DriveCatalogueSchema.install(db);
     await TransferJournalSchema.install(db);
+    await PatchBuildSchema.install(db);
     await db.execute('''
       CREATE TABLE $_tableName (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -397,6 +399,9 @@ class DatabaseService {
     }
     if (oldVersion < 39) {
       await RomCacheSchema.install(db);
+    }
+    if (oldVersion < 40) {
+      await PatchBuildSchema.install(db);
     }
   }
 

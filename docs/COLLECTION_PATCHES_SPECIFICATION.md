@@ -183,6 +183,15 @@ Read indexed JSON/metadata and required patch resources on demand, not every ROM
 body. Preserve hashes/provenance, handle missing/stale resources visibly and
 never execute downloaded installers or utilities. Index content is data, not code.
 
+For index.json/game.json only, a higher Drive metadata version may be reconciled
+locally when every existing byte fingerprint, size, modification time, name,
+download capability, identity and parent still agrees and live ancestry remains
+inside the same published source generation. Compare-and-set the exact cached
+record; no source-wide rescan, automatic acceptance of changed bytes, or relaxed
+normal ROM/patch transfer verification. Validate downloaded index bytes and its
+current source again before parsing. Offline failures must suggest reconnecting,
+not misleadingly demand a catalogue sync.
+
 Selecting a game in Patches opens a sectioned Available patches / My builds view.
 Show version, description, type/language, required base and compatibility. Select
 patches/options and Build/play using compact icon actions with clear labels and

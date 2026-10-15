@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.22)
+project(rshop_patch_engine LANGUAGES C)
+set_property(GLOBAL PROPERTY JOB_POOLS rshop_patch_native=1)
+set(CMAKE_JOB_POOL_COMPILE rshop_patch_native)
+set(CMAKE_JOB_POOL_LINK rshop_patch_native)
+add_subdirectory(xz)
+add_subdirectory(xdelta3)
+add_subdirectory(xdelta1)
