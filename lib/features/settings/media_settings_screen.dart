@@ -88,8 +88,9 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
       if (picked != null && pickedStat != null) {
         try {
           final cache = await getTemporaryDirectory();
+          final canonicalCache = await cache.resolveSymbolicLinks();
           final prefix =
-              '${cache.path}${Platform.pathSeparator}file_picker${Platform.pathSeparator}';
+              '$canonicalCache${Platform.pathSeparator}file_picker${Platform.pathSeparator}';
           if (await picked.exists()) {
             final path = await picked.resolveSymbolicLinks();
             final current = await picked.stat();

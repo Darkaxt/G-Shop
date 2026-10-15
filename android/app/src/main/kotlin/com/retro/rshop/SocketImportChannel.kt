@@ -189,7 +189,10 @@ internal class SocketImportChannel(context: Context, messenger: BinaryMessenger)
             output.write(Zstd.decompress(bytes.copyOfRange(offset, offset + size), expected))
             offset += size
         }
-        require(output.size() == total && offset == bytes.size)
+        // Godot ends compressed resources with a second RSCC marker after the
+        // block table payload. It is part of the envelope, not another block.
+        require(output.size() == total && offset == bytes.size - 4 &&
+            input.getInt(offset) == 0x43435352)
         return output.toByteArray()
     }
 

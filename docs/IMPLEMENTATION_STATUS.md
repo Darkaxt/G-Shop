@@ -17,9 +17,62 @@ wrong-file preservation, platform byte-view PNG encoding, synchronized cover
 exit/zoom, no-art/reduced-motion skips and route-leave cancellation. Desktop
 GPU rejection is expected and is not native rendering evidence. The actual
 Android picker/import, decoded texture equality, restart persistence and native
-reveal remain advancement blockers pending the focused Thor workflow; S13 stays
-ACTIVE. R3 remains BLOCKED on S13
+reveal now pass the focused Thor workflow below. Signed asset-free packaging,
+publication/download provenance and final handover remain advancement blockers;
+S13 stays ACTIVE. R3 remains BLOCKED on S13
 and the signed asset-free public-release/handover requirements.
+
+#### S13 integrated native acceptance — 2026-10-15
+
+- Gate 1117 built the first native proof; its actual source import exposed the
+  required trailing RSCC marker. Gate 1118 built the corrected decoder. Both
+  managed operations exited 0 with post-build daemon exit verified, workers 2,
+  parallel false, Gradle heap 3 GiB and Kotlin in-process; no memory failure or
+  budget increase. Test tasks were configured for one fork/512 MiB; assembly
+  does not claim JUnit execution. App Ninja compile/link pool remains one.
+- APK `cd069d27de91a86244c0558b00ecd726b07d1284eec04782d5f66c05b4c4208c`
+  is installed only as the temporary `com.darkaxt.rshop.sharedproof` fixture.
+  Actual Android Settings/file picker selects the unchanged original owner APK;
+  generation `a1e65119be6031e7a5dfb0b882ef5b58` activates only after all source
+  geometry, animation, decoded texture and HDR checks pass. Import leaves flat
+  mode selected. Actual Presentation controls explicitly enable 3D.
+- All 16 variants render with their source triangle counts/materials and 11 HDR
+  mip levels, error null. Existing 19-family binding tests pass. Cold restart
+  in Android PID 22367 preserves the same generation and both selected
+  preferences, then renders imported GB without re-importing. VM root is bound
+  to the isolated proof, not normal-library/bootstrap evidence.
+- Real selected-view metrics and inspected native video show both imported-3D
+  and flat reveals. For the square synthetic box fixture the preview is
+  832.52×314.44 logical pixels, cover 283×283, initial media scale 0.271945;
+  both media dimensions fit within 80% of the cover. Intermediate scale grows
+  monotonically with leftward cover movement; cover exits fully and scale reaches
+  1. The measured flat terminal frame is 616,487 us. These are app Stopwatch/
+  layout observations, not physical display timing. Video H.264 timestamps are
+  explicitly reconstructed/estimated; the R-Shop icon is a synthetic box fixture,
+  not claimed scraped game art. S12's unchanged real typed-artwork evidence applies.
+- Native no-art and warm-art/reduced-motion paths skip directly to normal scale.
+  Actual visible Cancel during a new import and wrong APK selection both preserve
+  the same valid generation; no `.incoming-*` or source snapshot remains. The
+  original source APK hash is unchanged. Android Dart canonicalizes cache paths
+  through `/data/data`, unlike the provider's `/data/user/0` spelling; canonical
+  comparison now removes the exact consumed FilePicker copy. A fresh rejected
+  import leaves no new cached APK. Earlier test copies disappear with test-app
+  removal, not by sweeping other picker consumers.
+- Bounded diagnostics are test-entrypoint-only. A default-target attach restart
+  was rejected as proof after its root-library mismatch; explicit proof-target
+  attach/cold-start evidence above supersedes it. No production installation,
+  account, ROM or save changes are claimed for the isolated workflow.
+- Reviewed Android cleanup transactions `62ebf0367084e92f8a53a98d00883516`,
+  `c5fef1280a883d382b33456e36e9e184`, `3b52f02c3773b25a27de74f88b7e5f95`
+  and `ded57ae38d1bef01cb99c7ec2763dd2e` are applied: temporary proof apps/data
+  and both exact S13 shared fixture folders removed. Original host APK preserved.
+  Only owned forwards are removed; both physical displays report state and
+  committed state OFF. Host evidence is retained until release audit.
+
+Closure assessment: one importer owns the immutable resource generation and one
+existing selected-preview renderer consumes it; the normal ROM/save pipelines
+remain separate and unchanged. No required consolidation or new deferral found.
+S13 remains ACTIVE solely for its outstanding signed packaging/delivery criteria.
 
 | S12 acceptance boundary | Current evidence and applicability |
 | --- | --- |

@@ -9,7 +9,7 @@ Public delivery follows S13's asset-free package acceptance. No host
 conversion requirement for the user or private-release workaround. Earlier
 publication-routing notes below are superseded.
 
-Owner publication update: complete the extracted-model integration and publish
+Historical publication route (superseded by revision 49 above): complete the extracted-model integration and publish
 the next release privately under the owner's account. Do not upload Socket assets
 to the existing public fork or change that fork's visibility. Preserve package,
 signer, user state and upstream notices. This is the selected owner-authorized
@@ -22,7 +22,7 @@ not hide games or require scraping. Preserve explicit filters, manual shelf orde
 and alternate sort controls. This does not change Top 25 SD retention.
 Actual progress and reconciliation: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-Current execution, 2026-10-14: S0-S11 COMPLETE; S12 ACTIVE (sole active stage).
+Historical execution checkpoint, 2026-10-14: S0-S11 COMPLETE; S12 ACTIVE (sole active stage).
 The owner's GBA/artwork report reopens FRONTEND-01; start with the verified
 console inventory and integration ledger in S12_FRONTEND_PROPOSAL.md. Repair GBA
 first, then close the ledger's other in-scope format/variant integrations and
@@ -2184,9 +2184,12 @@ general provider framework. Relevant focused checks belong in media settings,
 physical-media and import tests. Every Windows Gradle verification uses the shared
 installed gate; preserve one workload and existing resource limits.
 
-Reconciliation: all five outcome groups above are unsatisfied until implemented
-and verified in S13. S12 acceptance does not depend on its future importer or
-new reveal; public distribution does. No stage is COMPLETE because a recipe or
+Reconciliation, 2026-10-15: native local import/defaults, exact source checks,
+all 16 variants, restart, rejection/cancellation preservation and both reveal
+modes/skips pass; evidence is in IMPLEMENTATION_STATUS.md. Signed asset-free
+release packaging and publication/handover remain acceptance blockers, so S13
+is ACTIVE. S12 acceptance does not depend on its importer or new reveal; public
+distribution does. No stage is COMPLETE because a recipe or
 test fixture exists. No independent worktree, worker or approval gate is required.
 
 ## Source extension map (baseline, not implemented classes)

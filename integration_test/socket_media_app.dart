@@ -2,6 +2,7 @@
 // VM service extensions are authenticated by the debug VM's session URL and
 // reachable only through an explicitly selected ADB forward during this check.
 import 'dart:convert';
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 
@@ -72,6 +73,7 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
   final _settings = GlobalKey();
   int _index = 0, _revision = 0;
   bool _resolved = false, _busy = false;
+  bool _cancelNextImport = false;
   Future<void> _action = Future.value();
 
   PhysicalMediaFormat get _format => PhysicalMediaFormat.values[_index];
@@ -85,7 +87,11 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
       try {
         final command = args['command'] ?? 'status';
         final before = _revision;
-        if (command == 'settings-action') {
+        final clock = Stopwatch()..start();
+        final revealFrames = <Map<String, Object?>>[];
+        if (command == 'cancel-next-import') {
+          _cancelNextImport = true;
+        } else if (command == 'settings-action') {
           if (WidgetsBinding.instance.lifecycleState !=
               AppLifecycleState.resumed) {
             throw StateError('R-Shop is not foreground');
@@ -119,6 +125,24 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
           }));
         } else if (command == 'ready') {
           await _media.currentState?.renderReady;
+        } else if (command == 'import-ready') {
+          final importer = ref.read(socketMediaImportProvider);
+          if (importer.importing) {
+            final finished = Completer<void>();
+            void changed() {
+              if (!importer.importing && !finished.isCompleted) {
+                finished.complete();
+              }
+            }
+
+            importer.addListener(changed);
+            try {
+              changed();
+              await finished.future;
+            } finally {
+              importer.removeListener(changed);
+            }
+          }
         } else if (command != 'status') {
           final key = switch (command) {
             'next' => _next,
@@ -133,11 +157,34 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
           control.onPressed!(); // The same callback as an actual UI press.
           await _action;
           await WidgetsBinding.instance.endOfFrame;
+          if (args['observe'] == 'reveal') {
+            while (true) {
+              final snapshot = _revealSnapshot();
+              final frame = {
+                'elapsedUs': clock.elapsedMicroseconds,
+                ...snapshot
+              };
+              if (revealFrames.length < 120) {
+                revealFrames.add(frame);
+              } else {
+                revealFrames[119] = {
+                  ...frame,
+                  'intermediateFramesTruncated': true
+                };
+              }
+              if (!((snapshot['nodes'] as Map)
+                  .containsKey('cover-reveal-cover'))) {
+                break;
+              }
+              await WidgetsBinding.instance.endOfFrame;
+            }
+          }
         }
         return developer.ServiceExtensionResponse.result(jsonEncode({
           'action': command,
           'beforeRevision': before,
           'afterRevision': _revision,
+          if (revealFrames.isNotEmpty) 'revealFrames': revealFrames,
           ..._snapshot(),
         }));
       } catch (error) {
@@ -149,6 +196,17 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
 
   void _importChanged() {
     _revision++;
+    if (_cancelNextImport && ref.read(socketMediaImportProvider).importing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_cancelNextImport) return;
+        final button = _settingControl('media-import-cancel')?.widget;
+        if (button is OutlinedButton && button.onPressed != null) {
+          _cancelNextImport = false;
+          button
+              .onPressed!(); // Actual visible Cancel control, not backend bypass.
+        }
+      });
+    }
   }
 
   @override
@@ -249,7 +307,9 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
       'format': _format.assetName,
       'settingsNodes': _settingsSnapshot(),
       'resolvedFixtureBoxArt': _resolved,
+      'cancelNextImportArmed': _cancelNextImport,
       'renderer': _media.currentState?.renderSnapshot,
+      'reveal': _revealSnapshot(),
       'viewportLogicalPixels': [
         MediaQuery.sizeOf(context).width,
         MediaQuery.sizeOf(context).height
@@ -264,6 +324,47 @@ class _MediaProofState extends ConsumerState<_MediaProof> {
       ],
       'coverageLimit':
           'Isolated real renderer; not owner-library data or launch proof',
+    };
+  }
+
+  Map<String, Object?> _revealSnapshot() {
+    final nodes = <String, Object?>{};
+    var visited = 0;
+    void visit(Element element) {
+      if (++visited > 2048) return;
+      if (element.widget is Offstage && (element.widget as Offstage).offstage) {
+        return;
+      }
+      final widget = element.widget;
+      final id = widget.key is ValueKey<String>
+          ? (widget.key as ValueKey<String>).value
+          : null;
+      if (id == 'cover-reveal-media' || id == 'cover-reveal-cover') {
+        final box = element.findRenderObject() as RenderBox?;
+        if (box?.hasSize == true) {
+          final origin = box!.localToGlobal(Offset.zero);
+          nodes[id!] = {
+            'boundsLogicalPixels': [
+              origin.dx,
+              origin.dy,
+              box.size.width,
+              box.size.height
+            ],
+            if (widget is Transform)
+              'uniformScale': widget.transform.storage[0],
+          };
+        }
+      }
+      element.visitChildElements(visit);
+    }
+
+    (context as Element).visitChildElements(visit);
+    return {
+      'nodes': nodes,
+      'visited': visited,
+      'unit': 'logical pixels',
+      'limit':
+          'Instantiated preview layout; not physical display presentation or occlusion proof'
     };
   }
 

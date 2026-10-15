@@ -334,6 +334,7 @@ class SocketMediaImport extends ChangeNotifier {
       progress = 1;
       message = 'Imported. You can now enable 3D media.';
     } catch (error) {
+      if (kDebugMode) debugPrint('Media import failed during $phase: $error');
       message = _cancelled ||
               error is PlatformException && error.code == 'cancelled'
           ? 'Import cancelled. Your previous media is unchanged.'
