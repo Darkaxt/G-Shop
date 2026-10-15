@@ -7,6 +7,32 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Current correction — S12 ACTIVE, 2026-10-14
 
+Current native result, 2026-10-15: original request 1115 completed with build and
+helper exit 0, gate acquired, two workers, parallel=false, 3 GiB Gradle heap and
+assessed in-process Kotlin. Post-build daemon exit is verified; no memory failure
+or budget increase. Test forks were configured at one/512 MiB but assembly ran
+no JVM tests; native concurrency hints are not universal effective-concurrency
+proof. APK SHA-256:
+`c1a7a9baea3904837bcd71c1aa4aeeb16cf6737b7bc6f850eba14707a972c4ee`.
+The prebuilt native driver completed with exit 0. All sixteen normal CoverSection
+variants rendered with source texture bindings and eleven HDR levels. NES front
+RGB is now 135/135/136, passing the unchanged gray-plastic criterion; inspected
+NES, UMD and SNES PAL captures confirm the material correction and unobstructed
+UMD fallback title. Cached UMD artwork retains the same media identity; 120
+steady frames measured build/raster P95 4,593/574 us. VmRSS 640,320 kB belongs to
+this isolated debug process, not whole-library/release memory. Normal Library
+Top/tag/console/shelf/order checks pass; production bootstrap=false, ROM requests=0.
+The driver removed its test app and exact package absence was verified. Baseline
+`b5d44ef66d1c3c6604ca203142024058` is closed, only owned tcp:50364 was removed,
+and both physical displays are confirmed OFF. Production data remains untouched.
+
+The native material/cached-label/performance blocker is resolved. S12 remains
+ACTIVE until affected launch/lifecycle and the existing source/artwork ledger
+are reconciled; a successful renderer check alone does not close the stage.
+S13 remains NOT STARTED. Its already-recorded revision-49 requirement is smaller
+media behind a larger cover, growing smoothly to normal zoom as the cover exits,
+in flat and imported-3D modes; no art/reduced motion skips directly to normal zoom.
+
 Current material repair: source inspection identifies internal GradientTexture1D
 maps for NES casing and UMD plastic, plus a FastNoiseLite/Gradient NoiseTexture2D
 for SNES PAL. They were silently omitted because conversion accepted only
