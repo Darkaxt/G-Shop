@@ -17,19 +17,55 @@ import '../../providers/metadata_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../services/metadata/metadata_credentials.dart';
 import '../../services/metadata/metadata_refresh_jobs.dart';
+import '../../widgets/console_notification.dart';
 import 'metadata_review_screen.dart';
 import 'metadata_progress_feedback.dart';
+
+/// All entry points share the same durable collector, never a second worker.
+Future<void> openScreenScraperCollector(BuildContext context, WidgetRef ref,
+    {String? systemSlug, List<String>? systemSlugs, String? scopeLabel}) async {
+  final systems =
+      systemSlugs == null ? null : List<String>.unmodifiable(systemSlugs);
+  if (systems?.isEmpty == true) return;
+  final controls = ref.read(metadataControlsProvider.notifier);
+  if (ref.read(metadataControlsProvider).loading) await controls.load();
+  if (!context.mounted) return;
+  if (ref.read(metadataControlsProvider).providerId != 'screenscraper') {
+    await controls.selectProvider('screenscraper');
+  }
+  if (!context.mounted) return;
+  if (ref.read(metadataControlsProvider).providerId != 'screenscraper') {
+    showConsoleNotification(context,
+        message:
+            'Pause the current metadata job before switching to ScreenScraper.');
+    return;
+  }
+  await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => MetadataSettingsScreen(
+              systemSlug: systemSlug,
+              systemSlugs: systems,
+              scopeLabel: scopeLabel,
+              openCollector: true)));
+}
 
 /// Normal settings entry, also scoped to the exact selected cached game.
 class MetadataSettingsScreen extends ConsumerStatefulWidget {
   final String? systemSlug, gameTitle, editionId;
   final int? cacheRowId;
+  final List<String>? systemSlugs;
+  final String? scopeLabel;
+  final bool openCollector;
   const MetadataSettingsScreen(
       {super.key,
       this.systemSlug,
       this.cacheRowId,
       this.gameTitle,
-      this.editionId});
+      this.editionId,
+      this.systemSlugs,
+      this.scopeLabel,
+      this.openCollector = false});
   @override
   ConsumerState<MetadataSettingsScreen> createState() =>
       _MetadataSettingsScreenState();
@@ -46,6 +82,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   String _section = 'provider';
   bool _scraping = false;
   String? _scope;
+  static const _selectedSystems = '@selected-systems';
   bool _invalid = false;
   bool _esDeClosed = false;
   String? _esDeTarget;
@@ -54,7 +91,8 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   @override
   void initState() {
     super.initState();
-    _scope = widget.systemSlug;
+    _scope = widget.systemSlugs == null ? widget.systemSlug : _selectedSystems;
+    _scraping = widget.openCollector;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _sectionFocus.requestFocus();
     });
@@ -616,9 +654,14 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                   value: '',
                   child: Text(l.metadata_fullScope,
                       overflow: TextOverflow.ellipsis)),
+              if (widget.systemSlugs != null)
+                DropdownMenuItem(
+                    value: _selectedSystems,
+                    child: Text(widget.scopeLabel ?? 'Selected consoles',
+                        overflow: TextOverflow.ellipsis)),
               for (final system in {
                 ...state.systems,
-                if (_scope != null) _scope!
+                if (_scope != null && _scope != _selectedSystems) _scope!
               })
                 DropdownMenuItem(
                     value: system,
@@ -638,7 +681,10 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
             Icons.play_circle_outline,
             enabled
                 ? () => controls.refresh(
-                    systemSlug: _scope, cacheRowId: widget.cacheRowId)
+                    systemSlug: _scope == _selectedSystems ? null : _scope,
+                    systemSlugs:
+                        _scope == _selectedSystems ? widget.systemSlugs : null,
+                    cacheRowId: widget.cacheRowId)
                 : null),
         _transportButton(l.metadata_pause, 'metadata-pause',
             Icons.pause_rounded, state.busy ? controls.pause : null),

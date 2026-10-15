@@ -4,9 +4,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:retro_eshop/features/home/home_view.dart';
+import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
+import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/features/home/widgets/hero_carousel_item.dart';
 import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/config/system_config.dart';
@@ -24,6 +28,8 @@ import 'package:retro_eshop/providers/ra_providers.dart';
 import 'package:retro_eshop/features/home/widgets/manufacturer_filter.dart';
 import 'package:retro_eshop/features/home/widgets/home_grid_view.dart';
 import '../helpers/pump_helpers.dart';
+import '../metadata_controls_test.dart'
+    show controlsDatabase, MemorySecrets, ControlsProvider;
 
 class _SilentAudio extends AudioManager {
   @override
@@ -51,6 +57,121 @@ class _RecordingSync extends LibrarySyncService {
 }
 
 void main() {
+  testWidgets(
+      'home scraping scopes use the collector without automatic requests',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final systems = SystemModel.supportedSystems
+        .where((s) => ['nes', 'snes', 'psp'].contains(s.id))
+        .toList();
+    final config = AppConfig(systems: [
+      for (final s in systems)
+        SystemConfig(
+            id: s.id,
+            name: s.name,
+            targetFolder: '/${s.id}',
+            providers: const [],
+            autoSync: false)
+    ]);
+    final db = (await tester.runAsync(controlsDatabase))!;
+    final provider = ControlsProvider();
+    final controls = (await tester.runAsync(() async {
+      await db.update('games', {'systemSlug': 'nes'}, where: 'id = 1');
+      await db.update('games', {'systemSlug': 'snes'}, where: 'id = 2');
+      await db.insert('games', {
+        'id': 3,
+        'systemSlug': 'psp',
+        'displayName': 'Game 3',
+        'filename': 'Game 3.iso',
+        'url': 'https://example.invalid/3'
+      });
+      final controls = MetadataControlsController(
+          database: Future.value(db),
+          providers: {'screenscraper': provider},
+          screenScraperCredentials:
+              ScreenScraperCredentialStore(storage: MemorySecrets()),
+          igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+          catalogueChanged: () {});
+      await controls.load();
+      return controls;
+    }))!;
+    final container = ProviderContainer(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      visibleSystemsProvider.overrideWith((ref) async => systems),
+      bootstrappedConfigProvider.overrideWith((ref) async => config),
+      librarySyncServiceProvider.overrideWith((ref) => _RecordingSync()),
+      hasQueueItemsProvider.overrideWithValue(false),
+      audioManagerProvider.overrideWithValue(_SilentAudio()),
+      systemSourceCountsProvider.overrideWith((ref) async => {}),
+      metadataControlsProvider.overrideWith((_) => controls),
+    ]);
+    addTearDown(() async {
+      await tester.runAsync(controls.close);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(Duration.zero);
+      container.dispose();
+      await tester.runAsync(db.close);
+    });
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container, child: createTestApp(const HomeView())));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('brand-Nintendo')));
+    await tester.pumpAndSettle();
+    for (final scope in [
+      'Scrape this console',
+      'Scrape Nintendo',
+      'Scrape all'
+    ]) {
+      final before = provider.calls.length;
+      await tester.tap(find.text('Menu'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sync'), findsOneWidget);
+      expect(find.text('Scrape Nintendo'), findsNothing);
+      await tester.tap(find.text('Scrape'));
+      await tester.pumpAndSettle();
+      expect(find.text('Scrape this console'), findsOneWidget);
+      expect(find.text('Scrape Nintendo'), findsOneWidget);
+      expect(find.text('Scrape all'), findsOneWidget);
+      await tester.tap(find.text(scope));
+      await tester.pumpAndSettle();
+      expect(find.byType(MetadataSettingsScreen), findsOneWidget);
+      expect(provider.calls.length, before);
+      final route = tester
+          .widget<MetadataSettingsScreen>(find.byType(MetadataSettingsScreen));
+      expect(route.openCollector, isTrue);
+      expect(route.systemSlug, scope == 'Scrape this console' ? 'nes' : null);
+      expect(route.systemSlugs,
+          scope == 'Scrape Nintendo' ? ['nes', 'snes'] : null);
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('metadata-refresh')));
+        await controls.pause();
+        if (controls.state.report!.state != 'completed') {
+          await controls.resume();
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(controls.state.error, isFalse);
+      expect(
+          provider.calls.skip(before).map((call) => call.platformId).toSet(),
+          scope == 'Scrape this console'
+              ? {'nes'}
+              : scope == 'Scrape Nintendo'
+                  ? {'nes', 'snes'}
+                  : {'nes', 'snes', 'psp'});
+      await tester.tap(find.byKey(const ValueKey('metadata-back')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('metadata-back')));
+      await tester.pumpAndSettle();
+    }
+    expect(tester.takeException(), isNull);
+  });
   for (final size in [const Size(320, 568), const Size(832, 468)]) {
     testWidgets(
         'grid filters preserve selection and avoid the sync popup at $size',
@@ -183,7 +304,11 @@ void main() {
     await tester.pump();
     Actions.invoke(filterContext, const ConfirmIntent());
     await tester.pumpAndSettle();
-    expect(tester.widget<ManufacturerFilter>(find.byType(ManufacturerFilter)).selected, 'Nintendo');
+    expect(
+        tester
+            .widget<ManufacturerFilter>(find.byType(ManufacturerFilter))
+            .selected,
+        'Nintendo');
     Actions.invoke(filterContext, const NavigateIntent(GridDirection.down));
     await tester.pump();
     expect(homeFocus.hasPrimaryFocus, isTrue);
@@ -196,7 +321,9 @@ void main() {
             .every((item) => item.system.manufacturer == 'Sega'),
         isTrue);
     await tester.tap(find.text('Menu'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sync'));
+    await tester.pumpAndSettle();
     expect(find.text('Sync Sega'), findsOneWidget);
     await tester.tap(find.text('Sync Sega'));
     await tester.pumpAndSettle();
@@ -217,12 +344,17 @@ void main() {
             .any((item) => item.system.manufacturer != 'Sega'),
         isTrue);
     await tester.tap(find.text('Menu'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sync'));
+    await tester.pumpAndSettle();
     expect(find.text('Sync Sega'), findsNothing);
     expect(find.text('Sync All'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
+    expect(find.text('Scrape'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
-    await tester.pump();
+    await tester.pump(Duration.zero);
   });
 }

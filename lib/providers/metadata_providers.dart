@@ -367,11 +367,13 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         }
       });
 
-  Future<void> refresh({String? systemSlug, int? cacheRowId}) =>
+  Future<void> refresh(
+          {String? systemSlug, List<String>? systemSlugs, int? cacheRowId}) =>
       _perform(() async {
         final job = await _jobs.createFromCatalogue(
             providerId: state.providerId,
             systemSlug: systemSlug,
+            systemSlugs: systemSlugs,
             cacheRowId: cacheRowId);
         _set(state.copyWith(report: job, clearArtworkReport: true));
         if (_closed) return;
@@ -524,7 +526,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     if (_closed || _pauseRequested) return;
     final provider = _providers[state.providerId]!;
     try {
-      final cache = _artworkCache == null ? null : await _artworkCache;
+      final cache = provider is MetadataArtworkProvider && _artworkCache != null
+          ? await _artworkCache
+          : null;
       if (_closed || _pauseRequested) return;
       final result = await _jobs.run(id, provider,
           artworkCache: cache,

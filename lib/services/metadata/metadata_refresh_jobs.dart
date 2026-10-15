@@ -305,15 +305,33 @@ class MetadataRefreshJobs {
   /// catalogue. Capture and job publication share one database transaction;
   /// concurrent source changes cannot produce half-old, half-new membership.
   Future<MetadataRefreshReport> createFromCatalogue(
-      {required String providerId, String? systemSlug, int? cacheRowId}) {
+      {required String providerId,
+      String? systemSlug,
+      List<String>? systemSlugs,
+      int? cacheRowId}) {
     if (systemSlug?.trim().isEmpty == true ||
+        (systemSlugs != null &&
+            (systemSlugs.isEmpty ||
+                systemSlugs.any((id) => id.trim().isEmpty) ||
+                systemSlug != null ||
+                cacheRowId != null)) ||
         (cacheRowId != null && cacheRowId < 1)) {
       throw ArgumentError('Catalogue scope is invalid');
     }
+    // Freeze the selected manufacturer before the asynchronous transaction.
+    final systems = (systemSlugs?.toSet().toList())?..sort();
     return _create(
         providerId: providerId,
-        editions: (txn) => LibraryStore.catalogueEditions(txn,
-            systemSlug: systemSlug, cacheRowId: cacheRowId));
+        editions: (txn) async* {
+          if (systems == null) {
+            yield* LibraryStore.catalogueEditions(txn,
+                systemSlug: systemSlug, cacheRowId: cacheRowId);
+          } else {
+            for (final system in systems) {
+              yield* LibraryStore.catalogueEditions(txn, systemSlug: system);
+            }
+          }
+        });
   }
 
   /// Reconsider only the exact edition shown in details. Keep its saved identity

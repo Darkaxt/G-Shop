@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:retro_eshop/core/theme/app_theme.dart';
 import 'package:retro_eshop/core/widgets/console_focusable.dart';
 import 'package:retro_eshop/features/settings/widgets/general_tab.dart';
+import 'package:retro_eshop/features/settings/widgets/advanced_tab.dart';
 import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
 import 'package:retro_eshop/l10n/app_localizations.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
@@ -19,6 +20,7 @@ import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/storage_service.dart';
+import 'package:retro_eshop/services/cover_preload_service.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import '../metadata_controls_test.dart'
     show controlsDatabase, MemorySecrets, ControlsProvider;
@@ -38,6 +40,80 @@ class _SavedPageControls extends MetadataControlsController {
 }
 
 void main() {
+  testWidgets(
+      'Advanced cover entry opens ScreenScraper collector without starting',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = (await tester.runAsync(controlsDatabase))!;
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final provider = ControlsProvider();
+    final igdb = ControlsProvider('igdb');
+    final controls = (await tester.runAsync(() async {
+      final controls = MetadataControlsController(
+          database: Future.value(db),
+          providers: {'screenscraper': provider, 'igdb': igdb},
+          screenScraperCredentials:
+              ScreenScraperCredentialStore(storage: MemorySecrets()),
+          igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+          catalogueChanged: () {});
+      await controls.load();
+      await controls.selectProvider('igdb');
+      return controls;
+    }))!;
+    final container = ProviderContainer(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      metadataControlsProvider.overrideWith((_) => controls),
+      coverPreloadServiceProvider.overrideWith(
+          (_) => throw StateError('Legacy cover preloading must not be used')),
+    ]);
+    final focus = FocusNode();
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+      await tester.runAsync(() async {
+        await controls.close();
+        await db.close();
+      });
+      container.dispose();
+      focus.dispose();
+    });
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: createTestApp(SettingsAdvancedTab(firstFocusNode: focus))));
+    await tester.pumpAndSettle();
+    final entry = find.text('Get metadata & covers');
+    expect(entry, findsOneWidget);
+    await tester.runAsync(() async {
+      await tester.tap(entry);
+      await controls.load();
+    });
+    await tester.pumpAndSettle();
+    expect(find.byType(MetadataSettingsScreen), findsOneWidget);
+    expect(controls.state.providerId, 'screenscraper');
+    expect(find.byKey(const ValueKey('metadata-scope')), findsOneWidget);
+    expect(find.byKey(const ValueKey('metadata-refresh')), findsOneWidget);
+    expect(provider.calls, isEmpty);
+    expect(igdb.calls, isEmpty);
+    expect(controls.state.report, isNull);
+    // Start explicitly from the collector and prove it uses the same owner.
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('metadata-refresh')));
+      await controls.pause();
+      if (controls.state.report!.state != 'completed') await controls.resume();
+    });
+    await tester.pumpAndSettle();
+    expect(provider.calls, hasLength(2));
+    expect(igdb.calls, isEmpty);
+    expect(controls.state.report!.providerId, 'screenscraper');
+    expect(controls.state.report!.state, 'completed');
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('saved jobs page selects older work by touch and controller',
       (tester) async {
     tester.view.physicalSize = const Size(1280, 720);
@@ -447,7 +523,14 @@ void main() {
         child: createTestApp(SettingsGeneralTab(firstFocusNode: focus))));
     await tester.pumpAndSettle();
     expect(find.text('Game metadata'), findsOneWidget);
-    focus.requestFocus();
+    // ROM cache precedes metadata now; activate the metadata tile, not whichever
+    // setting happens to occupy the first row.
+    tester
+        .widget<ConsoleFocusable>(find.ancestor(
+            of: find.text('Game metadata'),
+            matching: find.byType(ConsoleFocusable)))
+        .focusNode!
+        .requestFocus();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
     await tester.pumpAndSettle();

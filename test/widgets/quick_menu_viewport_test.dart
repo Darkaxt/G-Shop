@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/services/feedback_service.dart';
 import 'package:retro_eshop/widgets/quick_menu.dart';
+import 'package:retro_eshop/l10n/app_localizations.dart';
 
 class _Feedback implements FeedbackService {
   @override
@@ -12,10 +13,70 @@ class _Feedback implements FeedbackService {
   @override
   void confirm() {}
   @override
+  void cancel() {}
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
+  testWidgets('Sync and Scrape submenus support controller back and touch',
+      (tester) async {
+    final selected = <String>[];
+    var closed = false;
+    final container = ProviderContainer(overrides: [
+      feedbackServiceProvider.overrideWithValue(_Feedback()),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            home: Scaffold(
+                body: Stack(children: [
+              QuickMenuOverlay(items: [
+                QuickMenuItem(label: 'Sync', icon: Icons.sync, children: [
+                  QuickMenuItem(
+                      label: 'Sync all',
+                      icon: Icons.sync,
+                      onSelect: () => selected.add('sync')),
+                ]),
+                QuickMenuItem(
+                    label: 'Scrape',
+                    icon: Icons.auto_stories,
+                    children: [
+                      QuickMenuItem(
+                          label: 'Scrape all',
+                          icon: Icons.auto_stories,
+                          onSelect: () => selected.add('scrape')),
+                    ]),
+              ], onClose: () => closed = true),
+            ])))));
+    await tester.pumpAndSettle();
+    expect(find.text('Scrape all'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('Sync all'), findsOneWidget);
+    expect(selected, isEmpty);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Scrape'), findsOneWidget);
+    expect(closed, isFalse);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('Scrape all'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Scrape'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Scrape all'));
+    await tester.pumpAndSettle();
+    expect(selected, ['scrape']);
+    expect(closed, isTrue);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(Duration.zero);
+  });
   for (final size in [
     const Size(960, 540),
     const Size(640, 360),

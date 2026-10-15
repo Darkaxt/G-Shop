@@ -1,6 +1,23 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 53.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 54, including
+[collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+## Current extension — already authorized, 2026-10-15
+
+| Stage | Status | Complete user-facing outcome / mapped requirements | Verification |
+| --- | --- | --- | --- |
+| S16 Collection rankings | ACTIVE | RANK-01: scoped ratings-only refresh, honest coverage, verified edition grouping, Top 100 then A-Z; legacy cover entry and home console/manufacturer/all Scrape submenu use ScreenScraper collector | Integrated provider/database/controller/widget flow, collector scopes/ownership, Sync/Scrape controller navigation and real GBA ranked order |
+| S17 Collection navigation | NOT STARTED | NAV-01, CAT-01, CACHE-UI-02, INPUT-01: manufacturer/type/chronological console navigation, Commercial/Hacks classification and app-wide controller wiring reconciliation; patch entry wired only with S18 | Shared carousel/grid/library order, focused controller gap checks, cache content/dialog/Apply flow and native navigation |
+| S18 Reproducible patch builds | NOT STARTED | PATCH-01, PATCH-02, CAT-01 patch action: indexed compatible game -> engine -> tracked playable result and reuse | Real indexed GBA build/launch/reuse plus inventoried engine, mismatch/cancel/persistence checks |
+| S19 Sharing/layout/integration | NOT STARTED | SHARE-01, LAYOUT-01: portable shared recipes, share/import, documented compatible Drive layout, any justified source moves, final reconciliation | Independent roots/import/reconnect, privacy/export checks, layout fixtures, affected integrated/native verification |
+
+S16's unmet criteria are implementable advancement blockers, not a parked stage.
+S18 owns engine/licensing evaluation and patch-category interaction; S19 owns
+portable sharing/layout. These do not excuse an unmet S16 criterion. Prior
+S0-S15/QA1/release handover remains complete; no concurrent implementation stage.
+No new public release is authorized by the extension. Current evidence and exact
+blockers/deferrals are maintained in IMPLEMENTATION_STATUS.md.
 
 Current release handover (owner-authorized 2026-10-15): R1 COMPLETE — published the
 exact verified signed 1.9.1 APK with factual source/build provenance and checksums;

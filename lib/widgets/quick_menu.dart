@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../core/input/overlay_scope.dart';
 import '../core/responsive/responsive.dart';
 import '../providers/app_providers.dart';
+import '../l10n/app_localizations.dart';
 import 'gamepad_icons.dart';
 
 class QuickMenuItem {
@@ -13,7 +14,8 @@ class QuickMenuItem {
   final String? subtitle;
   final IconData icon;
   final String? shortcutHint;
-  final VoidCallback onSelect;
+  final VoidCallback? onSelect;
+  final List<QuickMenuItem?>? children;
   final bool highlight;
 
   const QuickMenuItem({
@@ -21,9 +23,10 @@ class QuickMenuItem {
     this.subtitle,
     required this.icon,
     this.shortcutHint,
-    required this.onSelect,
+    this.onSelect,
+    this.children,
     this.highlight = false,
-  });
+  }) : assert((onSelect == null) != (children == null));
 }
 
 class QuickMenuOverlay extends ConsumerStatefulWidget {
@@ -46,6 +49,13 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
   final FocusNode _menuFocusNode = FocusNode(debugLabel: 'QuickMenu');
   final ScrollController _scrollController = ScrollController();
   final Map<int, GlobalKey> _itemKeys = {};
+  late List<QuickMenuItem?> _items;
+  final _parents = <({
+    List<QuickMenuItem?> items,
+    int focus,
+    double offset,
+    String title
+  })>[];
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -53,6 +63,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
   @override
   void initState() {
     super.initState();
+    _items = widget.items;
     _animController = AnimationController(
       duration: const Duration(milliseconds: 250),
       vsync: this,
@@ -76,6 +87,27 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
   }
 
   @override
+  void didUpdateWidget(QuickMenuOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_parents.isEmpty) {
+      _items = widget.items;
+      if (_focusedIndex < 0 ||
+          _focusedIndex >= _items.length ||
+          _items[_focusedIndex] == null) {
+        _focusedIndex = _items.indexWhere((item) => item != null);
+      }
+    } else {
+      final root = _parents.first;
+      _parents[0] = (
+        items: widget.items,
+        focus: root.focus,
+        offset: root.offset,
+        title: root.title
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _menuFocusNode.dispose();
     _scrollController.dispose();
@@ -90,21 +122,55 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
   }
 
   List<int> get _selectableIndices => [
-        for (int i = 0; i < widget.items.length; i++)
-          if (widget.items[i] != null) i,
+        for (int i = 0; i < _items.length; i++)
+          if (_items[i] != null) i,
       ];
 
   void _selectItem(int index) {
-    if (index < 0 || index >= widget.items.length) return;
-    final item = widget.items[index];
+    if (index < 0 || index >= _items.length) return;
+    final item = _items[index];
     if (item == null) return;
+    if (item.children != null) {
+      setState(() {
+        _parents.add((
+          items: _items,
+          focus: _focusedIndex,
+          offset: _scrollController.hasClients ? _scrollController.offset : 0,
+          title: item.label
+        ));
+        _items = item.children!;
+        _focusedIndex = _items.indexWhere((entry) => entry != null);
+        _itemKeys.clear();
+      });
+      if (_scrollController.hasClients) _scrollController.jumpTo(0);
+      return;
+    }
     // Close first, then invoke action after overlay priority releases
     _animController.reverse().then((_) {
       if (!mounted) return;
       widget.onClose();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        item.onSelect();
+        item.onSelect!();
       });
+    });
+  }
+
+  void _back() {
+    if (_parents.isEmpty) {
+      _close();
+      return;
+    }
+    final parent = _parents.removeLast();
+    setState(() {
+      _items = parent.items;
+      _focusedIndex = parent.focus;
+      _itemKeys.clear();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(
+            parent.offset.clamp(0, _scrollController.position.maxScrollExtent));
+      }
     });
   }
 
@@ -127,7 +193,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
         key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.backspace) {
       ref.read(feedbackServiceProvider).cancel();
-      _close();
+      _back();
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.gameButtonStart) {
@@ -267,7 +333,22 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
                 controller: _scrollController,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: _buildItems(rs),
+                  children: [
+                    if (_parents.isNotEmpty)
+                      Row(children: [
+                        IconButton(
+                            tooltip: L.of(context).common_back,
+                            onPressed: _back,
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white70)),
+                        Expanded(
+                            child: Text(_parents.last.title,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold))),
+                      ]),
+                    ..._buildItems(rs),
+                  ],
                 ),
               ),
             ),
@@ -279,8 +360,8 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
 
   List<Widget> _buildItems(Responsive rs) {
     final widgets = <Widget>[];
-    for (int i = 0; i < widget.items.length; i++) {
-      final item = widget.items[i];
+    for (int i = 0; i < _items.length; i++) {
+      final item = _items[i];
       if (item == null) {
         // Separator
         widgets.add(Padding(
@@ -291,7 +372,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
           ),
         ));
       } else {
-        if (i > 0 && widget.items[i - 1] != null) {
+        if (i > 0 && _items[i - 1] != null) {
           widgets.add(Container(
             height: 1,
             margin: EdgeInsets.symmetric(horizontal: rs.spacing.md),
@@ -319,7 +400,7 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
   }
 
   Widget _buildItem(int index, Responsive rs) {
-    final item = widget.items[index]!;
+    final item = _items[index]!;
     final isFocused = _focusedIndex == index;
     final hintSvg = _hintSvgPath(item.shortcutHint);
     final accentColor = item.highlight ? Colors.greenAccent : Colors.cyanAccent;
@@ -398,6 +479,8 @@ class _QuickMenuOverlayState extends ConsumerState<QuickMenuOverlay>
               ),
               // Shortcut hint
               if (hintSvg != null) _buildHintBadge(hintSvg, isFocused, rs),
+              if (item.children != null)
+                const Icon(Icons.chevron_right, color: Colors.white60),
             ],
           ),
         ),

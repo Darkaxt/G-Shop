@@ -5,6 +5,58 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Collection/patch extension — S16 ACTIVE, 2026-10-15
+
+Authority revision 54 and COLLECTION_PATCHES_SPECIFICATION.md revision 1.
+Implementation/folder reorganization authorization is already granted. S17-S19
+are NOT STARTED; earlier completed scope is unchanged. Current acceptance: none
+of the ranking/navigation/patch stages is complete. ScreenScraper entry wiring
+and its console/manufacturer/all selection are implemented and host-verified.
+
+Collector addition: Advanced's Get metadata & covers replaces the legacy cover
+preloader, opening ScreenScraper's normal scoped play/pause/resume workspace.
+Home has compact Sync and Scrape submenus. Scrape this console, Scrape selected
+manufacturer and Scrape all route to the same app-scoped worker without starting
+requests on entry. Manufacturer membership is snapshotted as explicit configured
+console IDs in the existing atomic job creation; duplicates are coalesced and an
+empty scope is rejected rather than becoming all. Touch/controller submenu back,
+existing Sync manufacturer, normal settings, search/overlay ownership, durable
+pause/resume and linked metadata/artwork publication pass the affected host checks.
+The IGDB operation also no longer awaits an unrelated artwork-cache Future;
+the original failing regression now passes without reading ROM bodies or artwork.
+Evidence: focused Flutter tests in metadata_controls_test.dart and widgets/
+metadata_settings_test.dart, home_brand_filter_test.dart, quick_menu_viewport_test.dart,
+home_empty_sources_test.dart and search_navigation_priority_test.dart, concurrency 1,
+2026-10-15. Updated three inspected metadata goldens to the previously authorized
+red background (6268af7), not a new layout; corrected the stale General test's
+first-row assumption. Scoped analysis of the six production files and four test
+files found only a test brace-style lint; the corrected file's recheck is clean.
+This verifies host navigation/job integration, not a real
+ScreenScraper round or deployment. No Gradle invocation, gate acquisition,
+device update, public release, provider request, or ROM/source mutation is claimed.
+Reviewed cleanup transactions 01bcb228f94227bbecf45ec691a454fd and
+4654a91eb4d1035fc2fa16545f87701c removed only expendable host-test compiler/scratch
+output and obsolete golden diagnostics (1,157,437,037 bytes total), with no
+residuals. The maintained golden baselines and source are retained. No Gradle gate
+was used for tests, static analysis or cleanup; no memory-related failure occurred.
+
+S16 blockers (internal, work continues): no scoped ratings-only refresh integrated
+with the existing metadata owner; zero/partial ranking feedback still advertises
+Best 100 without useful scores; verified regional grouping and refresh-to-order
+need affected integration checks. Resolution: implement RANK-01 and demonstrate
+real GBA ratings/order without full artwork or ROM downloads. S16 cannot complete
+or ordinarily advance until those checks pass. No external execution blocker.
+No current-stage tracked deferrals. S18 owns UniPatcher/engine licensing and
+format evaluation; owner now authorizes GPL-compatible combined distribution with
+upstream notices retained and Darkaxt attribution, so licensing preference is not
+an external blocker. S17 additionally owns CACHE-UI-02: reproduce/repair the
+reported rail-only cache controller navigation and verify content/dialog/Apply
+access. S19 owns shared portable recipes and actual layout guide.
+Google Drive ROM-folder moves are authorized if useful, not mandatory; inspected
+GBA structure already has schema-2 indexes, exact base/member fingerprints and
+extracted patch payload hashes. Do not reorganize that working structure merely
+to manufacture migration activity.
+
 ### README showcase — COMPLETE, 2026-10-15
 
 Owner requested public repository documentation with real Thor screenshots and

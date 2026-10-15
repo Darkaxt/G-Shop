@@ -21,6 +21,7 @@ import '../../widgets/download_overlay.dart';
 import '../library/library_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../settings/settings_screen.dart';
+import '../settings/metadata_settings_screen.dart';
 import '../game_list/game_list_screen.dart';
 import 'widgets/hero_carousel_item.dart';
 import 'widgets/home_grid_view.dart';
@@ -493,25 +494,49 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
         shortcutHint: 'Y',
         onSelect: _openLibrarySearch,
       ),
-      if (!_isLibraryIndex && _configuredSystems.isNotEmpty)
+      if (_allSystems.isNotEmpty)
+        QuickMenuItem(label: 'Sync', icon: Icons.sync_rounded, children: [
+          if (!_isLibraryIndex && _configuredSystems.isNotEmpty)
+            QuickMenuItem(
+              label: l.home_syncSystem(_getSystem(_currentIndex).name),
+              subtitle: _lastSyncLabel(_getSystem(_currentIndex).id),
+              icon: Icons.sync_rounded,
+              onSelect: _syncCurrentSystem,
+            ),
+          QuickMenuItem(
+            label: l.home_syncAll,
+            icon: Icons.sync_rounded,
+            onSelect: _syncAll,
+          ),
+          if (manufacturer != null)
+            QuickMenuItem(
+              label: 'Sync $manufacturer',
+              icon: Icons.sync_rounded,
+              onSelect: () => _syncAll(manufacturer: manufacturer),
+            ),
+        ]),
+      if (_allSystems.isNotEmpty)
         QuickMenuItem(
-          label: l.home_syncSystem(_getSystem(_currentIndex).name),
-          subtitle: _lastSyncLabel(_getSystem(_currentIndex).id),
-          icon: Icons.sync_rounded,
-          onSelect: _syncCurrentSystem,
-        ),
-      if (_configuredSystems.length > 1)
-        QuickMenuItem(
-          label: l.home_syncAll,
-          icon: Icons.sync_rounded,
-          onSelect: _syncAll,
-        ),
-      if (manufacturer != null)
-        QuickMenuItem(
-          label: 'Sync $manufacturer',
-          icon: Icons.sync_rounded,
-          onSelect: () => _syncAll(manufacturer: manufacturer),
-        ),
+            label: 'Scrape',
+            icon: Icons.auto_stories_outlined,
+            children: [
+              if (!_isLibraryIndex && _configuredSystems.isNotEmpty)
+                QuickMenuItem(
+                    label: 'Scrape this console',
+                    subtitle: _getSystem(_currentIndex).name,
+                    icon: Icons.videogame_asset_outlined,
+                    onSelect: () =>
+                        _openScraper(systemSlug: _getSystem(_currentIndex).id)),
+              if (manufacturer != null)
+                QuickMenuItem(
+                    label: 'Scrape $manufacturer',
+                    icon: Icons.business_outlined,
+                    onSelect: () => _openScraper(manufacturer: manufacturer)),
+              QuickMenuItem(
+                  label: 'Scrape all',
+                  icon: Icons.auto_stories_outlined,
+                  onSelect: _openScraper),
+            ]),
       QuickMenuItem(
         label: l.home_settings,
         icon: Icons.settings_rounded,
@@ -528,6 +553,22 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
         ),
       ],
     ];
+  }
+
+  Future<void> _openScraper({String? systemSlug, String? manufacturer}) async {
+    _debouncer.stopHold();
+    List<String>? systems;
+    if (manufacturer != null) {
+      final config = await ref.read(bootstrappedConfigProvider.future);
+      if (!mounted) return;
+      systems = ConfigBootstrap.forManufacturer(config, manufacturer)
+          .systems
+          .map((system) => system.id)
+          .toList();
+    }
+    if (!mounted) return;
+    await openScreenScraperCollector(context, ref,
+        systemSlug: systemSlug, systemSlugs: systems, scopeLabel: manufacturer);
   }
 
   void _syncCurrentSystem() async {

@@ -147,6 +147,64 @@ class _ThrowOnceCache extends MetadataArtworkCache {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('manufacturer refresh snapshots only its explicit console IDs',
+      () async {
+    final db = await controlsDatabase();
+    final provider = ControlsProvider();
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+    });
+    await controls.load();
+    await controls.refresh(systemSlugs: const ['psp', 'psp']);
+    expect(controls.state.error, isFalse);
+    expect(controls.state.report!.requested, 1);
+    expect(provider.calls.map((r) => r.platformId), ['psp']);
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    expect(
+        () => jobs.createFromCatalogue(
+            providerId: 'screenscraper', systemSlugs: const []),
+        throwsArgumentError);
+  });
+  test('IGDB ranking refresh never requires the artwork cache', () async {
+    final db = await controlsDatabase();
+    final provider = ControlsProvider('igdb');
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'igdb': provider, 'screenscraper': ControlsProvider()},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future<MetadataArtworkCache>.error(
+            StateError('Unrelated artwork storage is unavailable')),
+        readRomHeader: (_, __, ___) =>
+            throw StateError('Rating lookup must not download ROM headers'),
+        readArchiveIdentifier: (_, __, ___) =>
+            throw StateError('Rating lookup must not download ROM archives'),
+        catalogueChanged: () {});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await db.close();
+    });
+    await controls.load();
+    await controls.selectProvider('igdb');
+    await controls.refresh(systemSlug: 'psx');
+    expect(controls.state.error, isFalse,
+        reason: 'Rating collection is independent of artwork storage');
+    expect(controls.state.report!.state, 'completed');
+    expect(provider.calls, hasLength(1));
+    expect(provider.calls.single.platformId, 'psx');
+    expect(controls.state.artworkReport, isNull);
+  });
   test('saved job selection resumes older pending work without repeating items',
       () async {
     final db = await controlsDatabase();
