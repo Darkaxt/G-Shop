@@ -1,6 +1,15 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 52.
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 53.
+
+Current release handover (owner-authorized 2026-10-15): R1 COMPLETE — published the
+exact verified signed 1.9.1 APK with factual source/build provenance and checksums;
+R2 COMPLETE — independently downloaded the public asset and installed it in place,
+verified identity/preservation and existing updater tracking; R3 COMPLETE —
+reviewed staging cleanup and delivery reconciliation pass; synchronize these
+records through the existing remote branch. No implementation stage remains ACTIVE.
+This supersedes the device-only publication limits below; completed S0-S15/QA1
+are not reopened. No new build or bulk game operation is required.
 
 QA1 COMPLETE — Integrated QA remediation (QA-REVIEW-01): sequential read-only
 reviews of (1) Drive/downloads, (2) saves/cache, (3) metadata/UI. Main reproduces

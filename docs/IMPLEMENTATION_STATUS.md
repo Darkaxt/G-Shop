@@ -5,6 +5,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Public 1.9.1 handover — R1/R2/R3 COMPLETE, 2026-10-15
+
+Authority revision 53 explicitly authorizes public publication and installation
+of the published asset. No blockers or tracked deferrals.
+The recovered installed APK exactly matches the previously verified build hash,
+size, package/version and production signer recorded below. Runtime source is
+`c48568019a9de81c3101004130f6b68f2e8003de`; later `6f77599` changes delivery docs
+only. Reuse preserves the tested bytes; no fresh build is claimed. Public release
+[v1.9.1](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.1) is the latest,
+not a draft or prerelease, with app-release.apk, provenance.json and SHA256SUMS.
+Remote tag resolves to the actual runtime source above. An unauthenticated HTTPS
+download independently matched the recorded APK hash, 69,684,105-byte size,
+checksum manifest and production signature. APK entry audit found no private
+environment/signing/credential files or extracted Socket resource directory.
+In-place installation of that downloaded artifact returned Success; installed
+base APK has exactly the public hash, version 1.9.1/code 15 and unchanged UID 10167.
+Before/after hashes match for config.json, imported-resource active pointer,
+emulator_families.json and encrypted credential/key stores. App activity starts
+and its process remains present, with no fatal/unhandled exception in the scoped
+startup log check; the unchanged same binary's full native UI evidence is below.
+ObtainX's persisted fork record still tracks https://github.com/Darkaxt/R-Shop
+and detects installed 1.9.1. Its cached release value is v1.9.0 pending normal
+refresh; no manual updater-state mutation or refreshed-cache claim is made.
+Both physical display states/committed states are OFF. Cleanup transaction
+0794863ddbf1727ecee09558bce7700d applied all nine reviewed staging members,
+reclaiming 139,372,544 bytes; public assets and installed/user data remain intact.
+
 ### Current QA — QA1 COMPLETE, 2026-10-15
 
 Authority revision 52. Three sequential read-only reviewers used inherited model

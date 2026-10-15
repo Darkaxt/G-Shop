@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 52, 2026-10-15.
+Authoritative specification, revision 53, 2026-10-15.
+
+Owner release authorization, 2026-10-15: publish the verified 1.9.1/code 15
+production update publicly on GitHub and install the independently downloaded
+published APK on Thor in place. This supersedes the earlier device-only release
+restriction for this update. Preserve package/signer, UID, configuration,
+credentials, imported resources and user data; retain the standard APK filename.
+Bind the published hash to its actual source and previous gated build evidence;
+reuse the identical verified installed binary rather than rebuilding unchanged
+code. Verify public asset availability, signature, installed equality and updater
+tracking. Leave both displays off. No new scrape, bulk sync or ROM/save operation.
 
 **QA-REVIEW-01 (QA1, owner-authorized 2026-10-15):** perform bounded QA reviews of
 Drive/download ownership, save sync/managed cache, and metadata/library/settings
