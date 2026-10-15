@@ -110,7 +110,9 @@ void main() {
       (1.0 - ambientFresnel) * environment.sky.y;
   vec3 reflectedSky = studio(reflect(-view, n), rough * environment.sky.x) *
       ambientFresnel * environment.sky.z;
-  vec3 lit = (base * (1.0 - metal) * ndl + specular * ndl) * environment.light.w +
+  // Directional radiance uses Godot's PI-scaled nonphysical energy. Lambert's
+  // 1/PI cancels that conversion for diffuse, but not for the GGX specular lobe.
+  vec3 lit = (base * (1.0 - metal) * ndl / 3.14159265 + specular * ndl) * environment.light.w +
       (diffuseSky + reflectedSky) * ao;
   if (material.flags.z > 0.5) {
     float angle = atan(v_uv.y - 0.5, v_uv.x - 0.5) + dot(n, view) * 8.0;

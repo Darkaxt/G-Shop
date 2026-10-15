@@ -228,7 +228,11 @@ class MediaBuilder:
             'pixelsSha256': hashlib.sha256(blocks).hexdigest(),
             'sourceSceneSha256': hashlib.sha256(self.archive.plain(scene['member'])).hexdigest(),
             'lightDirection': [sum(basis[c * 3 + r] * world[c] for c in range(3)) for r in range(3)],
-            'lightEnergy': light.get('light_energy', 1),
+            # Godot RD multiplies nonphysical directional energy by PI. The
+            # hash-bound project uses the default nonphysical light units.
+            'sourceLightEnergy': light.get('light_energy', 1),
+            'lightEnergy': light.get('light_energy', 1) * math.pi,
+            'lightEnergyConvention': 'godot-nonphysical-radiance',
             'ambientEnergy': env['properties'].get('ambient_light_energy', 1),
             'reflectionEnergy': sky_material['properties'].get('energy_multiplier', 1),
             'exposure': env['properties'].get('tonemap_exposure', 1),

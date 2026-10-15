@@ -67,9 +67,6 @@ void main() {
         final pixel = (y * image.width + x) * 4;
         final channels = List.generate(3, (i) => rgba.getUint8(pixel + i));
         binding.reportData!['nes-front-lighting-rgb'] = channels;
-        expect(channels.every((v) => v > 90 && v < 220), isTrue,
-            reason: 'Source gray casing must receive direct lighting; '
-                'authored front normals must not become ambient-only');
       } finally {
         image.dispose();
         codec.dispose();
@@ -159,6 +156,10 @@ void main() {
     }
     binding.reportData!['normalCovers'] = results;
     await tester.pumpWidget(const SizedBox());
+    final channels = binding.reportData!['nes-front-lighting-rgb'] as List;
+    expect(channels.every((v) => v > 90 && v < 220), isTrue,
+        reason: 'Source gray casing must receive direct lighting; '
+            'authored front normals must not become ambient-only');
   }, timeout: Timeout.none);
 
   testWidgets(

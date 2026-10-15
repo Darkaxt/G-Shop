@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_gpu/gpu.dart' as gpu;
 import 'package:retro_eshop/models/socket_media_model.dart';
@@ -14,6 +16,9 @@ void main() {
     expect(sky.pixels.lengthInBytes, 699088);
     expect(sky.data['lightDirection'][1], closeTo(.8141155243, 1e-8));
     expect(sky.data['lightDirection'][2], greaterThan(0));
+    expect(sky.data['lightEnergy'], closeTo(math.pi, 1e-8),
+        reason:
+            'Godot converts default nonphysical directional energy to radiance');
     expect(SocketMediaGpu.environmentPrefixMipLevels,
         lessThanOrEqualTo(gpu.Texture.fullMipCount(1024, 512)));
     final tail = (sky.data['mips'] as List)

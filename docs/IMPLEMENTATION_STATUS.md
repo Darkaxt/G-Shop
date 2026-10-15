@@ -99,6 +99,42 @@ acceptance remains pending request 1110 (`ae5beacfaf5e44868df8dc08a38e1b31`).
 The failed run's test package was removed, its absence baseline closed and only
 owned forward tcp:12585 removed. Both physical displays are confirmed OFF.
 
+Request 1110 passed gated build/helper exit 0 and verified daemon exit with the
+same two-worker/no-parallel/3 GiB profile; no memory failure. APK SHA-256:
+`af14d538a45a253ea5f5a84764a83320c6b63162366fe24d4d272e00a91c3b86`.
+The native HDR allocation succeeds, including all source tail levels. Cached UMD
+raster replacement preserves identity; 120 steady frames give build/raster P95
+5,164/603 us and isolated debug VmRSS 587,052 kB. Native Library checks pass.
+NES appearance still fails: sampled RGB 84/85/86, so this is not full S12
+acceptance. Source fixture metadata is empty/default, matching the R-Shop case;
+source project selects Godot Mobile. Extracted normals agree with mesh geometry
+across NES/GB/GBA/UMD, ruling out a general packed-normal decode inversion.
+Request 1112 (`96eff5d181c04a38bd11a4d3172c4ecc`) is retained for a bounded native
+authored-normal/shaded-normal/front-facing probe and all-format captures. The
+brightness assertion remains unchanged but runs after the capture census.
+The native test app was removed, baseline closed, owned tcp:45517 removed and
+both displays confirmed OFF. Production app/data and original APK remain intact.
+
+Request 1112 passed build/gate/daemon lifecycle with the normal low-memory profile.
+APK SHA-256 `20d8667690ba6e3977fd669196ef352257213afe755547de369e46d221eb885c`.
+Native GPU readiness, source texture bindings and all eleven HDR levels pass for
+all sixteen variants. NES remains RGB 84/85/86. Its authored and shaded normal
+probes both encode 171/168/240; the face probe is green/front-facing. This rejects
+normal inversion or winding changes as the cause; the original handling is kept.
+The test package/baseline and owned tcp:17198 forward are cleaned; both screens OFF.
+
+Source-unit defect: the hash-bound project selects Godot Mobile and leaves
+physical light units at their default. Godot's RD light setup multiplies that
+directional editor energy by PI before BRDF evaluation. We had absorbed PI into
+diffuse but omitted it from GGX specular. Conversion now records source energy
+separately and emits radiance energy; Lambert divides by PI while specular uses
+the converted energy. This follows
+[Godot's light setup](https://github.com/godotengine/godot/blob/4.5/servers/rendering/renderer_rd/storage_rd/light_storage.cpp#L603-L609).
+The focused regression first failed on 1 versus PI, then passed after conversion;
+model/widget checks, shader compilation and scoped analysis pass. Temporary GPU
+probe code is removed. Request 1115 (`059fae7cd33c4be2afae71bf0b8ddf20`) remains
+retained for current native appearance/performance acceptance. S12 stays ACTIVE.
+
 Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
 recovered variants with completed label/GPU readiness. Native Library checks
 verify stored-score reordering, console navigation, Top/tag intersections,
