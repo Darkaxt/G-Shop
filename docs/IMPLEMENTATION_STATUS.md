@@ -5,10 +5,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Current stage — S13 ACTIVE, 2026-10-15
+### Current stage — S13 COMPLETE, 2026-10-15
 
 S12 is COMPLETE after current native rendering/material acceptance and the
-cumulative FRONTEND-01 reconciliation below. S13 alone receives implementation:
+cumulative FRONTEND-01 reconciliation below. S13 delivers:
 local original-APK import, persistent validated resources, flat default, and the
 cover reveal with synchronized media zoom. The importer, sectioned Settings,
 flat default and shared flat/3D reveal are now wired. Current focused host checks
@@ -17,10 +17,59 @@ wrong-file preservation, platform byte-view PNG encoding, synchronized cover
 exit/zoom, no-art/reduced-motion skips and route-leave cancellation. Desktop
 GPU rejection is expected and is not native rendering evidence. The actual
 Android picker/import, decoded texture equality, restart persistence and native
-reveal now pass the focused Thor workflow below. Signed asset-free packaging,
-publication/download provenance and final handover remain advancement blockers;
-S13 stays ACTIVE. R3 remains BLOCKED on S13
-and the signed asset-free public-release/handover requirements.
+reveal now pass the focused Thor workflow below. Signed asset-free 1.9.0 is
+published, independently downloaded and installed in place on Thor. Final
+reviewed host-output cleanup is complete. R3's publication/install/catalogue-
+persistence and handover requirements pass. No implementation stage is ACTIVE.
+
+| Current closure | Status | Remaining criteria / blockers / required deferrals |
+| --- | --- | --- |
+| S12 source-model frontend | COMPLETE | None; cumulative reconciliation below remains applicable. |
+| S13 local import and synchronized reveal | COMPLETE | None; native feature, asset-free public package, delivery and cleanup verified. |
+| R1/R2/R3 signed delivery and handover | COMPLETE | None; current release/install/catalogue persistence and cleanup evidence below supersedes historical delivery checkpoints. |
+
+#### Signed delivery and production handover — 2026-10-15
+
+- Public release: https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.0.
+  Tag/source commit `6c88eff2929451aad8e26451c2395c01498871ef` is verified
+  remotely. Release is neither draft nor prerelease. Standard `app-release.apk`,
+  `provenance.json` and `SHA256SUMS` were independently downloaded without
+  authentication and inspected; APK is 69,525,626 bytes, SHA-256
+  `ce57873e52bde6ab3d0a453458d04c69b98919e048555a7095f14616da9a40c2`.
+- Package `com.darkaxt.rshop`, version 1.9.0/code 14, production signer SHA-256
+  `075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
+  Signature and manifest audit pass; no debug flag, recovered Socket assets,
+  engine, original resource key or configured private credentials are bundled.
+  Embedded VCS information reports `NO_SUPPORTED_VCS_FOUND`, not a commit;
+  provenance honestly binds the clean build checkout, verified tag and APK hash.
+- Gate request 1119 acquired the shared mutex and completed release JVM tests
+  plus assembly with build/helper exit 0. Observed workers 2, parallel false and
+  Gradle heap 3 GiB; Kotlin configured in-process. Tests use one fork/512 MiB;
+  app Ninja compile/link pools are one, not universal plugin-concurrency proof.
+  No memory failure or budget increase; post-build daemon exit is verified.
+- Installed the independently downloaded public APK with an in-place update.
+  UID 10167 and production signing identity are unchanged; installed base APK
+  hash matches publication. Startup reaches the existing console carousel without
+  resetting onboarding/accounts/settings. ObtainX's existing fork registration
+  detects installed 1.9.0; its cached latest-release value remains 1.8.0 until
+  its normal source refresh, not falsely claimed updated here.
+- The normal startup catalogue refresh completed and persisted 40 per-system
+  success timestamps, including Game & Watch at
+  `2026-10-15T06:04:10.332951`. This is catalogue/index refresh, not full metadata
+  scraping; ScreenScraper refresh remains the owner's action. Original API/source
+  settings, ROMs and saves are preserved. Both physical displays are OFF.
+- Reviewed cleanup removed the exact integration scratch, release staging,
+  private generated oracle and completed build tree. Transactions
+  `08a8214e8f67a40cf64a1398dd340ded` and `17e39b94620f6c1eeaed210dd2f97cef`
+  are applied. General output ticket `53c00b3623f82c161474564f70e8921c`
+  removed eligible output, then was closed after protecting 12 native compilation
+  database hard-link names. All six linked pairs were inspected as wholly inside
+  this build tree; fresh exact-residual transaction
+  `3c45e01c7a2319e3d1b9e723745e5642` applied all remaining names/empty parents.
+  All four target roots are absent. Original host APKs, signing identity,
+  intentional shader bundle and earlier migration recovery data are preserved.
+  Removed outputs are reproducible or available in the public release, not moved
+  to a new backup. Cleanup did not acquire the Gradle gate.
 
 #### S13 integrated native acceptance — 2026-10-15
 
@@ -31,7 +80,7 @@ and the signed asset-free public-release/handover requirements.
   budget increase. Test tasks were configured for one fork/512 MiB; assembly
   does not claim JUnit execution. App Ninja compile/link pool remains one.
 - APK `cd069d27de91a86244c0558b00ecd726b07d1284eec04782d5f66c05b4c4208c`
-  is installed only as the temporary `com.darkaxt.rshop.sharedproof` fixture.
+  was installed only as the temporary `com.darkaxt.rshop.sharedproof` fixture.
   Actual Android Settings/file picker selects the unchanged original owner APK;
   generation `a1e65119be6031e7a5dfb0b882ef5b58` activates only after all source
   geometry, animation, decoded texture and HDR checks pass. Import leaves flat
@@ -72,7 +121,9 @@ and the signed asset-free public-release/handover requirements.
 Closure assessment: one importer owns the immutable resource generation and one
 existing selected-preview renderer consumes it; the normal ROM/save pipelines
 remain separate and unchanged. No required consolidation or new deferral found.
-S13 remains ACTIVE solely for its outstanding signed packaging/delivery criteria.
+S13's IMPORT-01/02, REVEAL-01/02 and integrated delivery/cleanup criteria all pass
+as recorded above. Required blockers and tracked deferrals: none. Final source
+reconciliation finds no new unresolved integration or consolidation requirement.
 
 | S12 acceptance boundary | Current evidence and applicability |
 | --- | --- |
@@ -383,7 +434,7 @@ deferrals. R3 is parked BLOCKED because final delivery reconciliation depends on
 this reopened earlier frontend acceptance; restart persistence/host-staging
 cleanup and screens-off handover remain recorded and are not claimed complete.
 
-### Authorized publication and device handover — 2026-10-14
+### Historical publication and device handover checkpoint — 2026-10-14
 
 The owner now requests GitHub publication, ObtainX tracking, installation of the
 published production APK, debug removal and restoration of Drive/API setup.

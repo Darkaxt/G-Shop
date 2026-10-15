@@ -4,9 +4,9 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 49.
 
 Owner correction: S13 owns the in-app original-APK resource import, default flat
 mode and cover-to-cartridge focus reveal in both flat and 3D modes. S12 is COMPLETE
-after the 2026-10-15 native/cumulative reconciliation; S13 is the sole ACTIVE stage.
-Public delivery follows S13's asset-free package acceptance. No host
-conversion requirement for the user or private-release workaround. Earlier
+after the 2026-10-15 native/cumulative reconciliation; S13 is COMPLETE.
+Public 1.9.0 delivery and reviewed cleanup pass; no stage remains ACTIVE.
+No host conversion requirement for the user or private-release workaround. Earlier
 publication-routing notes below are superseded.
 
 Historical publication route (superseded by revision 49 above): complete the extracted-model integration and publish
@@ -2038,7 +2038,7 @@ S1-S11 reconciliation. A settings-only implementation does not close S11.
 Status: COMPLETE. The owner's all-source-model/artwork correction supersedes the
 2026-10-14 representative-model closure. Current reconciled evidence is
 recorded at the top of IMPLEMENTATION_STATUS.md and S12_FRONTEND_PROPOSAL.md.
-S13 is ACTIVE; release requires both stages' reconciled acceptance.
+S13 is COMPLETE; both stages' reconciled acceptance and 1.9.0 delivery pass.
 Authorization: implement all 12 stages, owner objective update 2026-10-13.
 Requirement: FRONTEND-01 in
 [S12_FRONTEND_PROPOSAL.md](S12_FRONTEND_PROPOSAL.md).
@@ -2110,7 +2110,7 @@ reconciliation in IMPLEMENTATION_STATUS.md before closure. S10/S11 are not reope
 
 ## S13 — Local Socket resource import and cover reveal
 
-Status: ACTIVE. Owner-assigned stage, specification revision 49.
+Status: COMPLETE (2026-10-15). Owner-assigned stage, specification revision 49.
 Prerequisite: S12 COMPLETE (2026-10-15); do not implement concurrently. Existing unconnected
 format-conversion exploration produced before this stage assignment is not an
 integrated importer or acceptance evidence. Preserve it for review when S13 starts.
@@ -2187,8 +2187,9 @@ installed gate; preserve one workload and existing resource limits.
 Reconciliation, 2026-10-15: native local import/defaults, exact source checks,
 all 16 variants, restart, rejection/cancellation preservation and both reveal
 modes/skips pass; evidence is in IMPLEMENTATION_STATUS.md. Signed asset-free
-release packaging and publication/handover remain acceptance blockers, so S13
-is ACTIVE. S12 acceptance does not depend on its importer or new reveal; public
+1.9.0 packaging, public download verification, production handover and reviewed
+host/device cleanup pass. S13 is COMPLETE; no blockers or required deferrals remain.
+S12 acceptance does not depend on its importer or new reveal; public
 distribution does. No stage is COMPLETE because a recipe or
 test fixture exists. No independent worktree, worker or approval gate is required.
 
