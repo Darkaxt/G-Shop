@@ -1,6 +1,6 @@
 # Collection navigation, rankings and reproducible ROM patching
 
-Authoritative extension to SPECIFICATION.md revision 55. Revision 2, 2026-10-15.
+Authoritative extension to SPECIFICATION.md revision 56. Revision 3, 2026-10-16.
 Authorization: already_authorized; owner requested the full specification and
 implementation, then explicitly authorized useful ROM-folder reorganization in
 Google Drive and requested evaluation of UniPatcher. The owner subsequently
@@ -333,11 +333,71 @@ flows. Update README.md with actual verified Thor examples and accurate feature
 claims, without credentials, private inventories or ROM payloads. Switch both
 Thor screens off when device work is finished. A public release is not implied.
 
+### BACKUP-MIGRATE-01 — One-step encrypted full-device migration (S21)
+
+Owner authorization, 2026-10-16: provide an encrypted backup that imports on
+another device as one complete R-Shop migration, without questions asking for
+API keys or repeated feature setup. This is a private migration operation,
+distinct from the existing credential-stripped public configuration/recipe share.
+The ordinary share/export must remain safe for public sharing.
+
+Export one versioned, authenticated encrypted archive, unlocked with a portable
+backup password rather than the exporting Android device's Keystore. Use an
+established cryptographic implementation, a password-hardening KDF, fresh salt
+and nonces, and authenticated integrity for the manifest and streamed payloads.
+Never leave plaintext credentials or temporary decrypted exports on shared
+storage, in logs or in public diagnostics. Wrong passwords, tampering, unsafe
+paths or unsupported versions fail before live restoration begins.
+
+Include all persistent R-Shop configuration and user data: sources and mappings,
+provider/API credentials (including ScreenScraper/IGDB), UI/audio settings,
+emulator-family and save-monitoring configuration, favorites/shelves, per-ROM
+companion choices, metadata and artwork, imported media resources, patch recipes,
+and locally resident managed ROMs and game-associated save/state/companion files.
+Preserve existing cloud backup references and conflict decisions. Include actual
+local data, not just private paths or a claim that the cloud copy exists. Capture
+consistent database/filesystem state through the existing operation owners;
+do not zip a changing database or race an active save/patch/transfer publication.
+No unrelated app/account data or whole-device filesystem mirror is implied.
+
+Import selects the archive and unlocks it once, then restores the complete setup
+with ordinary progress and no provider-by-provider configuration wizard. Recover
+credentials through their supported stores under the destination's own Keystore,
+not by copying opaque encrypted Android preference files. Rebind portable paths
+and reconnect shared metadata automatically where possible. Validate restored
+bytes before creating destination installation ownership; never copy the old
+device's permissions, filesystem receipts or active transfer/watch identities as
+if they belonged to the new device. Generate the destination's own device
+identity while retaining the source's backup history and game identities.
+
+Google account authorization, storage grants and root consent may require normal
+Android/system consent on a new device; report the exact required grant without
+requesting API secrets again or fabricating a transferred authorization. Preserve
+existing destination data/conflicts through the established restore policy and a
+defined transactional recovery path. Interrupted import must resume or roll back
+coherently without partial credential/config activation. Import must not silently
+upload stale saves, start scraping, or replay old device-specific destructive work.
+
+Use the established sectioned settings layout, short Backup/Restore icon actions,
+touch/controller navigation and L1/R1 on any tabbed surface. No long scrolling
+wizard or paragraphs inside buttons. Do not require another Google account or
+deep emulator/gameplay validation to prove migration.
+
+Acceptance: a real export -> import into independent app data/device state
+restores the complete included setup, credentials, metadata/artwork, one resident
+ROM and associated data without re-entering API keys. Verify destination-specific
+ownership and normal library/launch usability, preservation of destination
+conflicts, wrong-password/tamper rejection, interrupted recovery and absence of
+plaintext secrets in the archive/export diagnostics. Record actual unavoidable
+system consent separately from application setup. Update user documentation with
+what migrates, archive sensitivity and recovery. No public release is implied.
+
 ## 4. Integrated execution, design and delivery
 
 S16 ranking correction is first; S17 navigation follows; S18 patch workflow uses
 S17's categories; S19 sharing/layout integration follows S18; S20 performs the
-authorized bounded artwork pass and README update before final reconciliation.
+authorized bounded artwork pass and README update; S21 completes encrypted full
+migration before final reconciliation.
 Only one stage
 is ACTIVE. If real external verification becomes unavailable, record the precise
 criterion and park it before independent later work; no prerequisite bypass.

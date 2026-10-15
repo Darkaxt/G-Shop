@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 55, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 56, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-15
@@ -12,12 +12,16 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 55, including
 | S18 Reproducible patch builds | ACTIVE | PATCH-01, PATCH-02, CAT-01 patch action: indexed compatible game -> engine -> tracked playable result and reuse | Real indexed GBA build/launch/reuse plus inventoried engine, mismatch/cancel/persistence checks |
 | S19 Sharing/layout/integration | NOT STARTED | SHARE-01, LAYOUT-01: portable shared recipes, share/import, documented compatible Drive layout, any justified source moves, final reconciliation | Independent roots/import/reconnect, privacy/export checks, layout fixtures, affected integrated/native verification |
 | S20 Top 25 artwork and README | NOT STARTED | ART-VERIFY-01: scrape up to 25 accepted ranked unique games per configured console, verify box/media-label roles and flat/imported 3D rendering, update README with Thor examples | Bounded selection/outcomes, real collector results, representative native media-family/fallback checks and inspected screenshots |
+| S21 Encrypted full migration | NOT STARTED | BACKUP-MIGRATE-01: one private encrypted archive restores complete R-Shop setup, API credentials, metadata/artwork, imported resources and local managed game/associated data on another device without repeated feature setup | Independent destination export/import, actual credentials/data restored, destination ownership, conflict/recovery and encryption checks, touch/controller usability |
 
 S16 and S17 host/native criteria pass. S18 is the sole ACTIVE stage. S17 has no
 blockers or required deferrals; S18's implementation and real patch workflow remain.
 S18 owns engine/licensing evaluation and patch-category interaction; S19 owns
 portable sharing/layout. Owner-authorized S20 follows with a bounded artwork pass
 and README evidence, not a full-collection scrape or a new ratings operation.
+Owner-authorized S21 follows with full encrypted migration; existing public
+configuration/recipe exports remain credential-stripped. Android-owned account
+consent and permission grants are distinguished from repeated API-key setup.
 These do not excuse an unmet S16 criterion. Prior
 S0-S15/QA1/release handover remains complete; no concurrent implementation stage.
 No new public release is authorized by the extension. Current evidence and exact

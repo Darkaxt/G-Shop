@@ -1,19 +1,23 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 55, 2026-10-15.
+Authoritative specification, revision 56, 2026-10-16.
 
 ## Current authorized extension — collection navigation and ROM patching
 
 The owner authorized specification and implementation on 2026-10-15, followed
 by scoped Google Drive ROM-folder reorganization if useful and documentation of
 the required Hacks/Patches layout. [COLLECTION_PATCHES_SPECIFICATION.md](COLLECTION_PATCHES_SPECIFICATION.md)
-is the authoritative extension for S16-S20 and is part of this specification.
+is the authoritative extension for S16-S21 and is part of this specification.
 It preserves the prior features and safety contracts except for its explicit
 owner-authorized collection-folder moves and portable patch-recipe sharing.
 The owner also requested evaluating btimofeev/UniPatcher for patching logic.
 The subsequent S20 authorization permits agent-started scraping of up to the
 Top 25 accepted ranked games per console, cartridge/box artwork verification,
 and a README update from actual Thor screenshots, not full-collection scraping.
+The owner additionally authorizes S21: a single encrypted full R-Shop migration
+archive, including API credentials, imported on another device without repeating
+feature setup. Required Android account consent and device permission grants
+remain OS-owned; copying their old device-bound state is not a valid migration.
 No new public release is implied by implementation authorization; normal real
 device verification is authorized and must preserve the production state.
 

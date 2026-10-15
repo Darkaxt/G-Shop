@@ -7,9 +7,9 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Collection/patch extension — S16-S17 COMPLETE, S18 ACTIVE, 2026-10-15
 
-Authority revision 55 and COLLECTION_PATCHES_SPECIFICATION.md revision 2.
+Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17 is COMPLETE; S18 is the sole ACTIVE stage; S19 and S20 are NOT STARTED. Earlier completed
+COMPLETE; S17 is COMPLETE; S18 is the sole ACTIVE stage; S19, S20 and S21 are NOT STARTED. Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
 
@@ -20,6 +20,13 @@ and update README with actual Thor screenshots. No scrape has been started for
 this addition. It does not authorize full-collection scraping, invented rankings
 or a new public release. S18's real build/launch/reuse acceptance remains current;
 S20 is separately assigned new scope, not a deferral excusing S18.
+
+Owner-authorized S21 adds one-step encrypted full R-Shop migration, including
+API credentials and persistent setup/data, without repeated per-feature setup.
+Current Export config is plain credential-stripped JSON, not this capability;
+secure credentials are presently device-local. BACKUP-MIGRATE-01 distinguishes private
+encrypted migration from public sharing and destination-owned OS grants/state.
+No migration implementation or export has been started; S18 remains sole ACTIVE.
 
 S18 native acceptance remains ACTIVE. Signed diagnostic request 1167 completed
 with build/helper exit 0, the gate acquired and daemon exit verified. The exact
