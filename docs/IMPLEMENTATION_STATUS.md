@@ -76,9 +76,28 @@ both ambient light and reflections. The converter now preserves its exact
 The selected renderer uploads these levels and uses source energy/direction,
 environment lighting and linear/sRGB boundaries instead of a flat ambient term.
 Focused converter/model/widget checks, scoped analysis and shader compilation
-pass. These are not native fidelity evidence. Original gated request 1106 is
-retained for all-format native rendering, NES brightness, UMD fallback placement,
+pass. These are not native fidelity evidence. Gated request 1106 acquired the
+mutex with two workers/no parallel/3 GiB heap, then failed before compilation:
+PowerShell split the unquoted target argument into the path and `.dart` task.
+A direct argv diagnostic reproduces that split and verifies the fully quoted
+argument remains intact. Build/helper exit was 1, daemon exit verified, no memory
+failure. Corrected request 1108 (`ff92efc295c4413d92812e54b461acf8`) is retained
+for all-format native rendering, NES brightness, UMD fallback placement,
 cached-label identity/reuse and measured frame-budget acceptance. S12 stays ACTIVE.
+
+Request 1108 passed build/helper exit 0 and daemon-exit verification with the
+normal low-memory profile. APK SHA-256:
+`52be706fc8592a2a37053bd651c034e63b1740c28652694eb403dc9e13fc23bf`.
+Native execution then exposed the installed Flutter GPU API's mip limit:
+`Texture.fullMipCount(1024, 512)` is 9, whereas the exact source has 11 levels.
+No appearance/performance acceptance passed. The upload now keeps levels 0-8 in
+the main texture and levels 9-10 as unchanged single-block 4x4 ASTC allocations;
+the shader samples their real 2x1/1x1 texels, wraps and interpolates the LOD seam.
+No source level is dropped, recompressed or replaced with flat ambient lighting.
+Focused model/widget checks, scoped analysis and rebuilt shaders pass. Native
+acceptance remains pending request 1110 (`ae5beacfaf5e44868df8dc08a38e1b31`).
+The failed run's test package was removed, its absence baseline closed and only
+owned forward tcp:12585 removed. Both physical displays are confirmed OFF.
 
 Integrated native checkpoint, 2026-10-15: the real CoverSection renders all 16
 recovered variants with completed label/GPU readiness. Native Library checks

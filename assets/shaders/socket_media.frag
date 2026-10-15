@@ -8,8 +8,11 @@ uniform FragInfo {
 uniform EnvironmentInfo {
   vec4 light; // camera-relative direction xyz, source energy
   vec4 sky; // last mip, ambient energy, reflection energy, exposure
+  vec4 levels; // main-texture last mip; final two source mips are separate
 } environment;
 uniform sampler2D environment_map;
+uniform sampler2D environment_tail_0;
+uniform sampler2D environment_tail_1;
 uniform sampler2D albedo_map;
 uniform sampler2D roughness_map;
 uniform sampler2D metallic_map;
@@ -44,7 +47,22 @@ vec3 studio(vec3 direction, float lod) {
   vec3 world = normalize(vec3(-direction.x, direction.y, -direction.z));
   vec2 uv = vec2(atan(world.x, world.z) / 6.2831853 + 0.5,
                  acos(clamp(world.y, -1.0, 1.0)) / 3.14159265);
-  return textureLod(environment_map, uv, lod).rgb;
+  vec3 mainLevel = textureLod(environment_map, uv,
+                             min(lod, environment.levels.x)).rgb;
+  if (lod <= environment.levels.x) return mainLevel;
+  // Source level 9 has two logical texels; level 10 has one. Their exact ASTC
+  // blocks are uploaded at the minimum 4x4 allocation, without recompression.
+  // Wrap/filter only the two real texels, never the block's padding pixels.
+  float u = uv.x * 2.0 - 0.5;
+  float first = mod(floor(u), 2.0);
+  vec3 penultimate = mix(
+      textureLod(environment_tail_0, vec2((first + 0.5) / 4.0, 0.125), 0.0).rgb,
+      textureLod(environment_tail_0, vec2((mod(first + 1.0, 2.0) + 0.5) / 4.0, 0.125), 0.0).rgb,
+      fract(u));
+  float seam = environment.sky.x - 1.0;
+  if (lod < seam) return mix(mainLevel, penultimate, lod - environment.levels.x);
+  vec3 last = textureLod(environment_tail_1, vec2(0.125), 0.0).rgb;
+  return mix(penultimate, last, clamp(lod - seam, 0.0, 1.0));
 }
 
 void main() {

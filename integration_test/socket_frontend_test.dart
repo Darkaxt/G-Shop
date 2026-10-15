@@ -136,6 +136,10 @@ void main() {
       expect(result['frameRendered'], isTrue, reason: format.name);
       expect(result['environmentMipLevels'], 11,
           reason: 'Source HDR studio lighting must reach the actual GPU');
+      expect(result['environmentPrefixMipLevels'], 9);
+      expect(result['environmentTailTextures'], 2,
+          reason:
+              'Flutter allocation limits must not discard source tail mips');
       const materialTextureCounts = {
         PhysicalMediaFormat.nes: 2,
         PhysicalMediaFormat.psp: 4,

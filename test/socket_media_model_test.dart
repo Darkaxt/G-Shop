@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_gpu/gpu.dart' as gpu;
 import 'package:retro_eshop/models/socket_media_model.dart';
+import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +14,14 @@ void main() {
     expect(sky.pixels.lengthInBytes, 699088);
     expect(sky.data['lightDirection'][1], closeTo(.8141155243, 1e-8));
     expect(sky.data['lightDirection'][2], greaterThan(0));
+    expect(SocketMediaGpu.environmentPrefixMipLevels,
+        lessThanOrEqualTo(gpu.Texture.fullMipCount(1024, 512)));
+    final tail = (sky.data['mips'] as List)
+        .skip(SocketMediaGpu.environmentPrefixMipLevels)
+        .toList();
+    expect(tail, hasLength(2));
+    expect(tail.map((level) => level['length']), everyElement(16),
+        reason: 'Each tail level must remain one unchanged ASTC 4x4 block');
   });
   test('selected pose retains source Euler angles before camera conversion',
       () {

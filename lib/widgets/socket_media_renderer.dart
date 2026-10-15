@@ -47,7 +47,12 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'triangles': _renderer?.model.triangles,
         'surfaces': _renderer?.model.surfaces.length,
         'materialTextures': _renderer?.textures.length,
-        'environmentMipLevels': _renderer?.environment.mipLevelCount,
+        'environmentMipLevels': _renderer == null
+            ? null
+            : _renderer!.environment.mipLevelCount +
+                _renderer!.environmentTail.length,
+        'environmentPrefixMipLevels': _renderer?.environment.mipLevelCount,
+        'environmentTailTextures': _renderer?.environmentTail.length,
         'labelReady': _labelTexture != null,
         'frameRendered': frameRendered,
         'error': _error?.toString(),
@@ -311,11 +316,24 @@ class SocketMediaGpu {
   final Map<String, gpu.Texture> textures;
   final gpu.Texture white, flatNormal;
   final gpu.Texture environment;
+  final List<gpu.Texture> environmentTail;
   final Map<String, dynamic> environmentData;
+  // Flutter GPU currently limits 1024x512 to nine mips, unlike Godot/Vulkan's
+  // eleven. Keep the final 2x1 and 1x1 source blocks in separate 4x4 ASTC textures;
+  // the shader samples only their logical texels and interpolates the LOD seam.
+  static const environmentPrefixMipLevels = 9;
   gpu.GpuImageSurface? _surface;
   gpu.Texture? _depth;
-  SocketMediaGpu._(this.model, this.pipeline, this.mesh, this.textures,
-      this.white, this.flatNormal, this.environment, this.environmentData);
+  SocketMediaGpu._(
+      this.model,
+      this.pipeline,
+      this.mesh,
+      this.textures,
+      this.white,
+      this.flatNormal,
+      this.environment,
+      this.environmentTail,
+      this.environmentData);
 
   static Float32List materialUniforms(Map<String, dynamic> material,
       {bool isLabel = false, bool isDisc = false}) {
@@ -363,7 +381,7 @@ class SocketMediaGpu {
         sky.data['width'] as int, sky.data['height'] as int,
         format: gpu.PixelFormat.astc4x4HDR,
         enableRenderTargetUsage: false,
-        mipLevelCount: (sky.data['mips'] as List).length);
+        mipLevelCount: environmentPrefixMipLevels);
     for (var level = 0; level < environment.mipLevelCount; level++) {
       final range = sky.data['mips'][level] as Map;
       environment.overwrite(
@@ -371,6 +389,16 @@ class SocketMediaGpu {
               sky.pixels.offsetInBytes + (range['offset'] as int),
               range['length'] as int),
           mipLevel: level);
+    }
+    final environmentTail = <gpu.Texture>[];
+    for (final range
+        in (sky.data['mips'] as List).skip(environmentPrefixMipLevels)) {
+      final texture = context.createTexture(gpu.StorageMode.hostVisible, 4, 4,
+          format: gpu.PixelFormat.astc4x4HDR, enableRenderTargetUsage: false);
+      texture.overwrite(sky.pixels.buffer.asByteData(
+          sky.pixels.offsetInBytes + (range['offset'] as int),
+          range['length'] as int));
+      environmentTail.add(texture);
     }
     final library = await gpu.ShaderLibrary.fromAsset(
         'assets/shaders/socket_media.shaderbundle');
@@ -432,6 +460,7 @@ class SocketMediaGpu {
         pixel([255, 255, 255, 255]),
         pixel([128, 128, 255, 255]),
         environment,
+        environmentTail,
         sky.data);
   }
 
@@ -475,10 +504,14 @@ class SocketMediaGpu {
           uniforms.emplace(Float32List.fromList([
             ...direction.map((v) => v.toDouble()),
             (environmentData['lightEnergy'] as num).toDouble(),
-            (environment.mipLevelCount - 1).toDouble(),
+            ((environmentData['mips'] as List).length - 1).toDouble(),
             (environmentData['ambientEnergy'] as num).toDouble(),
             (environmentData['reflectionEnergy'] as num).toDouble(),
             (environmentData['exposure'] as num).toDouble(),
+            (environment.mipLevelCount - 1).toDouble(),
+            0,
+            0,
+            0,
           ]).buffer.asByteData()));
       pass.bindTexture(
           pipeline.fragmentShader.getUniformSlot('environment_map'),
@@ -489,6 +522,14 @@ class SocketMediaGpu {
               mipFilter: gpu.MipFilter.linear,
               widthAddressMode: gpu.SamplerAddressMode.repeat,
               heightAddressMode: gpu.SamplerAddressMode.clampToEdge));
+      for (var i = 0; i < environmentTail.length; i++) {
+        pass.bindTexture(
+            pipeline.fragmentShader.getUniformSlot('environment_tail_$i'),
+            environmentTail[i],
+            sampler: gpu.SamplerOptions(
+                minFilter: gpu.MinMagFilter.nearest,
+                magFilter: gpu.MinMagFilter.nearest));
+      }
       final ordered = [...model.surfaces]..sort((a, b) =>
           ((a['material']['color'][3] as num) < 1 ? 1 : 0)
               .compareTo((b['material']['color'][3] as num) < 1 ? 1 : 0));
