@@ -17,6 +17,8 @@ open class RomCacheJobService:JobService() {
     private var finished=false
     private var detach:(()->Unit)?=null
     override fun onStartJob(parameters:JobParameters):Boolean {
+        if(MigrationChannel.active(applicationContext))return false
+        MigrationChannel.jobStarted()
         params=parameters;stopped=false;finished=false;RomCacheChannel.jobStarted()
         val current=RomCacheChannel.foreground
         if(current!=null) {
@@ -67,6 +69,7 @@ open class RomCacheJobService:JobService() {
             engine?.destroy();engine=null
             if(!stopped)params?.let { jobFinished(it,false) }
             params=null;channel=null;RomCacheChannel.jobFinished(applicationContext)
+            MigrationChannel.jobFinished()
         }
         if(owned!=null)owned.shutdown(::close) else close()
     }

@@ -11,7 +11,8 @@ class SaveOperationAdmission {
   final bool android;
   SaveOperationAdmission({bool? android})
       : android = android ?? Platform.isAndroid;
-  Future<Future<void> Function()> acquire(CancelToken cancellation) async {
+  Future<Future<void> Function()> acquire(CancelToken cancellation,
+      {bool migration = false}) async {
     if (cancellation.isCancelled) throw PlatformException(code: 'cancelled');
     if (!android) return () async {};
     final id = List.generate(16, (_) => Random.secure().nextInt(256))
@@ -22,7 +23,8 @@ class SaveOperationAdmission {
       if (waiting) await _channel.invokeMethod<void>('cancel', {'id': id});
     });
     try {
-      await _channel.invokeMethod<void>('acquire', {'id': id});
+      await _channel.invokeMethod<void>(
+          'acquire', {'id': id, if (migration) 'migration': true});
     } finally {
       waiting = false;
     }

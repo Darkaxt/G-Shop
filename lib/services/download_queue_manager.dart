@@ -102,13 +102,14 @@ class DownloadQueueManager extends ChangeNotifier {
 
   final Map<String, StreamSubscription?> _subscriptions = {};
   final Map<String, DownloadService> _downloadServices = {};
+  final Map<String, Completer<void>> _legacySettled = {};
   final Map<String, Timer> _retryTimers = {};
   final StorageService _storage;
   final NativeSmbService _smbService;
 
   /// Called after a download completes successfully. Used for post-download
   /// processing like RA hash verification.
-  void Function(DownloadItem item)? onItemCompleted;
+  FutureOr<void> Function(DownloadItem item)? onItemCompleted;
 
   DownloadQueueManager(this._storage, this._smbService,
       {DriveRuntime? driveRuntime})
@@ -278,11 +279,12 @@ class DownloadQueueManager extends ChangeNotifier {
     _retryTimers[id]?.cancel();
     _retryTimers.remove(id);
 
-    _subscriptions[id]?.cancel();
+    await _subscriptions[id]?.cancel();
     _subscriptions.remove(id);
 
     await _downloadServices[id]?.cancelDownload(preserveTempFile: false);
     _downloadServices.remove(id);
+    _legacySettled.remove(id)?.complete();
 
     _updateItem(id, status: DownloadStatus.cancelled, clearTempFilePath: true);
     _persistQueue();
@@ -398,6 +400,7 @@ class DownloadQueueManager extends ChangeNotifier {
   }
 
   Future<void> _startDownload(DownloadItem item) async {
+    if (_closing || _disposed) return;
     // Exact artifacts require S3's verified transfer/publication contract.
     // In particular, filename existence must never imply their completion.
     if (_isDrive(item)) {
@@ -456,6 +459,7 @@ class DownloadQueueManager extends ChangeNotifier {
     }
 
     final targetFolder = item.targetFolder;
+    if (_closing || _disposed) return;
 
     _subscriptions[item.id]?.cancel();
     _subscriptions.remove(item.id);
@@ -465,6 +469,14 @@ class DownloadQueueManager extends ChangeNotifier {
 
     final downloadService = DownloadService(_smbService);
     _downloadServices[item.id] = downloadService;
+    final settled = Completer<void>();
+    _legacySettled[item.id] = settled;
+    void settle() {
+      if (identical(_legacySettled[item.id], settled)) {
+        _legacySettled.remove(item.id);
+      }
+      if (!settled.isCompleted) settled.complete();
+    }
 
     final subscription = downloadService
         .downloadGameStream(
@@ -491,13 +503,18 @@ class DownloadQueueManager extends ChangeNotifier {
         );
         _throttledNotificationUpdate();
       },
-      onDone: () {
+      onDone: () async {
         _subscriptions.remove(item.id);
         final service = _downloadServices.remove(item.id);
         service?.dispose();
-        _onDownloadComplete(item.id);
+        try {
+          await _onDownloadComplete(item.id);
+        } finally {
+          settle();
+        }
       },
       onError: (error) {
+        settle();
         final tempPath = downloadService.currentTempFilePath;
         _subscriptions.remove(item.id);
         final service = _downloadServices.remove(item.id);
@@ -512,13 +529,15 @@ class DownloadQueueManager extends ChangeNotifier {
         );
 
         final currentItem = _state.getDownloadById(item.id);
-        if (currentItem != null &&
+        if (!_closing &&
+            currentItem != null &&
             currentItem.game.alternativeSources.isNotEmpty &&
             _isRetryableError(errorMsg)) {
           _switchToAlternativeSource(item.id);
           return;
         }
-        if (currentItem != null &&
+        if (!_closing &&
+            currentItem != null &&
             currentItem.retryCount < _maxRetries &&
             _isRetryableError(errorMsg)) {
           _scheduleRetry(item.id, currentItem.retryCount);
@@ -595,7 +614,8 @@ class DownloadQueueManager extends ChangeNotifier {
       if (artifact == null ||
           config == null ||
           item.game.isFolder ||
-          !(mappedArchive || item.system.romExtensions.any(extension.endsWith) ||
+          !(mappedArchive ||
+              item.system.romExtensions.any(extension.endsWith) ||
               (supportsPlaylist && extension.endsWith('.m3u'))) ||
           (!mappedArchive && ['.zip', '.rar', '.7z'].any(extension.endsWith))) {
         throw const DriveTransferException(DriveTransferIssue.invalidSource);
@@ -714,14 +734,18 @@ class DownloadQueueManager extends ChangeNotifier {
             clearSpeed: true);
         final observer = onItemCompleted;
         if (observer != null) {
-          Zone.current.runUnaryGuarded(observer, completedItem);
+          try {
+            await observer(completedItem);
+          } catch (error, stack) {
+            Zone.current.handleUncaughtError(error, stack);
+          }
         }
       }
     } catch (error) {
       if (_ownsDrive(item.id, attempt)) {
         final auth = error is DriveAuthorizationException;
-        final needsAuthorization = auth &&
-            error.issue != DriveAuthorizationIssue.unavailable;
+        final needsAuthorization =
+            auth && error.issue != DriveAuthorizationIssue.unavailable;
         final cancelled = attempt.pauseRequested ||
             _closing ||
             (error is DriveTransferException &&
@@ -758,7 +782,7 @@ class DownloadQueueManager extends ChangeNotifier {
     }
   }
 
-  void _onDownloadComplete(String id) {
+  Future<void> _onDownloadComplete(String id) async {
     final item = _state.getDownloadById(id);
     if (item != null && item.status == DownloadStatus.error) {
       debugPrint('DownloadQueue: download FAILED: $id — ${item.error}');
@@ -784,7 +808,7 @@ class DownloadQueueManager extends ChangeNotifier {
     final completedItem = _state.getDownloadById(id);
     if (completedItem != null &&
         completedItem.status == DownloadStatus.completed) {
-      onItemCompleted?.call(completedItem);
+      await onItemCompleted?.call(completedItem);
     }
 
     _persistQueue();
@@ -1056,6 +1080,8 @@ class DownloadQueueManager extends ChangeNotifier {
       attempt.operation?.pause();
     }
     await Future.wait(attempts.map((attempt) => attempt.settled));
+    await Future.wait(
+        _legacySettled.values.map((done) => done.future).toList());
     await _stageRetirementRecovery;
     await _ownedRemovalRecovery;
     await _persistence;

@@ -21,7 +21,7 @@ import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
 import 'package:retro_eshop/services/owned_emulator_launcher.dart';
-import 'package:retro_eshop/services/patch_build_publication.dart';
+import 'package:retro_eshop/services/verified_file_publication.dart';
 import 'package:retro_eshop/services/patch_build_service.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';

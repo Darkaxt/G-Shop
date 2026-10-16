@@ -2056,6 +2056,37 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(widget.title, style: AppTheme.headlineMedium),
+              if (widget.section == SaveBackupSection.restore && job.hasImportedData) ...[
+                const SizedBox(height: 12),
+                const Text('Imported game data', style: TextStyle(fontSize: 20)),
+                const Text('Different files on this device are kept until you choose which copy to use.'),
+                const SizedBox(height: 12),
+                Wrap(spacing: 12, runSpacing: 12, children: [
+                  ConsoleFocusable(focusScale: 1,
+                    onSelect: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
+                        _selectedName ?? await job.resolveSaveName(), useImported: true),
+                    child: FilledButton.icon(
+                      key: const ValueKey('save-use-imported'),
+                      onPressed: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
+                          _selectedName ?? await job.resolveSaveName(), useImported: true),
+                      icon: const Icon(Icons.move_to_inbox_outlined),
+                      label: const Text('Use imported'))),
+                  ConsoleFocusable(focusScale: 1,
+                    onSelect: job.busy ? null : job.keepCurrentImportedData,
+                    child: OutlinedButton.icon(onPressed: job.busy ? null : job.keepCurrentImportedData,
+                      key: const ValueKey('save-keep-current'),
+                      icon: const Icon(Icons.check), label: const Text('Keep current'))),
+                  if (job.hasPreviousImportedData)
+                    ConsoleFocusable(focusScale: 1,
+                      onSelect: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
+                          _selectedName ?? await job.resolveSaveName(), useImported: true, previous: true),
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('save-previous-import'),
+                        onPressed: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
+                            _selectedName ?? await job.resolveSaveName(), useImported: true, previous: true),
+                        icon: const Icon(Icons.undo), label: const Text('Previous copy'))),
+                ]),
+              ],
               const SizedBox(height: 12),
               Text(
                   job.isRomCompanion

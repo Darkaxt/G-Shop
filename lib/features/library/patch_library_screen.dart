@@ -26,7 +26,7 @@ import '../../services/drive/drive_patch_catalogue.dart';
 import '../../services/drive/drive_runtime.dart';
 import '../../providers/installed_files_provider.dart';
 import '../../providers/library_providers.dart';
-import '../../services/patch_build_publication.dart';
+import '../../services/verified_file_publication.dart';
 import '../../services/patch_build_service.dart';
 import '../../services/patch_build_store.dart';
 import '../../services/database_service.dart';

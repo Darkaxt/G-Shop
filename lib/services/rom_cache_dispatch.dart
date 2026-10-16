@@ -6,7 +6,8 @@ import 'rom_cache_runtime.dart';
 
 class RomCacheDispatch {
   static const channel = MethodChannel('com.retro.rshop/rom_cache');
-  static Future<void> acquire(CancelToken cancellation) async {
+  static Future<void> acquire(CancelToken cancellation,
+      {bool migration = false}) async {
     if (!Platform.isAndroid) return;
     var waiting = true;
     unawaited(cancellation.whenCancel.then((_) async {
@@ -17,7 +18,8 @@ class RomCacheDispatch {
       }
     }));
     try {
-      await channel.invokeMethod<void>('acquire');
+      await channel.invokeMethod<void>(
+          'acquire', migration ? {'migration': true} : null);
     } finally {
       waiting = false;
     }

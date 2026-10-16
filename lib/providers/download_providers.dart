@@ -26,13 +26,17 @@ final downloadQueueManagerProvider =
   final raConfigured = storage.isRaConfigured;
   final raService = raConfigured ? ref.read(raApiServiceProvider) : null;
   final apiKey = raConfigured ? storage.getRaApiKey() : null;
-  qm.onItemCompleted = (item) {
+  qm.onItemCompleted = (item) async {
     // Bump game counts so the home screen updates immediately.
     ref.read(gameDbChangedProvider.notifier).state++;
-    ref.read(romCacheProvider.future).then((cache)=>cache.reconcile()).catchError(
-        (Object _,StackTrace __){debugPrint('ROM cache completion check could not start');});
+    await ref
+        .read(romCacheProvider.future)
+        .then((cache) => cache.reconcile())
+        .catchError((Object _, StackTrace __) {
+      debugPrint('ROM cache completion check could not start');
+    });
     if (raService != null) {
-      _verifyRaHash(item, raService, apiKey, ref);
+      await _verifyRaHash(item, raService, apiKey, ref);
     }
   };
 
@@ -59,7 +63,8 @@ Future<void> _verifyRaHash(
     final hash = await RaHashService.computeInstalledHash(
         item.game, item.system, item.targetFolder);
     if (hash == null) {
-      debugPrint('RetroAchievements: hash computation failed for ${item.game.filename}');
+      debugPrint(
+          'RetroAchievements: hash computation failed for ${item.game.filename}');
       return;
     }
 
@@ -96,7 +101,8 @@ Future<void> _verifyRaHash(
         return;
       }
       match = const RaMatchResult.hashIncompatible();
-      debugPrint('RetroAchievements: ROM incompatible for ${item.game.filename}');
+      debugPrint(
+          'RetroAchievements: ROM incompatible for ${item.game.filename}');
     }
 
     // Save the match result

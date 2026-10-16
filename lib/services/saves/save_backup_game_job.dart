@@ -20,6 +20,7 @@ import 'drive_save_backup_area.dart';
 import 'drive_save_backup_generation.dart';
 import 'save_capture.dart';
 import 'save_operation_admission.dart';
+import '../migration/migration_game_data.dart';
 
 /// The first native save workflow. SQLite commits the exact selection/capture
 /// intent before native IO and immutable reserved objects before remote writes.
@@ -53,6 +54,15 @@ class SaveBackupGameJob extends ChangeNotifier {
       romCompanionEmulator,
       romCompanionCore;
   Map<String, dynamic>? _record;
+  MigrationGameData? _migrationData;
+  bool get hasImportedData => _migrationData != null;
+  bool get importedDataPending =>
+      _migrationData != null &&
+      {'pending', 'conflict', 'preparing', 'publishing'}
+          .contains(_migrationData!.state);
+  bool get hasPreviousImportedData =>
+      ((_migrationData?.data['destinationCopies'] as List?) ?? const [])
+          .isNotEmpty;
   SaveBackupBinding? _deviceBinding;
   List<SaveBackupManifest> _otherDeviceHeads = const [];
   Map<String, String> _deviceImportChoices = {};
@@ -319,6 +329,273 @@ class SaveBackupGameJob extends ChangeNotifier {
                         restoreBaseline: restoreBaseline);
   }
 
+  /// Offline migration uses the existing coherent capture boundary while its
+  /// caller holds native save admission. No cloud request/upload is performed.
+  Future<CapturedSaveGroup> captureForMigration(String id, String name) async {
+    if (_disposed || busy) throw PlatformException(code: 'busy');
+    _captureId = id;
+    final result = _capture(id, name, restoreBaseline: true);
+    final joined =
+        result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    _operation = joined;
+    try {
+      return await result;
+    } finally {
+      _captureId = null;
+      if (identical(_operation, joined)) _operation = null;
+    }
+  }
+
+  Map<String, Object?> get migrationScope => {
+        'clientId': clientId,
+        'accountId': accountId,
+        'areaId': areaId,
+        'editionId': isSharedResource ? null : editionId,
+        'artifactKey': isSharedResource ? null : artifactId.key,
+        'platform': _platform,
+        'emulator': _emulator,
+        'core': _core,
+        'kind': _kind.name,
+        'format': _format,
+        if (isSharedResource) 'resource': _sharedResourceKey,
+      };
+  String get migrationJobKey => _key;
+
+  /// Materialize the local migration branch through the existing native save
+  /// restore lane. No network, APK-status protocol or copied source grant.
+  /// Different destination data stays current until explicitly selected here.
+  Future<void> restoreMigrationBeforeLaunch(String name,
+      {bool useImported = false, bool previous = false}) {
+    if (_disposed) return Future.value();
+    if (_operation case final current?) return current;
+    if (_running[_key] case final current?) {
+      return current.then((_) => restoreMigrationBeforeLaunch(name,
+          useImported: useImported, previous: previous));
+    }
+    final cancellation = CancelToken();
+    _cancellation = cancellation;
+    final operation = Future<void>.microtask(() async {
+      Future<void> Function()? release;
+      try {
+        final db = await database;
+        _migrationData = await MigrationGameData.latest(db, migrationScope);
+        if (_migrationData == null || !useImported && !importedDataPending) {
+          return;
+        }
+        release = await admission.acquire(cancellation);
+        _migrationData = await MigrationGameData.latest(db, migrationScope);
+        final branch = _migrationData;
+        if (branch == null || !useImported && !importedDataPending) return;
+        _check(cancellation);
+        if (branch.state == 'publishing') {
+          _captureId = branch.restoreId!;
+          await _publishMigration(
+              branch.restoreId!, branch.baselineId!, branch.grouped);
+          branch.data['activeMembers'] = branch.data['operationMembers'];
+          await branch.save(db, 'restored');
+          phase = 'restored';
+          _changed();
+          return;
+        }
+        final copies =
+            ((branch.data['destinationCopies'] as List?) ?? const []).toList();
+        final previousCopy = previous && copies.isNotEmpty
+            ? (copies.last as Map).cast<String, dynamic>()
+            : null;
+        if (previous && previousCopy == null) return;
+        final selected = branch.state == 'preparing'
+            ? branch.data['operationMembers'] as List?
+            : previousCopy?['members'] as List?;
+        final originalMembers = await branch.restoreMembers(
+            from: selected
+                ?.map((v) => (v as Map).cast<String, dynamic>())
+                .toList());
+        // Native document IDs change on migration. Keep source names as
+        // provenance, but publish battery roles to the current reviewed name.
+        final members = !isRomCompanion && !isPcsx && !isStandalone
+            ? originalMembers
+                .map((member) => RestoreSaveMember(
+                    member.name.endsWith('.rtc')
+                        ? '${name.substring(0, name.length - 4)}.rtc'
+                        : name,
+                    member.size,
+                    member.sha256,
+                    member.bytes))
+                .toList()
+            : originalMembers;
+        if (members.isEmpty) {
+          await branch.save(db, 'restored');
+          return;
+        }
+        String id() => List.generate(16, (_) => Random.secure().nextInt(256))
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join();
+        final baselineId =
+            branch.state == 'preparing' ? branch.baselineId! : id();
+        _captureId = baselineId;
+        final baseline = await _capture(baselineId, name,
+            restoreBaseline: true,
+            companionMembers: isRomCompanion
+                ? members.map((member) => member.name).toSet()
+                : null);
+        final same = members.every((member) => baseline.files.any((current) =>
+            current.name == member.name &&
+            current.size == member.size &&
+            current.sha256 == member.sha256));
+        if (same) {
+          await capture.retireCapture(baselineId);
+          await branch.save(db, 'restored');
+          phase = 'unchanged';
+          _changed();
+          return;
+        }
+        if (baseline.files.isNotEmpty && !useImported ||
+            _kind == SaveBackupKind.state &&
+                ((branch.state == 'preparing'
+                            ? branch.data['operationRuntime'] as Map
+                            : previousCopy ?? branch.data)['emulatorVersion'] !=
+                        baseline.emulatorVersion ||
+                    (branch.state == 'preparing'
+                            ? branch.data['operationRuntime'] as Map
+                            : previousCopy ?? branch.data)['coreVersion'] !=
+                        baseline.coreVersion)) {
+          await capture.retireCapture(baselineId);
+          await branch.save(db, 'conflict');
+          phase = 'unchanged';
+          _changed();
+          return;
+        }
+        final restoreId =
+            branch.state == 'preparing' ? branch.restoreId! : id();
+        final grouped = isRomCompanion ||
+            isPpssppSavedata ||
+            !isStandalone && !isPcsx && members.length == 2;
+        if (baseline.files.isNotEmpty &&
+            !copies.any((v) => (v as Map)['captureId'] == baselineId)) {
+          copies.add({
+            'captureId': baselineId,
+            'deviceId': baseline.deviceId,
+            'emulatorVersion': baseline.emulatorVersion,
+            'coreVersion': baseline.coreVersion,
+            'members': [
+              for (final member in baseline.files)
+                {
+                  'name': member.name,
+                  'path': member.file.path,
+                  'size': member.size,
+                  'sha256': member.sha256
+                }
+            ]
+          });
+          branch.data['destinationCopies'] = copies;
+        }
+        branch.data['operationMembers'] = selected ?? branch.members;
+        branch.data['operationRuntime'] ??= {
+          'emulatorVersion': (previousCopy ?? branch.data)['emulatorVersion'],
+          'coreVersion': (previousCopy ?? branch.data)['coreVersion']
+        };
+        await branch.save(db, 'preparing',
+            restoreId: restoreId, baselineId: baselineId, grouped: grouped);
+        _captureId = restoreId;
+        if (isRomCompanion) {
+          final grant = await resolveRomCompanionGrant!();
+          final snapshot = await capture.reviewRomCompanions(grant: grant);
+          await capture.stageRomCompanionRestore(
+              restoreId: restoreId,
+              grant: grant,
+              snapshot: snapshot,
+              emulatorPackage: romCompanionEmulator!,
+              members: members);
+        } else if (isPcsx) {
+          final member = members.single;
+          await capture.stagePcsxRestore(
+              restoreId: restoreId,
+              grant: await resolvePcsxGrant!(),
+              layout: pcsxLayout!,
+              card: pcsxCard!,
+              size: member.size,
+              sha256: member.sha256,
+              bytes: member.bytes);
+        } else if (isPpssppSavedata) {
+          await capture.stagePpssppSavedataRestore(
+              restoreId: restoreId,
+              directory: ppssppSavedataDirectory!,
+              members: members);
+        } else if (grouped) {
+          await capture.stageRetroArchGroupRestore(
+              restoreId: restoreId,
+              name: name,
+              route: retroArchRoute,
+              members: members);
+        } else {
+          final member = members.single;
+          await capture.stageRestore(
+              restoreId: restoreId,
+              name: member.name,
+              size: member.size,
+              sha256: member.sha256,
+              bytes: member.bytes,
+              ppssppDirectory: ppssppDirectory,
+              ppssppCompanion: ppssppCompanion,
+              melonDirectory: melonDirectory,
+              retroArchRoute: retroArchRoute);
+        }
+        _check(cancellation);
+        await branch.save(db, 'publishing');
+        await _publishMigration(restoreId, baselineId, grouped);
+        branch.data['activeMembers'] = selected ?? branch.members;
+        await branch.save(db, 'restored');
+        phase = 'restored';
+        _changed();
+      } on PlatformException catch (error) {
+        _issue = error.code;
+        _changed();
+        rethrow;
+      } finally {
+        _captureId = null;
+        await release?.call();
+      }
+    });
+    _operation = operation;
+    _running[_key] = operation;
+    return operation.whenComplete(() {
+      if (identical(_operation, operation)) {
+        _operation = null;
+        _cancellation = null;
+      }
+      if (identical(_running[_key], operation)) _running.remove(_key);
+    });
+  }
+
+  Future<void> _publishMigration(
+      String restoreId, String baselineId, bool grouped) async {
+    if (isPcsx) {
+      await capture.publishPcsxRestore(
+          restoreId: restoreId,
+          rollbackCaptureId: baselineId,
+          grant: await resolvePcsxGrant!(),
+          layout: pcsxLayout!,
+          card: pcsxCard!);
+    } else if (grouped) {
+      await capture.publishRestoreGroup(
+          restoreId: restoreId, rollbackCaptureId: baselineId);
+    } else {
+      await capture.publishRestore(
+          restoreId: restoreId, rollbackCaptureId: baselineId);
+    }
+  }
+
+  Future<void> keepCurrentImportedData() async {
+    if (busy) return;
+    final db = await database;
+    _migrationData = await MigrationGameData.latest(db, migrationScope);
+    final branch = _migrationData;
+    if (branch != null && !{'preparing', 'publishing'}.contains(branch.state)) {
+      await branch.save(db, 'ignored');
+      _changed();
+    }
+  }
+
   String get _key => sha256
       .convert(utf8.encode(jsonEncode([
         clientId,
@@ -547,6 +824,7 @@ class SaveBackupGameJob extends ChangeNotifier {
   }
 
   Future<void> _schema(Database db) async {
+    await MigrationGameData.install(db);
     await db.execute('''CREATE TABLE IF NOT EXISTS
       save_backup_game_jobs(job_key TEXT PRIMARY KEY, record_json TEXT NOT NULL)''');
     await db
@@ -558,8 +836,63 @@ class SaveBackupGameJob extends ChangeNotifier {
   Future<void> load() async {
     final db = await database;
     await _schema(db);
-    final rows = await db.query('save_backup_game_jobs',
+    _migrationData = await MigrationGameData.latest(db, migrationScope);
+    var rows = await db.query('save_backup_game_jobs',
         where: 'job_key = ?', whereArgs: [_key], limit: 1);
+    // A cloud history is portable evidence, never a copied native operation or
+    // current-device binding. The archive ties it to this exact logical scope.
+    if (rows.isEmpty &&
+        _migrationData?.data['sourceJobKey'] is String &&
+        (await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='migration_save_history'"))
+            .isNotEmpty) {
+      final history = await db.query('migration_save_history',
+          where: 'source_key=?',
+          whereArgs: [_migrationData!.data['sourceJobKey']],
+          limit: 1);
+      if (history.isNotEmpty) {
+        final raw = history.single['record_json'] as String;
+        if (raw.length > 3 * SaveBackupManifest.maxEncodedBytes) {
+          throw const FormatException('Invalid migrated save history');
+        }
+        final old = (jsonDecode(raw) as Map).cast<String, dynamic>();
+        final record = <String, Object?>{
+          'schema': 1,
+          'key': _key,
+          'state': 'complete',
+          'captureId': List.generate(16, (_) => Random.secure().nextInt(256))
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(),
+          'name': await resolveSaveName(),
+          for (final key in [
+            'lastVerified',
+            'conflictHeads',
+            'resolvedHeadIds',
+            'deviceImportChoices',
+            'selectedCloudRestore'
+          ])
+            if (old[key] != null) key: old[key],
+        };
+        // Validate the portable binding before any imported cloud reference is
+        // made visible; normal load below rechecks its contents and decisions.
+        for (final rawManifest in [
+          record['lastVerified'],
+          ...((record['conflictHeads'] as List?) ?? const [])
+        ]) {
+          if (rawManifest == null) continue;
+          final manifest =
+              SaveBackupManifest.decode(utf8.encode(jsonEncode(rawManifest)));
+          if (!_bindingMatches(manifest.binding)) {
+            throw const FormatException('Changed migrated save binding');
+          }
+          _contents(manifest);
+        }
+        await db.insert('save_backup_game_jobs',
+            {'job_key': _key, 'record_json': jsonEncode(record)});
+        rows = await db.query('save_backup_game_jobs',
+            where: 'job_key=?', whereArgs: [_key], limit: 1);
+      }
+    }
     if (rows.isNotEmpty) {
       final raw = rows.single['record_json'] as String;
       if (raw.length > 3 * SaveBackupManifest.maxEncodedBytes) {
@@ -601,7 +934,9 @@ class SaveBackupGameJob extends ChangeNotifier {
       if (record['retireCaptureId'] != null &&
           (record['state'] != 'complete' ||
               (record['lastVerified'] == null &&
-                  record['localWasAbsent'] != true) ||
+                  record['localWasAbsent'] != true &&
+                  !(record['localImportUnchanged'] == true &&
+                      _migrationData?.state == 'restored')) ||
               record['captures'] != null ||
               record['retireCaptureId'] != record['captureId'])) {
         throw const FormatException('Invalid capture retirement intent');
@@ -792,7 +1127,8 @@ class SaveBackupGameJob extends ChangeNotifier {
     }
   }
 
-  Future<void> backup(String name) => _backup(name);
+  Future<void> backup(String name, {bool automatic = false}) =>
+      _backup(name, automatic: automatic);
 
   /// Remember a decision about this exact immutable publication, not a title,
   /// filename or clock. Ignored copies remain available for a revised choice.
@@ -1130,7 +1466,8 @@ class SaveBackupGameJob extends ChangeNotifier {
   Future<void> _backup(String name,
       {Set<String>? reviewedHeads,
       String? useCloud,
-      bool beforeLaunch = false}) {
+      bool beforeLaunch = false,
+      bool automatic = false}) {
     if (_disposed) return Future.value();
     final pending = _operation ?? _running[_key];
     if (pending != null) {
@@ -1206,6 +1543,39 @@ class SaveBackupGameJob extends ChangeNotifier {
               restoreBaseline:
                   beforeLaunch || record['localWasAbsent'] == true);
           _check(cancellation);
+          if ((automatic || beforeLaunch) &&
+              _migrationData?.state == 'restored') {
+            final baseline =
+                ((_migrationData!.data['activeMembers'] as List?) ??
+                        _migrationData!.members)
+                    .cast<Map>();
+            bool same(CapturedSaveFile file, Map source) =>
+                file.size == source['size'] &&
+                file.sha256 == source['sha256'] &&
+                (isRomCompanion || isPpsspp
+                    ? file.name == source['name']
+                    : group.files.length == 1 ||
+                        file.name.endsWith('.rtc') ==
+                            (source['name'] as String).endsWith('.rtc'));
+            if (group.files.length == baseline.length &&
+                group.files.every(
+                    (file) => baseline.any((source) => same(file, source)))) {
+              // This is a local baseline, not a fabricated remote verification.
+              // Startup/watch recovery must not upload merely imported bytes.
+              await _persist({
+                ...record,
+                'state': 'complete',
+                'generation': null,
+                'captures': null,
+                'localImportUnchanged': true,
+                'retireCaptureId': record['captureId']
+              });
+              await _retireCompletedCapture();
+              phase = 'unchanged';
+              _changed();
+              return;
+            }
+          }
           final binding = SaveBackupBinding(
               accountId: accountId,
               deviceId: group.deviceId,

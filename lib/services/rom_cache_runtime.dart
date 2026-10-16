@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'migration/migration_maintenance.dart';
 import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
@@ -305,7 +306,7 @@ class RomCacheRuntime extends ChangeNotifier {
   }
 
   Future<void> reconcile() {
-    if (_disposed) return Future.value();
+    if (_disposed || MigrationMaintenance.active) return Future.value();
     if (_editing case final editing?) return editing.then((_) => reconcile());
     if (_operation case final pending?) return pending;
     final cancellation = CancelToken();

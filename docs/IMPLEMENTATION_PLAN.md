@@ -12,11 +12,12 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 56, including
 | S18 Reproducible patch builds | COMPLETE | PATCH-01, PATCH-02, CAT-01 patch action: indexed compatible game -> engine -> tracked playable result and reuse | Real indexed GBA build/launch/reuse plus inventoried engine, mismatch/cancel/persistence checks |
 | S19 Sharing/layout/integration | COMPLETE | SHARE-01, LAYOUT-01: portable shared recipes, share/import, documented compatible Drive layout, any justified source moves, final reconciliation | Independent roots/import/reconnect, privacy/export checks, layout fixtures and real signed Thor share/import/restart |
 | S20 Top 25 artwork and README | COMPLETE | ART-VERIFY-01: scrape up to 25 accepted ranked unique games per configured console, verify box/media-label roles and flat/imported 3D rendering, update README with Thor examples | Saved 99-game canonical sample, real metadata/artwork outcomes, GBA/N64/PS2/PSP flat/3D and missing-label native views, inspected README screenshots |
-| S21 Encrypted full migration | NOT STARTED | BACKUP-MIGRATE-01: one private encrypted archive restores complete R-Shop setup, API credentials, metadata/artwork, imported resources and local managed game/associated data on another device without repeated feature setup | Independent destination export/import, actual credentials/data restored, destination ownership, conflict/recovery and encryption checks, touch/controller usability |
+| S21 Encrypted full migration | COMPLETE | BACKUP-MIGRATE-01: one private encrypted archive restores complete R-Shop setup, API credentials, metadata/artwork, imported resources and local managed game/associated data on another device without repeated feature setup | Fresh native uninstall/reinstall export/import, actual credentials/data, destination receipts, normal library/RetroArch launch; host conflict/recovery/encryption/controller checks; final signed build and reviewed cleanup |
 
-S16-S20 host/native criteria pass. S21 is next and NOT STARTED. S19 has no SHARE/LAYOUT acceptance
-blockers. TC19-01 is a final-cleanup deferral explicitly assigned to S21 (the
-protected Downloads fixture); it does not excuse unfinished sharing behavior.
+S16-S21 assigned host/native criteria pass. No implementation stage remains ACTIVE.
+S19 has no SHARE/LAYOUT acceptance
+blockers. TC19-01's protected Downloads fixture is now removed under the owner's
+exact-file exception with identity/hash/absence checks; that deferral is resolved.
 S18 owns engine/licensing evaluation and patch-category interaction; S19 owns
 portable sharing/layout. Owner-authorized S20 follows with a bounded artwork pass
 and README evidence, not a full-collection scrape or a new ratings operation.

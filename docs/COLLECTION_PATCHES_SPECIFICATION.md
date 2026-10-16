@@ -402,6 +402,14 @@ plaintext secrets in the archive/export diagnostics. Record actual unavoidable
 system consent separately from application setup. Update user documentation with
 what migrates, archive sensitivity and recovery. No public release is implied.
 
+Implementation detail: imported associated game data is retained as an actual
+local backup branch. Before the first game launch, the existing save-restore lane
+materializes missing data in the emulator's expected location, including offline.
+Identical destination data is reused; different destination data remains current
+and reviewable through short Use imported / Keep current actions. Replacing it
+retains the previous bytes. Import does not create a cloud publication or silently
+enable monitoring that was disabled on the source device.
+
 ## 4. Integrated execution, design and delivery
 
 S16 ranking correction is first; S17 navigation follows; S18 patch workflow uses

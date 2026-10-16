@@ -76,6 +76,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MigrationChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
         socketImport = SocketImportChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         patchWork = PatchWorkChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         SaveOperationChannel.attach(flutterEngine.dartExecutor.binaryMessenger, saveOperationOwner)

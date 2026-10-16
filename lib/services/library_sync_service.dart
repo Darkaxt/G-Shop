@@ -16,6 +16,7 @@ import 'storage_service.dart';
 import 'thumbnail_service.dart';
 import 'unified_game_service.dart';
 import 'drive/drive_runtime.dart';
+import 'migration/migration_maintenance.dart';
 
 enum LibrarySyncPhase {
   readingGames,
@@ -114,7 +115,11 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
 
   /// Returns a Future that completes when the current sync operation finishes.
   /// Resolves immediately if no sync is in progress.
-  Future<void> waitForCompletion() => _syncCompleter?.future ?? Future.value();
+  Future<void> _thumbnailCleanup = Future.value();
+  Future<void> waitForCompletion() async {
+    await _syncCompleter?.future;
+    await _thumbnailCleanup;
+  }
 
   static final Map<String, DateTime> _lastSyncTimes = {};
   static const _freshnessDuration = Duration(minutes: 5);
@@ -196,7 +201,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Duration? syncTimeout,
     StorageService? storageService,
   }) async {
-    if (state.isSyncing) return;
+    if (state.isSyncing || MigrationMaintenance.active) return;
     if (config.systems.isEmpty) return;
 
     _isCancelled = false;
@@ -304,7 +309,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     _syncCompleter = null;
 
     // Clean orphan thumbnails after sync
-    ThumbnailService.cleanOrphans(db).catchError((e) {
+    _thumbnailCleanup = ThumbnailService.cleanOrphans(db).catchError((e) {
       debugPrint('LibrarySyncService: orphan cleanup failed: $e');
     });
   }
@@ -320,7 +325,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Set<String> forceSystemIds = const {},
     required StorageService storageService,
   }) async {
-    if (state.isSyncing) return;
+    if (state.isSyncing || MigrationMaintenance.active) return;
     if (config.systems.isEmpty) return;
 
     // Filter systems that actually need syncing
@@ -436,7 +441,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     _syncCompleter?.complete();
     _syncCompleter = null;
 
-    ThumbnailService.cleanOrphans(db).catchError((e) {
+    _thumbnailCleanup = ThumbnailService.cleanOrphans(db).catchError((e) {
       debugPrint('LibrarySyncService: orphan cleanup failed: $e');
     });
   }
@@ -444,113 +449,119 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
   /// Discovers all games across ALL configured systems (including local-only).
   /// Used by the "Scan Library" feature in Settings.
   Future<void> discoverAll(AppConfig config, {Duration? syncTimeout}) async {
-    if (state.isSyncing) return;
+    if (state.isSyncing || MigrationMaintenance.active) return;
     if (config.systems.isEmpty) return;
 
     _isCancelled = false;
-    state = LibrarySyncState(
-      isSyncing: true,
-      totalSystems: config.systems.length,
-      completedSystems: 0,
-      isUserTriggered: true,
-    );
-
-    final db = DatabaseService();
-    final gameService = _gameService(syncTimeout);
-    var completed = 0;
-    var totalGames = 0;
-    final failures = <String, String>{};
-    final perSystem = <String, int>{};
-
-    for (final systemConfig in config.systems) {
-      if (_isCancelled) break;
-
-      final systemModel = SystemModel.supportedSystems
-          .where((s) => s.id == systemConfig.id)
-          .firstOrNull;
-      if (systemModel == null) {
-        completed++;
-        state = state.copyWith(completedSystems: completed);
-        continue;
-      }
-
-      final displayName = systemModel.name;
-      state =
-          state.copyWith(currentSystem: displayName, resetGameProgress: true);
-      _currentlySyncingSystemId = systemConfig.id;
-
-      try {
-        final List<GameItem> games;
-        if (systemConfig.providers.isEmpty) {
-          // Local-only: scan filesystem via isolate
-          games = await _scanLocal(
-            systemModel,
-            systemConfig.targetFolder,
-          );
-          await _saveGames(db, systemConfig.id, games,
-              forceDeleteOrphans: true);
-        } else {
-          // Remote + local merge
-          final remoteGames = await gameService.fetchGamesForSystem(
-            systemConfig,
-          );
-          final localGames = await _scanLocal(
-            systemModel,
-            systemConfig.targetFolder,
-          );
-          games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
-          await _saveGames(db, systemConfig.id, games,
-              deleteOrphans: true,
-              authoritativeDriveSourceIds:
-                  UnifiedGameService.configuredDriveSourceIds(systemConfig));
-        }
-
-        perSystem[systemConfig.id] = games.length;
-        totalGames += games.length;
-        _lastSyncTimes[systemConfig.id] = DateTime.now();
-      } catch (e) {
-        debugPrint('Library discover failed for ${systemConfig.id}: $e');
-        failures[displayName] = _userFriendlyError(e);
-        if (systemConfig.providers.isNotEmpty) {
-          try {
-            final localGames =
-                await _scanLocal(systemModel, systemConfig.targetFolder);
-            if (localGames.isNotEmpty) {
-              await _saveGames(db, systemConfig.id, localGames);
-              perSystem[systemConfig.id] = localGames.length;
-              totalGames += localGames.length;
-              debugPrint(
-                  'LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
-            }
-          } catch (localErr) {
-            debugPrint(
-                'LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
-          }
-        }
-      } finally {
-        _currentlySyncingSystemId = null;
-      }
-
-      completed++;
-      state = state.copyWith(
-        completedSystems: completed,
-        gamesPerSystem: Map.of(perSystem),
-        totalGamesFound: totalGames,
-        failedSystems: Map.of(failures),
+    _syncCompleter = Completer<void>();
+    try {
+      state = LibrarySyncState(
+        isSyncing: true,
+        totalSystems: config.systems.length,
+        completedSystems: 0,
+        isUserTriggered: true,
       );
+
+      final db = DatabaseService();
+      final gameService = _gameService(syncTimeout);
+      var completed = 0;
+      var totalGames = 0;
+      final failures = <String, String>{};
+      final perSystem = <String, int>{};
+
+      for (final systemConfig in config.systems) {
+        if (_isCancelled) break;
+
+        final systemModel = SystemModel.supportedSystems
+            .where((s) => s.id == systemConfig.id)
+            .firstOrNull;
+        if (systemModel == null) {
+          completed++;
+          state = state.copyWith(completedSystems: completed);
+          continue;
+        }
+
+        final displayName = systemModel.name;
+        state =
+            state.copyWith(currentSystem: displayName, resetGameProgress: true);
+        _currentlySyncingSystemId = systemConfig.id;
+
+        try {
+          final List<GameItem> games;
+          if (systemConfig.providers.isEmpty) {
+            // Local-only: scan filesystem via isolate
+            games = await _scanLocal(
+              systemModel,
+              systemConfig.targetFolder,
+            );
+            await _saveGames(db, systemConfig.id, games,
+                forceDeleteOrphans: true);
+          } else {
+            // Remote + local merge
+            final remoteGames = await gameService.fetchGamesForSystem(
+              systemConfig,
+            );
+            final localGames = await _scanLocal(
+              systemModel,
+              systemConfig.targetFolder,
+            );
+            games = GameMergeHelper.merge(remoteGames, localGames, systemModel);
+            await _saveGames(db, systemConfig.id, games,
+                deleteOrphans: true,
+                authoritativeDriveSourceIds:
+                    UnifiedGameService.configuredDriveSourceIds(systemConfig));
+          }
+
+          perSystem[systemConfig.id] = games.length;
+          totalGames += games.length;
+          _lastSyncTimes[systemConfig.id] = DateTime.now();
+        } catch (e) {
+          debugPrint('Library discover failed for ${systemConfig.id}: $e');
+          failures[displayName] = _userFriendlyError(e);
+          if (systemConfig.providers.isNotEmpty) {
+            try {
+              final localGames =
+                  await _scanLocal(systemModel, systemConfig.targetFolder);
+              if (localGames.isNotEmpty) {
+                await _saveGames(db, systemConfig.id, localGames);
+                perSystem[systemConfig.id] = localGames.length;
+                totalGames += localGames.length;
+                debugPrint(
+                    'LibrarySync: saved ${localGames.length} local fallback games for ${systemConfig.id}');
+              }
+            } catch (localErr) {
+              debugPrint(
+                  'LibrarySync: local fallback failed for ${systemConfig.id}: $localErr');
+            }
+          }
+        } finally {
+          _currentlySyncingSystemId = null;
+        }
+
+        completed++;
+        state = state.copyWith(
+          completedSystems: completed,
+          gamesPerSystem: Map.of(perSystem),
+          totalGamesFound: totalGames,
+          failedSystems: Map.of(failures),
+        );
+      }
+
+      // Keep final summary visible (don't reset like syncAll does)
+      state = state.copyWith(
+        isSyncing: false,
+        currentSystem: null,
+        failedSystems: failures,
+      );
+
+      // Clean orphan thumbnails after discover
+      await ThumbnailService.cleanOrphans(db).catchError((e) {
+        debugPrint('LibrarySyncService: orphan cleanup failed: $e');
+      });
+    } finally {
+      _syncCompleter?.complete();
+      _syncCompleter = null;
     }
-
-    // Keep final summary visible (don't reset like syncAll does)
-    state = state.copyWith(
-      isSyncing: false,
-      currentSystem: null,
-      failedSystems: failures,
-    );
-
-    // Clean orphan thumbnails after discover
-    ThumbnailService.cleanOrphans(db).catchError((e) {
-      debugPrint('LibrarySyncService: orphan cleanup failed: $e');
-    });
   }
 
   /// Syncs a single system (user-triggered). Supports queuing: if a queue sync
@@ -562,6 +573,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     Duration? syncTimeout,
     StorageService? storageService,
   }) async {
+    if (MigrationMaintenance.active) return;
     final systemConfig =
         config.systems.where((s) => s.id == systemId).firstOrNull;
     if (systemConfig == null) return;
@@ -610,7 +622,7 @@ class LibrarySyncService extends StateNotifier<LibrarySyncState> {
     _syncCompleter?.complete();
     _syncCompleter = null;
 
-    ThumbnailService.cleanOrphans(db).catchError((e) {
+    _thumbnailCleanup = ThumbnailService.cleanOrphans(db).catchError((e) {
       debugPrint('LibrarySyncService: orphan cleanup failed: $e');
     });
   }

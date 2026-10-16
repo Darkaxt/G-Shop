@@ -22,10 +22,11 @@ import 'installation_index.dart';
 import 'library_store.dart';
 import 'owned_installation_removal.dart';
 import 'owned_storage.dart';
-import 'patch_build_publication.dart';
+import 'verified_file_publication.dart';
 import 'patch_build_store.dart';
 import 'transfer_journal.dart';
 import 'metadata/shared_metadata_store.dart';
+import 'migration/migration_maintenance.dart';
 
 class PatchBuildResult {
   final PatchRecipe recipe;
@@ -40,6 +41,12 @@ class PatchBuildResult {
 /// ownership and library identity. Native algorithms never receive cloud URLs.
 class PatchBuildService {
   static Future<PatchBuildResult>? _activeOperation;
+  static Future<void> joinForMigration() async {
+    try {
+      await _activeOperation;
+    } catch (_) {/* Original owner reports it. */}
+  }
+
   final Future<Database> database;
   final DriveRuntime runtime;
   final OwnedStorage storage;
@@ -96,7 +103,9 @@ class PatchBuildService {
 
   Future<PatchBuildResult> _run(
       Future<PatchBuildResult> Function(CancelToken) action) {
-    if (_activeOperation != null) throw const PatchBuildException('busy');
+    if (_activeOperation != null || MigrationMaintenance.active) {
+      throw const PatchBuildException('busy');
+    }
     final cancellation = CancelToken();
     _cancellation = cancellation;
     final operation = action(cancellation);
@@ -426,9 +435,9 @@ class PatchBuildService {
       RemoteArtifact artifact,
       File output,
       CancelToken cancellation) async {
-    final record = await PatchBuildPublication(journal, storage: storage)
+    final record = await VerifiedFilePublication(journal, storage: storage)
         .publish(
-            buildId: row['buildId'] as String,
+            transferId: 'patch-${row['buildId']}',
             artifact: artifact,
             output: output,
             targetRoot: row['targetRoot'] as String,

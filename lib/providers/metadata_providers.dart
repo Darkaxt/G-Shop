@@ -22,6 +22,7 @@ import '../models/config/provider_config.dart';
 import '../models/library_identity.dart';
 import '../services/source_resolver.dart';
 import '../services/drive/drive_runtime.dart';
+import '../services/migration/migration_maintenance.dart';
 import 'app_providers.dart' show configStorageServiceProvider;
 import 'library_providers.dart';
 
@@ -161,8 +162,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
     if (!_closed && mounted) state = next;
   }
 
-  Future<void> load() =>
-      _loading ??= _load().whenComplete(() => _loading = null);
+  Future<void> load() => MigrationMaintenance.active
+      ? (_loading ?? Future.value())
+      : _loading ??= _load().whenComplete(() => _loading = null);
   Future<void> _load() async {
     try {
       final id = state.providerId;
@@ -252,7 +254,9 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       });
 
   Future<void> _perform(Future<void> Function() action) {
-    if (_closed || state.busy || state.loading) return Future.value();
+    if (_closed || state.busy || state.loading || MigrationMaintenance.active) {
+      return Future.value();
+    }
     _pauseRequested = false;
     _set(state.copyWith(busy: true, error: false));
     return _operation = () async {
@@ -587,6 +591,11 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       _set(state.copyWith(error: true));
     }
     await _operation;
+  }
+
+  Future<void> joinForMigration() async {
+    await pause();
+    await _loading;
   }
 
   /// Join in-flight storage/network work before closing its adapters.

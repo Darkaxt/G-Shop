@@ -124,6 +124,37 @@ Updates retain `com.darkaxt.rshop` and its production signing identity. This dif
 - Removing a managed local game does not remove its cloud ROM. Cache cleanup does not authorize deleting unrelated files.
 - Scores, artwork, BIOS, ROMs, provider credentials and Socket resources are not bundled.
 
+## Move your R-Shop setup to another device
+
+The development branch adds **Settings → General → Device migration**. This is
+separate from public configuration sharing and is not yet in release 1.9.1.
+
+Choose **Backup**, set a password of at least 12 characters, then share the single
+encrypted `.rshop` file. On the destination, choose **Restore**, select that file
+and unlock it once. R-Shop restores its setup without asking you to re-enter each
+provider's API keys. Keep the password somewhere safe: it is not recoverable from
+the archive or the old device.
+
+The archive contains source configuration, stored credentials, preferences,
+favorites, emulator/save mappings, metadata/artwork, imported media, patch data,
+managed downloaded games and their recorded associated data. It is a sensitive
+private backup—never attach it to a public issue or commit it to a repository.
+It is not a whole-device backup and does not include unrelated apps, BIOS folders
+or ROMs that R-Shop does not manage.
+
+Android may still require Google account consent, storage access or root approval;
+those device permissions cannot be transferred. Missing imported saves are placed
+through the normal restore path before launch. Different destination saves are
+kept until you choose **Use imported** or **Keep current**; replacing a copy retains
+the previous bytes. Import does not silently enable disabled monitoring or upload
+unchanged imported saves.
+
+If import is interrupted, reopen Device migration and use **Recovery → Resume**.
+Startup settles the saved setup transaction before normal jobs run. **Restore
+previous** recovers the preceding R-Shop setup; it does not erase games published
+by migration or undo later emulator gameplay. Public config/recipe exports remain
+credential-free and are not a replacement for this encrypted backup.
+
 ## Upstream heritage and documentation
 
 Thanks to [AverageConsumer and upstream contributors](https://github.com/AverageConsumer/R-Shop) for the original frontend, controller navigation, source integrations, queue, achievements and artwork foundation. Existing upstream screenshots remain in `screenshots/`; the gallery above is specifically this fork on Thor.

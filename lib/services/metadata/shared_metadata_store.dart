@@ -12,6 +12,7 @@ import '../../models/scraped_metadata.dart';
 import '../../models/transfer_record.dart';
 import '../../models/portable_patch_recipe.dart';
 import '../installation_index.dart';
+import '../migration/migration_data.dart';
 import '../drive/drive_bundle.dart';
 import '../library_store.dart';
 import 'metadata_artwork_cache.dart';
@@ -143,6 +144,10 @@ class SharedMetadataStore {
   }
 
   Future<void> close() => _db.close();
+  Future<void> snapshotForMigration(File target) async {
+    await requireAccess();
+    await MigrationData.snapshotDatabase(_db, target);
+  }
 
   static Future<void> _installPatchRecipes(DatabaseExecutor db) =>
       db.execute('''CREATE TABLE IF NOT EXISTS patch_recipes (

@@ -8,6 +8,7 @@ import '../metadata_settings_screen.dart';
 import '../save_backup_settings_screen.dart';
 import '../rom_cache_settings_screen.dart';
 import '../media_settings_screen.dart';
+import '../migration_settings_screen.dart';
 import '../models/settings_entry.dart';
 import '../sources_screen.dart';
 import 'settings_list_view.dart';
@@ -47,6 +48,10 @@ class SettingsGeneralTab extends ConsumerWidget {
       firstFocusNode: firstFocusNode,
       sections: [
         SettingsSection(l.settings_sectionLibrary, [
+          SettingsEntry.nav(icon: Icons.move_to_inbox_outlined,
+              title: 'Device migration', subtitle: 'Encrypted full backup and restore',
+              onSelect: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const MigrationSettingsScreen()))),
           SettingsEntry.nav(
               icon: Icons.sd_storage_outlined,
               title: 'ROM cache',

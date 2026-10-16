@@ -16,7 +16,8 @@ internal object RomCacheChannel {
     const val PERIODIC_ID = 0x525344
     const val EXPIRY_ID = 0x525345
     private const val PERIOD = 6L*60*60*1000
-    private data class Waiting(val channel: MethodChannel, val reply: MethodChannel.Result)
+    private data class Waiting(val channel: MethodChannel, val reply: MethodChannel.Result,
+        val migration: Boolean = false)
     private val waiting = ArrayDeque<Waiting>()
     private var owner: MethodChannel? = null
     var foreground: MethodChannel? = null
@@ -33,7 +34,10 @@ internal object RomCacheChannel {
                     "ready" -> { if (foregroundEngine) foreground = channel; reply.success(null); ready?.invoke() }
                     "acquire" -> {
                         check(owner !== channel && waiting.none { it.channel === channel })
-                        waiting.add(Waiting(channel, reply)); admit()
+                        val migration = call.argument<Boolean>("migration") == true
+                        if(MigrationChannel.busy && !migration) {
+                            reply.error("migration_in_progress","Migration in progress",null)
+                        } else { waiting.add(Waiting(channel, reply, migration)); admit() }
                     }
                     "cancelAdmission" -> {
                         val cancelled = waiting.filter { it.channel === channel }
@@ -57,7 +61,10 @@ internal object RomCacheChannel {
     }
     private fun admit() {
         if (owner != null || waiting.isEmpty()) return
-        val next = waiting.removeFirst(); owner = next.channel; next.reply.success(null)
+        val next = waiting.removeFirst()
+        if(MigrationChannel.busy && !next.migration) {
+            next.reply.error("migration_in_progress","Migration in progress",null); admit()
+        } else { owner = next.channel; next.reply.success(null) }
     }
     fun watchDetach(channel:MethodChannel, callback:()->Unit):()->Unit {
         if (foreground === channel) detached.add(callback) else callback()

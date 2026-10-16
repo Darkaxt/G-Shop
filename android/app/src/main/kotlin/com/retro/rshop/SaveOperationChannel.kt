@@ -13,9 +13,17 @@ internal object SaveOperationChannel {
                     result.error("invalid_operation", "Invalid save operation", null)
                 } else try {
                     when (call.method) {
-                        "acquire" -> gate.acquire(owner, id) { granted ->
-                            if (granted) result.success(null)
-                            else result.error("cancelled", "Save operation cancelled", null)
+                        "acquire" -> {
+                            val migration = call.argument<Boolean>("migration") == true
+                            if (MigrationChannel.busy && !migration) {
+                                result.error("migration_in_progress", "Migration in progress", null)
+                            } else gate.acquire(owner, id) { granted ->
+                                if (granted && MigrationChannel.busy && !migration) {
+                                    gate.release(owner, id)
+                                    result.error("migration_in_progress", "Migration in progress", null)
+                                } else if (granted) result.success(null)
+                                else result.error("cancelled", "Save operation cancelled", null)
+                            }
                         }
                         "release" -> result.success(gate.release(owner, id))
                         "cancel" -> result.success(gate.cancel(owner, id))

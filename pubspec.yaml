@@ -38,6 +38,8 @@ dependencies:
   flutter_foreground_task: 9.2.0
   image: 4.3.0
   crypto: 3.0.7
+  cryptography: 2.9.0
+  cryptography_flutter: 2.3.4
   collection: 1.19.1
   url_launcher: 6.3.2
   confetti: 0.8.0

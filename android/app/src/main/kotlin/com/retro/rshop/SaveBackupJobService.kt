@@ -22,6 +22,8 @@ open class SaveBackupJobService : JobService() {
     private var reschedule = false
 
     override fun onStartJob(params: JobParameters): Boolean {
+        if (MigrationChannel.active(applicationContext)) return false
+        MigrationChannel.jobStarted()
         parameters = params; stopped = false; finished = false; reschedule = false
         val foreground = SaveBackgroundChannel.foreground
         if (foreground != null) {
@@ -136,6 +138,7 @@ open class SaveBackupJobService : JobService() {
         if (!stopped) parameters?.let { jobFinished(it, reschedule) }
         parameters = null
         channel = null
+        MigrationChannel.jobFinished()
     }
 }
 

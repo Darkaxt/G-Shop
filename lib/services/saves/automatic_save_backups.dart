@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
+import '../migration/migration_maintenance.dart';
+import '../migration/migration_game_data.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -24,6 +27,13 @@ import 'save_capture.dart';
 /// Explicit save association, never a title-only game match.
 /// Watches request work; each emulator's capture boundary still decides when
 /// bytes are safe. RetroArch uses root writer checks and a mutation guard.
+typedef MigrationCapturedData = ({
+  AutomaticSaveMapping mapping,
+  CapturedSaveGroup group,
+  Map<String, Object?> scope,
+  String sourceJobKey
+});
+
 class AutomaticSaveMapping {
   final String clientId, accountId, areaId, editionId, directory, slot, title;
   final bool isMelon, isPpssppSavedata, isPpssppCompanion, isRomCompanion;
@@ -41,6 +51,8 @@ class AutomaticSaveMapping {
           SaveCapture.ppssppScreenshotName(value) == slot
       : value == slot;
   final RemoteArtifactId artifactId;
+  factory AutomaticSaveMapping.decode(String encoded) => AutomaticSaveMapping._(
+      (jsonDecode(encoded) as Map).cast<String, dynamic>());
   AutomaticSaveMapping._(Map<String, dynamic> value)
       : saveRootConfiguration = value['saveRoot'] == null
             ? null
@@ -381,6 +393,10 @@ class AutomaticSaveStatus {
 /// No timers, recursive file scans or automatic conflict choices.
 /// Android dispatch shares this lane or acquires the native cross-engine gate.
 class AutomaticSaveBackups extends ChangeNotifier {
+  static String _migrationCaptureId() =>
+      List.generate(16, (_) => Random.secure().nextInt(256))
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
   final Future<Database> database;
   final SharedPreferences preferences;
   final List<Source> Function() sources;
@@ -544,6 +560,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   Future<void> reconcileSchedule() async {
+    if (MigrationMaintenance.active) return;
     await reconcileWatches();
     if (scheduleBackground == null) return;
     final db = await _db();
@@ -565,6 +582,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   /// event admission so a delayed opt-in cannot reinstall an opted-out watch.
   /// This is process-lifetime observation, with periodic/return recovery below.
   Future<void> reconcileWatches() {
+    if (MigrationMaintenance.active) return Future.value();
     if (configureWatches == null) return Future.value();
     final generation = _cancelGeneration;
     final event = _events.then((_) async {
@@ -674,12 +692,16 @@ class AutomaticSaveBackups extends ChangeNotifier {
     }
   }
 
-  Future<String> _resolve(AutomaticSaveMapping mapping) async {
+  Future<String> _resolve(AutomaticSaveMapping mapping,
+      {bool allowDisabled = false}) async {
     await refreshConfiguration?.call();
     _requireConfiguration(mapping);
     final db = await _db();
     final rows = await db.query('automatic_save_backups',
-        where: 'mapping_key = ? AND enabled = 1', whereArgs: [mapping.key]);
+        where: allowDisabled
+            ? 'mapping_key = ?'
+            : 'mapping_key = ? AND enabled = 1',
+        whereArgs: [mapping.key]);
     if (_disposed ||
         rows.length != 1 ||
         rows.single['record_json'] != mapping.encode()) {
@@ -688,14 +710,20 @@ class AutomaticSaveBackups extends ChangeNotifier {
     return mapping.slot;
   }
 
-  SaveBackupGameJob _open(AutomaticSaveMapping mapping) {
+  SaveBackupGameJob _open(AutomaticSaveMapping mapping,
+      {bool allowDisabled = false}) {
     Future<String> resolve() async {
-      final name = await _resolve(mapping);
-      if (mapping.isPcsx) await _resolvePcsxGrant(mapping);
+      final name = await _resolve(mapping, allowDisabled: allowDisabled);
+      if (mapping.isPcsx) {
+        await _resolvePcsxGrant(mapping, allowDisabled: allowDisabled);
+      }
       return name;
     }
 
-    if (createJob != null) return createJob!(mapping, () => _resolve(mapping));
+    if (createJob != null) {
+      return createJob!(
+          mapping, () => _resolve(mapping, allowDisabled: allowDisabled));
+    }
     final authorization =
         DriveRuntime.instance.authorizationFor(mapping.clientId);
     return SaveBackupGameJob(
@@ -732,10 +760,12 @@ class AutomaticSaveBackups extends ChangeNotifier {
         retroArchRoute: mapping.retroArchRoute ?? RetroArchBatteryRoute.mgba,
         pcsxLayout: mapping.pcsxLayout,
         pcsxCard: mapping.pcsxCard,
-        resolvePcsxGrant:
-            mapping.isPcsx ? () => _resolvePcsxGrant(mapping) : null,
+        resolvePcsxGrant: mapping.isPcsx
+            ? () => _resolvePcsxGrant(mapping, allowDisabled: allowDisabled)
+            : null,
         resolveRomCompanionGrant: mapping.isRomCompanion
-            ? () => _resolveRomCompanionGrant(mapping)
+            ? () =>
+                _resolveRomCompanionGrant(mapping, allowDisabled: allowDisabled)
             : null,
         romCompanionName: mapping.isRomCompanion ? mapping.slot : null,
         romCompanionDirectory:
@@ -748,8 +778,9 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   Future<Map<String, Object>> _resolveRomCompanionGrant(
-      AutomaticSaveMapping mapping) async {
-    await _resolve(mapping);
+      AutomaticSaveMapping mapping,
+      {bool allowDisabled = false}) async {
+    await _resolve(mapping, allowDisabled: allowDisabled);
     final artifact = await LibraryStore(database).artifact(mapping.artifactId);
     if (artifact == null) throw PlatformException(code: 'source_changed');
     final baseGrant = await OwnedEmulatorLauncher().resolveRomCompanionGrant(
@@ -773,9 +804,9 @@ class AutomaticSaveBackups extends ChangeNotifier {
     return grant;
   }
 
-  Future<Map<String, Object>> _resolvePcsxGrant(
-      AutomaticSaveMapping mapping) async {
-    await _resolve(mapping);
+  Future<Map<String, Object>> _resolvePcsxGrant(AutomaticSaveMapping mapping,
+      {bool allowDisabled = false}) async {
+    await _resolve(mapping, allowDisabled: allowDisabled);
     final artifact = await LibraryStore(database).artifact(mapping.artifactId);
     if (artifact == null) throw PlatformException(code: 'source_changed');
     final grant = await OwnedEmulatorLauncher().resolveRetroArchPcsxGrant(
@@ -840,8 +871,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
       Future<void> Function(SaveBackupGameJob)? reviewDeviceBackups}) async {
     final generation = _cancelGeneration;
     final db = await _db();
-    final enabled = await db.query('automatic_save_backups',
-        where: 'enabled = 1', limit: 4097);
+    final enabled = await db.query('automatic_save_backups', limit: 4097);
     if (enabled.length > 4096) throw const FormatException('Too many mappings');
     final rows = <Map<String, Object?>>[];
     for (final row in enabled) {
@@ -871,11 +901,68 @@ class AutomaticSaveBackups extends ChangeNotifier {
       if (_disposed || generation != _cancelGeneration) {
         throw PlatformException(code: 'cancelled');
       }
-      for (final row in rows) {
-        final raw = row['record_json'] as String;
+      for (final sourceRow in rows) {
+        var row = sourceRow;
+        var raw = row['record_json'] as String;
         if (raw.length > 16384) throw const FormatException('Invalid mapping');
-        final mapping =
+        var mapping =
             AutomaticSaveMapping._(jsonDecode(raw) as Map<String, dynamic>);
+        if (row['outcome'] == 'migrated') {
+          final value = jsonDecode(raw) as Map<String, dynamic>;
+          if (mapping.isRetroArch && reviewRetroArchSave != null) {
+            final current = await reviewRetroArchSave(mapping.retroArchRoute!);
+            if (!SaveCapture.validName(current)) {
+              throw PlatformException(code: 'source_changed');
+            }
+            value['slot'] = current;
+          } else if (mapping.isPcsx && reviewPcsxSaves != null) {
+            final current = await reviewPcsxSaves();
+            final card = current.cards
+                .where((card) =>
+                    card.slot == mapping.pcsxCard!.slot &&
+                    card.mode == mapping.pcsxCard!.mode &&
+                    card.name != null)
+                .singleOrNull;
+            if (card == null) throw PlatformException(code: 'source_changed');
+            value['directory'] = current.directory;
+            value['slot'] = card.name;
+            value['pcsx'] = {
+              'directory': current.directory,
+              'cards': [
+                {'slot': card.slot, 'mode': card.mode, 'name': card.name}
+              ]
+            };
+          }
+          final rebound = AutomaticSaveMapping._(value);
+          if (rebound.encode() != raw) {
+            if (!await preferences.setString(
+                rebound.slotStorageKey, jsonEncode(rebound.selection))) {
+              throw PlatformException(code: 'mapping_unavailable');
+            }
+            await db.transaction((txn) async {
+              final existing = await txn.query('automatic_save_backups',
+                  where: 'mapping_key=? AND record_json=?',
+                  whereArgs: [mapping.key, raw]);
+              if (existing.length != 1) {
+                throw PlatformException(code: 'source_changed');
+              }
+              await txn.delete('automatic_save_backups',
+                  where: 'mapping_key=?', whereArgs: [mapping.key]);
+              await txn.insert('automatic_save_backups', {
+                ...row,
+                'mapping_key': rebound.key,
+                'record_json': rebound.encode()
+              });
+            });
+            row = {
+              ...row,
+              'mapping_key': rebound.key,
+              'record_json': rebound.encode()
+            };
+            raw = rebound.encode();
+            mapping = rebound;
+          }
+        }
         SaveBackupGameJob? job;
         String? failure;
         Future<void> reviewTarget() async {
@@ -894,42 +981,53 @@ class AutomaticSaveBackups extends ChangeNotifier {
         }
 
         try {
+          final monitoring = row['enabled'] == 1;
+          if (!monitoring) {
+            job = _active = _open(mapping, allowDisabled: true);
+            await job.load();
+            if (!job.importedDataPending) continue;
+          }
           if (mapping.key != row['mapping_key'] ||
               (editionId != null && mapping.editionId != editionId)) {
             throw PlatformException(code: 'source_changed');
           }
-          await _resolve(mapping);
+          await _resolve(mapping, allowDisabled: !monitoring);
           await reviewTarget();
           if (_disposed || generation != _cancelGeneration) {
             throw PlatformException(code: 'cancelled');
           }
           _activeKey = mapping.key;
-          if (networkAvailable != null && !await networkAvailable!()) {
+          job ??= _active = _open(mapping);
+          job.addListener(_notify);
+          await job.restoreMigrationBeforeLaunch(mapping.slot);
+          if (!monitoring || job.importedDataPending) {
+            // A different destination copy remains the current device's data.
+            // The imported local branch stays reviewable; do not upload either
+            // branch implicitly while that choice is still unresolved.
+          } else if (networkAvailable != null && !await networkAvailable!()) {
             // No cloud decision is possible offline. Keep the local copy and
             // record work before handing off; never invent a successful sync.
             await requestChanged(mapping.key);
             failure = 'offline';
           } else {
-            job = _active = _open(mapping);
-            job.addListener(_notify);
             await job.reconcileBeforeLaunch(mapping.slot);
           }
-          if (job != null &&
+          if (monitoring &&
               job.issue == null &&
               !job.restorePending &&
               job.suggestedDeviceBackups.isNotEmpty &&
               reviewDeviceBackups != null) {
             await reviewDeviceBackups(job);
           }
-          await _resolve(mapping);
+          await _resolve(mapping, allowDisabled: !monitoring);
           await reviewTarget();
           failure = failure ??
-              job?.issue ??
-              (job?.restorePending == true ? 'pending_restore' : null) ??
-              (job?.conflicts.isNotEmpty == true ? 'save_conflict' : null);
+              job.issue ??
+              (job.restorePending ? 'pending_restore' : null) ??
+              (job.conflicts.isNotEmpty ? 'save_conflict' : null);
           if (failure == null &&
               !{'verified', 'unchanged', 'restored', 'no_save'}
-                  .contains(job?.phase)) {
+                  .contains(job.phase)) {
             failure = 'backup_unavailable';
           }
           if (failure != null && failure != 'offline') {
@@ -964,7 +1062,9 @@ class AutomaticSaveBackups extends ChangeNotifier {
         throw PlatformException(code: 'cancelled');
       }
       if (configureWatches == null ||
-          !rows.every((row) => _watchedKeys.contains(row['mapping_key']))) {
+          !rows
+              .where((row) => row['enabled'] == 1)
+              .every((row) => _watchedKeys.contains(row['mapping_key']))) {
         throw PlatformException(code: 'watch_unavailable');
       }
     }));
@@ -982,6 +1082,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   /// Called by actual startup/resume/background events, also recovering changes
   /// missed while Android had no live watcher process.
   Future<void> checkEnabled() async {
+    if (MigrationMaintenance.active) return;
     final generation = _cancelGeneration;
     await reconcileWatches();
     await _request(null);
@@ -990,6 +1091,7 @@ class AutomaticSaveBackups extends ChangeNotifier {
   }
 
   Future<void> _drain() {
+    if (MigrationMaintenance.active) return Future.value();
     final generation = _cancelGeneration;
     if (_operation case final pending?) {
       return pending
@@ -1040,12 +1142,14 @@ class AutomaticSaveBackups extends ChangeNotifier {
           job = _active = _open(mapping);
           job.addListener(_notify);
           await job.load();
-          if (job.conflicts.isNotEmpty) {
+          if (job.importedDataPending) {
+            issue = 'migration_data_pending';
+          } else if (job.conflicts.isNotEmpty) {
             issue = 'save_conflict';
           } else if (job.restorePending) {
             issue = 'pending_restore';
           } else {
-            await job.backup(mapping.slot);
+            await job.backup(mapping.slot, automatic: true);
             // A concurrent manual operation may own the same durable job.
             // Refresh after joining it, never interpret another object's idle
             // fields as proof of our requested capture being verified.
@@ -1093,6 +1197,52 @@ class AutomaticSaveBackups extends ChangeNotifier {
     await _active?.cancelAndJoin();
     await _operation;
     await _events;
+  }
+
+  /// Capture all saved game associations (including opted-out monitoring) using
+  /// the same native stable-file boundary as save backup, without Drive traffic.
+  Future<List<MigrationCapturedData>> captureForMigration() async {
+    final db = await _db();
+    final rows = await db.query('automatic_save_backups',
+        orderBy: 'mapping_key', limit: 4097);
+    if (rows.length > 4096) {
+      throw const FormatException('Too many save mappings');
+    }
+    final captured = <MigrationCapturedData>[];
+    final scopes = <String>{};
+    try {
+      for (final row in rows) {
+        final mapping =
+            AutomaticSaveMapping.decode(row['record_json'] as String);
+        final job = _open(mapping, allowDisabled: true);
+        try {
+          if (!scopes.add(MigrationGameData.scopeKey(job.migrationScope))) {
+            continue;
+          }
+          _active = job;
+          final id = _migrationCaptureId();
+          final group = await job.captureForMigration(id, mapping.slot);
+          captured.add((
+            mapping: mapping,
+            group: group,
+            scope: job.migrationScope,
+            sourceJobKey: job.migrationJobKey
+          ));
+        } finally {
+          await job.cancelAndJoin();
+          if (identical(_active, job)) _active = null;
+          job.dispose();
+          job.areas.close();
+          job.generations.close();
+        }
+      }
+      return captured;
+    } catch (_) {
+      for (final item in captured) {
+        await SaveCapture().retireCapture(item.group.captureId);
+      }
+      rethrow;
+    }
   }
 
   @override

@@ -9,7 +9,7 @@ import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/services/installation_index.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
-import 'package:retro_eshop/services/patch_build_publication.dart';
+import 'package:retro_eshop/services/verified_file_publication.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -21,7 +21,7 @@ void main() {
   late Database db;
   late TransferJournal journal;
   late OwnedStorageFixture native;
-  late PatchBuildPublication publisher;
+  late VerifiedFilePublication publisher;
   late File output;
   final bytes = Uint8List.fromList(List.generate(131085, (i) => i % 251));
   RemoteArtifact artifact({String id = 'recipe'}) => RemoteArtifact(
@@ -38,7 +38,7 @@ void main() {
   Future<TransferRecord> publish(
           {String id = 'build', CancelToken? cancellation}) =>
       publisher.publish(
-          buildId: id,
+          transferId: 'patch-$id',
           artifact: artifact(),
           output: output,
           targetRoot: '/roms',
@@ -49,7 +49,7 @@ void main() {
     await TransferJournalSchema.install(db);
     journal = TransferJournal(Future.value(db));
     native = OwnedStorageFixture()..install();
-    publisher = PatchBuildPublication(journal,
+    publisher = VerifiedFilePublication(journal,
         storage: OwnedStorage(channel: native.channel));
     final root =
         await Directory.systemTemp.createTemp('rshop-patch-publication-');
@@ -128,7 +128,7 @@ void main() {
     expect((await journal.transfer('patch-build'))!.publication!.confirmed,
         isTrue);
     final writes = native.methods.where((m) => m == 'ownedWrite').length;
-    publisher = PatchBuildPublication(TransferJournal(Future.value(db)),
+    publisher = VerifiedFilePublication(TransferJournal(Future.value(db)),
         storage: publisher.storage);
     final result = await publish();
     expect(result.lifecycle, TransferLifecycle.completed);

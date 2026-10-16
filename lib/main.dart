@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import 'core/input/input.dart';
 import 'core/theme/app_theme.dart';
 import 'models/system_model.dart';
@@ -24,6 +26,7 @@ import 'services/socket_media_import.dart';
 import 'services/haptic_service.dart';
 import 'services/audio_manager.dart';
 import 'services/database_service.dart';
+import 'services/migration/migration_service.dart';
 import 'services/download_foreground_service.dart';
 import 'services/download_service.dart';
 import 'services/native_smb_service.dart';
@@ -55,6 +58,25 @@ void main() {
 
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    try {
+      await MigrationService.recoverBeforeBootstrap(Directory(
+          '${(await getApplicationSupportDirectory()).path}/migrations'));
+    } catch (_) {
+      // Do not bootstrap against partially restored files or log their values.
+      // Recovery remains durable; retry observes the original transaction.
+      runApp(MaterialApp(theme: ThemeData.dark(), home: Scaffold(
+        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.restore_outlined, size: 48),
+          const SizedBox(height: 16),
+          const Text('R-Shop could not recover the previous setup.'),
+          const Text('Your files have been kept. Retry after storage is available.'),
+          const SizedBox(height: 16),
+          FilledButton.icon(autofocus: true, onPressed: main,
+              icon: const Icon(Icons.refresh), label: const Text('Retry')),
+        ])),
+      )));
+      return;
+    }
     LicenseRegistry.addLicense(mediaArtworkLicenses);
     LicenseRegistry.addLicense(patchEngineLicenses);
     installGamepadKeyFix();

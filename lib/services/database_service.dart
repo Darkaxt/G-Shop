@@ -25,6 +25,14 @@ class DatabaseService {
   static const String _tableName = 'games';
   static const int _dbVersion = 41;
 
+  /// Migration owns joined foreground/headless IO before calling this. A new
+  /// engine/normal bootstrap then opens the activated database, never this handle.
+  static Future<void> closeForMigration() async {
+    final pending = _initFuture;
+    if (pending != null) await (await pending).close();
+    _initFuture = null;
+  }
+
   @visibleForTesting
   static Database? testDatabase;
 

@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as p;
+import 'package:retro_eshop/services/migration/migration_game_data.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +63,7 @@ class _Capture extends SaveCapture {
   final pcsxRestores = <String>[];
   bool companionNested = false;
   SaveRootConfiguration? configuredRoot;
+  final companionCaptureMembers = <Set<String>>[];
   String runtimeFingerprint = 'd' * 64;
   @override
   Future<RomCompanionSnapshot> reviewRomCompanions(
@@ -92,6 +96,7 @@ class _Capture extends SaveCapture {
       required Set<String> members,
       required String emulatorPackage,
       bool restoreBaseline = false}) async {
+    companionCaptureMembers.add(Set.of(members));
     if (captureIssue != null) throw PlatformException(code: captureIssue!);
     if (sealed[captureId] case final previous?) return previous;
     captures++;
@@ -690,6 +695,231 @@ void main() {
             sizeBytes: base.members.single.sizeBytes,
             sha256: 'c' * 64)
       ]);
+
+  test('migration restores absent local data offline without a cloud request',
+      () async {
+    final support = await Directory.systemTemp.createTemp('migration-save-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => support.path);
+    addTearDown(() async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      await support.delete(recursive: true);
+    });
+    final file = File(
+        p.join(support.path, 'migration-game-data', 'branch', currentName));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes([1, 2, 3, 4]);
+    await MigrationGameData.install(db);
+    final data = {
+      'schema': 1,
+      'id': 'branch',
+      'state': 'pending',
+      'scope': job.migrationScope,
+      'members': [
+        {
+          'name': currentName,
+          'path': file.path,
+          'size': 4,
+          'sha256': sha256.convert([1, 2, 3, 4]).toString()
+        }
+      ]
+    };
+    await db.insert('migration_game_data', {
+      'branch_id': 'branch',
+      'scope_key': MigrationGameData.scopeKey(job.migrationScope),
+      'state': 'pending',
+      'created_at': 1,
+      'record_json': jsonEncode(data)
+    });
+    capture.localAbsent = true;
+    await job.restoreMigrationBeforeLaunch(currentName);
+    expect(job.phase, 'restored');
+    expect(capture.restored, hasLength(1));
+    expect(generations.downloads, 0);
+    expect(generations.uploads, 0);
+    await job.restoreMigrationBeforeLaunch(currentName);
+    expect(capture.restored, hasLength(1),
+        reason: 'Do not replay a completed local restore');
+  });
+
+  test(
+      'migration preserves differing destination bytes until explicitly selected',
+      () async {
+    final support =
+        await Directory.systemTemp.createTemp('migration-conflict-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => support.path);
+    addTearDown(() async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      await support.delete(recursive: true);
+    });
+    final file = File(
+        p.join(support.path, 'migration-game-data', 'branch', currentName));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes([1, 2, 3, 4]);
+    await MigrationGameData.install(db);
+    final data = {
+      'schema': 1,
+      'id': 'branch',
+      'state': 'pending',
+      'scope': job.migrationScope,
+      'members': [
+        {
+          'name': currentName,
+          'path': file.path,
+          'size': 4,
+          'sha256': sha256.convert([1, 2, 3, 4]).toString()
+        }
+      ]
+    };
+    await db.insert('migration_game_data', {
+      'branch_id': 'branch',
+      'scope_key': MigrationGameData.scopeKey(job.migrationScope),
+      'state': 'pending',
+      'created_at': 1,
+      'record_json': jsonEncode(data)
+    });
+    await job.restoreMigrationBeforeLaunch(currentName);
+    expect(job.importedDataPending, true);
+    expect(capture.restored, isEmpty);
+    await job.restoreMigrationBeforeLaunch(currentName, useImported: true);
+    expect(capture.restored, hasLength(1));
+    expect(job.hasPreviousImportedData, true);
+    expect(generations.uploads, 0);
+  });
+
+  test(
+      'migration rebinds the reviewed battery name and only uploads later changes',
+      () async {
+    final support =
+        await Directory.systemTemp.createTemp('migration-baseline-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => support.path);
+    addTearDown(() async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      await support.delete(recursive: true);
+    });
+    final file = File(p.join(
+        support.path, 'migration-game-data', 'branch', 'old-native-uri.srm'));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes([1, 2, 3, 4]);
+    final digest = sha256.convert([1, 2, 3, 4]).toString();
+    await MigrationGameData.install(db);
+    final data = {
+      'schema': 1,
+      'id': 'branch',
+      'state': 'pending',
+      'scope': job.migrationScope,
+      'members': [
+        {
+          'name': 'old-native-uri.srm',
+          'path': file.path,
+          'size': 4,
+          'sha256': digest
+        }
+      ]
+    };
+    await db.insert('migration_game_data', {
+      'branch_id': 'branch',
+      'scope_key': MigrationGameData.scopeKey(job.migrationScope),
+      'state': 'pending',
+      'created_at': 1,
+      'record_json': jsonEncode(data)
+    });
+    currentName = 'new-native-uri.srm';
+    capture.localAbsent = true;
+    await job.restoreMigrationBeforeLaunch(currentName);
+    expect(capture.stagedNames.single, currentName);
+    capture.localAbsent = false;
+    capture.digest = digest;
+    await job.backup(currentName, automatic: true);
+    expect(job.phase, 'unchanged');
+    expect(generations.uploads, 0,
+        reason: 'Imported bytes are not a new save event');
+    await job.load();
+    expect(job.issue, isNull);
+    capture.digest = 'c' * 64;
+    await job.backup(currentName, automatic: true);
+    expect(job.phase, 'verified');
+    expect(generations.uploads, 1,
+        reason:
+            'A genuine later change follows normal cloud conflict handling');
+  });
+
+  test(
+      'migration binds an absent companion baseline to the restored member set',
+      () async {
+    final support =
+        await Directory.systemTemp.createTemp('migration-companion-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => support.path);
+    final companionJob = SaveBackupGameJob(
+        database: Future.value(db),
+        capture: capture,
+        areas: areas,
+        generations: generations,
+        clientId: 'client',
+        accountId: 'account',
+        areaId: 'area',
+        editionId: 'edition',
+        artifactId: artifactId,
+        resolveSaveName: () async => 'Game.7z',
+        romCompanionName: 'Game.7z',
+        romCompanionDirectory: '/storage/emulated/0/Roms/gba',
+        romCompanionPlatform: 'gba',
+        romCompanionEmulator: 'com.retroarch.aarch64',
+        romCompanionCore: 'mgba',
+        resolveRomCompanionGrant: () async =>
+            {'installationId': 'owned', 'filename': 'Game.7z'});
+    addTearDown(() async {
+      await companionJob.cancelAndJoin();
+      companionJob.dispose();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      await support.delete(recursive: true);
+    });
+    final file =
+        File(p.join(support.path, 'migration-game-data', 'branch', 'Game.png'));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes([1, 2, 3, 4]);
+    await MigrationGameData.install(db);
+    final data = {
+      'schema': 1,
+      'id': 'branch',
+      'state': 'pending',
+      'scope': companionJob.migrationScope,
+      'members': [
+        {
+          'name': 'Game.png',
+          'path': file.path,
+          'size': 4,
+          'sha256': sha256.convert([1, 2, 3, 4]).toString()
+        }
+      ]
+    };
+    await db.insert('migration_game_data', {
+      'branch_id': 'branch',
+      'scope_key': MigrationGameData.scopeKey(companionJob.migrationScope),
+      'state': 'pending',
+      'created_at': 1,
+      'record_json': jsonEncode(data)
+    });
+    capture.localAbsent = true;
+    await companionJob.restoreMigrationBeforeLaunch('Game.7z');
+    expect(companionJob.phase, 'restored');
+    expect(capture.companionCaptureMembers.single, {'Game.png'},
+        reason:
+            'The native rollback receipt must bind the same members as publication, even when absent');
+    expect(capture.stagedGroups.single, ['Game.png']);
+    expect(generations.uploads, 0);
+  });
 
   test('another device never becomes an automatic restore or conflict',
       () async {

@@ -5,11 +5,11 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16-S20 COMPLETE, S21 NOT STARTED, 2026-10-16
+### Collection/patch extension — S16-S21 COMPLETE, 2026-10-16
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17-S20 are COMPLETE; S21 is NOT STARTED.
+COMPLETE; S17-S21 are COMPLETE. No implementation stage remains ACTIVE.
 Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
@@ -96,7 +96,147 @@ API credentials and persistent setup/data, without repeated per-feature setup.
 Current Export config is plain credential-stripped JSON, not this capability;
 secure credentials are presently device-local. BACKUP-MIGRATE-01 distinguishes private
 encrypted migration from public sharing and destination-owned OS grants/state.
-No migration implementation or export has been started; S21 is NOT STARTED.
+S21 implementation is authorized and COMPLETE. The streamed encrypted archive,
+joined snapshot, destination rebinding/publication, transactional activation and
+sectioned Backup/Restore controls are integrated. Host evidence verifies streamed
+bytes/credentials, authentication/tamper rejection, source-state sanitization,
+destination conflict preservation, interrupted rollback and resumption of the
+original import, and full/compact controller menus. Existing patch publication,
+save jobs, download queue and catalogue workflows pass their affected checks.
+Native export -> independent fresh app data -> import/normal library/launch now
+passes. Final cleanup and specification reconciliation also pass. TC19-01 is resolved
+by the owner's exact-file exception and verified removal recorded below.
+
+Signed assembly ticket 1236/e4ea70f876ef422caf0527401b276e2b passed with actual
+shared-gate acquisition, build/helper exit 0 and post-build daemon exit verified.
+Observed two workers/no parallel, Gradle 3 GiB, assessed Kotlin in-process sharing
+that heap; one test fork/512 MiB/fail-fast was observed at configuration, not run
+by assembly. Existing app/patch Ninja pools remain one-slot; native environment
+budget two is not claimed as a universal plugin cap. No memory failure or heap
+increase. Native proof ticket 1240 failed before compilation because an unquoted
+PowerShell target argument split off `.dart`; its original supervisor completed
+with exit 1 and daemon exit verified. Corrected ticket 1241 is the retained
+single native-proof build, not a parallel retry of an active request.
+
+Native export succeeded after the temporary package's denied Magisk grant was
+identified and Android private-path aliases were normalized at the coordinator.
+The fresh-install exercise then exposed missing generation/save directories and
+an absent companion baseline bound to the wrong file set; both handoffs are
+corrected and covered by affected checks. It also caught Flutter debug runtime
+files inside the documents snapshot: migration now includes only R-Shop's known
+persistent documents, and rejects runtime entries before activation. The changed
+document/export/recovery workflow and exact companion baseline regression pass.
+The superseded credential-bearing encrypted test archive was retired through
+the cleanup helper. The subsequent coherent export and independent import pass;
+the failed native attempts remain diagnostic evidence, not acceptance evidence.
+
+Native assemblies 1248/ab024a5a5f4749d09cb3d05ef711cd72 and
+1252/ae9fa0d1cb4b4944b50c79044649a982 completed with gate acquisition, effective
+two-worker/no-parallel/3-GiB profile, build/helper exit 0 and daemon exit verified.
+No memory failure, heap increase or interruption occurred. The final runtime-clean
+candidate request 1255/10a312a98d94446c9a4fa7ba8d419de1 completed with the same
+verified profile, build/helper exit 0 and daemon exit. TC19-01's exact 1,076-byte
+Downloads fixture was removed after the owner's explicit exception: regular-file,
+stable identity, size and recorded SHA-256 checks preceded the exact unlink, and
+absence was verified. No other Downloads file or parent folder was removed.
+
+Native proof uses a temporary isolated package, with a recorded uninstall and
+reinstall between export and import to discard the exporting Keystore/app data.
+The private fixture contains a byte-verified actual Castlevania GBA archive,
+stored metadata/three artwork files and the seven supplied credential values.
+Private preparation is owner/SYSTEM ACL-restricted and streams binary ADB output.
+Initial shell-redirection produced a hash-mismatched SQLite copy and was rejected;
+the subsequent binary copy passes device-before/local/device-after hashes. A
+read-only app_process extractor exited before returning a snapshot and is not
+acceptance evidence. No source app stop, data mutation or cloud write occurred.
+
+Final native migration evidence (2026-10-16): the coherent proof APK is
+9d599e2cb7eab141426de182f863a1a4608cca0671ddb88943ddc39265daa36f.
+The temporary source exported a 4,938,362-byte authenticated archive, then was
+uninstalled through its recorded cleanup baseline, discarding its app data and
+Keystore. A new installation received only that archive and its unlock password,
+not the source config/database/API input. Import and native restart verified all
+seven actual credential values through their supported stores, favorites,
+metadata/three artwork assets, a byte-identical resident GBA archive, fresh
+destination installation ownership/native receipt, and associated bytes at the
+rebound configured save path. Disabled monitoring stayed disabled. A separate
+activity observation verifies the normal owned-ROM launch into RetroArch; the
+fixture's VERIFIED marker alone is not launch evidence. Cold opening the normal
+app then displayed the restored console/library, real cover/rating and local-file
+indicator through controller selection. A fixture-only Flutter zone warning on
+the transition into production main did not prevent normal rendering.
+
+The archive SHA-256 is
+baa3224eba010641b441ff334780238b451e7e67a11a92d3294ffcb7a65a6ad0.
+A bounded streaming scan found none of the actual credential values or password
+in plaintext. Host export/import/recovery, wrong-password/tamper/path rejection,
+destination-conflict preservation, interrupted resume/rollback, full/compact
+controller controls and affected save/patch/download/catalogue checks pass.
+The last runtime-exclusion export/recovery check passes after the documents
+allowlist correction. Final affected analysis found one brace-style issue; its
+correction passes the affected-file analysis, with the remaining files unchanged.
+
+Final production assembly 1260/4597c6f2cba248f18432d39f393458f9 passes with actual
+shared-gate acquisition, build/helper exit 0 and post-build daemon exit verified.
+Observed two workers/no parallel, 3 GiB Gradle and assessed Kotlin in-process;
+one test fork/512 MiB/fail-fast is configuration evidence, not an executed test.
+Existing app/patch one-slot Ninja pools remain; native environment budget two is
+not a universal plugin concurrency claim. No memory failure, heap increase,
+interruption or duplicate request occurred. The signed production APK is
+63087b8cc9835ab29addc19dca81c3d9e2109a27fa655a329cf1589a3ea1ac3e,
+package com.darkaxt.rshop, with unchanged certificate
+075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c.
+This is a local verification build, not a deployment or public release.
+
+Normal Android storage/root grants were supplied only to the temporary proof app;
+Google account authorization was not fabricated or transferred. Its final test
+app/data and temporary root policies are removed. The owned RetroArch fixture
+consumer was stopped after its intent was verified against the test ROM URI.
+Both physical Thor displays were observed Off. The final encrypted device
+archive/source/destination fixtures were removed through reviewed helper ticket
+0aa87bd11302b4052913e8b741acd487 (11,401,648 bytes, no residuals). Task-only
+native probe roots were also removed; original ROMs/saves/config/imported media
+and the production installation are preserved. A final byte-hash check also
+confirms the production APK remains the preceding S20 validation build.
+
+Windows cleanup is complete: reviewed transactions 2fb8fd6753c02d0055c3855028fe9793
+and d590a1daae1defa58962acab0c74c26f removed private fixtures, captured evidence,
+disposable local APKs and generated build output. Their original tickets were
+resumed after a separate inspected hard-link-name ticket removed generated CMake
+metadata; all three finish applied, with no residuals. Disposable pinned validation
+clones were separately removed through c2ef5c0a117600fb833ff6e64f14b7f6. The
+sanitized ledger, source fixtures and reproducible build path remain; original
+credentials, ROMs, saves, signing identity and requested earlier release assets
+are preserved. No cleanup acquired the Gradle gate.
+
+BACKUP-MIGRATE-01 final reconciliation:
+
+| Required outcome | Verified evidence |
+| --- | --- |
+| Portable authenticated encrypted archive, bounded streaming, rejection before activation | Archive/password/tamper/truncation/version/path tests; native actual-secret/password plaintext scan |
+| Complete persistent setup, credentials, metadata/media, managed ROM and associated data | Full setup export/import test; independent fresh native app data/Keystore round trip with seven actual credential values, metadata/artwork, ROM and mapped associated bytes |
+| Consistent snapshot and destination-owned execution | Existing owner joins/admissions; host active-work sanitization and native fresh installation receipt; no source permission/transfer/watch reuse |
+| Conflict preservation, coherent interruption/resume/rollback | Activation/service interruption and destination-conflict tests; unchanged imported data does not auto-upload and disabled monitoring stays disabled |
+| Normal sectioned touch/controller UX and restored library/launch | Full/compact migration menu tests, A/B and L1/R1; actual restored Thor console/library and owned RetroArch launch |
+| Documentation, privacy and task cleanup | README migration/recovery guide; actual-secret source scan adds no credential values; exact approved recipe removal and all reviewed task cleanup applied |
+
+Stage-closure/final design assessment: migration reuses the existing configuration,
+secure credential, database, shared metadata, save capture/restore and verified
+installation owners. The extracted verified-file publisher retains patch behavior
+and now serves migration too; it does not create competing ownership. Admission
+and startup recovery address the demonstrated lifecycle boundaries. No material
+required consolidation or optional optimization is needed for this stage.
+Remaining acceptance criteria: none. Blockers: none. Tracked deferrals: none.
+S16-S21 integrated reconciliation is closed; no public release or production
+deployment is claimed. Commit and authorized remote synchronization follow the
+verified result.
+
+The private archive uses a versioned bounded manifest and authenticated streamed
+payloads, password-derived keys, and fresh salt/nonces. Authentication and complete
+byte/path validation precede live activation. Snapshot and activation must use the
+existing operation owners and secure stores; source filesystem receipts and active
+work are not portable. Destination conflicts are retained through the restore
+recovery journal, not silently overwritten. Public exports stay credential-free.
 
 S19 is COMPLETE. SHARE-01 and LAYOUT-01 acceptance is satisfied: normalized
 recipes/results in shared metadata schema 7, public content-only JSON share/import,
@@ -173,14 +313,13 @@ Thor displays were freshly verified Off; the owned log observer exited.
 Windows transaction 27a73564c727543f613fdbd863eaf36c was separately inspected and
 applied: the completed probe source/class/jar and host import copy were removed
 (8,002 bytes, no residuals). Required capture/build evidence remains retained.
-TC19-01 is a tracked final-cleanup deferral assigned to S21: exact task fixture
+TC19-01 is resolved in S21: exact task fixture
 /storage/emulated/0/Download/RShopRecipeTest-20261016/rshop-recipe-9f54470fd693.json
 (1,076 bytes; SHA-256 451a486452cda8da7ce70ae5581d621a496491f520dc722bf88d76db7dcc7eb0).
 Installed adb-review returned protected_android_path for its exact nested Downloads
-directory; current help offers no override. It was preserved, not relocated or
-deleted by another method. Resolution requires a supported exact-target helper
-path or user removal/explicit rule exception, then an absence check. This does
-not affect sharing/layout acceptance but must not disappear from final handoff.
+directory; current help offers no override. It was initially preserved. The owner
+subsequently authorized the exact hash-checked ADB exception, which removed only
+that file after stable identity/size/hash checks; its absence was verified.
 
 S18 final acceptance: the real indexed Advance Wars Balance 1.0 workflow fetched
 its exact original archive/member and IPS through the existing transfer owner,
