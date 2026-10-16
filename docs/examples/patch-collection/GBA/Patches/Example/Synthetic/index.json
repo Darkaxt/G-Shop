@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "source": "Synthetic",
+  "source_game_id": "synthetic-original",
+  "producer_extension": {"note": "Unknown producer fields are retained by the producer."},
+  "sections": {
+    "hacks": [{
+      "source_id": "example-balance",
+      "source_fields": {"hacktitle": "Example Balance", "version": "1.0", "description": "Synthetic documentation only"},
+      "rom_files": [{
+        "rom_root_relative_path": "GBA/Example Original.7z",
+        "archive_member": "Example Original.gba",
+        "member_size": 4,
+        "member_hashes": {"sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+      }]
+    }]
+  },
+  "payloads": [{
+    "section": "hacks",
+    "source_id": "example-balance",
+    "role": "package",
+    "patch_folder_relative_path": "GBA/Patches/Example/Synthetic/Balance",
+    "extraction": {"status": "extracted", "files": [{
+      "relative_path": "balance.ips", "size": 14,
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }]}
+  }]
+}

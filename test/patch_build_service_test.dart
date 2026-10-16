@@ -9,6 +9,7 @@ import 'package:retro_eshop/models/config/drive_source_config.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/models/patch_catalogue.dart';
+import 'package:retro_eshop/models/portable_patch_recipe.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/models/transfer_record.dart';
 import 'package:retro_eshop/services/database_service.dart';
@@ -17,6 +18,7 @@ import 'package:retro_eshop/services/drive/drive_runtime.dart';
 import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/library_store.dart';
+import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
 import 'package:retro_eshop/services/owned_emulator_launcher.dart';
 import 'package:retro_eshop/services/patch_build_publication.dart';
@@ -219,6 +221,69 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     await databaseFactory.setDatabasesPath(previousDbPath);
+  });
+  test(
+      'normal build publishes portable receipt; imported result is enforced before installation',
+      () async {
+    final shared = await SharedMetadataStore.open(
+        Directory(p.join(scratch.path, 'shared')),
+        factory: databaseFactoryFfiNoIsolate);
+    addTearDown(shared.close);
+    service = PatchBuildService(
+        database: Future.value(db),
+        runtime: runtime,
+        storage: storage,
+        native: native,
+        sharedStore: Future.value(shared));
+    final recipe = PatchRecipe(
+        platformId: 'gba',
+        base: patch.bases.single,
+        steps: [PatchRecipeStep.fromPatch(patch, patch.payloads.single)],
+        engineRevision: _revision);
+    PortablePatchRecipe imported(String hash) => PortablePatchRecipe(
+        recipe: recipe,
+        sourceGameId: game.sourceGameId,
+        gameTitle: game.title,
+        gameIndexPath: game.indexPath,
+        title: 'Balance',
+        outputSize: 4,
+        outputSha256: hash);
+    Future<PatchBuildResult> buildImported(PortablePatchRecipe portable) =>
+        service.build(
+            catalogue: catalogue,
+            indexedGame: game,
+            patch: patch,
+            payload: patch.payloads.single,
+            base: patch.bases.single,
+            system: system,
+            targetFolder: p.join(scratch.path, 'roms'),
+            importedRecipe: portable);
+    await expectLater(
+        buildImported(imported('f' * 64)),
+        throwsA(isA<PatchBuildException>()
+            .having((e) => e.code, 'code', 'recipe_output_conflict')));
+    expect(await shared.patchRecipes('gba'), isEmpty);
+    expect(
+        await db.query('installed_artifacts',
+            where: 'destination_root=?',
+            whereArgs: [p.join(scratch.path, 'roms', 'Hacks')]),
+        isEmpty);
+    final result = await build();
+    final published = (await shared.patchRecipes('gba')).single;
+    expect(published.recipe.id, result.recipe.id);
+    expect(published.outputSha256, sha256.convert(patched).toString());
+    final requests = runtime.requests, applies = applications;
+    final reused =
+        await buildImported(PortablePatchRecipe.decode(published.encode()));
+    expect(reused.reused, isTrue);
+    expect(runtime.requests, requests);
+    expect(applications, applies);
+    await expectLater(
+        buildImported(imported('e' * 64)),
+        throwsA(isA<PatchBuildException>()
+            .having((e) => e.code, 'code', 'recipe_output_conflict')));
+    expect((await shared.patchRecipes('gba')).single.outputSha256,
+        published.outputSha256);
   });
   test(
       'build uses native canonical input and output roots before reserving transfers',

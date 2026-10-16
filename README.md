@@ -108,6 +108,8 @@ Thanks to [AverageConsumer and upstream contributors](https://github.com/Average
 
 [Specification](docs/SPECIFICATION.md) · [Plan](docs/IMPLEMENTATION_PLAN.md) · [Verified status](docs/IMPLEMENTATION_STATUS.md) · [Development setup](docs/DEVELOPMENT_SETUP.md) · [Upstream user guide](docs/USER_GUIDE.md) · [Contributing](CONTRIBUTING.md)
 
+[Hacks, patches and portable recipes: collection layout](docs/PATCH_COLLECTION_LAYOUT.md)
+
 R-Shop manages content you own or may legally access; it does not host or distribute games. Game artwork and brand marks belong to their respective owners. Included third-party notices remain applicable. Imported Socket resources remain local and are not redistributed in source or APK releases.
 
 ## License

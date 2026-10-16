@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../models/config/provider_config.dart';
 import '../../models/library_identity.dart';
 import '../../models/patch_catalogue.dart';
+import '../../models/portable_patch_recipe.dart';
 import 'drive_catalogue.dart';
 import 'drive_runtime.dart';
 
@@ -13,6 +14,20 @@ class IndexedPatchGame {
   const IndexedPatchGame(this.sourceGameId, this.title, this.indexPath);
 }
 
+class ResolvedPatchRecipe {
+  final IndexedPatchGame game;
+  final IndexedRomPatch patch;
+  final IndexedPatchPayload payload;
+  final IndexedPatchBase base;
+  const ResolvedPatchRecipe(this.game, this.patch, this.payload, this.base);
+}
+
+class PatchRecipeRequirements {
+  final ResolvedPatchRecipe? resolved;
+  final List<String> missing;
+  const PatchRecipeRequirements(this.resolved, this.missing);
+}
+
 /// Source-root-relative producer references resolve through published folder IDs.
 /// Duplicate Drive names, source changes and unsafe references fail explicitly;
 /// neither display-name matching nor authenticated saved URLs are involved.
@@ -21,6 +36,73 @@ class DrivePatchCatalogue {
   final ProviderConfig config;
   DrivePatchCatalogue(this.config, {DriveRuntime? runtime})
       : runtime = runtime ?? DriveRuntime.instance;
+
+  Future<PatchRecipeRequirements> resolveRecipe(
+      PortablePatchRecipe portable, CancelToken cancellation) async {
+    if (portable.recipe.steps.length != 1) {
+      return const PatchRecipeRequirements(null, ['Compatible patch sequence']);
+    }
+    final candidates = (await games(cancellation))
+        .where((game) => game.sourceGameId == portable.sourceGameId);
+    var patchFound = false;
+    final step = portable.recipe.steps.single;
+    for (final game in candidates) {
+      final available = await patches(game, cancellation);
+      patchFound = patchFound ||
+          available.any((patch) =>
+              patch.source == step.source &&
+              patch.section == step.section &&
+              patch.sourceId == step.sourceId &&
+              patch.version == step.version &&
+              patch.payloads.any((payload) =>
+                  payload.sha256 == step.patchSha256 &&
+                  payload.format == step.format));
+      final found = matchRecipe(portable, game, available);
+      if (found != null) return PatchRecipeRequirements(found, const []);
+    }
+    return PatchRecipeRequirements(null, [
+      if (!patchFound) 'Exact patch version',
+      'Original game fingerprints',
+    ]);
+  }
+
+  /// Producer paths may differ on another source. Rebuild only when the entire
+  /// declared content/engine recipe still agrees, not by filename or title.
+  static ResolvedPatchRecipe? matchRecipe(PortablePatchRecipe portable,
+      IndexedPatchGame game, List<IndexedRomPatch> patches) {
+    if (game.sourceGameId != portable.sourceGameId ||
+        portable.recipe.steps.length != 1) {
+      return null;
+    }
+    final step = portable.recipe.steps.single;
+    for (final patch in patches) {
+      if (patch.source != step.source ||
+          patch.section != step.section ||
+          patch.sourceId != step.sourceId ||
+          patch.version != step.version ||
+          patch.unavailableReason != null) {
+        continue;
+      }
+      for (final payload in patch.payloads) {
+        if (payload.sha256 != step.patchSha256 ||
+            payload.format != step.format) {
+          continue;
+        }
+        for (final base in patch.bases) {
+          final candidate = PatchRecipe(
+              platformId: portable.recipe.platformId,
+              base: base,
+              steps: [PatchRecipeStep.fromPatch(patch, payload)],
+              engineRevision: portable.recipe.engineRevision,
+              preprocessing: portable.recipe.preprocessing);
+          if (candidate.id == portable.recipe.id) {
+            return ResolvedPatchRecipe(game, patch, payload, base);
+          }
+        }
+      }
+    }
+    return null;
+  }
 
   Future<int> _generation() async {
     final drive = config.drive;

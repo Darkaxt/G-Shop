@@ -5,12 +5,12 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16-S18 COMPLETE, S19 next, 2026-10-16
+### Collection/patch extension — S16-S19 COMPLETE, S20-S21 NOT STARTED, 2026-10-16
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17 and S18 are COMPLETE; S19, S20 and S21 are NOT STARTED. No stage is
-ACTIVE at this closure boundary. Earlier completed
+COMPLETE; S17-S19 are COMPLETE; S20 and S21 are NOT STARTED. No stage is ACTIVE
+at this closure boundary. Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
 
@@ -28,6 +28,90 @@ Current Export config is plain credential-stripped JSON, not this capability;
 secure credentials are presently device-local. BACKUP-MIGRATE-01 distinguishes private
 encrypted migration from public sharing and destination-owned OS grants/state.
 No migration implementation or export has been started; S21 is NOT STARTED.
+
+S19 is COMPLETE. SHARE-01 and LAYOUT-01 acceptance is satisfied: normalized
+recipes/results in shared metadata schema 7, public content-only JSON share/import,
+destination-local fingerprint resolution, explicit missing/conflicting requirements,
+and the existing Available/My builds sections with import/share/check icons.
+Inspected host evidence proves separate private/shared store roots, reconnect,
+v6 metadata preservation, public export exclusion, current mapped GBA schema 2
+parsing, root-independent guide fixtures, normal build-to-shared publication,
+expected-result rejection before output installation and exact-result reuse.
+The new integrated test initially used an incorrect table name/assumed input
+transfer manifests were output installations; both fixture assertions were corrected
+against the actual journal schema. No production relaxation was introduced.
+Menu verification now passes at 1920x1080 and 800x450: actual import/share
+callbacks, bounded file IO and cleanup, missing requirements, A/B modal focus
+and L1/R1 sections. Affected analysis is clean. The first widget fixture wrongly
+waited for global animation idleness under an active checking dialog; it now
+awaits operation/UI-focus state. The dialog also uses the existing controller
+wrapper and explicit initial focus. Shared metadata lifecycle and permission
+checks pass with schema 7. The actual signed Thor workflow also passes: the
+Android ChooserActivity received the recipe file, its JSON was inspected for
+private fields, the normal DocumentsUI picker re-imported it, and cold app
+restart/reopening retained the ready game and shared recipe. An ADB-staged test
+JSON initially lacked MediaStore indexing; after a scoped scanner request its
+actual application/json row appeared and the same original picker selected it.
+No application fallback, arbitrary retry or wider collection operation was added.
+
+Read-only native evidence before import, after import and after restart agrees:
+shared schema 7; recipe 9f54470fd693af967005cec3f0af0ccdacc6a5e29571ccfb8dbd0bbb2c8329fa;
+one shared row, one ready build 7581c0f87d8c154b9931b2c24b1094fc; two unchanged input
+transfers; output 4,194,304 bytes/SHA-256
+06510d5ea87141d07a2887a893ea03c94804e6982ef347e45d6312f986d7a0d2.
+Sharing/import created no false installation, replacement or extra ROM download.
+Native R1 selected My builds; touch sharing/import and inspected 1920x1080
+screens agree with the focused controller/compact-viewport checks. Separate
+store-root/import/reconnect/missing-resource/conflict acceptance is host-verified;
+no second account or second device was used or is required by SHARE-01.
+
+Gradle request 1189 acquired the shared gate with observed two workers,
+no-parallel and 3 GiB Gradle heap/Kotlin in-process; it failed at Java compilation
+because the invoking agent omitted the repository's official Flutter release
+preparation, leaving development-only plugin registrations. No memory failure,
+installation or cancellation occurred; original command/lifecycle completion and
+daemon exit were verified before proceeding. Official `build apk --release
+--config-only --target-platform android-arm64` then regenerated and verified the
+release registrant. Prepared assembly request 1191 (1a7b55eb16d543b788d0d32662953c2f)
+completed with build/helper exit 0, gate acquisition and post-build daemon exit
+verified. Observed two workers, no-parallel, 3 GiB Gradle heap; assessed Kotlin
+in-process shares it. One test fork/512 MiB/fail-fast was observed at configuration,
+not claimed executed by this assembly-only command. Existing one-slot Ninja
+pools remain unchanged; budget-two environment hints are not a universal cap.
+No memory failure/increase, interruption or duplicate queued operation.
+Signed candidate b09c133291427a8c31557ed09717644e2ae30362682427368820465180e90cd9
+matches actual Thor base.apk and the existing production certificate. In-place
+installation succeeded with all five immediate credential/key/config/family/
+import-pointer hashes identical before/after. No public release was created.
+
+LAYOUT-01's guide and synthetic fixtures
+are present in PATCH_COLLECTION_LAYOUT.md and docs/examples/patch-collection.
+S18's private durable build records are not a portable backup. Reuse the existing
+shared metadata database/access owner, transfer/build owner and Android share/pick
+flows; do not add a parallel catalogue, cloud mirror or downloaded code. Prove
+one shared recipe across independent store roots before broadening. Preserve all
+local residency and conflicts; publishing a recipe never grants installation
+ownership on another device. Existing compatible Drive structure stays in place.
+Stage-closure assessment: shared access/lifecycle and private build ownership
+remain with existing owners; recipe data never supplies destination installation
+authority. Existing share/pick and controller-dialog paths are reused. No material
+current-scope consolidation is needed. No SHARE/LAYOUT blockers or feature
+deferrals remain. S20/S21 still own their separately authorized requirements.
+
+Cleanup: the completed read-only device probe was removed by inspected transaction
+621336c79d9c5032c6fc71470cddca01 (applied, 2,044 bytes, no residuals). Both physical
+Thor displays were freshly verified Off; the owned log observer exited.
+Windows transaction 27a73564c727543f613fdbd863eaf36c was separately inspected and
+applied: the completed probe source/class/jar and host import copy were removed
+(8,002 bytes, no residuals). Required capture/build evidence remains retained.
+TC19-01 is a tracked final-cleanup deferral assigned to S21: exact task fixture
+/storage/emulated/0/Download/RShopRecipeTest-20261016/rshop-recipe-9f54470fd693.json
+(1,076 bytes; SHA-256 451a486452cda8da7ce70ae5581d621a496491f520dc722bf88d76db7dcc7eb0).
+Installed adb-review returned protected_android_path for its exact nested Downloads
+directory; current help offers no override. It was preserved, not relocated or
+deleted by another method. Resolution requires a supported exact-target helper
+path or user removal/explicit rule exception, then an absence check. This does
+not affect sharing/layout acceptance but must not disappear from final handoff.
 
 S18 final acceptance: the real indexed Advance Wars Balance 1.0 workflow fetched
 its exact original archive/member and IPS through the existing transfer owner,

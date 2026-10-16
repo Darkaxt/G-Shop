@@ -12,6 +12,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/game_item.dart';
 import '../models/library_identity.dart';
 import '../models/patch_catalogue.dart';
+import '../models/portable_patch_recipe.dart';
 import '../models/system_model.dart';
 import '../models/transfer_record.dart';
 import 'database_service.dart';
@@ -24,6 +25,7 @@ import 'owned_storage.dart';
 import 'patch_build_publication.dart';
 import 'patch_build_store.dart';
 import 'transfer_journal.dart';
+import 'metadata/shared_metadata_store.dart';
 
 class PatchBuildResult {
   final PatchRecipe recipe;
@@ -42,17 +44,20 @@ class PatchBuildService {
   final DriveRuntime runtime;
   final OwnedStorage storage;
   final MethodChannel native;
+  final Future<SharedMetadataStore?>? sharedStore;
   Future<PatchBuildResult>? _operation;
   CancelToken? _cancellation;
   String? _engineRevision;
   PatchBuildService(
       {Future<Database>? database,
       DriveRuntime? runtime,
+      this.sharedStore,
       this.storage = const OwnedStorage(),
       this.native = const MethodChannel('com.retro.rshop/patches')})
       : database = database ?? DatabaseService().database,
         runtime = runtime ?? DriveRuntime.instance;
-  PatchBuildStore get store => PatchBuildStore(database);
+  late final PatchBuildStore store =
+      PatchBuildStore(database, sharedStore: sharedStore);
   TransferJournal get journal => TransferJournal(database);
 
   Future<void> cancel() async {
@@ -72,6 +77,7 @@ class PatchBuildService {
       required String targetFolder,
       String? retryBuildId,
       List<String> preprocessing = const [],
+      PortablePatchRecipe? importedRecipe,
       void Function(String phase, int completed, int total)? onProgress}) {
     return _run((cancellation) => _build(
         catalogue,
@@ -84,7 +90,8 @@ class PatchBuildService {
         preprocessing,
         cancellation,
         onProgress,
-        retryBuildId));
+        retryBuildId,
+        importedRecipe));
   }
 
   Future<PatchBuildResult> _run(
@@ -210,7 +217,8 @@ class PatchBuildService {
       List<String> preprocessing,
       CancelToken cancellation,
       void Function(String, int, int)? onProgress,
-      String? retryBuildId) async {
+      String? retryBuildId,
+      PortablePatchRecipe? importedRecipe) async {
     if (!patch.payloads.contains(payload) ||
         !patch.bases.contains(base) ||
         patch.unavailableReason != null) {
@@ -227,8 +235,23 @@ class PatchBuildService {
         steps: [PatchRecipeStep.fromPatch(patch, payload)],
         engineRevision: engineRevision,
         preprocessing: preprocessing);
+    if (importedRecipe != null && importedRecipe.recipe.id != recipe.id) {
+      throw const PatchBuildException('recipe_changed');
+    }
     final previous = await existing(recipe, cancellation);
-    if (previous != null) return previous;
+    if (previous != null) {
+      if (importedRecipe?.outputSha256 != null) {
+        final record = (await store.forRecipe(recipe.id))
+            .firstWhere((row) => row['state'] == 'ready');
+        final output = record['outputArtifact'] as Map;
+        if (output['sizeBytes'] != importedRecipe!.outputSize ||
+            (output['providerChecksums'] as Map)['sha256'] !=
+                importedRecipe.outputSha256) {
+          throw const PatchBuildException('recipe_output_conflict');
+        }
+      }
+      return previous;
+    }
     final extension =
         p.posix.extension(base.archiveMember?.value ?? base.relativePath.value);
     if (!system.romExtensions.contains(extension.toLowerCase()) ||
@@ -237,7 +260,8 @@ class PatchBuildService {
     }
     final selectedTargetRoot = p.join(targetFolder, 'Hacks');
     await Directory(selectedTargetRoot).create(recursive: true);
-    final targetRoot = (await storage.prepare(selectedTargetRoot)).destinationRoot;
+    final targetRoot =
+        (await storage.prepare(selectedTargetRoot)).destinationRoot;
     final retry = retryBuildId == null ? null : await store.get(retryBuildId);
     if (retryBuildId != null &&
         (retry == null ||
@@ -347,6 +371,11 @@ class PatchBuildService {
       if (fingerprint.size <= 0) {
         throw const PatchBuildException('empty_output');
       }
+      if (importedRecipe?.outputSha256 != null &&
+          (fingerprint.size != importedRecipe!.outputSize ||
+              fingerprint.hashes['sha256'] != importedRecipe.outputSha256)) {
+        throw const PatchBuildException('recipe_output_conflict');
+      }
       final artifact = RemoteArtifact(
           id: RemoteArtifactId(
               providerId: 'patch-build',
@@ -415,6 +444,7 @@ class PatchBuildService {
     await store.update(row['buildId'] as String,
         {'transferId': record.id, 'game': game.toJson(), 'issue': null},
         state: 'ready');
+    await store.publishReady(row['buildId'] as String);
     return PatchBuildResult(recipe, game, record.destinationRoot);
   }
 

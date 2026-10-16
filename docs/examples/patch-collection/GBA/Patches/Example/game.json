@@ -1,0 +1,5 @@
+{
+  "schema_version": 2,
+  "source_game_id": "synthetic-original",
+  "sources": [{"source": "Synthetic", "rom_root_relative_path": "GBA/Patches/Example/Synthetic/index.json"}]
+}

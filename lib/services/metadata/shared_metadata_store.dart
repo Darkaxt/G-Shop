@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/library_identity.dart';
 import '../../models/scraped_metadata.dart';
 import '../../models/transfer_record.dart';
+import '../../models/portable_patch_recipe.dart';
 import '../installation_index.dart';
 import '../drive/drive_bundle.dart';
 import '../library_store.dart';
@@ -68,7 +69,7 @@ class SharedMetadataStore {
     final db = await (factory ?? databaseFactory).openDatabase(
         p.join(root.path, 'metadata.sqlite'),
         options: OpenDatabaseOptions(
-            version: 6,
+            version: 7,
             onConfigure: (db) async {
               final applicationId = (await db.rawQuery('PRAGMA application_id'))
                   .single
@@ -100,6 +101,7 @@ class SharedMetadataStore {
               await _installIdentityBindings(db);
               await _installEsDe(db);
               await _installReviewedArtwork(db);
+              await _installPatchRecipes(db);
             },
             onUpgrade: (db, old, _) async {
               if (old < 2) await _installArtworkResponses(db);
@@ -135,11 +137,74 @@ class SharedMetadataStore {
                 await db.execute(
                     'ALTER TABLE es_de_mappings ADD COLUMN installation_layout TEXT');
               }
+              if (old < 7) await _installPatchRecipes(db);
             }));
     return SharedMetadataStore._(root, db, access);
   }
 
   Future<void> close() => _db.close();
+
+  static Future<void> _installPatchRecipes(DatabaseExecutor db) =>
+      db.execute('''CREATE TABLE IF NOT EXISTS patch_recipes (
+        recipe_id TEXT PRIMARY KEY, platform_id TEXT NOT NULL,
+        source_game_id TEXT NOT NULL, record_json TEXT NOT NULL)''');
+
+  /// Idempotent content publication; a conflicting verified output is never
+  /// silently replaced by an import or another device's local residency.
+  Future<PortablePatchRecipe> putPatchRecipe(PortablePatchRecipe value) async {
+    await requireAccess();
+    final normalized = PortablePatchRecipe.decode(value.encode());
+    return _db.transaction((txn) async {
+      final rows = await txn.query('patch_recipes',
+          where: 'recipe_id=?', whereArgs: [normalized.recipe.id], limit: 1);
+      var result = normalized;
+      if (rows.isNotEmpty) {
+        final previous =
+            PortablePatchRecipe.decode(rows.single['record_json'] as String);
+        if (previous.outputSha256 != null &&
+            normalized.outputSha256 != null &&
+            (previous.outputSha256 != normalized.outputSha256 ||
+                previous.outputSize != normalized.outputSize)) {
+          throw const FormatException('patch_recipe_output_conflict');
+        }
+        if (previous.outputSha256 != null || normalized.outputSha256 == null) {
+          return previous;
+        }
+        result = PortablePatchRecipe(
+            recipe: previous.recipe,
+            sourceGameId: previous.sourceGameId,
+            gameTitle: previous.gameTitle,
+            gameIndexPath: previous.gameIndexPath,
+            title: previous.title,
+            outputSize: normalized.outputSize,
+            outputSha256: normalized.outputSha256);
+      }
+      await txn.insert(
+          'patch_recipes',
+          {
+            'recipe_id': result.recipe.id,
+            'platform_id': result.recipe.platformId,
+            'source_game_id': result.sourceGameId,
+            'record_json': result.encode()
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      return result;
+    });
+  }
+
+  Future<List<PortablePatchRecipe>> patchRecipes(String platform,
+      {String? sourceGameId}) async {
+    await requireAccess();
+    final rows = await _db.query('patch_recipes',
+        where: sourceGameId == null
+            ? 'platform_id=?'
+            : 'platform_id=? AND source_game_id=?',
+        whereArgs: [platform, if (sourceGameId != null) sourceGameId],
+        orderBy: 'recipe_id');
+    return rows
+        .map((row) => PortablePatchRecipe.decode(row['record_json'] as String))
+        .toList();
+  }
 
   static Future<void> _installEsDe(DatabaseExecutor db) async {
     await EsDeMetadataPublication.install(db);

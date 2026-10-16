@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/patch_catalogue.dart';
+import '../models/portable_patch_recipe.dart';
+import 'metadata/shared_metadata_store.dart';
 
 class PatchBuildSchema {
   static Future<void> install(DatabaseExecutor db) async {
@@ -18,11 +20,42 @@ class PatchBuildSchema {
   }
 }
 
-/// Recipes survive result removal. Device paths/residency remain private;
-/// S19 owns migration to the established shared store and portable sharing.
+/// Private build recovery and public recipes have distinct owners. Reconnecting
+/// shared metadata restores instructions, never another device's installations.
 class PatchBuildStore {
   final Future<Database> database;
-  PatchBuildStore(this.database);
+  final Future<SharedMetadataStore?>? sharedStore;
+  String? sharedIssue;
+  PatchBuildStore(this.database, {this.sharedStore});
+
+  Future<void> publishReady(String buildId) async {
+    if (sharedStore == null) return;
+    final row = await get(buildId);
+    if (row == null || row['state'] != 'ready') return;
+    try {
+      final shared = await sharedStore!;
+      if (shared == null) throw StateError('shared_storage_required');
+      await shared.putPatchRecipe(PortablePatchRecipe.fromBuild(row));
+      if (row['shareIssue'] != null) {
+        await update(buildId, {'shareIssue': null});
+      }
+    } catch (error) {
+      await update(buildId, {
+        'shareIssue': error is FormatException &&
+                error.message == 'patch_recipe_output_conflict'
+            ? 'patch_recipe_output_conflict'
+            : 'shared_storage_unavailable'
+      });
+      // The verified local installation remains ready. Its durable build row is
+      // the pending publication source, retried on actual reopening/reconnection.
+    }
+  }
+
+  Future<PortablePatchRecipe> importRecipe(PortablePatchRecipe recipe) async {
+    final shared = await sharedStore;
+    if (shared == null) throw StateError('shared_storage_required');
+    return shared.putPatchRecipe(recipe);
+  }
 
   Future<void> begin(
       {required String buildId,
@@ -90,13 +123,60 @@ class PatchBuildStore {
     });
   }
 
-  Future<List<Map<String, dynamic>>> forGame(
-          String platform, String gameId) async =>
-      _read('platform_id=? AND source_game_id=?', [platform, gameId]);
+  Future<List<Map<String, dynamic>>> forGame(String platform, String gameId) =>
+      _withShared(platform, gameId,
+          _read('platform_id=? AND source_game_id=?', [platform, gameId]));
   Future<List<Map<String, dynamic>>> forRecipe(String recipeId) async =>
       _read('recipe_id=?', [recipeId]);
-  Future<List<Map<String, dynamic>>> forPlatform(String platform) async =>
-      _read('platform_id=?', [platform]);
+  Future<List<Map<String, dynamic>>> forPlatform(String platform) =>
+      _withShared(platform, null, _read('platform_id=?', [platform]));
+
+  Future<List<Map<String, dynamic>>> _withShared(String platform,
+      String? gameId, Future<List<Map<String, dynamic>>> privateRows) async {
+    var rows = await privateRows;
+    sharedIssue = null;
+    if (sharedStore == null) return rows;
+    for (final row in rows.where((row) => row['state'] == 'ready')) {
+      await publishReady(row['buildId'] as String);
+    }
+    rows = await _read(
+        gameId == null ? 'platform_id=?' : 'platform_id=? AND source_game_id=?',
+        [platform, if (gameId != null) gameId]);
+    try {
+      final shared = await sharedStore!;
+      if (shared == null) {
+        sharedIssue = 'shared_storage_required';
+        return rows;
+      }
+      final recipes = await shared.patchRecipes(platform, sourceGameId: gameId);
+      return [
+        ...rows,
+        for (final portable in recipes)
+          if (!rows.any((row) =>
+              row['state'] == 'ready' &&
+              PatchRecipe.fromJson(
+                          (row['recipe'] as Map).cast<String, dynamic>())
+                      .id ==
+                  portable.recipe.id))
+            {
+              'state': 'recipe',
+              'portable': portable.toJson(),
+              'recipe': portable.recipe.toJson(),
+              'sourceGameId': portable.sourceGameId,
+              'gameTitle': portable.gameTitle,
+              'gameIndexPath': portable.gameIndexPath.value,
+              'providerSourceId': 'portable',
+              'title': portable.title,
+            }
+      ];
+    } catch (_) {
+      // Local build history remains usable when the selected shared folder is
+      // unavailable; imports/publication still report their actual failure.
+      sharedIssue = 'shared_storage_unavailable';
+      return rows;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _read(
       String where, List<Object> args) async {
     final rows = await (await database).query('patch_builds',
