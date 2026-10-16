@@ -16,9 +16,11 @@ import 'socket_mesh_import.dart';
 class SocketMediaImport extends ChangeNotifier {
   static final instance = SocketMediaImport();
   final Directory? directory;
+  final bool readOnly;
   final MethodChannel channel;
   SocketMediaImport(
       {this.directory,
+      this.readOnly = false,
       this.channel = const MethodChannel('com.retro.rshop/socket_import')});
   Directory? _root, _active;
   Future<void>? _initializing;
@@ -28,6 +30,7 @@ class SocketMediaImport extends ChangeNotifier {
   double progress = 0;
   bool get available => _active != null;
   String? get generation => _active?.path.split(Platform.pathSeparator).last;
+  Directory? get rootDirectory => _root;
 
   Future<void> initialize() => _initializing ??= _initialize();
   Future<void> _initialize() async {
@@ -37,7 +40,7 @@ class SocketMediaImport extends ChangeNotifier {
     try {
       // Claimed once per native process, before the first UI can consume media.
       // Hot restart or a second engine cannot clean a live engine's import.
-      final cleanup =
+      final cleanup = !readOnly &&
           await channel.invokeMethod<bool>('startupCleanup') == true;
       if (!await _root!.exists()) return;
       final entries = _root!.listSync(followLinks: false);
@@ -157,6 +160,7 @@ class SocketMediaImport extends ChangeNotifier {
   }
 
   Future<void> importApk(File original) async {
+    if (readOnly) throw StateError('This view does not own resource imports');
     if (importing) throw StateError('An import is already running');
     importing = true;
     _cancelled = false;

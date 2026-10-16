@@ -62,6 +62,55 @@ void main() {
   });
   tearDown(() => provider.close());
 
+  test(
+      'gameplay clips use authenticated video endpoint without image conversion',
+      () async {
+    wire.bytes = [
+      0,
+      0,
+      0,
+      24,
+      102,
+      116,
+      121,
+      112,
+      105,
+      115,
+      111,
+      109,
+      0,
+      0,
+      0,
+      0,
+      105,
+      115,
+      111,
+      109,
+      109,
+      112,
+      52,
+      50
+    ];
+    wire.headers = {
+      'content-type': ['video/mp4'],
+      'content-length': ['${wire.bytes.length}']
+    };
+    final received = <int>[];
+    final video = MetadataMedia(
+        type: 'video',
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42', providerPlatformId: 4, mediaType: 'video'));
+    final result = await provider.fetchArtwork(video,
+        write: (bytes) async => received.addAll(bytes));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(received, wire.bytes);
+    final request = wire.requests.single;
+    expect(request.uri.path, '/api2/mediaVideoJeu.php');
+    expect(request.queryParameters['media'], 'video');
+    expect(request.queryParameters.containsKey('outputformat'), isFalse);
+    expect(video.toJson().toString(), isNot(contains('private')));
+  });
+
   test('physical support textures use the normal authenticated image path',
       () async {
     final label = MetadataMedia(

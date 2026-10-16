@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../preview/dual_screen_preview_host.dart';
+import '../../providers/preview_providers.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,6 +151,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   late int _columns;
+  int get _effectiveColumns =>
+      ref.read(dualScreenPreviewProvider) ? 4 : _columns;
+  final _previewKey = GlobalKey<DualScreenPreviewHostState>();
   String _searchQuery = '';
   bool _isLoading = true;
 
@@ -424,7 +429,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     _focusManager = FocusSyncManager(
       scrollController: _scrollController,
-      getCrossAxisCount: () => _columns,
+      getCrossAxisCount: () => _effectiveColumns,
       getItemCount: () => _visibleCount,
       getGridRatio: () => 1.0,
       onSelectionChanged: (index) => _selectedIndexNotifier.value = index,
@@ -1227,7 +1232,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       }
       return;
     }
-    final columns = _isDashboard ? _dashboardColumns : _columns;
+    final columns = _isDashboard ? _dashboardColumns : _effectiveColumns;
     if (_consoleNavigation) {
       final slugs = [null, ..._consoleSummaries.map((s) => s.slug)];
       final index = slugs.indexOf(_selectedConsole);
@@ -1305,7 +1310,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     }
     _focusManager.scrollToSelectedWithFallback(
       itemKey: _itemKeys[_focusManager.selectedIndex],
-      crossAxisCount: _columns,
+      crossAxisCount: _effectiveColumns,
       instant: instant,
       isMounted: () => mounted,
       retryCallback: () => _scrollToSelected(instant: true),
@@ -1344,6 +1349,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   Future<void> _openGameDetail(LibraryEntry entry) async {
+    if (_previewKey.currentState?.activateDetails() == true) return;
     searchFieldNode.unfocus();
     suspendSearchOverlay();
     ref.read(feedbackServiceProvider).confirm();
@@ -1442,6 +1448,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   void _handleBack() {
+    if (_previewKey.currentState?.closeDetails() == true) return;
     if (_categoryNavigation) {
       setState(() => _categoryNavigation = false);
       return;
@@ -1735,6 +1742,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final hasDownloads = ref.read(hasQueueItemsProvider);
     final shelf = _activeShelf;
     return [
+      _previewKey.currentState?.actionsMenu,
       QuickMenuItem(
         label: l.library_zoomIn,
         icon: Icons.zoom_in_rounded,
@@ -1919,6 +1927,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     final rs = context.rs;
+    ref.watch(dualScreenPreviewProvider);
     _showRatings = ref.watch(ratingOverlaysProvider);
     // Dashboard metrics have no game artwork or score consumers. Console pages
     // consume only their scope; an explicit global shortlist still uses ''.
@@ -1972,6 +1981,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   Widget _buildHeader(Responsive rs) {
     final l = L.of(context);
+    final compact = ref.watch(dualScreenPreviewProvider) && !_isDashboard;
     final fixedLabels = [
       l.library_tabAll,
       l.library_tabInstalled,
@@ -2000,7 +2010,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: rs.isSmall ? 16.0 : 24.0,
-            vertical: rs.isSmall ? 8.0 : 12.0,
+            vertical: compact
+                ? 6.0
+                : rs.isSmall
+                    ? 8.0
+                    : 12.0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2017,6 +2031,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       letterSpacing: 4,
                     ),
                   ),
+                  if (compact) ...[
+                    const SizedBox(width: 12),
+                    _buildBrowseParent(),
+                  ],
                   const Spacer(),
                   TextButton.icon(
                       onPressed: _openFilter,
@@ -2070,7 +2088,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   )),
                 ],
               ),
-              SizedBox(height: rs.isSmall ? 6 : 10),
+              SizedBox(
+                  height: compact
+                      ? 6
+                      : rs.isSmall
+                          ? 6
+                          : 10),
               if (_isDashboard)
                 FocusScope(
                     node: _brandFocus,
@@ -2088,29 +2111,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                         selected: _systemType,
                         onSelected: (value) =>
                             _setBrowseScope(_manufacturer, value))),
-              if (!_isDashboard)
-                TextButton.icon(
-                  key: const ValueKey('library-browse-parent'),
-                  onPressed: () => _selectConsole(null),
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  label: Row(mainAxisSize: MainAxisSize.min, children: [
-                    if (_manufacturer case final brand?)
-                      Image.asset(
-                          'assets/brand_logos/${manufacturerLogos[brand]}.png',
-                          width: 72,
-                          height: 22,
-                          fit: BoxFit.contain,
-                          color: Colors.white)
-                    else
-                      const Text('All manufacturers'),
-                    if (_systemType != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(_systemType!.icon, size: 18),
-                      const SizedBox(width: 4),
-                      Text(_systemType!.label),
-                    ],
-                  ]),
-                ),
+              if (!_isDashboard && !compact) _buildBrowseParent(),
               LibraryTabs(
                 key: const ValueKey('library-console-tabs'),
                 selectedTab: _selectedConsole == null
@@ -2172,6 +2173,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ),
     );
   }
+
+  Widget _buildBrowseParent() => TextButton.icon(
+      key: const ValueKey('library-browse-parent'),
+      onPressed: () => _selectConsole(null),
+      icon: const Icon(Icons.arrow_back, size: 18),
+      label: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (_manufacturer case final brand?)
+          Image.asset('assets/brand_logos/${manufacturerLogos[brand]}.png',
+              width: 72, height: 22, fit: BoxFit.contain, color: Colors.white)
+        else
+          const Text('All manufacturers'),
+        if (_systemType != null) ...[
+          const SizedBox(width: 8),
+          Icon(_systemType!.icon, size: 18),
+          const SizedBox(width: 4),
+          Text(_systemType!.label),
+        ],
+      ]));
 
   int _shelfGameCount(CustomShelf shelf) {
     final allGameRecords = _scopedGames
@@ -2322,21 +2341,68 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
     return LayoutBuilder(builder: (context, constraints) {
       final media = ref.watch(mediaPresentationProvider);
-      final showPreview = !rs.isPortrait && constraints.maxWidth >= 720;
+      final dual = ref.watch(dualScreenPreviewProvider);
+      final showPreview =
+          !dual && !rs.isPortrait && constraints.maxWidth >= 720;
       final previewWidth = showPreview ? constraints.maxWidth * 0.28 : 0.0;
-      return Row(children: [
-        if (showPreview)
-          SizedBox(
-              width: previewWidth,
-              child: ValueListenableBuilder<int>(
-                valueListenable: _selectedIndexNotifier,
-                builder: (context, index, _) => _buildMediaPreview(
-                    _filteredGames[index.clamp(0, _filteredGames.length - 1)],
-                    media,
-                    _coverDecodeWidth(rs, constraints.maxWidth - previewWidth)),
-              )),
-        Expanded(child: _buildGrid(rs, constraints.maxWidth - previewWidth)),
-      ]);
+      return DualScreenPreviewHost(
+          key: _previewKey,
+          selection: _selectedIndexNotifier,
+          itemAt: (index) {
+            if (index < 0 || index >= _filteredGames.length) return null;
+            final entry = _filteredGames[index];
+            final system = SystemModel.supportedSystems
+                .where((s) => s.id == entry.systemSlug)
+                .firstOrNull;
+            if (system == null) return null;
+            final appConfig =
+                ref.read(bootstrappedConfigProvider).value ?? AppConfig.empty;
+            final config = ConfigBootstrap.configForSystem(appConfig, system);
+            final entries = _discoveryVariants[
+                    coverRatingKey(entry.systemSlug, entry.selectionKey)] ??
+                [entry];
+            final variants = entries
+                .map((e) => GameItem(
+                    filename: e.filename,
+                    displayName: e.displayName,
+                    url: e.url,
+                    cachedCoverUrl: e.coverUrl,
+                    providerConfig: e.providerConfig,
+                    remoteArtifact: e.remoteArtifact))
+                .toList();
+            return PreviewSelection(
+                game: variants.first,
+                variants: variants,
+                system: system,
+                target: config?.targetFolder ?? '',
+                localOnly: config == null || config.providers.isEmpty,
+                autoExtract: config?.autoExtract ?? false);
+          },
+          child: Row(children: [
+            if (showPreview)
+              SizedBox(
+                  width: previewWidth,
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _selectedIndexNotifier,
+                    builder: (context, index, _) => _buildMediaPreview(
+                        _filteredGames[
+                            index.clamp(0, _filteredGames.length - 1)],
+                        media,
+                        _coverDecodeWidth(
+                            rs, constraints.maxWidth - previewWidth)),
+                  )),
+            Expanded(
+                child: _buildGrid(rs, constraints.maxWidth - previewWidth,
+                    rowHeight: dual
+                        ? ((constraints.maxHeight -
+                                    rs.spacing.md -
+                                    92 -
+                                    (rs.isSmall ? 10 : 16)) /
+                                2)
+                            .clamp(1, 1000)
+                            .toDouble()
+                        : null)),
+          ]));
     });
   }
 
@@ -2345,12 +2411,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final gridPadding = rs.spacing.lg * 2;
     final spacing = rs.isSmall ? 10.0 : 16.0;
     final gridWidth = availableWidth - gridPadding;
-    final itemWidth = (gridWidth - (_columns - 1) * spacing) / _columns;
+    final itemWidth =
+        (gridWidth - (_effectiveColumns - 1) * spacing) / _effectiveColumns;
     final dpr = MediaQuery.of(context).devicePixelRatio;
     return (itemWidth * dpr).round().clamp(150, deviceMemory.memCacheWidthMax);
   }
 
-  Widget _buildGrid(Responsive rs, double availableWidth) {
+  Widget _buildGrid(Responsive rs, double availableWidth, {double? rowHeight}) {
     final deviceMemory = ref.read(deviceMemoryProvider);
     final optimalCacheWidth = _coverDecodeWidth(rs, availableWidth);
 
@@ -2368,7 +2435,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             bottom: rs.isPortrait ? 80 : 100,
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: _columns,
+            crossAxisCount: _effectiveColumns,
+            mainAxisExtent: rowHeight,
             mainAxisSpacing: rs.isSmall ? 10 : 16,
             crossAxisSpacing: rs.isSmall ? 10 : 16,
             childAspectRatio: 1.0,

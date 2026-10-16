@@ -41,9 +41,11 @@ import 'widgets/app_overlay_host.dart';
 import 'widgets/sync_badge.dart';
 import 'widgets/media_cover_fallback.dart';
 import 'l10n/app_localizations.dart';
+import 'features/preview/dual_screen_preview_host.dart';
 
 export 'services/saves/save_backup_background.dart' show saveBackupBackground;
 export 'services/rom_cache_background.dart' show romCacheBackground;
+export 'features/preview/preview_screen.dart' show previewMain;
 
 class NoGlowScrollBehavior extends ScrollBehavior {
   @override
@@ -364,6 +366,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
 
     return GlobalInputWrapper(
       child: MaterialApp(
+        navigatorObservers: [previewRouteObserver],
         title: 'R-Shop',
         debugShowCheckedModeBanner: false,
         localizationsDelegates: L.localizationsDelegates,

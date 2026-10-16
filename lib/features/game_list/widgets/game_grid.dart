@@ -28,6 +28,7 @@ class GameGrid extends ConsumerStatefulWidget {
   final Map<int, FocusNode> focusNodes;
   final ValueNotifier<int> selectedIndexNotifier;
   final int crossAxisCount;
+  final bool twoRows;
   final ScrollController scrollController;
   final bool Function(ScrollNotification) onScrollNotification;
   final void Function(String displayName, List<GameItem> variants) onOpenGame;
@@ -54,6 +55,7 @@ class GameGrid extends ConsumerStatefulWidget {
     required this.focusNodes,
     required this.selectedIndexNotifier,
     required this.crossAxisCount,
+    this.twoRows = false,
     required this.scrollController,
     required this.onScrollNotification,
     required this.onOpenGame,
@@ -195,24 +197,35 @@ class _GameGridState extends ConsumerState<GameGrid> {
       child: NotificationListener<ScrollNotification>(
         onNotification: widget.onScrollNotification,
         child: RepaintBoundary(
-          child: GridView.builder(
-            scrollCacheExtent: ScrollCacheExtent.pixels(widget.gridCacheExtent),
-            controller: widget.scrollController,
-            padding: EdgeInsets.only(
-              left: rs.spacing.lg,
-              right: rs.spacing.lg,
-              top: rs.spacing.md,
-              bottom: rs.isPortrait ? 80 : 100,
-            ),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: widget.crossAxisCount,
-              mainAxisSpacing: rs.isSmall ? 10 : 16,
-              crossAxisSpacing: rs.isSmall ? 10 : 16,
-              childAspectRatio: 1.0,
-            ),
-            itemCount: widget.filteredGroups.length,
-            itemBuilder: _buildItem,
-          ),
+          child: LayoutBuilder(
+              builder: (context, bounds) => GridView.builder(
+                    scrollCacheExtent:
+                        ScrollCacheExtent.pixels(widget.gridCacheExtent),
+                    controller: widget.scrollController,
+                    padding: EdgeInsets.only(
+                      left: rs.spacing.lg,
+                      right: rs.spacing.lg,
+                      top: rs.spacing.md,
+                      bottom: rs.isPortrait ? 80 : 100,
+                    ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: widget.crossAxisCount,
+                      mainAxisExtent: widget.twoRows
+                          ? ((bounds.maxHeight -
+                                      rs.spacing.md -
+                                      92 -
+                                      (rs.isSmall ? 10 : 16)) /
+                                  2)
+                              .clamp(1, 1000)
+                              .toDouble()
+                          : null,
+                      mainAxisSpacing: rs.isSmall ? 10 : 16,
+                      crossAxisSpacing: rs.isSmall ? 10 : 16,
+                      childAspectRatio: 1.0,
+                    ),
+                    itemCount: widget.filteredGroups.length,
+                    itemBuilder: _buildItem,
+                  )),
         ),
       ),
     );

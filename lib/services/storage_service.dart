@@ -6,10 +6,32 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/custom_shelf.dart';
 import '../models/sound_settings.dart';
+import '../models/preview_settings.dart';
 
 enum ControllerLayout { nintendo, xbox, playstation }
 
 class StorageService {
+  PreviewSettings getPreviewSettings() {
+    final raw = _prefs?.getString('preview_settings_v1');
+    if (raw == null) return const PreviewSettings();
+    try {
+      return PreviewSettings.fromJson(
+          (jsonDecode(raw) as Map).cast<String, dynamic>());
+    } on FormatException {
+      return const PreviewSettings();
+    } on TypeError {
+      return const PreviewSettings();
+    }
+  }
+
+  Future<void> setPreviewSettings(PreviewSettings settings) async {
+    if (await _prefs?.setString(
+            'preview_settings_v1', jsonEncode(settings.toJson())) !=
+        true) {
+      throw StateError('Preview settings could not be saved');
+    }
+  }
+
   static const _romPathKey = 'rom_path';
   static const _hapticEnabledKey = 'haptic_enabled';
   static const _onboardingCompletedKey = 'onboarding_completed';

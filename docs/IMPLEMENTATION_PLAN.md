@@ -1,7 +1,19 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 56, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 57, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
+
+## Current extension — already authorized, 2026-10-16
+
+Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md).
+
+| Stage | Status | Complete outcome / acceptance | Verification |
+| --- | --- | --- | --- |
+| S22 Dual-screen media preview | ACTIVE | PREVIEW-01/02: 4x2 main gallery; secondary flat/3D/background media and activated details; gallery focus retained; launch dismisses R-Shop without disturbing companion; sectioned persisted settings and shared bounded media cache | Real Thor selection/details/launch/return with both displays, selected-game real video/cache/offline proof, focus/layout/settings/lifecycle and affected owner/migration checks, gated signed build and cleanup |
+| S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
+
+S22 is the single ACTIVE stage. No S23 implementation starts before S22 closes.
+The S16-S21 completion records below are historical and remain valid.
 
 ## Current extension — already authorized, 2026-10-15
 
@@ -14,7 +26,7 @@ Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 56, including
 | S20 Top 25 artwork and README | COMPLETE | ART-VERIFY-01: scrape up to 25 accepted ranked unique games per configured console, verify box/media-label roles and flat/imported 3D rendering, update README with Thor examples | Saved 99-game canonical sample, real metadata/artwork outcomes, GBA/N64/PS2/PSP flat/3D and missing-label native views, inspected README screenshots |
 | S21 Encrypted full migration | COMPLETE | BACKUP-MIGRATE-01: one private encrypted archive restores complete R-Shop setup, API credentials, metadata/artwork, imported resources and local managed game/associated data on another device without repeated feature setup | Fresh native uninstall/reinstall export/import, actual credentials/data, destination receipts, normal library/RetroArch launch; host conflict/recovery/encryption/controller checks; final signed build and reviewed cleanup |
 
-S16-S21 assigned host/native criteria pass. No implementation stage remains ACTIVE.
+S16-S21 assigned host/native criteria pass. No stage within S16-S21 remains ACTIVE.
 S19 has no SHARE/LAYOUT acceptance
 blockers. TC19-01's protected Downloads fixture is now removed under the owner's
 exact-file exception with identity/hash/absence checks; that deferral is resolved.

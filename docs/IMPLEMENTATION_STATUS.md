@@ -5,11 +5,88 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Dual-screen preview — S22 ACTIVE; S23 NOT STARTED, 2026-10-16
+
+Authority revision 57 / PREVIEW_ACQUISITION_SPECIFICATION.md. S22 is the single
+ACTIVE stage; no public release or production update is authorized. S23 is the
+following requested acquisition outcome, not a deferral of preview acceptance.
+
+| S22 criterion | Current evidence |
+| --- | --- |
+| 1: Native gallery and physical media | Verified on Thor: eight fully visible primary covers at actual DPR 369/160, no HUD overlap, correct flat/imported N64 cartridge label, native GPU frame readiness and retained gallery focus. |
+| 2: Details, navigation and existing actions | Verified matching metadata/readiness, controller activation and selection reset; ordinary owned-ROM handoff and return retain the selected game. Focused single-screen/library/settings checks pass. |
+| 3: Real media, offline cache, settings and audio | One reviewed GoldenEye match through the real ScreenScraper collector; authenticated clip acquisition, decoder-validated shared cache and actual file-backed native playback. Trailer volume .3; native launcher mixer 0.0 during playback, .30000001192092896 after pause. Global Sound and current Music settings remain authoritative. Host checks cover offline lookup, bounds/integrity/owned eviction, settings persistence and stale-player suppression. No collection-wide scrape or physical network-disconnection claim. |
+| 4: Launch/companion/return and hidden lifecycle | Real existing ROM bytes launched through the ordinary owned-storage/RetroArch route. R-Shop presentation disappeared; Cocoon's exact lower activity/task remained unchanged. Normal task return restored selection/preview. Hidden/disconnected state rejects playback. |
+| 5: Affected verification | Focused audio, secondary ownership, preview/cache, ScreenScraper transport, library/layout, settings/controller, owned launch/save-conflict, download-source, migration and import checks pass. Private-source mesh-oracle host check is explicitly skipped without owner fixtures; actual imported model rendering is verified natively. Targeted current-source analysis has no errors/warnings; style infos remain. |
+| 6: Signed assembly, cleanup and delivery | Signed assembly/release JVM checks passed through the maintained wrapper and gate ticket 1299; signature/identity/privacy and reviewed cleanup checks pass. ACTIVE: final commit/remote synchronization remain. |
+
+Native proof used only the absence/hash-bound temporary package
+com.darkaxt.rshop.sharedproof. Production com.darkaxt.rshop, its settings/imports,
+original ROMs and cloud files were not changed. The real-ROM publication used an
+explicit read-only local source with controlled synthetic source metadata; it
+proves native byte validation/installation/launch, not a new live Drive download.
+Deep gameplay/save checks were explicitly excluded. The newly created emulator
+task was normally removed; the temporary app/data were uninstalled through
+reviewed cleanup ticket e49bd5af0fc4323677a501f49b0606b1. Only the two owned dead
+VM forwards were removed. Thor is asleep with both physical screens OFF.
+
+The native viewport exposed a 100-logical-pixel row minimum and oversized dual
+header that occluded the second row. A real-DPR regression reproduced the HUD
+overlap before the dual-only compact header/row fix; the host check and inspected
+native gallery afterward pass. Existing single-screen layout is retained.
+
+Verification attempt history: two initial target-path build arguments failed
+before compilation. A fixture missing device-memory bootstrap data was corrected;
+debug hot restart hit SoLoud teardown, so the failed temporary app was removed
+through ticket b3226695edd102284d56eaf63012e597 and subsequent verification used
+a cold start, then hot reload only. These are recorded diagnostic failures, not
+production crashes. Corrected native builds 1275, 1281 and 1284 passed. Each
+verified gate acquisition, two workers/no parallel, Gradle 3 GiB with in-process
+Kotlin, configured single test forks and daemon exit; no memory failure. Patch
+Ninja rules confirm the existing one-slot native pool.
+
+Signed verification attempts 1296/1297 failed because the agent bypassed the
+existing release wrapper: first the generated registrant retained debug-only
+plugins, then the signing environment had not been loaded. Official Flutter
+release preparation corrected the registrant; the maintained build_release.ps1
+reused the existing DPAPI-protected signing identity and passed release
+JVM checks/assembly through ticket 1299. Both failed requests verified gate/profile
+and daemon exit, with no memory failure; neither is successful signed evidence.
+
+Final signed verification: ticket 1299 acquired the FIFO gate/mutex; helper and
+build exit 0, post_build_daemons.exit_verified true, no memory failure. Observed
+two workers/no parallel, Gradle 3 GiB with in-process Kotlin; release JVM tests
+use one 512 MiB fork/fail-fast and their inspected reports have no failures/errors.
+Native app/patch Ninja pools are one slot each; third-party native hints are not
+claimed as a universal host cap. APK identity com.darkaxt.rshop / R-Shop, version
+1.9.1/code 15, non-debuggable; 76,176,101 bytes, SHA-256
+e9e16905f95c58ed8c259bfbe7a713980de500a354871d524b873d2216e047ff.
+Verified signer certificate SHA-256
+075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c
+matches the existing release identity. Configured-secret/private-key-file scan
+has no hits. This is local verification only, not a new public 1.9.1 artifact or
+production installation. The expendable APK can be rebuilt from committed source.
+
+Reviewed cleanup is applied with no remaining owned outputs: temporary root,
+build/patch .cxx output, exact generated hard-link names, two fixture-specific
+Flutter compiler caches, Python bytecode and the wrapper's default C: log.
+Tickets 5e556bf759892826c028076ca347daef652a32ea7589e8e02e0edadef53b94f8
+and e34499ccba9706a6b22491166c6d73228995b46ad78ec9d77f3bb65f6e224ba0
+cover ordinary outputs and exact hard-linked compilation databases respectively.
+Other toolchain/project caches, private credentials and previous intentional
+release/recovery artifacts are preserved. No cleanup acquired the build gate.
+
+Internal advancement blocker: criterion 6 awaits commit/remote synchronization.
+All technical acceptance and cleanup have passed within ACTIVE S22. No external blocker
+or required tracked deferral exists. Integration review retains one account,
+metadata/download and save owner, one secondary renderer, and the shared normal
+launch path; no additional architecture or speculative optimization is required.
+
 ### Collection/patch extension — S16-S21 COMPLETE, 2026-10-16
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17-S21 are COMPLETE. No implementation stage remains ACTIVE.
+COMPLETE; S17-S21 are COMPLETE. This is the closed earlier scope; S22 above is ACTIVE.
 Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.

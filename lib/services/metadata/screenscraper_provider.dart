@@ -19,6 +19,8 @@ class ScreenScraperProvider
   final Future<ScreenScraperUserCredentials?> Function() _readUser;
   final DateTime Function() _clock;
   static const maxResponseBytes = 4 * 1024 * 1024;
+  static const maxVideoBytes = 128 * 1024 * 1024;
+  static const videoTypes = {'video', 'video-normalized'};
   static const imageTypes = {
     'box-2D',
     'box-3D',
@@ -138,8 +140,10 @@ class ScreenScraperProvider
       {required Future<void> Function(List<int>) write,
       CancelToken? cancelToken}) async {
     final reference = media.providerReference;
+    final video = videoTypes.contains(reference?.mediaType);
+    final limit = video ? maxVideoBytes : maxResponseBytes;
     if (reference == null ||
-        !imageTypes.contains(reference.mediaType) ||
+        !(imageTypes.contains(reference.mediaType) || video) ||
         !platformIds.values.contains(reference.providerPlatformId)) {
       return _result(MetadataLookupStatus.invalidRequest);
     }
@@ -154,15 +158,16 @@ class ScreenScraperProvider
       if (authentication == null) {
         return _result(MetadataLookupStatus.setupRequired);
       }
-      final response = await _dio.get<ResponseBody>('mediaJeu.php',
+      final response = await _dio.get<ResponseBody>(
+          video ? 'mediaVideoJeu.php' : 'mediaJeu.php',
           queryParameters: {
             ...authentication,
             'systemeid': reference.providerPlatformId,
             'jeuid': reference.providerGameId,
             'media': reference.mediaSelector,
-            'outputformat': 'png',
-            'maxwidth': 1024,
-            'maxheight': 1024
+            if (!video) 'outputformat': 'png',
+            if (!video) 'maxwidth': 1024,
+            if (!video) 'maxheight': 1024
           },
           cancelToken: cancelToken);
       if (response.statusCode != 200) {
@@ -175,8 +180,7 @@ class ScreenScraperProvider
           int.tryParse(response.headers.value('content-length') ?? '');
       final mime =
           response.headers.value('content-type')?.split(';').first.trim();
-      if (body == null ||
-          (length != null && (length < 1 || length > maxResponseBytes))) {
+      if (body == null || (length != null && (length < 1 || length > limit))) {
         await body?.stream.listen((_) {}).cancel();
         return _result(MetadataLookupStatus.invalidResponse);
       }
@@ -198,7 +202,9 @@ class ScreenScraperProvider
                 ? MetadataLookupStatus.unmatched
                 : MetadataLookupStatus.invalidResponse);
       }
-      if (mime != 'image/png') {
+      if (video
+          ? !{'video/mp4', 'application/octet-stream'}.contains(mime)
+          : mime != 'image/png') {
         await body.stream.listen((_) {}).cancel();
         return _result(MetadataLookupStatus.invalidResponse);
       }
@@ -209,8 +215,12 @@ class ScreenScraperProvider
           return _result(MetadataLookupStatus.cancelled);
         }
         received += chunk.length;
-        if (received > maxResponseBytes) {
+        if (received > limit) {
           return _result(MetadataLookupStatus.invalidResponse);
+        }
+        if (video) {
+          await write(chunk);
+          continue;
         }
         // Keep only the end-chunk framing across arbitrary transport chunks.
         // Live mediaJeu.php appends ASCII '1' after the complete IEND. Normalize
@@ -230,10 +240,12 @@ class ScreenScraperProvider
       final framed = tail.length == endWithMarker.length &&
           Iterable<int>.generate(tail.length)
               .every((i) => tail[i] == endWithMarker[i]);
-      await write(framed ? Uint8List.sublistView(tail, 0, 12) : tail);
+      if (!video) {
+        await write(framed ? Uint8List.sublistView(tail, 0, 12) : tail);
+      }
       return MetadataLookupResult(
           status: MetadataLookupStatus.matched,
-          message: 'Image body received; cache validation is required.');
+          message: 'Media body received; cache validation is required.');
     } catch (error) {
       if (error is FileSystemException) {
         return _result(MetadataLookupStatus.unavailable);
@@ -254,6 +266,7 @@ class ScreenScraperProvider
           'publisher',
           'artwork',
           'screenshots',
+          'video',
           'rating'
         },
         verifiedIdLookup: true,
@@ -914,7 +927,10 @@ class ScreenScraperProvider
         !const {'api.screenscraper.fr', 'neoclone.screenscraper.fr'}
             .contains(uri.host) ||
         uri.port != 443 ||
-        uri.path != '/api2/mediaJeu.php' ||
+        uri.path !=
+            (videoTypes.contains(expectedType)
+                ? '/api2/mediaVideoJeu.php'
+                : '/api2/mediaJeu.php') ||
         uri.userInfo.isNotEmpty ||
         uri.hasFragment) {
       return null;

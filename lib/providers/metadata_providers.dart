@@ -15,6 +15,8 @@ import '../services/metadata/metadata_artwork_cache.dart';
 import '../services/metadata/metadata_provider.dart';
 import '../services/metadata/metadata_refresh_jobs.dart';
 import '../services/metadata/screenscraper_provider.dart';
+import '../services/metadata/preview_video_cache.dart';
+import '../models/scraped_metadata.dart';
 import '../services/metadata/shared_metadata_store.dart';
 import '../services/metadata/es_de_metadata_publication.dart';
 import '../models/config/app_config.dart';
@@ -120,6 +122,53 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
   Future<void>? _operation, _loading, _closing;
   bool _closed = false;
   bool _pauseRequested = false;
+  CancelToken? _previewCancel;
+
+  Future<String?> cachedPreviewVideo(MetadataMedia media) async {
+    final store = await _sharedStore;
+    return store == null ? null : PreviewVideoCache(store).find(media);
+  }
+
+  Future<void> trimPreviewVideos(int Function() budgetBytes) async {
+    await _operation;
+    await _perform(() async {
+      final store = await _sharedStore;
+      if (store != null) await PreviewVideoCache(store).trim(budgetBytes());
+    });
+  }
+
+  /// Explicit selected-game media action uses the existing serialized metadata
+  /// lane and authenticated provider. Migration/close cancellation joins it.
+  Future<String?> downloadPreviewVideo(MetadataMedia media,
+      {required int budgetBytes, String? protectedPath}) async {
+    String? path;
+    await _perform(() async {
+      final provider = _providers['screenscraper'];
+      final store = await _sharedStore;
+      if (store == null || provider is! MetadataArtworkProvider)
+        throw StateError('Choose shared metadata storage first.');
+      final cancel = CancelToken();
+      _previewCancel = cancel;
+      try {
+        if (provider is MetadataAccessProvider) {
+          final access = await (provider as MetadataAccessProvider)
+              .checkAccess(cancelToken: cancel);
+          final quota = access.quota;
+          if (access.status != MetadataLookupStatus.matched ||
+              (quota?.requestsToday != null &&
+                  quota?.maxRequestsPerDay != null &&
+                  quota!.requestsToday! >= quota.maxRequestsPerDay!)) {
+            throw StateError(access.message);
+          }
+        }
+        path = await PreviewVideoCache(store).acquire(media, provider, cancel,
+            budgetBytes: budgetBytes, protectedPath: protectedPath);
+      } finally {
+        _previewCancel = null;
+      }
+    });
+    return path;
+  }
 
   MetadataControlsController(
       {required Future<Database> database,
@@ -584,6 +633,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
 
   Future<void> pause() async {
     _pauseRequested = true;
+    _previewCancel?.cancel();
     try {
       await _jobs.pause();
     } catch (_) {

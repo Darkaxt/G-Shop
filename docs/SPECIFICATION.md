@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 56, 2026-10-16.
+Authoritative specification, revision 57, 2026-10-16.
+
+## Current authorized extension — dual-screen preview and acquisition add-ons
+
+The owner approved implementation on 2026-10-16. The authoritative
+[PREVIEW_ACQUISITION_SPECIFICATION.md](PREVIEW_ACQUISITION_SPECIFICATION.md)
+defines S22 dual-screen browsing/gameplay media and the following S23 general
+website acquisition integration based on LolSuite Manager. S22 is ACTIVE; S23
+is NOT STARTED. Preserve all prior data/authentication/launch/companion contracts.
+Implementation and scoped native verification are authorized; a new public
+release is not implied.
 
 ## Current authorized extension — collection navigation and ROM patching
 

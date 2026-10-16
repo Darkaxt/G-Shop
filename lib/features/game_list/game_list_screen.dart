@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../preview/dual_screen_preview_host.dart';
+import '../../providers/preview_providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/config/app_config.dart';
@@ -67,6 +69,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   bool _discoveryPending = false;
 
   late int _columns;
+  int get _effectiveColumns =>
+      ref.read(dualScreenPreviewProvider) ? 4 : _columns;
+  final _previewKey = GlobalKey<DualScreenPreviewHostState>();
   double _lastPinchScale = 1.0;
   late InputDebouncer _debouncer;
   SystemConfig? _systemConfig;
@@ -214,7 +219,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
     _focusManager = FocusSyncManager(
       scrollController: _scrollController,
-      getCrossAxisCount: () => _columns,
+      getCrossAxisCount: () => _effectiveColumns,
       getItemCount: () => _controller.state.filteredGroups.length,
       getGridRatio: () => 1.0,
       onSelectionChanged: (index) => _selectedIndexNotifier.value = index,
@@ -337,7 +342,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
           .read(favoriteGamesProvider.notifier)
           .migrateIfNeeded(_controller.state.allGames);
     }
-    _focusManager.validateState(_columns);
+    _focusManager.validateState(_effectiveColumns);
     setState(() {});
     _updateItemKeys();
   }
@@ -408,7 +413,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   void _scrollToSelected({bool instant = false}) {
     _focusManager.scrollToSelectedWithFallback(
       itemKey: _itemKeys[_focusManager.selectedIndex],
-      crossAxisCount: _columns,
+      crossAxisCount: _effectiveColumns,
       instant: instant,
       isMounted: () => mounted,
       retryCallback: () => _scrollToSelected(instant: true),
@@ -431,6 +436,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   }
 
   void _handleBack() {
+    if (_previewKey.currentState?.closeDetails() == true) return;
     ref.read(feedbackServiceProvider).cancel();
     if (_isFiltering) {
       _closeFilter();
@@ -526,6 +532,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final state = _controller.state;
     final hasDownloads = ref.read(hasQueueItemsProvider);
     return [
+      _previewKey.currentState?.actionsMenu,
       QuickMenuItem(
         label: l.gameList_zoomIn,
         icon: Icons.zoom_in_rounded,
@@ -593,6 +600,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   Future<void> _openGameDetail(
       String displayName, List<GameItem> variants) async {
+    if (_previewKey.currentState?.activateDetails() == true) return;
     searchFieldNode.unfocus();
     suspendSearchOverlay();
     ref.read(feedbackServiceProvider).confirm();
@@ -635,6 +643,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(dualScreenPreviewProvider);
     ref.watch(selectionContinuityProvider);
     final rs = context.rs;
     final state = _controller.state;
@@ -807,46 +816,64 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     final raMatches =
         ref.watch(raMatchesForSystemProvider(widget.system.id)).value ?? {};
     final deviceMemory = ref.read(deviceMemoryProvider);
-    return GameGrid(
-      key: const ValueKey('game_grid'),
-      system: widget.system,
-      filteredGroups: state.filteredGroups,
-      groupedGames: state.filteredGroupedGames,
-      installedCache: state.installedCache,
-      favorites: favorites,
-      itemKeys: _itemKeys,
-      focusNodes: _focusManager.focusNodes,
-      selectedIndexNotifier: _selectedIndexNotifier,
-      crossAxisCount: _columns,
-      scrollController: _scrollController,
-      onScrollNotification: (n) {
-        _focusManager.updateScrollVelocity(n);
-        return _focusManager.handleScrollNotification(n, context);
-      },
-      scrollSuppression: _scrollSuppression,
-      onOpenGame: _openGameDetail,
-      onSelectionChanged: (index) {
-        _focusManager.setSelectedIndex(index);
-        _selectedIndexNotifier.value = index;
-      },
-      onCoverFound: (url, variants) async {
-        await _controller.updateCoverUrls(variants, url);
-      },
-      onThumbnailNeeded: (url, variants) async {
-        if (variants.first.hasThumbnail) return;
-        final result = await ThumbnailService.generateThumbnail(url);
-        if (result.success) {
-          await _controller.updateThumbnailData(variants);
-        }
-      },
-      searchQuery: state.searchQuery,
-      hasActiveFilters: state.activeFilters.isNotEmpty,
-      isLocalOnly: state.isLocalOnly,
-      targetFolder: widget.targetFolder,
-      raMatches: raMatches,
-      memCacheWidthMax: deviceMemory.memCacheWidthMax,
-      gridCacheExtent: deviceMemory.gridCacheExtent,
-    );
+    final dual = ref.watch(dualScreenPreviewProvider);
+    return DualScreenPreviewHost(
+        key: _previewKey,
+        selection: _selectedIndexNotifier,
+        itemAt: (index) {
+          if (index < 0 || index >= state.filteredGroups.length) return null;
+          final variants =
+              state.filteredGroupedGames[state.filteredGroups[index]];
+          if (variants == null || variants.isEmpty) return null;
+          return PreviewSelection(
+              game: variants.first,
+              variants: variants,
+              system: widget.system,
+              target: widget.targetFolder,
+              localOnly: state.isLocalOnly,
+              autoExtract: _systemConfig?.autoExtract ?? false);
+        },
+        child: GameGrid(
+          key: const ValueKey('game_grid'),
+          system: widget.system,
+          filteredGroups: state.filteredGroups,
+          groupedGames: state.filteredGroupedGames,
+          installedCache: state.installedCache,
+          favorites: favorites,
+          itemKeys: _itemKeys,
+          focusNodes: _focusManager.focusNodes,
+          selectedIndexNotifier: _selectedIndexNotifier,
+          crossAxisCount: dual ? 4 : _columns,
+          twoRows: dual,
+          scrollController: _scrollController,
+          onScrollNotification: (n) {
+            _focusManager.updateScrollVelocity(n);
+            return _focusManager.handleScrollNotification(n, context);
+          },
+          scrollSuppression: _scrollSuppression,
+          onOpenGame: _openGameDetail,
+          onSelectionChanged: (index) {
+            _focusManager.setSelectedIndex(index);
+            _selectedIndexNotifier.value = index;
+          },
+          onCoverFound: (url, variants) async {
+            await _controller.updateCoverUrls(variants, url);
+          },
+          onThumbnailNeeded: (url, variants) async {
+            if (variants.first.hasThumbnail) return;
+            final result = await ThumbnailService.generateThumbnail(url);
+            if (result.success) {
+              await _controller.updateThumbnailData(variants);
+            }
+          },
+          searchQuery: state.searchQuery,
+          hasActiveFilters: state.activeFilters.isNotEmpty,
+          isLocalOnly: state.isLocalOnly,
+          targetFolder: widget.targetFolder,
+          raMatches: raMatches,
+          memCacheWidthMax: deviceMemory.memCacheWidthMax,
+          gridCacheExtent: deviceMemory.gridCacheExtent,
+        ));
   }
 
   Widget _buildSearchContent(GameListState state) {

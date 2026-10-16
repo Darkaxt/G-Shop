@@ -24,7 +24,6 @@ import '../../providers/ra_providers.dart';
 import '../../providers/rom_status_providers.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/shelf_providers.dart';
-import '../../providers/save_backup_providers.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/input_debouncer.dart';
 import '../../services/owned_emulator_launcher.dart';
@@ -40,6 +39,7 @@ import '../../widgets/physical_media_view.dart';
 import '../library/widgets/shelf_picker_dialog.dart';
 import 'achievements_screen.dart';
 import 'game_detail_controller.dart';
+import 'open_managed_game.dart';
 import 'game_detail_state.dart';
 import 'widgets/cover_section.dart';
 import 'widgets/ra_info_section.dart';
@@ -534,32 +534,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     _openingOwnedRom = true;
     var handedOff = false;
     try {
-      final metadata = await ref.read(gameMetadataProvider(
-          (filename: game.selectionKey, systemSlug: widget.system.id)).future);
-      if (!mounted) return;
-      final editionId = metadata?.editionId;
-      final companion = withoutCompanion || editionId == null
-          ? null
-          : ref.read(storageServiceProvider).getCompanion(editionId);
-      await _emulatorLauncher.open(game, widget.system, widget.targetFolder,
-          companionComponent: companion, prepareSave: () async {
-        final artifact = game.remoteArtifact?.id;
-        if (artifact != null) {
-          final saves = await ref.read(automaticSaveBackupsProvider.future);
-          await saves.prepareLaunch(
-              artifactId: artifact,
-              editionId: editionId,
-              reviewDeviceBackups: (job) async {
-                if (!mounted) throw PlatformException(code: 'cancelled');
-                await SaveBackupGamePanel.reviewOtherDevices(context, job);
-              },
-              reviewPcsxSaves: () => _emulatorLauncher.reviewRetroArchPcsxSaves(
-                  game, widget.system, widget.targetFolder),
-              reviewRetroArchSave: (route) =>
-                  _emulatorLauncher.reviewRetroArchBatterySave(
-                      game, widget.system, widget.targetFolder, route));
-        }
-        if (!mounted) throw PlatformException(code: 'cancelled');
+      await openManagedGame(ref, context, _emulatorLauncher, game,
+          widget.system, widget.targetFolder,
+          withoutCompanion: withoutCompanion, beforeHandoff: () async {
         final media = _physicalMediaKey.currentState;
         if (media != null && !await media.playInsertion()) {
           throw PlatformException(code: 'cancelled');

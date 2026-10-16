@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/input/input.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/preview_providers.dart';
+import '../../providers/metadata_providers.dart';
 
 class MediaSettingsScreen extends ConsumerStatefulWidget {
   const MediaSettingsScreen({super.key});
@@ -20,6 +22,15 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
   int _section = 0;
   bool _picking = false;
   String? _notice;
+  final _sliderFocus = <String, FocusNode>{};
+  @override
+  void dispose() {
+    for (final node in _sliderFocus.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   String get routeId => 'media-settings';
   @override
@@ -31,11 +42,11 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
   @override
   Map<Type, Action<Intent>> get screenActions => {
         TabLeftIntent: CallbackAction<TabLeftIntent>(onInvoke: (_) {
-          setState(() => _section = 1 - _section);
+          setState(() => _section = (_section + 5) % 6);
           return null;
         }),
         TabRightIntent: CallbackAction<TabRightIntent>(onInvoke: (_) {
-          setState(() => _section = 1 - _section);
+          setState(() => _section = (_section + 1) % 6);
           return null;
         }),
         BackIntent: CallbackAction<BackIntent>(onInvoke: (_) {
@@ -51,6 +62,17 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
         }),
         NavigateIntent: CallbackAction<NavigateIntent>(onInvoke: (intent) {
           final focus = FocusManager.instance.primaryFocus;
+          final slider =
+              focus?.context?.findAncestorWidgetOfExactType<Slider>();
+          if (slider != null &&
+              (intent.direction == GridDirection.left ||
+                  intent.direction == GridDirection.right)) {
+            final step = (slider.max - slider.min) / (slider.divisions ?? 20);
+            slider.onChanged?.call((slider.value +
+                    (intent.direction == GridDirection.right ? step : -step))
+                .clamp(slider.min, slider.max));
+            return null;
+          }
           if (focus == null || focus == screenFocusNode) {
             screenFocusNode.nextFocus();
             return null;
@@ -139,6 +161,7 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
   Widget build(BuildContext context) {
     final importer = ref.watch(socketMediaImportProvider);
     final preferences = ref.watch(mediaPresentationProvider);
+    final preview = ref.watch(previewSettingsProvider);
     return buildWithActions(
         Scaffold(
           backgroundColor: AppTheme.backgroundColor,
@@ -158,6 +181,16 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
                         NavigationRailDestination(
                             icon: Icon(Icons.view_in_ar_outlined),
                             label: Text('Presentation')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.wallpaper),
+                            label: Text('Background')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.tune), label: Text('Appearance')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.play_circle_outline),
+                            label: Text('Playback')),
+                        NavigationRailDestination(
+                            icon: Icon(Icons.storage), label: Text('Storage')),
                       ],
                     ),
                     const VerticalDivider(width: 1),
@@ -213,7 +246,12 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
                               const SizedBox(height: 20),
                               const Text(
                                   'Resources stay on this device. Your original APK is unchanged.'),
-                            ] else ...[
+                            ] else if (_section == 1) ...[
+                              _switch(
+                                  'Second screen',
+                                  Icons.desktop_windows_outlined,
+                                  'enabled',
+                                  preview.enabled),
                               SwitchListTile(
                                   key: const ValueKey('media-enable-3d'),
                                   secondary:
@@ -236,6 +274,63 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
                                       'Skip cover reveals and insertion animations'),
                                   value: preferences.reducedMotion,
                                   onChanged: (_) => _toggle(false)),
+                            ] else if (_section == 2) ...[
+                              _choice('Background', Icons.wallpaper,
+                                  'background', preview.background.name, const {
+                                'off': 'Off',
+                                'screenshot': 'Screenshot',
+                                'slideshow': 'Slideshow',
+                                'video': 'Video preferred'
+                              }),
+                              const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Text(
+                                      'Cached media works offline. Missing clips fall back to screenshots.')),
+                            ] else if (_section == 3) ...[
+                              _switch('Show cartridge', Icons.album_outlined,
+                                  'modelVisible', preview.modelVisible),
+                              _slider('Blur', Icons.blur_on, 'blur',
+                                  preview.blur, 20),
+                              _slider('Brightness', Icons.brightness_6_outlined,
+                                  'brightness', preview.brightness, 1),
+                            ] else if (_section == 4) ...[
+                              _switch('Autoplay', Icons.play_arrow, 'autoplay',
+                                  preview.autoplay),
+                              _switch(
+                                  'Loop', Icons.repeat, 'loop', preview.loop),
+                              _switch('Trailer sound', Icons.volume_up_outlined,
+                                  'sound', preview.sound),
+                              const ListTile(
+                                  leading: Icon(Icons.volume_down_outlined),
+                                  title: Text('Volume follows Audio → Music'),
+                                  subtitle: Text(
+                                      'Music mutes while a trailer plays.')),
+                            ] else ...[
+                              _choice('Download', Icons.download_outlined,
+                                  'downloads', preview.downloads.name, const {
+                                'manual': 'Manual',
+                                'wifi': 'Wi-Fi only',
+                                'any': 'Any network'
+                              }),
+                              _switch('Normalized video', Icons.movie_outlined,
+                                  'normalized', preview.normalized),
+                              _choice(
+                                  'Video cache',
+                                  Icons.storage,
+                                  'cacheMiB',
+                                  '${preview.cacheMiB}',
+                                  const {
+                                    '128': '128 MiB',
+                                    '256': '256 MiB',
+                                    '512': '512 MiB',
+                                    '1024': '1 GiB',
+                                    '2048': '2 GiB'
+                                  },
+                                  numeric: true),
+                              const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Text(
+                                      'Use Download media on a game preview. Changing these settings never scrapes your collection.')),
                             ],
                             if ((_notice ?? importer.message).isNotEmpty) ...[
                               const SizedBox(height: 20),
@@ -248,4 +343,58 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
         ),
         localFocusScope: true);
   }
+
+  Future<void> _change(String key, Object value) async {
+    try {
+      await ref.read(previewSettingsProvider.notifier).change(key, value);
+      if (key == 'cacheMiB' && mounted) {
+        final storage = ref.read(storageServiceProvider);
+        final controls = ref.read(metadataControlsProvider.notifier);
+        await controls.load();
+        await controls.trimPreviewVideos(
+            () => storage.getPreviewSettings().cacheMiB * 1024 * 1024);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _notice = 'Could not save that setting.');
+    }
+  }
+
+  Widget _switch(String title, IconData icon, String key, bool value) =>
+      SwitchListTile(
+          secondary: Icon(icon),
+          title: Text(title),
+          value: value,
+          onChanged: (value) => _change(key, value));
+  Widget _slider(
+      String title, IconData icon, String key, double value, double max) {
+    final node = _sliderFocus.putIfAbsent(
+        key, () => FocusNode(debugLabel: 'preview-$key'));
+    return ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Slider(
+            focusNode: node,
+            onChangeStart: (_) => node.requestFocus(),
+            value: value,
+            max: max,
+            divisions: 20,
+            onChanged: (value) => _change(key, value)));
+  }
+
+  Widget _choice(String title, IconData icon, String key, String value,
+          Map<String, String> values,
+          {bool numeric = false}) =>
+      ListTile(
+          leading: Icon(icon),
+          title: Text(title),
+          trailing: DropdownButton<String>(
+              value: values.containsKey(value) ? value : values.keys.first,
+              items: [
+                for (final entry in values.entries)
+                  DropdownMenuItem(value: entry.key, child: Text(entry.value))
+              ],
+              onChanged: (value) {
+                if (value != null)
+                  _change(key, numeric ? int.parse(value) : value);
+              }));
 }

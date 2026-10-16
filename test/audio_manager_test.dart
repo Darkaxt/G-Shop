@@ -48,7 +48,8 @@ class _FakeAudioEngine implements AudioEngine {
   }
 
   @override
-  Future<Object> play(Object source, {double volume = 1.0, bool looping = false}) async {
+  Future<Object> play(Object source,
+      {double volume = 1.0, bool looping = false}) async {
     if (shouldFailPlay) throw Exception('play failed');
     final handle = 'handle_${_nextHandleId++}';
     playCalls.add(_PlayCall(source, volume, looping, handle));
@@ -136,6 +137,34 @@ void main() {
 
   // ─── init ──────────────────────────────────────────────────────
 
+  test('trailer suppresses music until stopped without losing user settings',
+      () async {
+    await manager.init();
+    await manager.startBgm();
+    manager.setPreviewPlaying(true);
+    expect(engine.setVolumeCalls.last.volume, 0);
+    manager.updateSettings(const SoundSettings(bgmVolume: .2));
+    manager.setBgmVolume(.2);
+    expect(engine.setVolumeCalls.last.volume, 0);
+    manager.setPreviewPlaying(false);
+    expect(engine.setVolumeCalls.last.volume, .2);
+    manager.setPreviewPlaying(true);
+    manager.updateSettings(const SoundSettings(enabled: false, bgmVolume: .2));
+    manager.setPreviewPlaying(false);
+    expect(engine.setVolumeCalls.last.volume, 0);
+    await manager.dispose();
+  });
+
+  test('starting music during trailer cannot fade it back in', () async {
+    await manager.init();
+    manager.setPreviewPlaying(true);
+    await manager.startBgm();
+    expect(engine.fadeVolumeCalls, isEmpty);
+    manager.setPreviewPlaying(false);
+    expect(engine.setVolumeCalls.last.volume, .3);
+    await manager.dispose();
+  });
+
   group('init', () {
     test('sets isInitialized on success', () async {
       await manager.init();
@@ -203,8 +232,8 @@ void main() {
       await manager.startBgm();
       engine.setVolumeCalls.clear();
 
-      manager.updateSettings(
-          const SoundSettings(enabled: false, bgmVolume: 0.6));
+      manager
+          .updateSettings(const SoundSettings(enabled: false, bgmVolume: 0.6));
 
       expect(engine.setVolumeCalls, isNotEmpty);
       expect(engine.setVolumeCalls.last.volume, 0.0);
@@ -315,7 +344,8 @@ void main() {
 
     test('startBgm fades in when enabled', () async {
       await manager.init();
-      manager.updateSettings(const SoundSettings(enabled: true, bgmVolume: 0.4));
+      manager
+          .updateSettings(const SoundSettings(enabled: true, bgmVolume: 0.4));
 
       await manager.startBgm();
 
@@ -431,7 +461,8 @@ void main() {
   group('typing', () {
     test('startTyping plays looping sound', () async {
       await manager.init();
-      manager.updateSettings(const SoundSettings(enabled: true, sfxVolume: 0.5));
+      manager
+          .updateSettings(const SoundSettings(enabled: true, sfxVolume: 0.5));
 
       await manager.startTyping();
 
@@ -487,7 +518,8 @@ void main() {
       expect(engine.setPauseCalls.last.pause, isFalse);
     });
 
-    test('dispose cancels timers, disposes sources, deinits, double-dispose safe',
+    test(
+        'dispose cancels timers, disposes sources, deinits, double-dispose safe',
         () async {
       await manager.init();
       await manager.startBgm();

@@ -116,6 +116,27 @@ The cache image shows the owner's current policy, not a requirement to enable de
 
 Updates retain `com.darkaxt.rshop` and its production signing identity. This differs from upstream's package, so installing alongside upstream does not automatically migrate upstream's app-private data. Release assets include checksums and source/build provenance.
 
+## Development preview: two-screen browsing
+
+The development branch provides a full-width 4×2 library gallery on the main
+screen and the selected game's flat/imported 3D media on the second screen.
+Select a game for metadata and launch options; moving to another game restores
+its preview without moving controller focus out of the gallery. Single-screen
+browsing retains the existing layout. Selection, imported media, trailer sound
+and real ROM launch/return have been verified on the Thor. These changes are not
+in public release 1.9.1.
+
+**Settings → Media previews** separates Background, Appearance, Playback and
+Storage controls. Gameplay backgrounds prefer a cached clip, then screenshots,
+then the red background. Media is downloaded explicitly, not on every highlight;
+the default policy is Wi-Fi with a bounded 512 MiB video cache.
+
+Trailer sound follows **Settings → Audio → Music** (30% by default) and respects
+Sound off. While the trailer plays, launcher music is muted; pausing or leaving
+the preview restores the current music setting. Playback also has a trailer-sound
+toggle. The second-screen window belongs only to R-Shop: launching a ROM hides
+it without replacing the existing companion app.
+
 ## What is—and is not—synced
 
 - Drive ROM sources are read-only. R-Shop does not upload ROMs or mirror the SD card into Drive.

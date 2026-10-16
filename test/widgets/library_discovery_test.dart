@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/features/library/library_screen.dart';
+import 'package:retro_eshop/widgets/console_hud.dart';
 import 'package:retro_eshop/core/widgets/animated_background.dart';
 import 'package:retro_eshop/features/library/widgets/library_tabs.dart';
 import 'package:retro_eshop/features/library/widgets/library_dashboard.dart';
@@ -36,6 +37,9 @@ import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import 'package:retro_eshop/widgets/physical_media_view.dart';
+import 'package:retro_eshop/providers/preview_providers.dart';
+import 'package:retro_eshop/services/secondary_preview.dart';
+import 'package:retro_eshop/features/preview/dual_screen_preview_host.dart';
 import '../helpers/pump_helpers.dart';
 import '../metadata_controls_test.dart' show MemorySecrets, ControlsProvider;
 
@@ -68,6 +72,98 @@ class _MetadataScopeObserver extends ProviderObserver {
 
 void main() {
   defineLibraryDiscoveryChecks();
+  testWidgets('dual preview uses eight covers and retains gallery focus',
+      (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 369 / 160;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    sqfliteFfiInit();
+    final db =
+        await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    await LibrarySchema.install(db);
+    await MetadataRefreshJobs.install(db);
+    await db.execute('''CREATE TABLE games(id INTEGER PRIMARY KEY,
+      systemSlug TEXT, displayName TEXT, filename TEXT, url TEXT,
+      artifact_key TEXT, remote_artifact TEXT, provider_config TEXT,
+      is_folder INTEGER DEFAULT 0)''');
+    await LibraryQuery.install(db);
+    for (var i = 1; i <= 8; i++) {
+      await db.insert('games', {
+        'id': i,
+        'systemSlug': 'n64',
+        'displayName': 'Game $i',
+        'filename': 'Game $i.z64',
+        'url': ''
+      });
+    }
+    SharedPreferences.setMockInitialValues({
+      'favorites_version': 1,
+      'secure_auth_migrated': true,
+      'physical_media_reduced_motion': true
+    });
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    await storage.setLibraryConsole('n64');
+    final secondary = SecondaryPreview()..available = true;
+    final snapshots = <Map<String, dynamic>>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SecondaryPreview.channel, (call) async {
+      if (call.method == 'present')
+        snapshots.add((call.arguments as Map).cast<String, dynamic>());
+      return null;
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SecondaryPreview.channel, null));
+    final container = ProviderContainer(overrides: [
+      secondaryPreviewProvider.overrideWith((ref) => secondary),
+      libraryDbProvider.overrideWithValue(_Database(db)),
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((ref) async => AppConfig.empty),
+      installedFilesProvider.overrideWith((ref) async => InstalledFilesState()),
+      selectionContinuityProvider.overrideWith((ref) async {}),
+      deviceMemoryProvider.overrideWithValue(
+          const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
+      sourcesProvider
+          .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
+      gameMetadataProvider.overrideWith((ref, params) async => null),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+        container: container, child: createTestApp(const LibraryScreen())));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-media-preview')), findsNothing);
+    final grid = tester.widget<GridView>(find.byType(GridView).first);
+    expect(
+        (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+            .crossAxisCount,
+        4);
+    final cards = find.byType(BaseGameCard);
+    expect(cards, findsNWidgets(8));
+    final hud = tester.getRect(find.byType(ConsoleHud));
+    for (final element in cards.evaluate()) {
+      final rect = tester.getRect(find.byWidget(element.widget));
+      expect(rect.top, greaterThanOrEqualTo(0));
+      expect(
+          rect.bottom, lessThanOrEqualTo(1080 / tester.view.devicePixelRatio));
+      expect(rect.overlaps(hud), isFalse,
+          reason: 'Controller hints must not cover a game');
+    }
+    final focused = FocusManager.instance.primaryFocus;
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(snapshots.last['details'], isTrue);
+    expect(FocusManager.instance.primaryFocus, same(focused));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(snapshots.last['filename'], 'Game 2.z64');
+    expect(snapshots.last['details'], isFalse);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
   testWidgets('library load survives selection migration invalidation',
       (tester) async {
     tester.view.physicalSize = const Size(1920, 1080);

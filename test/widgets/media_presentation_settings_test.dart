@@ -50,6 +50,8 @@ void main() {
     expect(container.read(mediaPresentationProvider),
         (enabled: false, reducedMotion: false));
     await tester.scrollUntilVisible(find.text('Media previews'), 200);
+    await tester.ensureVisible(find.text('Media previews'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Media previews'));
     await tester.pumpAndSettle();
     expect(find.byType(MediaSettingsScreen), findsOneWidget);
@@ -76,6 +78,18 @@ void main() {
     final fresh = MediaPresentationNotifier(reopened);
     addTearDown(fresh.dispose);
     expect(fresh.state, (enabled: false, reducedMotion: true));
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
+    await tester.pumpAndSettle();
+    expect(find.text('Blur'), findsOneWidget);
+    await tester.tap(find.byType(Slider).first);
+    await tester.pumpAndSettle();
+    final blur = storage.getPreviewSettings().blur;
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(storage.getPreviewSettings().blur, greaterThan(blur),
+        reason:
+            'Controller arrows must adjust the focused slider, not leave it');
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

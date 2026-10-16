@@ -35,6 +35,7 @@ class MainActivity : FlutterActivity() {
     private var saveCapture: SaveCaptureService? = null
     private var socketImport: SocketImportChannel? = null
     private var patchWork: PatchWorkChannel? = null
+    private var preview: PreviewChannel? = null
     private val saveOperationOwner = java.util.UUID.randomUUID().toString()
     private var saveBackgroundChannel: MethodChannel? = null
 
@@ -76,6 +77,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        preview = PreviewChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         MigrationChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
         socketImport = SocketImportChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         patchWork = PatchWorkChannel(this, flutterEngine.dartExecutor.binaryMessenger)
@@ -275,6 +277,29 @@ class MainActivity : FlutterActivity() {
                 return@setMethodCallHandler
             }
             when (call.method) {
+                "validatePreviewVideo" -> {
+                    val path = call.argument<String>("path")
+                    if (path == null) { result.error("invalid_arguments", "Missing clip", null); return@setMethodCallHandler }
+                    extractorPool.execute {
+                        val retriever = android.media.MediaMetadataRetriever()
+                        var ready = false
+                        try {
+                            retriever.setDataSource(path)
+                            val duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0
+                            val width = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                            val height = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                            if (duration > 0 && width in 1..3840 && height in 1..2160) {
+                                val frame = if (android.os.Build.VERSION.SDK_INT >= 27)
+                                    retriever.getScaledFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 320, 240)
+                                    else retriever.getFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                                ready = frame != null
+                                frame?.recycle()
+                            }
+                        } catch (_: Exception) { /* Sanitized readiness only; no source or credentials. */ }
+                        finally { retriever.release() }
+                        mainHandler.post { result.success(mapOf("ready" to ready)) }
+                    }
+                }
                 "getFreeSpace" -> {
                     val path = call.argument<String>("path")
                     if (path == null) {
@@ -305,7 +330,18 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        preview?.resume()
+    }
+
+    override fun onPause() {
+        preview?.pause()
+        super.onPause()
+    }
+
     override fun onDestroy() {
+        preview?.dispose()
         patchWork?.dispose()
         socketImport?.dispose()
         val captures = saveCapture

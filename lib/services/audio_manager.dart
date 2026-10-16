@@ -56,8 +56,7 @@ class _SoLoudEngine implements AudioEngine {
       _soLoud.setRelativePlaySpeed(handle as SoundHandle, speed);
 
   @override
-  double getVolume(Object handle) =>
-      _soLoud.getVolume(handle as SoundHandle);
+  double getVolume(Object handle) => _soLoud.getVolume(handle as SoundHandle);
 
   @override
   void setPause(Object handle, bool pause) =>
@@ -92,6 +91,7 @@ class AudioManager {
   bool _isDisposed = false;
   bool _bgmStarted = false;
   bool _bgmStarting = false;
+  bool _previewPlaying = false;
   bool _hasAttemptedReinit = false;
   Timer? _bgmStopTimer;
 
@@ -99,6 +99,18 @@ class AudioManager {
 
   bool get isInitialized => _isInitialized;
   SoundSettings get settings => _settings;
+
+  /// Bounded debug evidence for the real mixer; no release diagnostics surface.
+  Map<String, Object?>? get previewDebugState => !kDebugMode
+      ? null
+      : {
+          'previewPlaying': _previewPlaying,
+          'musicVolume': _bgmHandle != null && _engine != null && _isInitialized
+              ? _engine!.getVolume(_bgmHandle!)
+              : null,
+          'configuredVolume': _settings.bgmVolume,
+          'soundEnabled': _settings.enabled,
+        };
 
   Future<void> init() async {
     if (_isInitialized || _isInitializing) return;
@@ -147,10 +159,18 @@ class AudioManager {
     _applyVolumes();
   }
 
+  /// Temporary playback ownership, never a change to the user's sound settings.
+  void setPreviewPlaying(bool playing) {
+    if (_previewPlaying == playing) return;
+    _previewPlaying = playing;
+    _applyVolumes();
+  }
+
   void _applyVolumes() {
     if (_engine == null || !_isInitialized) return;
 
-    final bgmVolume = _settings.enabled ? _settings.bgmVolume : 0.0;
+    final bgmVolume =
+        _settings.enabled && !_previewPlaying ? _settings.bgmVolume : 0.0;
 
     if (_bgmHandle != null) {
       try {
@@ -231,7 +251,7 @@ class AudioManager {
       _bgmStarting = false;
       _hasAttemptedReinit = false;
 
-      if (_settings.enabled) {
+      if (_settings.enabled && !_previewPlaying) {
         _engine!.fadeVolume(
             _bgmHandle!, _settings.bgmVolume, const Duration(seconds: 2));
       }
@@ -293,7 +313,8 @@ class AudioManager {
     if (_bgmHandle == null || _engine == null || !_isInitialized) return;
 
     try {
-      _engine!.setVolume(_bgmHandle!, _settings.enabled ? volume : 0.0);
+      _engine!.setVolume(
+          _bgmHandle!, _settings.enabled && !_previewPlaying ? volume : 0.0);
     } catch (e) {
       debugPrint('AudioManager: setBgmVolume failed: $e');
     }
@@ -391,6 +412,5 @@ class AudioManager {
     _isInitialized = false;
     _bgmStarted = false;
     _bgmStarting = false;
-
   }
 }

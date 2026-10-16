@@ -1,0 +1,445 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
+import '../../core/theme/app_theme.dart';
+import '../../models/game_item.dart';
+import '../../models/preview_settings.dart';
+import '../../models/system_model.dart';
+import '../../services/socket_media_import.dart';
+import '../../utils/game_metadata.dart';
+import '../game_detail/widgets/cover_section.dart';
+import '../../widgets/physical_media_view.dart';
+
+/// Dedicated rendering isolate. It receives local media and public facts only.
+@pragma('vm:entry-point')
+Future<void> previewMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(useMaterial3: true),
+      home: const PreviewScreen()));
+}
+
+class PreviewScreen extends StatefulWidget {
+  const PreviewScreen({super.key});
+  @override
+  State<PreviewScreen> createState() => _PreviewScreenState();
+}
+
+class _PreviewScreenState extends State<PreviewScreen>
+    with WidgetsBindingObserver {
+  static const bridge = MethodChannel('com.retro.rshop/preview_view');
+  Map<String, dynamic>? _snapshot;
+  VideoPlayerController? _video;
+  Future<void> _settled = Future.value();
+  int _generation = 0, _slide = 0;
+  Timer? _slideshow;
+  String? _videoPath;
+  bool _paused = false;
+  bool? _manualPlayback;
+  bool? _reportedPlaying;
+  int? _reportedEpoch;
+  final _physicalKey = GlobalKey<PhysicalMediaViewState>();
+  String? _resourceGeneration;
+  Future<void>? _resourceLoad;
+  int _incomingRevision = 0;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    bridge.setMethodCallHandler((call) async {
+      if (call.method == 'togglePlayback') {
+        if ((call.arguments as Map?)?['actionEpoch'] !=
+            _snapshot?['actionEpoch']) return;
+        _manualPlayback =
+            !(_manualPlayback ?? _video?.value.isPlaying ?? settings.autoplay);
+        final player = _video;
+        if (player != null) {
+          if (_manualPlayback! && !_paused) {
+            await player.play();
+          } else {
+            await player.pause();
+          }
+        }
+        return;
+      }
+      if (call.method == 'snapshot') {
+        final snapshot = (call.arguments as Map).cast<String, dynamic>();
+        final incoming = snapshot['revision'] as int;
+        _incomingRevision = incoming;
+        final resource = snapshot['resourceGeneration'] as String?;
+        if (resource != null && resource != _resourceGeneration) {
+          _resourceGeneration = resource;
+          _resourceLoad = SocketMediaImport(
+                  readOnly: true,
+                  directory: Directory(snapshot['resourceRoot'] as String))
+              .initialize();
+        }
+        await _resourceLoad;
+        if (!mounted || incoming != _incomingRevision) return;
+        final changed = snapshot['identity'] != _snapshot?['identity'] ||
+            snapshot['actionEpoch'] != _snapshot?['actionEpoch'];
+        if (changed ||
+            (snapshot['settings'] as Map)['autoplay'] != settings.autoplay)
+          _manualPlayback = null;
+        setState(() {
+          _snapshot = snapshot;
+          if (changed) _slide = 0;
+        });
+        _updatePlayback(changed);
+        WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _rendered(snapshot['revision'] as int));
+      }
+    });
+    unawaited(bridge.invokeMethod<void>('ready'));
+  }
+
+  PreviewSettings get settings => PreviewSettings.fromJson(
+      (_snapshot?['settings'] as Map? ?? const {}).cast<String, dynamic>());
+  List<String> get screenshots =>
+      (_snapshot?['screenshots'] as List? ?? const []).cast<String>();
+  double get _volume => settings.sound
+      ? ((_snapshot?['audioVolume'] as num?)?.toDouble() ?? .3).clamp(0, 1)
+      : 0;
+
+  void _playbackChanged() {
+    final value = _video?.value;
+    final playing = !_paused &&
+        value != null &&
+        value.isInitialized &&
+        value.isPlaying &&
+        !value.isBuffering &&
+        !value.isCompleted &&
+        !value.hasError;
+    final epoch = _snapshot?['actionEpoch'] as int?;
+    if (_reportedPlaying == playing && _reportedEpoch == epoch) return;
+    _reportedPlaying = playing;
+    _reportedEpoch = epoch;
+    unawaited(bridge.invokeMethod<void>('playing', {
+      'actionEpoch': epoch,
+      'video': _snapshot?['video'],
+      'playing': playing,
+    }));
+    if (mounted && value?.hasError == true) setState(() {});
+  }
+
+  Future<void> _rendered(int revision) async {
+    if (!mounted || _snapshot?['revision'] != revision) return;
+    final physical = _physicalKey.currentState;
+    if (physical != null) {
+      try {
+        await physical.renderReady;
+      } catch (_) {
+        /* The renderer's snapshot retains the actual failed readiness. */
+      }
+    }
+    if (!mounted || _snapshot?['revision'] != revision) return;
+    await bridge.invokeMethod<void>('rendered', {
+      'identity': _snapshot?['identity'],
+      'revision': revision,
+      'details': _snapshot?['details'],
+      'viewportWidth': MediaQuery.sizeOf(context).width,
+      'viewportHeight': MediaQuery.sizeOf(context).height,
+      'model': _physicalKey.currentState?.renderSnapshot,
+      'videoReady': _video?.value.isInitialized == true,
+      'videoPlaying': _reportedPlaying == true,
+      'videoVolume': _video?.value.volume,
+      'notice': _snapshot?['notice'],
+      'readiness': _snapshot?['readiness'],
+      'canLaunch': _snapshot?['canLaunch'],
+    });
+  }
+
+  void _updatePlayback(bool changed) {
+    final prefs = settings;
+    final path = !_paused && prefs.background == PreviewBackground.video
+        ? (_snapshot?['video'] as String?)
+        : null;
+    _slideshow?.cancel();
+    _slideshow = null;
+    // Presentation timing, not synchronization or completion control.
+    if (!_paused &&
+        prefs.background == PreviewBackground.slideshow &&
+        screenshots.length > 1) {
+      _slideshow = Timer.periodic(const Duration(seconds: 6), (_) {
+        if (mounted) setState(() => _slide = (_slide + 1) % screenshots.length);
+      });
+    }
+    if (path == _videoPath && !changed) {
+      final player = _video;
+      if (player != null) {
+        unawaited(player.setLooping(prefs.loop));
+        unawaited(player.setVolume(_volume));
+        if ((_manualPlayback ?? prefs.autoplay) && !_paused) {
+          unawaited(player.play());
+        } else {
+          unawaited(player.pause());
+        }
+      }
+      return;
+    }
+    final generation = ++_generation;
+    _videoPath = path;
+    final previous = _video;
+    previous?.removeListener(_playbackChanged);
+    _video = null;
+    _playbackChanged();
+    _settled = _settled.then((_) async {
+      await previous?.dispose();
+      if (!mounted || generation != _generation || path == null) return;
+      final player = VideoPlayerController.file(File(path),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
+      try {
+        await player.initialize();
+        if (!mounted || generation != _generation) {
+          await player.dispose();
+          return;
+        }
+        final current = settings;
+        await player.setLooping(current.loop);
+        await player.setVolume(_volume);
+        if (!mounted || generation != _generation) {
+          await player.dispose();
+          return;
+        }
+        _video = player;
+        player.addListener(_playbackChanged);
+        if ((_manualPlayback ?? current.autoplay) && !_paused)
+          await player.play();
+        if (!mounted || generation != _generation) {
+          player.removeListener(_playbackChanged);
+          if (identical(_video, player)) _video = null;
+          await player.dispose();
+          return;
+        }
+        setState(() => _video = player);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_rendered(_snapshot!['revision'] as int));
+        });
+      } catch (_) {
+        player.removeListener(_playbackChanged);
+        if (identical(_video, player)) _video = null;
+        await player.dispose();
+        _playbackChanged();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _paused = state != AppLifecycleState.resumed;
+    _updatePlayback(false);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    bridge.setMethodCallHandler(null);
+    _slideshow?.cancel();
+    _generation++;
+    final player = _video;
+    player?.removeListener(_playbackChanged);
+    _video = null;
+    _playbackChanged();
+    unawaited(_settled.then((_) => player?.dispose()));
+    super.dispose();
+  }
+
+  void _action(String action, {int? variant}) =>
+      unawaited(bridge.invokeMethod<void>('action', {
+        'actionEpoch': _snapshot?['actionEpoch'],
+        'revision': _snapshot?['revision'],
+        'action': action,
+        if (variant != null) 'variant': variant
+      }));
+
+  @override
+  Widget build(BuildContext context) {
+    final snapshot = _snapshot;
+    if (snapshot == null)
+      return const Scaffold(backgroundColor: AppTheme.backgroundColor);
+    final prefs = settings;
+    final system = SystemModel.supportedSystems
+        .where((s) => s.id == snapshot['system'])
+        .firstOrNull;
+    if (system == null) return const SizedBox.shrink();
+    final game = GameItem(
+        filename: snapshot['filename'] as String,
+        displayName: snapshot['title'] as String,
+        url: '',
+        cachedCoverUrl: snapshot['cover'] as String?);
+    final details = snapshot['details'] == true;
+    final player = _video;
+    Widget? background;
+    if (prefs.background != PreviewBackground.off && !_paused) {
+      if (player != null &&
+          player.value.isInitialized &&
+          !player.value.hasError) {
+        background = FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+                width: player.value.size.width,
+                height: player.value.size.height,
+                child: VideoPlayer(player)));
+      } else if (screenshots.isNotEmpty) {
+        final path = screenshots[_slide % screenshots.length];
+        background = Image.file(File.fromUri(Uri.parse(path)),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stack) => const SizedBox.shrink());
+      }
+    }
+    return Scaffold(
+        body: Container(
+            decoration:
+                const BoxDecoration(gradient: AppTheme.backgroundGradient),
+            child: Stack(fit: StackFit.expand, children: [
+              if (background != null)
+                ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(
+                        sigmaX: prefs.blur, sigmaY: prefs.blur),
+                    child: Opacity(
+                        opacity:
+                            details ? prefs.brightness * .35 : prefs.brightness,
+                        child: background)),
+              if (player != null && player.value.isInitialized)
+                Positioned(
+                    right: 16,
+                    top: 16,
+                    child: ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: player,
+                        builder: (context, value, child) =>
+                            IconButton.filledTonal(
+                                tooltip: value.isPlaying
+                                    ? 'Pause video'
+                                    : 'Play video',
+                                onPressed: () {
+                                  _manualPlayback = !value.isPlaying;
+                                  if (_manualPlayback!) {
+                                    unawaited(player.play());
+                                  } else {
+                                    unawaited(player.pause());
+                                  }
+                                },
+                                icon: Icon(value.isPlaying
+                                    ? Icons.pause
+                                    : Icons.play_arrow)))),
+              SafeArea(
+                  child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(children: [
+                        Text(game.displayName,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontSize: 26, fontWeight: FontWeight.w600)),
+                        Text(system.name,
+                            style: const TextStyle(color: Colors.white70)),
+                        const SizedBox(height: 12),
+                        Expanded(
+                            child: details
+                                ? _details(snapshot)
+                                : GestureDetector(
+                                    onTap: () => _action('details'),
+                                    child: prefs.modelVisible
+                                        ? CoverSection(
+                                            key: ValueKey(snapshot['identity']),
+                                            game: game,
+                                            system: system,
+                                            coverUrls: const [],
+                                            cachedUrl:
+                                                snapshot['cover'] as String?,
+                                            physicalLabelUrl:
+                                                snapshot['label'] as String?,
+                                            gbcDualMode: snapshot['gbcDualMode']
+                                                as String?,
+                                            metadata: GameMetadata.parse(
+                                                game.filename),
+                                            physicalMediaEnabled:
+                                                snapshot['threeD'] == true,
+                                            physicalMediaKey: _physicalKey,
+                                            reducedMotion:
+                                                snapshot['reducedMotion'] ==
+                                                    true,
+                                            showPresentationControls: false)
+                                        : const Center(
+                                            child: Icon(
+                                                Icons.touch_app_outlined,
+                                                size: 48)))),
+                        if (!details)
+                          const Text('Select for details',
+                              style: TextStyle(color: Colors.white70)),
+                      ]))),
+            ])));
+  }
+
+  Widget _details(Map<String, dynamic> snapshot) => Column(children: [
+        Expanded(
+            child: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+              if (snapshot['rating'] != null)
+                Text('★ ${snapshot['rating']}',
+                    style: const TextStyle(fontSize: 22)),
+              if (snapshot['credits'] != null)
+                Text(snapshot['credits'] as String),
+              if (snapshot['genres'] != null)
+                Text(snapshot['genres'] as String),
+              const SizedBox(height: 16),
+              Text(snapshot['summary'] as String? ?? 'No description yet.',
+                  style: const TextStyle(fontSize: 18, height: 1.45)),
+              const SizedBox(height: 16),
+              Text(snapshot['readiness'] as String? ?? 'Checking local game…'),
+              if ((snapshot['notice'] as String?)?.isNotEmpty == true)
+                Text(snapshot['notice'] as String),
+              if ((snapshot['variants'] as List?)?.length case final int count
+                  when count > 1)
+                DropdownButton<int>(
+                    value: snapshot['variant'] as int,
+                    isExpanded: true,
+                    items: [
+                      for (var i = 0; i < count; i++)
+                        DropdownMenuItem(
+                            value: i,
+                            child: Text(
+                                (snapshot['variants'] as List)[i] as String,
+                                overflow: TextOverflow.ellipsis))
+                    ],
+                    onChanged: (v) {
+                      if (v != null) _action('variant', variant: v);
+                    }),
+            ]))),
+        const SizedBox(height: 12),
+        Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              FilledButton.icon(
+                  onPressed: snapshot['canLaunch'] == true
+                      ? () => _action('launch')
+                      : snapshot['canDownload'] == true
+                          ? () => _action('download')
+                          : null,
+                  style: AppTheme.primaryButtonStyle,
+                  icon: Icon(snapshot['canLaunch'] == true
+                      ? Icons.play_arrow
+                      : Icons.download),
+                  label: Text(
+                      snapshot['canLaunch'] == true ? 'Play' : 'Download')),
+              OutlinedButton.icon(
+                  onPressed: snapshot['mediaBusy'] == true
+                      ? null
+                      : () => _action('media'),
+                  icon: const Icon(Icons.movie_outlined),
+                  label: const Text('Download media')),
+              OutlinedButton.icon(
+                  onPressed: () => _action('close'),
+                  icon: const Icon(Icons.album_outlined),
+                  label: const Text('Preview')),
+            ]),
+      ]);
+}
