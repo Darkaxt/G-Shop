@@ -311,6 +311,16 @@ not invent rankings, substitute an alphabetical tail, or initiate collection-wid
 rating gathering merely to fill the sample. Record selected/eligible counts and
 consoles without eligible scores honestly.
 
+Implementation detail: reuse the normal collector entry and durable job owner.
+A Top 25 choice snapshots one accepted representative per canonical game per
+selected console through LibraryQuery, in the same database transaction that
+creates the job. Record selected/eligible/collection coverage with that job;
+pause/resume retains its original membership. Existing full/console/manufacturer
+and single-game actions remain unchanged. This is bounded artwork collection,
+not a new rating-gathering or ranking policy.
+This mode reuses already-recorded ROM identifiers but does not start new ROM
+header/archive reads; its retry retains that same no-ROM-data behavior.
+
 Use the existing ScreenScraper collector, credentials, quota handling, durable
 pause/resume and reconnectable shared metadata/artwork area. Preserve existing
 richer metadata and game identity. Do not introduce another scraper, scheduler,

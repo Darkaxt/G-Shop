@@ -11,6 +11,7 @@ import '../../models/scraped_metadata.dart';
 import '../drive/drive_api.dart';
 import '../drive/drive_media.dart';
 import '../library_store.dart';
+import '../library_query.dart';
 import 'effective_overall_rating.dart';
 import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
@@ -71,6 +72,8 @@ class MetadataRefreshReport {
   final String providerId;
   final MetadataQuotaObservation? quotaObservation;
   final MetadataProcessedGame? lastProcessed;
+  final bool top25PerSystem;
+  final Map<String, Map<String, int>> selectionCoverage;
   const MetadataRefreshReport(
       {required this.id,
       required this.generation,
@@ -84,7 +87,9 @@ class MetadataRefreshReport {
       this.kind = 'metadata',
       this.providerId = '',
       this.quotaObservation,
-      this.lastProcessed});
+      this.lastProcessed,
+      this.top25PerSystem = false,
+      this.selectionCoverage = const {}});
 }
 
 class MetadataReviewItem {
@@ -191,6 +196,16 @@ class MetadataRefreshJobs {
       ON metadata_artwork_items(job_id, media_key, status, edition_id)''');
     await MetadataArtworkCache.install(db);
     await installArtworkLinks(db);
+    await installSelectionCoverage(db);
+  }
+
+  static Future<void> installSelectionCoverage(DatabaseExecutor db) async {
+    final columns =
+        await db.rawQuery('PRAGMA table_info(metadata_refresh_jobs)');
+    if (!columns.any((row) => row['name'] == 'selection_json')) {
+      await db.execute(
+          'ALTER TABLE metadata_refresh_jobs ADD COLUMN selection_json TEXT');
+    }
   }
 
   /// Additive v35 display evidence; existing budget and saved jobs are untouched.
@@ -309,6 +324,7 @@ class MetadataRefreshJobs {
       String? systemSlug,
       List<String>? systemSlugs,
       bool ratingsOnly = false,
+      bool top25PerSystem = false,
       int? cacheRowId}) {
     if (systemSlug?.trim().isEmpty == true ||
         (systemSlugs != null &&
@@ -317,16 +333,44 @@ class MetadataRefreshJobs {
                 systemSlug != null ||
                 cacheRowId != null)) ||
         (ratingsOnly && providerId != 'igdb') ||
+        (top25PerSystem &&
+            (providerId != 'screenscraper' ||
+                ratingsOnly ||
+                cacheRowId != null)) ||
         (cacheRowId != null && cacheRowId < 1)) {
       throw ArgumentError('Catalogue scope is invalid');
     }
     // Freeze the selected manufacturer before the asynchronous transaction.
     final systems = (systemSlugs?.toSet().toList())?..sort();
+    final coverage = top25PerSystem ? <String, Map<String, int>>{} : null;
     return _create(
         providerId: providerId,
         ratingsOnly: ratingsOnly,
+        selectionCoverage: coverage,
         editions: (txn) async* {
-          if (systems == null) {
+          if (top25PerSystem) {
+            final selectedSystems = systems ??
+                (systemSlug == null
+                    ? (await txn.rawQuery(
+                            'SELECT DISTINCT systemSlug FROM games WHERE is_folder=0 ORDER BY systemSlug'))
+                        .map((row) => row['systemSlug'] as String)
+                        .toList()
+                    : [systemSlug]);
+            final sample = await LibraryQuery.rankedMetadataSelection(
+                txn, selectedSystems);
+            for (final entry in sample.entries) {
+              coverage![entry.key] = {
+                'selected': entry.value.items.length,
+                'eligible': entry.value.rankedGames,
+                'collection': entry.value.collectionGames
+              };
+            }
+            for (final page in sample.values) {
+              for (final item in page.items) {
+                yield item.editionId;
+              }
+            }
+          } else if (systems == null) {
             yield* LibraryStore.catalogueEditions(txn,
                 systemSlug: systemSlug, cacheRowId: cacheRowId);
           } else {
@@ -595,6 +639,7 @@ class MetadataRefreshJobs {
         providerId: job['provider_id'] as String,
         collectionGeneration: job['collection_generation'] as String,
         matchReview: job['is_match_review'] == 1,
+        selectionCoverage: _decodeSelectionCoverage(job['selection_json']),
         recordMissingIdentities: true,
         editions: (txn) async* {
           if ((await _job(txn, id))['state'] == 'running') {
@@ -627,6 +672,7 @@ class MetadataRefreshJobs {
       bool recordMissingIdentities = false,
       bool matchReview = false,
       bool ratingsOnly = false,
+      Map<String, Map<String, int>>? selectionCoverage,
       required Stream<String> Function(Transaction) editions}) async {
     if (providerId.trim().isEmpty ||
         collectionGeneration?.trim().isEmpty == true) {
@@ -741,6 +787,11 @@ class MetadataRefreshJobs {
                       : 'pending',
             },
             conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+      if (selectionCoverage != null) {
+        await txn.update('metadata_refresh_jobs',
+            {'selection_json': jsonEncode(selectionCoverage)},
+            where: 'id=?', whereArgs: [id]);
       }
       return id;
     });
@@ -1504,6 +1555,15 @@ class MetadataRefreshJobs {
         });
   }
 
+  static Map<String, Map<String, int>>? _decodeSelectionCoverage(
+      Object? value) {
+    if (value == null) return null;
+    return Map<String, Map<String, int>>.unmodifiable(
+        (jsonDecode(value as String) as Map).map((key, row) => MapEntry(
+            key as String,
+            Map<String, int>.unmodifiable((row as Map).cast<String, int>()))));
+  }
+
   Future<MetadataRefreshReport> report(int id) async {
     final db = await _database;
     return db.transaction((txn) async {
@@ -1524,6 +1584,9 @@ class MetadataRefreshJobs {
           quotaObservation:
               await _quotaObservation(txn, row['provider_id'] as String),
           lastProcessed: _lastProcessed?.jobId == id ? _lastProcessed : null,
+          top25PerSystem: row['selection_json'] != null,
+          selectionCoverage:
+              _decodeSelectionCoverage(row['selection_json']) ?? const {},
           counts: Map.unmodifiable({
             for (final r in totals) r['status'] as String: r['count'] as int
           }),
@@ -1689,6 +1752,8 @@ class MetadataRefreshJobs {
             id: id,
             generation: initial.generation,
             collectionGeneration: initial.collectionGeneration,
+            top25PerSystem: initial.top25PerSystem,
+            selectionCoverage: initial.selectionCoverage,
             state: 'running',
             requested: requested,
             rated: rated,
@@ -1777,7 +1842,9 @@ class MetadataRefreshJobs {
               publish);
           continue;
         }
-        if (!matchReview && provider.providerId == 'screenscraper') {
+        if (!matchReview &&
+            !initial.top25PerSystem &&
+            provider.providerId == 'screenscraper') {
           final bound =
               await _bindRomIdentifier(db, id, item, request, current, cancel);
           if (bound != null) {
@@ -1967,6 +2034,8 @@ class MetadataRefreshJobs {
           id: id,
           generation: initial.generation,
           collectionGeneration: initial.collectionGeneration,
+          top25PerSystem: initial.top25PerSystem,
+          selectionCoverage: initial.selectionCoverage,
           state: 'running',
           requested: requested,
           rated: 0,

@@ -23,7 +23,7 @@ import 'patch_build_store.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 40;
+  static const int _dbVersion = 41;
 
   @visibleForTesting
   static Database? testDatabase;
@@ -402,6 +402,9 @@ class DatabaseService {
     }
     if (oldVersion < 40) {
       await PatchBuildSchema.install(db);
+    }
+    if (oldVersion < 41) {
+      await MetadataRefreshJobs.installSelectionCoverage(db);
     }
   }
 

@@ -7,10 +7,10 @@ A fork of [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-Shop) fo
 Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current release: **1.9.1**
 
 <p align="center">
-  <img src="screenshots/thor/gba-library-up.png" width="960" alt="R-Shop on AYN Thor: GBA console tab, cloud download badges, box covers and an imported 3D cartridge with a handwritten title label" />
+  <img src="screenshots/thor/gba-artwork-3d-up.png" width="960" alt="R-Shop on AYN Thor: ranked GBA games with box covers, source-attributed scores, cloud badges and a separately textured Mega Man Zero 3 cartridge" />
 </p>
 
-*Real Thor capture running the published production APK. The preview uses resources imported locally from the owner's original Socket APK; those resources are not bundled with R-Shop.*
+*Real Thor capture of the signed validation update on this branch. The latest public release is still 1.9.1; the new collection/patch and bounded-artwork changes shown here have not yet been published. Imported 3D resources come from the owner's original Socket APK and are not bundled with R-Shop.*
 
 ## What changes from the original?
 
@@ -29,12 +29,34 @@ The original R-Shop provides the controller-first foundation: local libraries, R
 | Physical media | Flat cover presentation | Format-specific flat fallbacks, handwritten missing-art labels, optional imported 3D media and box-to-cartridge focus animation |
 | Dual-screen play | Normal game launching | Per-ROM companion selection: emulator above, linked Android app below on supported devices |
 | Sync feedback | Overall progress | Second current-console progress card with real game counts once the inventory is known |
+| Collection organization | Console libraries | Manufacturer → home console/handheld → Commercial, Hacks and Patches, with consoles ordered by release year |
+| ROM patching | Download playable content | Compatible base-game choices, local UniPatcher builds, verified-result reuse and portable content-only patch recipes |
 
 Comparison baseline: upstream's [README](https://github.com/AverageConsumer/R-Shop/blob/d615f87277617cbf3a12a6445b3c71d42cf72539/README.md) and [source types](https://github.com/AverageConsumer/R-Shop/blob/d615f87277617cbf3a12a6445b3c71d42cf72539/lib/models/config/source.dart), reviewed on 2026-10-15. The upstream column summarizes that baseline, not an exhaustive claim about every upstream capability or future release.
 
 ## A tour on AYN Thor
 
-Unaltered 1920 × 1080 captures from the Thor's upper display, running **1.9.1/code 15**. Counts and artwork reflect this collection, not bundled content or complete metadata coverage. Open an image to inspect the full-size view.
+Unaltered 1920 × 1080 captures from the Thor's upper display. The fresh-artwork section shows the signed validation update; the earlier gallery shows published **1.9.1/code 15**. Counts and artwork reflect this collection, not bundled content or complete metadata coverage. Open an image to inspect the full-size view.
+
+### Fresh artwork: box covers are not cartridge labels
+
+Grid cards use box art. The selected preview uses separate cartridge, disc or UMD artwork, either flat or on locally imported 3D media. Missing labels retain the handwritten fallback; a box cover is never substituted as a cartridge texture.
+
+<p align="center">
+  <img src="screenshots/thor/gba-artwork-flat-up.png" width="440" alt="Default flat GBA preview: the same cached cartridge label, with separate box-cover cards" />
+  <img src="screenshots/thor/n64-artwork-3d-up.png" width="440" alt="Nintendo 64: Ocarina of Time cartridge label beside its separate box cover and ranked collection" />
+  <img src="screenshots/thor/ps2-artwork-3d-up.png" width="440" alt="PlayStation 2: Metal Gear Solid 3 disc artwork beside its box cover" />
+  <img src="screenshots/thor/psp-artwork-3d-up.png" width="440" alt="PSP: Tekken 6 UMD label beside the resolved PSP box-cover grid" />
+  <img src="screenshots/thor/missing-label-flat-up.png" width="440" alt="A missing Xenosaga disc label remains handwritten while its existing box cover is preserved" />
+</p>
+
+**Top 25 per console** in the existing ScreenScraper collector takes a saved snapshot of qualifying ranked games. It does not fill gaps alphabetically, rescrape rankings to invent a sample, or download ROMs. Pause/resume and retry keep that original selection.
+
+<p align="center">
+  <img src="screenshots/thor/artwork-top25-up.png" width="880" alt="Top 25-per-console collector: 99 real metadata matches, no ambiguous or review-required results" />
+</p>
+
+The bounded verification pass selected 24 GBA games and 25 each for N64, PS2 and PSP. Other configured consoles had no qualifying scores. It gathered 98 box covers and 96 physical labels; eight PS2 screenshots failed image validation. These are honest sample outcomes, not a claim of complete collection-wide metadata or artwork.
 
 ### Browse by manufacturer, sync only that brand
 

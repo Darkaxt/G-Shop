@@ -13,6 +13,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/system_model.dart';
 import '../../providers/metadata_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../services/metadata/metadata_credentials.dart';
@@ -103,6 +104,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   final _sectionFocus = FocusNode(debugLabel: 'MetadataSections');
   String _section = 'provider';
   bool _scraping = false;
+  bool _top25 = false;
   String? _scope;
   static const _selectedSystems = '@selected-systems';
   bool _invalid = false;
@@ -722,6 +724,25 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                 : null),
       const SizedBox(height: 12),
       Wrap(spacing: 12, runSpacing: 8, children: [
+        if (widget.cacheRowId == null &&
+            !widget.ratingsOnly &&
+            state.providerId == 'screenscraper')
+          SegmentedButton<bool>(
+              key: const ValueKey('metadata-top25'),
+              segments: const [
+                ButtonSegment(
+                    value: false,
+                    label: Text('All games'),
+                    icon: Icon(Icons.apps)),
+                ButtonSegment(
+                    value: true,
+                    label: Text('Top 25 per console'),
+                    icon: Icon(Icons.star_outline))
+              ],
+              selected: {_top25},
+              onSelectionChanged: enabled
+                  ? (values) => setState(() => _top25 = values.single)
+                  : null),
         if (widget.cacheRowId == null)
           _button(l.metadata_savedJobs, 'metadata-saved-jobs',
               enabled ? _selectSavedJob : null),
@@ -736,6 +757,9 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                         _scope == _selectedSystems ? widget.systemSlugs : null,
                     ratingsOnly:
                         widget.ratingsOnly && state.providerId == 'igdb',
+                    top25PerSystem: _top25 &&
+                        !widget.ratingsOnly &&
+                        state.providerId == 'screenscraper',
                     cacheRowId: widget.cacheRowId)
                 : null),
         _transportButton(l.metadata_pause, 'metadata-pause',
@@ -805,6 +829,24 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
             },
             style: Theme.of(context).textTheme.titleMedium),
         _coverage(l, report),
+        if (report.top25PerSystem)
+          ExpansionTile(
+              title: const Text('Top 25 selection'),
+              subtitle: const Text('Original selection · selected / ranked'),
+              children: [
+                for (final entry in report.selectionCoverage.entries)
+                  ListTile(
+                      dense: true,
+                      title: Text(SystemModel.supportedSystems
+                              .where((system) => system.id == entry.key)
+                              .firstOrNull
+                              ?.name ??
+                          entry.key),
+                      trailing: Text(
+                          '${entry.value['selected']} / ${entry.value['eligible']}'),
+                      subtitle: Text(
+                          '${entry.value['collection']} games in collection'))
+              ]),
         MetadataProgressFeedback(report: report),
         if (report.blockedStatus != null)
           Text(switch (report.blockedStatus) {

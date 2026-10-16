@@ -472,8 +472,29 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 40);
+    expect(await db.getVersion(), 41);
     expect((await db.query('games')).single['displayName'], 'Existing game');
+    expect(await db.query('patch_builds'), isEmpty);
+  });
+  test(
+      'real v40 upgrade preserves existing jobs and adds nullable selection coverage',
+      () async {
+    await db.insert('metadata_refresh_jobs', {
+      'generation': 1,
+      'provider_id': 'screenscraper',
+      'collection_generation': 'existing',
+      'state': 'paused'
+    });
+    await db.execute(
+        'ALTER TABLE metadata_refresh_jobs DROP COLUMN selection_json');
+    await db.setVersion(40);
+    await db.close();
+    DatabaseService.resetForTesting();
+    db = await DatabaseService().database;
+    expect(await db.getVersion(), 41);
+    final row = (await db.query('metadata_refresh_jobs')).single;
+    expect(row['collection_generation'], 'existing');
+    expect(row['selection_json'], isNull);
     expect(await db.query('patch_builds'), isEmpty);
   });
 }

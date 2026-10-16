@@ -459,20 +459,16 @@ class LibraryQuery {
   // policy so an existing clean installation rebuilds them on its first query,
   // without changing game identities or requiring a new metadata scrape.
   static String _policy(List<AssessedOverallScoreBasis> bases) =>
-      'collection-categories-v1:${sha256
-      .convert(utf8.encode(jsonEncode(bases
-          .map((b) => [
-                b.sourceId,
-                b.kind.name,
-                b.scaleMinimum,
-                b.scaleMaximum,
-                b.platformIds.toList()..sort(),
-                b.minimumVoteCount,
-                b.assessmentReference,
-                b.unknownCountAssessment
-              ])
-          .toList())))
-      .toString()}';
+      'collection-categories-v1:${sha256.convert(utf8.encode(jsonEncode(bases.map((b) => [
+            b.sourceId,
+            b.kind.name,
+            b.scaleMinimum,
+            b.scaleMaximum,
+            b.platformIds.toList()..sort(),
+            b.minimumVoteCount,
+            b.assessmentReference,
+            b.unknownCountAssessment
+          ]).toList()))).toString()}';
 
   static Future<void> _refresh(
       DatabaseExecutor db, List<AssessedOverallScoreBasis> bases) async {
@@ -884,6 +880,21 @@ class LibraryQuery {
         assessedBases ?? productionOverallScoreBases);
     final db = await _database;
     return db.transaction((txn) => _page(txn, filter, bases));
+  }
+
+  /// Called by the existing collector inside its job-creation transaction.
+  /// Capture all consoles before requesting metadata can change freshness.
+  static Future<Map<String, LibraryQueryPage>> rankedMetadataSelection(
+      DatabaseExecutor txn, Iterable<String> platformIds) async {
+    final systems = platformIds.toSet().toList()..sort();
+    final result = <String, LibraryQueryPage>{};
+    for (final system in systems) {
+      final filter = LibraryQueryFilter(
+          platformIds: {system}, top: 25, ratingOrder: true, limit: 25);
+      _validate(filter);
+      result[system] = await _page(txn, filter, productionOverallScoreBases);
+    }
+    return Map.unmodifiable(result);
   }
 
   /// One console's unfiltered offline-sample planning input. Refresh and query

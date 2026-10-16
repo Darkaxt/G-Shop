@@ -371,12 +371,26 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           {String? systemSlug,
           List<String>? systemSlugs,
           int? cacheRowId,
+          bool top25PerSystem = false,
           bool ratingsOnly = false}) =>
       _perform(() async {
+        var selectedSystems = systemSlugs;
+        if (top25PerSystem &&
+            systemSlug == null &&
+            selectedSystems == null &&
+            _configuredTarget != null) {
+          selectedSystems = [];
+          for (final system in state.systems) {
+            if (await _configuredTarget!(system) != null) {
+              selectedSystems.add(system);
+            }
+          }
+        }
         final job = await _jobs.createFromCatalogue(
             providerId: state.providerId,
             systemSlug: systemSlug,
-            systemSlugs: systemSlugs,
+            systemSlugs: selectedSystems,
+            top25PerSystem: top25PerSystem,
             ratingsOnly: ratingsOnly,
             cacheRowId: cacheRowId);
         _set(state.copyWith(report: job, clearArtworkReport: true));

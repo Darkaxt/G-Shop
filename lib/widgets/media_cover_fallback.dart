@@ -122,6 +122,9 @@ Stream<LicenseEntry> patchEngineLicenses() async* {
 class MediaCoverFallback extends StatelessWidget {
   final String? systemId;
   final String? title, identity;
+
+  /// An already-cached physical label, never box-cover artwork.
+  final Widget? physicalLabel;
   final double? width;
   final double? height;
   final Color backgroundColor;
@@ -131,53 +134,116 @@ class MediaCoverFallback extends StatelessWidget {
       this.systemId,
       this.title,
       this.identity,
+      this.physicalLabel,
       this.width,
       this.height,
       this.backgroundColor = const Color(0xFF182326)});
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: width,
-        height: height,
-        child: ColoredBox(
-          color: backgroundColor,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Stack(fit: StackFit.expand, children: [
-                  Image.asset(
-                    mediaFallbackAsset(systemId),
-                    fit: BoxFit.contain,
-                    cacheWidth: 256,
-                    excludeFromSemantics: true,
-                  ),
-                  if (title != null && title!.trim().isNotEmpty)
-                    Align(
-                      alignment: const Alignment(0, 0.05),
-                      child: FractionallySizedBox(
-                        widthFactor: 0.65,
-                        heightFactor: 0.34,
-                        child: Transform.rotate(
-                          angle: -0.055,
-                          child: FittedBox(
-                            child: SizedBox(
-                              width: 310,
-                              height: 180,
-                              child: HandwrittenMediaSticker(
-                                identity: identity ?? '$systemId:$title',
-                                title: title!,
-                              ),
+  Widget build(BuildContext context) {
+    // Slots follow the bundled Systematic PNGs, in their square asset space.
+    final disc = {
+      'gc',
+      'wii',
+      'wiiu',
+      'psx',
+      'ps2',
+      'ps3',
+      'segacd',
+      'dreamcast',
+      'saturn',
+      'tgcd',
+      'neogeocd',
+      'jaguarcd',
+      'pcfx',
+      'cdi',
+      '3do'
+    }.contains(systemId);
+    final slot = switch (systemId) {
+      'gba' => const Rect.fromLTWH(.172, .375, .68, .33),
+      'n64' => const Rect.fromLTWH(.289, .262, .422, .492),
+      'psp' => const Rect.fromLTWH(.148, .117, .703, .703),
+      _ when disc => const Rect.fromLTWH(.043, .043, .914, .914),
+      _ => const Rect.fromLTWH(.175, .355, .65, .34),
+    };
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ColoredBox(
+        color: backgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Stack(fit: StackFit.expand, children: [
+                Image.asset(
+                  mediaFallbackAsset(systemId),
+                  fit: BoxFit.contain,
+                  cacheWidth: 256,
+                  excludeFromSemantics: true,
+                ),
+                if (physicalLabel != null)
+                  Positioned.fill(child: LayoutBuilder(builder: (_, bounds) {
+                    final label = disc || systemId == 'psp'
+                        ? ClipPath(
+                            clipper:
+                                _DiscLabelClipper(systemId == 'psp' ? .4 : .1),
+                            child: physicalLabel!)
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: physicalLabel!);
+                    return Stack(children: [
+                      Positioned(
+                        left: slot.left * bounds.maxWidth,
+                        top: slot.top * bounds.maxHeight,
+                        width: slot.width * bounds.maxWidth,
+                        height: slot.height * bounds.maxHeight,
+                        child: label,
+                      )
+                    ]);
+                  }))
+                else if (title != null && title!.trim().isNotEmpty)
+                  Align(
+                    alignment: const Alignment(0, 0.05),
+                    child: FractionallySizedBox(
+                      widthFactor: 0.65,
+                      heightFactor: 0.34,
+                      child: Transform.rotate(
+                        angle: -0.055,
+                        child: FittedBox(
+                          child: SizedBox(
+                            width: 310,
+                            height: 180,
+                            child: HandwrittenMediaSticker(
+                              identity: identity ?? '$systemId:$title',
+                              title: title!,
                             ),
                           ),
                         ),
                       ),
                     ),
-                ]),
-              ),
+                  ),
+              ]),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
+}
+
+class _DiscLabelClipper extends CustomClipper<Path> {
+  final double hole;
+  const _DiscLabelClipper(this.hole);
+  @override
+  Path getClip(Size size) => Path()
+    ..fillType = PathFillType.evenOdd
+    ..addOval(Offset.zero & size)
+    ..addOval(Rect.fromCenter(
+        center: size.center(Offset.zero),
+        width: size.width * hole,
+        height: size.height * hole));
+  @override
+  bool shouldReclip(_DiscLabelClipper old) => old.hole != hole;
 }

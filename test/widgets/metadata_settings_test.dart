@@ -17,6 +17,7 @@ import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:retro_eshop/services/library_query.dart';
 import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/storage_service.dart';
@@ -48,6 +49,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final db = (await tester.runAsync(controlsDatabase))!;
+    await tester.runAsync(() => LibraryQuery.install(db));
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     final storage = StorageService();
@@ -128,6 +130,30 @@ void main() {
     expect(igdb.calls, isEmpty);
     expect(controls.state.report!.providerId, 'screenscraper');
     expect(controls.state.report!.state, 'completed');
+    final top = find.text('Top 25 per console');
+    await tester.ensureVisible(top);
+    Focus.of(tester.element(top)).requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<SegmentedButton<bool>>(
+                find.byKey(const ValueKey('metadata-top25')))
+            .selected,
+        {true});
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('metadata-refresh')));
+      await controls.pause();
+      if (controls.state.report!.state != 'completed') await controls.resume();
+    });
+    await tester.pumpAndSettle();
+    expect(controls.state.report!.top25PerSystem, isTrue);
+    expect(controls.state.report!.selectionCoverage.keys,
+        containsAll(['psx', 'psp']));
+    expect(provider.calls, hasLength(2),
+        reason: 'No unranked alphabetical fill requests');
+    expect(find.text('Top 25 selection'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('saved jobs page selects older work by touch and controller',

@@ -5,22 +5,91 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16-S19 COMPLETE, S20-S21 NOT STARTED, 2026-10-16
+### Collection/patch extension — S16-S20 COMPLETE, S21 NOT STARTED, 2026-10-16
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17-S19 are COMPLETE; S20 and S21 are NOT STARTED. No stage is ACTIVE
-at this closure boundary. Earlier completed
+COMPLETE; S17-S20 are COMPLETE; S21 is NOT STARTED.
+Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
 
-Owner-authorized addition: S20 will run the existing collector for up to 25
+Owner-authorized addition: S20 ran the existing collector for up to 25
 accepted ranked unique games per configured console (fewer where fewer qualify),
-verify box-art versus cartridge/disc-label roles in flat/imported 3D rendering,
-and update README with actual Thor screenshots. No scrape has been started for
-this addition. It does not authorize full-collection scraping, invented rankings
+verified box-art versus cartridge/disc-label roles in flat/imported 3D rendering,
+and updated README with actual Thor screenshots. The bounded real collector
+completed as saved jobs 84/85. It does not authorize full-collection scraping, invented rankings
 or a new public release. S18's real build/launch/reuse acceptance has passed;
 S20 is separately assigned new scope, not a deferral excusing S18.
+
+S20's existing collector now offers an atomic Top 25-per-console snapshot using
+LibraryQuery's accepted canonical ranking. Saved jobs retain selected/eligible/
+collection coverage, original membership and the no-ROM-data restriction through
+retry. The normal full/console/manufacturer/single-game modes remain unchanged.
+Focused host checks verify canonical/edition selection, fewer-than-25 and empty
+ranked consoles, scope validation, durable progress/retry, controller selection
+and the real v40-to-v41 upgrade preserving an existing paused job. The collector
+layout was inspected; its sole changed progress golden reflects the new selector
+and passes without update. Affected analysis reports no issues. These are host
+evidence; native/provider evidence follows. S20 has no ART-VERIFY-01 acceptance
+blockers or tracked deferrals. Saved coverage contains 99 unique games: GBA 24/24 eligible,
+N64 25/55, PS2 25/59 and PSP 25/35. The other 22 configured console scopes have
+zero eligible games and were not alphabetically filled. Real metadata job 84
+completed with 99 matched, no review/ambiguous/unmatched outcomes. Linked artwork
+job 85 completed: 302 validated assets, eight rejected PS2 screenshots. Role
+accounting: GBA 24 box/24 label, N64 25/25, PS2 25/23, PSP 24/24. Missing roles
+remain titled fallbacks, not fabricated artwork. Existing credentials/imported
+resources are available.
+
+S20 signed assembly ticket 1200 (bb67c082bb4244f6968f18faca2eacd8) completed
+with build/helper exit 0, actual shared-gate acquisition and post-build daemon
+exit verified. Observed two workers/no parallel and 3 GiB Gradle heap; assessed
+Kotlin in-process shares that heap. One test fork/512 MiB/fail-fast was observed
+at configuration, not executed by assembly. Existing one-slot Ninja pools remain;
+budget-two environment hints are not claimed as a universal native cap. No
+memory failure, heap increase, interruption or duplicate build. APK SHA-256
+cd5b6893eda3d321c7e911f022d65cdba0021160704c99a8c142116ae1972311
+matches the actual Thor base.apk with the unchanged production certificate.
+In-place installation preserved all five immediate credential/key/config/family/
+import-pointer hashes. Private database schema 41 is observed natively. A
+read-only evidence probe initially used Android's unavailable json_extract SQL
+function; its corrected probe decodes media JSON in Java without altering the
+application or database. No public release was created.
+
+The artwork review found the flat preview ignored its cached physical label
+while the imported preview used it. The existing flat widget now binds that
+separate label in its bundled media slot, clipping disc/UMD holes. Box-cover
+cards and missing-art titles retain their roles. Library metadata projection
+is no longer conditional on enabling imported 3D. The new regression first
+failed on that missing binding. One affected host run was explicitly interrupted
+after its new fixture left a decode pending; precaching/draining the fixture
+resolved the wait. The affected complete cover/fallback/reveal/library workflows
+pass and affected analysis is clean. The unchanged private-oracle camera check
+was skipped without its private asset flag; host tests are not GPU proof.
+Prepared assembly ticket 1204 (7448432fa8f8411cad0abe2aa3c9ee6b) completed with
+the same verified gate/worker/JVM/test-configuration profile, build/helper exit 0
+and post-build daemon exit. No memory failure/increase or interrupted Gradle.
+Final signed validation APK
+15b56ef1d85b85c23d0eac342f7446415bdc1a8d27e94d284def1d35cfd405ba
+matches the installed Thor base.apk; all five immediate preservation hashes
+again agree. This is the installed validation update, not a public release.
+
+Actual 1920x1080 Thor views verify GBA/N64 cartridges, PS2 discs and PSP UMDs in
+both flat and imported 3D modes, with separate correct box art. Xenosaga's
+missing label stays handwritten in both modes; its box cover is preserved.
+PSP's scoped cover projection initially showed fallback cards while resolving;
+the same original view subsequently displayed its cached box covers. No
+speculative cache/performance patch was added. README includes inspected raw
+Thor captures, bounded coverage/failure disclosures and explicit validation-vs-
+published-release provenance. The owner's enabled 3D/reduced-motion-off settings
+were restored through the normal sectioned UI (R1 selected Presentation).
+Both displays were freshly observed Off after the final device action.
+Stage-closure assessment: ranking, collector/job ownership and artwork cache
+remain reused; the flat-label gap is resolved without a parallel collector or
+new storage owner. No material consolidation requirement was found.
+Reviewed cleanup removed the four generated golden-comparison PNGs and all
+three task-only native evidence jars/roots; no ROM/save/imported-resource data
+was removed. TC19-01 remains assigned to S21 final cleanup, not S20 acceptance.
 
 Owner-authorized S21 adds one-step encrypted full R-Shop migration, including
 API credentials and persistent setup/data, without repeated per-feature setup.

@@ -2513,8 +2513,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         .where((system) => system.id == entry.systemSlug)
         .firstOrNull;
     if (system == null) return const SizedBox.shrink();
-    final physicalMetadata = media.enabled &&
-            PhysicalMediaFormat.forSystem(system.id) != null
+    final physicalMetadata = PhysicalMediaFormat.forSystem(system.id) != null
         ? ref
             .watch(gameMetadataProvider(
                 (filename: entry.selectionKey, systemSlug: entry.systemSlug)))

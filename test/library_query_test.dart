@@ -21,6 +21,7 @@ import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/system_model.dart';
 import 'game_list_controller_test.dart'
     show FakeStorageService, waitUntilLoaded;
+import 'metadata_controls_test.dart' show ControlsProvider;
 
 class _CacheDatabase extends DatabaseService {
   final Database cache;
@@ -172,6 +173,8 @@ void main() {
       List<String> regions = const ['USA'],
       List<String> languages = const ['en'],
       int votes = 100,
+      RatingKind ratingKind = RatingKind.overallAggregate,
+      bool screenScraperId = true,
       RemoteArtifact? artifact}) async {
     await db.insert('games', {
       'id': n,
@@ -190,7 +193,10 @@ void main() {
     await store.putGame(GameIdentity.fromJson({
       ...game.toJson(),
       'matchStatus': 'manuallyMatched',
-      'providerIds': {'screenscraper': providerId, 'igdb': providerId}
+      'providerIds': {
+        if (screenScraperId) 'screenscraper': providerId,
+        'igdb': providerId
+      }
     }));
     await store.putEdition(EditionIdentity.fromJson({
       ...edition.toJson(),
@@ -226,7 +232,7 @@ void main() {
                 scaleMinimum: 0,
                 scaleMaximum: 100,
                 voteCount: votes,
-                kind: RatingKind.overallAggregate,
+                kind: ratingKind,
                 retrievedAt: at)!
           ]));
     }
@@ -235,6 +241,114 @@ void main() {
 
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
+
+  test('Top 25 collector snapshots canonical ranked membership and coverage',
+      () async {
+    final expected = <String>{};
+    for (var n = 1; n <= 31; n++) {
+      final id = await seed(n,
+          score: 100 - n.toDouble(), ratingKind: RatingKind.communityAggregate);
+      if (n <= 25) expected.add(id);
+    }
+    final alternate = await seed(100,
+        group: '1', score: 99, ratingKind: RatingKind.communityAggregate);
+    await seed(101); // No alphabetical filling.
+    await seed(102,
+        score: 100, votes: 1, ratingKind: RatingKind.communityAggregate);
+    expected.add(await seed(201,
+        platform: 'snes',
+        score: 91,
+        ratingKind: RatingKind.communityAggregate));
+    expected.add(await seed(202,
+        platform: 'snes',
+        score: 89,
+        ratingKind: RatingKind.communityAggregate));
+    await seed(301, platform: 'gb');
+    await seed(401,
+        platform: 'gg', score: 99, ratingKind: RatingKind.communityAggregate);
+    final jobs = MetadataRefreshJobs(Future.value(db));
+    expect(
+        () =>
+            jobs.createFromCatalogue(providerId: 'igdb', top25PerSystem: true),
+        throwsArgumentError);
+    expect(
+        () => jobs.createFromCatalogue(
+            providerId: 'screenscraper', top25PerSystem: true, cacheRowId: 1),
+        throwsArgumentError);
+    final job = await jobs.createFromCatalogue(
+        providerId: 'screenscraper',
+        systemSlugs: const ['psx', 'snes', 'gb', 'gg'],
+        top25PerSystem: true);
+    final rows = await db.query('metadata_refresh_items',
+        where: 'job_id=?', whereArgs: [job.id]);
+    final selected = rows.map((row) => row['edition_id'] as String).toSet();
+    // The tied alternate edition may be chosen deterministically, but never both.
+    expect(selected.length, 27);
+    expect(selected.intersection(expected).length, greaterThanOrEqualTo(26));
+    expect(selected.difference(expected), everyElement(equals(alternate)));
+    expect(job.selectionCoverage['psx'],
+        {'selected': 25, 'eligible': 31, 'collection': 33});
+    expect(job.selectionCoverage['snes'],
+        {'selected': 2, 'eligible': 2, 'collection': 2});
+    expect(job.selectionCoverage['gb'],
+        {'selected': 0, 'eligible': 0, 'collection': 1});
+    expect(job.selectionCoverage['gg'],
+        {'selected': 0, 'eligible': 0, 'collection': 1});
+    expect(job.top25PerSystem, isTrue);
+    await seed(500, score: 100, ratingKind: RatingKind.communityAggregate);
+    final restored = await MetadataRefreshJobs(Future.value(db)).report(job.id);
+    expect(restored.selectionCoverage, job.selectionCoverage);
+    expect(
+        (await db.query('metadata_refresh_items',
+                where: 'job_id=?', whereArgs: [job.id]))
+            .map((row) => row['edition_id'])
+            .toSet(),
+        selected);
+
+    await seed(501,
+        platform: 'n64',
+        score: 95,
+        ratingKind: RatingKind.communityAggregate,
+        screenScraperId: false,
+        artifact: RemoteArtifact(
+            id: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: 'fixture',
+                accountId: 'fixture',
+                providerFileId: 'sample'),
+            displayPath: 'sample.7z',
+            displayName: 'sample.7z',
+            version: '1',
+            sizeBytes: 100,
+            canDownload: true));
+    var romReads = 0;
+    final bounded = MetadataRefreshJobs(Future.value(db),
+        readRomHeader: (_, __, ___) async {
+      romReads++;
+      return null;
+    }, readArchiveIdentifier: (_, __, ___) async {
+      romReads++;
+      return null;
+    });
+    final sample = await bounded.createFromCatalogue(
+        providerId: 'screenscraper', systemSlug: 'n64', top25PerSystem: true);
+    expect(sample.selectionCoverage['n64']!['selected'], 1);
+    final provider = ControlsProvider();
+    final progress = <bool>[];
+    await bounded.run(sample.id, provider,
+        onProgress: (value) => progress.add(value.top25PerSystem));
+    expect(provider.calls, hasLength(1));
+    expect(progress, isNotEmpty);
+    expect(progress, everyElement(isTrue));
+    final retry = await bounded.retryUnresolved(sample.id);
+    expect(retry.top25PerSystem, isTrue);
+    expect(retry.selectionCoverage, sample.selectionCoverage);
+    await bounded.run(retry.id, provider);
+    expect(provider.calls, hasLength(2));
+    expect(romReads, 0,
+        reason:
+            'The artwork pass must not fetch any ROM data, including on retry');
+  });
 
   test('cartridge compatibility follows only the current exact cached edition',
       () async {
@@ -1479,17 +1593,27 @@ void main() {
     await read();
     final facts = await db.query('library_metadata');
     // Exact fingerprint shape used by production before category facets existed.
-    final oldFingerprint = sha256.convert(utf8.encode(jsonEncode([
-      [basis.sourceId, basis.kind.name, basis.scaleMinimum, basis.scaleMaximum,
-        basis.platformIds.toList()..sort(), basis.minimumVoteCount,
-        basis.assessmentReference, basis.unknownCountAssessment]
-    ]))).toString();
+    final oldFingerprint = sha256
+        .convert(utf8.encode(jsonEncode([
+          [
+            basis.sourceId,
+            basis.kind.name,
+            basis.scaleMinimum,
+            basis.scaleMaximum,
+            basis.platformIds.toList()..sort(),
+            basis.minimumVoteCount,
+            basis.assessmentReference,
+            basis.unknownCountAssessment
+          ]
+        ])))
+        .toString();
     await db.update('library_query_policy', {'fingerprint': oldFingerprint});
-    await db.delete('library_query_facets', where: 'dimension=?',
-        whereArgs: ['category']);
+    await db.delete('library_query_facets',
+        where: 'dimension=?', whereArgs: ['category']);
     await db.delete('library_query_dirty');
     await db.delete('library_query_cache_dirty');
-    final result = await read(filter: LibraryQueryFilter(category: 'commercial'));
+    final result =
+        await read(filter: LibraryQueryFilter(category: 'commercial'));
     expect(result.items.map((item) => item.editionId), [edition]);
     expect(result.items.single.score!.rating.normalizedValue, 90);
     expect(await db.query('library_metadata'), facts);

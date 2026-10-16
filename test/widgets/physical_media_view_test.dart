@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/widgets/physical_media_view.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 import 'package:retro_eshop/widgets/smart_cover_image.dart';
+import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
 import 'package:retro_eshop/models/game_item.dart';
 import 'package:retro_eshop/models/socket_media_model.dart';
@@ -105,7 +106,10 @@ void main() {
           reason: '${format.name}: U increases right');
       expect(down, lessThan(0), reason: '${format.name}: V increases down');
     }
-  }, skip: socketOracleRoot.isEmpty ? 'Requires private owner APK oracle' : false);
+  },
+      skip: socketOracleRoot.isEmpty
+          ? 'Requires private owner APK oracle'
+          : false);
 
   test('camera depth keeps the positive-Z label in front of the casing back',
       () {
@@ -169,6 +173,50 @@ void main() {
         tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
         cover);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('flat previews bind physical labels separately from box art',
+      (tester) async {
+    final label = File('assets/media_fallbacks/systematic/gba.png')
+        .absolute
+        .uri
+        .toString();
+    final box = File('assets/media_fallbacks/systematic/n64.png')
+        .absolute
+        .uri
+        .toString();
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    final context = tester.element(find.byType(SizedBox));
+    await tester.runAsync(() async {
+      await precacheImage(
+          ResizeImage(FileImage(File.fromUri(Uri.parse(label))), width: 640),
+          context);
+      await precacheImage(FileImage(File.fromUri(Uri.parse(box))), context);
+    });
+    for (final id in ['gba', 'n64', 'ps2', 'psp']) {
+      final system =
+          SystemModel.supportedSystems.singleWhere((s) => s.id == id);
+      const game = GameItem(
+          filename: 'Sample (USA).rom', displayName: 'Sample', url: '');
+      await tester.pumpWidget(MaterialApp(
+          home: CoverSection(
+              game: game,
+              system: system,
+              coverUrls: const [],
+              cachedUrl: box,
+              physicalLabelUrl: label,
+              reducedMotion: true,
+              metadata: GameMetadata.parse(game.filename))));
+      final image = tester.widget<SmartCoverImage>(find.descendant(
+          of: find.byType(MediaCoverFallback),
+          matching: find.byType(SmartCoverImage)));
+      expect(image.cachedUrl, label,
+          reason: '$id flat media must use the label');
+      expect(image.urls, isEmpty);
+      expect(find.byType(PhysicalMediaView), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets(

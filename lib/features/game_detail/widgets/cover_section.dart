@@ -112,6 +112,16 @@ class CoverSectionState extends State<CoverSection> {
                                 systemId: system.id,
                                 title: game.displayName,
                                 identity: game.selectionKey,
+                                physicalLabel: widget.physicalLabelUrl == null
+                                    ? null
+                                    : SmartCoverImage(
+                                        systemId: system.id,
+                                        urls: const [],
+                                        cachedUrl: widget.physicalLabelUrl,
+                                        placeholder: sticker,
+                                        errorWidget: sticker,
+                                        fit: BoxFit.fill,
+                                        memCacheWidth: 640),
                                 backgroundColor: Colors.transparent))
                     : Hero(
                         tag: game.filename,
