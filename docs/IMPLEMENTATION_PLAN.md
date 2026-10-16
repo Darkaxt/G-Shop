@@ -9,10 +9,10 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 
 | Stage | Status | Complete outcome / acceptance | Verification |
 | --- | --- | --- | --- |
-| S22 Dual-screen media preview | ACTIVE | PREVIEW-01/02: 4x2 main gallery; secondary flat/3D/background media and activated details; gallery focus retained; launch dismisses R-Shop without disturbing companion; sectioned persisted settings and shared bounded media cache | Real Thor selection/details/launch/return with both displays, selected-game real video/cache/offline proof, focus/layout/settings/lifecycle and affected owner/migration checks, gated signed build and cleanup |
+| S22 Dual-screen media preview | COMPLETE | PREVIEW-01/02: 4x2 main gallery; secondary flat/3D/background media and activated details; gallery focus retained; launch dismisses R-Shop without disturbing companion; sectioned persisted settings and shared bounded media cache | Real Thor selection/details/launch/return with both displays, selected-game real video/cache/offline proof, focus/layout/settings/lifecycle and affected owner/migration checks, gated signed build, cleanup and verified remote source delivery |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
 
-S22 is the single ACTIVE stage. No S23 implementation starts before S22 closes.
+S22 is COMPLETE; its assigned criteria have passed. S23 remains NOT STARTED.
 The S16-S21 completion records below are historical and remain valid.
 
 ## Current extension — already authorized, 2026-10-15

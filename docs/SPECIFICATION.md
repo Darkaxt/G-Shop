@@ -7,7 +7,7 @@ Authoritative specification, revision 57, 2026-10-16.
 The owner approved implementation on 2026-10-16. The authoritative
 [PREVIEW_ACQUISITION_SPECIFICATION.md](PREVIEW_ACQUISITION_SPECIFICATION.md)
 defines S22 dual-screen browsing/gameplay media and the following S23 general
-website acquisition integration based on LolSuite Manager. S22 is ACTIVE; S23
+website acquisition integration based on LolSuite Manager. S22 is COMPLETE; S23
 is NOT STARTED. Preserve all prior data/authentication/launch/companion contracts.
 Implementation and scoped native verification are authorized; a new public
 release is not implied.

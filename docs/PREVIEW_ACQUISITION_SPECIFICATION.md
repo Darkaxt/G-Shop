@@ -149,7 +149,8 @@ reorganization or unrelated desktop tooling port counts as completion.
 
 ## Execution
 
-S22 is the sole ACTIVE stage. S23 is NOT STARTED; it is a separately requested
+S22 is COMPLETE with host/native acceptance, signed verification, reviewed cleanup
+and remote source delivery recorded in IMPLEMENTATION_STATUS.md. S23 is NOT STARTED; it is a separately requested
 following outcome, not a deferral excusing any S22 acceptance criterion. Earlier
 S0-S21/QA/release results remain applicable except where changed integration is
 explicitly reverified. Every required gap is kept in the existing status ledger.

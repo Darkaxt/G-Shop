@@ -5,10 +5,10 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Dual-screen preview — S22 ACTIVE; S23 NOT STARTED, 2026-10-16
+### Dual-screen preview — S22 COMPLETE; S23 NOT STARTED, 2026-10-16
 
-Authority revision 57 / PREVIEW_ACQUISITION_SPECIFICATION.md. S22 is the single
-ACTIVE stage; no public release or production update is authorized. S23 is the
+Authority revision 57 / PREVIEW_ACQUISITION_SPECIFICATION.md. All assigned S22
+acceptance criteria are verified; no public release or production update occurred. S23 is the
 following requested acquisition outcome, not a deferral of preview acceptance.
 
 | S22 criterion | Current evidence |
@@ -18,7 +18,7 @@ following requested acquisition outcome, not a deferral of preview acceptance.
 | 3: Real media, offline cache, settings and audio | One reviewed GoldenEye match through the real ScreenScraper collector; authenticated clip acquisition, decoder-validated shared cache and actual file-backed native playback. Trailer volume .3; native launcher mixer 0.0 during playback, .30000001192092896 after pause. Global Sound and current Music settings remain authoritative. Host checks cover offline lookup, bounds/integrity/owned eviction, settings persistence and stale-player suppression. No collection-wide scrape or physical network-disconnection claim. |
 | 4: Launch/companion/return and hidden lifecycle | Real existing ROM bytes launched through the ordinary owned-storage/RetroArch route. R-Shop presentation disappeared; Cocoon's exact lower activity/task remained unchanged. Normal task return restored selection/preview. Hidden/disconnected state rejects playback. |
 | 5: Affected verification | Focused audio, secondary ownership, preview/cache, ScreenScraper transport, library/layout, settings/controller, owned launch/save-conflict, download-source, migration and import checks pass. Private-source mesh-oracle host check is explicitly skipped without owner fixtures; actual imported model rendering is verified natively. Targeted current-source analysis has no errors/warnings; style infos remain. |
-| 6: Signed assembly, cleanup and delivery | Signed assembly/release JVM checks passed through the maintained wrapper and gate ticket 1299; signature/identity/privacy and reviewed cleanup checks pass. ACTIVE: final commit/remote synchronization remain. |
+| 6: Signed assembly, cleanup and delivery | Signed assembly/release JVM checks passed through the maintained wrapper and gate ticket 1299; signature/identity/privacy and reviewed cleanup checks pass. Implementation committed as 5f05d6593001d0624159b0c10cf93001daca699b and independently confirmed at the remote branch. |
 
 Native proof used only the absence/hash-bound temporary package
 com.darkaxt.rshop.sharedproof. Production com.darkaxt.rshop, its settings/imports,
@@ -67,7 +67,7 @@ matches the existing release identity. Configured-secret/private-key-file scan
 has no hits. This is local verification only, not a new public 1.9.1 artifact or
 production installation. The expendable APK can be rebuilt from committed source.
 
-Reviewed cleanup is applied with no remaining owned outputs: temporary root,
+Reviewed cleanup is applied; all registered output targets are absent: temporary root,
 build/patch .cxx output, exact generated hard-link names, two fixture-specific
 Flutter compiler caches, Python bytecode and the wrapper's default C: log.
 Tickets 5e556bf759892826c028076ca347daef652a32ea7589e8e02e0edadef53b94f8
@@ -76,9 +76,11 @@ cover ordinary outputs and exact hard-linked compilation databases respectively.
 Other toolchain/project caches, private credentials and previous intentional
 release/recovery artifacts are preserved. No cleanup acquired the build gate.
 
-Internal advancement blocker: criterion 6 awaits commit/remote synchronization.
-All technical acceptance and cleanup have passed within ACTIVE S22. No external blocker
-or required tracked deferral exists. Integration review retains one account,
+Final reconciliation: PREVIEW-01/02 and every S22 acceptance criterion are
+satisfied and verified, including cleanup and remote delivery of implementation
+5f05d6593001d0624159b0c10cf93001daca699b. No S22 blocker or required tracked
+deferral remains. S23 remains NOT STARTED as the following acquisition outcome;
+no S23 work was used to excuse preview acceptance. Integration review retains one account,
 metadata/download and save owner, one secondary renderer, and the shared normal
 launch path; no additional architecture or speculative optimization is required.
 
@@ -86,7 +88,7 @@ launch path; no additional architecture or speculative optimization is required.
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17-S21 are COMPLETE. This is the closed earlier scope; S22 above is ACTIVE.
+COMPLETE; S17-S21 are COMPLETE. This is the closed earlier scope; S22 above is COMPLETE.
 Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
