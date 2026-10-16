@@ -61,6 +61,37 @@ final class OwnedRomGrantPath {
             archivePlatform.isEmpty() && !bundleMember && dependencies == 0 && members == 0;
     }
 
+    static boolean rawCartridge(String filename, String platform) {
+        if (!leaf(filename)) return false;
+        String lower = filename.toLowerCase(Locale.ROOT);
+        String[] extensions;
+        switch (platform) {
+            case "gb": extensions = new String[]{".gb"}; break;
+            case "gbc": extensions = new String[]{".gbc", ".gb"}; break;
+            case "gba": extensions = new String[]{".gba"}; break;
+            case "nes": extensions = new String[]{".nes"}; break;
+            case "snes": extensions = new String[]{".sfc", ".smc"}; break;
+            case "n64": extensions = new String[]{".z64", ".n64", ".v64"}; break;
+            case "gamegear": extensions = new String[]{".gg"}; break;
+            case "mastersystem": extensions = new String[]{".sms"}; break;
+            case "megadrive": extensions = new String[]{".md", ".gen", ".bin", ".smd"}; break;
+            case "sg1000": extensions = new String[]{".sg", ".sc"}; break;
+            default: return false;
+        }
+        for (String extension : extensions) if (lower.endsWith(extension)) return true;
+        return false;
+    }
+
+    static boolean standaloneCartridge(String filename, String archivePlatform,
+            boolean bundleMember, int dependencies, int members) {
+        if (!archivePlatform.isEmpty() || bundleMember || dependencies != 0 || members != 0) return false;
+        for (String platform : new String[]{"gb", "gbc", "gba", "nes", "snes", "n64",
+                "gamegear", "mastersystem", "megadrive", "sg1000"}) {
+            if (rawCartridge(filename, platform)) return true;
+        }
+        return false;
+    }
+
     static boolean standaloneNds(String filename, String archivePlatform,
             boolean bundleMember, int dependencies, int members) {
         return leaf(filename) && filename.toLowerCase(Locale.ROOT).endsWith(".nds") &&

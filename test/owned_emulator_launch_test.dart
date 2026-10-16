@@ -59,6 +59,33 @@ void main() {
   tearDown(() => TestDefaultBinaryMessengerBinding
       .instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, null));
+  test('patched raw GBA uses the normal owned launch and exact save grant',
+      () async {
+    final gba = SystemModel.supportedSystems.singleWhere((s) => s.id == 'gba');
+    final raw = exactGame('patched-gba', name: 'Balance [recipe].gba');
+    final installed = InstalledArtifact.fromJson({
+      ...manifest.toJson(),
+      'artifact': raw.remoteArtifact!.toJson(),
+      'relativePath': raw.filename,
+    });
+    final launcher = OwnedEmulatorLauncher(
+        romManager: _RomManager(() async => installed), channel: channel);
+    expect(OwnedEmulatorLauncher.supports(raw, gba), isTrue);
+    expect(OwnedEmulatorLauncher.supports(raw, system), isFalse);
+    await launcher.open(raw, gba, '/owned');
+    expect(calls.single.method, 'launchOwnedRetroArchGameBoyAdvance');
+    expect(calls.single.arguments,
+        {'installationId': installed.id, 'filename': raw.filename});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return 'installed-one%2FBalance%20%5Brecipe%5D.srm';
+    });
+    expect(await launcher.reviewRetroArchGbaSave(raw, gba, '/owned'),
+        'installed-one%2FBalance%20%5Brecipe%5D.srm');
+    expect(calls.last.method, 'reviewOwnedRetroArchGameBoyAdvanceSave');
+    expect(calls.last.arguments, calls.first.arguments);
+  });
   test('PS1 card review uses the same exact owned CHD grant without launching',
       () async {
     final psx = SystemModel.supportedSystems.singleWhere((s) => s.id == 'psx');

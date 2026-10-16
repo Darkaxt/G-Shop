@@ -18,6 +18,7 @@ import 'package:retro_eshop/services/drive/drive_transfer_engine.dart';
 import 'package:retro_eshop/services/drive/drive_media.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/owned_storage.dart';
+import 'package:retro_eshop/services/owned_emulator_launcher.dart';
 import 'package:retro_eshop/services/patch_build_publication.dart';
 import 'package:retro_eshop/services/patch_build_service.dart';
 import 'package:retro_eshop/services/transfer_journal.dart';
@@ -262,6 +263,7 @@ void main() {
     expect(result.reused, isFalse);
     expect(applications, 1);
     expect(result.game.remoteArtifact!.canDownload, isFalse);
+    expect(OwnedEmulatorLauncher.supports(result.game, system), isTrue);
     final saved = (await service.store.forGame('gba', '1379')).single;
     expect(saved['state'], 'ready');
     expect(saved['scratchCleanup'], 'complete');

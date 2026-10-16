@@ -6,6 +6,24 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class OwnedRomGrantPathTest {
+    @Test public void standaloneCartridgesRetainTheConsoleAndRejectArchivesAndBundles() {
+        String[][] formats = {{"gba", "gba"}, {"gb", "gb"}, {"gbc", "gbc"}, {"nes", "nes"},
+            {"snes", "sfc"}, {"snes", "smc"}, {"n64", "z64"}, {"n64", "v64"}, {"n64", "n64"},
+            {"gamegear", "gg"}, {"mastersystem", "sms"}, {"megadrive", "md"}, {"sg1000", "sg"}};
+        for (String[] format : formats) {
+            String name = "Patched." + format[1].toUpperCase();
+            assertTrue(OwnedRomGrantPath.rawCartridge(name, format[0]));
+            assertTrue(OwnedRomGrantPath.standaloneCartridge(name, "", false, 0, 0));
+            assertFalse(OwnedRomGrantPath.standaloneCartridge(name, format[0], false, 0, 0));
+            assertFalse(OwnedRomGrantPath.standaloneCartridge(name, "", true, 0, 0));
+            assertFalse(OwnedRomGrantPath.standaloneCartridge(name, "", false, 1, 1));
+        }
+        assertFalse(OwnedRomGrantPath.rawCartridge("Game.gba", "gb"));
+        assertFalse(OwnedRomGrantPath.rawCartridge("Game.bin", "atari2600"));
+        for (String name : new String[]{"Game.7z", "Game.zip", "Game.exe", "../Game.gba"}) {
+            assertFalse(OwnedRomGrantPath.standaloneCartridge(name, "", false, 0, 0));
+        }
+    }
     @Test public void standaloneDsRetainsItsExactLeafAndRejectsBundles() throws Exception {
         assertTrue(OwnedRomGrantPath.standaloneNds("Game.NDS", "", false, 0, 0));
         for (String name : new String[]{"Game.7z", "Game.zip", "Game.chd", "../Game.nds"}) {

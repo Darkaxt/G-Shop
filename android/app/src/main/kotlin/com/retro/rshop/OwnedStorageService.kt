@@ -103,9 +103,12 @@ internal class OwnedStorageService(private val context: Context) {
                         val retroArch = gameGear || segaPlatform != null || n64 || handheld || nes || snes || psx
                         val filename = string(call, "filename").lowercase(java.util.Locale.ROOT)
                         val ndsArchive = nds && (filename.endsWith(".7z") || filename.endsWith(".zip"))
-                        if (((gameGear || segaPlatform != null) && !filename.endsWith(".zip")) ||
-                            ((handheld || nes || snes) && !filename.endsWith(".7z")) ||
-                            (n64 && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
+                        val cartridgePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64"
+                            else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else null
+                        val rawCartridge = cartridgePlatform != null && OwnedRomGrantPath.rawCartridge(filename, cartridgePlatform)
+                        if (((gameGear || segaPlatform != null) && !rawCartridge && !filename.endsWith(".zip")) ||
+                            ((handheld || nes || snes) && !rawCartridge && !filename.endsWith(".7z")) ||
+                            (n64 && !rawCartridge && !filename.endsWith(".zip") && !filename.endsWith(".7z")) ||
                             ((psx || psp || ps2) && !filename.endsWith(".chd")) ||
                             (wiiu && !filename.endsWith(".wua")) ||
                             (nds && !ndsArchive && !filename.endsWith(".nds"))) throw Failure("unsupported_archive")
@@ -127,9 +130,10 @@ internal class OwnedStorageService(private val context: Context) {
                         else OwnedRomContentProvider.uri(context,
                             string(call, "installationId"), string(call, "filename"))
                         OwnedRomContentProvider.openCommitted(context, uri,
-                            requiredArchivePlatform = segaPlatform ?: if (gameGear) "gamegear" else if (n64) "n64" else if (nes) "nes" else if (snes) "snes" else if (handheld) handheldPlatform else if (ndsArchive) "nds" else null,
+                            requiredArchivePlatform = if (rawCartridge) null else cartridgePlatform ?: if (ndsArchive) "nds" else null,
                             requiredStandaloneChd = psx || psp || ps2,
-                            requiredStandaloneWua = wiiu, requiredStandaloneNds = nds && !ndsArchive).use { }
+                            requiredStandaloneWua = wiiu, requiredStandaloneNds = nds && !ndsArchive,
+                            requiredCartridgePlatform = if (rawCartridge) cartridgePlatform else null).use { }
                         if (reviewPcsx) {
                             @Suppress("DEPRECATION")
                             val runtime = context.packageManager.getPackageInfo(PcsxSaveSettings.PACKAGE, 0)
@@ -162,14 +166,13 @@ internal class OwnedStorageService(private val context: Context) {
                             return@execute
                         }
                         if (reviewSave) {
-                            val name = RetroArchSaveBoundary.archiveSaveName(
-                                uri.encodedPath!!.substringAfterLast('/'), gameGear || segaPlatform != null ||
-                                    (n64 && filename.endsWith(".zip")))
+                            val name = RetroArchSaveBoundary.contentSaveName(
+                                uri.encodedPath!!.substringAfterLast('/'), requireNotNull(cartridgePlatform))
                             main.post { result.success(name) }
                             return@execute
                         }
                         if ((handheld || snes) && SaveCaptureService.groupRestorePending(context.filesDir,
-                                RetroArchSaveBoundary.archiveSaveName(uri.encodedPath!!.substringAfterLast('/')))) {
+                                RetroArchSaveBoundary.contentSaveName(uri.encodedPath!!.substringAfterLast('/'), requireNotNull(cartridgePlatform)))) {
                             throw Failure("save_restore_pending")
                         }
                         main.post {

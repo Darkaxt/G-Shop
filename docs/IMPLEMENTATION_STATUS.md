@@ -5,11 +5,12 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### Collection/patch extension — S16-S17 COMPLETE, S18 ACTIVE, 2026-10-16
+### Collection/patch extension — S16-S18 COMPLETE, S19 next, 2026-10-16
 
 Authority revision 56 and COLLECTION_PATCHES_SPECIFICATION.md revision 3.
 Implementation/folder reorganization authorization is already granted. S16 is
-COMPLETE; S17 is COMPLETE; S18 is the sole ACTIVE stage; S19, S20 and S21 are NOT STARTED. Earlier completed
+COMPLETE; S17 and S18 are COMPLETE; S19, S20 and S21 are NOT STARTED. No stage is
+ACTIVE at this closure boundary. Earlier completed
 scope is unchanged. ScreenScraper entry wiring and its console/manufacturer/all
 selection are implemented and host-verified.
 
@@ -18,7 +19,7 @@ accepted ranked unique games per configured console (fewer where fewer qualify),
 verify box-art versus cartridge/disc-label roles in flat/imported 3D rendering,
 and update README with actual Thor screenshots. No scrape has been started for
 this addition. It does not authorize full-collection scraping, invented rankings
-or a new public release. S18's real build/launch/reuse acceptance remains current;
+or a new public release. S18's real build/launch/reuse acceptance has passed;
 S20 is separately assigned new scope, not a deferral excusing S18.
 
 Owner-authorized S21 adds one-step encrypted full R-Shop migration, including
@@ -26,9 +27,72 @@ API credentials and persistent setup/data, without repeated per-feature setup.
 Current Export config is plain credential-stripped JSON, not this capability;
 secure credentials are presently device-local. BACKUP-MIGRATE-01 distinguishes private
 encrypted migration from public sharing and destination-owned OS grants/state.
-No migration implementation or export has been started; S18 remains sole ACTIVE.
+No migration implementation or export has been started; S21 is NOT STARTED.
 
-Current S18 checkpoint: signed diagnostic request 1176 acquired the shared gate,
+S18 final acceptance: the real indexed Advance Wars Balance 1.0 workflow fetched
+its exact original archive/member and IPS through the existing transfer owner,
+produced a registered 4,194,304-byte result and completed scratch cleanup. Build
+7581c0f87d8c154b9931b2c24b1094fc has independently checked SD SHA-256
+06510d5ea87141d07a2887a893ea03c94804e6982ef347e45d6312f986d7a0d2.
+The launch acceptance exposed archive-only cartridge handoff. Its regression
+failed before correction and passes with the normal Dart/native standalone route:
+exact owner/console extensions/read-only grants remain enforced, and save names
+retain the modified installation's encoded identity rather than borrowing the base.
+
+Original queued request 1183 (3e8d5f934ce54cf285144f262bc753f8) was joined through
+completion after its predecessors released the gate; no duplicate or cancellation.
+Build and helper exit 0, gate acquisition, completion and daemon exit are verified.
+Observed Gradle 9.1.0: two workers, no parallel, 3 GiB heap; Kotlin in-process shares
+that heap. The focused native grant/save-boundary tests actually executed, with
+one fork/512 MiB/fail-fast and no failures/skips. Existing one-slot app/engine
+Ninja pools are unchanged; environment budget two is not a universal native cap.
+No memory failure or increased budget. Affected Dart launch/build/publication/
+reuse checks and scoped analysis pass. The unchanged engine's inspected current-
+task JVM result includes positive owner-supplied EBP (not skipped), all required
+inventoried formats and corruption/cancellation checks; prior real APK JNI XDelta
+success/corruption/FD proof remains applicable to unchanged kernels.
+
+Signed candidate SHA-256
+e65d8cbcc0f0150a7c2bcda80f087cf6a3c95705778069750b1e3ac44b82e5c0
+matches the actual Thor base.apk and production signer. In-place install returned
+Success. All five immediate credential/key/config/emulator-family/import-pointer
+hashes match before/after. Startup returned Status ok and skipped fresh systems'
+sync. After restart, My builds retained the exact ready receipt. Its normal game
+detail Open action handed the exact owned content URI to RetroArch/mGBA; the
+inspected native display reached Advance Wars' title screen. No deep gameplay or
+save correctness exercise was performed. Returning and selecting the same recipe
+reports already installed: same ready build/hash, two input transfers and no new
+build row or application. A read-only probe briefly met SQLite's lock during the
+UI transition; after the real collection-loaded event it returned the unchanged
+receipt, not a fabricated success or a production retry workaround.
+
+PATCH-01/PATCH-02/CAT-01 patch scope are satisfied. Current schema-2 resources
+declare individual patches against originals, not compatible chain edges. The
+exclusive selector replaces the patch/base/options instead of silently stacking;
+the focused rendered check rejects simultaneous incompatible selections and a
+missing alternate base at both target sizes. No multi-patch composition is claimed.
+Version-separated recipe IDs, changed-output rejection, exact edition identity,
+unknown-history preservation, cancellation and publication recovery pass their
+assigned host checks. Native L1/R1 and back navigation also pass. Generated output
+is not eviction-eligible before S19's recovery integration. No S18 blockers or
+required deferrals remain; shared portability/layout belong to S19 by specification.
+
+Closure assessment: the canonical-path fix consumes the existing storage owner's
+returned root; standalone handoff extends the existing grant/launch owner rather
+than adding a parallel launcher, scheduler or transfer pipeline. Original and
+modified editions retain separate metadata/save/companion identities. No further
+required consolidation was found. This is a verification update, not a new public
+release. Both physical Thor displays are verified OFF afterward.
+
+Cleanup transaction 950a19468b6d5f17c0db7fca8f3832d3 inspected all exact signed
+members and removed only the disposable UniPatcher evaluation clone (2,396,090
+bytes), with helper state applied and no errors. It is reproducible from upstream;
+the pinned maintained engine source is preserved. No Gradle gate was used for
+cleanup. Both physical Thor displays are verified OFF during the build wait.
+
+#### Earlier S18 diagnostics — superseded by final acceptance above
+
+Earlier diagnostic request 1176 acquired the shared gate,
 used two workers/no parallel/3 GiB with Kotlin in-process, and completed with
 build/helper exit 0 and daemon exit verified; no memory failure. Test tasks were
 configured for one fork/512 MiB but not executed by assembly. Its installed APK

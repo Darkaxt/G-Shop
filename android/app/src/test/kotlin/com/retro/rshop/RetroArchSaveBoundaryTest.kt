@@ -4,6 +4,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RetroArchSaveBoundaryTest {
+    @Test fun patchedCartridgeSaveKeepsItsEncodedInstallationIdentity() {
+        assertEquals("build%2FBalance%20%5Brecipe%5D.srm",
+            RetroArchSaveBoundary.contentSaveName("build%2FBalance%20%5Brecipe%5D.gba", "gba"))
+        assertEquals("build%2FGame.srm",
+            RetroArchSaveBoundary.contentSaveName("build%2FGame.7z", "gba"))
+        assertEquals("build%2FGame.srm",
+            RetroArchSaveBoundary.contentSaveName("build%2FGame.zip", "gamegear"))
+        for ((name, platform) in listOf("Game.gba" to "gb", "Game.exe" to "gba",
+                "folder/Game.gba" to "gba", "Game.zip" to "gba")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                RetroArchSaveBoundary.contentSaveName(name, platform)
+            }
+        }
+    }
     @Test fun filesystemSnapshotsBindTheExactCoreAndIncludeTheAbsentClockCompanion() {
         for (platform in listOf("gb", "gbc", "gba", "nes", "snes", "n64", "gamegear", "mastersystem", "megadrive")) {
             val source = requireNotNull(RetroArchSaveBoundary.saveDirectory(platform))

@@ -42,6 +42,10 @@ class OwnedEmulatorLauncher {
               game.filename.toLowerCase().endsWith('.nds')) ||
           (system.id == 'wiiu' &&
               game.filename.toLowerCase().endsWith('.wua')) ||
+          ((RetroArchBatteryRoute.forPlatform(system.id) != null ||
+                  system.id == 'sg1000') &&
+              system.romExtensions
+                  .any((ext) => game.filename.toLowerCase().endsWith(ext))) ||
           TransferRecord.supportsArchiveMapping(game.filename, system.id));
 
   Future<void> open(GameItem game, SystemModel system, String root,

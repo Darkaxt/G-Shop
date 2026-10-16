@@ -144,7 +144,8 @@ class OwnedRomContentProvider : ContentProvider() {
 
         private fun manifest(context: Context, uri: Uri, bundleOwner: String? = null,
             requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
-            requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false): JSONObject {
+            requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false,
+            requiredCartridgePlatform: String? = null): JSONObject {
             if (uri.scheme != "content" || uri.authority != "${context.packageName}.owned-roms" ||
                 uri.query != null || uri.fragment != null) throw FileNotFoundException("Invalid ROM grant")
             val grant = OwnedRomGrantPath.parse(uri.pathSegments)
@@ -156,7 +157,9 @@ class OwnedRomContentProvider : ContentProvider() {
                         (requiredArchivePlatform != null && requiredArchivePlatform != grant.platform) ||
                         (requiredStandaloneChd && grant.platform !in setOf("psx", "psp", "ps2")) ||
                         (requiredStandaloneWua && grant.platform != "wiiu") ||
-                        (requiredStandaloneNds && grant.platform != "nds")) {
+                        (requiredStandaloneNds && grant.platform != "nds") ||
+                        (requiredCartridgePlatform != null && (grant.platform != requiredCartridgePlatform ||
+                            !OwnedRomGrantPath.rawCartridge(grant.filename, requiredCartridgePlatform)))) {
                         throw FileNotFoundException("Local copy mapping changed")
                     }
                     return observedCopy(db, grant)
@@ -210,6 +213,8 @@ class OwnedRomContentProvider : ContentProvider() {
                         owner != null, dependencies.length(), members.length())
                     val standaloneNds = OwnedRomGrantPath.standaloneNds(filename, platform,
                         owner != null, dependencies.length(), members.length())
+                    val standaloneCartridge = OwnedRomGrantPath.standaloneCartridge(filename, platform,
+                        owner != null, dependencies.length(), members.length())
                     if (requiredArchivePlatform != null && platform != requiredArchivePlatform) {
                         throw FileNotFoundException("Archive mapping changed")
                     }
@@ -222,7 +227,11 @@ class OwnedRomContentProvider : ContentProvider() {
                     if (requiredStandaloneNds && !standaloneNds) {
                         throw FileNotFoundException("Unsupported standalone DS grant")
                     }
-                    if (grant.document && !supportedArchive && !standaloneChd && !standaloneWua && !standaloneNds) {
+                    if (requiredCartridgePlatform != null && (!standaloneCartridge ||
+                            !OwnedRomGrantPath.rawCartridge(filename, requiredCartridgePlatform))) {
+                        throw FileNotFoundException("Unsupported standalone cartridge grant")
+                    }
+                    if (grant.document && !supportedArchive && !standaloneChd && !standaloneWua && !standaloneNds && !standaloneCartridge) {
                         throw FileNotFoundException("Unsupported document grant")
                     }
                     if ((filename.endsWith(".zip") || filename.endsWith(".7z") || filename.endsWith(".rar")) &&
@@ -340,7 +349,7 @@ class OwnedRomContentProvider : ContentProvider() {
             val archive = (platform in setOf("gamegear", "megadrive", "mastersystem", "sg1000") && filename.endsWith(".zip")) ||
                 (platform in setOf("gb", "gbc", "gba", "nes", "snes") && filename.endsWith(".7z")) ||
                 (platform in setOf("n64", "nds") && (filename.endsWith(".7z") || filename.endsWith(".zip")))
-            val supported = archive ||
+            val supported = archive || OwnedRomGrantPath.rawCartridge(relative, platform) ||
                 (platform in setOf("psx", "psp", "ps2", "dreamcast") && filename.endsWith(".chd")) ||
                 (platform == "wiiu" && filename.endsWith(".wua")) ||
                 (platform == "nds" && filename.endsWith(".nds")) ||
@@ -538,11 +547,12 @@ class OwnedRomContentProvider : ContentProvider() {
 
         fun openCommitted(context: Context, uri: Uri, bundleOwner: String? = null,
             requiredArchivePlatform: String? = null, requiredStandaloneChd: Boolean = false,
-            requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false): ParcelFileDescriptor {
+            requiredStandaloneWua: Boolean = false, requiredStandaloneNds: Boolean = false,
+            requiredCartridgePlatform: String? = null): ParcelFileDescriptor {
             var root = -1; var parent = -1; var file = -1; var checkedRoot = -1; var checkedParent = -1
             try {
                 val saved = manifest(context, uri, bundleOwner, requiredArchivePlatform,
-                    requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds)
+                    requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds, requiredCartridgePlatform)
                 val rootPath = saved.getString("destinationRoot")
                 val relative = saved.getString("relativePath")
                 val pieces = relative.split('/')
@@ -593,7 +603,7 @@ class OwnedRomContentProvider : ContentProvider() {
                 }
                 // Recheck durable ownership after opening the pinned object.
                 if (!sameJson(manifest(context, uri, bundleOwner, requiredArchivePlatform,
-                        requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds), saved)) {
+                        requiredStandaloneChd, requiredStandaloneWua, requiredStandaloneNds, requiredCartridgePlatform), saved)) {
                     throw FileNotFoundException("Installation ownership changed")
                 }
                 val result = ParcelFileDescriptor.adoptFd(file)

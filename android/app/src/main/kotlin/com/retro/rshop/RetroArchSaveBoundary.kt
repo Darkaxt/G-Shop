@@ -34,6 +34,21 @@ internal object RetroArchSaveBoundary {
         return name
     }
 
+    /** The exact SAF leaf also names standalone patched cartridges. Never use
+     * the base title, which would collide with that game's save history. */
+    fun contentSaveName(encodedLeaf: String, platform: String): String {
+        if (OwnedRomGrantPath.rawCartridge(encodedLeaf, platform)) {
+            val name = encodedLeaf.substringBeforeLast('.') + ".srm"
+            require(validName(name))
+            return name
+        }
+        val zip = platform in setOf("gamegear", "megadrive", "mastersystem", "sg1000") ||
+            (platform == "n64" && encodedLeaf.endsWith(".zip", ignoreCase = true))
+        require(platform in setOf("gb", "gbc", "gba", "nes", "snes", "n64",
+            "gamegear", "megadrive", "mastersystem", "sg1000"))
+        return archiveSaveName(encodedLeaf, zip)
+    }
+
     fun contentClosed(response: String): Boolean =
         response == "GET_STATUS CONTENTLESS" || response == "GET_STATUS CONTENTLESS\n"
 

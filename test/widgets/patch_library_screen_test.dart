@@ -73,6 +73,27 @@ void main() {
             format: PatchFormat.ips)
       ],
       unsupportedFiles: []);
+  final incompatible = IndexedRomPatch(
+      source: 'Synthetic',
+      section: 'hacks',
+      sourceId: '2',
+      title: 'Other revision',
+      version: '2.0',
+      description: 'Requires a different original; not a declared patch chain.',
+      bases: [
+        IndexedPatchBase(
+            relativePath: PatchRelativePath('GBA/other.gba'),
+            sizeBytes: 4,
+            checksums: {'sha256': 'c' * 64})
+      ],
+      payloads: [
+        IndexedPatchPayload(
+            relativePath: 'GBA/Patches/other.ips',
+            sizeBytes: 14,
+            sha256: 'd' * 64,
+            format: PatchFormat.ips)
+      ],
+      unsupportedFiles: []);
 
   for (final size in [const Size(1920, 1080), const Size(800, 450)]) {
     testWidgets(
@@ -115,7 +136,7 @@ void main() {
                   row: PatchGameData(
                       DrivePatchCatalogue(config),
                       game,
-                      [patch],
+                      [patch, incompatible],
                       {
                         'GBA/base.gba': const GameItem(
                             filename: 'base.gba',
@@ -123,6 +144,21 @@ void main() {
                             url: '')
                       },
                       sourceId: 'fixture'))))));
+      await tester.pumpAndSettle();
+      expect(find.text('Balance changes'), findsOneWidget);
+      // Existing indexes declare original bases, not compatible chain edges.
+      // Selecting another patch replaces selection; it cannot stack silently.
+      await tester.tap(find.widgetWithText(ListTile, 'Other revision'));
+      await tester.pumpAndSettle();
+      expect(find.text('Balance changes'), findsNothing);
+      expect(find.text('The required original game is not in this collection.'),
+          findsOneWidget);
+      expect(
+          tester
+              .widgetList<ListTile>(find.byType(ListTile))
+              .where((tile) => tile.selected),
+          hasLength(1));
+      await tester.tap(find.widgetWithText(ListTile, 'Balance'));
       await tester.pumpAndSettle();
       expect(find.text('Balance changes'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonRight1);
