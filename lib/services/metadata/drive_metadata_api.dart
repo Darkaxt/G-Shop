@@ -9,6 +9,7 @@ class MetadataCloudFile {
   final String id, name, kind;
   final String? parent, digest, checksum, etag;
   final int bytes;
+  final bool trashed;
   const MetadataCloudFile(
       {required this.id,
       required this.name,
@@ -17,7 +18,8 @@ class MetadataCloudFile {
       this.digest,
       this.checksum,
       this.etag,
-      this.bytes = 0});
+      this.bytes = 0,
+      this.trashed = false});
 }
 
 /// Narrow transport for app-owned metadata. Never accepts a ROM source URL.
@@ -58,13 +60,15 @@ class DriveMetadataApi implements MetadataCloudRemote {
     }
   }
 
-  MetadataCloudFile _file(Map<String, dynamic> json) {
+  MetadataCloudFile _file(Map<String, dynamic> json,
+      {bool allowTrashed = false}) {
     final props = (json['appProperties'] as Map?) ?? const {};
     final parents = json['parents'] as List? ?? const [];
     final folder = json['mimeType'] == 'application/vnd.google-apps.folder';
     if (json['ownedByMe'] != true ||
         json['isAppAuthorized'] != true ||
-        json['trashed'] != false ||
+        (json['trashed'] != false &&
+            !(allowTrashed && json['trashed'] == true)) ||
         json['shared'] != false ||
         json['driveId'] != null ||
         props['rshopMetadata'] != '1' ||
@@ -92,7 +96,8 @@ class DriveMetadataApi implements MetadataCloudRemote {
         digest: digest,
         checksum: json['sha256Checksum'] as String?,
         etag: json['_responseEtag'] as String?,
-        bytes: bytes);
+        bytes: bytes,
+        trashed: json['trashed'] == true);
   }
 
   Future<Response<ResponseBody>?> _send(String path, String method,
@@ -203,25 +208,28 @@ class DriveMetadataApi implements MetadataCloudRemote {
   }
 
   @override
-  Future<MetadataCloudFile?> get(String id) async {
+  Future<MetadataCloudFile?> get(String id) => _get(id);
+
+  Future<MetadataCloudFile?> _get(String id,
+      {bool allowTrashed = false}) async {
     _id(id);
     final json = await _json('drive/v3/files/$id', 'GET',
         query: {'fields': _fields}, notFound: true);
-    return json == null ? null : _file(json);
+    return json == null ? null : _file(json, allowTrashed: allowTrashed);
   }
 
   @override
   Future<List<MetadataCloudFile>> children(String? parent) => _children(parent);
 
   Future<List<MetadataCloudFile>> _children(String? parent,
-      {bool allVisible = false}) async {
+      {bool allVisible = false, bool includeTrashed = false}) async {
     if (parent != null) _id(parent);
     final result = <MetadataCloudFile>[];
     final pages = <String>{};
     String? page;
     do {
       final json = (await _json('drive/v3/files', 'GET', query: {
-        'q': "trashed = false and "
+        'q': "${includeTrashed ? '' : 'trashed = false and '}"
             "${allVisible ? '' : "appProperties has { key='rshopMetadata' and value='1' } and "}"
             '${parent == null ? "appProperties has { key='kind' and value='root' }" : "'$parent' in parents"}',
         'spaces': 'drive',
@@ -233,7 +241,8 @@ class DriveMetadataApi implements MetadataCloudRemote {
         throw const FormatException('Incomplete metadata listing');
       }
       for (final item in json['files'] as List) {
-        final file = _file((item as Map).cast<String, dynamic>());
+        final file = _file((item as Map).cast<String, dynamic>(),
+            allowTrashed: includeTrashed);
         if (file.parent != parent || result.any((v) => v.id == file.id)) {
           throw const FormatException('Changed metadata folder membership');
         }
@@ -372,7 +381,7 @@ class DriveMetadataApi implements MetadataCloudRemote {
         json['title'] != file.name ||
         json['ownedByMe'] != true ||
         json['isAppAuthorized'] != true ||
-        (json['labels'] as Map?)?['trashed'] != false ||
+        (json['labels'] as Map?)?['trashed'] != file.trashed ||
         json['shared'] != false ||
         json['driveId'] != null ||
         parents.length != 1 ||
@@ -412,14 +421,19 @@ class DriveMetadataApi implements MetadataCloudRemote {
   }
 
   @override
-  Future<void> relocate(MetadataCloudFile file, String parent) async {
+  Future<void> relocate(MetadataCloudFile file, String parent) =>
+      _relocate(file, parent);
+
+  Future<void> _relocate(MetadataCloudFile file, String parent,
+      {bool allowTrashed = false}) async {
     _id(parent);
-    final current = await get(file.id);
+    final current = await _get(file.id, allowTrashed: allowTrashed);
     if (current == null ||
         current.name != file.name ||
         current.kind != file.kind ||
         current.digest != file.digest ||
-        current.bytes != file.bytes) {
+        current.bytes != file.bytes ||
+        current.trashed != file.trashed) {
       throw const FormatException('Metadata archive changed remotely');
     }
     if (current.parent == parent) return;
@@ -435,10 +449,12 @@ class DriveMetadataApi implements MetadataCloudRemote {
         },
         ifMatch: version.etag);
     await response?.data?.stream.drain<void>();
-    final moved = await get(file.id);
+    final moved = await _get(file.id, allowTrashed: allowTrashed);
     if (moved?.parent != parent ||
         moved?.name != file.name ||
-        moved?.digest != file.digest) {
+        moved?.digest != file.digest ||
+        moved?.bytes != file.bytes ||
+        moved?.trashed != file.trashed) {
       throw const FormatException('Metadata archive move was not verified');
     }
   }
@@ -446,7 +462,15 @@ class DriveMetadataApi implements MetadataCloudRemote {
   /// Explicit rebuild only. Trash is recoverable; never delete the metadata root.
   @override
   Future<void> trash(MetadataCloudFile file) async {
-    final current = await get(file.id);
+    if (file.parent == null) {
+      throw const FormatException('Metadata rebuild target changed remotely');
+    }
+    await _trashTree(file, file.parent!, detach: false);
+  }
+
+  Future<void> _trashTree(MetadataCloudFile file, String root,
+      {required bool detach}) async {
+    var current = await _get(file.id, allowTrashed: true);
     if (current == null) return;
     if (current.parent == null ||
         current.parent != file.parent ||
@@ -457,17 +481,24 @@ class DriveMetadataApi implements MetadataCloudRemote {
       throw const FormatException('Metadata rebuild target changed remotely');
     }
     if (current.kind == 'folder') {
-      // Drive's limited app-file grant rejects populated folder trash once its
-      // descendant access check exceeds the backend limit. Remove individually
-      // verified app-owned children first, preserving recoverable Trash and the
-      // same grant. Do not silently filter out visible foreign/unowned children.
-      for (final child in await _children(current.id, allVisible: true)) {
-        await trash(child);
+      // Trashed children retain parent membership and still trigger Drive's
+      // descendant access check. Detach every verified descendant into the
+      // preserved metadata root, retaining its trash state, before retiring its
+      // genuinely empty parent. Normal publication never accepts trashed files.
+      for (final child in await _children(current.id,
+          allVisible: true, includeTrashed: true)) {
+        await _trashTree(child, root, detach: true);
       }
-      if ((await _children(current.id, allVisible: true)).isNotEmpty) {
+      if ((await _children(current.id, allVisible: true, includeTrashed: true))
+          .isNotEmpty) {
         throw const FormatException('Metadata rebuild is incomplete');
       }
     }
+    if (detach && current.parent != root) {
+      await _relocate(current, root, allowTrashed: true);
+      current = (await _get(current.id, allowTrashed: true))!;
+    }
+    if (current.trashed) return;
     final version = await _mutationVersion(current);
     final result = await _json('drive/v2/files/${file.id}', 'PATCH',
         query: {'fields': 'id,labels(trashed)'},

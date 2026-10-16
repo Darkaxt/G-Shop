@@ -472,7 +472,7 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 41);
+    expect(await db.getVersion(), 42);
     expect((await db.query('games')).single['displayName'], 'Existing game');
     expect(await db.query('patch_builds'), isEmpty);
   });
@@ -491,7 +491,7 @@ void main() {
     await db.close();
     DatabaseService.resetForTesting();
     db = await DatabaseService().database;
-    expect(await db.getVersion(), 41);
+    expect(await db.getVersion(), 42);
     final row = (await db.query('metadata_refresh_jobs')).single;
     expect(row['collection_generation'], 'existing');
     expect(row['selection_json'], isNull);

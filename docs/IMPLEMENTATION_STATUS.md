@@ -7,6 +7,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### Drive-backed metadata — S24 ACTIVE, 2026-10-16
 
+Latest verified checkpoint, 2026-10-17: native 1.9.9 completed the explicit
+media reset, retaining all 1,784 records and removing 537,249,923 media bytes;
+read-only device aggregates confirm zero artwork responses and zero media bytes.
+Fresh Drive search confirms replacement normalized folders have new identities;
+the old cached folder-fetch response was stale and is not current evidence.
+Signed 1.9.10/code 24 is installed in place. Native schema 42 contains
+`resources_only`, all 86 saved jobs remain, and the actual ScreenScraper screen
+loads its saved credentials and paused job without an error. Preferences, both
+secure-storage files and the imported-model active generation had identical
+pre/post-install hashes. Publication resumed after the in-place update; its
+1,400-game fact backup is still running, not accepted as complete. A fresh GB
+resource-only job has been started through the normal collector; its result and
+rendering remain pending. S24 stays ACTIVE.
+
+Gate 1344 acquired Local\\Darka.AndroidGradleBuildGate; build/helper exited 0,
+post-build daemon exit was verified, and no cancellation or memory failure
+occurred. Observed two workers/no parallel and 3 GiB Gradle heap with in-process
+Kotlin; one 512 MiB test fork is configured, with native depth-one pools retained.
+Release signer is unchanged and the APK privacy scan passed. APK SHA-256:
+230d8dc14018f2fdc1b7bb2057a0c6cf4197b819b7f1e9f41a81bb94149afeb4.
+Production v39/v40/v41 upgrade regressions and affected controller workflows pass;
+targeted analysis has no errors/warnings (five style infos). The separate read-only
+probe encountered SQLITE_BUSY during the live projection transaction, not an OOM;
+after that transaction finished it confirmed schema/jobs/record/media aggregates.
+No public release was created. Remaining acceptance is fresh Nintendo resource
+collection/rendering, native cache lifecycle and constrained native brand overflow.
+
 Current owner revision 63 supersedes old-media recycling for this generation:
 discard collected resources and recollect with typed roles, retaining matched
 facts/ratings and all ROM/save/configuration/imported-model data. A deliberate
@@ -50,10 +77,44 @@ verified. Observed two workers/no parallel/3 GiB Gradle with in-process Kotlin;
 one 512 MiB test fork, native application/patch Ninja pools depth one; no memory
 failure or raised budget. APK SHA-256:
 d51165e12e477ee167d496b0e3ced4608fee269b5d6cca8bf859b67f2844649e.
-Fresh native default-account readback shows PSP old live contents decreasing
-from 70 to 61 entries through the normal reset, with no repeated rejection.
-The reset is still running; local media and retained-fact completion evidence
-remain pending. No public release was created.
+Fresh native default-account readback showed PSP old live contents decreasing
+from 70 to its last artwork folder. An HTTP 500/internalError interrupted the run;
+one supported Sync resume preserved progress. The final artwork folder then
+returned childAccessCheckLimitExceeded despite having no live children: the
+children-first attempt did not empty membership of previously trashed files.
+The correction includes trashed descendants, revalidates their ownership and
+version, moves them into the preserved metadata root without changing trash
+state, and only trashes parents after all membership is gone. The stronger
+regression reproduces the native failure and passes with that correction.
+Signed 1.9.9/code 23 is installed with the same signer and all five exact
+prelaunch data hashes preserved. Gate 1338 acquired the shared mutex;
+build/helper exited 0 and post-build daemon exit was verified, with the same
+observed low-memory profile and no memory failure. Fresh native Drive readback
+shows PSP has no remaining live children, but the root still contains PSP/PSX;
+the full reset, local-media removal and retained-fact evidence remain pending.
+No public release was created.
+
+Execution deviation: a second focused host test command was submitted before
+the preceding yielded test's exit had been observed. Both original sessions were
+joined and inspected (expected reproduction failure, then passing corrected
+transport checks); neither reported a memory failure. No further overlapping
+test command is permitted. Gradle commands remained serial through the shared
+gate throughout.
+
+Resolved fresh-collection upgrade blocker: the native ScreenScraper section had
+shown a metadata-load error and default not-configured labels. That was not
+evidence that credentials were lost (exact
+secure-storage hashes were preserved and host provider access was verified).
+The production v41 upgrade path was reproduced: saved-job reads fail with
+`no such column: resources_only`, because the field had been added to fresh
+installation but omitted from the existing-database upgrade chain. The additive
+v42 migration now installs it before any saved-job read, preserving existing
+job rows. The reproduction failed before this fix and the corrected upgrade plus
+normal metadata-controller workflows pass. Signed native verification of the
+upgrade correction has passed as recorded above; collection acceptance is pending.
+Read-only native aggregates independently confirm schema 41 lacks this field:
+86 saved jobs, 1,784 retained shared records, 1,467 artwork-response records and
+537,249,923 collected media bytes. No catalogue copy or credential data was read.
 Fresh affected host checks pass for cloud reset/recollection and the settings,
 cache, save and manufacturer controller/fade paths. Native General settings
 shows the progressive red-background fade; scrolling to the end exposes the

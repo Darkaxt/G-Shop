@@ -23,7 +23,7 @@ import 'patch_build_store.dart';
 class DatabaseService {
   static Future<Database>? _initFuture;
   static const String _tableName = 'games';
-  static const int _dbVersion = 41;
+  static const int _dbVersion = 42;
 
   /// Migration owns joined foreground/headless IO before calling this. A new
   /// engine/normal bootstrap then opens the activated database, never this handle.
@@ -413,6 +413,9 @@ class DatabaseService {
     }
     if (oldVersion < 41) {
       await MetadataRefreshJobs.installSelectionCoverage(db);
+    }
+    if (oldVersion < 42) {
+      await MetadataRefreshJobs.installResourceCollectionMode(db);
     }
   }
 

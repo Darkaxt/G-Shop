@@ -17,7 +17,7 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 
 S22 and R22 are COMPLETE. The owner's subsequent explicit go-ahead selects S24
 as the sole ACTIVE stage; it has no dependency on S23 website acquisition, which
-remains NOT STARTED. Signed 1.9.3/code 17 is installed in place for S24's required
+remains NOT STARTED. Signed 1.9.10/code 24 is installed in place for S24's required
 native verification; installation alone does not close its acceptance criteria.
 The owner's next-update startup request belongs to S25, which remains NOT STARTED
 until S24 closes or is justifiably parked. No concurrent implementation is opened.

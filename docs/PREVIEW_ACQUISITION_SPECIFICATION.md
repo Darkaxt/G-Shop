@@ -247,10 +247,12 @@ fresh ownership/name/parent/digest/size validation. There is no unguarded update
 fallback when a required version cannot be established. References:
 https://developers.google.com/workspace/drive/api/reference/rest/v2/files
 and https://developers.google.com/workspace/drive/api/reference/rest/v2/files/patch.
-Explicit rebuild trashes individually verified app-owned descendants before
-their empty folders, rather than depending on Drive's populated-folder child
-access check. Visible foreign children reject the cascade; interrupted resets
-resume from the remaining live objects without broadening the OAuth grant.
+Explicit rebuild includes previously trashed descendants when emptying folder
+membership. Individually verified app-owned descendants are moved into the
+preserved metadata root, retaining their trash state, before empty parent folders
+are trashed. Normal publication still rejects trashed objects. Visible foreign
+children reject the cascade; interrupted resets resume from the remaining live
+objects without broadening the OAuth grant or permanently deleting file bodies.
 
 S22 is COMPLETE with host/native acceptance, signed verification, reviewed cleanup
 and remote source delivery recorded in IMPLEMENTATION_STATUS.md. R22's signed

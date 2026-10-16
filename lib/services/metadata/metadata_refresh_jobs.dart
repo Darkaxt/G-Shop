@@ -178,10 +178,7 @@ class MetadataRefreshJobs {
       await db.execute(
           'ALTER TABLE metadata_refresh_jobs ADD COLUMN is_artwork INTEGER NOT NULL DEFAULT 0');
     }
-    if (!jobColumns.any((r) => r['name'] == 'resources_only')) {
-      await db.execute(
-          'ALTER TABLE metadata_refresh_jobs ADD COLUMN resources_only INTEGER NOT NULL DEFAULT 0');
-    }
+    await installResourceCollectionMode(db);
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_metadata_saved_jobs
       ON metadata_refresh_jobs(provider_id, is_artwork, id DESC)''');
     await installMatchReviewMode(db);
@@ -205,6 +202,16 @@ class MetadataRefreshJobs {
     await MetadataArtworkCache.install(db);
     await installArtworkLinks(db);
     await installSelectionCoverage(db);
+  }
+
+  /// Additive v42 migration, before saved jobs are read on existing installs.
+  static Future<void> installResourceCollectionMode(DatabaseExecutor db) async {
+    final columns =
+        await db.rawQuery('PRAGMA table_info(metadata_refresh_jobs)');
+    if (!columns.any((row) => row['name'] == 'resources_only')) {
+      await db.execute('ALTER TABLE metadata_refresh_jobs '
+          'ADD COLUMN resources_only INTEGER NOT NULL DEFAULT 0');
+    }
   }
 
   static Future<void> installSelectionCoverage(DatabaseExecutor db) async {

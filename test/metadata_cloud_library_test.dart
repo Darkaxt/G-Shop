@@ -374,6 +374,7 @@ void main() {
         ('console', 'root', true),
         ('game', 'console', true),
         ('box', 'game', false),
+        ('old', 'game', false),
       ])
         row.$1: {
           'id': row.$1,
@@ -383,7 +384,7 @@ void main() {
               row.$3 ? 'application/vnd.google-apps.folder' : 'image/png',
           'ownedByMe': true,
           'isAppAuthorized': true,
-          'trashed': false,
+          'trashed': row.$1 == 'old',
           'shared': false,
           if (!row.$3) 'size': '3',
           'appProperties': {
@@ -404,7 +405,9 @@ void main() {
               'files': [
                 for (final item in objects.values)
                   if ((item['parents'] as List).single == parent &&
-                      item['trashed'] == false)
+                      (!(request.queryParameters['q'] as String)
+                              .contains('trashed = false') ||
+                          item['trashed'] == false))
                     item
               ]
             }),
@@ -413,9 +416,14 @@ void main() {
       final id = request.uri.pathSegments.last;
       final item = objects[id]!;
       if (request.method == 'PATCH') {
-        if (objects.values.any((other) =>
-            (other['parents'] as List).single == id &&
-            other['trashed'] == false)) {
+        if (request.queryParameters['addParents'] != null) {
+          expect(request.queryParameters['removeParents'],
+              (item['parents'] as List).single);
+          item['parents'] = [request.queryParameters['addParents']];
+          return ResponseBody.fromString(jsonEncode({'id': id}), 200);
+        }
+        if (objects.values
+            .any((other) => (other['parents'] as List).single == id)) {
           return ResponseBody.fromString(
               '{"error":{"errors":[{"reason":"childAccessCheckLimitExceeded"}]}}',
               403);
@@ -440,6 +448,11 @@ void main() {
     await api.trash(const MetadataCloudFile(
         id: 'console', name: 'console', kind: 'folder', parent: 'root'));
     expect(removed, ['box', 'game', 'console']);
+    expect(
+        objects.values.every((f) =>
+            (f['parents'] as List).single == 'root' && f['trashed'] == true),
+        isTrue,
+        reason: 'Trashed children must not remain attached to retired folders');
     expect(
         transport.requests
             .where((r) => r.method == 'PATCH')
