@@ -5,6 +5,35 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Thor preview delivery — R22 COMPLETE, 2026-10-16
+
+Owner-requested production 1.9.2/code 16 is installed in place on Thor. No
+uninstall, data clear, new scrape or public GitHub release occurred. The existing
+package, release certificate, UID and first-install timestamp are preserved.
+
+| Delivery criterion | Verified evidence |
+| --- | --- |
+| Signed packaging | Maintained release wrapper, gate 1308: release JVM verification/assembly and helper exit 0. APK privacy scan has no configured password/secret or private signing-file hits. |
+| Actual installed bytes | Retained `D:/Releases/R-Shop/1.9.2/app-release.apk` and installed base APK both SHA-256 `dce0cb7e2066eda003ff7760b57ca0eab401a898f2f9ef9491633f501554e02f`; signer SHA-256 `075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`. |
+| Preservation | Both installs preserved exact prelaunch hashes for secure storage, ordinary preferences, catalogue DB and active imported-resource receipt. Normal subsequent startup/Drive catalogue refresh can legitimately update operational data. |
+| Production startup/preview | Normal activity launch succeeds; controller activation opens the real four-column library, and the corrected release renderer shows the selected Ball/Game & Watch preview on physical lower display 4630946482288158084. Current process logs have no root-isolate/entrypoint startup error. Existing companion task is not manipulated. |
+| Resource profile | Gates 1304 and 1308 acquired the shared mutex, verified two workers/no parallel, Gradle 3 GiB and assessed in-process Kotlin, configured one 512 MiB test fork with fail-fast. Generated application/patch Ninja rules have depth-one pools. Both builds/helper exits are 0, daemon exit is verified and memory-failure evidence is empty. Plugin native hints are not claimed as a universal host memory cap. |
+| Cleanup/device state | Reviewed transactions `0257320b17c4e294e99ded713f7502ca` and `7f1db2e80e9fffd9bcf2ebdb8b3a54d0` are applied: 1,309,059,228 bytes of build/scratch/capture/failed-candidate/log output removed, no exclusions/errors/residual roots. Correct signed deliverable retained. Fresh power/display evidence: Asleep and both committed states OFF. |
+
+The first signed candidate (gate 1304) passed packaging but real production
+verification exposed an AOT-only defect: the native root-library lookup could not
+resolve a re-exported previewMain. A real root-library forwarding entrypoint
+fixes that boundary. The focused regression wiring check failed before the fix
+and passed afterward; gate 1308 and actual production secondary rendering verify
+the integrated correction. The failed candidate is removed, not offered as a
+deliverable. S22 is not reopened for unrelated changes.
+
+Every assigned R22 criterion passes; no remaining blocker or tracked deferral.
+S23 acquisition and the newly approved S24 Drive-backed metadata/cache remain
+NOT STARTED. S24 records a separate durable Drive metadata/artwork tree with a
+configurable 2 GiB combined local media-cache default; it is not implemented or
+silently substituted for 1.9.2's existing preview-video budget.
+
 ### Dual-screen preview — S22 COMPLETE; S23 NOT STARTED, 2026-10-16
 
 Authority revision 57 / PREVIEW_ACQUISITION_SPECIFICATION.md. All assigned S22

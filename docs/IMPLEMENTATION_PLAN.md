@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 57, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 58, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16
@@ -10,9 +10,13 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | Stage | Status | Complete outcome / acceptance | Verification |
 | --- | --- | --- | --- |
 | S22 Dual-screen media preview | COMPLETE | PREVIEW-01/02: 4x2 main gallery; secondary flat/3D/background media and activated details; gallery focus retained; launch dismisses R-Shop without disturbing companion; sectioned persisted settings and shared bounded media cache | Real Thor selection/details/launch/return with both displays, selected-game real video/cache/offline proof, focus/layout/settings/lifecycle and affected owner/migration checks, gated signed build, cleanup and verified remote source delivery |
+| R22 Thor preview delivery | COMPLETE | PREVIEW-DELIVERY: signed 1.9.2/code 16 installed in place with settings/data preserved | Gated signed packaging 1308, installed APK hash/identity, unchanged prelaunch settings/database/import hashes, real production secondary rendering after AOT entrypoint fix, reviewed intermediate cleanup; both screens OFF |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
+| S24 Drive-backed metadata cache | NOT STARTED | METADATA-CLOUD-01: separate Drive metadata/artwork tree; local searchable facts and background media cache with configurable 2 GiB default | Existing-data publication/recovery without re-scraping, real background fetch/offline hits and bounded owned eviction, exact artwork roles and identity |
 
-S22 is COMPLETE; its assigned criteria have passed. S23 remains NOT STARTED.
+S22 and R22 are COMPLETE; their assigned criteria have passed. No stage is ACTIVE
+for this delivery. S23 and S24 remain NOT STARTED; the metadata-cache design is
+recorded, not implemented in the installed 1.9.2 APK.
 The S16-S21 completion records below are historical and remain valid.
 
 ## Current extension — already authorized, 2026-10-15

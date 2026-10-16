@@ -3,6 +3,19 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('native preview entrypoint is declared in the root AOT library', () {
+    final main = File('lib/main.dart').readAsStringSync();
+    final native = File(
+            'android/app/src/main/kotlin/com/retro/rshop/PreviewChannel.kt')
+        .readAsStringSync();
+    expect(native, contains('findAppBundlePath(), "previewMain"'));
+    expect(
+        RegExp(r"@pragma\('vm:entry-point'\)\s+Future<void> previewMain\(\)")
+            .hasMatch(main),
+        isTrue,
+        reason: 'The native root-library lookup cannot resolve a re-export in AOT');
+  });
+
   test('release keeps R-Shop branding with a separate fork package', () {
     final build = File('android/app/build.gradle.kts').readAsStringSync();
     final defaults = RegExp(r'defaultConfig\s*\{([\s\S]*?)\n    \}')

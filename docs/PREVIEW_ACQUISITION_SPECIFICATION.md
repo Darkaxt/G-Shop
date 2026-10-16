@@ -1,12 +1,22 @@
 # Dual-screen preview and acquisition extensions
 
-Authoritative extension to SPECIFICATION.md revision 57, 2026-10-16.
+Authoritative extension to SPECIFICATION.md revision 58, 2026-10-16.
 Authorization: already_authorized. The owner approved the dual-screen/media
 preview design and requested implementation, followed by a general website
 acquisition/add-on integration based on H:\My Drive\Roms\LolSuite Manager.
 No new public release is authorized by this implementation request. Real scoped
 device verification is authorized; preserve production settings/data and leave
 both Thor screens off after use.
+
+## PREVIEW-DELIVERY — Authorized Thor update, 2026-10-16
+
+The owner explicitly requested deployment to the Thor after S22 closure.
+Package the verified preview as signed 1.9.2/code 16, update the existing
+com.darkaxt.rshop installation in place, and verify installed bytes, startup and
+preserved settings, credentials, catalogue and imported resources. Do not
+uninstall, clear data, scrape the collection or publish a GitHub release.
+Keep a rebuildable local APK for this requested delivery; remove expendable
+verification intermediates through reviewed cleanup and leave both screens OFF.
 
 ## PREVIEW-01 — Dual-screen browsing (S22)
 
@@ -147,10 +157,36 @@ regressions. Document how add-ons/mappings are added and maintained. No empty
 extension framework, separate downloader UI, whole-collection acquisition, Drive
 reorganization or unrelated desktop tooling port counts as completion.
 
+## METADATA-CLOUD-01 — Drive-backed metadata and local cache (S24)
+
+Owner-approved design addition, 2026-10-16; NOT STARTED and not part of the Thor
+1.9.2 delivery. Store durable credential-free scraped records and artwork in a
+separate metadata tree on Google Drive, outside the ROM folders, with canonical
+console/game/edition bindings and equivalent collection organization. Preserve
+existing scraped data; this is not an instruction to scrape everything again.
+
+Keep the local text/score/tag query projection for immediate browsing, search and
+rankings. Download thumbnails and selected-game artwork/screenshots/video in the
+background into one bounded local artwork/media cache, default 2 GiB, adjustable
+in Settings. Evict older unused cached media rather than deleting the cloud
+master. Do not implement this as an uncapped full-folder mirror or a network
+request for every focus event. Offline cached browsing and the configured offline
+retention policy remain usable; this media budget does not include ROM payloads,
+saves or imported Socket resources. Retain artwork-role and exact identity/hash
+validation, provider provenance and secret-redaction boundaries.
+
+Acceptance: existing scraped metadata/media published to and recovered from the
+selected private Drive metadata root without repeated scraping; real cache-miss
+background acquisition, local/offline cache hit and bounded eviction at the
+configured 2 GiB default; text/rankings stay available offline and box/cartridge
+media roles remain correct. No cloud or local migration occurs merely by recording
+this design. S24 is a separate requested outcome, not a deferral of S22/R22.
+
 ## Execution
 
 S22 is COMPLETE with host/native acceptance, signed verification, reviewed cleanup
-and remote source delivery recorded in IMPLEMENTATION_STATUS.md. S23 is NOT STARTED; it is a separately requested
+and remote source delivery recorded in IMPLEMENTATION_STATUS.md. R22's signed
+1.9.2 in-place Thor delivery is COMPLETE. S23 and S24 are NOT STARTED; each is a separately requested
 following outcome, not a deferral excusing any S22 acceptance criterion. Earlier
 S0-S21/QA/release results remain applicable except where changed integration is
 explicitly reverified. Every required gap is kept in the existing status ledger.

@@ -42,10 +42,15 @@ import 'widgets/sync_badge.dart';
 import 'widgets/media_cover_fallback.dart';
 import 'l10n/app_localizations.dart';
 import 'features/preview/dual_screen_preview_host.dart';
+import 'features/preview/preview_screen.dart' as preview;
 
 export 'services/saves/save_backup_background.dart' show saveBackupBackground;
 export 'services/rom_cache_background.dart' show romCacheBackground;
-export 'features/preview/preview_screen.dart' show previewMain;
+
+// The native renderer uses a root-library entrypoint lookup. Re-exporting the
+// implementation works in debug but does not declare that symbol in AOT main.
+@pragma('vm:entry-point')
+Future<void> previewMain() => preview.previewMain();
 
 class NoGlowScrollBehavior extends ScrollBehavior {
   @override
