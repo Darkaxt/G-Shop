@@ -159,7 +159,7 @@ reorganization or unrelated desktop tooling port counts as completion.
 
 ## METADATA-CLOUD-01 — Drive-backed metadata and local cache (S24)
 
-Owner-approved design addition, 2026-10-16; NOT STARTED and not part of the Thor
+Owner-approved implementation, 2026-10-16; ACTIVE and not part of the Thor
 1.9.2 delivery. Store durable credential-free scraped records and artwork in a
 separate metadata tree on Google Drive, outside the ROM folders, with canonical
 console/game/edition bindings and equivalent collection organization. Preserve
@@ -182,11 +182,79 @@ configured 2 GiB default; text/rankings stay available offline and box/cartridge
 media roles remain correct. No cloud or local migration occurs merely by recording
 this design. S24 is a separate requested outcome, not a deferral of S22/R22.
 
+Owner-corrected visible design, 2026-10-16: use a private app-created
+`R-Shop Metadata` Drive root, separate from ROM and save roots, with canonical
+console/game-or-edition folders and typed resource names (`box.png`,
+`cartridge.png` or `disc.png`, `screenshot-01.png`, `trailer.mp4`, `metadata.json`).
+The earlier mixed hash-named artwork tree is superseded, not accepted as this
+requirement. Keep exact role/provenance and digests in metadata/index receipts;
+hash-addressed local cache bodies remain an internal implementation detail. Reuse
+the existing Google account and app-file consent lane, with a metadata-specific
+typed API; ROM access remains read-only. Reserve creation IDs durably, verify
+remote ownership/size/digest before admitting eviction, and keep interrupted or
+offline publication resumable without deleting unuploaded originals. Keep text
+records and receipt projections locally; recovery must retain exact edition and
+provider bindings and existing provenance rules. Background reads belong only to
+mounted cards or the selected game, never the whole-console cover lookup. One
+serialized cache/publication owner coordinates reads, migration, active-file
+leases and eviction. Existing ES-DE files and imported resources remain outside
+cache deletion. A full migration retains account/root/budget configuration but
+rebuilds destination-specific cache paths. Settings stay sectioned with short
+icon actions and existing touch/controller/L1/R1 navigation.
+
+Pre-existing content-addressed media left by earlier refreshes must not disappear
+from accounting. Include it in local usage; preserve validated unbound bodies
+outside normalized game folders until they can be classified, never inventing a
+game, edition or resource role. Preserve the first unpublished/migrating local
+copies until normalized remote publication is verified. First prove one complete
+Nintendo console resource/rendering workflow before the broader collection pass.
+The former mixed hash-named Drive folders are preserved under `_legacy/console`
+after successful normalized publication, with recovery still supported. Normal
+Drive-backed resource collection includes the preferred validated gameplay clip,
+not just a trailer reference. Publication yields between games so selected-media
+cache requests are not held behind the entire library upload; settings report
+completed/total game publication progress.
+Resource-only collection snapshots existing matched records for the selected
+console/manufacturer, reuses valid cached resources, and does not repeat title
+lookups. It has the existing durable pause/resume/saved-job controls. Newly
+collected visible-game resources can be published ahead of the unrelated bulk
+migration; repeated focus on an already mapped resource remains local-only.
+
+Owner-requested rendering corrections, 2026-10-16: the cover-to-media reveal must
+be a slow visible leftward slide (2.4 seconds total: 600 ms hold, 1.8 seconds
+sliding/growing), not the prior 600 ms flash. All cartridge housings and UMD shells
+must read as molded plastic, with no metallic response and a .75 roughness floor.
+Preserve actual optical-disc parts, exposed contacts/boards/screws and game labels,
+as well as source geometry. This owner extension supersedes the initial GB-only
+correction. These corrections are included in S24 verification
+and the requested Thor deployment/Nintendo collection rendering checks.
+
 ## Execution
+
+Owner reset instruction, 2026-10-16: the existing collected resources are to be
+discarded, not recycled into the normalized layout. Preserve matched local facts
+and configuration; discard obsolete app-owned Drive exports and collected local
+image/video bodies and receipts, then republish facts and collect fresh typed
+resources. A persisted reset intent resumes before cloud publication after an
+interruption. This explicit reset supersedes the old-copy retention/archive
+requirements above for the discarded generation only. Ordinary cache eviction
+still requires verified cloud masters and respects active leases.
+
+Drive mutation boundary: v3 is retained for listing, initial publication and
+reads. Conditional updates, moves and explicit trash use Drive's documented v2
+File.etag and patch representation, with the same account/app-file scope and
+fresh ownership/name/parent/digest/size validation. There is no unguarded update
+fallback when a required version cannot be established. References:
+https://developers.google.com/workspace/drive/api/reference/rest/v2/files
+and https://developers.google.com/workspace/drive/api/reference/rest/v2/files/patch.
+Explicit rebuild trashes individually verified app-owned descendants before
+their empty folders, rather than depending on Drive's populated-folder child
+access check. Visible foreign children reject the cascade; interrupted resets
+resume from the remaining live objects without broadening the OAuth grant.
 
 S22 is COMPLETE with host/native acceptance, signed verification, reviewed cleanup
 and remote source delivery recorded in IMPLEMENTATION_STATUS.md. R22's signed
-1.9.2 in-place Thor delivery is COMPLETE. S23 and S24 are NOT STARTED; each is a separately requested
+1.9.2 in-place Thor delivery is COMPLETE. S23 is NOT STARTED; S24 is ACTIVE. Each is a separately requested
 following outcome, not a deferral excusing any S22 acceptance criterion. Earlier
 S0-S21/QA/release results remain applicable except where changed integration is
 explicitly reverified. Every required gap is kept in the existing status ledger.

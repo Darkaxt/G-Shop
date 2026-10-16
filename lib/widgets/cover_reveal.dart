@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 /// One focus, one reveal. Only an already decoded image is admitted; this widget
 /// never starts an image/HTTP load or replays after later artwork resolution.
 class CoverReveal extends StatefulWidget {
+  static const duration = Duration(milliseconds: 2400);
   final String identity;
   final ImageProvider? boxArt;
   final Widget media;
@@ -20,8 +21,8 @@ class CoverReveal extends StatefulWidget {
 
 class _CoverRevealState extends State<CoverReveal>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  late final _animation = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 600));
+  late final _animation =
+      AnimationController(vsync: this, duration: CoverReveal.duration);
   ImageInfo? _cover;
   bool _decided = false;
   bool get _reduce =>
@@ -114,7 +115,7 @@ class _CoverRevealState extends State<CoverReveal>
                 builder: (context, _) {
                   final reveal =
                       image != null && !_reduce && !_animation.isCompleted;
-                  final t = const Interval(.3, 1, curve: Curves.easeInOut)
+                  final t = const Interval(.25, 1, curve: Curves.easeInOut)
                       .transform(_animation.value);
                   final scale = reveal ? initial + (1 - initial) * t : 1.0;
                   final left = (bounds.maxWidth - coverWidth) / 2;

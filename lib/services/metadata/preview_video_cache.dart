@@ -28,10 +28,15 @@ class PreviewVideoCache {
       throw const FormatException('Video could not be decoded');
   }
 
-  Future<String?> find(MetadataMedia media) async {
+  Future<String?> find(MetadataMedia media, {bool background = true}) async {
     await store.requireAccess();
-    final receipt =
-        await _receipt(File(p.join(root.path, '${key(media)}.json')));
+    var receipt = await _receipt(File(p.join(root.path, '${key(media)}.json')));
+    if (receipt == null ||
+        !await _intact(
+            File(p.join(root.path, receipt['file'] as String)), receipt)) {
+      await store.fetchCloudMedia?.call(key(media), userRequested: !background);
+      receipt = await _receipt(File(p.join(root.path, '${key(media)}.json')));
+    }
     if (receipt == null) return null;
     final video = File(p.join(root.path, receipt['file'] as String));
     if (!await _intact(video, receipt)) return null;
@@ -40,11 +45,13 @@ class PreviewVideoCache {
 
   Future<String> acquire(
       MetadataMedia media, MetadataArtworkProvider provider, CancelToken cancel,
-      {required int budgetBytes, String? protectedPath}) async {
+      {required int budgetBytes,
+      String? protectedPath,
+      void Function(MetadataLookupResult)? onResponse}) async {
     await store.requireAccess();
     if (!ScreenScraperProvider.videoTypes.contains(media.type))
       throw const FormatException('Not a gameplay clip');
-    final existing = await find(media);
+    final existing = await find(media, background: false);
     if (existing != null) return existing;
     await root.create(recursive: true);
     final id = key(media);
@@ -63,6 +70,7 @@ class PreviewVideoCache {
         }
         await writer!.writeFrom(chunk);
       });
+      onResponse?.call(result);
       await writer.flush();
       await writer.close();
       writer = null;
@@ -96,6 +104,7 @@ class PreviewVideoCache {
             'usedAt': DateTime.now().toUtc().toIso8601String()
           }),
           flush: true);
+      store.cloudChanged?.call();
       await trim(budgetBytes, protectedPaths: {
         target.path,
         if (protectedPath != null) protectedPath
@@ -182,6 +191,8 @@ class PreviewVideoCache {
 
   Future<void> trim(int budgetBytes,
       {Set<String> protectedPaths = const {}}) async {
+    if (store.cloudManaged)
+      return; // The combined cache owns verified eviction.
     await store.requireAccess();
     if (!await root.exists()) return;
     final owned = <({File receipt, Map<String, dynamic> data})>[];

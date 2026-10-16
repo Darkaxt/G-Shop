@@ -16,6 +16,7 @@ import '../services/unified_game_service.dart';
 import 'app_providers.dart';
 import 'installed_files_provider.dart';
 import 'library_providers.dart';
+import 'metadata_cloud_providers.dart';
 
 /// Whether the config was recovered from a backup (corrupt primary).
 final configRecoveredProvider = StateProvider<bool>((ref) => false);
@@ -142,6 +143,7 @@ final gameMetadataProvider = FutureProvider.autoDispose
     .family<GameMetadataInfo?, ({String filename, String systemSlug})>(
   (ref, params) async {
     ref.watch(gameDbChangedProvider);
+    ref.watch(metadataMediaRevisionProvider);
     final language = ref.watch(localeProvider)?.languageCode ?? 'en';
     await ref.watch(cachedMetadataReadinessProvider.future);
     return ref.watch(libraryDbProvider).getGameMetadata(

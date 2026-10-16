@@ -4,6 +4,7 @@ import '../../../core/input/input.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/console_focusable.dart';
+import '../../../core/widgets/scroll_edge_fade.dart';
 import '../../../providers/app_providers.dart';
 import '../models/settings_entry.dart';
 import 'settings_switch.dart';
@@ -59,13 +60,14 @@ class SettingsListView extends ConsumerWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: ListView(
+          child: ScrollEdgeFade(
+              child: ListView(
             padding: EdgeInsets.symmetric(
               horizontal: rs.spacing.lg,
               vertical: rs.spacing.md,
             ),
             children: items,
-          ),
+          )),
         ),
       ),
     );

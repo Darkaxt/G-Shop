@@ -351,6 +351,25 @@ void main() {
     expect(
         find.byKey(const ValueKey('metadata-shared-storage')), findsOneWidget);
     expect(find.byKey(const ValueKey('metadata-saved-jobs')), findsNothing);
+    expect(find.text('Media cache · 2 GB'), findsOneWidget);
+    final larger = find.byKey(const ValueKey('metadata-cloud-larger'));
+    await tester.ensureVisible(larger);
+    await tester.pumpAndSettle();
+    final cacheControl = find
+        .ancestor(of: larger, matching: find.byType(ConsoleFocusable))
+        .first;
+    tester
+        .widget<Focus>(find
+            .descendant(of: cacheControl, matching: find.byType(Focus))
+            .first)
+        .focusNode!
+        .requestFocus();
+    await tester.pump();
+    await tester.runAsync(() async {
+      await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    });
+    await tester.pumpAndSettle();
+    expect(find.text('Media cache · 4 GB'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('metadata-nav-screenscraper')));
     await tester.pumpAndSettle();
     await tester.tap(scraping);

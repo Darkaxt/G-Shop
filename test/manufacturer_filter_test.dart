@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:retro_eshop/features/home/widgets/manufacturer_filter.dart';
@@ -8,6 +9,53 @@ import 'package:retro_eshop/models/system_model.dart';
 import 'package:retro_eshop/services/config_bootstrap.dart';
 
 void main() {
+  testWidgets(
+      'overflow fades only hidden brand edges and focus reveals the logo',
+      (tester) async {
+    final systems = SystemModel.supportedSystems
+        .where((s) => ['Nintendo', 'Sony', 'Sega'].contains(s.manufacturer))
+        .toList();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: Align(
+      alignment: Alignment.topLeft,
+      child: SizedBox(
+          width: 440,
+          child: ManufacturerFilter(
+              systems: systems, selected: null, onSelected: (_) {})),
+    ))));
+    await tester.pumpAndSettle();
+    final mask = find.byKey(const ValueKey('scroll-edge-fade'));
+    expect(mask, findsOneWidget);
+    var shader = tester.widget<ShaderMask>(mask);
+    expect(shader.blendMode, BlendMode.dstIn);
+    final sony = find.byKey(const ValueKey('brand-Sony'));
+    final button = tester.widget<TextButton>(sony);
+    final focus = Focus.of(tester.element(
+        find.descendant(of: sony, matching: find.byType(Image)).first));
+    focus.requestFocus();
+    await tester.pumpAndSettle();
+    final viewport = tester.getRect(mask);
+    final logo = tester.getRect(sony);
+    expect(logo.left, greaterThanOrEqualTo(viewport.left));
+    expect(logo.right, lessThanOrEqualTo(viewport.right));
+    expect(button.onPressed, isNotNull);
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SizedBox(
+      width: 1200,
+      child: ManufacturerFilter(
+          systems: systems, selected: null, onSelected: (_) {}),
+    ))));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('scroll-edge-fade')), findsOneWidget);
+    final fitted = tester.getRect(find.byKey(const ValueKey('brand-Sony')));
+    expect(
+        fitted.right,
+        lessThanOrEqualTo(tester
+            .getRect(find.byKey(const ValueKey('manufacturer-filter')))
+            .right));
+  });
   test('every existing manufacturer has a nonblank transparent PNG', () {
     final brands =
         SystemModel.supportedSystems.map((s) => s.manufacturer).toSet();
@@ -22,8 +70,7 @@ void main() {
       expect(png.any((p) => p.a > 0), isTrue, reason: '$brand visible content');
     }
   });
-  test('manufacturer chronology leaves sync configuration order untouched',
-      () {
+  test('manufacturer chronology leaves sync configuration order untouched', () {
     final systems = SystemModel.supportedSystems
         .where((s) => ['nes', 'psp', 'snes', 'megadrive'].contains(s.id))
         .toList();

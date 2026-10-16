@@ -292,7 +292,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
   Future<void> selectSavedJob(int id) => _perform(() async {
         final report = await _jobs.report(id);
         if (report.providerId != state.providerId ||
-            report.kind != 'metadata') {
+            (report.kind != 'metadata' && !report.resourcesOnly)) {
           throw StateError('Saved job does not belong to this provider');
         }
         final artwork = await _jobs.artworkForMetadata(id);
@@ -312,6 +312,7 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       try {
         await action();
       } catch (error, stack) {
+        debugPrint('Metadata operation failed: ${error.runtimeType}');
         assert(() {
           // Never log exception messages, transport bodies, credentials or IDs.
           debugPrint('Metadata operation failure type: ${error.runtimeType}');
@@ -450,6 +451,22 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
         if (_closed) return;
         _catalogueChanged(); // Mark retained scores stale once, not per item/frame.
         await _run(job.id);
+      });
+
+  Future<void> collectResources(
+          {String? systemSlug, List<String>? systemSlugs}) =>
+      _perform(() async {
+        final job = await _jobs.createResourcesFromCatalogue(
+            providerId: state.providerId,
+            systemSlug: systemSlug,
+            systemSlugs: systemSlugs);
+        _set(state.copyWith(report: job, clearArtworkReport: true));
+        if (!_closed) {
+          await _run(job.id);
+          final result = state.report!;
+          debugPrint('Metadata resource collection: state=${result.state} '
+              'requested=${result.requested} counts=${result.counts}');
+        }
       });
 
   Future<void> mapEsDeEdition(
@@ -601,12 +618,14 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
           ? await _artworkCache
           : null;
       if (_closed || _pauseRequested) return;
+      final resources = (await _jobs.report(id)).kind == 'artwork';
       final result = await _jobs.run(id, provider,
           artworkCache: cache,
           recheckAccess: provider is MetadataAccessProvider,
           onProgress: (report) => _set(state.copyWith(report: report)));
       _set(state.copyWith(report: result));
-      if (result.state == 'completed' &&
+      if (!resources &&
+          result.state == 'completed' &&
           provider is MetadataArtworkProvider &&
           !_closed &&
           !_pauseRequested) {

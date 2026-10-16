@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 58, 2026-10-16.
+Authoritative specification, revision 63, 2026-10-16.
 
 ## Current authorized extension — dual-screen preview and acquisition add-ons
 
@@ -10,10 +10,53 @@ defines S22 dual-screen browsing/gameplay media and the following S23 general
 website acquisition integration based on LolSuite Manager. The owner subsequently
 requested the R22 Thor production update and approved S24's separate Drive-backed
 metadata library with a configurable 2 GiB local media-cache default. S22 and R22
-are COMPLETE; S23 and S24 are NOT STARTED. Preserve all prior
+are COMPLETE; S23 is NOT STARTED and S24 is ACTIVE. Preserve all prior
 data/authentication/launch/companion contracts.
 Implementation and scoped native verification are authorized; a new public
 release is not implied.
+
+Owner delivery extension, 2026-10-16: after S24 verification, deploy the update
+in place to Thor, clean task-generated temporary files and verified local media
+copies, then trigger Nintendo-wide resource collection and verify representative
+box, cartridge and trailer rendering. Preserve cloud masters, text, ROMs, saves,
+API configuration and imported Socket assets. No new public release is requested.
+
+Owner storage correction, 2026-10-16: the visible Drive metadata tree is normalized
+by console and game/edition: `console/game-name/resource-type.extension` (box,
+cartridge/disc label, numbered screenshots, trailer and metadata). A mixed,
+hash-named artwork directory is not the requested presentation. Keep exact role,
+edition and digest provenance internally; do not substitute a screenshot or box
+for a missing physical label. Missing/invalid resources stay absent. Demonstrate
+one complete Nintendo console resource/rendering workflow before broadening the
+collection pass; retain the remaining Nintendo-wide collection requirement.
+
+Owner next-update extension, 2026-10-16: PREVIEW-START-01 initializes the secondary
+display renderer when R-Shop starts, rather than on the first library selection,
+to address the observed first-model delay. S25 owns diagnosis, implementation and
+real cold-start verification. Preserve single-screen operation, companion ownership,
+normal hide/launch behavior and display power policy. S25 is NOT STARTED while S24
+remains ACTIVE; it is not a prerequisite for the current metadata/cache outcome.
+
+Owner reset instruction, 2026-10-16: discard the previously collected media and
+recollect with the normalized, role-correct collector instead of recycling or
+archiving those resources. Preserve local matched records, ratings, tags, ROMs,
+saves, credentials, settings and imported models. Remove the obsolete app-owned
+Drive exports and local collected-media bodies/receipts; republish text from the
+preserved local records and collect fresh resources without repeating matching.
+This explicitly supersedes preservation/recycling of the old collected resources
+for this reset, not ordinary cache eviction's cloud-recovery safeguards. Interrupted
+reset must resume before publication, so old local media cannot be republished.
+
+Owner presentation correction, 2026-10-16: manufacturer-strip overflow uses a
+progressive transparency gradient at scrollable edges instead of a hard cut
+through the Sony or other brand logo. Fade only edges with off-screen content;
+keep fully fitting strips opaque and bring a controller-focused brand fully
+inside the visible area. Use the same fading treatment at scrolling settings
+content boundaries (General/Audio/Advanced/About, metadata, ROM cache and saves),
+blending rows into the existing red background above the bottom controls. End
+padding/scroll reachability must let the final row become fully readable. Verify
+the constrained Thor layout during sync and the ordinary full-width layout. This
+scoped correction joins the current S24 update.
 
 ## Current authorized extension — collection navigation and ROM patching
 

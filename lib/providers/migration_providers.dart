@@ -18,6 +18,7 @@ import 'app_providers.dart';
 import 'download_providers.dart';
 import 'library_providers.dart';
 import 'metadata_providers.dart';
+import 'metadata_cloud_providers.dart';
 import 'rom_cache_providers.dart';
 import 'save_backup_providers.dart';
 
@@ -59,6 +60,7 @@ final migrationServiceProvider = FutureProvider<MigrationService>((ref) async {
           sync.cancel();
           await sync.waitForCompletion();
           await ref.read(metadataControlsProvider.notifier).joinForMigration();
+          await ref.read(metadataCloudProvider.notifier).pause();
           await ref.read(sharedMetadataProjectionProvider.future);
           await PatchBuildService.joinForMigration();
           await SaveBackgroundDispatch.configureWatches([]);
@@ -73,6 +75,7 @@ final migrationServiceProvider = FutureProvider<MigrationService>((ref) async {
           if (cacheHeld) await RomCacheDispatch.release();
           await saveRelease?.call();
           await MigrationMaintenance.end();
+          ref.read(metadataCloudProvider.notifier).resume();
           ref.invalidate(downloadQueueManagerProvider);
           await saves.reconcileSchedule();
           await cache.reconcile();
@@ -87,6 +90,7 @@ final migrationServiceProvider = FutureProvider<MigrationService>((ref) async {
           saveRelease = null;
           if (resume) {
             await MigrationMaintenance.end();
+            ref.read(metadataCloudProvider.notifier).resume();
             ref.invalidate(downloadQueueManagerProvider);
             await saves.reconcileSchedule();
             await cache.reconcile();

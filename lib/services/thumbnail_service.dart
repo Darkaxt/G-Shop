@@ -11,7 +11,6 @@ import 'package:path_provider/path_provider.dart';
 import 'database_service.dart';
 import 'image_cache_service.dart';
 
-
 class ThumbnailDiskUsage {
   final int fileCount;
   final int totalBytes;
@@ -20,7 +19,8 @@ class ThumbnailDiskUsage {
 
   String get formattedSize {
     if (totalBytes < 1024) return '$totalBytes B';
-    if (totalBytes < 1024 * 1024) return '${(totalBytes / 1024).toStringAsFixed(1)} KB';
+    if (totalBytes < 1024 * 1024)
+      return '${(totalBytes / 1024).toStringAsFixed(1)} KB';
     return '${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
@@ -58,6 +58,10 @@ void _workerEntryPoint(SendPort mainPort) {
   mainPort.send(workerPort.sendPort);
 
   workerPort.listen((message) {
+    if (message is SendPort) {
+      message.send(true); // FIFO barrier: all earlier file writers have exited.
+      return;
+    }
     final request = message as _WorkerRequest;
     final response = _processImage(request);
     mainPort.send(response);
@@ -105,6 +109,8 @@ _WorkerResponse _processImage(_WorkerRequest request) {
 class ThumbnailService {
   static Directory? _thumbDir;
   static final Set<String> _inProgress = {};
+  static Completer<void>? _generationsIdle, _workerUnavailable;
+  static Future<void>? _clearing;
 
   // Persistent worker isolate state
   static Isolate? _workerIsolate;
@@ -146,6 +152,7 @@ class ThumbnailService {
       return;
     }
     _isSpawning = true;
+    _workerUnavailable = Completer<void>();
     _workerReady = Completer<void>();
     _mainReceivePort = ReceivePort();
 
@@ -169,6 +176,8 @@ class ThumbnailService {
     });
     _exitSubscription?.cancel();
     _exitSubscription = _exitPort!.listen((_) {
+      if (_workerUnavailable?.isCompleted == false)
+        _workerUnavailable!.complete();
       debugPrint('Thumbnail worker exited unexpectedly');
       _handleWorkerCrash();
     });
@@ -195,6 +204,8 @@ class ThumbnailService {
   }
 
   static void _handleWorkerCrash() {
+    if (_workerUnavailable?.isCompleted == false)
+      _workerUnavailable!.complete();
     _workerSendPort = null;
     _workerIsolate = null;
     _mainSubscription?.cancel();
@@ -260,7 +271,9 @@ class ThumbnailService {
   }
 
   static Future<ThumbnailResult> generateThumbnail(String coverUrl) async {
-    if (_inProgress.contains(coverUrl)) return ThumbnailResult.failed;
+    if (_clearing != null || _inProgress.contains(coverUrl))
+      return ThumbnailResult.failed;
+    if (_inProgress.isEmpty) _generationsIdle = Completer<void>();
     _inProgress.add(coverUrl);
     try {
       final cacheFile =
@@ -307,6 +320,8 @@ class ThumbnailService {
       return ThumbnailResult.failed;
     } finally {
       _inProgress.remove(coverUrl);
+      if (_inProgress.isEmpty && _generationsIdle?.isCompleted == false)
+        _generationsIdle!.complete();
     }
   }
 
@@ -337,9 +352,8 @@ class ThumbnailService {
       for (final entity in _thumbDir!.listSync()) {
         if (entity is File) {
           final name = entity.uri.pathSegments.last;
-          final hash = name.endsWith('.jpg')
-              ? name.substring(0, name.length - 4)
-              : name;
+          final hash =
+              name.endsWith('.jpg') ? name.substring(0, name.length - 4) : name;
           if (!validHashes.contains(hash)) {
             entity.deleteSync();
             removed++;
@@ -354,7 +368,24 @@ class ThumbnailService {
     }
   }
 
-  static Future<void> clearAll() async {
+  static Future<void> clearAll() =>
+      _clearing ??= _clearFiles().whenComplete(() => _clearing = null);
+
+  static Future<void> _clearFiles() async {
+    await _generationsIdle?.future;
+    if (_workerSendPort != null) {
+      final drained = ReceivePort();
+      try {
+        _workerSendPort!.send(drained.sendPort);
+        await Future.any([
+          drained.first,
+          _workerUnavailable!.future
+              .then((_) => throw StateError('Thumbnail worker unavailable'))
+        ]);
+      } finally {
+        drained.close();
+      }
+    }
     if (_thumbDir != null && _thumbDir!.existsSync()) {
       await _thumbDir!.delete(recursive: true);
       await _thumbDir!.create();

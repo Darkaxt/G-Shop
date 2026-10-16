@@ -13,6 +13,7 @@ import '../../providers/download_providers.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/metadata_providers.dart';
+import '../../providers/metadata_cloud_providers.dart';
 import '../../providers/preview_providers.dart';
 import '../../providers/rom_status_providers.dart';
 import '../../services/library_store.dart';
@@ -378,6 +379,11 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (enabled && selection != null && _visible) {
       _bind(selection);
       final controller = _controller!;
+      ref.watch(cloudSelectionMediaProvider((
+        platform: selection.system.id,
+        selection: controller.selectedVariant.selectionKey,
+        details: true
+      )));
       final metadata = ref
           .watch(gameMetadataProvider((
             filename: controller.selectedVariant.selectionKey,

@@ -23,6 +23,7 @@ import '../../providers/download_providers.dart';
 import '../../providers/ra_providers.dart';
 import '../../providers/rom_status_providers.dart';
 import '../../providers/game_providers.dart';
+import '../../providers/metadata_cloud_providers.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/input_debouncer.dart';
@@ -923,6 +924,11 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final raMatch = raMatches[selectedVariant.raMatchKey];
 
     // Fetch rich metadata
+    ref.watch(cloudSelectionMediaProvider((
+      platform: widget.system.id,
+      selection: selectedVariant.selectionKey,
+      details: true
+    )));
     final gameMetadata = ref.watch(gameMetadataProvider(
       (filename: selectedVariant.selectionKey, systemSlug: widget.system.id),
     ));

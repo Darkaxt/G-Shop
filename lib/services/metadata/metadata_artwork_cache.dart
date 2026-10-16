@@ -302,6 +302,8 @@ class MetadataArtworkCache {
 
   /// Validate bounded PNG structure/CRCs/dimensions without inflating image or
   /// metadata streams. Decode/resource limits are not inferred from MIME alone.
+  static bool validNormalizedPng(Uint8List bytes) => _validPng(bytes);
+
   static bool _validPng(Uint8List bytes) {
     if (bytes.length < 57 ||
         bytes.length > maxBytes ||
@@ -411,7 +413,7 @@ class MetadataArtworkCache {
   /// This same selection is snapshotted by the normal refresh, so it does not
   /// download every regional cover, logo, video or background the API offers.
   static List<MetadataMedia> displayMedia(MetadataRecord record,
-      {bool includePhysicalLabel = false}) {
+      {bool includePhysicalLabel = false, bool includeVideo = false}) {
     MetadataMedia? cover;
     for (final type in ['box-2D', 'box-3D', 'cover']) {
       final matches = record.media.where((m) => m.type == type);
@@ -424,7 +426,14 @@ class MetadataArtworkCache {
       if (cover != null) cover,
       if (includePhysicalLabel)
         ...record.media.where((m) => m.type == 'support-texture'),
-      ...record.media.where((m) => {'ss', 'screenshot'}.contains(m.type))
+      ...record.media.where((m) => {'ss', 'screenshot'}.contains(m.type)),
+      if (includeVideo)
+        if (record.media
+                    .where((m) => m.type == 'video-normalized')
+                    .firstOrNull ??
+                record.media.where((m) => m.type == 'video').firstOrNull
+            case final video?)
+          video
     ];
   }
 

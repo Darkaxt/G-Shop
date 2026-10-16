@@ -854,6 +854,23 @@ class LibraryQuery {
   }
 
   /// Exact cache-only cover bindings in bounded pages, never per-frame requests.
+  Future<String?> editionForSelection(String platform, String selection) async {
+    final db = await _database;
+    final artifact = selection.startsWith('artifact:');
+    return db.transaction((txn) async {
+      final rows = await txn.query('games',
+          columns: ['id'],
+          where:
+              'systemSlug=? AND ${artifact ? 'artifact_key' : 'filename'}=? AND is_folder=0',
+          whereArgs: [platform, artifact ? selection.substring(9) : selection],
+          limit: 2);
+      if (rows.length != 1) return null;
+      return (await _exactCacheEditions(txn, [rows.single['id'] as int]))
+          .values
+          .singleOrNull;
+    });
+  }
+
   Future<Map<int, String?>> cachedCovers(
       List<int> cacheRowIds, MetadataArtworkCache cache) async {
     if (cacheRowIds.length > 128 || cacheRowIds.any((id) => id < 1)) {

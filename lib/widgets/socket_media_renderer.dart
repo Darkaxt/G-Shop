@@ -338,8 +338,21 @@ class SocketMediaGpu {
       this.environmentTail,
       this.environmentData);
 
+  static bool plasticHousing(String model, Map<String, dynamic> surface) {
+    if (model == 'disc' || surface['role'] == 'label') return false;
+    final node = surface['node'] as String;
+    final name = (surface['name'] as String).toLowerCase();
+    if (model == 'psp' && node.contains('/Disc -')) return false;
+    return !{'gold contacts', 'cartridge nuts', 'cartridge board'}
+            .contains(name) &&
+        !{'circuitboard', 'circuit_board', 'screw'}
+            .contains(node.split('/').last.toLowerCase());
+  }
+
   static Float32List materialUniforms(Map<String, dynamic> material,
-      {bool isLabel = false, bool isDisc = false}) {
+      {bool isLabel = false,
+      bool isDisc = false,
+      bool plasticHousing = false}) {
     final props = (material['sourceProperties'] as Map?) ?? const {};
     double number(String key, double fallback) =>
         ((props['shader_parameter/$key'] ?? props[key]) as num?)?.toDouble() ??
@@ -347,13 +360,15 @@ class SocketMediaGpu {
     final casing =
         (material['shaderSource'] as String?)?.contains('casing') ?? false;
     final color = (material['color'] as List).cast<num>();
+    // Imported metallic wear is not the physical material of a plastic housing.
+    final plastic = plasticHousing && !isLabel;
     final offset =
         ((props['shader_parameter/uv_offset'] as Map?)?['values'] as List?) ??
             [0, 0];
     return Float32List.fromList([
       ...(isLabel ? [1.0, 1.0, 1.0, 1.0] : color.map((v) => v.toDouble())),
       number(casing ? 'roughness_scale' : 'roughness', isLabel ? .85 : 1),
-      number(casing ? 'metallic_scale' : 'metallic', 0) *
+      (plastic ? 0 : number(casing ? 'metallic_scale' : 'metallic', 0)) *
           (casing ? number('metallic_impact', 1) : 1),
       number(casing ? 'normal_depth' : 'normal_scale', 1),
       number('tint_strength', 1),
@@ -368,7 +383,7 @@ class SocketMediaGpu {
       number('roughness_texture_channel', 0),
       number('metallic_texture_channel', 0),
       number('ao_texture_channel', 0),
-      0,
+      plastic ? .75 : 0,
     ]);
   }
 
@@ -567,7 +582,10 @@ class SocketMediaGpu {
         pass.bindUniform(
             pipeline.fragmentShader.getUniformSlot('FragInfo'),
             uniforms.emplace(materialUniforms(material,
-                    isLabel: isLabel, isDisc: model.motionKind == 'disc')
+                    isLabel: isLabel,
+                    isDisc: model.motionKind == 'disc',
+                    plasticHousing:
+                        SocketMediaGpu.plasticHousing(model.name, surface))
                 .buffer
                 .asByteData()));
         final maps = (material['textures'] as Map?) ?? const {};

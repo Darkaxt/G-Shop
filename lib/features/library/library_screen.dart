@@ -27,6 +27,7 @@ import '../../providers/installed_files_provider.dart';
 import '../../models/ra_models.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/library_providers.dart';
+import '../../providers/metadata_cloud_providers.dart';
 import '../../services/metadata/effective_overall_rating.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/config_bootstrap.dart';
@@ -2581,6 +2582,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         .where((system) => system.id == entry.systemSlug)
         .firstOrNull;
     if (system == null) return const SizedBox.shrink();
+    ref.watch(cloudSelectionMediaProvider((
+      platform: entry.systemSlug,
+      selection: entry.selectionKey,
+      details: true
+    )));
     final physicalMetadata = PhysicalMediaFormat.forSystem(system.id) != null
         ? ref
             .watch(gameMetadataProvider(

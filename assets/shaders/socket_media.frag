@@ -3,7 +3,7 @@ uniform FragInfo {
   vec4 pbr; // roughness, metallic, normal depth, casing tint strength
   vec4 uv_info; // scale, offset xy, albedo impact
   vec4 flags; // casing shader, label, disc metal, AO strength
-  vec4 channels; // source roughness, metallic and AO channel selectors
+  vec4 channels; // source roughness, metallic, AO selectors; housing roughness floor
 } material;
 uniform EnvironmentInfo {
   vec4 light; // camera-relative direction xyz, source energy
@@ -95,6 +95,7 @@ void main() {
   float ndl = max(dot(n, light), 0.0), ndv = max(dot(n, view), 0.001);
   float ndh = max(dot(n, halfVector), 0.0), vdh = max(dot(view, halfVector), 0.0);
   float rough = clamp(source_channel(texture(roughness_map, uv), material.channels.x) * material.pbr.x, 0.045, 1.0);
+  rough = max(rough, material.channels.w);
   float metal = clamp(source_channel(texture(metallic_map, uv), material.channels.y) * material.pbr.y, 0.0, 1.0);
   float ao = mix(1.0, source_channel(texture(ao_map, uv), material.channels.z), material.flags.w);
   vec3 f0 = mix(vec3(0.04), base, metal);

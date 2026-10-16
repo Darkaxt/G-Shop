@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/metadata_cloud_providers.dart';
 import '../core/responsive/responsive.dart';
 import '../core/util/color_contrast.dart';
 import '../l10n/app_localizations.dart';
@@ -102,6 +104,19 @@ class BaseGameCard extends StatelessWidget {
     this.downloadProgress = 0.0,
   });
 
+  Widget _cover(String? cached) => SmartCoverImage(
+      systemId: systemId,
+      fallbackTitle: displayName,
+      fallbackIdentity: gameIdentity,
+      urls: coverUrls,
+      cachedUrl: cached,
+      fit: BoxFit.contain,
+      onUrlFound: onCoverFound,
+      hasThumbnail: hasThumbnail,
+      onThumbnailNeeded: onThumbnailNeeded,
+      memCacheWidth: memCacheWidth,
+      scrollSuppression: scrollSuppression);
+
   @override
   Widget build(BuildContext context) {
     final rs = context.rs;
@@ -136,19 +151,18 @@ class BaseGameCard extends StatelessWidget {
               children: [
                 Container(
                   color: const Color(0xFF151515),
-                  child: SmartCoverImage(
-                    systemId: systemId,
-                    fallbackTitle: displayName,
-                    fallbackIdentity: gameIdentity,
-                    urls: coverUrls,
-                    cachedUrl: cachedUrl,
-                    fit: BoxFit.contain,
-                    onUrlFound: onCoverFound,
-                    hasThumbnail: hasThumbnail,
-                    onThumbnailNeeded: onThumbnailNeeded,
-                    memCacheWidth: memCacheWidth,
-                    scrollSuppression: scrollSuppression,
-                  ),
+                  child: systemId != null && gameIdentity != null
+                      ? Consumer(builder: (context, ref, _) {
+                          final cloudCover = ref
+                              .watch(cloudSelectionMediaProvider((
+                                platform: systemId!,
+                                selection: gameIdentity!,
+                                details: false
+                              )))
+                              .valueOrNull;
+                          return _cover(cloudCover ?? cachedUrl);
+                        })
+                      : _cover(cachedUrl),
                 ),
                 // Download progress overlay — cover reveals from bottom to top
                 if (downloadStatus != null && !downloadStatus!.isTerminal)

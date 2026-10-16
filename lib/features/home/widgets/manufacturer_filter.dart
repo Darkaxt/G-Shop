@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/system_model.dart';
+import '../../../core/widgets/scroll_edge_fade.dart';
 
 /// Original transparent PNG marks, kept separate from system/platform artwork.
 const manufacturerLogos = <String, String>{
@@ -52,35 +53,38 @@ class SystemTypeFilter extends StatelessWidget {
   Widget build(BuildContext context) {
     final available = availableSystemTypes(systems, manufacturer);
     if (available.length <= 1) return const SizedBox.shrink();
-    return SizedBox(
-        height: 48,
-        key: const ValueKey('system-type-filter'),
-        child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: [
-              for (final type in <SystemType?>[
-                null,
-                ...SystemType.values.where(available.contains)
-              ])
-                Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: TextButton.icon(
-                      key: ValueKey('type-${type?.name ?? 'All'}'),
-                      onPressed: () => onSelected(type),
-                      icon: Icon(type?.icon ?? Icons.apps, size: 18),
-                      label: Text(type?.label ?? 'All'),
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: selected == type
-                              ? const Color(0xFFB71C1C)
-                              : Colors.black54),
-                    )),
-            ]));
+    return ScrollEdgeFade(
+        axis: Axis.horizontal,
+        extent: 32,
+        child: SizedBox(
+            height: 48,
+            key: const ValueKey('system-type-filter'),
+            child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  for (final type in <SystemType?>[
+                    null,
+                    ...SystemType.values.where(available.contains)
+                  ])
+                    Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: TextButton.icon(
+                          key: ValueKey('type-${type?.name ?? 'All'}'),
+                          onPressed: () => onSelected(type),
+                          icon: Icon(type?.icon ?? Icons.apps, size: 18),
+                          label: Text(type?.label ?? 'All'),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: selected == type
+                                  ? const Color(0xFFB71C1C)
+                                  : Colors.black54),
+                        )),
+                ])));
   }
 }
 
-class ManufacturerFilter extends StatelessWidget {
+class ManufacturerFilter extends StatefulWidget {
   final List<SystemModel> systems;
   final String? selected;
   final ValueChanged<String?> onSelected;
@@ -90,8 +94,13 @@ class ManufacturerFilter extends StatelessWidget {
       required this.selected,
       required this.onSelected});
 
+  @override
+  State<ManufacturerFilter> createState() => _ManufacturerFilterState();
+}
+
+class _ManufacturerFilterState extends State<ManufacturerFilter> {
   Widget _button(String? brand) {
-    final active = selected == brand;
+    final active = widget.selected == brand;
     return Semantics(
       label: brand ?? 'All manufacturers',
       selected: active,
@@ -100,7 +109,7 @@ class ManufacturerFilter extends StatelessWidget {
         message: brand ?? 'All manufacturers',
         child: TextButton(
           key: ValueKey('brand-${brand ?? 'All'}'),
-          onPressed: () => onSelected(brand),
+          onPressed: () => widget.onSelected(brand),
           style: ButtonStyle(
             padding: const WidgetStatePropertyAll(
                 EdgeInsets.symmetric(horizontal: 16)),
@@ -137,7 +146,21 @@ class ManufacturerFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brands = systems.map((s) => s.manufacturer).toSet().toList()..sort();
+    final brands = widget.systems.map((s) => s.manufacturer).toSet().toList()
+      ..sort();
+    final list = ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: brands.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 8),
+      itemBuilder: (_, index) => Builder(
+          builder: (context) => Focus(
+                canRequestFocus: false,
+                onFocusChange: (focused) {
+                  if (focused) Scrollable.ensureVisible(context, alignment: .5);
+                },
+                child: _button(brands[index]),
+              )),
+    );
     return SizedBox(
       key: const ValueKey('manufacturer-filter'),
       height: 56,
@@ -148,12 +171,8 @@ class ManufacturerFilter extends StatelessWidget {
             _button(null),
             const SizedBox(width: 8),
             Expanded(
-                child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: brands.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, index) => _button(brands[index]),
-            )),
+                child: ScrollEdgeFade(
+                    axis: Axis.horizontal, extent: 32, child: list)),
           ]),
         ),
       ),

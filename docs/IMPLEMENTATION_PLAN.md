@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 58, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 63, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16
@@ -12,11 +12,15 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | S22 Dual-screen media preview | COMPLETE | PREVIEW-01/02: 4x2 main gallery; secondary flat/3D/background media and activated details; gallery focus retained; launch dismisses R-Shop without disturbing companion; sectioned persisted settings and shared bounded media cache | Real Thor selection/details/launch/return with both displays, selected-game real video/cache/offline proof, focus/layout/settings/lifecycle and affected owner/migration checks, gated signed build, cleanup and verified remote source delivery |
 | R22 Thor preview delivery | COMPLETE | PREVIEW-DELIVERY: signed 1.9.2/code 16 installed in place with settings/data preserved | Gated signed packaging 1308, installed APK hash/identity, unchanged prelaunch settings/database/import hashes, real production secondary rendering after AOT entrypoint fix, reviewed intermediate cleanup; both screens OFF |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
-| S24 Drive-backed metadata cache | NOT STARTED | METADATA-CLOUD-01: separate Drive metadata/artwork tree; local searchable facts and background media cache with configurable 2 GiB default | Existing-data publication/recovery without re-scraping, real background fetch/offline hits and bounded owned eviction, exact artwork roles and identity |
+| S24 Drive-backed metadata cache | ACTIVE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default | Preserve matched facts; owner-requested discard/recollect of old media replaces recycling for this generation; one complete Nintendo resource/rendering workflow before wider collection; real background fetch/offline hits and bounded owned eviction; exact artwork roles and identity |
+| S25 Secondary preview startup | NOT STARTED | PREVIEW-START-01: initialize the secondary renderer at APK startup without taking over a companion or delaying main browsing | Diagnose and measure real cold startup/first-model readiness; verify existing secondary/single-screen launch, hide and power behavior |
 
-S22 and R22 are COMPLETE; their assigned criteria have passed. No stage is ACTIVE
-for this delivery. S23 and S24 remain NOT STARTED; the metadata-cache design is
-recorded, not implemented in the installed 1.9.2 APK.
+S22 and R22 are COMPLETE. The owner's subsequent explicit go-ahead selects S24
+as the sole ACTIVE stage; it has no dependency on S23 website acquisition, which
+remains NOT STARTED. Signed 1.9.3/code 17 is installed in place for S24's required
+native verification; installation alone does not close its acceptance criteria.
+The owner's next-update startup request belongs to S25, which remains NOT STARTED
+until S24 closes or is justifiably parked. No concurrent implementation is opened.
 The S16-S21 completion records below are historical and remain valid.
 
 ## Current extension — already authorized, 2026-10-15

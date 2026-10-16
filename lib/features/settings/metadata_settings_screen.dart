@@ -12,10 +12,14 @@ import '../../core/input/global_input_wrapper.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
+import '../../core/widgets/scroll_edge_fade.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/system_model.dart';
 import '../../providers/metadata_providers.dart';
 import '../../providers/library_providers.dart';
+import '../../providers/metadata_cloud_providers.dart';
+import '../../providers/app_providers.dart';
+import '../../models/config/source.dart';
 import '../../services/metadata/metadata_credentials.dart';
 import '../../services/metadata/metadata_refresh_jobs.dart';
 import '../../widgets/console_notification.dart';
@@ -225,22 +229,127 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
   Future<void> _selectSharedStorage() async {
     final controls = ref.read(metadataControlsProvider.notifier);
     var selected = false;
-    await controls.selectSharedStorage(() async {
-      if (Platform.isAndroid &&
-          !(await Permission.manageExternalStorage.request()).isGranted) {
-        return null;
-      }
-      final path = await FilePicker.platform.getDirectoryPath();
-      selected = path != null;
-      return path == null ? null : Directory(path);
-    });
-    if (!mounted || !selected) return;
-    final state = ref.read(metadataControlsProvider);
-    if (state.error || state.sharedDirectory == null) return;
-    // Selection/migration has joined; do not dispose an active metadata worker.
-    ref.invalidate(sharedMetadataStoreProvider);
-    ref.invalidate(metadataArtworkCacheProvider);
-    ref.invalidate(metadataControlsProvider);
+    final cloud = ref.read(metadataCloudProvider.notifier);
+    await cloud.pause();
+    try {
+      await controls.selectSharedStorage(() async {
+        if (Platform.isAndroid &&
+            !(await Permission.manageExternalStorage.request()).isGranted) {
+          return null;
+        }
+        final path = await FilePicker.platform.getDirectoryPath();
+        selected = path != null;
+        return path == null ? null : Directory(path);
+      });
+      if (!mounted || !selected) return;
+      final state = ref.read(metadataControlsProvider);
+      if (state.error || state.sharedDirectory == null) return;
+      // Selection/migration has joined; do not dispose an active metadata worker.
+      ref.invalidate(sharedMetadataStoreProvider);
+      ref.invalidate(metadataArtworkCacheProvider);
+      ref.invalidate(metadataControlsProvider);
+    } finally {
+      cloud.resume();
+    }
+  }
+
+  Widget _cloudStorage() {
+    final state = ref.watch(metadataCloudProvider);
+    final controller = ref.read(metadataCloudProvider.notifier);
+    final sources = ref
+        .watch(sourcesProvider)
+        .sources
+        .where((s) =>
+            s.enabled &&
+            s.type == SourceType.drive &&
+            s.drive?.isConfigured == true)
+        .toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Divider(height: 32),
+      const Row(children: [
+        Icon(Icons.cloud_done_outlined),
+        SizedBox(width: 8),
+        Text('Drive metadata library')
+      ]),
+      const SizedBox(height: 8),
+      Text(state.message ??
+          'Keep artwork in Drive, with a small local cache. Text and ratings stay offline.'),
+      const SizedBox(height: 12),
+      if (state.busy) const LinearProgressIndicator(),
+      if (!state.enabled)
+        for (final source in sources)
+          _button(
+              'Connect · ${source.name}',
+              'metadata-cloud-connect-${source.id}',
+              state.busy ? null : () => controller.connect(source)),
+      if (sources.isEmpty && !state.enabled)
+        const Text('Add a Google Drive source first.'),
+      if (state.enabled) ...[
+        const SizedBox(height: 8),
+        Row(children: [
+          _transportButton('Sync', 'metadata-cloud-sync', Icons.sync,
+              state.busy ? null : controller.sync),
+          const SizedBox(width: 8),
+          _transportButton(
+              'Clear cache',
+              'metadata-cloud-clear',
+              Icons.cleaning_services_outlined,
+              state.busy ? null : controller.clearCache),
+          const SizedBox(width: 8),
+          _transportButton('Disconnect', 'metadata-cloud-disconnect',
+              Icons.link_off, state.busy ? null : controller.disconnect),
+          const SizedBox(width: 8),
+          _transportButton('Rebuild media', 'metadata-cloud-rebuild',
+              Icons.restart_alt, _confirmMediaRebuild),
+        ]),
+        const SizedBox(height: 12),
+        Text(
+            '${(state.cachedBytes / (1024 * 1024)).toStringAsFixed(0)} MB cached · artwork, screenshots and trailers'),
+      ],
+      const SizedBox(height: 8),
+      Row(key: const ValueKey('metadata-cloud-budget'), children: [
+        Expanded(
+            child: Text(
+                'Media cache · ${state.budgetBytes ~/ (1024 * 1024 * 1024)} GB')),
+        _transportButton(
+            'Smaller cache',
+            'metadata-cloud-smaller',
+            Icons.remove,
+            state.busy || state.budgetBytes <= 1024 * 1024 * 1024
+                ? null
+                : () => controller.setBudget(state.budgetBytes ~/ 2)),
+        const SizedBox(width: 8),
+        _transportButton(
+            'Larger cache',
+            'metadata-cloud-larger',
+            Icons.add,
+            state.busy || state.budgetBytes >= 8 * 1024 * 1024 * 1024
+                ? null
+                : () => controller.setBudget(state.budgetBytes * 2)),
+      ]),
+    ]);
+  }
+
+  Future<void> _confirmMediaRebuild() async {
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Rebuild collected media?'),
+              content: const Text(
+                  'Remove collected images and trailers from this device '
+                  'and move the old Drive exports to Trash. Game information, ROMs, '
+                  'saves, settings and imported models stay. Collect media afterward '
+                  'to download fresh resources.'),
+              actions: [
+                _button('Cancel', 'metadata-cloud-rebuild-cancel',
+                    () => Navigator.pop(context, false)),
+                _button('Rebuild', 'metadata-cloud-rebuild-confirm',
+                    () => Navigator.pop(context, true)),
+              ],
+            ));
+    if (confirmed == true && mounted) {
+      await ref.read(metadataCloudProvider.notifier).rebuildMedia();
+    }
   }
 
   Future<void> _mapEsDe() async {
@@ -746,6 +855,18 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
         if (widget.cacheRowId == null)
           _button(l.metadata_savedJobs, 'metadata-saved-jobs',
               enabled ? _selectSavedJob : null),
+        if (widget.cacheRowId == null && state.providerId == 'screenscraper')
+          _transportButton(
+              'Collect media',
+              'metadata-collect-resources',
+              Icons.perm_media_outlined,
+              enabled
+                  ? () => controls.collectResources(
+                      systemSlug: _scope == _selectedSystems ? null : _scope,
+                      systemSlugs: _scope == _selectedSystems
+                          ? widget.systemSlugs
+                          : null)
+                  : null),
         _transportButton(
             l.metadata_refresh,
             'metadata-refresh',
@@ -971,7 +1092,8 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                       const VerticalDivider(width: 24),
                       Expanded(
                           child: FocusTraversalGroup(
-                        child: ListView(
+                        child: ScrollEdgeFade(
+                            child: ListView(
                           key: ValueKey(
                               'metadata-content-$_section-$_scraping-${state.providerId}'),
                           padding: EdgeInsets.only(
@@ -1008,6 +1130,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                                       l.metadata_chooseSharedStorage,
                                       'metadata-shared-storage',
                                       enabled ? _selectSharedStorage : null),
+                                  _cloudStorage(),
                                 ],
                               )
                             else if (_section == 'esde')
@@ -1041,7 +1164,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                               ],
                             ],
                           ],
-                        ),
+                        )),
                       )),
                     ]);
               })),

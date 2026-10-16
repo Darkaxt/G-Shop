@@ -17,6 +17,7 @@ import '../../core/input/global_input_wrapper.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/console_focusable.dart';
 import '../../core/widgets/screen_layout.dart';
+import '../../core/widgets/scroll_edge_fade.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/config/drive_source_config.dart';
 import '../../models/config/source.dart';
@@ -934,7 +935,8 @@ class _SaveBackupSettingsScreenState
                                           .titleLarge),
                                   const SizedBox(height: 16),
                                   Expanded(
-                                      child: SingleChildScrollView(
+                                      child: ScrollEdgeFade(
+                                          child: SingleChildScrollView(
                                     key: const ValueKey('save-backup-content'),
                                     controller: _contentScroll,
                                     child: Column(
@@ -1292,7 +1294,7 @@ class _SaveBackupSettingsScreenState
                                             ),
                                           ),
                                         ]),
-                                  )),
+                                  ))),
                                 ],
                               ))),
                             ]);
@@ -2056,35 +2058,60 @@ class _SaveBackupGamePanelState extends State<SaveBackupGamePanel> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(widget.title, style: AppTheme.headlineMedium),
-              if (widget.section == SaveBackupSection.restore && job.hasImportedData) ...[
+              if (widget.section == SaveBackupSection.restore &&
+                  job.hasImportedData) ...[
                 const SizedBox(height: 12),
-                const Text('Imported game data', style: TextStyle(fontSize: 20)),
-                const Text('Different files on this device are kept until you choose which copy to use.'),
+                const Text('Imported game data',
+                    style: TextStyle(fontSize: 20)),
+                const Text(
+                    'Different files on this device are kept until you choose which copy to use.'),
                 const SizedBox(height: 12),
                 Wrap(spacing: 12, runSpacing: 12, children: [
-                  ConsoleFocusable(focusScale: 1,
-                    onSelect: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
-                        _selectedName ?? await job.resolveSaveName(), useImported: true),
-                    child: FilledButton.icon(
-                      key: const ValueKey('save-use-imported'),
-                      onPressed: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
-                          _selectedName ?? await job.resolveSaveName(), useImported: true),
-                      icon: const Icon(Icons.move_to_inbox_outlined),
-                      label: const Text('Use imported'))),
-                  ConsoleFocusable(focusScale: 1,
-                    onSelect: job.busy ? null : job.keepCurrentImportedData,
-                    child: OutlinedButton.icon(onPressed: job.busy ? null : job.keepCurrentImportedData,
-                      key: const ValueKey('save-keep-current'),
-                      icon: const Icon(Icons.check), label: const Text('Keep current'))),
-                  if (job.hasPreviousImportedData)
-                    ConsoleFocusable(focusScale: 1,
-                      onSelect: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
-                          _selectedName ?? await job.resolveSaveName(), useImported: true, previous: true),
+                  ConsoleFocusable(
+                      focusScale: 1,
+                      onSelect: job.busy
+                          ? null
+                          : () async => job.restoreMigrationBeforeLaunch(
+                              _selectedName ?? await job.resolveSaveName(),
+                              useImported: true),
+                      child: FilledButton.icon(
+                          key: const ValueKey('save-use-imported'),
+                          onPressed: job.busy
+                              ? null
+                              : () async => job.restoreMigrationBeforeLaunch(
+                                  _selectedName ?? await job.resolveSaveName(),
+                                  useImported: true),
+                          icon: const Icon(Icons.move_to_inbox_outlined),
+                          label: const Text('Use imported'))),
+                  ConsoleFocusable(
+                      focusScale: 1,
+                      onSelect: job.busy ? null : job.keepCurrentImportedData,
                       child: OutlinedButton.icon(
-                        key: const ValueKey('save-previous-import'),
-                        onPressed: job.busy ? null : () async => job.restoreMigrationBeforeLaunch(
-                            _selectedName ?? await job.resolveSaveName(), useImported: true, previous: true),
-                        icon: const Icon(Icons.undo), label: const Text('Previous copy'))),
+                          onPressed:
+                              job.busy ? null : job.keepCurrentImportedData,
+                          key: const ValueKey('save-keep-current'),
+                          icon: const Icon(Icons.check),
+                          label: const Text('Keep current'))),
+                  if (job.hasPreviousImportedData)
+                    ConsoleFocusable(
+                        focusScale: 1,
+                        onSelect: job.busy
+                            ? null
+                            : () async => job.restoreMigrationBeforeLaunch(
+                                _selectedName ?? await job.resolveSaveName(),
+                                useImported: true,
+                                previous: true),
+                        child: OutlinedButton.icon(
+                            key: const ValueKey('save-previous-import'),
+                            onPressed: job.busy
+                                ? null
+                                : () async => job.restoreMigrationBeforeLaunch(
+                                    _selectedName ??
+                                        await job.resolveSaveName(),
+                                    useImported: true,
+                                    previous: true),
+                            icon: const Icon(Icons.undo),
+                            label: const Text('Previous copy'))),
                 ]),
               ],
               const SizedBox(height: 12),

@@ -31,7 +31,7 @@ void main() {
       expect(cover.height, lessThanOrEqualTo(270));
       expect(400 * initial, lessThanOrEqualTo(cover.width * .8 + .001));
       expect(300 * initial, lessThanOrEqualTo(cover.height * .8 + .001));
-      await tester.pump(const Duration(milliseconds: 180));
+      await tester.pump(const Duration(milliseconds: 600));
       expect(
           tester
               .widget<Transform>(
@@ -39,19 +39,21 @@ void main() {
               .transform
               .storage[0],
           initial);
-      await tester.pump(const Duration(milliseconds: 210));
+      await tester.pump(const Duration(milliseconds: 900));
       final middle = tester
           .widget<Transform>(find.byKey(const ValueKey('cover-reveal-media')))
           .transform
           .storage[0];
       expect(middle, greaterThan(initial));
       expect(middle, lessThan(1));
-      await tester.pump(const Duration(milliseconds: 210));
+      await tester.pump(const Duration(milliseconds: 899));
       expect(
           tester
               .getRect(find.byKey(const ValueKey('cover-reveal-cover')))
               .right,
           lessThan(tester.getRect(find.byType(CoverReveal)).left));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('cover-reveal-cover')), findsNothing);
       expect(
           tester
               .widget<Transform>(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/input/input.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/scroll_edge_fade.dart';
 import '../../models/rom_cache_policy.dart';
 import '../../providers/rom_cache_providers.dart';
 import '../../services/rom_cache_runtime.dart';
@@ -547,12 +548,13 @@ class _RomCacheSettingsState extends ConsumerState<RomCacheSettingsScreen>
                                   style:
                                       const TextStyle(color: Colors.redAccent)),
                             Expanded(
-                                child: SingleChildScrollView(
-                                    key: ValueKey(
-                                        'cache-section-${_section.name}'),
-                                    padding: EdgeInsets.all(
-                                        box.maxWidth >= 680 ? 24 : 12),
-                                    child: _body(plan))),
+                                child: ScrollEdgeFade(
+                                    child: SingleChildScrollView(
+                                        key: ValueKey(
+                                            'cache-section-${_section.name}'),
+                                        padding: EdgeInsets.all(
+                                            box.maxWidth >= 680 ? 24 : 12),
+                                        child: _body(plan)))),
                             Padding(
                                 padding: const EdgeInsets.all(12),
                                 child: Row(

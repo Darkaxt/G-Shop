@@ -29,6 +29,13 @@ class SharedMetadataStore {
   final Directory root;
   final Database _db;
   final Future<void> Function() _verifyAccess;
+  // One optional cloud owner; ordinary local metadata behavior is unchanged.
+  Database get cloudIndex => _db;
+  void Function()? cloudChanged;
+  Future<void> Function()? joinCloudOwner;
+  Future<File?> Function(String mediaKey, {bool userRequested})?
+      fetchCloudMedia;
+  bool cloudManaged = false;
   Directory get artworkRoot => Directory(p.join(root.path, 'artwork'));
   EsDeMetadataPublication get esDePublication => EsDeMetadataPublication(_db);
   Future<List<String>> esDeTargets() async {
@@ -143,7 +150,207 @@ class SharedMetadataStore {
     return SharedMetadataStore._(root, db, access);
   }
 
-  Future<void> close() => _db.close();
+  Future<void> close() async {
+    await joinCloudOwner?.call();
+    await _db.close();
+  }
+
+  /// Bounded, credential-free packets; no ES-DE local paths or operational jobs.
+  Stream<Map<String, dynamic>> cloudPackets({String? editionId}) async* {
+    await requireAccess();
+    var cursor = 0;
+    var finished = false;
+    while (true) {
+      final groups = await _db.transaction((txn) async {
+        final page = await txn.rawQuery(
+            'SELECT rowid AS cursor, * FROM records WHERE rowid > ? '
+            '${editionId == null ? '' : 'AND edition_id = ? '}ORDER BY rowid LIMIT 128',
+            [cursor, if (editionId != null) editionId]);
+        final groups = <String, Map<String, dynamic>>{};
+        for (final row in page) {
+          final game =
+              GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+          final record =
+              MetadataRecord.fromJson(jsonDecode(row['record_json'] as String));
+          final platform = game.platformId;
+          if (platform == null)
+            throw const FormatException('Cloud metadata requires a console');
+          final packet = groups.putIfAbsent(
+              platform,
+              () => {
+                    'version': 1,
+                    'platform': game.platformId,
+                    'records': <Map<String, Object?>>[],
+                    'bindings': <Map<String, Object?>>[],
+                    'artwork': <Map<String, Object?>>[],
+                    'responses': <Map<String, Object?>>[],
+                  });
+          (packet['records'] as List).add({...row}..remove('cursor'));
+          (packet['bindings'] as List).addAll(await txn.query(
+              'identity_bindings',
+              where: 'game_id = ? OR game_id = ?',
+              whereArgs: [game.id, game.baseGameId ?? game.id]));
+          for (final media in record.media) {
+            final key = MetadataArtworkCache.key(media);
+            (packet['artwork'] as List).addAll(await txn.query(
+                'metadata_artwork_cache',
+                where: 'media_key = ?',
+                whereArgs: [key]));
+            (packet['responses'] as List).addAll(await txn.query(
+                'artwork_responses',
+                where: 'provider_id = ? AND generation = ? AND media_key = ?',
+                whereArgs: [record.providerId, record.refreshGeneration, key]));
+          }
+        }
+        finished = page.length < 128;
+        if (page.isNotEmpty) cursor = page.last['cursor'] as int;
+        return groups;
+      });
+      for (final packet in groups.values) {
+        yield packet;
+      }
+      if (finished) break;
+    }
+  }
+
+  Future<void> importCloudPacket(Map<String, dynamic> packet) async {
+    await requireAccess();
+    if (packet['version'] != 1 ||
+        packet['records'] is! List ||
+        (packet['records'] as List).length > 128) {
+      throw const FormatException('Invalid cloud metadata packet');
+    }
+    final platform = packet['platform'] as String;
+    final allowedBindings = <String>{};
+    await _db.transaction((txn) async {
+      for (final raw in packet['records'] as List) {
+        final row = (raw as Map).cast<String, Object?>();
+        final game =
+            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+        final edition =
+            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+        final record =
+            MetadataRecord.fromJson(jsonDecode(row['record_json'] as String));
+        final artifacts = (jsonDecode(row['artifacts_json'] as String) as List)
+            .map((v) =>
+                RemoteArtifact.fromJson((v as Map).cast<String, dynamic>()))
+            .toList();
+        if (!LibraryStore.hasConsistentProvenance(record) ||
+            game.platformId != platform ||
+            record.platformId != platform ||
+            record.gameId != game.id ||
+            edition.gameId != game.id ||
+            record.editionId != edition.id ||
+            row['edition_id'] != edition.id ||
+            row['provider_id'] != record.providerId ||
+            row['generation'] != record.refreshGeneration ||
+            (game.providerIds[record.providerId] != null &&
+                game.providerIds[record.providerId] != record.providerGameId) ||
+            LibraryStore.metadataIdentity(row, providerId: record.providerId) !=
+                row['identity_key'] ||
+            edition.members.any((m) =>
+                artifacts.where((a) => a.id == m.artifactId).length != 1) ||
+            artifacts.length != edition.members.length) {
+          throw const FormatException(
+              'Cloud metadata identity/provenance mismatch');
+        }
+        allowedBindings.add(game.id);
+        if (game.baseGameId != null) allowedBindings.add(game.baseGameId!);
+        final previous = await txn.query('records',
+            where: 'edition_id = ? AND provider_id = ?',
+            whereArgs: [edition.id, record.providerId],
+            limit: 1);
+        if (previous.isNotEmpty) {
+          final old = MetadataRecord.fromJson(
+              jsonDecode(previous.single['record_json'] as String));
+          if (!record.retrievedAt.isAfter(old.retrievedAt)) continue;
+        }
+        await txn.insert(
+            'records',
+            {
+              for (final key in [
+                'edition_id',
+                'provider_id',
+                'identity_key',
+                'generation',
+                'game_json',
+                'edition_json',
+                'artifacts_json',
+                'record_json'
+              ])
+                key: row[key]
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        await _writeIdentityBinding(txn, row, record.refreshGeneration,
+            row['artifacts_json'] as String);
+      }
+      for (final raw in packet['bindings'] as List) {
+        final row = (raw as Map).cast<String, Object?>();
+        final game =
+            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+        final edition =
+            EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String));
+        final artifacts = (jsonDecode(row['artifacts_json'] as String) as List)
+            .map((a) =>
+                RemoteArtifact.fromJson((a as Map).cast<String, dynamic>()))
+            .toList();
+        if (game.platformId != platform ||
+            !allowedBindings.contains(game.id) ||
+            edition.id != row['edition_id'] ||
+            edition.gameId != game.id ||
+            row['game_id'] != game.id ||
+            LibraryStore.metadataIdentity(row) != row['identity_key'] ||
+            artifacts.length != edition.members.length ||
+            edition.members.any((m) =>
+                artifacts.where((a) => a.id == m.artifactId).length != 1))
+          throw const FormatException('Cloud base platform mismatch');
+        await _writeIdentityBinding(txn, row, row['generation'] as int,
+            row['artifacts_json'] as String);
+      }
+      for (final raw in packet['artwork'] as List) {
+        final row = (raw as Map).cast<String, Object?>();
+        if (!RegExp(r'^[a-f0-9]{64}\.png$')
+                .hasMatch(row['filename'] as String) ||
+            (row['byte_length'] as int) < 57 ||
+            (row['byte_length'] as int) > MetadataArtworkCache.maxBytes) {
+          throw const FormatException('Invalid cloud artwork receipt');
+        }
+        await MetadataArtworkCache.publish(
+            txn,
+            MetadataArtworkBlob(row['media_key'] as String,
+                row['filename'] as String, row['byte_length'] as int),
+            DateTime.parse(row['retrieved_at'] as String));
+      }
+      for (final raw in packet['responses'] as List) {
+        final row = (raw as Map).cast<String, Object?>();
+        final receipts = (packet['artwork'] as List).where((r) =>
+            r['media_key'] == row['media_key'] &&
+            r['filename'] == row['filename'] &&
+            r['byte_length'] == row['byte_length']);
+        if (receipts.isEmpty ||
+            !(packet['records'] as List).any((r) =>
+                r['provider_id'] == row['provider_id'] &&
+                r['generation'] == row['generation'])) {
+          throw const FormatException('Invalid cloud artwork response binding');
+        }
+        await txn.insert(
+            'artwork_responses',
+            {
+              for (final key in [
+                'provider_id',
+                'generation',
+                'media_key',
+                'filename',
+                'byte_length',
+                'retrieved_at'
+              ])
+                key: row[key]
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    });
+  }
+
   Future<void> snapshotForMigration(File target) async {
     await requireAccess();
     await MigrationData.snapshotDatabase(_db, target);
@@ -1032,6 +1239,7 @@ class SharedMetadataStore {
         }
       }
     });
+    cloudChanged?.call();
   }
 
   /// Recover only the exact response already committed for this generation.
@@ -1089,6 +1297,7 @@ class SharedMetadataStore {
             conflictAlgorithm: ConflictAlgorithm.replace);
       }
     });
+    cloudChanged?.call();
   }
 
   Future<({MetadataArtworkBlob blob, DateTime retrievedAt})?> committedArtwork(

@@ -10,6 +10,53 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  test('plastic housings retain distinct label, disc and hardware materials',
+      () {
+    final source = <String, dynamic>{
+      'color': [1, 1, 1, 1],
+      'sourceProperties': {'metallic': 1, 'roughness': 1}
+    };
+    final gb = SocketMediaGpu.materialUniforms(source, plasticHousing: true);
+    expect(gb[5], 0);
+    expect(gb[19], .75);
+    final label = SocketMediaGpu.materialUniforms(source,
+        plasticHousing: true, isLabel: true);
+    expect(label[5], 1);
+    expect(label[19], 0);
+    final other = SocketMediaGpu.materialUniforms(source);
+    expect(other[5], 1);
+    expect(other[19], 0);
+    expect(
+        SocketMediaGpu.plasticHousing('gb',
+            {'role': 'shell', 'node': 'gb/Gameboy', 'name': 'Material.001'}),
+        isTrue);
+    expect(
+        SocketMediaGpu.plasticHousing('psp', {
+          'role': 'shell',
+          'node': 'umd/UMD - Shell - Front Plastic',
+          'name': 'Shell Plastic'
+        }),
+        isTrue);
+    expect(
+        SocketMediaGpu.plasticHousing('psp', {
+          'role': 'shell',
+          'node': 'umd/Disc - Glass/Disc - Data',
+          'name': 'Diffraction Grating (Stylized)'
+        }),
+        isFalse);
+    expect(
+        SocketMediaGpu.plasticHousing(
+            '3ds', {'role': 'shell', 'node': 'cart', 'name': 'Gold Contacts'}),
+        isFalse);
+    expect(
+        SocketMediaGpu.plasticHousing('switch',
+            {'role': 'shell', 'node': 'cart/CircuitBoard', 'name': 'lambert1'}),
+        isFalse);
+    expect(
+        SocketMediaGpu.plasticHousing(
+            'disc', {'role': 'shell', 'node': 'disc', 'name': 'Disc'}),
+        isFalse);
+  });
   test(
       'source studio environment keeps its HDR mip chain and camera-relative light',
       () async {
@@ -30,7 +77,10 @@ void main() {
     expect(tail, hasLength(2));
     expect(tail.map((level) => level['length']), everyElement(16),
         reason: 'Each tail level must remain one unchanged ASTC 4x4 block');
-  }, skip: socketOracleRoot.isEmpty ? 'Requires private owner APK oracle' : false);
+  },
+      skip: socketOracleRoot.isEmpty
+          ? 'Requires private owner APK oracle'
+          : false);
   test('selected pose retains source Euler angles before camera conversion',
       () {
     final pose = SocketMediaPose.sample(
@@ -103,7 +153,10 @@ void main() {
       expect(model.labelAspect, greaterThan(0));
       expect(model.data['animationSourceSha256'], hasLength(64));
     }
-  }, skip: socketOracleRoot.isEmpty ? 'Requires private owner APK oracle' : false);
+  },
+      skip: socketOracleRoot.isEmpty
+          ? 'Requires private owner APK oracle'
+          : false);
   test(
       'push-click, drop, disc and UMD retain source timing and independent label spin',
       () {

@@ -272,7 +272,7 @@ void main() {
                 .single
                 .values
                 .single,
-            6);
+            7);
       } finally {
         await upgraded.close();
         await root.delete(recursive: true);
@@ -490,7 +490,7 @@ void main() {
               .single
               .values
               .single,
-          6);
+          7);
     } finally {
       await inspected.close();
     }

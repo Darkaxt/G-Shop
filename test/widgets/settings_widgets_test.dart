@@ -349,7 +349,8 @@ void main() {
       expect(find.text('Save backups'), findsOneWidget);
       expect(find.text('Console Settings'), findsOneWidget);
       expect(find.text('RetroAchievements'), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsNWidgets(7));
+      // Seven library destinations plus the Media previews display destination.
+      expect(find.byIcon(Icons.chevron_right), findsNWidgets(8));
     });
   });
 

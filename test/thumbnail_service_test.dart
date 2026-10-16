@@ -1,7 +1,20 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/services/thumbnail_service.dart';
+import 'package:retro_eshop/services/image_cache_service.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
+class _ThumbnailPaths extends PathProviderPlatform {
+  final String root;
+  _ThumbnailPaths(this.root);
+  @override
+  Future<String?> getApplicationSupportPath() async => root;
+  @override
+  Future<String?> getTemporaryPath() async => root;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -165,13 +178,12 @@ void main() {
       final completer = Completer<ThumbnailResult>();
 
       // Simulate timeout behavior
-      final result = await completer.future
-          .timeout(
-            const Duration(milliseconds: 50),
-            onTimeout: () {
-              return ThumbnailResult.failed;
-            },
-          );
+      final result = await completer.future.timeout(
+        const Duration(milliseconds: 50),
+        onTimeout: () {
+          return ThumbnailResult.failed;
+        },
+      );
 
       expect(result.success, isFalse);
     });
@@ -220,12 +232,14 @@ void main() {
   group('Thumbnail path generation', () {
     test('thumbnailPath returns null when not initialized', () {
       // Before init(), _thumbDir is null
-      final path = ThumbnailService.thumbnailPath('https://example.com/cover.jpg');
+      final path =
+          ThumbnailService.thumbnailPath('https://example.com/cover.jpg');
       expect(path, isNull);
     });
 
     test('getThumbnailFile returns null when not initialized', () {
-      final file = ThumbnailService.getThumbnailFile('https://example.com/cover.jpg');
+      final file =
+          ThumbnailService.getThumbnailFile('https://example.com/cover.jpg');
       expect(file, isNull);
     });
   });
@@ -270,5 +284,34 @@ void main() {
       ThumbnailService.dispose();
       // Should not throw
     });
+  });
+  test('cache clearing joins thumbnail writers and leaves no late output',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('rshop-thumbnail-clear-');
+    final previous = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _ThumbnailPaths(root.path);
+    final cache = GameCoverCacheManager.instance;
+    addTearDown(() async {
+      ThumbnailService.dispose();
+      await cache.emptyCache();
+      await cache.dispose();
+      PathProviderPlatform.instance = previous;
+      await root.delete(recursive: true);
+    });
+    await ThumbnailService.init();
+    const url = 'https://example.invalid/owned-test-cover.png';
+    await cache.putFile(
+        url,
+        base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=='),
+        fileExtension: 'png');
+    final generating = ThumbnailService.generateThumbnail(url);
+    final clearing = ThumbnailService.clearAll();
+    expect((await ThumbnailService.generateThumbnail(url)).success, isFalse);
+    await generating;
+    await clearing;
+    expect((await ThumbnailService.getDiskUsage()).fileCount, 0);
+    expect(ThumbnailService.getThumbnailFile(url), isNull);
   });
 }

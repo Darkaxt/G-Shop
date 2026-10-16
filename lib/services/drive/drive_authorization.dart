@@ -38,6 +38,15 @@ class DriveBackupGrant {
   String toString() => 'DriveBackupGrant(redacted)';
 }
 
+/// App-file consent is shared at Google's boundary, not at our write boundary.
+/// Only the metadata API accepts this grant; it cannot mutate ROM/save roots.
+class DriveMetadataGrant {
+  final String accountId, accessToken;
+  const DriveMetadataGrant._(this.accountId, this.accessToken);
+  @override
+  String toString() => 'DriveMetadataGrant(redacted)';
+}
+
 abstract interface class DriveAuthorizationDriver {
   Future<String?> authenticate({required bool interactive});
   Future<String?> authorize(String accountId, List<String> scopes,
@@ -152,6 +161,13 @@ class DriveAuthorization {
           expectedAccountId: expectedAccountId,
           rejectedToken: rejectedToken,
           requestConsent: false);
+
+  Future<DriveMetadataGrant> acquireMetadata({required String expectedAccountId,
+      String? rejectedToken, bool interactive = false}) async {
+    final grant = await _acquireBackup(expectedAccountId: expectedAccountId,
+        rejectedToken: rejectedToken, requestConsent: interactive);
+    return DriveMetadataGrant._(grant.accountId, grant.accessToken);
+  }
 
   Future<DriveBackupGrant> _acquireBackup({
     required String expectedAccountId,

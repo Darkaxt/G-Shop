@@ -12,6 +12,7 @@ import 'providers/download_providers.dart';
 import 'providers/game_providers.dart';
 import 'providers/ra_providers.dart';
 import 'providers/library_providers.dart';
+import 'providers/metadata_cloud_providers.dart';
 import 'providers/source_health_providers.dart';
 import 'providers/rom_status_providers.dart';
 import 'providers/save_backup_providers.dart';
@@ -317,6 +318,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
         break;
       case AppLifecycleState.resumed:
         widget.audioManager.resume();
+        unawaited(ref.read(metadataCloudProvider.notifier).sync());
         _checkAutomaticSaveBackups();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -348,6 +350,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     ref.watch(romWatcherProvider);
+    ref.watch(metadataCloudProvider);
 
     // Reactive: when sync finishes with auth errors, re-check RomM tokens.
     ref.listen(librarySyncServiceProvider, (prev, next) {

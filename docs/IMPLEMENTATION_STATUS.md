@@ -5,6 +5,114 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Drive-backed metadata — S24 ACTIVE, 2026-10-16
+
+Current owner revision 63 supersedes old-media recycling for this generation:
+discard collected resources and recollect with typed roles, retaining matched
+facts/ratings and all ROM/save/configuration/imported-model data. A deliberate
+Rebuild media action is being verified; it persists reset intent, joins collectors
+and publication, moves old app-owned Drive exports to Trash, clears collected
+local media/receipts, and resumes an interrupted reset before publication.
+Signed 1.9.5/code 19 was installed in place; exact prelaunch hashes for preferences,
+secure storage, the operational catalogue and imported Socket active generation
+were unchanged. Gate 1329 acquired Local\\Darka.AndroidGradleBuildGate, build/helper
+exited 0 and daemon exit was verified: observed two workers, no parallel, 3 GiB
+Gradle/in-process Kotlin, one 512 MiB test fork and depth-one native Ninja pools.
+No memory failure or increased budget. APK SHA-256:
+63316f5e7ec2137983ffa681fc6adba9c477e4df3e366764ae4443bb07facb26;
+release signer unchanged and privacy scan passed. No public release was created.
+The live reset stopped at a FormatException before removing cloud folders;
+connector readback confirms all five old console exports remain. Local media
+remains 512 MiB and the persisted rebuild intent remains pending. The v3 response
+ETag assumption is being replaced by the documented v2 resource ETag/conditional
+patch boundary for metadata mutations, retaining the same scopes/ownership checks.
+Owner-requested progressive scroll-edge fades now cover manufacturer/type strips,
+shared General/Audio/Advanced/About settings, metadata, ROM cache and save content.
+Signed 1.9.6/code 20 is installed in place. Gate 1331 completed packaging and
+release unit verification with the same observed low-memory profile; build/helper
+exited 0 and post-build daemon exit was verified. APK SHA-256:
+60f5f035af1eb0b4512f30067e3e3faeddac7fd7495cb317c4c7f1247209ea45.
+Preference, secure-storage, catalogue and imported-model generation hashes matched
+before first launch. The corrected conditional mutation successfully moved the
+old Game Gear, N64 and PS2 exports to Trash. PSP and PSX remain: the original reset
+and one supported Sync resume ended with HTTP 403. Signed 1.9.7/code 21 was then
+installed with the same signer and unchanged exact prelaunch data hashes. Gate
+1335 acquired the shared mutex; build/helper exited 0 and daemon exit was verified
+with the same observed profile and no memory failure. Its bounded diagnostic
+identified the actual rejection: PATCH/v2 childAccessCheckLimitExceeded, not an
+inferred daily quota or sign-in failure. The reset now trashes individually
+verified app-owned descendants before their empty folders; visible foreign
+children reject the cascade. The reproduced populated-folder failure and
+conditional-write/ownership regression checks pass. Signed 1.9.8/code 22 is
+installed with the same signer and all five exact prelaunch data hashes preserved.
+Gate 1337 acquired the shared mutex; build/helper exited 0 and daemon exit was
+verified. Observed two workers/no parallel/3 GiB Gradle with in-process Kotlin;
+one 512 MiB test fork, native application/patch Ninja pools depth one; no memory
+failure or raised budget. APK SHA-256:
+d51165e12e477ee167d496b0e3ced4608fee269b5d6cca8bf859b67f2844649e.
+Fresh native default-account readback shows PSP old live contents decreasing
+from 70 to 61 entries through the normal reset, with no repeated rejection.
+The reset is still running; local media and retained-fact completion evidence
+remain pending. No public release was created.
+Fresh affected host checks pass for cloud reset/recollection and the settings,
+cache, save and manufacturer controller/fade paths. Native General settings
+shows the progressive red-background fade; scrolling to the end exposes the
+complete Language row without a bottom fade when no content remains. The owner
+accepted that visual result. Constrained native brand overflow remains to verify.
+S24 stays ACTIVE; fresh native resource collection, cloud cache lifecycle and
+Nintendo collection acceptance remain unfinished. Both Thor screens are asleep
+during host work. No public release was created.
+
+The owner explicitly authorized METADATA-CLOUD-01 with a 2 GiB configurable
+combined local media cache, then corrected the visible Drive layout to
+console/game/typed-resource names. S24 is the single ACTIVE stage; S23 and the
+next-update S25 startup improvement remain NOT STARTED. The initial host workflow
+is implemented: typed app-file
+Drive publication, immutable packet recovery, local facts, visible-card/selected
+media fetching, combined verified-copy eviction, active-file leases, historical
+body retention, cache settings/controller actions and migration-owner joining.
+
+Focused host verification demonstrates exact text recovery without media
+downloads/re-scraping, shared artwork aliases, offline hits, interrupted-original
+preservation, combined image/video accounting and eviction, active leases and
+historical artwork backup before removal. Existing shared-store recovery,
+preview publication and sectioned settings/controller regressions pass. Targeted
+analysis reports no errors/warnings (existing/new style infos remain). The new
+historical-media path additionally passes the final focused cloud workflow check.
+Private source-oracle geometry tests were not rerun; geometry/imported assets are
+unchanged and actual rendering remains part of the required Thor acceptance.
+
+Owner additions are included: 2.4-second cover reveal and plastic cartridge/UMD
+housings, preserving optical-disc and exposed-hardware materials. Their focused
+behavioral checks pass. Gate 1316 acquired the mutex; signed 1.9.3/code 17
+packaging and supervisor exited 0, daemon exit verified. Observed: two workers,
+no parallel, 3 GiB Gradle/in-process Kotlin, one 512 MiB test fork; application
+and patch Ninja pools have depth one. No memory failure or budget increase.
+The APK is installed in place with matching release signer, UID/first-install
+time and exact prelaunch preference/secure-storage/catalogue/import hashes.
+Native GB renders with the plastic policy. The 2.4-second slide still needs
+target visual evidence after valid box-art collection.
+
+Real default-account Drive readback verifies a private root and published
+records/media. One PSP packet contains 39 boxes and 61 screenshots, but zero
+downloaded UMD labels although 48 label references are present. References are
+not collected resources. This is incomplete coverage, not a passing console
+acceptance result. The mixed hash-named image layout is superseded by the owner's
+game-folder correction. Publication was stopped through the owned app's normal
+force-stop boundary before migration; existing originals and Drive copies are
+preserved, no local artwork was cleared. Both screens were put to sleep during
+the host correction. The unused task-only Android aggregate probe was removed
+through reviewed transaction ee93d2c2dbae898787e4d252548b874b (2,420 bytes).
+
+Remaining advancement blockers are internal acceptance/delivery work: normalized
+game/resource publication and recovery, role-correct full resource collection,
+one complete Nintendo console workflow, real cache-miss/offline/eviction and
+renderer verification, then updated signed Thor deployment, scoped
+temporary/local-media cleanup and Nintendo-wide resource collection/rendering
+checks. Resolution is inspected passing evidence for these workflows. S24 cannot
+close or be called delivered until they pass. No external execution blocker or
+tracked deferral is established; existing production data remains preserved.
+
 ### Thor preview delivery — R22 COMPLETE, 2026-10-16
 
 Owner-requested production 1.9.2/code 16 is installed in place on Thor. No
@@ -29,10 +137,9 @@ the integrated correction. The failed candidate is removed, not offered as a
 deliverable. S22 is not reopened for unrelated changes.
 
 Every assigned R22 criterion passes; no remaining blocker or tracked deferral.
-S23 acquisition and the newly approved S24 Drive-backed metadata/cache remain
-NOT STARTED. S24 records a separate durable Drive metadata/artwork tree with a
-configurable 2 GiB combined local media-cache default; it is not implemented or
-silently substituted for 1.9.2's existing preview-video budget.
+At R22 closure, S23 acquisition and S24 Drive-backed metadata/cache were
+NOT STARTED. S24 is now ACTIVE under the separate owner authorization above;
+1.9.2's existing preview-video budget is not claimed as the new combined cache.
 
 ### Dual-screen preview — S22 COMPLETE; S23 NOT STARTED, 2026-10-16
 

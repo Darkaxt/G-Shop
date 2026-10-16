@@ -15,6 +15,8 @@ import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
 import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:retro_eshop/services/metadata/preview_video_cache.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
 import 'package:retro_eshop/services/database_service.dart';
@@ -59,6 +61,100 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   });
+
+  test('live selected console resource roles are actually downloadable',
+      () async {
+    final api = ScreenScraperProvider(
+        readDeveloperCredentials: () async => developer,
+        readUserCredentials: () async => user);
+    addTearDown(api.close);
+    final platform = values['RSHOP_RESOURCE_PLATFORM'] ?? 'gb';
+    final title = values['RSHOP_RESOURCE_TITLE'] ?? 'Tetris';
+    MetadataLookupRequest request({String? verified}) => MetadataLookupRequest(
+        gameId: 'live-resource-$platform',
+        editionId: 'live-resource-$platform-official',
+        platformId: platform,
+        title: title,
+        region: 'USA',
+        verifiedProviderGameId: verified,
+        contentTags: const {'official'},
+        refreshGeneration: 1);
+    var response = await api.lookup(request());
+    if (response.record == null) {
+      final exact = response.candidates.where((c) => c.titleMatched).toList();
+      expect(exact, hasLength(1), reason: response.status.name);
+      response =
+          await api.lookup(request(verified: exact.single.providerGameId));
+    }
+    expect(response.status, MetadataLookupStatus.matched);
+    final record = response.record!;
+    final directory = Directory(values['RSHOP_RESOURCE_OUTPUT']!).absolute;
+    expect(directory.path.replaceAll('\\', '/'),
+        startsWith('D:/Temp/rshop-s24-20261016/'));
+    expect(await directory.exists(), isFalse);
+    final shared = await SharedMetadataStore.open(directory);
+    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    addTearDown(() async {
+      await shared.close();
+      await db.close();
+    });
+    final cache = MetadataArtworkCache(Future.value(db), shared.artworkRoot,
+        sharedStore: shared);
+    final outcomes = <Map<String, dynamic>>[];
+    final media =
+        MetadataArtworkCache.displayMedia(record, includePhysicalLabel: true);
+    for (final entry in media) {
+      final result =
+          await cache.download(entry, api, outcomes.length, CancelToken());
+      outcomes.add({
+        'type': entry.type,
+        'region': entry.region,
+        'status': result.result.status.name,
+        'file': result.blob?.filename,
+        'bytes': result.blob?.length
+      });
+    }
+    final video =
+        record.media.where((m) => m.type == 'video-normalized').firstOrNull ??
+            record.media.where((m) => m.type == 'video').firstOrNull;
+    if (video != null) {
+      final path = await PreviewVideoCache(shared,
+              validateDecoder: (_) async {})
+          .acquire(video, api, CancelToken(), budgetBytes: 256 * 1024 * 1024);
+      outcomes.add({
+        'type': video.type,
+        'status': 'matched',
+        'file': File(path).uri.pathSegments.last,
+        'bytes': await File(path).length()
+      });
+    }
+    await File('${directory.path}/resource-audit.json').writeAsString(
+        jsonEncode({
+          'record': record.toJson(),
+          'downloads': outcomes,
+          'videoReferences': record.media
+              .where((m) => {'video', 'video-normalized'}.contains(m.type))
+              .length
+        }),
+        flush: true);
+    print(jsonEncode({
+      'platform': platform,
+      'roles': outcomes
+          .map((m) =>
+              {'type': m['type'], 'status': m['status'], 'bytes': m['bytes']})
+          .toList(),
+      'videoReferences': record.media
+          .where((m) => {'video', 'video-normalized'}.contains(m.type))
+          .length
+    }));
+    expect(outcomes.every((m) => m['status'] == 'matched'), isTrue);
+  },
+      skip: developer.isConfigured &&
+              user.isConfigured &&
+              values['RSHOP_RESOURCE_OUTPUT'] != null
+          ? false
+          : 'Explicit live resource capture required.',
+      timeout: Timeout.none);
 
   test('live DSi provider alias preserves reviewable DSi identity', () async {
     final api = ScreenScraperProvider(
@@ -246,8 +342,7 @@ void main() {
 
   test('normal controls live review publishes cached cover and screenshots',
       () async {
-    final physicalSample =
-        values['RSHOP_PHYSICAL_LABEL_CAPTURE'] == 'true';
+    final physicalSample = values['RSHOP_PHYSICAL_LABEL_CAPTURE'] == 'true';
     final platform = physicalSample ? 'n64' : 'snes';
     final title = physicalSample ? 'GoldenEye 007' : 'Super Mario World';
     final filename = '$title (USA).${physicalSample ? 'z64' : 'sfc'}';
@@ -315,7 +410,8 @@ void main() {
     final local = await cache.artworkForEdition(review.editionId);
     if (physicalSample) {
       expect(local.supportTexture, isNotNull,
-          reason: 'The real provider must supply physical label art, not box art');
+          reason:
+              'The real provider must supply physical label art, not box art');
       final output = values['RSHOP_PHYSICAL_LABEL_OUTPUT'];
       if (output != null) {
         final directory = Directory(output).absolute;
@@ -335,9 +431,8 @@ void main() {
     expect(covers[1], local.cover);
     DatabaseService.testDatabase = db;
     addTearDown(DatabaseService.resetForTesting);
-    final details = await DatabaseService().getGameMetadata(
-        filename, platform,
-        artworkCache: cache);
+    final details = await DatabaseService()
+        .getGameMetadata(filename, platform, artworkCache: cache);
     expect(details!.cachedCover, local.cover);
     expect(details.cachedSupportTexture, local.supportTexture);
     expect(details.screenshotUrlList, local.screenshots);
@@ -436,7 +531,9 @@ void main() {
     await LibraryQuery.install(db);
     for (final (platform, title) in requestedSample) {
       await db.insert('games', {
-        'systemSlug': platform, 'displayName': title, 'filename': '$title.7z'
+        'systemSlug': platform,
+        'displayName': title,
+        'filename': '$title.7z'
       });
     }
     final jobs = MetadataRefreshJobs(Future.value(db));
@@ -587,9 +684,11 @@ void main() {
       displayName TEXT NOT NULL, filename TEXT, is_folder INTEGER NOT NULL DEFAULT 0,
       artifact_key TEXT, remote_artifact TEXT)''');
     await LibraryQuery.install(db);
-    await db.insert(
-        'games', {'systemSlug': 'snes', 'displayName': 'Super Mario World',
-          'filename': 'Super Mario World.sfc'});
+    await db.insert('games', {
+      'systemSlug': 'snes',
+      'displayName': 'Super Mario World',
+      'filename': 'Super Mario World.sfc'
+    });
     final jobs = MetadataRefreshJobs(Future.value(db));
     final provider = ScreenScraperProvider(
         readDeveloperCredentials: () async => developer,

@@ -16,6 +16,8 @@ import 'effective_overall_rating.dart';
 import 'metadata_artwork_cache.dart';
 import 'metadata_provider.dart';
 import 'shared_metadata_store.dart';
+import 'preview_video_cache.dart';
+import 'screenscraper_provider.dart';
 
 /// Display-only provider observation, distinct from reserved local API budget.
 class MetadataQuotaObservation {
@@ -73,6 +75,7 @@ class MetadataRefreshReport {
   final MetadataQuotaObservation? quotaObservation;
   final MetadataProcessedGame? lastProcessed;
   final bool top25PerSystem;
+  final bool resourcesOnly;
   final Map<String, Map<String, int>> selectionCoverage;
   const MetadataRefreshReport(
       {required this.id,
@@ -89,6 +92,7 @@ class MetadataRefreshReport {
       this.quotaObservation,
       this.lastProcessed,
       this.top25PerSystem = false,
+      this.resourcesOnly = false,
       this.selectionCoverage = const {}});
 }
 
@@ -173,6 +177,10 @@ class MetadataRefreshJobs {
     if (!jobColumns.any((r) => r['name'] == 'is_artwork')) {
       await db.execute(
           'ALTER TABLE metadata_refresh_jobs ADD COLUMN is_artwork INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!jobColumns.any((r) => r['name'] == 'resources_only')) {
+      await db.execute(
+          'ALTER TABLE metadata_refresh_jobs ADD COLUMN resources_only INTEGER NOT NULL DEFAULT 0');
     }
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_metadata_saved_jobs
       ON metadata_refresh_jobs(provider_id, is_artwork, id DESC)''');
@@ -424,6 +432,34 @@ class MetadataRefreshJobs {
           editions: (_) => Stream.fromIterable(editionIds),
           mediaKeys: mediaKeys);
 
+  Future<MetadataRefreshReport> createResourcesFromCatalogue(
+          {required String providerId,
+          String? systemSlug,
+          List<String>? systemSlugs}) =>
+      _createArtwork(
+          providerId: providerId,
+          collectionGeneration: 'saved-metadata-resources',
+          resourcesOnly: true,
+          editions: (txn) async* {
+            if (systemSlug != null && systemSlugs != null)
+              throw ArgumentError('Choose one resource scope');
+            for (final system in systemSlugs?.toSet() ?? {systemSlug}) {
+              await for (final edition
+                  in LibraryStore.catalogueEditions(txn, systemSlug: system)) {
+                final identity = await _identity(txn, edition);
+                if (identity == null) continue;
+                final record = await txn.query('library_metadata',
+                    where: 'edition_id=? AND provider_id=?',
+                    whereArgs: [edition, providerId],
+                    limit: 1);
+                if (record.isNotEmpty &&
+                    record.single['identity_key'] ==
+                        LibraryStore.metadataIdentity(identity,
+                            providerId: providerId)) yield edition;
+              }
+            }
+          });
+
   Future<MetadataRefreshReport?> artworkForMetadata(int id) async {
     final db = await _database;
     final links = await db.query('metadata_artwork_jobs',
@@ -502,6 +538,7 @@ class MetadataRefreshJobs {
       Set<String>? mediaKeys,
       int? metadataJobId,
       int? metadataGeneration,
+      bool resourcesOnly = false,
       int? retryArtworkJobId}) async {
     if (providerId.trim().isEmpty || collectionGeneration.trim().isEmpty) {
       throw ArgumentError('Artwork scope is required');
@@ -534,6 +571,7 @@ class MetadataRefreshJobs {
         'collection_generation': collectionGeneration,
         'state': 'paused',
         'is_artwork': 1,
+        'resources_only': resourcesOnly ? 1 : 0,
       });
       await for (final editionId in editions(txn)) {
         final identity = await _identity(txn, editionId);
@@ -555,10 +593,11 @@ class MetadataRefreshJobs {
             record.refreshGeneration != metadataGeneration) {
           continue;
         }
-        for (final media in metadataJobId == null
+        for (final media in metadataJobId == null && !resourcesOnly
             ? record.media
             : MetadataArtworkCache.displayMedia(record,
-                includePhysicalLabel: true)) {
+                includePhysicalLabel: true,
+                includeVideo: (await _sharedStore)?.cloudManaged == true)) {
           final mediaKey = MetadataArtworkCache.key(media);
           if (mediaKeys != null && !mediaKeys.contains(mediaKey)) continue;
           if (retryArtworkJobId != null) {
@@ -1573,6 +1612,7 @@ class MetadataRefreshJobs {
         ${artwork ? '0' : 'SUM(rated)'} AS rated FROM ${artwork ? 'metadata_artwork_items' : 'metadata_refresh_items'} WHERE job_id = ? GROUP BY status''',
           [id]);
       return MetadataRefreshReport(
+          resourcesOnly: row['resources_only'] == 1,
           id: id,
           generation: row['generation'] as int,
           collectionGeneration: row['collection_generation'] as String,
@@ -1603,7 +1643,9 @@ class MetadataRefreshJobs {
     final db = await _database;
     final rows = await db.query('metadata_refresh_jobs',
         columns: ['id'],
-        where: 'provider_id = ? AND is_artwork = 0',
+        where:
+            'provider_id = ? AND (is_artwork = 0 OR (resources_only = 1 AND NOT EXISTS '
+            '(SELECT 1 FROM metadata_artwork_jobs l WHERE l.artwork_job_id=metadata_refresh_jobs.id)))',
         whereArgs: [providerId],
         orderBy: 'id DESC',
         limit: 1);
@@ -1619,7 +1661,9 @@ class MetadataRefreshJobs {
     final db = await _database;
     final rows = await db.query('metadata_refresh_jobs',
         columns: ['id'],
-        where: 'provider_id = ? AND is_artwork = 0'
+        where:
+            'provider_id = ? AND (is_artwork = 0 OR (resources_only = 1 AND NOT EXISTS '
+            '(SELECT 1 FROM metadata_artwork_jobs l WHERE l.artwork_job_id=metadata_refresh_jobs.id)))'
             '${beforeId == null ? '' : ' AND id < ?'}',
         whereArgs: [providerId, if (beforeId != null) beforeId],
         orderBy: 'id DESC',
@@ -2022,6 +2066,7 @@ class MetadataRefreshJobs {
       Future<void> Function(int) waitForBudget,
       MetadataRefreshReport initial,
       void Function(MetadataRefreshReport)? onProgress) async {
+    final resourcesOnly = (await _job(db, id))['resources_only'] == 1;
     final counts = Map<String, int>.from(initial.counts);
     var requested = initial.requested;
     void publish(Map<String, int> changes) {
@@ -2041,6 +2086,7 @@ class MetadataRefreshJobs {
           rated: 0,
           counts: Map.unmodifiable(counts),
           kind: 'artwork',
+          resourcesOnly: initial.resourcesOnly,
           providerId: provider.providerId));
     }
 
@@ -2069,14 +2115,85 @@ class MetadataRefreshJobs {
       }
       final media =
           MetadataMedia.fromJson(jsonDecode(item['media_json'] as String));
+      if (ScreenScraperProvider.videoTypes.contains(media.type)) {
+        final shared = cache.sharedStore;
+        var result = MetadataLookupResult(
+            status: MetadataLookupStatus.invalidRequest,
+            message: 'Shared media storage is required');
+        if (shared != null) {
+          final videos = PreviewVideoCache(shared);
+          final existing = await videos.find(media);
+          if (existing != null) {
+            result = MetadataLookupResult(
+                status: MetadataLookupStatus.matched,
+                message: 'Verified cached trailer reused');
+          } else {
+            if (!await _requestSlot(
+                db, id, provider.providerId, cancel, waitForBudget)) {
+              if (cancel.isCancelled) break;
+              return report(id);
+            }
+            if (!await current()) {
+              await invalidated();
+              continue;
+            }
+            final started = _now().millisecondsSinceEpoch;
+            await db.rawUpdate(
+                'UPDATE metadata_refresh_jobs SET requested=requested+1 WHERE id=?',
+                [id]);
+            requested++;
+            publish(const {});
+            result = MetadataLookupResult(
+                status: MetadataLookupStatus.unavailable,
+                message: 'Trailer download is unavailable');
+            try {
+              await videos.acquire(media, provider, cancel,
+                  budgetBytes: ScreenScraperProvider.maxVideoBytes,
+                  onResponse: (response) => result = response);
+            } catch (_) {
+              if (cancel.isCancelled) break;
+              if (result.status == MetadataLookupStatus.matched)
+                result = MetadataLookupResult(
+                    status: MetadataLookupStatus.invalidResponse,
+                    message: 'Trailer validation failed');
+            }
+            if (cancel.isCancelled) break;
+            await _observeQuota(db, provider.providerId, result.quota, started);
+            if (_blocking.contains(result.status)) {
+              await _block(db, id, result.status, result.retryAfter);
+              return report(id);
+            }
+          }
+        }
+        final status = await current() ? result.status.name : 'identityChanged';
+        await db.update('metadata_artwork_items', {'status': status},
+            where: 'job_id=? AND edition_id=? AND media_key=?',
+            whereArgs: [id, item['edition_id'], item['media_key']]);
+        publish({status: 1});
+        continue;
+      }
       MetadataArtworkBlob? blob;
       DateTime? retrievedAt;
       var reviewedReuse = false;
+      var cachedReuse = false;
       final durable = await cache.sharedStore?.committedArtwork(
           provider.providerId, initial.generation, item['media_key'] as String);
       if (durable != null) {
         blob = durable.blob;
         retrievedAt = durable.retrievedAt;
+      }
+      if (blob == null &&
+          resourcesOnly &&
+          await cache.fileFor(
+                  item['edition_id'] as String, provider.providerId, media) !=
+              null) {
+        final saved = (await db.query('metadata_artwork_cache',
+                where: 'media_key=?', whereArgs: [item['media_key']], limit: 1))
+            .single;
+        blob = MetadataArtworkBlob(item['media_key'] as String,
+            saved['filename'] as String, saved['byte_length'] as int);
+        retrievedAt = DateTime.parse(saved['retrieved_at'] as String);
+        cachedReuse = true;
       }
       if (blob == null) {
         final reviewed = await cache.sharedStore?.reviewedArtwork(
@@ -2169,8 +2286,10 @@ class MetadataRefreshJobs {
             if (valid && blob != null && !published) {
               final completedBlob = blob;
               await cache.sharedStore?.preserveBlob(completedBlob, retrievedAt!,
-                  providerId: reviewedReuse ? null : provider.providerId,
-                  generation: reviewedReuse ? null : initial.generation);
+                  providerId:
+                      reviewedReuse || cachedReuse ? null : provider.providerId,
+                  generation:
+                      reviewedReuse || cachedReuse ? null : initial.generation);
               if (cancel.isCancelled) throw const _RefreshCommitCancelled();
               await MetadataArtworkCache.publish(
                   txn, completedBlob, retrievedAt!);
