@@ -1,14 +1,15 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-17. Authority: SPECIFICATION.md revision 77.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 78.
 Current implementation checkpoint: S25 is ACTIVE for the generic resource
 explorer and individual model verification. The automatic cinematic transition
 is expressly not being implemented yet. See [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md)
 for final-asset evidence; the source review below remains candidate research.
 This source review was prepared before implementation, not as another stage.
-S24 is released. One small public CC0 model pack
-has been byte-inspected in memory; no new model has been installed, converted,
-purchased or accepted on Android during this review. The owner has
+S24 is released. The initial review byte-inspected one small public CC0 model
+pack in memory. Subsequent acquired archives and the owner-provided GLB are
+recorded below; none of these new third-party models is accepted on Android.
+The owner has
 separately authorized downloading the full NintAndBox archive. The latest storage
 instruction keeps reference sources on E: and uploads only final classified
 resources to private Drive, not the archive. Acquisition is not Android implementation.
@@ -64,12 +65,83 @@ API on 2026-10-18 (listing metadata only; neither downloaded nor native-verified
 | --- | --- | --- |
 | [Cover Games — T-Art](https://sketchfab.com/3d-models/cover-games-8ed2020f02bc4d14854ba8dcef88be26) | Downloadable, CC BY 4.0, 1,418 faces, two materials/textures, zero animation clips | Separate lid/interior geometry, pivots, UV replacement and useful platform fit require file inspection |
 | [Kittella Genesis Case — warpnik](https://sketchfab.com/3d-models/kittella-genesis-case-0ad483dab1c84c50bfd6f266762cdc75) | Downloadable, CC BY 4.0, 1,320 faces, three materials/textures, zero animation clips; author describes concept-game packaging | Genesis-case geometry, opening support and replaceable sleeve require file inspection; concept artwork is not collection artwork |
+| [DVD/Game Case — Raphael Frei](https://sketchfab.com/3d-models/dvdgame-case-d5c542e24bee490fbdf130413983f124) | Downloadable, CC BY 4.0, 1,335 faces, seven materials/six textures, zero animation clips; author states fully UV-mapped with separate disc reverse texture and optional fingerprint layer | PS2/DVD-style candidate only: inspect actual lid/interior/hinge and sleeve mapping before accepting opening support; disable cosmetic fingerprints if they obscure collection artwork |
+| [Xbox Game case — Tonino](https://sketchfab.com/3d-models/xbox-game-case-3011f68dc849456f82500e9dd7acfee2) | Downloadable, CC BY 4.0, 37,684 faces, seven materials/two textures, zero animation clips; author explicitly says open/closed and replaceable inlay, made in Blender 4.2.3 | Reference only: Xbox One is not a current supported console. Inspect whether open/closed are separate poses/objects or an actual hinge; listing claims are not native animation evidence |
+| [Splatoon Game Box — DerpBox](https://sketchfab.com/3d-models/splatoon-game-box-b088d4263eab4d47ad6e34383cd967de) | Downloadable, CC BY 4.0, 28 faces/24 vertices, two materials/six textures, zero animation clips | Wii U closed-box candidate; very small geometry count is not evidence of an interior, hinge or opening support |
+| [Game Boy Super Mario Land box — Frank Rennau](https://sketchfab.com/3d-models/game-boy-super-mario-land-box-b4515d780a3b4b02a50d20bdec70a5a0) | Downloadable, CC BY 4.0, 102 faces/104 vertices, one material/two textures, zero animation clips | Original GB, not GBA. Inspect cardboard fold/crease geometry versus baked texture details before adapting panels |
+| [Gameboy Advance Cartridge — luigi_30](https://sketchfab.com/3d-models/gameboy-advance-cartridge-25bd1b56c5b94d59884abd077156bde4) | API reports 12,264 faces, no clips, downloads disabled and no download licence. The owner subsequently supplied a self-contained exported GLB; structural inspection is recorded below | Cartridge and fitted protector are acquired reference geometry, not native-accepted models. Opening, game-label replacement and materials still require adaptation/verification; no public redistribution permission is inferred |
+| [Sega Cartridge Box — Caracticus](https://sketchfab.com/3d-models/sega-cartridge-box-3124c02b4f8e4b5bb8edd57d62ffd28a) | API reports one animation, 8,450 faces, three materials/six textures, **downloads disabled**, no download licence | Motion reference only; not an available animated asset or a reason to block a downloadable/generic alternative |
 
 The API endpoints are `https://api.sketchfab.com/v3/models/<model-id>`.
 Zero animation clips does not prove that rigid parts cannot be animated; it also
 does not establish an opening hinge. Keep both in candidate research, not the
 verified-model ledger. These additions do not start Sega implementation or replace
 the active first-console GBA acceptance work.
+
+The owner authorized expanding the reference model collection from Sketchfab,
+using [their liked models](https://sketchfab.com/Darkaxt-Remaxku/likes) as the
+shortlist and the [cartridge search](https://sketchfab.com/search?q=cartridge&type=models)
+for remaining coverage gaps. Do not change likes or bulk-download unrelated hits.
+Downloaded originals remain in the owner's requested `D:/Downloads`; keep later
+prepared geometry/reference processing on E:. Do not bundle concept-game artwork or add new
+console support merely because its case is available. Preserve acquisition and
+export provenance, then inspect actual meshes, materials, pivots, UVs and
+opening behavior before admitting a model to S25_VERIFIED_MODELS.md. Source
+collection does not bypass the one-console-at-a-time native review checkpoint.
+
+Original archives acquired through the signed-in normal download flow:
+`cover-games.zip` (SHA-256 `9f604edd9de1c4fca21d4e72a63e5926fa1cddc01b792d9abe66ba5fa5c38012`),
+`kittella-genesis-case.zip` (`e256b49bcd5d550fb8187fe3e019fc99b64d57eee7373e8b99a0d19ddbb9a85c`),
+and `dvdgame-case.zip` (`c9fe0569ce40a633a98f4cab5ab625e50370370faa0322971935e66545ea9803`).
+Acquisition does not establish renderer/animation acceptance. Other liked sources
+remain to be downloaded/inspected after the current GBA checkpoint.
+
+### Owner-provided GBA cartridge and protector GLB — 2026-10-18
+
+Source: `D:/Downloads/Gameboy_Advance_Cartridge-25bd1b56.glb`, preserved unchanged.
+Size: 9,974,256 bytes. SHA-256:
+`17d1fa5c2cc20954afccdb6b809bd585ab65175ffe36e0c587534f526c0baec1`.
+Its embedded provenance identifies luigi_30, Sketchfab model
+`25bd1b56c5b94d59884abd077156bde4`, exporter
+`sketchfab-osgjs-converter` 1.0.0 and converter commit
+`79290fa0cfb4714f4c0d7ba617b0e3b2b1296149`; the licence field is null.
+Keep this owner-provided original/private reference out of public release assets.
+
+Fresh read-only binary inspection verifies a glTF 2.0 GLB with exact declared
+container length, in-bounds buffer views/accessors, finite geometry attributes,
+matching position/normal/UV counts and valid triangle indices. The 12,264
+triangles divide into four separate meshes: cartridge (2,880), screw (580),
+protector base (4,256) and lid (4,548). Both materials have base colour, packed
+metallic/roughness, normal and emissive maps: eight decodable 2048x2048 PNGs,
+all embedded. No external buffer/image, required extension, animation clip or
+skin is present. The protector material uses alpha blending.
+
+The cartridge is offset beside the open protector and node transforms are baked
+into vertex positions; this is not a closed assembly or an authored hinge rig.
+The separate lid/base permit investigating a rigid-part opening adaptation,
+but no opening action is verified. Remaining GBA admission work: normalized fit
+and orientation, actual hinge/pivot, correct transparency and matte-plastic
+appearance, replaceable game-label UV/mask, and native inspection.
+Do not infer metallic plastic merely from `metallicFactor: 1`: the case's packed
+metallic channel is zero and the cartridge map is predominantly nonmetallic.
+No cinematic or second-console implementation was started by this inspection.
+
+Desktop rendering subsequently passed in official portable Blender 5.2.2 LTS
+(`D:/Tools/Blender/blender-5.2.2-windows-x64`). Its Windows ZIP matched the
+[official SHA-256 list](https://download.blender.org/release/Blender5.2/blender-5.2.2.sha256):
+`3849d17a682cba006075aaa3f3597ecb5c9c30ec31035b2e092c53e40679b535`.
+The background, factory-startup inspection disables auto-execution and uses two
+CPU threads. `scripts/fixtures/s25_gba_blender_inspection.py` imported all four
+parts/eight images and completed three renders with the original GLB hash
+unchanged. Front/back assembly and detailed cartridge renders were visually
+inspected: upright readable source label, textured housing/screw and transparent
+protector, without visibly scrambled textures. The source housing is glossy;
+this is not acceptance of the required matte finish or another game's label.
+No MCP server, global PATH/file associations or existing model was changed.
+Private retained report/renders are under
+`E:/R-Shop Reference Assets/Sketchfab/25bd1b56c5b94d59884abd077156bde4/inspection-20261018`.
+Desktop source rendering is not Thor integration, opening-animation verification
+or a replacement for the current GBA collection acceptance checkpoint.
 
 ### Box scans and sleeves
 
