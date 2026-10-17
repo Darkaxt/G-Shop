@@ -125,8 +125,10 @@ in specification revision 70 and the plan, not implemented or validated yet.
 
 S25-only source review, 2026-10-17: the owner's supplied LaunchBox game 26125
 is the Nintendo Game Boy Advance edition of 007: Everything or Nothing. Its
-public media page lists front/back/spine images with regional labels; multiple
-spines represent regional alternatives, not six-face coverage. LaunchBox's
+public media page lists front/back/spine images with regional labels, including
+two Japan-labelled spines. The initial statement that all spines were regional
+alternatives was too broad: these two require actual face/packaging-variant
+inspection and are not yet proof of either duplicates or extra faces. LaunchBox's
 current official image guidance distinguishes original/reconstructed/fanart
 categories and normally accepts one spine (top spine for some horizontal boxes).
 A HEAD check of https://gamesdb.launchbox-app.com/Metadata.zip returns HTTP 200,

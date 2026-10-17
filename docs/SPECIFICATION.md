@@ -81,6 +81,9 @@ boxes, with ScreenScraper as fallback. This is S25-only: do not migrate scoring,
 general metadata, cartridge labels, trailers or S24's current collection/build.
 Bind LaunchBox's platform/game ID to the existing verified game identity and
 selected release; regional alternatives are not additional physical faces.
+The supplied record also has two Japan-labelled spine images. Do not assume
+they are duplicates or different faces: verify their actual physical face and
+packaging variant before assigning geometry or unlocking a rotation direction.
 Prefer one consistent same-edition/region LaunchBox face set. If it is incomplete,
 use a verified equivalent ScreenScraper set or fill a missing face only when its
 edition/region and packaging compatibility are established. Do not combine

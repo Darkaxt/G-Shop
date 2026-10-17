@@ -52,8 +52,9 @@ not an image, so a fully authentic six-face reconstruction is not established.
 The owner's subsequent source choice is LaunchBox first and ScreenScraper
 fallback for S25 box faces only; existing scores, cartridge/trailer providers and
 the active S24 build are unchanged. The supplied LaunchBox GBA 007 record 26125
-lists front/back/spine images by region. Multiple spine entries are regional
-alternatives, not proof of top/bottom/opposite-side coverage. Prefer coherent
+lists front/back/spine images by region, including two Japan-labelled spines.
+Their physical face/packaging variant must be inspected; neither duplication nor
+additional-face coverage follows from the category/region labels. Prefer coherent
 same-edition face sets; preserve per-face provenance in the existing typed
 Drive/cache pipeline. Verify equivalent fallback compatibility, never blend
 incompatible releases. At S25 entry prove the current index/image retrieval and
