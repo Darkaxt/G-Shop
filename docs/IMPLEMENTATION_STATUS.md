@@ -19,6 +19,13 @@ G-Shop rebranding/source-scope evaluation, NOT STARTED. Historical REGION-01
 
 ### S25 pre-plan/source acquisition — 2026-10-17
 
+Planning correction: archive acquisition is not a prerequisite for defining S25's
+capabilities or full implementation plan. The coverage document now contains the
+complete capability/fallback contract, ordered work inside S25, integration points
+and acceptance matrix P25-01 through P25-08. No implementation criterion has passed
+and no new stage is opened. Actual source/image/model inspection is scheduled
+within implementation; the E: reference transfer continues independently.
+
 Expanded S25 remains NOT STARTED; this is the requested source/geometry evaluation,
 not a new implementation stage. The availability checklist now lists every one
 of the 66 current IDs individually. Archive header inspection establishes eight

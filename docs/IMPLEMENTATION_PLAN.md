@@ -39,6 +39,10 @@ The owner explicitly requests S24 closure first and S25 evaluation afterward.
 The supplied packaging sources and all 66 platform IDs are accounted for in
 [S25_PACKAGING_COVERAGE.md](S25_PACKAGING_COVERAGE.md). This is a review, not an
 implemented Box -> Cover -> Cartridge workflow or acceptance of model files.
+Its final section now defines the complete S25 capability/fallback contract,
+ordered integrated work packages, existing integration points and acceptance
+matrix. The independent archive transfer is not a prerequisite for defining this
+plan or the first real GBA workflow. S25 implementation remains NOT STARTED.
 The owner-authorized pre-plan now includes a real archive file-table inventory,
 non-Nintendo sources/The Cover Project, a reusable parametric outer-box candidate,
 separate case/protector families and manuals/optional booklet presentation.

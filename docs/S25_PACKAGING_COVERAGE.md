@@ -368,7 +368,11 @@ Case `K?`/`J?` is a proposed adaptation, not an original-platform fit claim.
 | `tic80` TIC-80 | Provider/author art only | Virtual presentation only | Not a physical protector claim | Flat virtual cartridge | Author-supplied docs if available |
 | `pico8` PICO-8 | Provider/author art only | Virtual presentation only | Not a physical protector claim | Flat virtual cartridge | Author-supplied docs if available |
 
-### Readiness checklist for choosing the implementation
+### Planning evidence and independent acquisition checklist
+
+The full plan below does not depend on completing the archive download or
+inspecting every model candidate. File/panel inspection belongs to implementation.
+The reference transfer continues independently on E:; it is not a planning gate.
 
 - [x] Inventory every current platform ID; distinguish 20 existing 3D bindings
   from 46 flat fallbacks and from new packaging support.
@@ -385,7 +389,7 @@ Case `K?`/`J?` is a proposed adaptation, not an original-platform fit claim.
   per required family; listing/API metadata is not file acceptance.
 - [ ] Inspect real image panels and document order in the acquired archive; derive
   explicit layout mappings for the chosen GBA editions, not guessed crop ratios.
-- [ ] Finalize the S25 implementation plan against this checklist, including
+- [x] Define the full S25 capability contract and execution plan below, including
   manual access/optional presentation, before changing Android behavior.
 
 ## Integration recommendation and acceptance
@@ -419,3 +423,134 @@ Case `K?`/`J?` is a proposed adaptation, not an original-platform fit claim.
 All S25 user-facing acceptance remains pending. Missing console models/resources
 are recorded coverage gaps, not evidence that the review itself requires an
 unbounded download or that S24's already verified release failed.
+
+## Full S25 capability contract and execution plan
+
+Planning checkpoint: 2026-10-17. S25 implementation is **NOT STARTED**. These are
+ordered work packages inside the existing S25 stage, not additional stages or
+parallel fronts. No archive, model purchase, second account or complete six-face
+collection is a prerequisite for defining the plan. When implementation resumes,
+keep S25 ACTIVE until its complete integrated acceptance criteria pass.
+
+### Capabilities and deterministic fallbacks
+
+| Available input | Presentation | Required fallback / boundary |
+| --- | --- | --- |
+| Correct outer-box panels | Parameterized matte cardboard outer box | Missing faces use colour-matched reconstructed material, not a fictitious original scan |
+| Correct front/back/spine sleeve | Plastic display case fitted to panel aspect and compatible depth | Visible seam and hinge; generic plastic on unprinted edges; distinguish display-case adaptation from original retail geometry |
+| Only a front cover | Reconstructed box/display case with that real front | Neutral remaining faces; full rotation/zoom still work; never substitute screenshots |
+| No cover | Existing named flat/handwritten fallback and available medium | Skip the cover-slide animation when no artwork exists to slide; no empty black square |
+| Valid imported model and label | Existing 3D cartridge/card/disc with its correct label | No new dependency on acquiring Socket assets; default flat media remain usable |
+| No imported/specific platform mesh | Existing flat medium with game-name fallback | No false platform-specific 3D claim; preserve all 66 current platform paths |
+| Correct-language manual | Ordered page/PDF reader and optional booklet layer | Missing manual skips that layer; no page-turn physics requirement |
+| Screenshots/trailers/maps/flyers | Typed Media/Documents gallery | Preserve resource identity, saved audio and bounded offline cache; never fabricate unavailable content |
+
+Select packaging per edition, not ROM extension. Use a small set of cardboard,
+keep-case and jewel-case presets; inspect Switch/PSP-specific assets as upgrades.
+An unavailable specialist file does not block the owner's generic display-case
+path. Do not automatically put protectors around every cartridge. Ordinary Switch
+uses case -> card. GBA cardboard and a replacement display case are distinguishable
+alternatives, not a claim that both shipped together. A real multilayer edition
+may use outer box -> protective case -> medium, with an optional booklet.
+
+Geometry uses six named surfaces: front, back, left, right, top, bottom. Preserve
+orientation, source dimensions, crop/UV recipe, source ID/URL, edition, region,
+language, checksum and original/custom/reconstructed status. Derive width/height
+from the actual panel aspect and depth from a compatible spine or preset, never
+the whole printable sheet. Missing faces use generic material or coherent spine
+reuse. Two Japan-labelled spines do not prove two physical faces. Cardboard and
+ordinary plastic are nonmetallic; disc material remains separate. Closed meshes
+rotate/slide, not pretend to open. Verified rigid-part opening may be used without
+requiring a general skeletal-animation engine.
+
+### Interaction and lifecycle contract
+
+- Compact icon-backed **Box / Cartridge / Media** modes replace the single model
+  action. Remove per-entry Download Media, not central collection/scraping.
+  Manuals/maps/flyers are within Media/Documents, not another settings roll.
+- L1/R1 cycles modes when the viewer owns interaction. Touch drag and controller
+  directional/stick input rotate; pinch and visible zoom controls change zoom.
+  Provide Reset view and applicable input hints. Normal main-gallery scrolling,
+  tab navigation and focus remain untouched outside explicit viewer interaction.
+- Use the same selected-edition resources on single/dual screens. Preserve Thor's
+  4x2 gallery, early secondary initialization, activated details and browsing focus.
+- Hold the mounted cover until selected model/labels and enabled resources report
+  ready; then run the existing 1.5-second full-left reveal and zoom restoration.
+  Resource updates must not discard ready textures or replay the same selection.
+  Changing game/edition cancels its old reveal, not the durable collector.
+- Reduced Motion retains static access to all layers/modes. Missing artwork omits
+  its animation. An absent optional manual does not freeze launch/browsing; a
+  failed required sample resource is explicitly reported, not a passing test.
+- Trailers reuse saved internal volume and background-music duck/restoration.
+  Switching selection, leaving playback or hiding/launching releases playback
+  appropriately. Hide R-Shop on launch without closing/reparenting the companion.
+- Preserve cached browsing, five-second freshness hint and adjustable 2 GiB cache
+  leases/eviction. No startup bulk sync, raw archive on SD or whole-library scrape.
+
+### Ordered implementation work inside S25
+
+1. **One complete real GBA viewer workflow first.** Use the supplied LaunchBox
+   007 record and actual selected release. Retrieve coherent faces, validate bytes
+   and roles, publish via existing typed Drive metadata, consume via bounded cache,
+   render the fitted plastic case and current GBA cartridge. Include modes,
+   seam/hinge, rotation/zoom, readiness/reveal and focus in this complete first
+   workflow. Exercise missing/incomplete primary data with compatible ScreenScraper
+   faces or reconstructed missing faces. No general artwork-provider framework.
+2. **Complete packaging families and classified-reference ingestion.** Adapt the
+   inspected CC0 outer shell to six semantic faces; retain any CC BY attribution.
+   Convert static geometry/rigid parts to existing indexed surfaces/transforms
+   through an owned-geometry path, without forging Socket import receipts or
+   introducing another renderer. Finish applicable keep/jewel/display-case presets;
+   inspect specialist Switch/PSP assets, using declared generic alternatives when
+   unusable. For acquired archive images inspect layouts, match actual editions
+   and derive validated faces/manuals/labels. Keep raw references on E:, publish
+   only classified matching resources and integrity records. The full archive is
+   useful here, not a prerequisite for work package 1.
+3. **Finish the integrated gallery and documents.** Complete shared single/dual
+   screen modes, touch/controller navigation, ordered manual reading/optional
+   booklet, screenshots/trailers/Documents and every fallback above. Preserve
+   launch, companion, audio, cache, regional grouping and save/root behavior.
+   Do not open acquisition add-ons, change scoring providers or begin S26.
+4. **Reconcile, verify and deliver the whole stage.** Pass the matrix below;
+   resolve all S25 gaps and update this per-platform ledger with actual evidence.
+   Commit/synchronize verified work. Use the existing GitHub signing workflow and
+   certificate for the already requested production update, acceptance-test its
+   artifact before publication, then verify published/installed bytes and preserved
+   settings/imports. No intermediate-work-package release. Clean exact expendable
+   outputs through the cleanup helper and switch both Thor screens off afterward.
+
+### Existing integration points
+
+| Area | Existing files / responsibility |
+| --- | --- |
+| Edition resources/collection | `lib/models/scraped_metadata.dart`, `lib/services/metadata/metadata_provider.dart`, `lib/services/metadata/metadata_refresh_jobs.dart`: extend current typed matching/collection for packaging and documents; box-only LaunchBox does not replace scoring/label/trailer providers |
+| Drive/cache | `lib/services/metadata/metadata_cloud_library.dart`, `lib/services/metadata/drive_metadata_api.dart`, `lib/services/metadata/metadata_artwork_cache.dart`, `lib/services/metadata/preview_video_cache.dart`: reuse publish/integrity/ensure/lease/trim |
+| Geometry/ownership | `lib/models/socket_media_model.dart`, `lib/widgets/socket_media_renderer.dart`, `lib/services/socket_mesh_import.dart`, `lib/services/socket_media_import.dart`: preserve original-APK imports; add only current-stage owned packaging geometry/material/pose support |
+| Selection/display/input | `lib/features/preview/preview_screen.dart`, `lib/features/preview/dual_screen_preview_host.dart`, `lib/services/secondary_preview.dart`, `lib/providers/preview_providers.dart`: one selected edition/readiness owner, mode routing and cancellation |
+| Entry/settings | Existing game-detail and sectioned preview/settings surfaces: remove obsolete entry button, preserve central collector and concise icon controls |
+| Focused checks | Extend `test/preview_media_test.dart`, `test/secondary_preview_audio_test.dart`, `test/secondary_preview_lifecycle_test.dart`, `test/socket_media_model_test.dart`, `test/socket_mesh_import_test.dart`, `test/metadata_cloud_library_test.dart`, `test/metadata_refresh_jobs_test.dart`; native logs plus targeted visual evidence prove actual textures/motion |
+
+A small face-map/packaging type or focused viewer widget is justified by actual
+semantic data/input needs, not by speculative future providers. No new repository,
+service or factory layer is required merely because this plan spans several files.
+
+### S25 acceptance and evidence matrix
+
+Every row belongs to S25 and remains pending implementation/verification. These
+are complete-feature checks, not per-edit build checkpoints.
+
+| ID | Required result | Evidence |
+| --- | --- | --- |
+| P25-01 | Real primary/fallback box pipeline | Supplied 007 selected GBA edition: LaunchBox -> typed matching/provenance -> Drive -> cache -> rendered faces; incomplete/absent primary exercises compatible ScreenScraper or declared reconstructed faces, never mixed regional designs |
+| P25-02 | Applicable layers and geometry | Real GBA outer-panel set where available and fitted display case; keep/jewel presets and platform fallback dispatch; correct aspect/depth/orientation, matte materials, seam/hinge; no fictitious Switch cardboard/protector |
+| P25-03 | Interactive gallery | Box/Cartridge/Media, rotation/zoom/reset, L1/R1, touch/controller, default/imported/missing model states, removed entry download button, red theme and no papyrus regression |
+| P25-04 | Readiness/lifecycle | Current-game cover hold, 1.5-second full-left reveal, stable textures, rapid reselection, Reduced Motion, cached/offline/errors, secondary startup, retained focus and launch/companion ownership |
+| P25-05 | Documents/playback | An actual compatible manual opens with page/zoom controls and optional booklet; missing manual skips; screenshots/trailers keep identity, saved volume and music restoration |
+| P25-06 | Actual ranked GBA collection | Every distinct eligible game in saved Top 25 passes installed browsing: correct box, label/model, trailer/audio, finished reveal. Last baseline has 24 eligible games; read current selection, never fabricate 25 or count regional duplicates. Required failures block acceptance |
+| P25-07 | Classified publication/preservation | Acquired scans inspected/classified; admitted resources match editions/roles and remote digests; source archive on E:, unresolved inputs reference-only; valid covers/ROMs/saves preserved, bounded cache, no startup bulk refresh |
+| P25-08 | Production handoff | Affected checks/native matrix pass; GitHub-signed update retains signer/data/imports; public/installed bytes match; generic/adapted/specific ledger honest; expendable cleanup and both screens off |
+
+The 66-platform inventory records source/model gaps without requiring 66 bespoke
+meshes. Conversely, the mandatory real GBA sample, classified-resource workflow and
+viewer interactions cannot be waived because an isolated model or unit test works.
+No S25 requirement is deferred to S26; the rebranding evaluation remains separate.

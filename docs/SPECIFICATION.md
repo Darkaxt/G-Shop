@@ -34,6 +34,9 @@ Latest storage clarification: keep reference/source material on E:, and upload
 only final classified resources to private Google Drive, not the source archive.
 Verify the archive and any admitted uploaded resources; preserve active metadata
 and ROMs. Reference acquisition is not normalized ingestion or S25 acceptance.
+The full capability contract and ordered S25 execution plan are in the coverage
+document above. Defining that plan does not depend on finishing the archive
+download; source-byte inspection is implementation work, not a planning gate.
 
 Owner future S26 objective, 2026-10-17: evaluate G-Shop rebranding and removal
 of the original remote R-Shop server and standalone local-only collection modes.
