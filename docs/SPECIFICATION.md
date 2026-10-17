@@ -1,13 +1,34 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 72, 2026-10-17.
+Authoritative specification, revision 74, 2026-10-17.
 
-Current execution checkpoint: S24 is ACTIVE again following the owner's report
-that cartridge images and other GBA media do not work. The earlier completion
-claim is withdrawn: collected files, cloud receipts and a few selected previews
-do not prove the mandatory GBA Top 25 rendering workflow. S25/S26 retain their
-recorded evidence, not proof that this reported media regression is resolved.
-The wider Nintendo collection remains unfinished; it is not acceptance evidence.
+Current execution checkpoint: S24 is COMPLETE after the corrected GitHub-built
+1.9.17/code 33 passed the actual Thor gallery for all 24 eligible ranked GBA games,
+including rendered labels/covers, playing trailers at saved volume and the
+readiness-gated reveal. Native motion/edge inspection and public-release versus
+installed-byte verification also pass. Earlier receipt-only completion claims
+remain superseded, not reused as this proof. Expanded S25 remains NOT STARTED;
+the unchanged regional-filter evidence (historically numbered S26) remains
+applicable. The wider Nintendo
+collection is an ongoing durable product job, not completed-scrape evidence.
+
+Owner execution order, 2026-10-17: finish S24 and its verified delivery/cleanup
+handoff first. Evaluate the best S25 implementation from the supplied sources
+afterward, before implementing that gallery. The source/coverage review is
+recorded in [S25_PACKAGING_COVERAGE.md](S25_PACKAGING_COVERAGE.md); candidate
+listings do not count as downloaded, integrated or native-verified assets.
+Support Box -> Cover -> Cartridge where those distinct physical layers exist;
+do not require fictitious packaging or complete scans for every console.
+
+Owner future S26 objective, 2026-10-17: evaluate G-Shop rebranding and removal
+of the original remote R-Shop server and standalone local-only collection modes.
+Keep the Drive-backed product and our existing local downloads/offline operation,
+caches, save backups, imported resources, metadata services and emulator support.
+This replaces the future stage's name/scope, not the already verified REGION-01
+behavior formerly numbered S26. New S26 is NOT STARTED; evaluate its migration,
+update/authentication and retained-integration boundaries after S25 planning.
+No application identity, repository, Drive-root, configuration or source deletion
+is authorized merely by recording this evaluation request.
 
 Owner acceptance reaffirmation, 2026-10-17: do not replace the GBA Top 25 gate
 with a subset chosen because its resources already resolve. Verify the actual
@@ -62,7 +83,7 @@ same-edition box faces/textures when available; a static box-3D image does not
 provide unseen faces. Keep manufacturer/library browsing focus, companion/display
 ownership, the red theme, icon/section navigation and L1/R1 mode switching.
 The previous PREVIEW-START-01 startup behavior remains a satisfied requirement;
-these new S25 criteria are NOT STARTED while S24 alone remains ACTIVE. Record this
+these new S25 criteria were recorded while S24 alone was ACTIVE. Record this
 requested plan now; do not fold an unfinished interactive viewer into the current
 S24 correction/publication scope or claim the expanded S25 is COMPLETE.
 
@@ -76,6 +97,19 @@ fallback faces, not evidence of additional original scans. Preserve that distinc
 in per-face provenance. Missing extra faces must not block the best-effort box
 viewer or require a six-scan set. Verify real-face placement, generic missing-face
 rendering, unrestricted rotation and zoom for touch/controller input.
+
+Owner S25 geometry clarification, 2026-10-17: the supplied reference is a plastic
+display case, not a requirement to reconstruct an original cardboard retail box.
+Use a CD-style plastic case model adapted to the actual front/back artwork's
+aspect ratio, with depth derived from a compatible spine when available and a
+coherent generic depth otherwise. Do not fit dimensions to the entire unfolded
+spread or stretch artwork to a fixed CD square. Front/back/spine texture the
+corresponding faces; remaining edges use plain plastic with a visible case-opening
+divider/seam separating the two halves and a defined hinge section, not a solid
+featureless block. This requests modeled case structure, not an opening animation.
+Preserve scan layout and regional/edition matching. The viewer is a display-case
+presentation, not a claim that every platform's original packaging used this case. Verify aspect, face
+placement, plastic material, full rotation and zoom in S25.
 
 Owner S25 box-source extension, 2026-10-17: use LaunchBox Games Database as
 the preferred source of verified box faces for S25's interactive reconstructed
@@ -97,7 +131,7 @@ and cache mechanisms rather than introducing a general provider framework.
 At S25 entry, verify the current public metadata/image access path end-to-end,
 then render the supplied 007: Everything or Nothing GBA example and the required
 ranked GBA sample. Verify primary selection, absent/incomplete LaunchBox fallback,
-edition consistency, available-face rotation limits, zoom and offline reuse.
+edition consistency, original/fallback face placement, full rotation, zoom and offline reuse.
 Do not claim universal six-face coverage from this one game's regional images.
 The public Metadata.zip endpoint is a candidate index, not evidence that image
 URL extraction or the integrated Android workflow is already implemented.
@@ -125,8 +159,9 @@ Commercial collections show the first available matching release of each
 verified canonical game, with a Show all versions option. The rule does not
 apply to Hacks or Patches. It is a presentation preference, not deletion,
 re-download, metadata rematching or a change to the Top-25 retention policy.
-S26 owns this complete collection-filter outcome and is COMPLETE after
-S25 closure. Its acceptance contract is recorded in the extension document.
+This complete collection-filter outcome was historically numbered S26 and is
+COMPLETE. Its acceptance contract remains in the extension document; the owner's
+new G-Shop S26 objective does not remove or reopen the verified filter.
 
 The owner approved implementation on 2026-10-16. The authoritative
 [PREVIEW_ACQUISITION_SPECIFICATION.md](PREVIEW_ACQUISITION_SPECIFICATION.md)
@@ -134,7 +169,9 @@ defines S22 dual-screen browsing/gameplay media and the following S23 general
 website acquisition integration based on LolSuite Manager. The owner subsequently
 requested the R22 Thor production update and approved S24's separate Drive-backed
 metadata library with a configurable 2 GiB local media-cache default. S22 and R22
-are COMPLETE; S23 is NOT STARTED and S24-S26 are COMPLETE. Preserve all prior
+are COMPLETE; S23 is NOT STARTED and S24 is COMPLETE. Expanded S25 and the new
+G-Shop S26 are NOT STARTED; historical startup/filter acceptance is preserved.
+Preserve all prior
 data/authentication/launch/companion contracts.
 Implementation and scoped native verification are authorized; a new public
 release is not implied.

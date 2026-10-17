@@ -159,12 +159,21 @@ reorganization or unrelated desktop tooling port counts as completion.
 
 ## METADATA-CLOUD-01 — Drive-backed metadata and local cache (S24)
 
-Acceptance correction, 2026-10-17: S24 is ACTIVE again. The mandatory actual
+Acceptance correction, 2026-10-17 (resolved by the later S24 closure): S24 was
+reopened. The mandatory actual
 GBA Top 25 workflow is not passed by download/receipt counts or selected-game
 previews. Each ranked game's chosen release must resolve its correct box, actual
 cartridge label on the model and trailer/audio through installed Thor browsing.
 Do not choose a smaller sample solely from already collected media. The prior
 completion text is superseded where it asserts this gate has passed.
+
+Fresh closure, 2026-10-17: the GitHub-built public 1.9.17/code 33 passes every
+actual eligible ranked GBA entry (24 distinct games) through the installed Thor
+gallery, including decoded labels, correct covers, playing trailers at saved
+volume, and readiness-gated reveal. Native motion/edge review and published versus
+installed APK identity pass. S24 is COMPLETE; expanded S25 remains NOT STARTED.
+See SPECIFICATION.md revision 74 and the current status ledger for acceptance,
+scope and exact artifact evidence; historical receipt-only claims remain superseded.
 
 Acceptance sample added by the owner, 2026-10-17: GBA Top 25 distinct games must
 have real box artwork, their actual cartridge-label artwork in the physical-media
@@ -297,8 +306,10 @@ the chosen release launches by its exact existing identity. Focused fixtures
 cover missing/unknown/multi-region releases, stable same-region ties, distinct
 editions, multidisc bundles and unmodified Hacks/Patches. Native evidence must
 show a real duplicate group switching preferred regions and Show all versions.
-S26 is COMPLETE after S25 closure; it is independent of S24 cache/rendering acceptance and does
-not authorize deleting alternatives or expanding the current implementation stage.
+Historical REGION-01 (formerly S26) is COMPLETE; it is independent of S24
+cache/rendering acceptance and does not authorize deleting alternatives or
+expanding the current implementation stage. The new G-Shop S26 evaluation does
+not remove this filter or inherit its COMPLETE status.
 
 ## Execution
 
@@ -340,7 +351,9 @@ facts, scores or game identity to repair these legacy resource selectors.
 S22 is COMPLETE with host/native acceptance, signed verification, reviewed cleanup
 and remote source delivery recorded in IMPLEMENTATION_STATUS.md. R22's signed
 1.9.2 in-place Thor delivery is COMPLETE. S23 is NOT STARTED; S24 is COMPLETE and
-S25 and S26 are COMPLETE. Each is a separately requested
+the original startup-only S25 and regional-filter S26 results are historical.
+Expanded S25 and the owner's new G-Shop S26 objective remain NOT STARTED.
+Each is a separately requested
 following outcome, not a deferral excusing any S22 acceptance criterion. Earlier
 S0-S21/QA/release results remain applicable except where changed integration is
 explicitly reverified. Every required gap is kept in the existing status ledger.

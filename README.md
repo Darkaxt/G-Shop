@@ -4,13 +4,13 @@ A fork of [AverageConsumer/R-Shop](https://github.com/AverageConsumer/R-Shop) fo
 
 [Download the latest APK](https://github.com/Darkaxt/R-Shop/releases/latest) · [Add to Obtainium / ObtainX](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Darkaxt/R-Shop) · [Upstream project](https://github.com/AverageConsumer/R-Shop)
 
-Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current release: **1.9.1**
+Production package: `com.darkaxt.rshop` · APK: `app-release.apk` · Android 7.0+ · Current release: **1.9.17**
 
 <p align="center">
   <img src="screenshots/thor/gba-artwork-3d-up.png" width="960" alt="R-Shop on AYN Thor: ranked GBA games with box covers, source-attributed scores, cloud badges and a separately textured Mega Man Zero 3 cartridge" />
 </p>
 
-*Real Thor capture of the signed validation update on this branch. The latest public release is still 1.9.1; the new collection/patch and bounded-artwork changes shown here have not yet been published. Imported 3D resources come from the owner's original Socket APK and are not bundled with R-Shop.*
+*Real Thor capture from the signed validation work now included in public 1.9.17. Imported 3D resources come from the owner's original Socket APK and are not bundled with R-Shop.*
 
 ## What changes from the original?
 
@@ -36,7 +36,7 @@ Comparison baseline: upstream's [README](https://github.com/AverageConsumer/R-Sh
 
 ## A tour on AYN Thor
 
-Unaltered 1920 × 1080 captures from the Thor's upper display. The fresh-artwork section shows the signed validation update; the earlier gallery shows published **1.9.1/code 15**. Counts and artwork reflect this collection, not bundled content or complete metadata coverage. Open an image to inspect the full-size view.
+Unaltered 1920 × 1080 captures from the Thor's upper display. The fresh-artwork section was captured during validation; the earlier gallery shows **1.9.1/code 15**. These features are now included in public 1.9.17. Counts and artwork reflect this collection, not bundled content or complete metadata coverage. Open an image to inspect the full-size view.
 
 ### Fresh artwork: box covers are not cartridge labels
 
@@ -112,24 +112,28 @@ The cache image shows the owner's current policy, not a requirement to enable de
 3. For Drive, authorize your account and select/map your own folders. Google OAuth application registration is required; the maintainer's private testing registration is not unrestricted public access. See [setup notes](docs/DEVELOPMENT_SETUP.md) when configuring your own clients.
 4. Configure ScreenScraper/IGDB in **Settings → Game metadata** for fresh metadata and ratings. ScreenScraper needs user and authorized application credentials; IGDB needs application credentials. They are not included in the APK. Gathering metadata is separate from refreshing the game catalogue.
 5. Optionally connect shared metadata/ES-DE folders, set cache policy, select save locations and link per-game companions. Root supports emulator-private locations where ordinary access is insufficient; basic library browsing does not require root.
-6. Flat media previews are the default. Optionally import your own supported original **Socket Launcher 0.7 APK** in **Settings → Media previews**, then explicitly enable 3D. Missing/loading artwork and reduced motion skip the box reveal.
+6. Flat media previews are the default. Optionally import your own supported original **Socket Launcher 0.7 APK** in **Settings → Media previews**, then explicitly enable 3D. The cover holds until selected media is ready, then slides left over 1.5 seconds. Reduced motion skips that animation; genuinely missing artwork keeps its fallback.
 
 Updates retain `com.darkaxt.rshop` and its production signing identity. This differs from upstream's package, so installing alongside upstream does not automatically migrate upstream's app-private data. Release assets include checksums and source/build provenance.
 
-## Development preview: two-screen browsing
+## Two-screen browsing and cloud media
 
-The development branch provides a full-width 4×2 library gallery on the main
+R-Shop provides a full-width 4×2 library gallery on the main
 screen and the selected game's flat/imported 3D media on the second screen.
 Select a game for metadata and launch options; moving to another game restores
 its preview without moving controller focus out of the gallery. Single-screen
 browsing retains the existing layout. Selection, imported media, trailer sound
-and real ROM launch/return have been verified on the Thor. These changes are not
-in public release 1.9.1.
+and real ROM launch/return have been verified on the Thor. The 1.9.17 signed
+GitHub build also passed the complete actual eligible GBA ranked sample: 24 games
+with separate box/cartridge artwork, playing trailers and the saved volume.
 
 **Settings → Media previews** separates Background, Appearance, Playback and
 Storage controls. Gameplay backgrounds prefer a cached clip, then screenshots,
-then the red background. Media is downloaded explicitly, not on every highlight;
-the default policy is Wi-Fi with a bounded 512 MiB video cache.
+then the red background. Drive-backed resources are organized by console/game,
+with selected or visible media fetched in the background and reused locally.
+The combined artwork/screenshot/trailer cache defaults to 2 GiB, adjustable in
+Settings; imported Socket resources, ROMs and saves are outside that budget.
+Startup uses the saved collection instead of automatically refreshing it.
 
 Trailer sound follows **Settings → Audio → Music** (30% by default) and respects
 Sound off. While the trailer plays, launcher music is muted; pausing or leaving
@@ -147,8 +151,8 @@ it without replacing the existing companion app.
 
 ## Move your R-Shop setup to another device
 
-The development branch adds **Settings → General → Device migration**. This is
-separate from public configuration sharing and is not yet in release 1.9.1.
+**Settings → General → Device migration** is included in 1.9.17 and remains
+separate from public configuration sharing.
 
 Choose **Backup**, set a password of at least 12 characters, then share the single
 encrypted `.rshop` file. On the destination, choose **Restore**, select that file

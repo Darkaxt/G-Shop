@@ -5,14 +5,86 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-S24 is the only ACTIVE stage. The owner has now requested an S25 interactive
-media-gallery plan: remove per-entry media downloading; offer Box, Cartridge and
-Media modes, rotation/zoom, screenshots/trailers and touch/controller navigation.
-Expanded S25 is NOT STARTED. Its prior startup warm-up criteria remain verified;
-that historical completion does not satisfy the new gallery criteria. Current
-S24 publication remains scoped to its complete correction, not this future viewer.
+S24 is COMPLETE and public 1.9.17/code 33 is installed on Thor. No implementation
+stage is ACTIVE at this checkpoint. Expanded S25 is NOT STARTED: its plan now
+covers Box/Cartridge/Media modes, LaunchBox-first box faces with ScreenScraper
+fallback, adapted plastic display cases with a seam/hinge, best-effort missing
+faces, full rotation/zoom and touch/controller navigation. Its earlier startup-only
+verification does not satisfy this new gallery. S23 acquisition remains NOT STARTED.
+The owner's latest instruction is S24 closure first, then S25 source evaluation.
+The existing [packaging coverage review](S25_PACKAGING_COVERAGE.md) is retained;
+no S25 renderer/provider implementation has begun. Future S26 is the requested
+G-Shop rebranding/source-scope evaluation, NOT STARTED. Historical REGION-01
+(formerly S26) remains COMPLETE; it is not completion evidence for the rebrand.
 
-### Current correction, 2026-10-17 — S24 ACTIVE
+### S24 correction closure — COMPLETE, 2026-10-17
+
+- GitHub run 39039861817 builds/tests/signs source 59b28cb with the existing
+  production certificate. The earlier Linux-only fixture failure is resolved;
+  verification was not disabled. CI exits successfully; no memory failure occurs.
+  Hosted command uses two workers/no parallel and in-process Kotlin; Gradle's
+  configured heap is 3 GiB, with one 512 MiB test fork. This is a Linux hosted
+  build, not an additional Windows Gradle run. Prior Windows gate 1402 acquired
+  the shared mutex and verified its observed profile and daemon exit.
+- The downloaded CI artifact, public v1.9.17 asset, downloaded published APK and
+  installed Thor base.apk all have SHA-256
+  `425648704a9f3f110d9fe972b1a6a13a8b84aaacd71a251608e75152ba3309ab`.
+  Package/code are com.darkaxt.rshop/33; certificate SHA-256 remains
+  `075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
+  Ordinary and secure preferences remain byte-identical across in-place install
+  before launch; no uninstall/data clear occurs. Private Socket assets are absent
+  from the APK; existing imported models remain available on the Thor.
+- Actual saved Top 25 filter yields 24 distinct eligible GBA games. The complete
+  real gallery pass records 24/24 cover/decoded-label/model/resources/video-playing/
+  reveal-completed results, with each actual cartridge capture visually reviewed.
+  Player volume always equals saved .22485692962990014. Native reveal intervals
+  are 1,498,430–1,507,204 microseconds. No 25th game or regional duplicate is added.
+- One bounded host-only secondary recording confirms readable gentle wobble,
+  shallow depth, cover hold during resource readiness, sliding through the physical
+  left edge and an unobscured final cartridge. Full-resolution transition frames
+  were inspected. The recording's raw-H.264 timeline is estimated, not timing
+  evidence; its 96-frame export budget omits later context, so no full-recording
+  anomaly-free claim is made. Native events supply reveal timing instead.
+- Cold launch reports TotalTime 1,258 ms; hidden renderer/resources readiness is
+  1.121/1.761 s. No startup ROM bulk refresh or remote whole-metadata pull is
+  observed. Local backup publication is allowed. Existing oldest-refresh/hint,
+  query/ranking, cloud/cache/recovery, audio and reduced-motion checks remain
+  applicable to unchanged paths. Card badge geometry and settled native IGDB
+  0–10 placement were previously verified on code 32; those paths are unchanged.
+- The same Nintendo resource-only job 89 resumes from 728 lookups/734 matches to
+  948 lookups/981 matches, with 1,697 pending, three no-match and three failed or
+  unsupported entries at the final checkpoint. It is paused through the ordinary
+  product control before both screens are switched OFF, because device Wi-Fi
+  sleeps while locked. This is a continuing saved product job, not completed
+  collection-wide scraping or a replacement job.
+  Android also displays an external microG Services crash dialog at cold launch;
+  it is dismissed without changing its data. No R-Shop crash is established, and
+  the required cached/selected-resource workflow passes. No microG repair is claimed.
+- S24's required blockers and tracked deferrals are resolved. Prior cloud/cache
+  acceptance and the focused host checks are reused only for unchanged relevant
+  behavior. Closure assessment finds no acceptance-obstructing duplicate owner or
+  architectural debt requiring new work; no speculative refactoring is added.
+  S25's newly requested interactive viewer is separate required scope, not a
+  deferral used to excuse S24 acceptance.
+- Reviewed task-only build/duplicate-CI/motion-analysis cleanup is APPLIED under
+  transactions df1a6f24d27a56f271aadcc27725c27d,
+  c28167c025cfd302e8ec07c5437b939c, ee29c29faa09087ffcc730a87fe5b3a9
+  and 6d8e6536ba2b20785f26177293611b24. Exact generated hard-link names were
+  separately reviewed; no broad deletion or Gradle gate was used for cleanup.
+  Generated build/.cxx and test-failure output are absent. Published deliverables,
+  bounded private acceptance evidence, source references, signing/configuration,
+  imported assets, ROMs and saves are retained. Logical receipt bytes are not
+  claimed as a physical free-space measurement.
+- Final handoff recheck confirms public release/tag and successful CI source,
+  the installed version 1.9.17/code 33, the same public/installed SHA-256, all
+  24 distinct saved audit results and retained captures, and both displays OFF.
+  No extra build, scrape, reinstall or device wake is needed for documentation.
+
+Release: https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.17 . Durable published
+artifacts are retained at D:/Releases/R-Shop/1.9.17. Private per-game audit reports
+and source images are not committed or attached to the public release.
+
+### Correction history, 2026-10-17 — superseded by the verified closure above
 
 The owner reports missing cartridge images and other GBA resources in installed
 1.9.16. The earlier S24 COMPLETE claim below is withdrawn. File/receipt checks
@@ -128,6 +200,14 @@ available-spine reuse is also allowed where coherent. Default to generic faces
 instead of repeated text/barcodes. Retain original-versus-reconstructed per-face
 provenance; do not block the viewer on six original scans. This remains S25 scope,
 not a change to S24's active implementation or build.
+Revision 73 records the owner's subsequent plastic display-case reference:
+adapt CD-style case geometry to the actual artwork panel aspect, derive depth
+from the compatible spine where available, and use plain plastic edges. This
+supersedes treating the viewer as authentic six-face cardboard reconstruction;
+it does not claim this aftermarket-style presentation was original retail packaging.
+The owner additionally requires a visible divider/opening seam and hinge section
+in the plain plastic, distinguishing the two case halves. This is S25 geometry,
+not an additional case-opening animation or a change to the released S24 preview.
 
 S25-only source review, 2026-10-17: the owner's supplied LaunchBox game 26125
 is the Nintendo Game Boy Advance edition of 007: Everything or Nothing. Its
