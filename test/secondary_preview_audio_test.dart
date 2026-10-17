@@ -4,6 +4,35 @@ import 'package:retro_eshop/services/secondary_preview.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('startup preparation does not present a window or select a game',
+      () async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final calls = <MethodCall>[];
+    messenger.setMockMethodCallHandler(SecondaryPreview.channel, (call) async {
+      calls.add(call);
+      return null;
+    });
+    final bridge = SecondaryPreview();
+    addTearDown(() {
+      bridge.dispose();
+      messenger.setMockMethodCallHandler(SecondaryPreview.channel, null);
+    });
+    await bridge.prepare(
+        enabled: true,
+        resourceRoot: '/private/socket-media',
+        resourceGeneration: 'generation');
+    expect(calls.map((call) => call.method), ['prepare']);
+    expect(calls.single.arguments, {
+      'enabled': true,
+      'resourceRoot': '/private/socket-media',
+      'resourceGeneration': 'generation'
+    });
+    await bridge.prepare(enabled: false);
+    expect(calls.last.method, 'prepare');
+    expect(calls.last.arguments, {'enabled': false});
+  });
+
   test('only current player controls music, and hide releases suppression',
       () async {
     final changes = <bool>[];

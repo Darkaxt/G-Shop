@@ -207,17 +207,21 @@ final cachedMetadataArtworkProvider =
 
 final cachedMetadataCoversProvider = FutureProvider.autoDispose
     .family<Map<String, String?>, String>((ref, scope) async {
-  ref.watch(gameDbChangedProvider);
-  ref.watch(librarySyncServiceProvider.select((s) => s.completedSystems));
   var active = true;
   ref.onDispose(() => active = false);
+  final cache = await ref.watch(cachedMetadataArtworkProvider);
+  // Drive-backed cards own their exact mounted selection. The old local-only
+  // whole-console reader must not compete with them or prefetch the collection.
+  if (!active || cache.sharedStore?.cloudManaged == true) return const {};
+  ref.watch(gameDbChangedProvider);
+  ref.watch(librarySyncServiceProvider.select((s) => s.completedSystems));
   final db = await ref.watch(libraryDbProvider).database;
   await ref.watch(cachedMetadataReadinessProvider.future);
-  final cache = await ref.watch(cachedMetadataArtworkProvider);
   final query = LibraryQuery(Future.value(db));
   var cursor = 0;
   final result = <String, String?>{};
   while (active) {
+    if (cache.sharedStore?.cloudManaged == true) return const {};
     final rows = await db.query('games',
         columns: ['id', 'systemSlug', 'filename', 'artifact_key'],
         where: 'id > ? AND is_folder = 0'

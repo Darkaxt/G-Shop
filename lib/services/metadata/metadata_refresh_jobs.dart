@@ -440,32 +440,72 @@ class MetadataRefreshJobs {
           mediaKeys: mediaKeys);
 
   Future<MetadataRefreshReport> createResourcesFromCatalogue(
-          {required String providerId,
-          String? systemSlug,
-          List<String>? systemSlugs}) =>
-      _createArtwork(
-          providerId: providerId,
-          collectionGeneration: 'saved-metadata-resources',
-          resourcesOnly: true,
-          editions: (txn) async* {
-            if (systemSlug != null && systemSlugs != null)
-              throw ArgumentError('Choose one resource scope');
-            for (final system in systemSlugs?.toSet() ?? {systemSlug}) {
-              await for (final edition
-                  in LibraryStore.catalogueEditions(txn, systemSlug: system)) {
+      {required String providerId,
+      String? systemSlug,
+      List<String>? systemSlugs,
+      bool top25PerSystem = false}) {
+    if (systemSlug != null && systemSlugs != null ||
+        top25PerSystem && providerId != 'screenscraper') {
+      throw ArgumentError('Choose one valid resource scope');
+    }
+    final coverage = top25PerSystem ? <String, Map<String, int>>{} : null;
+    return _createArtwork(
+        providerId: providerId,
+        collectionGeneration: 'saved-metadata-resources',
+        resourcesOnly: true,
+        selectionCoverage: coverage,
+        editions: (txn) async* {
+          if (top25PerSystem) {
+            final systems = systemSlugs ??
+                (systemSlug != null
+                    ? [systemSlug]
+                    : (await txn.rawQuery(
+                            'SELECT DISTINCT systemSlug FROM games WHERE is_folder=0 ORDER BY systemSlug'))
+                        .map((r) => r['systemSlug'] as String)
+                        .toList());
+            final sample =
+                await LibraryQuery.rankedMetadataSelection(txn, systems);
+            for (final entry in sample.entries) {
+              coverage![entry.key] = {
+                'selected': entry.value.items.length,
+                'eligible': entry.value.rankedGames,
+                'collection': entry.value.collectionGames,
+              };
+              for (final item in entry.value.items) {
+                yield item.editionId;
+              }
+            }
+            return;
+          }
+          // Resource collection consumes existing matches; catalogue capture
+          // creates/classifies unmatched identities and holds the write lock
+          // across every unrelated ROM. Page matched records instead, retaining
+          // the exact current-catalogue and metadata-binding checks.
+          for (final system in systemSlugs?.toSet() ?? {systemSlug}) {
+            var cursor = '';
+            while (true) {
+              final records = await txn.rawQuery('''SELECT m.edition_id,
+                m.identity_key FROM library_metadata m
+                JOIN library_editions e ON e.edition_id=m.edition_id
+                JOIN library_game_identities g ON g.game_id=e.game_id
+                WHERE m.provider_id=? AND m.edition_id>?
+                ${system == null ? '' : 'AND g.platform_id=?'}
+                ORDER BY m.edition_id LIMIT 128''',
+                  [providerId, cursor, if (system != null) system]);
+              if (records.isEmpty) break;
+              for (final record in records) {
+                final edition = record['edition_id'] as String;
                 final identity = await _identity(txn, edition);
-                if (identity == null) continue;
-                final record = await txn.query('library_metadata',
-                    where: 'edition_id=? AND provider_id=?',
-                    whereArgs: [edition, providerId],
-                    limit: 1);
-                if (record.isNotEmpty &&
-                    record.single['identity_key'] ==
+                if (identity != null &&
+                    record['identity_key'] ==
                         LibraryStore.metadataIdentity(identity,
                             providerId: providerId)) yield edition;
               }
+              cursor = records.last['edition_id'] as String;
             }
-          });
+          }
+        });
+  }
 
   Future<MetadataRefreshReport?> artworkForMetadata(int id) async {
     final db = await _database;
@@ -546,6 +586,7 @@ class MetadataRefreshJobs {
       int? metadataJobId,
       int? metadataGeneration,
       bool resourcesOnly = false,
+      Map<String, Map<String, int>>? selectionCoverage,
       int? retryArtworkJobId}) async {
     if (providerId.trim().isEmpty || collectionGeneration.trim().isEmpty) {
       throw ArgumentError('Artwork scope is required');
@@ -603,6 +644,9 @@ class MetadataRefreshJobs {
         for (final media in metadataJobId == null && !resourcesOnly
             ? record.media
             : MetadataArtworkCache.displayMedia(record,
+                regions: EditionIdentity.fromJson(
+                        jsonDecode(identity['edition_json'] as String))
+                    .regions,
                 includePhysicalLabel: true,
                 includeVideo: (await _sharedStore)?.cloudManaged == true)) {
           final mediaKey = MetadataArtworkCache.key(media);
@@ -641,6 +685,11 @@ class MetadataRefreshJobs {
               where: 'metadata_job_id = ?', whereArgs: [metadataJobId]);
         }
       }
+      if (selectionCoverage != null) {
+        await txn.update('metadata_refresh_jobs',
+            {'selection_json': jsonEncode(selectionCoverage)},
+            where: 'id=?', whereArgs: [id]);
+      }
       return id;
     });
     return report(id);
@@ -666,8 +715,15 @@ class MetadataRefreshJobs {
     }
     final record = MetadataRecord.fromJson(
         jsonDecode(records.single['record_json'] as String));
-    return record.media
-        .any((m) => MetadataArtworkCache.key(m) == item['media_key']);
+    return [
+      ...record.media,
+      ...MetadataArtworkCache.displayMedia(record,
+          regions: EditionIdentity.fromJson(
+                  jsonDecode(identity['edition_json'] as String))
+              .regions,
+          includePhysicalLabel: true,
+          includeVideo: true)
+    ].any((m) => MetadataArtworkCache.key(m) == item['media_key']);
   }
 
   /// User-requested retry is a new snapshot, never an automatic busy loop or a

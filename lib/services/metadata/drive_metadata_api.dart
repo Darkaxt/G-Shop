@@ -349,7 +349,7 @@ class DriveMetadataApi implements MetadataCloudRemote {
         existing == null
             ? 'upload/drive/v3/files'
             : 'upload/drive/v2/files/$id',
-        existing == null ? 'POST' : 'PATCH',
+        existing == null ? 'POST' : 'PUT',
         query: {'uploadType': 'multipart', 'fields': 'id'},
         body: body,
         contentType: 'multipart/related; boundary=$boundary',
@@ -359,8 +359,8 @@ class DriveMetadataApi implements MetadataCloudRemote {
   }
 
   // Drive v3 removed File.etag and does not promise an HTTP response ETag.
-  // The documented v2 resource and patch endpoint retain native conditional
-  // writes. Revalidate the same app-owned identity in that representation; no
+  // The v2 resource retains ETags: content uses its PUT upload endpoint, while
+  // metadata-only mutations use PATCH. Revalidate the app-owned identity; no
   // additional OAuth scope or unguarded write fallback is introduced.
   Future<({String etag, List<Map<String, dynamic>> properties})>
       _mutationVersion(MetadataCloudFile file) async {

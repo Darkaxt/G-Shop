@@ -862,6 +862,7 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
               Icons.perm_media_outlined,
               enabled
                   ? () => controls.collectResources(
+                      top25PerSystem: _top25,
                       systemSlug: _scope == _selectedSystems ? null : _scope,
                       systemSlugs: _scope == _selectedSystems
                           ? widget.systemSlugs

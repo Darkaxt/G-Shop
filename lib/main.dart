@@ -13,6 +13,7 @@ import 'providers/game_providers.dart';
 import 'providers/ra_providers.dart';
 import 'providers/library_providers.dart';
 import 'providers/metadata_cloud_providers.dart';
+import 'providers/preview_providers.dart';
 import 'providers/source_health_providers.dart';
 import 'providers/rom_status_providers.dart';
 import 'providers/save_backup_providers.dart';
@@ -189,6 +190,10 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Prepare after the first main frame, without waiting for catalogue/auth
+      // work or showing a window over the user's bottom-screen companion.
+      debugPrint('Preview startup: main first-frame callback');
+      ref.read(secondaryPreviewProvider);
       final configAsync = await ref.read(bootstrappedConfigProvider.future);
       _checkAutomaticSaveBackups();
       ref

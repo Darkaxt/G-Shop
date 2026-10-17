@@ -370,10 +370,16 @@ class MetadataArtworkCache {
 
   Future<File?> _fileFor(
       String editionId, String providerId, MetadataMedia media) async {
-    final metadata =
-        await LibraryStore(_database).metadata(editionId, providerId);
+    final store = LibraryStore(_database);
+    final metadata = await store.metadata(editionId, providerId);
     final mediaKey = key(media);
-    if (metadata == null || !metadata.media.any((m) => key(m) == mediaKey)) {
+    if (metadata == null) return null;
+    final regions =
+        (await store.edition(editionId))?.regions ?? const <String>[];
+    if (![
+      ...metadata.media,
+      ...displayMedia(metadata, regions: regions, includePhysicalLabel: true)
+    ].any((m) => key(m) == mediaKey)) {
       return null;
     }
     final db = await _database;
@@ -413,7 +419,31 @@ class MetadataArtworkCache {
   /// This same selection is snapshotted by the normal refresh, so it does not
   /// download every regional cover, logo, video or background the API offers.
   static List<MetadataMedia> displayMedia(MetadataRecord record,
-      {bool includePhysicalLabel = false, bool includeVideo = false}) {
+      {bool includePhysicalLabel = false,
+      bool includeVideo = false,
+      Iterable<String> regions = const []}) {
+    final labels = physicalLabels(record, regions: regions);
+    MetadataMedia? video =
+        record.media.where((m) => m.type == 'video-normalized').firstOrNull ??
+            record.media.where((m) => m.type == 'video').firstOrNull;
+    // Older collectors retained image selectors but omitted gameplay video.
+    // Reuse the same verified provider identity; this requests a resource,
+    // not a new game match or a claim that the provider has a valid clip.
+    if (includeVideo && video == null && record.providerId == 'screenscraper') {
+      final reference = record.media
+          .map((m) => m.providerReference)
+          .whereType<ScreenScraperMediaReference>()
+          .where((r) => r.providerGameId == record.providerGameId)
+          .firstOrNull;
+      if (reference != null) {
+        video = MetadataMedia(
+            type: 'video',
+            providerReference: ScreenScraperMediaReference(
+                providerGameId: record.providerGameId,
+                providerPlatformId: reference.providerPlatformId,
+                mediaType: 'video'));
+      }
+    }
     MetadataMedia? cover;
     for (final type in ['box-2D', 'box-3D', 'cover']) {
       final matches = record.media.where((m) => m.type == type);
@@ -422,19 +452,79 @@ class MetadataArtworkCache {
         break;
       }
     }
+    // Legacy verified records may omit the front-box selector while retaining
+    // the provider's physical-label reference. This is a typed API request, not
+    // an assertion that artwork exists: only a validated response is published.
+    if (cover == null &&
+        record.providerId == 'screenscraper' &&
+        labels.isNotEmpty) {
+      final label = labels.first;
+      final reference = label.providerReference;
+      if (reference != null &&
+          reference.providerGameId == record.providerGameId) {
+        cover = MetadataMedia(
+            type: 'box-2D',
+            region: label.region,
+            providerReference: ScreenScraperMediaReference(
+                providerGameId: reference.providerGameId,
+                providerPlatformId: reference.providerPlatformId,
+                mediaType: 'box-2D',
+                region: reference.region));
+      }
+    }
     return [
       if (cover != null) cover,
-      if (includePhysicalLabel)
-        ...record.media.where((m) => m.type == 'support-texture'),
+      if (includePhysicalLabel) ...labels,
       ...record.media.where((m) => {'ss', 'screenshot'}.contains(m.type)),
-      if (includeVideo)
-        if (record.media
-                    .where((m) => m.type == 'video-normalized')
-                    .firstOrNull ??
-                record.media.where((m) => m.type == 'video').firstOrNull
-            case final video?)
-          video
+      if (includeVideo && video != null) video
     ];
+  }
+
+  /// World releases can use a representative English-market label. Exact
+  /// regional editions never borrow a foreign label; unresolved same-region
+  /// alternatives remain ambiguous. Disc members stay individually associated.
+  static List<MetadataMedia> physicalLabels(MetadataRecord record,
+      {Iterable<String> regions = const []}) {
+    String normalized(String value) => switch (value.trim().toLowerCase()) {
+          'usa' => 'us',
+          'europe' => 'eu',
+          'japan' || 'japon' => 'jp',
+          'world' => 'wor',
+          'france' => 'fr',
+          _ => value.trim().toLowerCase()
+        };
+    final explicit = regions
+        .map(normalized)
+        .where((v) => v.isNotEmpty && v != 'wor')
+        .toSet();
+    final evidence = record.matchEvidence['region'];
+    if (explicit.isEmpty &&
+        evidence is String &&
+        normalized(evidence) != 'wor') {
+      explicit.add(normalized(evidence));
+    }
+    final labels =
+        record.media.where((m) => m.type == 'support-texture').toList();
+    final preferred = explicit.length == 1
+        ? [explicit.single, 'wor', '']
+        : explicit.isNotEmpty
+            ? ['wor', '']
+            : ['wor', '', 'us', 'eu', 'jp'];
+    List<MetadataMedia> selected = [];
+    for (final region in preferred) {
+      selected =
+          labels.where((m) => normalized(m.region ?? '') == region).toList();
+      if (selected.isNotEmpty) break;
+    }
+    if (selected.isEmpty && explicit.isEmpty && labels.length == 1) {
+      selected = labels;
+    }
+    if (selected.length <= 1) return selected;
+    if (selected.every((m) => m.memberIndex != null) &&
+        selected.map((m) => m.memberIndex).toSet().length == selected.length) {
+      return selected;
+    }
+    return const [];
   }
 
   Future<({String? cover, String? supportTexture, List<String> screenshots})>
@@ -447,14 +537,19 @@ class MetadataArtworkCache {
     String? cover;
     String? supportTexture;
     final screenshots = <String>[];
+    final regions =
+        (await LibraryStore(_database).edition(editionId))?.regions ??
+            const <String>[];
     for (final provider in ['screenscraper', 'romm']) {
       final record =
           await LibraryStore(_database).metadata(editionId, provider);
       if (record == null) continue;
-      final labels = record.media
+      final selectedMedia =
+          displayMedia(record, regions: regions, includePhysicalLabel: true);
+      final labels = selectedMedia
           .where((m) => m.type == 'support-texture' && m.memberIndex == null)
           .toList();
-      for (final item in displayMedia(record, includePhysicalLabel: true)) {
+      for (final item in selectedMedia) {
         final isCover = {'box-2D', 'box-3D', 'cover'}.contains(item.type);
         final isScreenshot = {'ss', 'screenshot'}.contains(item.type);
         final isLabel = item.type == 'support-texture' &&

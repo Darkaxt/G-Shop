@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/commercial_release_preference.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/library_query.dart';
@@ -242,6 +243,147 @@ void main() {
   Future<LibraryQueryPage> read({LibraryQueryFilter? filter}) => query
       .page(filter: filter ?? LibraryQueryFilter(), assessedBases: [basis]);
 
+  test(
+      'commercial preference keeps the best available region without changing ranks',
+      () async {
+    final usa = await seed(1, group: 'same', score: 95);
+    final eur = await seed(2, group: 'same', score: 95, regions: ['Europe']);
+    final jpn = await seed(3, group: 'same', score: 95, regions: ['Japan']);
+    final unique = await seed(4, score: 90, regions: ['Korea']);
+    final hack = await seed(5, tags: {'Hack'}, regions: ['USA']);
+    final translated =
+        await seed(6, group: 'same', tags: {'T-Eng'}, regions: ['USA']);
+    const preference = CommercialReleasePreference();
+    Future<LibraryQueryPage> selected(CommercialReleasePreference value,
+            {int? top, String? search}) =>
+        read(
+            filter: LibraryQueryFilter(
+                releasePreference: value,
+                includeVariants: true,
+                top: top,
+                search: search));
+    final page = await selected(preference);
+    expect(page.items.map((e) => e.editionId).toSet(),
+        {eur, unique, hack, translated});
+    expect(page.rankedGames, 2);
+    final top = await selected(preference, top: 1);
+    expect(top.items.single.editionId, eur);
+    expect(top.items.single.rank, 1);
+    expect(
+        (await selected(preference.move(1, -1))).items.map((e) => e.editionId),
+        contains(usa));
+    expect(
+        (await selected(preference.move(2, -2))).items.map((e) => e.editionId),
+        contains(jpn));
+    expect(
+        (await selected(preference.showingAll(true)))
+            .items
+            .map((e) => e.editionId)
+            .toSet(),
+        {usa, eur, jpn, unique, hack, translated});
+    // Search intersects available releases, never switches to a hidden namesake
+    // outside that search or invents a new score.
+    expect(
+        (await selected(preference, search: 'Game 1')).items.single.editionId,
+        usa);
+  });
+
+  test(
+      'release preference preserves same-region revisions and complete bundles',
+      () async {
+    final us = await seed(1, group: 'bundle');
+    final eu = await seed(2, group: 'bundle', regions: ['Europe']);
+    final rev = await seed(3, group: 'bundle', regions: ['Europe']);
+    final original = (await store.edition(eu))!;
+    final members = [
+      for (var disc = 1; disc <= 2; disc++)
+        EditionMember(
+            artifactId: RemoteArtifactId(
+                providerId: 'drive',
+                sourceId: 'source',
+                providerFileId: 'disc-$disc'),
+            discNumber: disc)
+    ];
+    await store.putEdition(EditionIdentity.fromJson({
+      ...original.toJson(),
+      'members': members.map((e) => e.toJson()).toList()
+    }));
+    final revision = (await store.edition(rev))!;
+    await store.putEdition(
+        EditionIdentity.fromJson({...revision.toJson(), 'revision': 'Rev 1'}));
+    final multi = await seed(4, group: 'multi', regions: ['USA', 'Europe']);
+    await seed(5, group: 'multi', regions: ['Japan']);
+    final unknown = await seed(6, group: 'ambiguous');
+    final unknownEdition = (await store.edition(unknown))!;
+    final unknownGame = (await store.game(unknownEdition.gameId))!;
+    await store.putGame(GameIdentity.fromJson(
+        {...unknownGame.toJson(), 'matchStatus': 'ambiguous'}));
+    final page = await read(
+        filter: LibraryQueryFilter(
+            releasePreference: const CommercialReleasePreference(),
+            includeVariants: true));
+    expect(
+        page.items.map((e) => e.editionId).toSet(), {eu, rev, multi, unknown});
+    expect(page.items.map((e) => e.editionId), isNot(contains(us)));
+    expect((await store.edition(eu))!.members.map((m) => m.discNumber), [1, 2]);
+  });
+
+  test(
+      'release discovery does not reintroduce hidden alternatives as legacy fallback',
+      () async {
+    await seed(1, group: 'same', regions: ['USA'], score: 95);
+    await seed(2, group: 'same', regions: ['Europe'], score: 95);
+    await seed(3, group: 'unique', regions: ['Brazil']);
+    final keys = [
+      for (var i = 1; i <= 3; i++) coverRatingKey('psx', 'Game $i.7z')
+    ];
+    final result = (await query.discover(
+        filter: LibraryQueryFilter(
+            platformIds: {'psx'},
+            releasePreference: const CommercialReleasePreference(),
+            featuredTop: 100),
+        orderedKeys: keys,
+        isCurrent: () => true,
+        assessedBases: [basis]))!;
+    expect(result.groups.values.expand((e) => e), [keys[1], keys[2]]);
+    expect(result.boundKeys, keys.toSet());
+    expect(result.featuredRanks.values, [1]);
+    expect(result.totalMatches, 2);
+    expect(await db.query('library_query_views'), isEmpty);
+  });
+
+  test(
+      'provider-verified canonical releases do not require manual game assignment',
+      () async {
+    final usa = await seed(1, regions: ['USA']);
+    final eur = await seed(2, regions: ['Europe']);
+    for (final id in [usa, eur]) {
+      final edition = (await store.edition(id))!;
+      final game = (await store.game(edition.gameId))!;
+      await store.putGame(GameIdentity.fromJson({
+        ...game.toJson(),
+        'matchStatus': 'unmatched',
+        'providerIds': <String, String>{}
+      }));
+      await store.putMetadata(MetadataRecord(
+          gameId: game.id,
+          editionId: id,
+          platformId: 'psx',
+          providerId: 'screenscraper',
+          providerGameId: 'verified-same-game',
+          titles: [MetadataText(text: 'Verified game')],
+          retrievedAt: at,
+          refreshGeneration: 1,
+          matchMethod: 'rawRomHashAndSize'));
+    }
+    final page = await read(
+        filter: LibraryQueryFilter(
+            releasePreference: const CommercialReleasePreference(),
+            includeVariants: true));
+    expect(page.collectionGames, 1);
+    expect(page.items.single.editionId, eur);
+  });
+
   test('Top 25 collector snapshots canonical ranked membership and coverage',
       () async {
     final expected = <String>{};
@@ -348,6 +490,121 @@ void main() {
     expect(romReads, 0,
         reason:
             'The artwork pass must not fetch any ROM data, including on retry');
+  });
+
+  test('Top 25 media collection snapshots one release per ranked game',
+      () async {
+    final ids = <String>[];
+    for (var n = 1; n <= 27; n++) {
+      ids.add(await seed(n,
+          platform: 'gba',
+          score: 100 - n.toDouble(),
+          ratingKind: RatingKind.communityAggregate));
+    }
+    ids.add(await seed(100,
+        platform: 'gba',
+        group: '1',
+        score: 99,
+        regions: ['Europe'],
+        ratingKind: RatingKind.communityAggregate));
+    for (final id in ids) {
+      final edition = (await store.edition(id))!;
+      final game = (await store.game(edition.gameId))!;
+      final providerId = game.providerIds['screenscraper']!;
+      await store.putMetadata(MetadataRecord(
+          gameId: game.id,
+          editionId: id,
+          platformId: 'gba',
+          providerId: 'screenscraper',
+          providerGameId: providerId,
+          retrievedAt: at,
+          refreshGeneration: 1,
+          matchMethod: 'verifiedProviderId',
+          titles: [
+            MetadataText(text: game.title)
+          ],
+          media: [
+            MetadataMedia(
+                type: 'box-2D',
+                region: 'us',
+                providerReference: ScreenScraperMediaReference(
+                    providerGameId: providerId,
+                    providerPlatformId: 12,
+                    mediaType: 'box-2D',
+                    region: 'us'))
+          ]));
+    }
+    final job = await MetadataRefreshJobs(Future.value(db))
+        .createResourcesFromCatalogue(
+            providerId: 'screenscraper',
+            systemSlug: 'gba',
+            top25PerSystem: true);
+    final items = await db.query('metadata_artwork_items',
+        where: 'job_id=?', whereArgs: [job.id]);
+    expect(items.map((r) => r['edition_id']).toSet(), hasLength(25));
+    expect(job.resourcesOnly, isTrue);
+    expect(job.top25PerSystem, isTrue);
+    expect(job.selectionCoverage['gba'],
+        {'selected': 25, 'eligible': 27, 'collection': 27});
+    expect(
+        (await MetadataRefreshJobs(Future.value(db)).report(job.id))
+            .selectionCoverage,
+        job.selectionCoverage);
+  });
+
+  test('resource-only snapshot never creates unmatched catalogue identities',
+      () async {
+    final current = await seed(1, platform: 'gba');
+    final removed = await seed(2, platform: 'gba');
+    final other = await seed(3, platform: 'snes');
+    for (final id in [current, removed, other]) {
+      final edition = (await store.edition(id))!;
+      final game = (await store.game(edition.gameId))!;
+      final providerId = game.providerIds['screenscraper']!;
+      await store.putMetadata(MetadataRecord(
+          gameId: game.id,
+          editionId: id,
+          platformId: game.platformId!,
+          providerId: 'screenscraper',
+          providerGameId: providerId,
+          retrievedAt: at,
+          refreshGeneration: 1,
+          matchMethod: 'verifiedProviderId',
+          titles: [
+            MetadataText(text: game.title)
+          ],
+          media: [
+            MetadataMedia(
+                type: 'box-2D',
+                region: 'us',
+                providerReference: ScreenScraperMediaReference(
+                    providerGameId: providerId,
+                    providerPlatformId: game.platformId == 'gba' ? 12 : 4,
+                    mediaType: 'box-2D',
+                    region: 'us'))
+          ]));
+    }
+    await db.delete('games', where: 'id=?', whereArgs: [2]);
+    await db.insert('games', {
+      'id': 4,
+      'systemSlug': 'gba',
+      'displayName': 'Never matched',
+      'filename': 'Never matched.gba'
+    });
+    final before = await db.query('library_editions', orderBy: 'edition_id');
+    final job = await MetadataRefreshJobs(Future.value(db))
+        .createResourcesFromCatalogue(
+            providerId: 'screenscraper', systemSlugs: ['gba']);
+    expect(
+        (await db.query('metadata_artwork_items',
+                where: 'job_id=?', whereArgs: [job.id]))
+            .map((row) => row['edition_id'])
+            .toSet(),
+        {current});
+    expect(await db.query('library_editions', orderBy: 'edition_id'), before,
+        reason:
+            'Collecting existing media must not capture/rematch the catalogue');
+    expect(job.resourcesOnly, isTrue);
   });
 
   test('cartridge compatibility follows only the current exact cached edition',

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../preview/dual_screen_preview_host.dart';
 import '../../providers/preview_providers.dart';
+import '../../providers/collection_preferences_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/config/app_config.dart';
@@ -62,6 +63,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   ProviderSubscription? _installedFilesSubscription;
   ProviderSubscription? _syncSub;
   ProviderSubscription? _metadataSub;
+  ProviderSubscription? _releasePreferenceSub;
   List<String> _visibleSelectionKeys = const [];
   String? _focusedSelectionKey;
   String? _focusedGroupKey;
@@ -207,6 +209,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       localAliases:
           installedData?.legacyAliasesBySystem[widget.system.id] ?? const {},
       storage: ref.read(storageServiceProvider),
+      releasePreference: ref.read(collectionPreferencesProvider),
       prepareMetadata: () async {
         if (!mounted) return;
         await ref.read(cachedMetadataReadinessProvider.future);
@@ -247,6 +250,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       _metadataSub = ref.listenManual(gameDbChangedProvider, (_, __) {
         _controller.refreshDiscovery();
       });
+      _releasePreferenceSub = ref.listenManual(collectionPreferencesProvider,
+          (_, next) => _controller.setReleasePreference(next));
 
       // Auto-retry when sync finishes and we're showing an error or have no games
       _syncSub = ref.listenManual(
@@ -298,6 +303,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     _installedFilesSubscription?.close();
     _syncSub?.close();
     _metadataSub?.close();
+    _releasePreferenceSub?.close();
     _debouncer.stopHold();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();

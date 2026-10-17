@@ -6,6 +6,7 @@ import '../../../models/config/system_config.dart';
 import '../../../models/config/provider_config.dart';
 import '../../../models/game_item.dart';
 import '../../../models/library_identity.dart';
+import '../../../models/commercial_release_preference.dart';
 import '../../../models/system_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/installation_index.dart';
@@ -120,6 +121,15 @@ class GameListController extends ChangeNotifier {
   final DatabaseService _databaseService;
   final StorageService? _storage;
   final Future<void> Function()? _prepareMetadata;
+  CommercialReleasePreference? _releasePreference;
+  bool get _needsDiscovery =>
+      _state.activeFilters.hasMetadataFilters || _releasePreference != null;
+
+  void setReleasePreference(CommercialReleasePreference value) {
+    _releasePreference = value;
+    if (!_disposed) _applyFilters();
+  }
+
   bool _disposed = false;
   Timer? _thumbnailDebounce;
   int _discoveryGeneration = 0;
@@ -182,9 +192,11 @@ class GameListController extends ChangeNotifier {
     DatabaseService? databaseService,
     StorageService? storage,
     Future<void> Function()? prepareMetadata,
+    CommercialReleasePreference? releasePreference,
   })  : _unifiedService = unifiedService ?? UnifiedGameService(),
         _databaseService = databaseService ?? DatabaseService(),
         _storage = storage,
+        _releasePreference = releasePreference,
         _prepareMetadata = prepareMetadata {
     _pendingInstalledFilenames = installedFilenames;
     _installedArtifacts = installedArtifacts;
@@ -467,7 +479,7 @@ class GameListController extends ChangeNotifier {
   /// A committed catalogue/score publication re-evaluates cached membership;
   /// this is not a source refresh or a metadata request.
   void refreshDiscovery() {
-    if (!_disposed && _state.activeFilters.hasMetadataFilters) _applyFilters();
+    if (!_disposed && _needsDiscovery) _applyFilters();
   }
 
   void _applyFilters() {
@@ -484,7 +496,7 @@ class GameListController extends ChangeNotifier {
     }
 
     // 2. Region/Language filter
-    if (_state.activeFilters.isNotEmpty) {
+    if (_state.activeFilters.isNotEmpty || _releasePreference != null) {
       final filteredMap = <String, List<GameItem>>{};
       groups = groups.where((groupName) {
         final variants = _state.groupedGames[groupName];
@@ -495,7 +507,7 @@ class GameListController extends ChangeNotifier {
         filteredMap[groupName] = matching;
         return true;
       }).toList();
-      if (_state.activeFilters.hasMetadataFilters) {
+      if (_needsDiscovery) {
         _discoveryKeys = [
           for (final group in groups)
             for (final game in filteredMap[group]!)
@@ -526,7 +538,7 @@ class GameListController extends ChangeNotifier {
 
   Future<void> _runDiscovery() async {
     try {
-      while (!_disposed && _state.activeFilters.hasMetadataFilters) {
+      while (!_disposed && _needsDiscovery) {
         final generation = _discoveryGeneration;
         final filters = _state.activeFilters;
         final keys = _discoveryKeys;
@@ -536,6 +548,7 @@ class GameListController extends ChangeNotifier {
           final result = await LibraryQuery(_databaseService.database).discover(
               filter: LibraryQueryFilter(
                   platformIds: {system.id},
+                  releasePreference: _releasePreference,
                   tags: filters.selectedTags,
                   genres: filters.selectedGenres,
                   top: filters.top,
@@ -561,6 +574,15 @@ class GameListController extends ChangeNotifier {
             groups[entry.key] = variants;
             installed[entry.key] =
                 variants.any((g) => installed[g.groupKey] == true);
+          }
+          if (!filters.hasMetadataFilters) {
+            for (final key in keys) {
+              final game = files[key];
+              if (game != null && !result.boundKeys.contains(key)) {
+                groups[key] = [game];
+                installed[key] = installed[game.groupKey] == true;
+              }
+            }
           }
           _state = _state.copyWith(
               filteredGroups: groups.keys.toList(),

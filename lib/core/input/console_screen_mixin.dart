@@ -28,12 +28,14 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     _focusStateManager = ref.read(focusStateManagerProvider.notifier);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!isCurrentScreen) return;
       ref.read(mainFocusRequestProvider.notifier).state = screenFocusNode;
       _restoreFocus();
     });
   }
 
   void _restoreFocus() {
+    if (!isCurrentScreen) return;
     try {
       final savedState = ref.read(focusStateManagerProvider)[routeId];
       if (savedState?.savedFocusNode?.canRequestFocus == true) {
@@ -50,10 +52,15 @@ mixin ConsoleScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   }
 
   void requestScreenFocus() {
-    if (screenFocusNode.canRequestFocus) {
+    if (isCurrentScreen && screenFocusNode.canRequestFocus) {
       screenFocusNode.requestFocus();
     }
   }
+
+  // Catalogue and install owners can refresh a mounted but covered route.
+  // Its focus restoration must never reactivate that route's shortcuts.
+  bool get isCurrentScreen =>
+      mounted && (ModalRoute.of(context)?.isCurrent ?? true);
 
   // --- Quick Menu ---
 

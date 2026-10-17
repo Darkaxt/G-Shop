@@ -129,22 +129,117 @@ void main() {
     expect(provider.calls, 1);
   });
 
+  test('legacy regional labels resolve against the current edition', () async {
+    final store = LibraryStore(Future.value(db));
+    await store.putEdition(EditionIdentity(
+        id: 'a', gameId: 'a', regions: ['USA'], tags: {'official'}));
+    final original = (await db.query('library_metadata',
+            where: 'edition_id = ?', whereArgs: ['a']))
+        .single;
+    final record =
+        MetadataRecord.fromJson(jsonDecode(original['record_json'] as String));
+    MetadataMedia label(String region) => MetadataMedia(
+        type: 'support-texture',
+        region: region,
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 4,
+            mediaType: 'support-texture',
+            region: region));
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...record.toJson(),
+      'media': [media.toJson(), label('jp').toJson(), label('us').toJson()]
+    }));
+    final job = await jobs.createArtwork(
+        providerId: provider.providerId,
+        collectionGeneration: 'legacy-regional-labels',
+        editionIds: ['a']);
+    await jobs.run(job.id, provider, artworkCache: cache);
+    expect((await cache.artworkForEdition('a')).supportTexture, isNotNull,
+        reason:
+            'Foreign regional alternatives do not make the US label ambiguous');
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...record.toJson(),
+      'media': [media.toJson(), label('jp').toJson()]
+    }));
+    expect((await cache.artworkForEdition('a')).supportTexture, isNull,
+        reason: 'A foreign label must not impersonate the current edition');
+  });
+
+  test('legacy verified media can request a missing trailer without rematching',
+      () async {
+    final record = (await LibraryStore(Future.value(db))
+        .metadata('a', provider.providerId))!;
+    final selected = MetadataArtworkCache.displayMedia(record,
+        regions: ['USA'], includeVideo: true);
+    final video = selected.where((m) => m.type == 'video').single;
+    expect(video.providerReference!.providerGameId, '42');
+    expect(video.providerReference!.providerPlatformId, 4);
+    expect(video.providerReference!.region, isNull);
+    expect(record.media.where((m) => m.type == 'video'), isEmpty);
+    expect(
+        MetadataArtworkCache.displayMedia(record).any((m) => m.type == 'video'),
+        isFalse);
+  });
+
+  test(
+      'legacy world media requests the missing typed front box without rematching',
+      () async {
+    final original = (await LibraryStore(Future.value(db))
+        .metadata('a', provider.providerId))!;
+    MetadataMedia label(String region) => MetadataMedia(
+        type: 'support-texture',
+        region: region,
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 4,
+            mediaType: 'support-texture',
+            region: region));
+    final record = MetadataRecord.fromJson({
+      ...original.toJson(),
+      'media': [label('jp').toJson(), label('us').toJson()]
+    });
+    final selected = MetadataArtworkCache.displayMedia(record,
+        regions: ['World'], includePhysicalLabel: true);
+    expect(selected.map((m) => m.type), ['box-2D', 'support-texture']);
+    expect(selected.every((m) => m.region == 'us'), isTrue);
+    expect(selected.first.providerReference!.providerGameId, '42');
+    expect(
+        record.media.map((m) => m.type), ['support-texture', 'support-texture'],
+        reason: 'A request candidate does not rewrite the retained metadata');
+    expect(
+        MetadataArtworkCache.displayMedia(record,
+            regions: ['France'], includePhysicalLabel: true),
+        isEmpty);
+  });
+
   test('normal artwork refresh caches physical labels separately from covers',
       () async {
     final store = LibraryStore(Future.value(db));
     final original = (await store.metadata('a', provider.providerId))!;
-    final label = MetadataMedia(type: 'support-texture', region: 'us',
-        providerReference: ScreenScraperMediaReference(providerGameId: '42',
-            providerPlatformId: 4, mediaType: 'support-texture', region: 'us'));
-    final record = MetadataRecord.fromJson({...original.toJson(),
-      'media': [media.toJson(), label.toJson()]});
+    final label = MetadataMedia(
+        type: 'support-texture',
+        region: 'us',
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 4,
+            mediaType: 'support-texture',
+            region: 'us'));
+    final record = MetadataRecord.fromJson({
+      ...original.toJson(),
+      'media': [media.toJson(), label.toJson()]
+    });
     await store.putMetadata(record);
     expect(MetadataArtworkCache.displayMedia(record).map((m) => m.type),
         ['box-2D']);
-    expect(MetadataArtworkCache.displayMedia(record, includePhysicalLabel: true)
-        .map((m) => m.type), ['box-2D', 'support-texture']);
-    final job = await jobs.createArtwork(providerId: provider.providerId,
-        collectionGeneration: 'physical-label', editionIds: ['a']);
+    expect(
+        MetadataArtworkCache.displayMedia(record, includePhysicalLabel: true)
+            .map((m) => m.type),
+        ['box-2D', 'support-texture']);
+    final job = await jobs.createArtwork(
+        providerId: provider.providerId,
+        collectionGeneration: 'physical-label',
+        editionIds: ['a']);
     expect((await jobs.run(job.id, provider, artworkCache: cache)).counts,
         {'matched': 2});
     final local = await cache.artworkForEdition('a');
@@ -154,7 +249,8 @@ void main() {
     final calls = provider.calls;
     final offline = await cache.artworkForEdition('a');
     expect(offline.supportTexture, local.supportTexture);
-    expect(provider.calls, calls, reason: 'Browsing reads only the durable cache');
+    expect(provider.calls, calls,
+        reason: 'Browsing reads only the durable cache');
     expect((await cache.artworkForEdition('b')).supportTexture, isNull,
         reason: 'A different edition with box art cannot borrow this label');
   });

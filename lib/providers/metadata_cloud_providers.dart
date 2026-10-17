@@ -444,17 +444,19 @@ final cloudSelectionMediaProvider = FutureProvider.autoDispose
       .editionForSelection(selection.platform, selection.selection);
   if (edition == null || !active) return null;
   final keys = <String>{};
+  final regions = (await LibraryStore(database).edition(edition))?.regions ??
+      const <String>[];
   for (final provider in ['screenscraper', 'romm']) {
     final record = await LibraryStore(database).metadata(edition, provider);
     if (record == null) continue;
     final media = MetadataArtworkCache.displayMedia(record,
-        includePhysicalLabel: selection.details);
+        regions: regions, includePhysicalLabel: selection.details);
     keys.addAll(media
         .where((m) =>
             selection.details || {'box-2D', 'box-3D', 'cover'}.contains(m.type))
         .map(MetadataArtworkCache.key));
     if (selection.details)
-      keys.addAll(record.media
+      keys.addAll(MetadataArtworkCache.displayMedia(record, includeVideo: true)
           .where((m) => {'video', 'video-normalized'}.contains(m.type))
           .map(PreviewVideoCache.key));
   }

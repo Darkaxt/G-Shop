@@ -1,8 +1,30 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 63, 2026-10-16.
+Authoritative specification, revision 65, 2026-10-17.
+
+Current execution checkpoint: S24-S26 feature acceptance are COMPLETE;
+no implementation stage is ACTIVE. The owner-requested wider Nintendo background collection
+was triggered and resumed as the same saved job; it is not claimed fully downloaded.
+
+Owner acceptance clarification, 2026-10-17: finish S24, then implement and
+validate S25 and S26. The real integrated acceptance sample is GBA's Top 25
+distinct ranked games, with correct box art, cartridge labels rendered on the
+physical-media model, and working trailers/audio. Regional releases of one game
+occupy one Top position, never several. Retain honest missing-resource reporting;
+missing required sample resources do not constitute a passing integration test.
+This adds the explicit GBA sample without removing the existing Nintendo-wide
+collection, cache lifecycle, preservation and deployment requirements.
 
 ## Current authorized extension — dual-screen preview and acquisition add-ons
+
+Owner collection-filter extension, 2026-10-17: REGION-01 adds a persisted ordered
+release-region preference, initially EUR -> USA -> JPN, to collection settings.
+Commercial collections show the first available matching release of each
+verified canonical game, with a Show all versions option. The rule does not
+apply to Hacks or Patches. It is a presentation preference, not deletion,
+re-download, metadata rematching or a change to the Top-25 retention policy.
+S26 owns this complete collection-filter outcome and is COMPLETE after
+S25 closure. Its acceptance contract is recorded in the extension document.
 
 The owner approved implementation on 2026-10-16. The authoritative
 [PREVIEW_ACQUISITION_SPECIFICATION.md](PREVIEW_ACQUISITION_SPECIFICATION.md)
@@ -10,7 +32,7 @@ defines S22 dual-screen browsing/gameplay media and the following S23 general
 website acquisition integration based on LolSuite Manager. The owner subsequently
 requested the R22 Thor production update and approved S24's separate Drive-backed
 metadata library with a configurable 2 GiB local media-cache default. S22 and R22
-are COMPLETE; S23 is NOT STARTED and S24 is ACTIVE. Preserve all prior
+are COMPLETE; S23 is NOT STARTED and S24-S26 are COMPLETE. Preserve all prior
 data/authentication/launch/companion contracts.
 Implementation and scoped native verification are authorized; a new public
 release is not implied.
@@ -34,8 +56,8 @@ Owner next-update extension, 2026-10-16: PREVIEW-START-01 initializes the second
 display renderer when R-Shop starts, rather than on the first library selection,
 to address the observed first-model delay. S25 owns diagnosis, implementation and
 real cold-start verification. Preserve single-screen operation, companion ownership,
-normal hide/launch behavior and display power policy. S25 is NOT STARTED while S24
-remains ACTIVE; it is not a prerequisite for the current metadata/cache outcome.
+normal hide/launch behavior and display power policy. S25 is COMPLETE after S24;
+it did not weaken the independent metadata/cache acceptance criteria.
 
 Owner reset instruction, 2026-10-16: discard the previously collected media and
 recollect with the normalized, role-correct collector instead of recycling or

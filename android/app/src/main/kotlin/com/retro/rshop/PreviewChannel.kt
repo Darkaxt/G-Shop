@@ -9,6 +9,8 @@ import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
 import android.view.Display
 import android.view.WindowManager
 import io.flutter.FlutterInjector
@@ -27,6 +29,9 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
     private var payload: Map<String, Any?>? = null
     private var resumed = true
     private var disposed = false
+    private var enabled = false
+    private var preparation: Map<String, Any?> = emptyMap()
+    private val startedAt = SystemClock.elapsedRealtimeNanos()
     private val debug = activity.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
 
     init {
@@ -34,6 +39,13 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "available" -> result.success(display() != null)
+                "prepare" -> {
+                    enabled = call.argument<Boolean>("enabled") == true
+                    preparation = mapOf("resourceRoot" to call.argument<String>("resourceRoot"),
+                        "resourceGeneration" to call.argument<String>("resourceGeneration"))
+                    if (enabled) prepare() else { payload = null; dismiss(release = true) }
+                    result.success(null)
+                }
                 "present" -> {
                     @Suppress("UNCHECKED_CAST")
                     payload = call.arguments as? Map<String, Any?>
@@ -49,7 +61,8 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                 "diagnostics" -> if (!debug) result.notImplemented() else result.success(mapOf(
                     "available" to (display() != null), "visible" to (presentation?.isShowing == true),
                     "mainFocused" to activity.window.decorView.hasWindowFocus(),
-                    "displayId" to presentation?.display?.displayId, "rendered" to presentation?.rendered,
+                    "displayId" to presentation?.display?.displayId, "prepared" to presentation?.prepared,
+                    "rendered" to presentation?.rendered,
                     "playback" to presentation?.playback))
                 "awaitRendered" -> if (!debug) result.notImplemented() else {
                     val view = presentation
@@ -72,50 +85,64 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
         .filter { it.isValid && it.state == Display.STATE_ON && it.displayId != Display.DEFAULT_DISPLAY &&
             it.flags and Display.FLAG_PRIVATE == 0 }.singleOrNull()
 
-    private fun show() {
-        if (!resumed || disposed || payload == null) return
-        val display = display() ?: run { dismiss(); return }
-        if (presentation?.display?.displayId != display.displayId) dismiss()
+    private fun prepare() {
+        if (!enabled || !resumed || disposed) return
+        val display = display() ?: run { dismiss(release = true); return }
+        if (presentation?.display?.displayId != display.displayId) dismiss(release = true)
         if (presentation == null) {
             val view = PreviewPresentation(activity, display,
+                startedAt = startedAt,
                 onAction = { action -> channel.invokeMethod("action", action) },
                 onPlaying = { state ->
                     if (state["actionEpoch"] == payload?.get("actionEpoch") && state["video"] == payload?.get("video"))
                         channel.invokeMethod("playing", state)
                 })
-            try {
-                view.show()
-                view.window?.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
-                presentation = view
-            }
-            catch (_: WindowManager.InvalidDisplayException) { view.release() }
+            presentation = view
         }
+        presentation?.prepare(preparation)
+    }
+    private fun show() {
+        if (!enabled || !resumed || disposed || payload == null) return
+        prepare()
+        val view = presentation ?: return
+        try {
+            if (!view.isShowing) view.show()
+            view.window?.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
+        } catch (_: WindowManager.InvalidDisplayException) { dismiss(release = true); return }
         presentation?.update(payload!!)
     }
-    private fun dismiss() { presentation?.let { it.dismiss(); it.release() }; presentation = null }
-    fun resume() { resumed = true; show() }
+    private fun dismiss(release: Boolean = false) {
+        presentation?.let { it.hideRenderer(); it.dismiss(); if (release) it.release() }
+        if (release) presentation = null
+    }
+    fun resume() { resumed = true; prepare(); show() }
     fun pause() { resumed = false; dismiss() }
     private fun changed() {
         channel.invokeMethod("availability", display() != null)
-        if (display() == null) dismiss() else show()
+        if (display() == null) dismiss(release = true) else { prepare(); show() }
     }
     override fun onDisplayAdded(displayId: Int) = changed()
     override fun onDisplayRemoved(displayId: Int) = changed()
     override fun onDisplayChanged(displayId: Int) = changed()
     fun dispose() {
-        disposed = true; payload = null; dismiss()
+        disposed = true; payload = null; dismiss(release = true)
         displays.unregisterDisplayListener(this)
         channel.setMethodCallHandler(null)
     }
 
     private class PreviewPresentation(activity: Activity, display: Display,
+        private val startedAt: Long,
         private val onAction: (Any?) -> Unit,
         private val onPlaying: (Map<String, Any?>) -> Unit) : Presentation(activity, display) {
         private var engine: FlutterEngine? = null
         private var flutterView: FlutterView? = null
         private var channel: MethodChannel? = null
         private var ready = false
+        private var preparation: Map<String, Any?>? = null
+        var prepared = false
+            private set
         private var latest: Map<String, Any?>? = null
+        private var selectionAt = 0L
         var rendered: Map<String, Any?>? = null
             private set
         var playback: Map<String, Any?>? = null
@@ -139,6 +166,18 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
             window?.decorView?.systemUiVisibility =
                 android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            val renderer = engine ?: error("Preview renderer was not prepared")
+            flutterView = FlutterView(context).also { view ->
+                view.attachToFlutterEngine(renderer)
+                setContentView(view)
+            }
+        }
+        fun prepare(value: Map<String, Any?>) {
+            if (preparation != value) {
+                preparation = value; prepared = false
+                if (ready) channel?.invokeMethod("prepare", value)
+            }
+            if (engine != null) return
             // Rendering needs only a file-backed player. Do not attach account,
             // database, foreground-download or save plugins to this engine.
             val renderer = FlutterEngine(context, null, false)
@@ -147,7 +186,19 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
             channel = MethodChannel(renderer.dartExecutor.binaryMessenger, "com.retro.rshop/preview_view").also { bridge ->
                 bridge.setMethodCallHandler { call, result ->
                     when (call.method) {
-                        "ready" -> { ready = true; latest?.let { bridge.invokeMethod("snapshot", it) }; result.success(null) }
+                        "ready" -> {
+                            ready = true
+                            Log.i("RShopPreview", "renderer_ready elapsedUs=${(SystemClock.elapsedRealtimeNanos()-startedAt)/1000} showing=$isShowing")
+                            preparation?.let { bridge.invokeMethod("prepare", it) }
+                            latest?.let { bridge.invokeMethod("snapshot", it) }
+                            if (!isShowing) renderer.lifecycleChannel.appIsPaused()
+                            result.success(null)
+                        }
+                        "prepared" -> {
+                            prepared = true
+                            Log.i("RShopPreview", "resources_ready elapsedUs=${(SystemClock.elapsedRealtimeNanos()-startedAt)/1000} showing=$isShowing")
+                            result.success(null)
+                        }
                         "action" -> { onAction(call.arguments); result.success(null) }
                         "playing" -> {
                             @Suppress("UNCHECKED_CAST")
@@ -158,6 +209,7 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                         "rendered" -> {
                             @Suppress("UNCHECKED_CAST")
                             rendered = call.arguments as? Map<String, Any?>
+                            Log.i("RShopPreview", "rendered selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} video=${rendered?.get("videoReady")}")
                             val completed = waiters.filter { matches(it) }
                             waiters.removeAll(completed.toSet())
                             completed.forEach { it.result.success(rendered) }
@@ -167,15 +219,13 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                     }
                 }
             }
-            flutterView = FlutterView(context).also { view ->
-                view.attachToFlutterEngine(renderer)
-                setContentView(view)
-            }
             renderer.dartExecutor.executeDartEntrypoint(DartExecutor.DartEntrypoint(
                 FlutterInjector.instance().flutterLoader().findAppBundlePath(), "previewMain"))
-            renderer.lifecycleChannel.appIsResumed()
+            renderer.lifecycleChannel.appIsInactive()
         }
         fun update(value: Map<String, Any?>) {
+            engine?.lifecycleChannel?.appIsResumed()
+            if (latest?.get("identity") != value["identity"]) selectionAt = SystemClock.elapsedRealtimeNanos()
             latest = value
             if (ready) channel?.invokeMethod("snapshot", value)
         }
@@ -183,11 +233,18 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
             channel?.invokeMethod("togglePlayback", mapOf("actionEpoch" to latest?.get("actionEpoch")), result)
                 ?: result.error("preview_hidden", "Preview is hidden", null)
         }
+        fun hideRenderer() {
+            latest?.let { onPlaying(mapOf("actionEpoch" to it["actionEpoch"], "video" to it["video"], "playing" to false)) }
+            latest = null; rendered = null; playback = null
+            waiters.forEach { it.result.error("preview_hidden", "Preview was hidden", null) }; waiters.clear()
+            if (ready) channel?.invokeMethod("hide", null)
+            engine?.lifecycleChannel?.appIsPaused()
+        }
         fun release() {
             latest?.let { onPlaying(mapOf("actionEpoch" to it["actionEpoch"], "video" to it["video"], "playing" to false)) }
             waiters.forEach { it.result.error("preview_hidden", "Preview was hidden", null) }; waiters.clear()
             rendered = null; playback = null
-            ready = false; latest = null
+            ready = false; prepared = false; latest = null
             channel?.setMethodCallHandler(null); channel = null
             engine?.lifecycleChannel?.appIsDetached()
             flutterView?.detachFromFlutterEngine(); flutterView = null

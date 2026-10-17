@@ -454,12 +454,15 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       });
 
   Future<void> collectResources(
-          {String? systemSlug, List<String>? systemSlugs}) =>
+          {String? systemSlug,
+          List<String>? systemSlugs,
+          bool top25PerSystem = false}) =>
       _perform(() async {
         final job = await _jobs.createResourcesFromCatalogue(
             providerId: state.providerId,
             systemSlug: systemSlug,
-            systemSlugs: systemSlugs);
+            systemSlugs: systemSlugs,
+            top25PerSystem: top25PerSystem);
         _set(state.copyWith(report: job, clearArtworkReport: true));
         if (!_closed) {
           await _run(job.id);

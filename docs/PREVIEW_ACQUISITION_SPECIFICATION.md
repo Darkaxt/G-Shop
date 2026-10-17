@@ -159,7 +159,14 @@ reorganization or unrelated desktop tooling port counts as completion.
 
 ## METADATA-CLOUD-01 — Drive-backed metadata and local cache (S24)
 
-Owner-approved implementation, 2026-10-16; ACTIVE and not part of the Thor
+Acceptance sample added by the owner, 2026-10-17: GBA Top 25 distinct games must
+have real box artwork, their actual cartridge-label artwork in the physical-media
+renderer, and playable gameplay trailers using the existing volume/music policy.
+Select ranked canonical games rather than 25 release files. Regional variants
+must not consume additional Top positions. Report provider resource gaps honestly
+and keep sample acceptance open until the required integration is demonstrated.
+
+Owner-approved implementation, 2026-10-16; COMPLETE and not part of the Thor
 1.9.2 delivery. Store durable credential-free scraped records and artwork in a
 separate metadata tree on Google Drive, outside the ROM folders, with canonical
 console/game/edition bindings and equivalent collection organization. Preserve
@@ -229,6 +236,60 @@ as well as source geometry. This owner extension supersedes the initial GB-only
 correction. These corrections are included in S24 verification
 and the requested Thor deployment/Nintendo collection rendering checks.
 
+## PREVIEW-START-01 — Secondary renderer startup (S25)
+
+Prepare the existing secondary rendering engine after the main engine's first
+frame callback, independently of catalogue/authentication/network work. Load the
+already-imported immutable resource generation in that renderer before selection.
+Do not show a Presentation or change a companion task at startup. First selection
+attaches the prepared renderer to R-Shop's existing non-focusable window. Hiding
+clears game/video state and pauses the renderer; disable, display loss/power-off
+and Activity destruction release it. No second catalogue, player owner, credentials
+or background service is introduced. Single-screen/disabled operation stays local.
+
+Native evidence records monotonic renderer/resource readiness from Activity channel
+creation and selection-to-renderer completion separately. Neither a first-frame
+callback nor a GPU completion report claims physical pixel-presentation timing.
+Verify real cold startup with the companion still visible, actual first GBA model
+and trailer, hide/return without repeated engine creation, and display-power and
+disabled fallback. Use existing scoped native diagnostics and targeted visuals.
+
+## REGION-01 — Commercial release preference (S26)
+
+Owner request, 2026-10-17: add a collection-filter setting with an editable ordered
+region list, initially EUR -> USA -> JPN, and an explicit Show all versions mode.
+Use short labels, sectioned settings and existing touch/controller controls,
+including L1/R1 where tabs are present. Persist through restart and the existing
+configuration/migration route; do not require new credentials or a scrape.
+
+Apply the preference only to Commercial entries within the currently selected
+console/collection. Group using the existing verified canonical-game identity,
+not fuzzy titles or filename prefixes. Choose the first listed region available
+in that group; a multi-region release satisfies any of its declared regions.
+If none matches, keep a deterministic available fallback rather than hiding a
+unique game. Unknown/ambiguous identities remain separate and visible. Preserve
+edition/revision choices and complete multidisc bundles; distinct games, hacks,
+translations/modified variants and patch builds must not merge as side effects.
+Changing the preference never substitutes a foreign physical label for the
+selected edition's artwork or changes the selected ROM's launch/save identity.
+
+Share the selection rule across commercial gallery, search and ranked collection
+views. Existing Top rules still count canonical games, not regional copies, and
+must not backfill or borrow scores. Show all versions exposes retained alternatives.
+Hacks and Patches keep their existing category-specific presentation unchanged.
+No ROM, save, metadata or patch file is removed or downloaded by this setting;
+SD retention/cache policies and the existing metadata collection scope are unchanged.
+
+Acceptance: reorder and toggle through normal Settings with touch/controller,
+restart/reload and existing encrypted migration preserve the preference; actual
+regional duplicates resolve once in commercial browsing/search/Top views and
+the chosen release launches by its exact existing identity. Focused fixtures
+cover missing/unknown/multi-region releases, stable same-region ties, distinct
+editions, multidisc bundles and unmodified Hacks/Patches. Native evidence must
+show a real duplicate group switching preferred regions and Show all versions.
+S26 is COMPLETE after S25 closure; it is independent of S24 cache/rendering acceptance and does
+not authorize deleting alternatives or expanding the current implementation stage.
+
 ## Execution
 
 Owner reset instruction, 2026-10-16: the existing collected resources are to be
@@ -254,9 +315,22 @@ are trashed. Normal publication still rejects trashed objects. Visible foreign
 children reject the cascade; interrupted resets resume from the remaining live
 objects without broadening the OAuth grant or permanently deleting file bodies.
 
+Legacy resource normalization uses the current edition's regional binding, not
+the number or ordering of old regional label alternatives. World releases may
+use one representative English-market label (US, then Europe), with neutral
+artwork preferred; exact regional releases do not borrow foreign labels and
+same-region ambiguity remains unresolved. Collection, cached consumption and
+Drive publication share this selector. Where a verified ScreenScraper record
+has a physical-label reference but omits its front-box selector, the matching
+typed front-box request may be derived from that same verified provider game,
+platform and selected region. This is not a claim that artwork exists: only a
+validated response can enter the cache/export. Do not modify matched textual
+facts, scores or game identity to repair these legacy resource selectors.
+
 S22 is COMPLETE with host/native acceptance, signed verification, reviewed cleanup
 and remote source delivery recorded in IMPLEMENTATION_STATUS.md. R22's signed
-1.9.2 in-place Thor delivery is COMPLETE. S23 is NOT STARTED; S24 is ACTIVE. Each is a separately requested
+1.9.2 in-place Thor delivery is COMPLETE. S23 is NOT STARTED; S24 is COMPLETE and
+S25 and S26 are COMPLETE. Each is a separately requested
 following outcome, not a deferral excusing any S22 acceptance criterion. Earlier
 S0-S21/QA/release results remain applicable except where changed integration is
 explicitly reverified. Every required gap is kept in the existing status ledger.

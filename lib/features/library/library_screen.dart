@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../preview/dual_screen_preview_host.dart';
 import '../../providers/preview_providers.dart';
+import '../../providers/collection_preferences_provider.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -135,6 +136,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       : {_selectedConsole!};
   LibrarySortMode _sortMode = LibrarySortMode.featured;
   bool get _needsDiscovery =>
+      !_isShelfTab ||
       _category != null ||
       _filters.hasMetadataFilters ||
       (!_isShelfTab && _sortMode == LibrarySortMode.featured);
@@ -167,6 +169,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   ProviderSubscription? _installedFilesSubscription;
   ProviderSubscription? _metadataSubscription;
+  ProviderSubscription? _releasePreferenceSubscription;
   ProviderSubscription? _catalogueSubscription;
   ProviderSubscription? _selectionSubscription;
   Future<void>? _dataWork;
@@ -458,6 +461,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       _metadataSubscription = ref.listenManual(gameDbChangedProvider, (_, __) {
         if (mounted) unawaited(_loadData());
       });
+      _releasePreferenceSubscription =
+          ref.listenManual(collectionPreferencesProvider, (_, __) {
+        if (mounted) _applyFilters();
+      });
       _catalogueSubscription = ref.listenManual(
           librarySyncServiceProvider.select((s) => s.completedSystems),
           (_, __) {
@@ -475,6 +482,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     });
     _installedFilesSubscription?.close();
     _metadataSubscription?.close();
+    _releasePreferenceSubscription?.close();
     _catalogueSubscription?.close();
     _selectionSubscription?.close();
     _discoveryGeneration++;
@@ -830,6 +838,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   filter: LibraryQueryFilter(
                       platformIds: _rankingPlatforms,
                       category: _category,
+                      releasePreference:
+                          ref.read(collectionPreferencesProvider),
                       tags: filters.selectedTags,
                       genres: filters.selectedGenres,
                       top: filters.top,
@@ -874,7 +884,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             // Browsing order must not hide files whose identity is unresolved.
             // They cannot be ranked, but remain visible in the A-Z remainder.
             for (final entry in entries) {
-              if (!groups.containsKey(
+              if (!result.boundKeys.contains(
                   coverRatingKey(entry.systemSlug, entry.selectionKey))) {
                 visible.add(entry);
               }

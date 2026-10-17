@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/library_identity.dart';
+import '../models/commercial_release_preference.dart';
 import '../models/game_metadata_info.dart';
 import '../models/scraped_metadata.dart';
 import 'library_store.dart';
@@ -24,6 +25,7 @@ class LibraryQueryFilter {
   final int? top, featuredTop;
   final String? search, manualViewId;
   final String? category;
+  final CommercialReleasePreference? releasePreference;
   final int limit, offset;
   LibraryQueryFilter(
       {Set<String> platformIds = const {},
@@ -39,6 +41,7 @@ class LibraryQueryFilter {
       this.featuredTop,
       this.search,
       this.category,
+      this.releasePreference,
       this.manualViewId,
       this.limit = 50,
       this.offset = 0})
@@ -132,6 +135,10 @@ class LibraryRetentionPage {
 /// Lightweight UI identities only; metadata/artwork stay in the paged cache.
 class LibraryDiscoveryResult {
   final Map<String, List<String>> groups;
+
+  /// Exact current query membership, including alternatives hidden by the
+  /// release preference. Legacy/unbound fallback must not re-add those files.
+  final Set<String> boundKeys;
   final Map<String, int> featuredRanks;
   final List<String> genres;
   final int collectionGames, rankedGames, totalMatches;
@@ -139,11 +146,13 @@ class LibraryDiscoveryResult {
   LibraryDiscoveryResult(
       {required Map<String, List<String>> groups,
       Map<String, int> featuredRanks = const {},
+      Set<String> boundKeys = const {},
       required List<String> genres,
       required this.collectionGames,
       required this.rankedGames,
       required this.totalMatches})
-      : featuredRanks = Map.unmodifiable(featuredRanks),
+      : boundKeys = Set.unmodifiable(boundKeys),
+        featuredRanks = Map.unmodifiable(featuredRanks),
         groups = Map.unmodifiable(
             groups.map((k, v) => MapEntry(k, List<String>.unmodifiable(v)))),
         genres = List.unmodifiable(genres);
@@ -390,6 +399,7 @@ class LibraryQuery {
               LibraryQueryFilter(
                   platformIds: filter.platformIds,
                   category: filter.category,
+                  releasePreference: filter.releasePreference,
                   tags: filter.tags,
                   genres: filter.genres,
                   regions: filter.regions,
@@ -424,6 +434,7 @@ class LibraryQuery {
         final genres = await _genres(txn, filter.platformIds);
         return LibraryDiscoveryResult(
             groups: groups,
+            boundKeys: bindings.values.toSet(),
             featuredRanks: featuredRanks,
             genres: genres,
             collectionGames: coverage.collectionGames,
@@ -459,7 +470,7 @@ class LibraryQuery {
   // policy so an existing clean installation rebuilds them on its first query,
   // without changing game identities or requiring a new metadata scrape.
   static String _policy(List<AssessedOverallScoreBasis> bases) =>
-      'collection-categories-v1:${sha256.convert(utf8.encode(jsonEncode(bases.map((b) => [
+      'collection-categories-v2:${sha256.convert(utf8.encode(jsonEncode(bases.map((b) => [
             b.sourceId,
             b.kind.name,
             b.scaleMinimum,
@@ -481,8 +492,8 @@ class LibraryQuery {
       await db.execute('''INSERT OR IGNORE INTO library_query_dirty
         SELECT edition_id FROM library_editions''');
       if (policies.isNotEmpty &&
-          !(policies.single['fingerprint'] as String)
-              .startsWith('collection-categories-v1:')) {
+          !RegExp(r'^collection-categories-v[12]:')
+              .hasMatch(policies.single['fingerprint'] as String)) {
         // Only the category-index upgrade needs to recapture source ancestry.
         // A subsequent score-policy change rebuilds derived projections without
         // rewriting the unchanged catalogue identities for every cached file.
@@ -507,7 +518,10 @@ class LibraryQuery {
     while (true) {
       final rows = await db.rawQuery('''SELECT d.edition_id,
         e.record_json AS edition_json, g.record_json AS game_json,
-        c.group_key, c.identity_key AS group_identity
+        c.group_key, c.identity_key AS group_identity,
+        EXISTS(SELECT 1 FROM library_canonical_claims claim
+          WHERE claim.edition_id = d.edition_id
+          AND claim.claim_key LIKE '["provider-game",%') AS verified_canonical
         FROM library_query_dirty d
         LEFT JOIN library_editions e ON e.edition_id = d.edition_id
         LEFT JOIN library_game_identities g ON g.game_id = e.game_id
@@ -636,6 +650,23 @@ class LibraryQuery {
           'region': edition.regions.toSet(),
           'language': edition.languages.toSet()
         };
+        if (edition.contentCategory == 'commercial' &&
+            edition.patchId == null &&
+            edition.isTranslation != true &&
+            edition.translatedLanguages.isEmpty &&
+            edition.tags.length == 1 &&
+            edition.tags.contains('official') &&
+            ({IdentityMatchStatus.matched, IdentityMatchStatus.manuallyMatched}
+                    .contains(game.matchStatus) ||
+                row['verified_canonical'] == 1)) {
+          facets['releasepreference'] = {'verified'};
+          facets['releaseregion'] = {
+            for (final region in edition.regions)
+              ...region.toLowerCase() == 'world'
+                  ? ['eur', 'usa', 'jpn']
+                  : [CommercialReleasePreference.normalizeRegion(region)]
+          };
+        }
         for (final facet in facets.entries) {
           for (final value in facet.value) {
             batch.insert(
@@ -1020,6 +1051,9 @@ class LibraryQuery {
   }
 
   static void _validate(LibraryQueryFilter filter) {
+    if (filter.releasePreference != null) {
+      CommercialReleasePreference.fromJson(filter.releasePreference!.toJson());
+    }
     if (filter.category != null &&
         !{'commercial', 'hacks', 'homebrew', 'demo', 'unknown'}
             .contains(filter.category)) {
@@ -1111,15 +1145,35 @@ class LibraryQuery {
     final manual = filter.manualViewId;
     final ratingOrder =
         filter.ratingOrder || (filter.top != null && manual == null);
+    final preference = filter.releasePreference;
+    final preferRegions = preference != null && !preference.showAllVersions;
+    // Region choice is presentation after the current search/view intersection,
+    // never a change to canonical rank, score ownership or exact edition data.
+    // Keep every revision/disc in the winning region; unknown identities and
+    // modifications have no verified preference facet and remain untouched.
+    final regionOrder = preferRegions
+        ? '''CASE ${[
+            for (var i = 0; i < preference.regions.length; i++)
+              "WHEN value = '${CommercialReleasePreference.normalizeRegion(preference.regions[i])}' THEN '0$i:' || value"
+          ].join(' ')}
+            ELSE '99:' || value END'''
+        : "'99:' || value";
     final intersection = '''$cte, candidates AS (SELECT s.*,
         CASE WHEN s.rating_eligible = 1 AND s.source_order = r.source_order
           AND s.score = r.score THEN r.rank ELSE NULL END AS rank,
         ${manual == null ? 'NULL' : '(SELECT position FROM library_query_views v WHERE v.edition_id = s.edition_id AND v.view_id = ?)'} AS manual_position
         FROM scoped s LEFT JOIN ranks r ON r.group_key = s.group_key
         ${predicates.isEmpty ? '' : 'WHERE ${predicates.join(' AND ')}'}),
-        filtered AS (SELECT candidates.*, ROW_NUMBER() OVER (PARTITION BY group_key ORDER BY
+        release_candidates AS (SELECT candidates.*,
+          ${preferRegions ? "CASE WHEN EXISTS (SELECT 1 FROM library_query_facets f WHERE f.edition_id = candidates.edition_id AND f.dimension = 'releasepreference' AND f.value = 'verified') THEN COALESCE((SELECT MIN($regionOrder) FROM library_query_facets f WHERE f.edition_id = candidates.edition_id AND f.dimension = 'releaseregion'), '99:') END" : 'NULL'} AS release_order
+          FROM candidates),
+        release_choices AS (SELECT release_candidates.*,
+          MIN(release_order) OVER (PARTITION BY group_key) AS preferred_region
+          FROM release_candidates),
+        filtered AS (SELECT release_choices.*, ROW_NUMBER() OVER (PARTITION BY group_key ORDER BY
           ${manual != null && !ratingOrder ? 'manual_position IS NULL, manual_position,' : ''}
-          rating_eligible DESC, source_order, edition_id) AS edition_order FROM candidates)''';
+          rating_eligible DESC, source_order, edition_id) AS edition_order FROM release_choices
+          WHERE release_order IS NULL OR release_order = preferred_region)''';
     // manual position placeholder comes before filter predicates, after scope.
     if (manual != null) args.insert(filter.platformIds.length, manual);
     final tailOrder = manual != null

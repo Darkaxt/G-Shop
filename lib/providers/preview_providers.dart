@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/preview_settings.dart';
 import '../services/secondary_preview.dart';
@@ -20,9 +22,27 @@ class PreviewSettingsNotifier extends StateNotifier<PreviewSettings> {
 final previewSettingsProvider =
     StateNotifierProvider<PreviewSettingsNotifier, PreviewSettings>(
         (ref) => PreviewSettingsNotifier(ref.watch(storageServiceProvider)));
-final secondaryPreviewProvider = ChangeNotifierProvider<SecondaryPreview>(
-    (ref) => SecondaryPreview(
-        onPlaybackChanged: ref.read(audioManagerProvider).setPreviewPlaying));
+final secondaryPreviewProvider =
+    ChangeNotifierProvider<SecondaryPreview>((ref) {
+  final bridge = SecondaryPreview(
+      onPlaybackChanged: ref.read(audioManagerProvider).setPreviewPlaying);
+  void prepare() {
+    if (!Platform.isAndroid) return;
+    final resources = ref.read(socketMediaImportProvider);
+    unawaited(bridge.prepare(
+        enabled: ref.read(previewSettingsProvider).enabled,
+        resourceRoot: resources.rootDirectory?.path,
+        resourceGeneration: resources.generation));
+  }
+
+  ref.listen(previewSettingsProvider.select((settings) => settings.enabled),
+      (_, __) => prepare());
+  ref.listen(
+      socketMediaImportProvider.select((resources) => resources.generation),
+      (_, __) => prepare());
+  prepare();
+  return bridge;
+});
 final dualScreenPreviewProvider = Provider<bool>((ref) =>
     ref.watch(previewSettingsProvider).enabled &&
     ref.watch(secondaryPreviewProvider).available);

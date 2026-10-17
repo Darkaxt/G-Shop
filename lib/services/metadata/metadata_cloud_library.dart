@@ -812,7 +812,15 @@ class MetadataCloudLibrary {
     final result = <String, MetadataMedia>{}, screenshots = <String>{};
     var index = 0;
     for (final record in records) {
-      for (final media in MetadataArtworkCache.displayMedia(record)) {
+      final row = (packet['records'] as List).firstWhere((r) =>
+          r['edition_id'] == record.editionId &&
+          r['provider_id'] == record.providerId);
+      final regions =
+          EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String))
+              .regions;
+      for (final media
+          in MetadataArtworkCache.displayMedia(record, regions: regions,
+              includeVideo: true)) {
         if ({'ss', 'screenshot'}.contains(media.type)) {
           if (!screenshots.add(MetadataArtworkCache.key(media))) continue;
           result[resourceName(media.type, platform, index: ++index)!] = media;
@@ -822,7 +830,7 @@ class MetadataCloudLibrary {
         }
       }
       final labels =
-          record.media.where((m) => m.type == 'support-texture').toList();
+          MetadataArtworkCache.physicalLabels(record, regions: regions);
       if (labels.length == 1 && labels.single.memberIndex == null) {
         result.putIfAbsent(
             resourceName('support-texture', platform)!, () => labels.single);
@@ -849,7 +857,6 @@ class MetadataCloudLibrary {
   }
 
   Future<void> _publishGame(Map<String, dynamic> packet) async {
-    final before = _clock;
     final platform = packet['platform'] as String;
     final edition = (packet['records'] as List).first['edition_id'] as String;
     final key = _editionKey(edition);
@@ -957,7 +964,9 @@ class MetadataCloudLibrary {
     } finally {
       if (await file.exists()) await file.delete();
     }
-    if (_clock != before) changed?.call();
+    // Publishing existing local bytes changes remote receipts, not rendered
+    // media. Downloads/eviction notify at their actual local mutation boundary;
+    // per-game publication notifications restart every mounted media reader.
   }
 
   Future<void> _recoverGame(String platform, MetadataCloudFile folder) async {

@@ -1,9 +1,13 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 63, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 65, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16
+
+Owner closure instruction, 2026-10-17: complete S24, S25, then S26; use the GBA
+Top 25 distinct canonical games as the real box/cartridge/trailer integration
+sample, with one Top position per game regardless of regional release count.
 
 Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md).
 
@@ -12,15 +16,18 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | S22 Dual-screen media preview | COMPLETE | PREVIEW-01/02: 4x2 main gallery; secondary flat/3D/background media and activated details; gallery focus retained; launch dismisses R-Shop without disturbing companion; sectioned persisted settings and shared bounded media cache | Real Thor selection/details/launch/return with both displays, selected-game real video/cache/offline proof, focus/layout/settings/lifecycle and affected owner/migration checks, gated signed build, cleanup and verified remote source delivery |
 | R22 Thor preview delivery | COMPLETE | PREVIEW-DELIVERY: signed 1.9.2/code 16 installed in place with settings/data preserved | Gated signed packaging 1308, installed APK hash/identity, unchanged prelaunch settings/database/import hashes, real production secondary rendering after AOT entrypoint fix, reviewed intermediate cleanup; both screens OFF |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
-| S24 Drive-backed metadata cache | ACTIVE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default | Preserve matched facts; owner-requested discard/recollect of old media replaces recycling for this generation; one complete Nintendo resource/rendering workflow before wider collection; real background fetch/offline hits and bounded owned eviction; exact artwork roles and identity |
-| S25 Secondary preview startup | NOT STARTED | PREVIEW-START-01: initialize the secondary renderer at APK startup without taking over a companion or delaying main browsing | Diagnose and measure real cold startup/first-model readiness; verify existing secondary/single-screen launch, hide and power behavior |
+| S24 Drive-backed metadata cache | COMPLETE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default | Native distinct GBA sample has 24 boxes/labels/decoded trailers and verified cloud copies; native cache clear, lazy recovery, offline rendering/audio and in-place preservation pass. Wider Nintendo saved resource job 89 is resumed; full background harvest is not claimed finished. Host exact binding/budget/recovery tests pass. |
+| S25 Secondary preview startup | COMPLETE | PREVIEW-START-01: initialize the secondary renderer at APK startup without taking over a companion or delaying main browsing | Native 1.9.15 cold renderer/resources ready in 1.01/1.66 seconds, first GBA model in 0.47 seconds; hide/return reuses the engine and removes audio; power-off releases and wake recreates it; disabled fallback keeps browsing and Cocoon. Host late-frame regression passes. |
+| S26 Commercial release preferences | COMPLETE | REGION-01: ordered EUR/USA/JPN collection preference, one preferred commercial release per canonical game and Show all versions; Hacks/Patches unaffected | Native touch/controller/restart/reset, a real regional pair with one game/two retained versions, JPN/EUR selection and exact EUR archive download/RetroArch launch pass. Shared query/rank/bundle/unknown/modification and encrypted migration checks pass. Final GBA model/trailer/audio rendering passes in 1.9.16. |
 
-S22 and R22 are COMPLETE. The owner's subsequent explicit go-ahead selects S24
-as the sole ACTIVE stage; it has no dependency on S23 website acquisition, which
-remains NOT STARTED. Signed 1.9.10/code 24 is installed in place for S24's required
-native verification; installation alone does not close its acceptance criteria.
-The owner's next-update startup request belongs to S25, which remains NOT STARTED
-until S24 closes or is justifiably parked. No concurrent implementation is opened.
+S22, R22 and S24-S26 are COMPLETE. No implementation stage is ACTIVE;
+S23 website acquisition remains NOT STARTED. Signed 1.9.16/code 30 is installed
+in place, and native cache/media/preservation acceptance is recorded in the status
+ledger. The requested wider Nintendo resource collection was triggered after the
+complete GBA sample and resumed as the same durable job after the update. This is
+an ongoing product job, not a claim that every Nintendo resource has downloaded.
+The owner's regional filtering request is verified in S26, after S25. It does
+not excuse any S24 acceptance criterion or authorize website acquisition work.
 The S16-S21 completion records below are historical and remain valid.
 
 ## Current extension — already authorized, 2026-10-15

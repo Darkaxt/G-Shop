@@ -7,10 +7,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/custom_shelf.dart';
 import '../models/sound_settings.dart';
 import '../models/preview_settings.dart';
+import '../models/commercial_release_preference.dart';
 
 enum ControllerLayout { nintendo, xbox, playstation }
 
 class StorageService {
+  static const commercialReleasePreferenceKey =
+      'commercial_release_preference_v1';
+  CommercialReleasePreference getCommercialReleasePreference() {
+    final raw = _prefs?.getString(commercialReleasePreferenceKey);
+    if (raw == null) return const CommercialReleasePreference();
+    try {
+      return CommercialReleasePreference.fromJson(
+          (jsonDecode(raw) as Map).cast<String, dynamic>());
+    } on FormatException {
+      return const CommercialReleasePreference();
+    } on TypeError {
+      return const CommercialReleasePreference();
+    }
+  }
+
+  Future<void> setCommercialReleasePreference(
+      CommercialReleasePreference value) async {
+    if (await _prefs?.setString(
+            commercialReleasePreferenceKey, jsonEncode(value.toJson())) !=
+        true) {
+      throw StateError('Collection filters could not be saved');
+    }
+  }
+
   PreviewSettings getPreviewSettings() {
     final raw = _prefs?.getString('preview_settings_v1');
     if (raw == null) return const PreviewSettings();

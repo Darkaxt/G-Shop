@@ -383,7 +383,10 @@ class SocketMediaGpu {
       number('roughness_texture_channel', 0),
       number('metallic_texture_channel', 0),
       number('ao_texture_channel', 0),
-      plastic ? .75 : 0,
+      // A .75 floor still produces bright grazing HDR reflection from the
+      // imported studio sky. Matte molded housings use the fully rough lobe;
+      // labels, optical media and exposed hardware retain their source finish.
+      plastic ? 1 : 0,
     ]);
   }
 
@@ -488,16 +491,19 @@ class SocketMediaGpu {
     final context = gpu.gpuContext;
     final width = (size.width * ratio).ceil(),
         height = (size.height * ratio).ceil();
-    if (_surface == null) {
+    if (_surface == null ||
+        _surface!.width != width ||
+        _surface!.height != height) {
+      // Vulkan caches the framebuffer on each surface color attachment. Keep
+      // that attachment paired with its original depth texture for its entire
+      // lifetime: resizing a pooled surface can reuse an earlier color texture
+      // after its depth attachment has been replaced.
       _surface = context.createImageSurface(width, height);
-    } else if (_surface!.width != width || _surface!.height != height) {
-      _surface!.resize(width, height);
-      _depth = null;
+      _depth = context.createTexture(
+          gpu.StorageMode.devicePrivate, width, height,
+          format: context.defaultDepthStencilFormat,
+          enableShaderReadUsage: false);
     }
-    _depth ??= context.createTexture(
-        gpu.StorageMode.devicePrivate, width, height,
-        format: context.defaultDepthStencilFormat,
-        enableShaderReadUsage: false);
     final frame = _surface!.acquireNextFrame();
     final commands = context.createCommandBuffer();
     try {

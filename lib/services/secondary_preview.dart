@@ -53,6 +53,27 @@ class SecondaryPreview extends ChangeNotifier {
     onPlaybackChanged?.call(value);
   }
 
+  /// Prepare a hidden renderer, not a presentation or a selected game.
+  Future<void> prepare(
+      {required bool enabled,
+      String? resourceRoot,
+      String? resourceGeneration}) async {
+    if (_disposed) return;
+    if (!enabled) {
+      _owner = null;
+      _video = null;
+      _action = null;
+      _actionIdentity = null;
+      _actionEpoch++;
+      _setPlaying(false);
+    }
+    await channel.invokeMethod<void>('prepare', {
+      'enabled': enabled,
+      if (resourceRoot != null) 'resourceRoot': resourceRoot,
+      if (resourceGeneration != null) 'resourceGeneration': resourceGeneration,
+    });
+  }
+
   Future<void> present(Object owner, Map<String, dynamic> payload,
       Future<void> Function(String, int?) action) async {
     if (_disposed || !available) return;

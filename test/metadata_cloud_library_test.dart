@@ -11,6 +11,7 @@ import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_cloud_library.dart';
 import 'package:retro_eshop/services/metadata/drive_metadata_api.dart';
 import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
+import 'package:retro_eshop/services/metadata/preview_video_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
@@ -28,7 +29,7 @@ class ResourceProvider extends ControlsArtworkProvider {
   Future<MetadataLookupResult> fetchArtwork(MetadataMedia media,
       {required Future<void> Function(List<int>) write,
       CancelToken? cancelToken}) async {
-    if (media.type == 'video-normalized') {
+    if ({'video', 'video-normalized'}.contains(media.type)) {
       await write(movie(1));
       return MetadataLookupResult(
           status: MetadataLookupStatus.matched, message: 'Fixture trailer');
@@ -240,7 +241,7 @@ void main() {
     shared = true;
     await expectLater(api.get('object'), throwsFormatException);
   });
-  test('typed updates use the documented resource ETag and expected digest',
+  test('typed media updates use the v2 PUT upload URI, ETag and expected digest',
       () async {
     final root = await Directory.systemTemp.createTemp('rshop-cloud-update-');
     final body = File('${root.path}/body.png');
@@ -248,8 +249,10 @@ void main() {
     addTearDown(() => root.delete(recursive: true));
     var observed = 'a' * 64;
     final transport = MetadataTransport((request) => ResponseBody.fromString(
-        request.method == 'PATCH'
-            ? '{"id":"object"}'
+        request.uri.path.startsWith('/upload/')
+            ? request.method == 'PUT'
+                ? '{"id":"object"}'
+                : '{"error":{"errors":[{"reason":"notFound"}]}}'
             : jsonEncode(mutationView(request, {
                 'id': 'object',
                 'name': 'box.png',
@@ -266,7 +269,9 @@ void main() {
                   'sha256': observed
                 }
               })),
-        200));
+        request.uri.path.startsWith('/upload/') && request.method != 'PUT'
+            ? 404
+            : 200));
     final api = DriveMetadataApi(
         authorization: DriveAuthorization(FakeDriveAuthorizationDriver()),
         accountId: 'account-a',
@@ -274,14 +279,15 @@ void main() {
     addTearDown(api.close);
     await api.upload('object', 'game', 'box.png', 'artwork', body, 'b' * 64, 3,
         replacesDigest: 'a' * 64);
-    expect(transport.requests.last.method, 'PATCH');
+    expect(transport.requests.last.method, 'PUT');
+    expect(transport.requests.last.uri.path, '/upload/drive/v2/files/object');
     expect(transport.requests.last.headers['If-Match'], '"version-1"');
     observed = 'c' * 64;
     await expectLater(
         api.upload('object', 'game', 'box.png', 'artwork', body, 'b' * 64, 3,
             replacesDigest: 'a' * 64),
         throwsFormatException);
-    expect(transport.requests.where((r) => r.method == 'PATCH'), hasLength(1));
+    expect(transport.requests.where((r) => r.method == 'PUT'), hasLength(1));
   });
   test('Drive rejection diagnostics retain only bounded provider reason codes',
       () async {
@@ -843,6 +849,84 @@ void main() {
     expect(
         remote.files.values.where((f) => f.kind == 'video').map((f) => f.name),
         ['trailer.mp4']);
+  });
+
+  test('legacy trailer collection publishes and recovers without title lookup',
+      () async {
+    final root = await Directory.systemTemp.createTemp('rshop-legacy-trailer-');
+    final db = await controlsDatabase(path: '${root.path}/projection.sqlite');
+    final store = await SharedMetadataStore.open(
+        Directory('${root.path}/shared'),
+        factory: databaseFactoryFfiNoIsolate);
+    final provider = ResourceProvider();
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(MetadataArtworkCache(
+            Future.value(db), store.artworkRoot,
+            sharedStore: store)),
+        sharedStore: Future.value(store),
+        catalogueChanged: () {});
+    final remote = MemoryMetadataDrive();
+    await remote.folder('root', null, 'R-Shop Metadata');
+    var mediaChanges = 0;
+    final cloud = MetadataCloudLibrary(
+        store: store,
+        remote: remote,
+        accountId: 'account',
+        rootId: 'root',
+        changed: () => mediaChanges++);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+            const MethodChannel('com.retro.rshop/storage'),
+            (_) async => {'ready': true});
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await cloud.close();
+      await store.close();
+      await db.close();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+              const MethodChannel('com.retro.rshop/storage'), null);
+      // Exact task-owned scratch remains for transactional cleanup.
+    });
+    await controls.load();
+    await controls.refresh(systemSlug: 'psx');
+    final edition = provider.calls.single.editionId;
+    final record = (await LibraryStore(Future.value(db))
+        .metadata(edition, 'screenscraper'))!;
+    expect(record.media.any((m) => m.type.startsWith('video')), isFalse);
+    await cloud.open();
+    await controls.collectResources(systemSlug: 'psx');
+    expect(controls.state.report!.counts, {'matched': 3});
+    expect(provider.calls, hasLength(1));
+    await cloud.sync(Future.value(db), pull: false);
+    expect(mediaChanges, 1,
+        reason: 'Remote publication is not a local media change per game');
+    final publishedChanges = mediaChanges;
+    await cloud.publishSelection(edition, {});
+    expect(mediaChanges, publishedChanges,
+        reason:
+            'Publishing a focused game must not restart its own media read');
+    expect(
+        remote.files.values.where((f) => f.kind == 'video').map((f) => f.name),
+        ['trailer.mp4']);
+    final video = MetadataArtworkCache.displayMedia(record, includeVideo: true)
+        .singleWhere((m) => m.type == 'video');
+    final cache = PreviewVideoCache(store);
+    final original = await cache.find(video);
+    expect(original, isNotNull);
+    await cloud.trim(0);
+    expect(await File(original!).exists(), isFalse);
+    final downloads = remote.downloads;
+    expect(await cache.find(video), original);
+    expect(remote.downloads, downloads + 1);
+    remote.online = false;
+    expect(await cache.find(video), original);
   });
   final livePacket = Platform.environment['RSHOP_LIVE_METADATA_PACKET'];
   test('real published Drive packet recovers into an empty isolated store',

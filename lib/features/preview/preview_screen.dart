@@ -51,6 +51,19 @@ class _PreviewScreenState extends State<PreviewScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     bridge.setMethodCallHandler((call) async {
+      if (call.method == 'prepare') {
+        await _prepareResources(
+            (call.arguments as Map).cast<String, dynamic>());
+        await bridge.invokeMethod<void>('prepared');
+        return;
+      }
+      if (call.method == 'hide') {
+        _incomingRevision++;
+        _manualPlayback = null;
+        setState(() => _snapshot = null);
+        _updatePlayback(true);
+        return;
+      }
       if (call.method == 'togglePlayback') {
         if ((call.arguments as Map?)?['actionEpoch'] !=
             _snapshot?['actionEpoch']) return;
@@ -70,15 +83,7 @@ class _PreviewScreenState extends State<PreviewScreen>
         final snapshot = (call.arguments as Map).cast<String, dynamic>();
         final incoming = snapshot['revision'] as int;
         _incomingRevision = incoming;
-        final resource = snapshot['resourceGeneration'] as String?;
-        if (resource != null && resource != _resourceGeneration) {
-          _resourceGeneration = resource;
-          _resourceLoad = SocketMediaImport(
-                  readOnly: true,
-                  directory: Directory(snapshot['resourceRoot'] as String))
-              .initialize();
-        }
-        await _resourceLoad;
+        await _prepareResources(snapshot);
         if (!mounted || incoming != _incomingRevision) return;
         final changed = snapshot['identity'] != _snapshot?['identity'] ||
             snapshot['actionEpoch'] != _snapshot?['actionEpoch'];
@@ -95,6 +100,18 @@ class _PreviewScreenState extends State<PreviewScreen>
       }
     });
     unawaited(bridge.invokeMethod<void>('ready'));
+  }
+
+  Future<void> _prepareResources(Map<String, dynamic> value) async {
+    final resource = value['resourceGeneration'] as String?;
+    if (resource != null && resource != _resourceGeneration) {
+      _resourceGeneration = resource;
+      _resourceLoad = SocketMediaImport(
+              readOnly: true,
+              directory: Directory(value['resourceRoot'] as String))
+          .initialize();
+    }
+    await _resourceLoad;
   }
 
   PreviewSettings get settings => PreviewSettings.fromJson(
@@ -216,8 +233,9 @@ class _PreviewScreenState extends State<PreviewScreen>
           return;
         }
         setState(() => _video = player);
+        final revision = _snapshot?['revision'] as int?;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) unawaited(_rendered(_snapshot!['revision'] as int));
+          if (mounted && revision != null) unawaited(_rendered(revision));
         });
       } catch (_) {
         player.removeListener(_playbackChanged);

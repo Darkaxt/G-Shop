@@ -190,7 +190,17 @@ class SharedMetadataStore {
               'identity_bindings',
               where: 'game_id = ? OR game_id = ?',
               whereArgs: [game.id, game.baseGameId ?? game.id]));
-          for (final media in record.media) {
+          final edition = EditionIdentity.fromJson(
+              jsonDecode(row['edition_json'] as String));
+          final mediaByKey = {
+            for (final media in [
+              ...record.media,
+              ...MetadataArtworkCache.displayMedia(record,
+                  regions: edition.regions, includePhysicalLabel: true)
+            ])
+              MetadataArtworkCache.key(media): media
+          };
+          for (final media in mediaByKey.values) {
             final key = MetadataArtworkCache.key(media);
             (packet['artwork'] as List).addAll(await txn.query(
                 'metadata_artwork_cache',

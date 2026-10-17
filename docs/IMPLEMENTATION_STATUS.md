@@ -5,7 +5,241 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+Current checkpoint, 2026-10-17: S24-S26 are COMPLETE; no implementation stage is
+ACTIVE. Specification revision 65 adds actual GBA Top 25 distinct-game
+box/cartridge/trailer/audio evidence; regional releases count once in Tops.
+Native resource job 88 completed for the 24 eligible distinct GBA games (not a
+fabricated 25th): 24 validated boxes, 24 physical labels, 24 decoded trailers and
+29 screenshots. Read-only Drive receipts verify all 24 normalized copies of each
+required role. Production previews show the actual Mega Man cartridge labels and
+gameplay backgrounds; the trailer track gain matches the configured music volume.
+Native 1.9.13/code 27 now passes cache-clear/background recovery: all 24 GBA box,
+label and trailer bodies were evicted with verified cloud masters retained;
+browsing restored boxes and selecting Mega Man Zero 3 restored its USA cartridge
+label and decoded gameplay trailer. Unpublished local media was preserved. The
+2 GiB budget remains unchanged. Native offline browsing subsequently retained all
+24 ranked entries, scores and boxes; the selected actual USA label and cached
+trailer render/play with Wi-Fi disabled and trailer gain -13 dB matching the
+configured internal volume. Network interruption preserves partial publication.
+Signed 1.9.16/code 30 (APK SHA-256
+c2be6a423dad0ed59e6e80ce7e1a49ed681fb6d891cc0955d4e7cf04b516acdf)
+is installed; all five exact prelaunch preservation hashes are unchanged. Gate
+1383 acquired the shared mutex, build/helper exit 0, daemon exit verified, two
+workers/no parallel, 3 GiB Gradle/in-process Kotlin, one 512 MiB test fork and
+retained native depth-one pools; no memory failure. Signer/privacy checks pass.
+The same wider Nintendo resource-only job 89 resumed from its durable pause after
+installation. It is a background collection still in progress, not a completed
+Nintendo harvest. The requested trigger and representative rendering are verified;
+no full-collection matching, release publication or fabricated 25th GBA game is
+claimed. S24 has no remaining feature-acceptance blocker or tracked deferral.
+Closure assessment: the shared typed selector owns role/edition interpretation;
+local-only readers remain needed outside cloud mode. No acceptance-obstructing
+architectural debt requiring another stage was identified.
+
+### S25 — COMPLETE
+
+Cause: the native secondary engine was created in Presentation.onCreate only on
+first selection and destroyed on every hide. Startup now prepares the existing
+renderer/import generation after the main first frame without showing a window;
+hide/pause removes only R-Shop's window, clears playback and retains the paused
+engine. Disable, display removal/power-off and Activity destruction release it.
+No new player/metadata/download owner or companion task is introduced. Startup
+transport and existing audio/preferences/cache host checks pass. Native 1.9.15
+cold readiness: renderer 1,006,424 us and imported resources 1,661,536 us after
+channel creation, both hidden. First actual GBA model completed at 469,232 us
+after selection; its trailer subsequently initialized. These are renderer
+milestones, not physical pixel timing. Cocoon retained its bottom window/focus.
+Hide/return reused the engine and removed its AudioFlinger track; power-off
+released it and wake restored rendering in the same app process without new
+crash/ANR. Disabled preference retained main browsing and left Cocoon untouched;
+Second screen was restored ON afterwards. Both displays are now OFF.
+The warm lifecycle exposed a late video-frame callback reading cleared state;
+the host regression reproduced it, then passed after capturing its revision.
+That final Dart guard is installed in 1.9.16; native lifecycle paths tested in
+1.9.15 are unchanged. The 1.9.16 cold renderer/resources milestones are
+1,154,149/1,760,788 us, hidden. Gate 1376 acquired the shared mutex, build/helper exit 0,
+daemon exit verified, two workers/no parallel, 3 GiB Gradle/in-process Kotlin,
+one 512 MiB test fork and retained native depth-one pools; no memory failure.
+Installed APK digest matches the signed artifact and all five prelaunch
+preservation hashes remained unchanged. No acceptance blocker or deferral.
+Closure assessment: one existing native renderer owner and one playback owner
+remain; no new architecture or acceptance-obstructing debt was introduced.
+
+Current S24 fixes: reproduced per-game publication notifications restarted mounted
+media reads, while the legacy cover reader scanned the whole console even in cloud
+mode. Publication now notifies at actual local mutations/final sync, and cloud
+cards exclusively own mounted media reads. The reproduced regressions and affected
+cloud-recovery tests pass; targeted analysis reports style infos only.
+
+GB production retest rendered, then crashed with Vulkan ErrorDeviceLost. Matching
+engine symbols resolve the immediate null dereference to the GPU completion
+callback (engine command_buffer.cc:237); this is not an OOM. Inspection found the
+pooled surface resize replacing depth attachments while retaining color targets,
+violating the Vulkan framebuffer-cache attachment invariant described by Flutter
+issue 192538. Color/depth targets are now replaced together on size changes.
+Updated native primary GB (the same Tetris reproduction) and GBA previews render
+their actual labels without a new GPU error or process exit; switching back to
+secondary GBA rendering retains the same process. Final offline/lifecycle checks
+remain open. Actual installed build 1370 acquired the gate, with build/helper exit
+0 and daemon exit verified (two workers, no parallel, 3 GiB Gradle/in-process
+Kotlin, one 512 MiB test fork configured; no memory failure).
+Before installation, a real v2 upload PATCH/404 was traced to the wrong HTTP
+method: Drive documents PUT for media replacement. A strict transport regression
+reproduced that same failure, then passed with PUT, preserving ETag/digest checks;
+metadata-only mutations retain PATCH. Affected cloud recovery checks pass. The
+corrected package is installed: APK SHA-256
+14d2215bc74724d3f030231d34fdb259e97b8e20792a43a0fd83fb1534636230
+matches the installed base APK; signer and privacy checks pass. Exact prelaunch
+preferences, secure-storage, database and imported-generation hashes are unchanged.
+Native publication has advanced past the formerly failing media update without a
+new PATCH/404. Second-screen preview is restored ON; both screens remain awake
+only while the original publication and Nintendo resource-only job are running.
+
+Nintendo resource-only job 89 now owns the wider collection. Its initial snapshot
+exposed an internal integration defect: walking `catalogueEditions` creates and
+classifies unrelated unmatched identities while holding the private write lock,
+delaying publication and browsing. A regression reproduced that unwanted identity
+creation. Resource-only snapshots now page existing matched metadata and retain
+the exact current-catalogue/binding checks without capturing unmatched ROMs. The
+regression and affected canonical Top/artwork workflows pass. Updated native
+verification remains required; no concurrent stage is opened.
+
+S24 integration checkpoint, 2026-10-17: a reproduced late refresh on a covered
+Library route stole focus from the visible route. The shared screen focus owner
+now refuses hidden-route requests; its regression and affected navigation pass.
+Collect media now honors the selected Top 25 scope through the existing canonical
+ranking query, with persisted selected/eligible coverage. Regional copies do not
+consume more positions. Old verified ScreenScraper records can derive a missing
+typed trailer request from their existing provider/platform identity, without
+rematching facts. Collection, normalized Drive publication, eviction and offline
+recovery pass the host workflow. Actual provider video for the first GBA game
+returns a valid MP4 header; Android decoding and collection remain open.
+
+Read-only native ranking audit found 24 eligible distinct GBA games, all matched
+with physical-label references and none with stored trailer references. This is
+not a claim of 25 collected games or complete resource availability. Isolated
+primary GB/GBA rendering succeeds with fully rough plastic. A known decoded GBA
+cover completes the real 2.4-second reveal (first measured layout at 17,812 us,
+cover absent at 2,411,338 us); GPU completion is not physical presentation timing.
+Production graphics/lifecycle acceptance remains open. The temporary fixture app
+was removed through its pre-install-baseline cleanup ticket; both displays are OFF.
+
+Native diagnostic build ticket 1362 failed because a PowerShell argument split
+the Dart target suffix; no memory failure. Correctly quoted ticket 1363 acquired
+the shared gate and completed with build/helper exit 0 and daemon exit verified:
+two workers, no parallelism, 3 GiB Gradle/in-process Kotlin, one 512 MiB test fork
+configured and depth-one native pools. Targeted analysis of the integrated patch
+has no errors/warnings (existing style infos only). No public release is created.
+
+### Commercial release preferences — S26 COMPLETE, 2026-10-17
+
+REGION-01 is recorded in specification revision 64: editable EUR -> USA -> JPN
+priority, one preferred commercial release per verified game, Show all versions,
+persistence and controller support. Hacks/Patches remain unchanged; alternatives
+are hidden, never deleted. Shared paged queries, both galleries/search/Top,
+sectioned settings and persisted preferences are integrated. Host regional,
+fallback, revision/bundle, modification, distinct-rank and encrypted settings
+migration checks pass. Native 1.9.16/code 30 preserves all five prelaunch hashes;
+APK c2be6a423dad0ed59e6e80ce7e1a49ed681fb6d891cc0955d4e7cf04b516acdf
+matches the installed base and unchanged signer, with no packaged credentials.
+Touch reorder, D-pad/A mode toggle, L1/R1 sections and restart persistence pass.
+Gate 1383 acquired the shared mutex, build/helper 0 and daemon exit verified;
+observed two workers/no parallel and 3 GiB Gradle/in-process Kotlin, one 512 MiB
+test fork configured, retained native depth-one pools; no memory failure.
+Native real-collection verification resolved an existing Japanese and European
+release through the normal provider-offered review, with actual platform/provider
+identity and explicit release evidence. The original unmatched files were not
+merged by title. Show all versions exposes both files under one game; JPN-first
+selects the Japanese release and its label, and EUR-first selects the USA/Europe
+release and its European label in both console and Library browsing/search.
+The latter downloaded normally and opened in RetroArch; the language selector
+rendered. No save-content or gameplay-progression audit was added. Both exact
+edition identities remain separate beneath the shared provider game identity.
+The default EUR/USA/JPN order and Show all versions OFF are restored. Native
+1.9.16 GBA Top 25/rating order displays the 24 eligible distinct ranked games;
+the secondary model has the actual USA cartridge label, with native AVC decoding
+and a playing gameplay background. Trailer track 267 has -13 dB channel gain;
+the launcher's track 264 is muted. Device-wide media mute is unchanged.
+Second screen ON, 3D ON and reduced motion OFF are restored. Affected host
+query/controller/settings/lifecycle/audio and encrypted migration checks pass;
+final targeted analysis has two style infos, no errors or warnings.
+The first browsing query completed its projection rebuild. The saved Top 25
+filter correctly excluded unrated 007; no readiness workaround was introduced.
+S25's prerequisite is satisfied. Feature acceptance has no remaining blocker or
+tracked deferral. The same Nintendo resource job 89 resumed from 578 lookups /
+587 matched to 605 lookups / 613 matched after final verification; it is not a
+completed wider harvest. No new bulk metadata job was substituted for it.
+Closure assessment: one shared query owns region selection and canonical rank;
+exact edition/launch ownership remains unchanged. No speculative refactoring or
+acceptance-obstructing architectural debt was identified. The unchanged S24/S25
+assessments apply to final reconciliation.
+
+Final delivery reconciliation, 2026-10-17: the installed 1.9.16 artifact remains
+at `D:/Releases/R-Shop/1.9.16/app-release.apk`, outside expendable build output.
+Reviewed cleanup removed the six task-created read-only Android audit payloads
+and their exact directories. Windows transaction d2fce5ef1327e03659dc6d774a5dafb9
+and exact-residual transaction d4e9ee33a13324b152bd76298572a39a are both APPLIED:
+4,960,112,858 logical bytes of rebuildable output/captures removed, not a claim
+of equivalent physical disk reclamation. The residual pass separately reviewed
+14 exact CMake hard-link names and one post-review capture; unreviewed/new files
+were not swept. Source, signing/configuration, intentional APKs, ROMs, saves,
+cloud masters and imported resources remain outside cleanup. Older app-native
+configuration outside this task's reviewed roots is untouched. Both physical
+displays report OFF and Android reports Asleep. No public release was requested
+or created. Source/remote commit equality is checked separately at handoff.
+This is a separately requested outcome, not a deferral of
+S24 or a new blocker to its acceptance.
+
 ### Drive-backed metadata — S24 ACTIVE, 2026-10-16
+
+Native 1.9.11/code 25 checkpoint: gated ticket 1353 acquired the shared mutex;
+build/helper exit 0 and post-build daemon exit verified. Observed two workers,
+no parallelism, 3 GiB Gradle/in-process Kotlin, one 512 MiB test fork and retained
+depth-one patch-native pools; no memory failure. APK digest
+aa138c685de7c4a8dedf29f716d868c21beb8dbf801f1b714bc78b3c27b20d56
+matches the installed APK; signer/privacy checks and exact prelaunch preference,
+secure-storage/import-generation preservation pass. Constrained native Sony
+overflow now visibly fades, and the full-width strip remains readable.
+Rendering acceptance is NOT complete: primary-screen GB model rendering after
+temporarily disabling the second screen caused a native Adreno/Vulkan SIGSEGV
+at vkCmdBeginRenderPass/InternalFlutterGpu_RenderPass_Begin (not an OOM;
+Android exit-info reports native crash at 399 MiB PSS/544 MiB RSS). Root cause
+and affected native verification remain current-stage blockers.
+
+Device-verification deviations require recovery before further acceptance:
+shortcuts were observed reaching a hidden Library route while the console gallery
+was open; a repeated activation downloaded one previously cloud-only small GB
+entry. Its unintended favorite has been removed through the actual Library
+selection (only the original Unbound favorite remains). The newly managed
+69,054-byte Tama ROM was removed through its normal owned Delete confirmation;
+exact file absence and the restored DOWNLOAD action were verified. Original
+ROM/save files were untouched. Second-screen preview and 3D media are restored
+ON; read-back of the persisted settings confirms both, with reduced motion still
+OFF. No new public release or stage completion is claimed.
+
+Current implementation checkpoint, 2026-10-17: GB resource-only job 87 completed
+405 requests: 404 valid resources and one rejected screenshot response. Native
+read-only aggregates retain all 1,784 records and account for 217,920,924 media
+bytes. A rejected resource is absent, not accepted as artwork. Actual Tetris
+preview plays collected gameplay video, but its model still showed a handwritten
+label: legacy records contain multiple regional labels that the old cache rejected.
+The same records can omit the typed front-box selector entirely. Collection,
+cache consumption and normalized Drive export now share edition-bound label and
+validated front-box request selection without rematching or editing retained facts.
+The reproduced label failure and affected cloud/cache workflows pass on host;
+updated native rendering remains pending. Native housing glare also remained
+visible with the .75 roughness floor; the fully rough plastic floor now preserves
+labels/discs/hardware and passes its focused material contract. No stage closure
+or public release is claimed.
+
+Original host test session 33974 was observed through exit 0 before another
+workload launched. It unintentionally included the existing 30,000-edition
+resource case; the inspected result was bounded (128-record batches, peak RSS
+239,403,008 bytes) with no memory failure. That unchanged broad case will not be
+repeated for these selector changes. Subsequent focused artwork/cloud/material
+checks passed serially. Remaining acceptance: updated native labels/cover reveal
+and plastic finish, normalized publication/native cache lifecycle, constrained
+brand overflow, and the requested wider Nintendo resource collection.
 
 Latest verified checkpoint, 2026-10-17: native 1.9.9 completed the explicit
 media reset, retaining all 1,784 records and removing 537,249,923 media bytes;

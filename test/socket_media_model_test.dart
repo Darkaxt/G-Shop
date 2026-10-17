@@ -18,7 +18,9 @@ void main() {
     };
     final gb = SocketMediaGpu.materialUniforms(source, plasticHousing: true);
     expect(gb[5], 0);
-    expect(gb[19], .75);
+    expect(gb[19], 1,
+        reason:
+            'Matte housings must not retain grazing HDR metallic-like glare');
     final label = SocketMediaGpu.materialUniforms(source,
         plasticHousing: true, isLabel: true);
     expect(label[5], 1);

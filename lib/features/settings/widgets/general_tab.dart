@@ -8,6 +8,7 @@ import '../metadata_settings_screen.dart';
 import '../save_backup_settings_screen.dart';
 import '../rom_cache_settings_screen.dart';
 import '../media_settings_screen.dart';
+import '../collection_filters_screen.dart';
 import '../migration_settings_screen.dart';
 import '../models/settings_entry.dart';
 import '../sources_screen.dart';
@@ -48,10 +49,22 @@ class SettingsGeneralTab extends ConsumerWidget {
       firstFocusNode: firstFocusNode,
       sections: [
         SettingsSection(l.settings_sectionLibrary, [
-          SettingsEntry.nav(icon: Icons.move_to_inbox_outlined,
-              title: 'Device migration', subtitle: 'Encrypted full backup and restore',
-              onSelect: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const MigrationSettingsScreen()))),
+          SettingsEntry.nav(
+              icon: Icons.filter_alt_outlined,
+              title: 'Collection filters',
+              subtitle: 'Preferred regions and game versions',
+              onSelect: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const CollectionFiltersScreen()))),
+          SettingsEntry.nav(
+              icon: Icons.move_to_inbox_outlined,
+              title: 'Device migration',
+              subtitle: 'Encrypted full backup and restore',
+              onSelect: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MigrationSettingsScreen()))),
           SettingsEntry.nav(
               icon: Icons.sd_storage_outlined,
               title: 'ROM cache',

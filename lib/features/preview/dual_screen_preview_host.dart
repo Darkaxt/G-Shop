@@ -19,6 +19,7 @@ import '../../providers/rom_status_providers.dart';
 import '../../services/library_store.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../services/secondary_preview.dart';
+import '../../services/metadata/metadata_artwork_cache.dart';
 import '../game_detail/game_detail_controller.dart';
 import '../game_detail/open_managed_game.dart';
 import '../../widgets/quick_menu.dart';
@@ -247,12 +248,13 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
           .metadata(edition, 'screenscraper');
       if (!mounted || generation != _generation) return;
       final normalized = ref.read(previewSettingsProvider).normalized;
-      final videos = record?.media
-              .where((m) =>
-                  m.providerReference != null &&
-                  {'video', 'video-normalized'}.contains(m.type))
-              .toList() ??
-          [];
+      final videos = (record == null
+              ? const <MetadataMedia>[]
+              : MetadataArtworkCache.displayMedia(record, includeVideo: true))
+          .where((m) =>
+              m.providerReference != null &&
+              {'video', 'video-normalized'}.contains(m.type))
+          .toList();
       final media = videos
               .where(
                   (m) => m.type == (normalized ? 'video-normalized' : 'video'))
