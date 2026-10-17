@@ -5,6 +5,36 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 request limits and GBA media diagnosis — 2026-10-18, ACTIVE
+
+Owner request-rate clarification is recorded in specification revision 79.
+Native read-only job observation confirms the actual GBA selection is 24/24
+eligible distinct games. Job 99 completed with 24 each of front/back/spine/wrap,
+physical label and trailer matched, plus 29 screenshots; its 24 invalid responses
+are exclusively fanart. ScreenScraper's live fanart endpoint returns PNG bytes
+while declaring `image/jpeg`. The provider correction admits that header only
+with an actual PNG signature; existing dimensions/chunk-CRC/IEND/decoder checks
+remain required before cache publication. The transport regression failed before
+the change and passes afterward, with affected artwork-job/cache checks and
+scoped analysis passing. This correction is not yet installed on Thor.
+
+The Android queue's persisted ScreenScraper budget reports 3,072 requests/minute,
+one worker, 18,354 reserved requests remaining and no exhausted-quota flag.
+The desktop packaging helper now requires a fresh authenticated account-limit
+check before an uncached ScreenScraper request, reserves its daily budget before
+dispatch and spaces requests by the reported rate. Unknown/zero/exhausted limits
+stop media requests; throttling stops the collection without automatic retries.
+Verified cached bodies make no API/account requests. Offline regressions cover
+these contracts. A live gated check successfully decoded one 1024x576 PNG fanart
+response after the account probe. No parallel desktop/Android provider collection
+was launched, and no additional bulk provider collection is authorized by that check.
+
+The first prepared GBA pack remains pending verified native import/publication:
+the normal picker returned, but read-only observation still reports zero
+`packaging` records. Cloud publication resumed its existing 1,402-edition queue;
+this is not evidence that the pack imported. Diagnose this integration before
+claiming the GBA checkpoint passed, publishing the update or starting a second console.
+
 Latest owner instruction, 2026-10-17: S25 ACTIVE, first-console GBA collection and
 rendering slice. Remaining: extra typed-resource acquisition/publication, compatible
 NintAndBox classification, generic model adaptation, actual ranked collection and

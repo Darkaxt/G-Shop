@@ -1,6 +1,6 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 78.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 79.
 Current implementation checkpoint: S25 is ACTIVE for the generic resource
 explorer and individual model verification. The automatic cinematic transition
 is expressly not being implemented yet. See [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md)

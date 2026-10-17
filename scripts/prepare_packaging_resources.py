@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+import time
 import unicodedata
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -138,7 +139,67 @@ def read_env(path):
     return result
 
 
-def fetch(session, url, *, params=None, limit=32 * 1024 * 1024):
+class ScreenScraperBudget:
+    """One serial desktop collection, paced by freshly reported account limits.
+
+    Do not run this collector beside another ScreenScraper collection. Other
+    clients consume the same account quota; the provider remains authoritative.
+    """
+
+    def __init__(self, auth, *, clock=time.monotonic, wait=time.sleep):
+        self.auth = dict(auth)
+        self.clock, self.wait = clock, wait
+        self.remaining = None
+        self.interval = None
+        self.next_allowed = 0
+
+    def reserve(self, session):
+        if self.remaining is None:
+            started = self.clock()
+            try:
+                with session.get('https://api.screenscraper.fr/api2/ssuserInfos.php',
+                        params={**self.auth, 'output': 'json'},
+                        stream=True, allow_redirects=False) as response:
+                    if response.status_code != 200:
+                        raise RuntimeError(f'ScreenScraper account check returned HTTP {response.status_code}')
+                    body = bytearray()
+                    for chunk in response.iter_content(8192):
+                        body.extend(chunk)
+                        if len(body) > 65536:
+                            raise RuntimeError('ScreenScraper account response exceeds budget')
+                    account = json.loads(body)['response']['ssuser']
+            except requests.RequestException:
+                raise RuntimeError('ScreenScraper account check unavailable') from None
+            except (ValueError, KeyError, TypeError):
+                raise RuntimeError('ScreenScraper account limits are unavailable') from None
+            try:
+                fields = ['maxthreads', 'maxrequestsperday', 'requeststoday',
+                    'maxrequestskoperday', 'requestskotoday']
+                limits = {key: int(account[key]) for key in fields}
+                rate = int(account.get('maxrequestsperdmin', account.get('maxrequestspermin')))
+                valid = (str(account['id']).lower() == self.auth['ssid'].lower()
+                    and all(value >= 0 for value in limits.values()) and rate > 0)
+            except (ValueError, KeyError, TypeError):
+                valid = False
+            if not valid:
+                raise RuntimeError('ScreenScraper account limits are unavailable')
+            if (limits['maxthreads'] < 1
+                    or limits['requestskotoday'] >= limits['maxrequestskoperday']):
+                raise RuntimeError('ScreenScraper quota is exhausted; collection stopped')
+            # Include the access probe conservatively; never guess a reset time.
+            self.remaining = max(0, limits['maxrequestsperday'] - limits['requeststoday'] - 1)
+            self.interval = 60 / rate
+            self.next_allowed = started + self.interval
+        if self.remaining < 1:
+            raise RuntimeError('ScreenScraper quota is exhausted; collection stopped')
+        delay = self.next_allowed - self.clock()
+        if delay > 0:
+            self.wait(delay)  # External API's advertised rate, not a completion timer.
+        self.next_allowed = self.clock() + self.interval
+        self.remaining -= 1  # Reserve before dispatch, including failed attempts.
+
+
+def fetch(session, url, *, params=None, limit=32 * 1024 * 1024, provider_budget=None):
     public = {key: value for key, value in (params or {}).items()
         if key not in {'devid', 'devpassword', 'softname', 'ssid', 'sspassword'}}
     cache_key = hashlib.sha256(json.dumps([url, public], sort_keys=True).encode()).hexdigest()
@@ -146,6 +207,10 @@ def fetch(session, url, *, params=None, limit=32 * 1024 * 1024):
     if target and target.exists():
         value = target.read_bytes()
         return None if value.strip() == b'NOMEDIA' else value
+    if urllib.parse.urlsplit(url).hostname == 'api.screenscraper.fr':
+        if provider_budget is None:
+            raise RuntimeError('ScreenScraper requires a rate-controlled request budget')
+        provider_budget.reserve(session)
     with session.get(url, params=params, stream=True, allow_redirects=False) as response:
         # No exception messages include authenticated request URLs.
         if response.status_code == 404:
@@ -180,6 +245,11 @@ def collect(args):
     manifest = {'version': 1, 'platform': args.system, 'games': []}
     bodies, report = {}, []
     credentials = read_env(args.env) if args.env else {}
+    auth = {target: credentials.get(source, '') for target, source in {
+        'devid': 'SCREENSCRAPER_DEVID', 'devpassword': 'SCREENSCRAPER_DEVPASSWORD',
+        'softname': 'SCREENSCRAPER_SOFTNAME', 'ssid': 'SCREENSCRAPER_USERNAME',
+        'sspassword': 'SCREENSCRAPER_PASSWORD'}.items()}
+    provider_budget = ScreenScraperBudget(auth) if all(auth.values()) else None
     def add(resources, role, region, body, *, source, asset, url, page=None, panel=None, original=None):
         source_body = original or body
         rotation = 0
@@ -226,10 +296,6 @@ def collect(args):
                         source='launchbox', asset=game_id + '/' + filename, url=url)
         # Existing ScreenScraper facts supply the matched game identity. Only
         # extra same-edition faces/documents are requested; facts/scores stay intact.
-        auth = {target: credentials.get(source, '') for target, source in {
-            'devid': 'SCREENSCRAPER_DEVID', 'devpassword': 'SCREENSCRAPER_DEVPASSWORD',
-            'softname': 'SCREENSCRAPER_SOFTNAME', 'ssid': 'SCREENSCRAPER_USERNAME',
-            'sspassword': 'SCREENSCRAPER_PASSWORD'}.items()}
         provider_id = row['metadata']['providerGameId']
         extra_media = list(row['metadata']['media'])
         # Legacy metadata discarded mediaManuelJeu selectors. Probe the documented
@@ -253,7 +319,8 @@ def collect(args):
             params = {**auth, 'systemeid': reference['providerPlatformId'], 'jeuid': provider_id,
                 'media': f'{role}({region})',
                 **({} if role == 'manuel' else {'outputformat': 'png', 'maxwidth': 1024, 'maxheight': 1024})}
-            body = fetch(session, 'https://api.screenscraper.fr/api2/' + endpoint, params=params)
+            body = fetch(session, 'https://api.screenscraper.fr/api2/' + endpoint,
+                params=params, provider_budget=provider_budget)
             if not body:
                 continue
             source_url = f'https://www.screenscraper.fr/gameinfos.php?plateforme=12&gameid={provider_id}'

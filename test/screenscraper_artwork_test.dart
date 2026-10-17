@@ -162,6 +162,32 @@ void main() {
     expect(written, isFalse);
   });
 
+  test(
+      'PNG response accepts the live fanart JPEG header without changing bytes',
+      () async {
+    wire.headers = {
+      'content-type': ['image/jpeg']
+    };
+    final received = <int>[];
+    final result = await provider.fetchArtwork(media,
+        write: (bytes) async => received.addAll(bytes));
+    expect(result.status, MetadataLookupStatus.matched);
+    expect(received, wire.bytes);
+  });
+
+  test('PNG response still rejects actual JPEG bytes before writing', () async {
+    wire.headers = {
+      'content-type': ['image/jpeg']
+    };
+    wire.bytes = [255, 216, 255, 224, ...List.filled(32, 0)];
+    var written = false;
+    final result = await provider.fetchArtwork(media, write: (_) async {
+      written = true;
+    });
+    expect(result.status, MetadataLookupStatus.invalidResponse);
+    expect(written, isFalse);
+  });
+
   test('live endpoint success marker is removed only after an exact PNG end',
       () async {
     final png = List<int>.from(wire.bytes);

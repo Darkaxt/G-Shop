@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 78, 2026-10-17.
+Authoritative specification, revision 79, 2026-10-18.
+
+Owner request-limit clarification, 2026-10-18: extra resource acquisition must
+respect provider request rates, daily budgets, concurrency and throttling as
+ordinary metadata collection does. This includes the desktop packaging helper,
+not only the Android queue. Reuse verified cached bodies without API requests;
+unknown limits are not unlimited and throttling must not cause a retry burst.
+Keep desktop and Android provider collection sequential rather than running
+separate consumers against the same account at the same time.
 
 Owner console-by-console collection checkpoint, 2026-10-17: within ACTIVE S25,
 extend the existing collector to acquire the extra packaging/manual/gallery

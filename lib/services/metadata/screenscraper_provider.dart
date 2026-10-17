@@ -206,12 +206,14 @@ class ScreenScraperProvider
       }
       if (video
           ? !{'video/mp4', 'application/octet-stream'}.contains(mime)
-          : mime != 'image/png') {
+          : !{'image/png', 'image/jpeg'}.contains(mime)) {
         await body.stream.listen((_) {}).cancel();
         return _result(MetadataLookupStatus.invalidResponse);
       }
       var received = 0;
       var tail = Uint8List(0);
+      final imageHeader = <int>[];
+      const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
       await for (final chunk in body.stream) {
         if (cancelToken?.isCancelled == true) {
           return _result(MetadataLookupStatus.cancelled);
@@ -224,6 +226,18 @@ class ScreenScraperProvider
           await write(chunk);
           continue;
         }
+        // The live fanart endpoint returns PNG output with its source JPEG MIME.
+        // Admit that header only with actual PNG bytes; the cache still checks
+        // dimensions, every chunk CRC and the exact IEND before publication.
+        if (imageHeader.length < pngSignature.length) {
+          imageHeader
+              .addAll(chunk.take(pngSignature.length - imageHeader.length));
+          if (imageHeader.length == pngSignature.length &&
+              !Iterable<int>.generate(pngSignature.length)
+                  .every((i) => imageHeader[i] == pngSignature[i])) {
+            return _result(MetadataLookupStatus.invalidResponse);
+          }
+        }
         // Keep only the end-chunk framing across arbitrary transport chunks.
         // Live mediaJeu.php appends ASCII '1' after the complete IEND. Normalize
         // that exact endpoint response, not arbitrary data or whitespace.
@@ -235,7 +249,9 @@ class ScreenScraperProvider
       if (cancelToken?.isCancelled == true) {
         return _result(MetadataLookupStatus.cancelled);
       }
-      if (received == 0 || (length != null && received != length)) {
+      if (received == 0 ||
+          (length != null && received != length) ||
+          (!video && imageHeader.length != pngSignature.length)) {
         return _result(MetadataLookupStatus.invalidResponse);
       }
       const endWithMarker = [0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130, 49];
