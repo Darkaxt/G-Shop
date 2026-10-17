@@ -10,7 +10,7 @@ explorer and final-model validation. Stop at that checkpoint before implementing
 the full cinematic transition. Existing NOT STARTED statements below describe the
 preceding planning checkpoint, not current execution. The native inventory now
 records 20 imported-3D routes, 46 flat fallbacks, generic case/box/booklet actions
-and three regional/compatibility variants; the final title-layout pass is pending;
+and three regional/compatibility variants; the focused native title-layout pass passed;
 see [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md). Required full transitions remain
 pending; no overall S25 completion or production release is claimed.
 
@@ -56,9 +56,11 @@ renderer inspection supplies separate actual GPU evidence.
 The handwritten fallback correction now follows upper circular arcs around optical
 hubs (including UMD's large badge), uses additional arcs for long titles,
 fills narrow label areas without the old footer, and leaves real
-art untouched. Its final focused native recheck is queued once through the shared
-Gradle gate. The existing completed native inventory remains valid for unchanged
-geometry/bindings; it does not validate this latest label revision.
+art untouched. Its final focused native recheck passed on Thor in the isolated
+inspection app, including CD/UMD visual inspection, native flat controls and
+regional bindings. The shared Gradle gate was acquired; the 3 GiB/two-worker
+in-process Kotlin profile completed without memory failure, and daemon exit was
+verified. Exact APK/oracle identities and acceptance limits are in the model ledger.
 
 Full S25 advancement blockers and their resolution conditions are recorded in
 [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md). They are implementable work or the

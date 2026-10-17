@@ -47,10 +47,33 @@ It ends with `completed / 66 / cinematicVerified=false`.
 The latest handwritten-label correction curves disc titles along upper circular
 arcs, using another arc for long titles, clear of both CD holes and the UMD badge.
 Cartridge text fills its usable label area without the old footer. The final
-native arc-layout recheck is pending at this update. Flat
-preview rotation/zoom now apply to the actual image transform (widget verification);
-the final native focused pass remains pending. No cosmetic failure is concealed
-by the geometry results.
+focused native pass completed on 16 console routes, including every distinct
+imported medium binding and regional variants, plus Virtual Boy/Sega CD flat
+controls. Evidence: `D:/Temp/rshop-s25-models-20261017/arc-pass/models.jsonl`,
+source revision `s25-explorer-r4`, APK SHA-256
+`e9f658df6b49b90cb6df22af0276f4087a21211d89c8e85cecaa5edc370a6472`.
+The disc and UMD front captures were visually inspected: titles follow the upper
+arc without crossing the hole/badge. GBA and narrow NES text remain readable and
+unfragmented. Flat-preview controller rotation/zoom are now wired to the actual
+image transform, with widget checks and native action evidence. Back views were
+captured; the inspected GBA/UMD backs preserve their source geometry. This is not
+proof of original retail packaging or all real game artwork.
+
+The fixture verified private oracle manifest SHA-256
+`aa9ead20ab58fee27d2d6fdcc4fc7253bf0fff6cf952ac0b8e105a20e9014b16`
+and every imported member before loading. Build gate ticket 1432 acquired the
+shared mutex: Gradle 9.1.0, effective 3 GiB heap, two workers, no parallel projects,
+Kotlin 2.3.21 in-process sharing that heap. Test configuration is one fork/512 MiB
+(assemble did not execute JVM tests). Generated native Ninja rules use pool depth
+one. No memory failure or increase occurred; build/helper exit codes are zero and
+post-build Gradle daemon exit was verified. The APK is an isolated inspection
+fixture, not a production update or full-app acceptance.
+
+After inspection, the exact temporary test app and its disposable private oracle
+were removed through reviewed cleanup transaction
+`2993595df937b71f672fb29f95009cef` (state `applied`). Production remains
+1.9.17/code 33. Both built-in display devices report committed state OFF.
+The retained `arc-pass` captures are review evidence, not disposable build output.
 
 ## Per-console inspected bindings
 
@@ -78,7 +101,7 @@ and cinematic acceptance remain separate required work.
 | `psx` | `disc` (A08) | Case A16 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `ps2` | `disc` (A08) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `ps3` | `disc` (A08) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
-| `psp` | `psp` (A17) | Case A03 | 3D frame + rotation/zoom; medium does not open | UMD title recheck pending |
+| `psp` | `psp` (A17) | Case A03 | 3D frame + rotation/zoom; medium does not open | Curved UMD fallback title visually verified; real game artwork/assembly pending |
 | `psvita` | `vita` (A18) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `mastersystem` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 | `megadrive` | `genesis` (A19) / `megadrive` (A20) | Box A02; Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
