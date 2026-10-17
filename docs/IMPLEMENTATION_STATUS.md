@@ -122,6 +122,12 @@ front -> known spine -> back rotation arc for such three-face spreads, with no
 vertical tilt or full revolution exposing absent faces. Zoom remains available;
 additional rotation requires verified corresponding face artwork. This is recorded
 in specification revision 70 and the plan, not implemented or validated yet.
+Superseded by the owner's latest best-effort decision (revision 72): full rotation
+and zoom are permitted with generic colour-matched material on missing sides;
+available-spine reuse is also allowed where coherent. Default to generic faces
+instead of repeated text/barcodes. Retain original-versus-reconstructed per-face
+provenance; do not block the viewer on six original scans. This remains S25 scope,
+not a change to S24's active implementation or build.
 
 S25-only source review, 2026-10-17: the owner's supplied LaunchBox game 26125
 is the Nintendo Game Boy Advance edition of 007: Everything or Nothing. Its

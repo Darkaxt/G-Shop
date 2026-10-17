@@ -42,12 +42,13 @@ typed face collection/cache consumption, verify same-region face sets or known
 platform texture layouts, and retain the shallow front-cover fallback for missing
 sets. Do not use a static box-3D image as hidden-face geometry or invent artwork.
 This spread supplies three faces only. The opposite side/top/bottom require
-additional verified scans. Per the owner's subsequent instruction, a three-face
-spread permits only a bounded horizontal front -> known spine -> back arc, not
-full rotation or vertical tilt. Keep missing geometry neutral and hidden; zoom
-remains available. Verify both endpoints and unsupported-axis rejection for touch
-and controller input. Extra axes unlock only with verified corresponding artwork,
-not a mirrored or duplicated spine. One same-game box-scan request returned HTML,
+additional verified scans for authentic reproduction. The owner's latest
+best-effort instruction supersedes the earlier bounded-axis restriction: allow
+full rotation/zoom and use colour-matched generic material for missing faces.
+Spine reuse is authorized where visually coherent, but the default avoids repeated
+text/barcodes on every edge. Record these faces as reconstructed, not original
+scans; a six-scan set is not a viewer prerequisite. Verify all real/fallback faces
+and touch/controller rotation/zoom. One same-game box-scan request returned HTML,
 not an image, so a fully authentic six-face reconstruction is not established.
 The owner's subsequent source choice is LaunchBox first and ScreenScraper
 fallback for S25 box faces only; existing scores, cartridge/trailer providers and

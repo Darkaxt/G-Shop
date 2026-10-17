@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 71, 2026-10-17.
+Authoritative specification, revision 72, 2026-10-17.
 
 Current execution checkpoint: S24 is ACTIVE again following the owner's report
 that cartridge images and other GBA media do not work. The earlier completion
@@ -66,14 +66,16 @@ these new S25 criteria are NOT STARTED while S24 alone remains ACTIVE. Record th
 requested plan now; do not fold an unfinished interactive viewer into the current
 S24 correction/publication scope or claim the expanded S25 is COMPLETE.
 
-Owner box-rotation clarification, 2026-10-17: when a verified spread supplies
-only front, back and one spine, allow horizontal rotation only along the bounded
-arc from front through that spine to back. Do not allow a full revolution or
-vertical tilt exposing the unscanned opposite spine, top or bottom. Zoom remains
-available. Unlock additional rotation only when corresponding same-edition face
-artwork is verified; neutral hidden geometry does not justify exposing missing
-faces. Acceptance must verify both rotation endpoints and rejected unsupported
-axes for touch and controller input.
+Owner best-effort box clarification, 2026-10-17: permit full box rotation and zoom
+even when only front/back/one spine are scanned. This supersedes the earlier
+bounded-axis instruction. Use verified original faces where available; fill the
+opposite spine, top and bottom with simple colour-matched generic box material
+by default. Reuse of an available spine is also authorized when it looks coherent,
+but do not require repeated text/barcodes on every edge. These are reconstructed
+fallback faces, not evidence of additional original scans. Preserve that distinction
+in per-face provenance. Missing extra faces must not block the best-effort box
+viewer or require a six-scan set. Verify real-face placement, generic missing-face
+rendering, unrestricted rotation and zoom for touch/controller input.
 
 Owner S25 box-source extension, 2026-10-17: use LaunchBox Games Database as
 the preferred source of verified box faces for S25's interactive reconstructed
