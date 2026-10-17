@@ -172,7 +172,7 @@ actual eligible ranked GBA entry (24 distinct games) through the installed Thor
 gallery, including decoded labels, correct covers, playing trailers at saved
 volume, and readiness-gated reveal. Native motion/edge review and published versus
 installed APK identity pass. S24 is COMPLETE; expanded S25 remains NOT STARTED.
-See SPECIFICATION.md revision 74 and the current status ledger for acceptance,
+See SPECIFICATION.md revision 75 and the current status ledger for acceptance,
 scope and exact artifact evidence; historical receipt-only claims remain superseded.
 
 Acceptance sample added by the owner, 2026-10-17: GBA Top 25 distinct games must

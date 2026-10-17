@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 74, 2026-10-17.
+Authoritative specification, revision 75, 2026-10-17.
 
 Current execution checkpoint: S24 is COMPLETE after the corrected GitHub-built
 1.9.17/code 33 passed the actual Thor gallery for all 24 eligible ranked GBA games,
@@ -19,6 +19,21 @@ recorded in [S25_PACKAGING_COVERAGE.md](S25_PACKAGING_COVERAGE.md); candidate
 listings do not count as downloaded, integrated or native-verified assets.
 Support Box -> Cover -> Cartridge where those distinct physical layers exist;
 do not require fictitious packaging or complete scans for every console.
+
+Owner S25 pre-plan direction, 2026-10-17: evaluate NintAndBox coverage/access/
+format limits, sources for other manufacturers (including The Cover Project),
+and one simple resizable outer-box model with per-console/edition dimensions and
+surface mappings. Protective cases are a separate family, including the supplied
+Switch case; do not invent an outer box for ordinary case-only presentations.
+Maintain a checklist for every current platform, separating listed, byte-inspected,
+converted, integrated and native-verified resources. Evaluate extra resources,
+especially readable manuals and an optional booklet layer in the package reveal;
+this pre-plan does not require a complex opening/page-turning model for every game.
+The owner separately authorizes downloading the complete NintAndBox package.
+Latest storage clarification: keep reference/source material on E:, and upload
+only final classified resources to private Google Drive, not the source archive.
+Verify the archive and any admitted uploaded resources; preserve active metadata
+and ROMs. Reference acquisition is not normalized ingestion or S25 acceptance.
 
 Owner future S26 objective, 2026-10-17: evaluate G-Shop rebranding and removal
 of the original remote R-Shop server and standalone local-only collection modes.

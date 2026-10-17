@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 74, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 75, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16
@@ -39,6 +39,12 @@ The owner explicitly requests S24 closure first and S25 evaluation afterward.
 The supplied packaging sources and all 66 platform IDs are accounted for in
 [S25_PACKAGING_COVERAGE.md](S25_PACKAGING_COVERAGE.md). This is a review, not an
 implemented Box -> Cover -> Cartridge workflow or acceptance of model files.
+The owner-authorized pre-plan now includes a real archive file-table inventory,
+non-Nintendo sources/The Cover Project, a reusable parametric outer-box candidate,
+separate case/protector families and manuals/optional booklet presentation.
+Full NintAndBox archive acquisition on E: is authorized; the latest owner
+clarification restricts Drive uploads to final classified content, not source
+archives. Keep byte-verification and cleanup distinct from Android implementation.
 The box feasibility check confirms the official front/back/spine/texture types.
 All 124 inspected retained GBA records contain typed back/spine/texture request
 references (not proof of 124 downloadable complete boxes). One same-edition US

@@ -17,6 +17,33 @@ no S25 renderer/provider implementation has begun. Future S26 is the requested
 G-Shop rebranding/source-scope evaluation, NOT STARTED. Historical REGION-01
 (formerly S26) remains COMPLETE; it is not completion evidence for the rebrand.
 
+### S25 pre-plan/source acquisition — 2026-10-17
+
+Expanded S25 remains NOT STARTED; this is the requested source/geometry evaluation,
+not a new implementation stage. The availability checklist now lists every one
+of the 66 current IDs individually. Archive header inspection establishes eight
+Nintendo families, 2,528 box-resource sets across 1,982 title folders, 34,926 manual
+pages, 2,083 labels and additional maps/flyers/trays. Counts are source membership,
+not verified canonical-game coverage or decoded images. GBA has 192 box sets/185
+title folders and a strong European-region bias. The solid archive has six LZMA2
+blocks; direct per-image extraction is not the selected device workflow.
+
+The Cover Project and other broad/specialist sources are recorded with actual
+access limits and original/custom/case-type distinctions. A real 5.13 MB CC0 Kenney
+pack supplies a simple closed outer-box mesh; UV/material adaptation remains
+necessary. Switch/PSP/keep/jewel/protector leads remain separate from outer boxes.
+Manual access and an optional booklet reveal are evaluated without requiring a
+page-turning simulation. No new Android behavior, build, deployment or release.
+
+The owner first authorized full archive download/private Drive preservation, then
+clarified: reference sources stay on E:; **only final classified content** goes to
+Drive. The original managed pipeline was interrupted and confirmed exited before
+any upload. Its partial archive/control file are moved to the exact reference
+folder E:/R-Shop Reference Assets/NintAndBox/2026-03, preserving resume progress.
+The replacement acquisition has no archive-upload step. Drive connector/rclone
+root identity was checked, but no cloud archive or active-metadata write occurred.
+Acquisition remains in progress; no verified archive or classified upload is claimed.
+
 ### S24 correction closure — COMPLETE, 2026-10-17
 
 - GitHub run 39039861817 builds/tests/signs source 59b28cb with the existing
