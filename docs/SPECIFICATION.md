@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 70, 2026-10-17.
+Authoritative specification, revision 71, 2026-10-17.
 
 Current execution checkpoint: S24 is ACTIVE again following the owner's report
 that cartridge images and other GBA media do not work. The earlier completion
@@ -74,6 +74,28 @@ available. Unlock additional rotation only when corresponding same-edition face
 artwork is verified; neutral hidden geometry does not justify exposing missing
 faces. Acceptance must verify both rotation endpoints and rejected unsupported
 axes for touch and controller input.
+
+Owner S25 box-source extension, 2026-10-17: use LaunchBox Games Database as
+the preferred source of verified box faces for S25's interactive reconstructed
+boxes, with ScreenScraper as fallback. This is S25-only: do not migrate scoring,
+general metadata, cartridge labels, trailers or S24's current collection/build.
+Bind LaunchBox's platform/game ID to the existing verified game identity and
+selected release; regional alternatives are not additional physical faces.
+Prefer one consistent same-edition/region LaunchBox face set. If it is incomplete,
+use a verified equivalent ScreenScraper set or fill a missing face only when its
+edition/region and packaging compatibility are established. Do not combine
+incompatible regional designs or treat a pre-rendered Box - 3D PNG as geometry.
+Retain per-face source ID, role, region, URL and integrity/provenance in the
+existing typed resource records and Drive-backed cache. Keep reconstructed/fanart
+categories distinct from original artwork. Reuse existing collection, matching
+and cache mechanisms rather than introducing a general provider framework.
+At S25 entry, verify the current public metadata/image access path end-to-end,
+then render the supplied 007: Everything or Nothing GBA example and the required
+ranked GBA sample. Verify primary selection, absent/incomplete LaunchBox fallback,
+edition consistency, available-face rotation limits, zoom and offline reuse.
+Do not claim universal six-face coverage from this one game's regional images.
+The public Metadata.zip endpoint is a candidate index, not evidence that image
+URL extraction or the integrated Android workflow is already implemented.
 
 Owner publication correction, 2026-10-17: use GitHub to build and sign the public
 update with the existing production identity. Preserve the local imported media,

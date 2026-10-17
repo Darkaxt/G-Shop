@@ -26,7 +26,7 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | R22 Thor preview delivery | COMPLETE | PREVIEW-DELIVERY: signed 1.9.2/code 16 installed in place with settings/data preserved | Gated signed packaging 1308, installed APK hash/identity, unchanged prelaunch settings/database/import hashes, real production secondary rendering after AOT entrypoint fix, reviewed intermediate cleanup; both screens OFF |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
 | S24 Drive-backed metadata cache | ACTIVE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default; mandatory actual GBA Top 25 box/cartridge/trailer integration | Earlier file/receipt checks and selected previews are insufficient. Reproduce the installed missing-label/media path, fix its cause, and verify every actual ranked sample entry through the same gallery-to-renderer path. Wider Nintendo job completion is not claimed. |
-| S25 Interactive media gallery and preserved startup | NOT STARTED | Preserve verified PREVIEW-START-01; remove the per-game media-download button; provide compact Box / Cartridge / Media modes, real textured box and cartridge rotation/zoom, screenshots/trailers, touch/controller and L1/R1 navigation, retained library focus and companion ownership | Reuse startup evidence where unchanged. Verify actual edition-bound faces/textures, both interactive models, missing-media states, photo/video playback/audio and touch/controller operation on Thor after S24 closes. The earlier startup-only S25 COMPLETE result does not satisfy this newly requested gallery. |
+| S25 Interactive media gallery and preserved startup | NOT STARTED | Preserve verified PREVIEW-START-01; remove the per-game media-download button; provide compact Box / Cartridge / Media modes, LaunchBox-first/ScreenScraper-fallback textured boxes, cartridge rotation/zoom, screenshots/trailers, touch/controller and L1/R1 navigation, retained library focus and companion ownership | Reuse startup evidence where unchanged. Prove current LaunchBox access and the supplied GBA 007 example, then the ranked GBA sample; verify edition-bound face selection/fallback and rotation limits, both interactive models, missing-media states, offline reuse, photo/video playback/audio and touch/controller operation on Thor after S24 closes. The earlier startup-only S25 COMPLETE result does not satisfy this newly requested gallery. |
 | S26 Commercial release preferences | COMPLETE | REGION-01: ordered EUR/USA/JPN collection preference, one preferred commercial release per canonical game and Show all versions; Hacks/Patches unaffected | Native touch/controller/restart/reset, a real regional pair with one game/two retained versions, JPN/EUR selection and exact EUR archive download/RetroArch launch pass. Shared query/rank/bundle/unknown/modification and encrypted migration checks pass. Final GBA model/trailer/audio rendering passes in 1.9.16. |
 
 S24 alone is ACTIVE again; its earlier completion claim is withdrawn. S22, R22,
@@ -49,6 +49,16 @@ remains available. Verify both endpoints and unsupported-axis rejection for touc
 and controller input. Extra axes unlock only with verified corresponding artwork,
 not a mirrored or duplicated spine. One same-game box-scan request returned HTML,
 not an image, so a fully authentic six-face reconstruction is not established.
+The owner's subsequent source choice is LaunchBox first and ScreenScraper
+fallback for S25 box faces only; existing scores, cartridge/trailer providers and
+the active S24 build are unchanged. The supplied LaunchBox GBA 007 record 26125
+lists front/back/spine images by region. Multiple spine entries are regional
+alternatives, not proof of top/bottom/opposite-side coverage. Prefer coherent
+same-edition face sets; preserve per-face provenance in the existing typed
+Drive/cache pipeline. Verify equivalent fallback compatibility, never blend
+incompatible releases. At S25 entry prove the current index/image retrieval and
+the real example through the Android viewer before broadening to the ranked GBA
+sample; do not treat website inspection as implemented provider integration.
 S23 website acquisition remains NOT STARTED. Signed 1.9.16/code 30 is installed
 in place, and native cache/media/preservation acceptance is recorded in the status
 ledger. The requested wider Nintendo resource collection was triggered after the

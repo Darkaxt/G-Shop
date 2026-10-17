@@ -123,6 +123,22 @@ vertical tilt or full revolution exposing absent faces. Zoom remains available;
 additional rotation requires verified corresponding face artwork. This is recorded
 in specification revision 70 and the plan, not implemented or validated yet.
 
+S25-only source review, 2026-10-17: the owner's supplied LaunchBox game 26125
+is the Nintendo Game Boy Advance edition of 007: Everything or Nothing. Its
+public media page lists front/back/spine images with regional labels; multiple
+spines represent regional alternatives, not six-face coverage. LaunchBox's
+current official image guidance distinguishes original/reconstructed/fanart
+categories and normally accepts one spine (top spine for some horizontal boxes).
+A HEAD check of https://gamesdb.launchbox-app.com/Metadata.zip returns HTTP 200,
+application/x-zip-compressed, Content-Length 108,552,045 and Last-Modified
+17 Oct 2026 08:00:43 GMT. No bulk dump or image bodies were downloaded for this
+review. This verifies index availability only, not its present image-URL schema
+or R-Shop integration. Revision 71 assigns LaunchBox-primary/ScreenScraper-fallback
+box-face collection, matching/provenance and actual viewer acceptance to S25,
+which remains NOT STARTED. S24 and non-box providers are unchanged.
+Sources: https://gamesdb.launchbox-app.com/games/details/26125-007-everything-or-nothing
+and https://feedback.launchbox-app.com/en/help/articles/3748363-image-standards-and-requirements .
+
 Hosted build 39039191595 stops at native unit tests: four filesystem fixtures in
 SaveCaptureRetirementTest/SaveCaptureStorageTest require the Windows-only
 `D:/Temp` directory. This is a concrete Linux test-host incompatibility, not a
