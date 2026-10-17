@@ -42,7 +42,11 @@ typed face collection/cache consumption, verify same-region face sets or known
 platform texture layouts, and retain the shallow front-cover fallback for missing
 sets. Do not use a static box-3D image as hidden-face geometry or invent artwork.
 This spread supplies three faces only. The opposite side/top/bottom require
-additional verified scans; otherwise render those surfaces with neutral material,
+additional verified scans. Per the owner's subsequent instruction, a three-face
+spread permits only a bounded horizontal front -> known spine -> back arc, not
+full rotation or vertical tilt. Keep missing geometry neutral and hidden; zoom
+remains available. Verify both endpoints and unsupported-axis rejection for touch
+and controller input. Extra axes unlock only with verified corresponding artwork,
 not a mirrored or duplicated spine. One same-game box-scan request returned HTML,
 not an image, so a fully authentic six-face reconstruction is not established.
 S23 website acquisition remains NOT STARTED. Signed 1.9.16/code 30 is installed

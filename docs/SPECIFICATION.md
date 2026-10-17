@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 69, 2026-10-17.
+Authoritative specification, revision 70, 2026-10-17.
 
 Current execution checkpoint: S24 is ACTIVE again following the owner's report
 that cartridge images and other GBA media do not work. The earlier completion
@@ -65,6 +65,15 @@ The previous PREVIEW-START-01 startup behavior remains a satisfied requirement;
 these new S25 criteria are NOT STARTED while S24 alone remains ACTIVE. Record this
 requested plan now; do not fold an unfinished interactive viewer into the current
 S24 correction/publication scope or claim the expanded S25 is COMPLETE.
+
+Owner box-rotation clarification, 2026-10-17: when a verified spread supplies
+only front, back and one spine, allow horizontal rotation only along the bounded
+arc from front through that spine to back. Do not allow a full revolution or
+vertical tilt exposing the unscanned opposite spine, top or bottom. Zoom remains
+available. Unlock additional rotation only when corresponding same-edition face
+artwork is verified; neutral hidden geometry does not justify exposing missing
+faces. Acceptance must verify both rotation endpoints and rejected unsupported
+axes for touch and controller input.
 
 Owner publication correction, 2026-10-17: use GitHub to build and sign the public
 update with the existing production identity. Preserve the local imported media,

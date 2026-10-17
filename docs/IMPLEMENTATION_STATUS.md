@@ -117,6 +117,11 @@ image. It does not establish global unavailability, but it supplies no additiona
 faces for this sample. S25 must use verified extra scans where present and neutral
 material otherwise; the feasibility result is not a claim of authentic six-face
 coverage. No invented or mirrored side artwork is approved as source evidence.
+The owner's subsequent S25 clarification requires a bounded horizontal
+front -> known spine -> back rotation arc for such three-face spreads, with no
+vertical tilt or full revolution exposing absent faces. Zoom remains available;
+additional rotation requires verified corresponding face artwork. This is recorded
+in specification revision 70 and the plan, not implemented or validated yet.
 
 Hosted build 39039191595 stops at native unit tests: four filesystem fixtures in
 SaveCaptureRetirementTest/SaveCaptureStorageTest require the Windows-only
