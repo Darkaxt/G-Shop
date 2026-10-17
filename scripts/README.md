@@ -136,6 +136,42 @@ coverage abort the observation even for discarded unrelated rows. Pages remain
 separate observations, not an atomic collection snapshot or deletion authority.
 Normally pause/join the metadata writer before this native read, then resume the
 same saved job afterwards; do not overlap an external reader with app writes.
+## S25 classified packaging collection
+
+`prepare_packaging_resources.py` prepares one console's existing, distinct ranked
+Top 25 (or the smaller eligible set) from a stopped-app, read-only projection.
+The first supported console is GBA. It does not change rankings, create games,
+write ROMs or upload directly to Drive. Use `fixtures/packaging_collection_snapshot.py`
+for the exact device-bound snapshot; keep the projection and reports private.
+
+```powershell
+python -B scripts/prepare_packaging_resources.py --system gba `
+  --projection <private-projection.db.gz> --launchbox <Metadata.zip> `
+  --env .env.local --output <gba-packaging.zip>
+```
+
+LaunchBox's official metadata index supplies exact-platform/title matches and
+same-region front/back/spine images. ScreenScraper supplies compatible missing
+faces and available PDF manuals using the already bound provider ID. PDF pages
+become ordered, bounded PNGs. Horizontal spines are normalized upright, with the
+original source hash and rotation retained. Missing resources remain missing.
+The stored ZIP contains a versioned identity-bound manifest and hash-addressed
+normalized PNGs, never API keys or ROM bytes. Sources and the retained original
+PDFs stay in the desktop reference cache. NintAndBox print/fold templates require
+classified panels; never stretch an entire sheet onto one face or mix editions.
+
+In Game metadata > Storage, **Import artwork pack** streams the reviewed ZIP
+through the existing shared metadata store. Its normal Drive publisher places
+`box.png`, `box-back.png`, `box-spine.png`, `outer-box-*.png` and ordered
+`manual-page-001.png` resources beneath the existing per-game resource directory.
+The cache keeps its existing 2 GiB default. Browsing a cover does not fetch all
+manual pages; opening Resources recovers missing gallery media from Drive with
+digest verification. Collect media also retains ScreenScraper's extra packaging
+faces through the same durable/cloud lane.
+
+`fixtures/packaging_resource_sheet.py` makes diagnostic contact sheets of a pack
+for visual review. These sheets are evidence, not replacement product artwork.
+
 # Signed Android release
 
 Set `JAVA_HOME` to the existing compatible JDK. Create the private signing identity

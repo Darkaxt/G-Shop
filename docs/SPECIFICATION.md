@@ -1,6 +1,22 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 77, 2026-10-17.
+Authoritative specification, revision 78, 2026-10-17.
+
+Owner console-by-console collection checkpoint, 2026-10-17: within ACTIVE S25,
+extend the existing collector to acquire the extra packaging/manual/gallery
+resources and publish classified, edition-bound content to the configured private
+Google Drive metadata tree. Start with Nintendo, using the already acquired
+NintAndBox source where compatible. First console is GBA. Collect its actual
+Top 25 distinct eligible games (or the smaller real eligible set), never a
+resource-convenient substitute or duplicate regional ranks. Adapt the generic
+box/case geometry and face mappings where no specific model exists, then verify
+the complete collector -> Drive -> cache -> visible resource explorer workflow
+for that console. Preserve resource role, source, edition, region and integrity;
+report genuinely unavailable resources without fabricated original scans.
+Deploy the verified one-console update through the existing GitHub signing path,
+then pause and ask the owner to inspect it on Thor before beginning another
+console. This is an expressly authorized review/deployment checkpoint, not full
+S25 completion. Do not implement the automatic cinematic transition in this pass.
 
 Owner inspection correction, 2026-10-17: handwritten missing-art disc titles follow
 upper circular arcs around the CD hole or UMD badge (not a rectangular paragraph),

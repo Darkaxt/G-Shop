@@ -1,9 +1,17 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 77, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 78, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16
+
+Current owner checkpoint (2026-10-17): S25 remains the single ACTIVE stage.
+Finish one GBA vertical slice: expanded collector and compatible NintAndBox
+ingestion -> verified classified Drive publication -> real distinct ranked sample
+-> adapted box/case/cartridge/manual/gallery rendering -> GitHub-signed deployment
+on Thor. Then pause for the owner's device review before another console. Keep
+the automatic cinematic untouched. Record resource availability and per-console
+acceptance in S25_VERIFIED_MODELS.md; do not count fixture checks as this workflow.
 
 Latest owner instruction (2026-10-17): S25 is ACTIVE for the generic resource
 explorer and individual final-model validation; stop before implementing the

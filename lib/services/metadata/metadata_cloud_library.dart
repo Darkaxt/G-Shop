@@ -41,6 +41,21 @@ class MetadataCloudLibrary {
     if ({'ss', 'screenshot'}.contains(type))
       return 'screenshot-${index.toString().padLeft(2, '0')}.png';
     if ({'video', 'video-normalized'}.contains(type)) return 'trailer.mp4';
+    if (type == 'box-2D-back') return 'box-back.png';
+    if (type == 'box-2D-side') return 'box-spine.png';
+    if (type == 'box-texture') return 'box-wrap.png';
+    if (type == 'manual-page')
+      return 'manual-page-${index.toString().padLeft(3, '0')}.png';
+    if ({
+      'outer-box-front',
+      'outer-box-back',
+      'outer-box-left',
+      'outer-box-right',
+      'outer-box-top',
+      'outer-box-bottom'
+    }.contains(type)) return '$type.png';
+    if ({'fanart', 'flyer', 'maps'}.contains(type))
+      return '$type-${index.toString().padLeft(3, '0')}.png';
     return null;
   }
 
@@ -137,7 +152,7 @@ class MetadataCloudLibrary {
 
   static void _path(String path) {
     final normalized = RegExp(
-            r'^[a-z0-9][a-z0-9_-]{0,63}/games/[a-f0-9]{64}/(box|cartridge|disc(?:-[0-9]+)?|screenshot-[0-9]+|trailer|metadata)/[a-f0-9]{64}\.(png|mp4|json)$')
+            r'^[a-z0-9][a-z0-9_-]{0,63}/games/[a-f0-9]{64}/(box(?:-back|-spine|-wrap)?|outer-box-(?:front|back|left|right|top|bottom)|manual-page-[0-9]+|(?:fanart|flyer|maps)-[0-9]+|cartridge|disc(?:-[0-9]+)?|screenshot-[0-9]+|trailer|metadata)/[a-f0-9]{64}\.(png|mp4|json)$')
         .hasMatch(path);
     if (!normalized &&
         !RegExp(r'^[a-z0-9][a-z0-9_-]{0,63}/(artwork|preview-videos|records)/[a-f0-9]{64}\.(png|mp4|json)$')
@@ -809,8 +824,15 @@ class MetadataCloudLibrary {
         .map((r) =>
             MetadataRecord.fromJson(jsonDecode(r['record_json'] as String)))
         .toList()
-      ..sort((a, b) => (a.providerId == 'screenscraper' ? 0 : 1)
-          .compareTo(b.providerId == 'screenscraper' ? 0 : 1));
+      ..sort((a, b) {
+        int order(String id) => switch (id) {
+              'packaging' => 0,
+              'launchbox' => 1,
+              'screenscraper' => 2,
+              _ => 3
+            };
+        return order(a.providerId).compareTo(order(b.providerId));
+      });
     final result = <String, MetadataMedia>{}, screenshots = <String>{};
     var index = 0;
     for (final record in records) {
@@ -821,12 +843,13 @@ class MetadataCloudLibrary {
           EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String))
               .regions;
       for (final media in MetadataArtworkCache.displayMedia(record,
-          regions: regions, includeVideo: true)) {
+          regions: regions, includeVideo: true, includePackaging: true)) {
         if ({'ss', 'screenshot'}.contains(media.type)) {
           if (!screenshots.add(MetadataArtworkCache.key(media))) continue;
           result[resourceName(media.type, platform, index: ++index)!] = media;
         } else {
-          final name = resourceName(media.type, platform);
+          final name =
+              resourceName(media.type, platform, index: media.memberIndex ?? 1);
           if (name != null) result.putIfAbsent(name, () => media);
         }
       }
@@ -953,7 +976,7 @@ class MetadataCloudLibrary {
       for (final old in await remote.children(parent)) {
         if (old.kind == 'folder' ||
             live.contains(old.id) ||
-            !RegExp(r'^(box|cartridge|disc(?:-[0-9]+)?|screenshot-[0-9]+|trailer)\.(png|mp4)$')
+            !RegExp(r'^(box(?:-back|-spine|-wrap)?|outer-box-(?:front|back|left|right|top|bottom)|manual-page-[0-9]+|(?:fanart|flyer|maps)-[0-9]+|cartridge|disc(?:-[0-9]+)?|screenshot-[0-9]+|trailer)\.(png|mp4)$')
                 .hasMatch(old.name)) continue;
         final archive = '$folder/_previous';
         final archivedParent = await _folder(archive);

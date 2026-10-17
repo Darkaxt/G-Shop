@@ -619,6 +619,9 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       GameMetadataInfo? info) async {
     final edition = info?.editionId;
     if (edition == null) return {};
+    await (await ref.read(cachedMetadataArtworkProvider))
+        .galleryForEdition(edition, hydrate: true);
+    ref.invalidate(editionGalleryMediaProvider(edition));
     final resources = Map<String, List<String>>.from(
         await ref.read(editionGalleryMediaProvider(edition).future));
     final record = await LibraryStore(ref.read(libraryDbProvider).database)

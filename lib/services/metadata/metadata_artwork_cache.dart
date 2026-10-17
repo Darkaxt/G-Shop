@@ -421,6 +421,7 @@ class MetadataArtworkCache {
   static List<MetadataMedia> displayMedia(MetadataRecord record,
       {bool includePhysicalLabel = false,
       bool includeVideo = false,
+      bool includePackaging = false,
       Iterable<String> regions = const []}) {
     final labels = physicalLabels(record, regions: regions);
     MetadataMedia? video =
@@ -444,9 +445,50 @@ class MetadataArtworkCache {
                 mediaType: 'video'));
       }
     }
+    final selectedFaces = <MetadataMedia>[];
+    // Resolve each resource role against this edition before collecting it.
+    // The first provider response is not necessarily the selected release.
+    final regional = regions
+        .map((r) => switch (r.toLowerCase()) {
+              'europe' => 'eu',
+              'usa' => 'us',
+              'japan' => 'jp',
+              _ => r.toLowerCase()
+            })
+        .toSet();
+    List<MetadataMedia> choose(String type) {
+      final all = record.media.where((m) => m.type == type).toList();
+      for (final region in [...regional, 'wor', '']) {
+        final matching = all.where((m) => (m.region ?? '') == region).toList();
+        if (matching.isNotEmpty) {
+          matching.sort(
+              (a, b) => (a.memberIndex ?? 0).compareTo(b.memberIndex ?? 0));
+          return matching;
+        }
+      }
+      return regional.isEmpty && all.length == 1 ? all : [];
+    }
+
+    for (final type in [
+      'box-2D-back',
+      'box-2D-side',
+      'box-texture',
+      'outer-box-front',
+      'outer-box-back',
+      'outer-box-left',
+      'outer-box-right',
+      'outer-box-top',
+      'outer-box-bottom',
+      'manual-page',
+      'fanart',
+      'flyer',
+      'maps'
+    ]) {
+      selectedFaces.addAll(choose(type));
+    }
     MetadataMedia? cover;
     for (final type in ['box-2D', 'box-3D', 'cover']) {
-      final matches = record.media.where((m) => m.type == type);
+      final matches = choose(type);
       if (matches.isNotEmpty) {
         cover = matches.first;
         break;
@@ -475,6 +517,7 @@ class MetadataArtworkCache {
     return [
       if (cover != null) cover,
       if (includePhysicalLabel) ...labels,
+      if (includePackaging) ...selectedFaces,
       ...record.media.where((m) => {'ss', 'screenshot'}.contains(m.type)),
       if (includeVideo && video != null) video
     ];
@@ -575,7 +618,8 @@ class MetadataArtworkCache {
 
   /// Edition-owned cached gallery images only. No catalogue scan or provider
   /// lookup is triggered by opening the explorer. Missing faces remain missing.
-  Future<Map<String, List<String>>> galleryForEdition(String editionId) async {
+  Future<Map<String, List<String>>> galleryForEdition(String editionId,
+      {bool hydrate = false}) async {
     await _requireAccess();
     final result = <String, List<String>>{};
     final store = LibraryStore(_database);
@@ -599,17 +643,34 @@ class MetadataArtworkCache {
           'japan' => 'jp',
           _ => value.toLowerCase()
         };
-    for (final provider in ['launchbox', 'screenscraper', 'romm']) {
+    for (final provider in [
+      'packaging',
+      'launchbox',
+      'screenscraper',
+      'romm'
+    ]) {
       final record = await store.metadata(editionId, provider);
       if (record == null) continue;
-      for (final media in record.media.where((m) => types.contains(m.type))) {
+      final ownedRoles = result.keys.toSet();
+      final selected = record.media
+          .where((m) =>
+              (types.contains(m.type) || m.type.startsWith('outer-box-')) &&
+              !ownedRoles.contains(m.type))
+          .toList()
+        ..sort((a, b) => (a.memberIndex ?? 0).compareTo(b.memberIndex ?? 0));
+      for (final media in selected) {
         if (media.region != null &&
             regions.isNotEmpty &&
             !regions.any((r) => region(r) == region(media.region!))) continue;
-        final file = await _fileFor(editionId, provider, media);
+        var file = await _fileFor(editionId, provider, media);
+        if (file == null && hydrate && sharedStore?.fetchCloudMedia != null) {
+          await sharedStore!.fetchCloudMedia!(key(media), userRequested: true);
+          file = await _fileFor(editionId, provider, media);
+        }
         if (file != null) {
           final paths = result.putIfAbsent(media.type, () => []);
-          if (!paths.contains(file.uri.toString()))
+          if (media.type == 'manual-page' ||
+              !paths.contains(file.uri.toString()))
             paths.add(file.uri.toString());
         }
       }

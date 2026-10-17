@@ -260,20 +260,77 @@ class ScreenScraperMediaReference {
   }
 }
 
+/// Classified local preparation, never an arbitrary on-device file path.
+/// Normalized bytes are bound by digest; source/edition evidence stays with them.
+class ImportedArtworkReference {
+  final String sourceId, assetId, sourceUrl, sha256;
+  final String? sourceSha256;
+  final List<int>? panel;
+  final int rotationDegrees;
+  ImportedArtworkReference(
+      {required this.sourceId,
+      required this.assetId,
+      required this.sourceUrl,
+      required this.sha256,
+      this.sourceSha256,
+      List<int>? panel,
+      this.rotationDegrees = 0})
+      : panel = panel == null ? null : List.unmodifiable(panel) {
+    if (!{0, 90, 180, 270}.contains(rotationDegrees) ||
+        !{'launchbox', 'nintandbox', 'screenscraper'}.contains(sourceId) ||
+        assetId.isEmpty ||
+        assetId.length > 1024 ||
+        !MetadataMedia.isSafeDirectUrl(sourceUrl) ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(sha256) ||
+        sourceSha256 != null &&
+            !RegExp(r'^[a-f0-9]{64}$').hasMatch(sourceSha256!) ||
+        panel != null &&
+            (panel.length != 4 ||
+                panel.any((v) => v < 0) ||
+                panel[2] == 0 ||
+                panel[3] == 0)) {
+      throw const FormatException('Invalid imported artwork provenance');
+    }
+  }
+  Map<String, dynamic> toJson() => {
+        'sourceId': sourceId,
+        'assetId': assetId,
+        'sourceUrl': sourceUrl,
+        'sha256': sha256,
+        if (sourceSha256 != null) 'sourceSha256': sourceSha256,
+        if (panel != null) 'panel': panel,
+        if (rotationDegrees != 0) 'rotationDegrees': rotationDegrees
+      };
+  factory ImportedArtworkReference.fromJson(Map<String, dynamic> json) =>
+      ImportedArtworkReference(
+          sourceId: json['sourceId'] as String,
+          assetId: json['assetId'] as String,
+          sourceUrl: json['sourceUrl'] as String,
+          sha256: json['sha256'] as String,
+          sourceSha256: json['sourceSha256'] as String?,
+          panel: (json['panel'] as List?)?.cast<int>(),
+          rotationDegrees: json['rotationDegrees'] as int? ?? 0);
+}
+
 class MetadataMedia {
   final String type;
   final String? url;
   final String? region;
   final int? memberIndex;
   final ScreenScraperMediaReference? providerReference;
+  final ImportedArtworkReference? importReference;
 
   MetadataMedia(
       {required this.type,
       this.url,
       this.region,
       this.memberIndex,
-      this.providerReference}) {
-    if ((url == null) == (providerReference == null) ||
+      this.providerReference,
+      this.importReference}) {
+    if ([url, providerReference, importReference]
+                .where((v) => v != null)
+                .length !=
+            1 ||
         (url != null && !isSafeDirectUrl(url!)) ||
         (providerReference != null &&
             (providerReference!.mediaType != type ||
@@ -310,13 +367,19 @@ class MetadataMedia {
         'region': region,
         if (memberIndex != null) 'memberIndex': memberIndex,
         if (providerReference != null)
-          'providerReference': providerReference!.toJson()
+          'providerReference': providerReference!.toJson(),
+        if (importReference != null)
+          'importReference': importReference!.toJson()
       };
   factory MetadataMedia.fromJson(Map<String, dynamic> json) => MetadataMedia(
       type: json['type'] as String,
       url: json['url'] as String?,
       region: json['region'] as String?,
       memberIndex: json['memberIndex'] as int?,
+      importReference: json['importReference'] == null
+          ? null
+          : ImportedArtworkReference.fromJson(
+              json['importReference'] as Map<String, dynamic>),
       providerReference: json['providerReference'] == null
           ? null
           : ScreenScraperMediaReference.fromJson(

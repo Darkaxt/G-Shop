@@ -213,7 +213,7 @@ void main() {
         'screenshot-02.png');
     expect(MetadataCloudLibrary.resourceName('video-normalized', 'gb'),
         'trailer.mp4');
-    expect(MetadataCloudLibrary.resourceName('fanart', 'gb'), isNull);
+    expect(MetadataCloudLibrary.resourceName('fanart', 'gb'), 'fanart-001.png');
     expect(MetadataCloudLibrary.gameFolderName('Tetris: Deluxe / Test'),
         'Tetris - Deluxe - Test');
   });

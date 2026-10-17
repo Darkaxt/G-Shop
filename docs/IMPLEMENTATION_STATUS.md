@@ -5,6 +5,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+Latest owner instruction, 2026-10-17: S25 ACTIVE, first-console GBA collection and
+rendering slice. Remaining: extra typed-resource acquisition/publication, compatible
+NintAndBox classification, generic model adaptation, actual ranked collection and
+full installed rendering verification, signed delivery, then owner device review.
+The completed isolated model inspection below does not satisfy this new checkpoint.
+Other consoles and automatic cinematic work must not begin before that pause.
+
 Current owner revision, 2026-10-17: **S25 ACTIVE** for the generic packaging/resource
 explorer and final-model validation. Stop at that checkpoint before implementing
 the full cinematic transition. Existing NOT STARTED statements below describe the

@@ -648,6 +648,7 @@ class MetadataRefreshJobs {
                         jsonDecode(identity['edition_json'] as String))
                     .regions,
                 includePhysicalLabel: true,
+                includePackaging: true,
                 includeVideo: (await _sharedStore)?.cloudManaged == true)) {
           final mediaKey = MetadataArtworkCache.key(media);
           if (mediaKeys != null && !mediaKeys.contains(mediaKey)) continue;

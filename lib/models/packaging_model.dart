@@ -10,7 +10,8 @@ enum PackagingKind { box, keepCase, jewelCase, booklet }
 class PackagingModel {
   final PackagingKind kind;
   final double aspect, depth;
-  PackagingModel(this.kind, {this.aspect = .72, double? depth})
+  final String? systemId;
+  PackagingModel(this.kind, {this.aspect = .72, double? depth, this.systemId})
       : depth = depth ?? (kind == PackagingKind.booklet ? .025 : .14) {
     if (!aspect.isFinite ||
         aspect < .25 ||
@@ -80,7 +81,12 @@ class PackagingModel {
 
     void slab(String name, double x0, double x1, double y0, double y1,
         double z0, double z1,
-        {bool hinged = false, int? front, int? back}) {
+        {bool hinged = false,
+        int? front,
+        int? back,
+        int? right,
+        int? top,
+        int? bottom}) {
       face(
           '$name/front',
           [
@@ -122,6 +128,7 @@ class PackagingModel {
             [x1, y1, z1]
           ],
           [1, 0, 0],
+          art: right,
           hinged: hinged);
       face(
           '$name/top',
@@ -132,6 +139,7 @@ class PackagingModel {
             [x0, y1, z0]
           ],
           [0, 1, 0],
+          art: top,
           hinged: hinged);
       face(
           '$name/bottom',
@@ -142,11 +150,13 @@ class PackagingModel {
             [x0, y0, z1]
           ],
           [0, -1, 0],
+          art: bottom,
           hinged: hinged);
     }
 
     if (kind == PackagingKind.box) {
-      slab('outer', -w, w, -h, h, -d, d, front: 0, back: 1);
+      slab('outer', -w, w, -h, h, -d, d,
+          front: 0, back: 1, right: 3, top: 4, bottom: 5);
     } else {
       // Separate lid/tray and hinge: opening exposes real empty internal space,
       // not a rotated solid block. It makes no original-platform holder claim.
@@ -162,6 +172,30 @@ class PackagingModel {
         slab('lid/right', w - wall, w, -h, h, .008, d, hinged: true);
         slab('lid/top', -w, w, h - wall, h, .008, d, hinged: true);
         slab('lid/bottom', -w, w, -h, -h + wall, .008, d, hinged: true);
+        if (systemId == 'gba') {
+          // Generic GBA protector: a 60 x 35.5 mm footprint, not a fabricated
+          // original retail tray. Keep wall thickness independent of face aspect.
+          final slotW = math.min(w * .72, .55),
+              slotH = math.min(h * .38, math.min(w * .72, .55) / (60 / 35.5));
+          final z0 = -d + wall, z1 = math.min(0.0, -d + wall + .035);
+          const y = -.2;
+          slab('gba-holder/left', -slotW - wall, -slotW, y - slotH, y + slotH,
+              z0, z1);
+          slab('gba-holder/right', slotW, slotW + wall, y - slotH, y + slotH,
+              z0, z1);
+          slab('gba-holder/bottom', -slotW, slotW, y - slotH - wall, y - slotH,
+              z0, z1);
+          slab('gba-holder/top-left', -slotW, -slotW * .35, y + slotH,
+              y + slotH + wall, z0, z1);
+          slab('gba-holder/top-right', slotW * .35, slotW, y + slotH,
+              y + slotH + wall, z0, z1);
+          slab('manual-clip/top', -w + .06, -w + .14, .50, .68, d - .06,
+              d - wall,
+              hinged: true);
+          slab('manual-clip/bottom', -w + .06, -w + .14, -.68, -.50, d - .06,
+              d - wall,
+              hinged: true);
+        }
       }
     }
     // Actual side artwork is a separate surface, never stretched front art.

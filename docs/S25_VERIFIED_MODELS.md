@@ -7,6 +7,29 @@ not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+### Current GBA collection checkpoint
+
+The first real-console checkpoint uses the actual 24 eligible distinct ranked
+GBA games, not 25 manufactured slots or a replacement sample. Desktop collection
+has prepared same-US-edition front/back/spine faces for all 24, plus 19 available
+manuals (789 ordered pages). Source contact sheets were inspected; three
+horizontal spines were normalized before import. Source identity, original and
+normalized hashes, and rotations are retained in the pack. Five absent manuals
+remain explicitly absent.
+
+The NintAndBox GBA reference extraction contains 722 JPGs, but none of its US box
+sets matches this ranked selection. Its European fold/cut sheets are not being
+borrowed for US editions. This checkpoint uses LaunchBox faces with ScreenScraper
+fallback/manuals; full NintAndBox panel classification is not claimed.
+
+The integrated explorer now sizes packaging from decoded panel/spine proportions,
+uses neutral reconstructed missing faces, and includes GBA-sized generic holder
+rails and manual clips in its hinged display case. This is not an authentic
+retail protective case. Native acceptance of these new real-resource mappings,
+Drive publication/recovery and signed Thor delivery is still pending. Earlier
+isolated inspection below does not satisfy this new checkpoint. The cinematic
+remains unimplemented, and no second console may begin before owner review.
+
 The completed native inventory exercised all 66 supported console routes on
 AYN Thor (serial `bfa98654`), using the actual ResourceGallery widget in the
 isolated `com.darkaxt.rshop.sharedproof` debug package. Production 1.9.17/code 33,

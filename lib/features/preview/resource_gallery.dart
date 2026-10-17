@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
@@ -44,13 +46,21 @@ class ResourceGalleryState extends State<ResourceGallery>
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   final _readingTransform = TransformationController();
   ResourceView view = ResourceView.box;
-  double yaw = -.2, pitch = .06, zoom = .75, opening = 0, aspect = .72;
+  double yaw = -.2,
+      pitch = .06,
+      zoom = .75,
+      opening = 0,
+      aspect = .72,
+      depth = .14;
   double _startZoom = .75;
   int page = 0, _generation = 0;
   bool reading = false;
   VideoPlayerController? _video;
   ImageStream? _coverStream;
   ImageStreamListener? _coverListener;
+  ImageStream? _spineStream;
+  ImageStreamListener? _spineListener;
+  Color _paperColor = const Color(0xff343434);
   Object? _videoError;
   String? first(String type) => widget.resources[type]?.firstOrNull;
   List<String> get images => [
@@ -120,6 +130,7 @@ class ResourceGalleryState extends State<ResourceGallery>
         'cinematicEnabled': false,
         'availableViews': availableViews.map((v) => v.name).toList(),
         'aspect': aspect,
+        'depth': depth,
         'yaw': yaw,
         'pitch': pitch,
         'zoom': zoom,
@@ -155,26 +166,40 @@ class ResourceGalleryState extends State<ResourceGallery>
       reset();
       view = availableViews.first;
       _resolveAspect();
+    } else if (old.resources.toString() != widget.resources.toString()) {
+      _resolveAspect();
     }
   }
 
   String? _aspectUrl;
   void _resolveAspect() {
-    final url =
-        view == ResourceView.manual ? pages.firstOrNull : first('box-2D');
-    if (url == _aspectUrl) return;
+    final url = view == ResourceView.manual
+        ? pages.firstOrNull
+        : view == ResourceView.box
+            ? first('outer-box-front') ?? first('box-2D')
+            : first('box-2D');
+    final spine = _face(2);
+    final key = '${view.name}:$url:$spine';
+    if (key == _aspectUrl) return;
     _detachCover();
-    _aspectUrl = url;
+    _detachSpine();
+    _aspectUrl = key;
     aspect = .72;
+    depth = view == ResourceView.box &&
+            {'gba', 'gb', 'gbc'}.contains(widget.systemId)
+        ? .34
+        : .14;
     if (url == null) return;
     final provider = _provider(url);
     _coverStream = provider.resolve(createLocalImageConfiguration(context));
     _coverListener = ImageStreamListener((info, sync) {
-      if (mounted && _aspectUrl == url) {
+      if (mounted && _aspectUrl == key) {
         final ratio = info.image.width / info.image.height;
         void apply() {
           aspect = ratio.clamp(.25, 2.5);
         }
+
+        unawaited(_paperMaterial(info.image.clone(), key));
 
         if (sync) {
           apply();
@@ -185,6 +210,50 @@ class ResourceGalleryState extends State<ResourceGallery>
       _detachCover();
     }, onError: (_, __) => _detachCover());
     _coverStream!.addListener(_coverListener!);
+    if (spine != null && view != ResourceView.manual) {
+      _spineStream =
+          _provider(spine).resolve(createLocalImageConfiguration(context));
+      _spineListener = ImageStreamListener((info, sync) {
+        if (mounted && _aspectUrl == key) {
+          void apply() => depth =
+              (2 * info.image.width / info.image.height).clamp(.04, 1.0);
+          if (sync) {
+            apply();
+          } else {
+            setState(apply);
+          }
+        }
+        _detachSpine();
+      }, onError: (_, __) => _detachSpine());
+      _spineStream!.addListener(_spineListener!);
+    }
+  }
+
+  Future<void> _paperMaterial(ui.Image image, String key) async {
+    try {
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (bytes == null || !mounted || _aspectUrl != key) return;
+      var red = 0, green = 0, blue = 0, count = 0;
+      for (final x in [0, image.width ~/ 2, image.width - 1]) {
+        for (final y in [0, image.height - 1]) {
+          final i = (y * image.width + x) * 4;
+          red += bytes.getUint8(i);
+          green += bytes.getUint8(i + 1);
+          blue += bytes.getUint8(i + 2);
+          count++;
+        }
+      }
+      setState(() => _paperColor =
+          Color.fromARGB(255, red ~/ count, green ~/ count, blue ~/ count));
+    } finally {
+      image.dispose();
+    }
+  }
+
+  void _detachSpine() {
+    if (_spineListener != null) _spineStream?.removeListener(_spineListener!);
+    _spineStream = null;
+    _spineListener = null;
   }
 
   void _detachCover() {
@@ -293,6 +362,7 @@ class ResourceGalleryState extends State<ResourceGallery>
 
   @override
   void dispose() {
+    _detachSpine();
     WidgetsBinding.instance.removeObserver(this);
     _detachCover();
     _readingTransform.dispose();
@@ -351,32 +421,57 @@ class ResourceGalleryState extends State<ResourceGallery>
     return KeyEventResult.handled;
   }
 
+  String? _face(int index) {
+    if (view == ResourceView.manual)
+      return index == 0
+          ? pages.firstOrNull
+          : index == 1 && pages.length > 1
+              ? pages.last
+              : null;
+    if (view == ResourceView.box) {
+      final role = ['front', 'back', 'left', 'right', 'top', 'bottom'][index];
+      final outer = first('outer-box-$role');
+      if (outer != null) return outer;
+    }
+    return switch (index) {
+      0 => first('box-2D'),
+      1 => first('box-2D-back'),
+      2 => first('box-2D-side'),
+      _ => null
+    };
+  }
+
   Widget _atlas() => Column(children: [
         for (var row = 0; row < 2; row++)
           Expanded(
               child: Row(children: [
             for (var col = 0; col < 3; col++)
               Expanded(
-                  child: switch (row * 3 + col) {
-                0 => image(
-                    view == ResourceView.manual
-                        ? pages.firstOrNull
-                        : first('box-2D'),
-                    fit: BoxFit.fill),
-                1 => view == ResourceView.manual
-                    ? pages.length < 2
-                        ? const ColoredBox(color: Color(0xff252525))
-                        : image(pages.last, fit: BoxFit.fill)
-                    : first('box-2D-back') == null
-                        ? const ColoredBox(color: Color(0xff252525))
-                        : image(first('box-2D-back'), fit: BoxFit.fill),
-                2 => view == ResourceView.manual || first('box-2D-side') == null
-                    ? const ColoredBox(color: Color(0xff252525))
-                    : image(first('box-2D-side'), fit: BoxFit.fill),
-                _ => const ColoredBox(color: Color(0xff252525)),
-              })
+                  child: _face(row * 3 + col) != null || row == 0 && col == 0
+                      ? image(_face(row * 3 + col), fit: BoxFit.fill)
+                      : ColoredBox(
+                          color: view == ResourceView.box
+                              ? _paperColor
+                              : const Color(0xff252525)))
           ]))
       ]);
+  void _rendered() {
+    // Bounded transition evidence, not a frame-by-frame UI stream. No URLs,
+    // titles, account data or tokens are logged.
+    debugPrint('RShopResources ${jsonEncode({
+          'identity': widget.identity,
+          'system': widget.systemId,
+          'view': view.name,
+          'aspect': aspect,
+          'depth': depth,
+          'roles': {
+            for (final entry in widget.resources.entries)
+              entry.key: entry.value.length
+          },
+          'model': rendererKey.currentState?.snapshot,
+        })}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final pose = SocketMediaPose(
@@ -422,6 +517,7 @@ class ResourceGalleryState extends State<ResourceGallery>
                                 scaleZ: zoom),
                             identity: widget.identity,
                             title: widget.title,
+                            onReady: _rendered,
                             label: image(first('support-texture'),
                                 umd: format == PhysicalMediaFormat.psp,
                                 disc: format == PhysicalMediaFormat.disc ||
@@ -446,12 +542,17 @@ class ResourceGalleryState extends State<ResourceGallery>
                                     : image(first('support-texture'))))
                     : SocketMediaRenderer.packaging(
                         key: rendererKey,
-                        model: PackagingModel(kind, aspect: aspect),
+                        model: PackagingModel(kind,
+                            aspect: aspect,
+                            depth: depth,
+                            systemId: widget.systemId),
                         pose: pose,
                         identity: widget.identity,
                         title: widget.title,
+                        onReady: _rendered,
                         label: _atlas(),
-                        labelIdentity: '${view.name}:${widget.resources}');
+                        labelIdentity:
+                            '${view.name}:${widget.resources}:${_paperColor.toARGB32()}');
     return Focus(
         autofocus: true,
         onKeyEvent: _key,

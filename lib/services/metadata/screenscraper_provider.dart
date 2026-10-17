@@ -23,6 +23,8 @@ class ScreenScraperProvider
   static const videoTypes = {'video', 'video-normalized'};
   static const imageTypes = {
     'box-2D',
+    'box-2D-back',
+    'box-2D-side',
     'box-3D',
     'box-texture',
     'wheel',

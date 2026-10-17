@@ -291,6 +291,13 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
     if (action == 'gallery' || action == 'preview') {
+      final edition = _metadata?.editionId;
+      if (action == 'gallery' && edition != null) {
+        await (await ref.read(cachedMetadataArtworkProvider))
+            .galleryForEdition(edition, hydrate: true);
+        if (!mounted || !_visible || _metadata?.editionId != edition) return;
+        ref.invalidate(editionGalleryMediaProvider(edition));
+      }
       setState(() {
         _gallery = action == 'gallery';
         _details = false;

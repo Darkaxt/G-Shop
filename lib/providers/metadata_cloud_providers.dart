@@ -25,6 +25,31 @@ const metadataCloudSettingsKey = 'metadata_cloud_v1';
 final editionGalleryMediaProvider = FutureProvider.autoDispose
     .family<Map<String, List<String>>, String>((ref, edition) async {
   ref.watch(metadataMediaRevisionProvider);
+  final controller = ref.read(metadataCloudProvider.notifier);
+  await controller.ready;
+  final cloud = controller.library;
+  final owner = Object();
+  var active = true;
+  ref.onDispose(() {
+    active = false;
+    cloud?.release(owner);
+  });
+  if (cloud != null) {
+    final database = ref.read(libraryDbProvider).database;
+    final keys = <String>{};
+    for (final provider in [
+      'packaging',
+      'launchbox',
+      'screenscraper',
+      'romm'
+    ]) {
+      final record = await LibraryStore(database).metadata(edition, provider);
+      if (record != null)
+        keys.addAll(record.media.map(MetadataArtworkCache.key));
+    }
+    if (active) await cloud.leaseMedia(owner, keys);
+    if (!active) cloud.release(owner);
+  }
   return (await ref.read(cachedMetadataArtworkProvider))
       .galleryForEdition(edition);
 });

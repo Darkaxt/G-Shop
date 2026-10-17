@@ -301,6 +301,14 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
           const SizedBox(width: 8),
           _transportButton('Rebuild media', 'metadata-cloud-rebuild',
               Icons.restart_alt, _confirmMediaRebuild),
+          const SizedBox(width: 8),
+          _transportButton(
+              'Import artwork pack',
+              'metadata-packaging-import',
+              Icons.inventory_2_outlined,
+              state.busy || ref.watch(metadataControlsProvider).busy
+                  ? null
+                  : _importPackaging),
         ]),
         const SizedBox(height: 12),
         Text(
@@ -328,6 +336,28 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
                 : () => controller.setBudget(state.budgetBytes * 2)),
       ]),
     ]);
+  }
+
+  Future<void> _importPackaging() async {
+    final selected = await FilePicker.platform.pickFiles(
+        type: FileType.custom, allowedExtensions: ['zip'], withData: false);
+    final path = selected?.files.single.path;
+    if (path == null || !mounted) return;
+    final cloud = ref.read(metadataCloudProvider.notifier);
+    await cloud.pause();
+    try {
+      await ref
+          .read(metadataControlsProvider.notifier)
+          .importPackagingResources(File(path));
+      if (!ref.read(metadataControlsProvider).error) {
+        ref.read(metadataMediaRevisionProvider.notifier).state++;
+        ref.read(gameDbChangedProvider.notifier).state++;
+      }
+    } finally {
+      cloud.resume();
+    }
+    await cloud.sync(pull: false);
+    await FilePicker.platform.clearTemporaryFiles();
   }
 
   Future<void> _confirmMediaRebuild() async {

@@ -14,6 +14,7 @@ import '../services/metadata/metadata_credentials.dart';
 import '../services/metadata/metadata_artwork_cache.dart';
 import '../services/metadata/metadata_provider.dart';
 import '../services/metadata/metadata_refresh_jobs.dart';
+import '../services/metadata/packaging_resource_import.dart';
 import '../services/metadata/screenscraper_provider.dart';
 import '../services/metadata/preview_video_cache.dart';
 import '../models/scraped_metadata.dart';
@@ -471,6 +472,19 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
               'requested=${result.requested} counts=${result.counts}');
         }
       });
+
+  Future<int> importPackagingResources(File pack) async {
+    var imported = 0;
+    await _perform(() async {
+      final shared = await _sharedStore;
+      if (shared == null || _artworkCache == null)
+        throw StateError('Choose shared metadata storage first');
+      imported =
+          await PackagingResourceImport(_database, await _artworkCache!, shared)
+              .import(pack);
+    });
+    return imported;
+  }
 
   Future<void> mapEsDeEdition(
           {required int cacheRowId,
