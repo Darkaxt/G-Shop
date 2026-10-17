@@ -158,7 +158,7 @@ void main() {
     final pack = File('${root.path}/pack.zip');
     await pack.writeAsBytes(ZipEncoder().encode(zip)!);
     final remote = MemoryMetadataDrive();
-    final cloud = MetadataCloudLibrary(
+    var cloud = MetadataCloudLibrary(
         store: shared, remote: remote, accountId: 'a', rootId: 'root');
     final controls = MetadataControlsController(
         database: Future.value(db),
@@ -184,6 +184,24 @@ void main() {
             'manual-page-001.png',
             'manual-page-002.png'
           ]));
+      // Reopening the app with unchanged, verified backups must not walk Drive
+      // again, and must work even when the device has gone offline.
+      await cloud.close();
+      cloud = MetadataCloudLibrary(
+          store: shared, remote: remote, accountId: 'a', rootId: 'root');
+      await cloud.open();
+      final reads = remote.reads, downloads = remote.downloads;
+      remote.online = false;
+      await cloud.sync(Future.value(db), pull: false);
+      expect(remote.reads, reads);
+      expect(remote.downloads, downloads);
+      remote.online = true;
+
+      // A new generation still needs a real publication; this is not a blanket
+      // startup/network suppression that could lose an interrupted backup.
+      expect(await controls.importPackagingResources(pack), 1);
+      await cloud.sync(Future.value(db), pull: false);
+      expect(remote.reads, greaterThan(reads));
       final gallery = await cache.galleryForEdition('e');
       expect(gallery['manual-page'], hasLength(2));
       await cloud.trim(0);

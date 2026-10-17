@@ -219,6 +219,9 @@ class MetadataCloudLibrary {
           root?.parent != null ||
           root?.name != 'R-Shop Metadata')
         throw const FormatException('Metadata root changed');
+      await _db.insert('metadata_cloud_folders',
+          {'account': accountId, 'path': '', 'file_id': rootId},
+          conflictAlgorithm: ConflictAlgorithm.replace);
       return _folders[path] = rootId;
     }
     final parent = await _folder(
@@ -573,7 +576,7 @@ class MetadataCloudLibrary {
       {required bool pull}) async {
     await _lane(() async {
       _folders.clear();
-      await _folder('');
+      if (pull) await _folder('');
     });
     // Read immutable packets first; cached text never needs media downloads.
     final consoles = <({MetadataCloudFile folder, String prefix})>[];
@@ -730,14 +733,15 @@ class MetadataCloudLibrary {
         if (_stopSync) return;
         final edition = row['edition_id'] as String;
         if (!editions.add(edition)) continue;
-        await _lane(() async =>
-            _publishGame(await store.cloudPackets(editionId: edition).single));
+        await _lane(() async => _publishGame(
+            await store.cloudPackets(editionId: edition).single,
+            verifyRemote: pull));
         progress?.call(editions.length, total);
       }
     }
     await _lane(() async {
       if (_stopSync) return;
-      await _retainHistoricalMedia();
+      await _retainHistoricalMedia(verifyRemote: pull);
       if (pull) await _archiveLegacyFolders();
       await _trim(budgetBytes);
       changed?.call();
@@ -880,10 +884,104 @@ class MetadataCloudLibrary {
     return result;
   }
 
-  Future<void> _publishGame(Map<String, dynamic> packet) async {
+  static const _assetFields = [
+    'path',
+    'file_id',
+    'digest',
+    'bytes',
+    'media_key',
+    'receipt_json',
+    'remote_name',
+    'folder_path'
+  ];
+
+  List<int> _gamePacketBytes(Map<String, dynamic> packet, String key,
+          String folder, List<Map<String, Object?>> assets) =>
+      utf8.encode(jsonEncode({
+        ...packet,
+        'layout': 2,
+        'entity_key': key,
+        'folder': p.posix.basename(folder),
+        'game': jsonDecode(
+            (packet['records'] as List).first['game_json'] as String),
+        'edition': jsonDecode(
+            (packet['records'] as List).first['edition_json'] as String),
+        'metadata': [
+          for (final row in packet['records'] as List)
+            jsonDecode(row['record_json'] as String)
+        ],
+        'assets': assets,
+        'resources': {
+          for (final a in assets)
+            a['remote_name'] as String: {
+              'sha256': a['digest'],
+              'bytes': a['bytes']
+            }
+        }
+      }));
+
+  Future<bool> _hasVerifiedPublication(String path) async {
+    final roots = await _db.query('metadata_cloud_folders',
+        where: 'account=? AND path=? AND file_id=?',
+        whereArgs: [accountId, '', rootId]);
+    if (roots.isEmpty) return false;
+    final rows = await _rows(path);
+    return rows.isNotEmpty && rows.single['verified'] == 1;
+  }
+
+  /// Compare the exact packet with its already verified, account/root-bound
+  /// receipt. This is backup deduplication, not a claim of fresh remote validation;
+  /// an explicit pull still checks Drive, including remote edits/conflicts.
+  Future<bool> _unchangedPublication(
+      Map<String, dynamic> packet, String platform, String key) async {
+    final folders = await _db.query('metadata_cloud_games',
+        where: 'account=? AND edition_key=?', whereArgs: [accountId, key]);
+    if (folders.isEmpty) return false;
+    final assets = <Map<String, Object?>>[];
+    for (final entry in _resources(packet).entries) {
+      final video = entry.key.endsWith('.mp4');
+      final mediaKey = video
+          ? PreviewVideoCache.key(entry.value)
+          : MetadataArtworkCache.key(entry.value);
+      String filename;
+      if (video) {
+        final receipt =
+            File(p.join(store.root.path, 'preview-videos', '$mediaKey.json'));
+        if (!await receipt.exists() || await receipt.length() > 1024) continue;
+        filename =
+            (jsonDecode(await receipt.readAsString()) as Map)['file'] as String;
+      } else {
+        final matches = (packet['artwork'] as List)
+            .where((r) => r['media_key'] == mediaKey);
+        if (matches.isEmpty) continue;
+        filename = matches.first['filename'] as String;
+      }
+      final path =
+          '$platform/games/$key/${entry.key.split('.').first}/$filename';
+      _path(path);
+      final rows = await _rows(path);
+      if (rows.isNotEmpty && rows.single['verified'] == 1) {
+        assets
+            .add({for (final field in _assetFields) field: rows.single[field]});
+      } else if (await _local(path).exists()) {
+        return false; // A newly collected body still needs publication.
+      }
+    }
+    final bytes = _gamePacketBytes(
+        packet, key, folders.single['folder_path'] as String, assets);
+    final digest = sha256.convert(bytes).toString();
+    return _hasVerifiedPublication(
+        '$platform/games/$key/metadata/$digest.json');
+  }
+
+  Future<void> _publishGame(Map<String, dynamic> packet,
+      {bool verifyRemote = false}) async {
     final platform = packet['platform'] as String;
     final edition = (packet['records'] as List).first['edition_id'] as String;
     final key = _editionKey(edition);
+    if (!verifyRemote && await _unchangedPublication(packet, platform, key)) {
+      return;
+    }
     final folder = await _gameFolder(packet);
     final assets = <Map<String, Object?>>[];
     for (final entry in _resources(packet).entries) {
@@ -924,43 +1022,11 @@ class MetadataCloudLibrary {
             remoteFolder: folder, remoteName: entry.key);
       final saved = await _rows(path);
       if (saved.isNotEmpty && saved.single['verified'] == 1) {
-        assets.add({
-          for (final field in [
-            'path',
-            'file_id',
-            'digest',
-            'bytes',
-            'media_key',
-            'receipt_json',
-            'remote_name',
-            'folder_path'
-          ])
-            field: saved.single[field]
-        });
+        assets.add(
+            {for (final field in _assetFields) field: saved.single[field]});
       }
     }
-    packet.addAll({
-      'layout': 2,
-      'entity_key': key,
-      'folder': p.posix.basename(folder),
-      'game':
-          jsonDecode((packet['records'] as List).first['game_json'] as String),
-      'edition': jsonDecode(
-          (packet['records'] as List).first['edition_json'] as String),
-      'metadata': [
-        for (final row in packet['records'] as List)
-          jsonDecode(row['record_json'] as String)
-      ],
-      'assets': assets,
-      'resources': {
-        for (final a in assets)
-          a['remote_name'] as String: {
-            'sha256': a['digest'],
-            'bytes': a['bytes']
-          }
-      }
-    });
-    final bytes = utf8.encode(jsonEncode(packet));
+    final bytes = _gamePacketBytes(packet, key, folder, assets);
     if (bytes.length > DriveMetadataApi.maxRecordBytes)
       throw const FormatException('Game metadata exceeds budget');
     final digest = sha256.convert(bytes).toString();
@@ -1127,19 +1193,22 @@ class MetadataCloudLibrary {
     }
   }
 
-  Future<void> _publishPacket(
-      String platform, Map<String, dynamic> packet) async {
+  Future<void> _publishPacket(String platform, Map<String, dynamic> packet,
+      {bool verifyRemote = false}) async {
     final bytes = utf8.encode(jsonEncode(packet));
     if (bytes.length > DriveMetadataApi.maxRecordBytes)
       throw const FormatException('Metadata packet exceeds publication budget');
     final digest = sha256.convert(bytes).toString();
+    final path = '$platform/records/$digest.json';
+    if (!verifyRemote && await _hasVerifiedPublication(path)) {
+      return;
+    }
     final directory = Directory(p.join(store.root.path, 'records'));
     await directory.create(recursive: true);
     final file = File(p.join(directory.path, '$digest.json'));
     try {
       await file.writeAsBytes(bytes, flush: true);
-      await _publishFile(
-          '$platform/records/$digest.json', '', file, 'records', null);
+      await _publishFile(path, '', file, 'records', null);
     } finally {
       if (await file.exists()) await file.delete();
     }
@@ -1147,19 +1216,22 @@ class MetadataCloudLibrary {
 
   // Earlier refreshes may leave immutable bodies whose current game no longer
   // references them. Preserve those bytes too, without inventing a game match.
-  Future<void> _retainHistoricalMedia() async {
+  Future<void> _retainHistoricalMedia({required bool verifyRemote}) async {
     final assets = <Map<String, Object?>>[];
     Future<void> flush() async {
       if (assets.isEmpty) return;
-      await _publishPacket('retained', {
-        'version': 1,
-        'platform': 'retained',
-        'records': [],
-        'bindings': [],
-        'artwork': [],
-        'responses': [],
-        'assets': [...assets]
-      });
+      await _publishPacket(
+          'retained',
+          {
+            'version': 1,
+            'platform': 'retained',
+            'records': [],
+            'bindings': [],
+            'artwork': [],
+            'responses': [],
+            'assets': [...assets]
+          },
+          verifyRemote: verifyRemote);
       assets.clear();
     }
 

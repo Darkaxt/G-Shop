@@ -3,7 +3,8 @@
 Authoritative specification, revision 80, 2026-10-18.
 
 Owner model-acquisition priority, 2026-10-18: work through Nintendo portables
-first: GBA, GB/GBC, DS/DSi, 3DS and Switch. Browser acquisition is authorized
+first: GBA, GB/GBC, DS/DSi, 3DS, Switch and Game & Watch. Game & Watch uses
+the handheld device, not an invented removable cartridge. Browser acquisition is authorized
 where a model lacks a standard download button. Preserve acquired originals,
 source/export provenance and the distinction between acquired, adapted and
 native-verified models. This source work does not bypass the existing GBA

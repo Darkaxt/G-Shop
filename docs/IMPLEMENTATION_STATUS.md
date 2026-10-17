@@ -5,6 +5,30 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 unchanged-publication regression — 2026-10-18, ACTIVE
+
+The installed app reached 1,402/1,402 edition publications but continues its
+historical-media preservation pass; that existing operation is retained and
+observed, not interrupted. Inspection also reproduced why restarting would
+repeat the wait: backup-only startup unconditionally contacted Drive and
+re-published unchanged packets. The complete packaging workflow regression
+failed offline at the unconditional root request before the correction.
+Publication now compares exact packet digests with previously verified,
+account/root-bound receipts before contacting Drive. Explicit remote refresh
+still verifies Drive; changed/new resources still publish. The reopened-offline,
+changed-generation publication, eviction and hydration workflow passes together
+with the affected metadata-cloud checks. The private live-packet fixture remains
+explicitly skipped, not counted as live acceptance. Native verification and the
+cohesive GitHub-signed update remain required before this checkpoint can pass.
+
+Scoped analysis reported only brace-style information (exit 1), no errors or
+warnings. The two newly introduced one-line guards were braced; existing style
+findings outside the change are retained. No Windows Gradle command was run.
+
+The owner-supplied GB box archive is hash-inventoried in the coverage review.
+Its ASCII FBX needs conversion before Blender inspection; this is acquisition
+evidence only and does not start a second console's native implementation.
+
 ### S25 GBA import admission and Nintendo-portable priority — 2026-10-18, ACTIVE
 
 Specification revision 80 records Nintendo-portable acquisition priority while
