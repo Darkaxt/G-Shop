@@ -81,11 +81,14 @@ void main() {
     await tester.runAsync(() async {
       await tester.pumpWidget(view(art: cold));
       expect(find.byKey(const ValueKey('cover-reveal-cover')), findsNothing);
+      expect(find.byKey(const ValueKey('cover-reveal-loading')), findsOneWidget,
+          reason: 'A cold cover must conceal the unfinished model');
       await precacheImage(cold, tester.element(find.text('Media')));
     });
     await tester.pumpWidget(view(art: cold));
     final cover = find.byKey(const ValueKey('cover-reveal-cover'));
     expect(cover, findsOneWidget);
+    expect(find.byKey(const ValueKey('cover-reveal-loading')), findsNothing);
     final held = tester.getRect(cover);
     await tester.pump(const Duration(seconds: 5));
     expect(tester.getRect(cover), held,

@@ -323,7 +323,7 @@ class _RShopAppState extends ConsumerState<RShopApp> with WidgetsBindingObserver
         break;
       case AppLifecycleState.resumed:
         widget.audioManager.resume();
-        unawaited(ref.read(metadataCloudProvider.notifier).sync());
+        unawaited(ref.read(metadataCloudProvider.notifier).sync(pull: false));
         _checkAutomaticSaveBackups();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {

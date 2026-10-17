@@ -39,6 +39,35 @@ treated as passing the mandatory actual GBA Top 25 workflow.
 - S24 is the only ACTIVE stage. No new feature stage or tracked deferral is
   opened. Earlier S25/S26 results are not proof that the reported issues pass.
 
+Native validation checkpoint (not a public release): gate 1400 acquires the
+shared mutex with workers=2, parallel=false, Gradle heap=3 GiB, Kotlin in-process,
+one 512 MiB test fork, no memory failure, build/helper exit=0 and daemon exit
+verified. The existing Ninja patch-engine pool is observed at depth one. Signed
+1.9.17/code 31 is installed in place for acceptance, with identical prelaunch
+ordinary/secure preferences and signer. Installed SHA-256 matches
+`35ea1f779ce52b673bd3ea1c8c5d12b35aa95b466211cee21100e658ee9ed299`.
+Cold secondary engine/resources readiness is logged at 1.017/1.653 seconds while
+hidden; startup does not run ROM-list bulk sync. The first real selected game's
+decoded label, model and trailer reach readiness and the reveal starts only then.
+It still initially exposes a fallback before the cover is handed off: acceptance
+fails there. A separate remaining startup metadata pull is confirmed in the
+controller's load/resume paths. The current correction makes those backup-only,
+preserves explicit remote Sync, reuses mounted cover resolution and keeps the
+unfinished model hidden until its cover is known. Focused cloud recovery,
+publication/cache and preview checks pass; the integrated corrected device result
+and the entire actual ranked GBA sample remain acceptance blockers. No public
+release has been published. Source checkpoint `7511ab6` is verified on origin.
+
+The scoped GBA Top 25 resource-only collection now reports completed on the Thor.
+This is collection evidence, not rendering acceptance. The cold-cover regression
+also reproduces a model flash during image decoding; an opaque loading layer now
+conceals that unfinished frame without suspending model preparation. Focused
+reveal, selected-media and secondary-lifecycle checks pass, including the real
+cover hold and 1.5-second completion event. The retained second native build is
+FIFO ticket 1402 and remains queued; no duplicate build is launched. Screens are
+off while waiting. Native acceptance and public GitHub-signed delivery remain
+required before closing S24.
+
 ### Superseded completion checkpoint (retained as evidence history)
 
 Current checkpoint, 2026-10-17: S24-S26 are COMPLETE; no implementation stage is

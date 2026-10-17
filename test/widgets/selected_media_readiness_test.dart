@@ -17,6 +17,7 @@ void main() {
     await cover.evict();
     await ResizeImage.resizeIfNeeded(640, null, label).evict();
     var readyEvents = 0;
+    var revealedEvents = 0;
     Widget view(bool ready) => MaterialApp(
         home: Center(
             child: SizedBox(
@@ -36,6 +37,7 @@ void main() {
                     metadata: GameMetadata.parse('Fixture.gba'),
                     resourcesReady: ready,
                     onReady: () => readyEvents++,
+                    onRevealed: () => revealedEvents++,
                     showPresentationControls: false))));
     await tester.runAsync(() async {
       await tester.pumpWidget(view(false));
@@ -55,10 +57,12 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     expect(tester.getRect(box), held);
     expect(readyEvents, 0);
+    expect(revealedEvents, 0);
     await tester.pumpWidget(view(true));
     await tester.pump();
     expect(key.currentState, same(owner));
     expect(readyEvents, 1);
+    expect(revealedEvents, 0);
     await tester.pump(const Duration(milliseconds: 750));
     final sliding = tester.getRect(box);
     expect(sliding.left, lessThan(held.left));
@@ -69,6 +73,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 751));
     expect(box, findsNothing);
     expect(readyEvents, 1);
+    expect(revealedEvents, 1);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

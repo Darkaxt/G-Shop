@@ -389,6 +389,11 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (enabled && selection != null && _visible) {
       _bind(selection);
       final controller = _controller!;
+      final visibleCover = ref.watch(cloudSelectionMediaProvider((
+        platform: selection.system.id,
+        selection: controller.selectedVariant.selectionKey,
+        details: false
+      )));
       final cloudMedia = ref.watch(cloudSelectionMediaProvider((
         platform: selection.system.id,
         selection: controller.selectedVariant.selectionKey,
@@ -424,6 +429,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'title': controller.selectedVariant.displayName,
         'system': selection.system.id,
         'cover': local(metadata?.cachedCover ??
+            visibleCover.valueOrNull ??
             selection.variants[controller.selectedIndex].cachedCoverUrl),
         'label': local(metadata?.cachedSupportTexture),
         'gbcDualMode': metadata?.gbcDualMode,

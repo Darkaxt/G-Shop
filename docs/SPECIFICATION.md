@@ -35,6 +35,11 @@ whole-collection age unknown. A noninteractive read-only root timestamp/version
 check may show an updates-available hint for five seconds, never trigger sync or
 block browsing. Unchanged root metadata is not proof of unchanged nested files;
 offline/authentication failure must preserve cached browsing without a prompt.
+This also excludes automatic whole-library metadata pulls on startup/resume.
+Local backup publication/recovery remains automatic and does not traverse the
+remote collection or re-project unchanged local facts. Explicit metadata Sync
+still pulls remote updates. While selected media loads, reuse its mounted cover;
+if no cover is resolved yet, show loading instead of an unfinished cartridge.
 
 Owner publication correction, 2026-10-17: use GitHub to build and sign the public
 update with the existing production identity. Preserve the local imported media,

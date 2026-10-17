@@ -702,7 +702,9 @@ class MetadataCloudLibrary {
         }
       }
     }
-    await _lane(() async => store.restore(await projection));
+    // Publication starts from local facts. Only a remote pull owns restoring
+    // newly received facts into the projection; cache readers own startup recovery.
+    if (pull) await _lane(() async => store.restore(await projection));
     final editions = <String>{};
     final total = (await _db
             .rawQuery('SELECT COUNT(DISTINCT edition_id) AS n FROM records'))
@@ -721,7 +723,7 @@ class MetadataCloudLibrary {
     await _lane(() async {
       if (_stopSync) return;
       await _retainHistoricalMedia();
-      await _archiveLegacyFolders();
+      if (pull) await _archiveLegacyFolders();
       await _trim(budgetBytes);
       changed?.call();
     });
@@ -818,9 +820,8 @@ class MetadataCloudLibrary {
       final regions =
           EditionIdentity.fromJson(jsonDecode(row['edition_json'] as String))
               .regions;
-      for (final media
-          in MetadataArtworkCache.displayMedia(record, regions: regions,
-              includeVideo: true)) {
+      for (final media in MetadataArtworkCache.displayMedia(record,
+          regions: regions, includeVideo: true)) {
         if ({'ss', 'screenshot'}.contains(media.type)) {
           if (!screenshots.add(MetadataArtworkCache.key(media))) continue;
           result[resourceName(media.type, platform, index: ++index)!] = media;

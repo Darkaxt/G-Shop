@@ -144,7 +144,8 @@ class _PreviewScreenState extends State<PreviewScreen>
     if (mounted && value?.hasError == true) setState(() {});
   }
 
-  Future<void> _rendered(int revision, {bool revealStarted = false}) async {
+  Future<void> _rendered(int revision,
+      {bool revealStarted = false, bool revealCompleted = false}) async {
     if (!mounted || _snapshot?['revision'] != revision) return;
     final physical = _physicalKey.currentState;
     if (physical != null) {
@@ -164,6 +165,7 @@ class _PreviewScreenState extends State<PreviewScreen>
       'model': _physicalKey.currentState?.renderSnapshot,
       'media': _coverKey.currentState?.renderSnapshot,
       'revealStarted': revealStarted,
+      'revealCompleted': revealCompleted,
       'videoReady': _video?.value.isInitialized == true,
       'videoPlaying': _reportedPlaying == true,
       'videoVolume': _video?.value.volume,
@@ -364,34 +366,44 @@ class _PreviewScreenState extends State<PreviewScreen>
                                 ? _details(snapshot)
                                 : GestureDetector(
                                     onTap: () => _action('details'),
-                                    child: prefs.modelVisible
-                                        ? CoverSection(
-                                            key: _coverKey,
-                                            game: game,
-                                            system: system,
-                                            coverUrls: const [],
-                                            cachedUrl:
-                                                snapshot['cover'] as String?,
-                                            physicalLabelUrl:
-                                                snapshot['label'] as String?,
-                                            gbcDualMode: snapshot['gbcDualMode']
-                                                as String?,
-                                            metadata: GameMetadata.parse(
-                                                game.filename),
-                                            physicalMediaEnabled:
-                                                snapshot['threeD'] == true,
-                                            physicalMediaKey: _physicalKey,
-                                            reducedMotion: snapshot['reducedMotion'] ==
-                                                true,
-                                            resourcesReady: snapshot['mediaLoading'] != true &&
-                                                (_videoPath == null ||
-                                                    _video?.value.isInitialized ==
-                                                        true),
-                                            onReady: () => unawaited(_rendered(
-                                                snapshot['revision'] as int,
-                                                revealStarted: true)),
-                                            showPresentationControls: false)
-                                        : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
+                                    child: prefs.modelVisible &&
+                                            snapshot['mediaLoading'] == true &&
+                                            snapshot['cover'] == null
+                                        ? const Center(
+                                            child: CircularProgressIndicator(
+                                                key: ValueKey(
+                                                    'preview-loading-cover')))
+                                        : prefs.modelVisible
+                                            ? CoverSection(
+                                                key: _coverKey,
+                                                game: game,
+                                                system: system,
+                                                coverUrls: const [],
+                                                cachedUrl: snapshot['cover']
+                                                    as String?,
+                                                physicalLabelUrl: snapshot['label']
+                                                    as String?,
+                                                gbcDualMode: snapshot['gbcDualMode']
+                                                    as String?,
+                                                metadata: GameMetadata.parse(
+                                                    game.filename),
+                                                physicalMediaEnabled:
+                                                    snapshot['threeD'] == true,
+                                                physicalMediaKey: _physicalKey,
+                                                reducedMotion:
+                                                    snapshot['reducedMotion'] ==
+                                                        true,
+                                                resourcesReady:
+                                                    snapshot['mediaLoading'] !=
+                                                            true &&
+                                                        (_videoPath == null ||
+                                                            _video?.value.isInitialized ==
+                                                                true),
+                                                onReady: () =>
+                                                    unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)),
+                                                onRevealed: () => unawaited(_rendered(snapshot['revision'] as int, revealCompleted: true)),
+                                                showPresentationControls: false)
+                                            : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
                         if (!details)
                           const Text('Select for details',
                               style: TextStyle(color: Colors.white70)),

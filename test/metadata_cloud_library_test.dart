@@ -41,7 +41,7 @@ class ResourceProvider extends ControlsArtworkProvider {
 class MemoryMetadataDrive implements MetadataCloudRemote {
   final files = <String, MetadataCloudFile>{};
   final bodies = <String, Uint8List>{};
-  int next = 0, downloads = 0, reads = 0;
+  int next = 0, downloads = 0, reads = 0, childListings = 0;
   bool online = true, failUpload = false;
   void check() {
     if (!online) throw const FileSystemException('Offline fixture');
@@ -63,6 +63,7 @@ class MemoryMetadataDrive implements MetadataCloudRemote {
   @override
   Future<List<MetadataCloudFile>> children(String? parent) async {
     reads++;
+    childListings++;
     check();
     return files.values.where((f) => f.parent == parent).toList();
   }
@@ -176,6 +177,28 @@ Map<String, dynamic> mutationView(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('backup-only sync does not traverse the remote collection', () async {
+    final root = await Directory.systemTemp.createTemp('rshop-local-backup-');
+    final store = await SharedMetadataStore.open(root,
+        factory: databaseFactoryFfiNoIsolate);
+    final db = await controlsDatabase();
+    final remote = MemoryMetadataDrive();
+    final cloud = MetadataCloudLibrary(
+        store: store,
+        remote: remote,
+        accountId: 'account',
+        rootId: 'metadata-root');
+    addTearDown(() async {
+      await cloud.close();
+      await store.close();
+      await db.close();
+    });
+    await cloud.open();
+    await cloud.sync(Future.value(db), pull: false);
+    expect(remote.childListings, 0,
+        reason: 'Startup publication must not list every remote console/game');
+    expect(remote.downloads, 0);
+  });
   test('default media budget is two GiB, separate from ROMs and text', () {
     expect(MetadataCloudLibrary.defaultBudgetBytes, 2 * 1024 * 1024 * 1024);
   });
@@ -241,7 +264,8 @@ void main() {
     shared = true;
     await expectLater(api.get('object'), throwsFormatException);
   });
-  test('typed media updates use the v2 PUT upload URI, ETag and expected digest',
+  test(
+      'typed media updates use the v2 PUT upload URI, ETag and expected digest',
       () async {
     final root = await Directory.systemTemp.createTemp('rshop-cloud-update-');
     final body = File('${root.path}/body.png');

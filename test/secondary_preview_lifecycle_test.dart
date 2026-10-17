@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 import 'package:retro_eshop/features/preview/preview_screen.dart';
 import 'package:retro_eshop/models/preview_settings.dart';
+import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
 
 class _Player extends VideoPlayerPlatform {
   final events = StreamController<VideoEvent>();
@@ -38,6 +39,32 @@ class _Player extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('pending cover never exposes an unfinished cartridge',
+      (tester) async {
+    const channel = MethodChannel('com.retro.rshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    await messenger.handlePlatformMessage(
+        channel.name,
+        const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+          'revision': 1,
+          'identity': 'fixture',
+          'actionEpoch': 1,
+          'system': 'gba',
+          'filename': 'Fixture.gba',
+          'title': 'Fixture',
+          'mediaLoading': true,
+          'threeD': false,
+          'settings': const PreviewSettings().toJson(),
+        })),
+        (_) {});
+    await tester.pump();
+    expect(find.byType(CoverSection), findsNothing);
+    expect(find.byKey(const ValueKey('preview-loading-cover')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('hidden warm preview ignores retired video layout safely',
       (tester) async {
     final original = VideoPlayerPlatform.instance;

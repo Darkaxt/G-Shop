@@ -213,7 +213,7 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                             val selection = (rendered?.get("identity") as? String)?.let {
                                 MessageDigest.getInstance("SHA-256").digest(it.toByteArray()).joinToString("") { byte -> "%02x".format(byte) }
                             }
-                            Log.i("RShopPreview", "rendered selection=$selection selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} label=${(rendered?.get("media") as? Map<*, *>)?.get("labelDecoded")} resources=${(rendered?.get("media") as? Map<*, *>)?.get("resourcesReady")} video=${rendered?.get("videoReady")} reveal=${rendered?.get("revealStarted")}")
+                            Log.i("RShopPreview", "rendered selection=$selection selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} cover=${(rendered?.get("media") as? Map<*, *>)?.get("coverExpected")} label=${(rendered?.get("media") as? Map<*, *>)?.get("labelDecoded")} resources=${(rendered?.get("media") as? Map<*, *>)?.get("resourcesReady")} video=${rendered?.get("videoReady")} playing=${rendered?.get("videoPlaying")} volume=${rendered?.get("videoVolume")} reveal=${rendered?.get("revealStarted")} completed=${rendered?.get("revealCompleted")}")
                             val completed = waiters.filter { matches(it) }
                             waiters.removeAll(completed.toSet())
                             completed.forEach { it.result.success(rendered) }

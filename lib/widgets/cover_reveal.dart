@@ -10,6 +10,7 @@ class CoverReveal extends StatefulWidget {
   final bool reducedMotion;
   final bool mediaReady;
   final VoidCallback? onReady;
+  final VoidCallback? onRevealed;
   const CoverReveal(
       {super.key,
       required this.identity,
@@ -17,7 +18,8 @@ class CoverReveal extends StatefulWidget {
       this.boxArt,
       this.reducedMotion = false,
       this.mediaReady = true,
-      this.onReady});
+      this.onReady,
+      this.onRevealed});
   @override
   State<CoverReveal> createState() => _CoverRevealState();
 }
@@ -28,6 +30,7 @@ class _CoverRevealState extends State<CoverReveal>
       AnimationController(vsync: this, duration: CoverReveal.duration);
   ImageInfo? _cover;
   bool _decided = false;
+  bool _revealing = false;
   ImageProvider? _requested;
   ImageStream? _stream;
   ImageStreamListener? _listener;
@@ -38,6 +41,14 @@ class _CoverRevealState extends State<CoverReveal>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _animation.addStatusListener((status) {
+      if (status != AnimationStatus.completed || !_revealing) return;
+      _revealing = false;
+      final generation = _generation;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && generation == _generation) widget.onRevealed?.call();
+      });
+    });
   }
 
   @override
@@ -50,6 +61,7 @@ class _CoverRevealState extends State<CoverReveal>
   void didUpdateWidget(CoverReveal oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.identity != widget.identity) {
+      _revealing = false;
       _animation.stop();
       _animation.reset();
       _cover?.dispose();
@@ -63,15 +75,22 @@ class _CoverRevealState extends State<CoverReveal>
 
   void _choose() {
     if (_reduce || !TickerMode.valuesOf(context).enabled) {
+      _revealing = false;
       _cancelImage();
       _animation.value = 1;
       _decided = true;
       return;
     }
     if (_decided) return;
-    if (_cover != null) {
+    final provider = widget.boxArt;
+    if (provider != null && provider != _requested) {
+      _loadCover(provider);
+      return;
+    }
+    if (_cover != null && _stream == null) {
       if (widget.mediaReady) {
         _decided = true;
+        _revealing = true;
         _animation.forward(from: 0);
         final generation = _generation;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,8 +99,9 @@ class _CoverRevealState extends State<CoverReveal>
       }
       return;
     }
-    final provider = widget.boxArt;
-    if (provider == null || provider == _requested) return;
+  }
+
+  void _loadCover(ImageProvider provider) {
     _cancelImage();
     _requested = provider;
     final generation = _generation;
@@ -89,6 +109,7 @@ class _CoverRevealState extends State<CoverReveal>
     _listener = ImageStreamListener((image, synchronous) {
       if (!mounted || generation != _generation || _decided) return;
       void resolved() {
+        _cover?.dispose();
         _cover = image.clone();
         _cancelImage();
         _choose();
@@ -100,7 +121,7 @@ class _CoverRevealState extends State<CoverReveal>
         setState(resolved);
       }
     }, onError: (_, __) {
-      if (generation == _generation) _cancelImage();
+      if (mounted && generation == _generation) setState(_cancelImage);
     });
     _stream!.addListener(_listener!);
   }
@@ -116,6 +137,7 @@ class _CoverRevealState extends State<CoverReveal>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
+      _revealing = false;
       _decided = true;
       _cancelImage();
       _animation.value = 1;
@@ -152,11 +174,19 @@ class _CoverRevealState extends State<CoverReveal>
                   final t = Curves.easeInOut.transform(_animation.value);
                   final scale = reveal ? initial + (1 - initial) * t : 1.0;
                   final left = (bounds.maxWidth - coverWidth) / 2;
+                  final waiting = image == null &&
+                      (_stream != null || !widget.mediaReady);
                   return Stack(fit: StackFit.expand, children: [
                     Transform.scale(
                         key: const ValueKey('cover-reveal-media'),
                         scale: scale,
                         child: widget.media),
+                    if (waiting)
+                      ColoredBox(
+                          key: const ValueKey('cover-reveal-loading'),
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          child: const Center(
+                              child: CircularProgressIndicator())),
                     if (reveal)
                       Positioned(
                           left: left - (left + coverWidth + 1) * t,

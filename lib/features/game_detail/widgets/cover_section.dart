@@ -28,6 +28,7 @@ class CoverSection extends StatefulWidget {
   final bool showPresentationControls;
   final bool resourcesReady;
   final VoidCallback? onReady;
+  final VoidCallback? onRevealed;
   const CoverSection({
     super.key,
     required this.game,
@@ -47,6 +48,7 @@ class CoverSection extends StatefulWidget {
     this.showPresentationControls = true,
     this.resourcesReady = true,
     this.onReady,
+    this.onRevealed,
   });
 
   @override
@@ -62,6 +64,7 @@ class CoverSectionState extends State<CoverSection> {
   int _labelGeneration = 0;
   String? _labelUrl;
   Map<String, Object?> get renderSnapshot => {
+        'coverExpected': widget.cachedUrl != null || widget.coverUrls.isNotEmpty,
         'labelExpected': widget.physicalLabelUrl != null,
         'labelDecoded': widget.physicalLabelUrl != null && _label != null,
         'resourcesReady': widget.resourcesReady,
@@ -186,6 +189,7 @@ class CoverSectionState extends State<CoverSection> {
                         boxArt: boxArt,
                         mediaReady: mediaReady,
                         onReady: widget.onReady,
+                        onRevealed: widget.onRevealed,
                         reducedMotion: _reducedMotion || widget.reducedMotion,
                         media: threeD
                             ? PhysicalMediaView(

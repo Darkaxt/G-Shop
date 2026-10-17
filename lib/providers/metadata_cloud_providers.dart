@@ -107,7 +107,8 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
       } catch (_) {
         _state(message: 'Shared metadata storage is unavailable');
       }
-      unawaited(sync());
+      // Opening the app may drain local backups, not refresh every remote game.
+      unawaited(sync(pull: false));
     }
   }
 
@@ -386,7 +387,7 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
 
   void resume() {
     _paused = false;
-    if (_settings['enabled'] == true) unawaited(sync());
+    if (_settings['enabled'] == true) unawaited(sync(pull: false));
   }
 
   Future<void> disconnect() async {
