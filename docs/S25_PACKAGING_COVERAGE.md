@@ -57,6 +57,20 @@ chosen asset before implementation, without turning it into a universal prerequi
 
 ## Verified source review
 
+Additional owner-supplied candidates, checked against Sketchfab's public model
+API on 2026-10-18 (listing metadata only; neither downloaded nor native-verified):
+
+| Candidate | Verified listing facts | Unverified integration properties |
+| --- | --- | --- |
+| [Cover Games — T-Art](https://sketchfab.com/3d-models/cover-games-8ed2020f02bc4d14854ba8dcef88be26) | Downloadable, CC BY 4.0, 1,418 faces, two materials/textures, zero animation clips | Separate lid/interior geometry, pivots, UV replacement and useful platform fit require file inspection |
+| [Kittella Genesis Case — warpnik](https://sketchfab.com/3d-models/kittella-genesis-case-0ad483dab1c84c50bfd6f266762cdc75) | Downloadable, CC BY 4.0, 1,320 faces, three materials/textures, zero animation clips; author describes concept-game packaging | Genesis-case geometry, opening support and replaceable sleeve require file inspection; concept artwork is not collection artwork |
+
+The API endpoints are `https://api.sketchfab.com/v3/models/<model-id>`.
+Zero animation clips does not prove that rigid parts cannot be animated; it also
+does not establish an opening hinge. Keep both in candidate research, not the
+verified-model ledger. These additions do not start Sega implementation or replace
+the active first-console GBA acceptance work.
+
 ### Box scans and sleeves
 
 - [NintAndBox Archive](https://archive.org/details/nintandbox-2026): the public
