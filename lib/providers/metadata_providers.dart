@@ -474,14 +474,22 @@ class MetadataControlsController extends StateNotifier<MetadataControlsState> {
       });
 
   Future<int> importPackagingResources(File pack) async {
+    // Storage is a direct settings entry: selecting a pack must not depend on
+    // visiting the provider/collector page to initialize this controller first.
+    if (state.loading) await load();
+    if (_closed || state.busy || state.loading || MigrationMaintenance.active) {
+      throw StateError('Metadata import is unavailable');
+    }
     var imported = 0;
     await _perform(() async {
       final shared = await _sharedStore;
-      if (shared == null || _artworkCache == null)
+      if (shared == null || _artworkCache == null) {
         throw StateError('Choose shared metadata storage first');
+      }
       imported =
           await PackagingResourceImport(_database, await _artworkCache!, shared)
               .import(pack);
+      debugPrint('Metadata packaging import: games=$imported');
     });
     return imported;
   }

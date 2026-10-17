@@ -346,18 +346,32 @@ class _MetadataSettingsScreenState extends ConsumerState<MetadataSettingsScreen>
     final cloud = ref.read(metadataCloudProvider.notifier);
     await cloud.pause();
     try {
-      await ref
+      final imported = await ref
           .read(metadataControlsProvider.notifier)
           .importPackagingResources(File(path));
-      if (!ref.read(metadataControlsProvider).error) {
+      if (!ref.read(metadataControlsProvider).error && imported > 0) {
         ref.read(metadataMediaRevisionProvider.notifier).state++;
         ref.read(gameDbChangedProvider.notifier).state++;
+        if (mounted) {
+          showConsoleNotification(context,
+              message: 'Artwork imported for $imported games.', isError: false);
+        }
+      } else if (mounted) {
+        showConsoleNotification(context,
+            message:
+                'Artwork was not imported. Check the pack and shared storage.');
+      }
+    } catch (_) {
+      if (mounted) {
+        showConsoleNotification(context,
+            message:
+                'Artwork import is unavailable. Finish the current task first.');
       }
     } finally {
       cloud.resume();
+      await FilePicker.platform.clearTemporaryFiles();
     }
     await cloud.sync(pull: false);
-    await FilePicker.platform.clearTemporaryFiles();
   }
 
   Future<void> _confirmMediaRebuild() async {

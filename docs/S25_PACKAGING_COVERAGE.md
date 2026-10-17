@@ -1,6 +1,6 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 79.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 80.
 Current implementation checkpoint: S25 is ACTIVE for the generic resource
 explorer and individual model verification. The automatic cinematic transition
 is expressly not being implemented yet. See [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md)
@@ -57,6 +57,35 @@ opening a hinged case. Actual opening scope/behavior must be reconciled from the
 chosen asset before implementation, without turning it into a universal prerequisite.
 
 ## Verified source review
+
+Current acquisition order is Nintendo portables: GBA -> GB/GBC -> DS/DSi ->
+3DS -> Switch. The owner authorizes browser acquisition even without a standard
+download control. GBA core geometry is acquired; fitting, hinges, edition-label
+mapping and native acceptance remain separate work. Preserve the existing GBA
+review/deployment checkpoint before implementing another console. No acquired
+reference or listing alone upgrades the final verified-model ledger.
+
+### Nintendo-portable source checklist — 2026-10-18
+
+Fresh public model-API checks distinguish actual downloadable listings from
+viewer-only references. None of the newly listed candidates below is a new
+native-verified asset; existing Socket cartridge routes remain available.
+
+| Platform | Medium / outer packaging source | Case / protector | Remaining source integration |
+| --- | --- | --- | --- |
+| GBA | Owner GLB `25bd1b56` has cartridge + screw, inspected in Blender; owned parameterized outer box | Same GLB has separate protector base/lid | Fit/recenter, define hinge, map actual game label, matte housing and native proof; no source animation clip exists |
+| GB | [Bob's low-poly cartridge](https://sketchfab.com/3d-models/gameboy-cartridge-lowpoly-8b9728eab16c4056ac2636ae7f0f038f), 510 faces, CC BY, downloadable; [Frank Rennau's box](https://sketchfab.com/3d-models/game-boy-super-mario-land-box-b4515d780a3b4b02a50d20bdec70a5a0), 102 faces, CC BY, downloadable | Owned generic protector remains the fallback; no fitted third-party protector verified | Acquire files, inspect UVs and folds, replace title-specific textures, then native review |
+| GBC | [Pryzm cartridge](https://sketchfab.com/3d-models/gameboy-color-cartridge-453fff7dfa414838a28261851e4917ce), 400 faces, viewer-only; retain distinct existing compatibility shapes | Generic protector fallback, not an original-case claim | Browser acquisition and separate compatible/exclusive housing/material verification |
+| DS / DSi | [littlengvfx preset](https://sketchfab.com/3d-models/nintendo-ds-cartridge-preset-01e161c3e7c24b40888fdf94ad003501), 1,361 faces, CC BY, downloadable; author explicitly describes replaceable image. [Pcwer alternative](https://sketchfab.com/3d-models/nintendo-ds-cartridge-364e487e31fd4135b6c6941a0ffaba82), 977 faces, CC BY | Owned parameterized keep-case remains the actual available fallback | Acquire and inspect label UVs; a source search has not established a specific opening DS case |
+| 3DS | [SGLilac cartridge](https://sketchfab.com/3d-models/3ds-cartridge-e075af04a56f4d31bbd7d92365f1d8fc), 210 faces, CC BY, downloadable; [JodieWebster alternative](https://sketchfab.com/3d-models/3ds-game-cartridge-950a6bf7c4094a84af0d7409d0e76c16), 3,933 faces, CC BY | Owned parameterized keep-case fallback | Inspect card notch, front orientation and label mapping; source descriptions do not verify these |
+| Switch | Existing imported card; [Jacopo Visentin's case + card](https://www.blendkit.com/asset-gallery-detail/8f414675-2cd9-4ff6-988d-dec118effbe1/) listing freshly confirms free, rigged, textured, 6,831 polygons / 1.5 MiB | Same Blendkit asset is the preferred case candidate, not yet downloaded/hinge-verified | Inspect rig, sleeve/card UVs and opening/fit after acquisition; do not invent a cardboard outer box |
+
+All checked Sketchfab candidates above report zero animation clips. Independent
+rigid parts may still be adaptable; a listing or face count does not prove that.
+The newly attempted signed-in Chrome download flow encountered CDP focus/navigation
+timeouts before a usable download control. No new download is claimed from those
+attempts. Public API/source inspection continued without changing likes, accounts
+or browser profiles, and without parallel ScreenScraper collection.
 
 Additional owner-supplied candidates, checked against Sketchfab's public model
 API on 2026-10-18 (listing metadata only; neither downloaded nor native-verified):

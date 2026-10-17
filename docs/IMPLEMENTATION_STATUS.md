@@ -5,6 +5,28 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 GBA import admission and Nintendo-portable priority — 2026-10-18, ACTIVE
+
+Specification revision 80 records Nintendo-portable acquisition priority while
+retaining the first-console GBA native-review checkpoint. The fresh-controller
+packaging regression reproduced a silent no-op: the direct storage entry had
+not called `load()`, and the worker rejected actions while initially loading.
+The import now joins initialization, explicitly rejects unavailable admission,
+and reports the number of imported games rather than treating zero as success.
+The host workflow passes from fresh controls through classified pack import,
+cloud publication, media eviction and hydration; affected controller checks
+also pass. This is not yet installed/native import proof. Native packaging
+records remain unverified, and the existing Drive publication is still being
+observed, not interrupted or duplicated. Provider MIME/request-budget changes
+below likewise await the cohesive signed update and actual GBA acceptance.
+
+Focused storage-settings widget verification also passes. Scoped Dart analysis
+found no errors or warnings; the pre-existing preview-video brace style info is
+unrelated and retained, while the touched import guard now uses braces.
+The Nintendo-portable checklist in S25_PACKAGING_COVERAGE.md records freshly
+checked GB/GBC, DS/DSi, 3DS and Switch candidates and exact remaining inspection
+work. Browser-control failures did not produce additional model downloads.
+
 ### S25 request limits and GBA media diagnosis — 2026-10-18, ACTIVE
 
 Owner request-rate clarification is recorded in specification revision 79.

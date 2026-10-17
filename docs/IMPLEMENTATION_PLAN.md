@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 79, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 80, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16

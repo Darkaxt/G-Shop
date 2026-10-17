@@ -1,6 +1,15 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 79, 2026-10-18.
+Authoritative specification, revision 80, 2026-10-18.
+
+Owner model-acquisition priority, 2026-10-18: work through Nintendo portables
+first: GBA, GB/GBC, DS/DSi, 3DS and Switch. Browser acquisition is authorized
+where a model lacks a standard download button. Preserve acquired originals,
+source/export provenance and the distinction between acquired, adapted and
+native-verified models. This source work does not bypass the existing GBA
+device-review checkpoint or authorize the automatic cinematic transition.
+GBA's acquired cartridge/protector has separate base/lid geometry but no rig;
+do not describe the opening animation or replacement labels as verified yet.
 
 Owner request-limit clarification, 2026-10-18: extra resource acquisition must
 respect provider request rates, daily budgets, concurrency and throttling as

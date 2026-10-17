@@ -3,6 +3,9 @@ import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_cloud_library.dart';
 import 'package:retro_eshop/services/metadata/screenscraper_provider.dart';
+import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
@@ -11,8 +14,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/models/library_identity.dart';
 import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
-import 'package:retro_eshop/services/metadata/packaging_resource_import.dart';
 import 'metadata_cloud_library_test.dart' show MemoryMetadataDrive;
+import 'metadata_controls_test.dart' show controlsDatabase, MemorySecrets;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -85,11 +88,12 @@ void main() {
   });
 
   test(
-      'classified pack reaches Drive and reloads its ordered edition-owned gallery',
+      'classified pack enters fresh controls, reaches Drive and reloads its gallery',
       () async {
     sqfliteFfiInit();
+    SharedPreferences.setMockInitialValues({});
     final root = await Directory.systemTemp.createTemp('rshop-packaging-test-');
-    final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    final db = await controlsDatabase(factory: databaseFactoryFfi);
     await LibrarySchema.install(db);
     await MetadataArtworkCache.install(db);
     final shared = await SharedMetadataStore.open(
@@ -156,11 +160,19 @@ void main() {
     final remote = MemoryMetadataDrive();
     final cloud = MetadataCloudLibrary(
         store: shared, remote: remote, accountId: 'a', rootId: 'root');
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        catalogueChanged: () {},
+        artworkCache: Future.value(cache),
+        sharedStore: Future.value(shared));
     try {
-      expect(
-          await PackagingResourceImport(Future.value(db), cache, shared)
-              .import(pack),
-          1);
+      expect(controls.state.loading, isTrue);
+      expect(await controls.importPackagingResources(pack), 1);
+      expect(controls.state.error, isFalse);
       await cloud.open();
       await cloud.sync(Future.value(db), pull: false);
       expect(
@@ -183,6 +195,7 @@ void main() {
       expect((await library.metadata('e', 'packaging'))!.ratings, isEmpty);
       expect((await library.edition('e'))!.regions, ['us']);
     } finally {
+      await controls.close();
       await cloud.close();
       await shared.close();
       await db.close();
