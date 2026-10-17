@@ -33,6 +33,18 @@ S24 alone is ACTIVE again; its earlier completion claim is withdrawn. S22, R22,
 S25 and S26 retain their recorded results, subject to affected revalidation.
 S25's newly requested interactive-gallery scope is NOT STARTED; its earlier
 startup-only evidence remains valid, but the expanded stage is not COMPLETE.
+The box feasibility check confirms the official front/back/spine/texture types.
+All 124 inspected retained GBA records contain typed back/spine/texture request
+references (not proof of 124 downloadable complete boxes). One same-edition US
+texture request for Mega Man Zero 3 returned HTTP 200 and a validated 1024x479 PNG;
+visual inspection confirms back, spine and front in that order. S25 must wire
+typed face collection/cache consumption, verify same-region face sets or known
+platform texture layouts, and retain the shallow front-cover fallback for missing
+sets. Do not use a static box-3D image as hidden-face geometry or invent artwork.
+This spread supplies three faces only. The opposite side/top/bottom require
+additional verified scans; otherwise render those surfaces with neutral material,
+not a mirrored or duplicated spine. One same-game box-scan request returned HTML,
+not an image, so a fully authentic six-face reconstruction is not established.
 S23 website acquisition remains NOT STARTED. Signed 1.9.16/code 30 is installed
 in place, and native cache/media/preservation acceptance is recorded in the status
 ledger. The requested wider Nintendo resource collection was triggered after the

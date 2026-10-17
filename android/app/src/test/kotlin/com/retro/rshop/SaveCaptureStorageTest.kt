@@ -149,7 +149,7 @@ class SaveCaptureStorageTest {
             "ppsspp-slot-v1", psp))
     }
     @Test fun normalizesTheFrameworkParentBeforeCheckingItsOwnChildren() {
-        val directory = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-capture-root-").toFile()
+        val directory = Files.createTempDirectory(Paths.get(System.getProperty("java.io.tmpdir")), "rshop-capture-root-").toFile()
         val filesDir = File(directory, "files")
         assertTrue(filesDir.mkdir())
         try {

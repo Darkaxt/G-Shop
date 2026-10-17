@@ -101,6 +101,33 @@ stopped hidden/finished tickers. Candidate code 33 is pending GitHub build/signi
 and native visual verification. The requested real-box texture investigation
 and public release/installed-byte verification remain open. S24 stays ACTIVE.
 
+Box feasibility investigation is now satisfied: the official ScreenScraper v2
+media table lists box-2D, box-2D-side, box-2D-back and box-texture. The retained GBA
+mirror contains 124 records with typed back/spine/texture references; these are
+request selectors, not verified availability receipts. One authenticated existing
+US-game selector returned HTTP 200, 968,667 bytes and a validated 1024x479 PNG.
+Visual inspection confirms a real Mega Man Zero 3 back/spine/front spread. The
+reference image and credentials remain private and are not bundled/published.
+Source: https://www.screenscraper.fr/webapi2.php . S25 owns actual textured-box
+collection/rendering and its missing-set fallback; its expanded gallery remains
+NOT STARTED while the current S24 candidate awaits CI/native verification.
+The owner correctly notes that this wrap supplies only three faces. A subsequent
+same-game box-scan request returns HTTP 200/text-html, seven bytes and no decodable
+image. It does not establish global unavailability, but it supplies no additional
+faces for this sample. S25 must use verified extra scans where present and neutral
+material otherwise; the feasibility result is not a claim of authentic six-face
+coverage. No invented or mirrored side artwork is approved as source evidence.
+
+Hosted build 39039191595 stops at native unit tests: four filesystem fixtures in
+SaveCaptureRetirementTest/SaveCaptureStorageTest require the Windows-only
+`D:/Temp` directory. This is a concrete Linux test-host incompatibility, not a
+signing or memory failure. The fixtures now use the JVM's configured temporary
+directory; test bodies/assertions and required verification remain enabled.
+The corrected source needs a fresh hosted run before an APK or release claim.
+After the cache-only rating read settles, native code 32 visibly shows the IGDB
+mark and 0–10 score at top-left, vertically aligned with availability icons; this
+was inspected on the actual GBA gallery, not inferred from a widget reference.
+
 ### Superseded completion checkpoint (retained as evidence history)
 
 Current checkpoint, 2026-10-17: S24-S26 are COMPLETE; no implementation stage is

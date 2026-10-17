@@ -10,7 +10,7 @@ class SaveCaptureRetirementTest {
     private val id = "a".repeat(32)
 
     @Test fun completeSaveFoldersRetireEveryCapturedMemberAndKeepTheSealLast() {
-        val temp = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-retire-group-").toFile()
+        val temp = Files.createTempDirectory(Paths.get(System.getProperty("java.io.tmpdir")), "rshop-retire-group-").toFile()
         val root = File(temp, "save-captures").apply { mkdir() }
         val capture = File(root, id).apply { mkdir() }
         val members = listOf("member-0", "member-1", "member-2", "member-127", "capture.json")
@@ -36,7 +36,7 @@ class SaveCaptureRetirementTest {
     }
 
     @Test fun reviewsOnlyTheExactCaptureWithSealLastAndAllowsInterruptedRetirement() {
-        val temp = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-retire-").toFile()
+        val temp = Files.createTempDirectory(Paths.get(System.getProperty("java.io.tmpdir")), "rshop-retire-").toFile()
         val root = File(temp, "save-captures").apply { mkdir() }
         val capture = File(root, id).apply { mkdir() }
         val other = File(root, "b".repeat(32)).apply { mkdir() }
@@ -58,7 +58,7 @@ class SaveCaptureRetirementTest {
     }
 
     @Test fun unexpectedEntriesAndCallerPathsAreRejectedBeforeAnyDeletion() {
-        val temp = Files.createTempDirectory(Paths.get("D:/Temp"), "rshop-retire-").toFile()
+        val temp = Files.createTempDirectory(Paths.get(System.getProperty("java.io.tmpdir")), "rshop-retire-").toFile()
         val root = File(temp, "save-captures").apply { mkdir() }
         val capture = File(root, id).apply { mkdir() }
         val member = File(capture, "member-0").apply { writeText("fixture") }
