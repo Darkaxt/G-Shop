@@ -43,6 +43,7 @@ class _PreviewScreenState extends State<PreviewScreen>
   bool? _reportedPlaying;
   int? _reportedEpoch;
   final _physicalKey = GlobalKey<PhysicalMediaViewState>();
+  final _coverKey = GlobalKey<CoverSectionState>();
   String? _resourceGeneration;
   Future<void>? _resourceLoad;
   int _incomingRevision = 0;
@@ -143,7 +144,7 @@ class _PreviewScreenState extends State<PreviewScreen>
     if (mounted && value?.hasError == true) setState(() {});
   }
 
-  Future<void> _rendered(int revision) async {
+  Future<void> _rendered(int revision, {bool revealStarted = false}) async {
     if (!mounted || _snapshot?['revision'] != revision) return;
     final physical = _physicalKey.currentState;
     if (physical != null) {
@@ -161,6 +162,8 @@ class _PreviewScreenState extends State<PreviewScreen>
       'viewportWidth': MediaQuery.sizeOf(context).width,
       'viewportHeight': MediaQuery.sizeOf(context).height,
       'model': _physicalKey.currentState?.renderSnapshot,
+      'media': _coverKey.currentState?.renderSnapshot,
+      'revealStarted': revealStarted,
       'videoReady': _video?.value.isInitialized == true,
       'videoPlaying': _reportedPlaying == true,
       'videoVolume': _video?.value.volume,
@@ -363,7 +366,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                     onTap: () => _action('details'),
                                     child: prefs.modelVisible
                                         ? CoverSection(
-                                            key: ValueKey(snapshot['identity']),
+                                            key: _coverKey,
                                             game: game,
                                             system: system,
                                             coverUrls: const [],
@@ -378,14 +381,17 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             physicalMediaEnabled:
                                                 snapshot['threeD'] == true,
                                             physicalMediaKey: _physicalKey,
-                                            reducedMotion:
-                                                snapshot['reducedMotion'] ==
-                                                    true,
+                                            reducedMotion: snapshot['reducedMotion'] ==
+                                                true,
+                                            resourcesReady: snapshot['mediaLoading'] != true &&
+                                                (_videoPath == null ||
+                                                    _video?.value.isInitialized ==
+                                                        true),
+                                            onReady: () => unawaited(_rendered(
+                                                snapshot['revision'] as int,
+                                                revealStarted: true)),
                                             showPresentationControls: false)
-                                        : const Center(
-                                            child: Icon(
-                                                Icons.touch_app_outlined,
-                                                size: 48)))),
+                                        : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
                         if (!details)
                           const Text('Select for details',
                               style: TextStyle(color: Colors.white70)),

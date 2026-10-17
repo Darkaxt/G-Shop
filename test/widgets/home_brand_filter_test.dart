@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -38,6 +39,16 @@ class _SilentAudio extends AudioManager {
 
 class _RecordingSync extends LibrarySyncService {
   AppConfig? received;
+  int smartRequests = 0;
+  @override
+  Future<void> syncSmart(AppConfig config,
+      {Duration? syncTimeout,
+      Duration cooldown = const Duration(minutes: 60),
+      Set<String> forceSystemIds = const {},
+      required StorageService storageService}) async {
+    smartRequests++;
+  }
+
   _RecordingSync({bool active = false}) {
     if (active) {
       state = const LibrarySyncState(
@@ -57,6 +68,107 @@ class _RecordingSync extends LibrarySyncService {
 }
 
 void main() {
+  testWidgets('Drive discrepancy is a five-second hint, never a sync',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final update = Completer<bool>();
+    final sync = _RecordingSync();
+    await tester.pumpWidget(ProviderScope(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((_) async => AppConfig(systems: [
+            SystemConfig(
+                id: 'gba',
+                name: 'GBA',
+                targetFolder: '/ROMs/gba',
+                providers: const []),
+          ])),
+      collectionDriveChangesProvider.overrideWith((_) => update.future),
+      librarySyncServiceProvider.overrideWith((_) => sync),
+      raEnabledProvider.overrideWithValue(false),
+    ], child: createTestApp(const Stack(children: [SyncBadge()]))));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 5));
+    expect(
+        find.byKey(const ValueKey('collection-refresh-notice')), findsNothing);
+    update.complete(true);
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('Drive folder updated'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 4999));
+    expect(find.textContaining('Drive folder updated'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(find.textContaining('Drive folder updated'), findsNothing);
+    expect(sync.smartRequests, 0);
+    expect(sync.received, isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+      'collection age uses oldest refresh and dismisses after five seconds',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final oldest = DateTime(2026, 10, 1, 12);
+    await storage.setLastSyncTime('gba', DateTime(2026, 10, 16, 12));
+    await storage.setLastSyncTime('gb', oldest);
+    expect(storage.getOldestCollectionSync(['gba', 'gb']), oldest);
+    expect(storage.getOldestCollectionSync(['gba', 'never']), isNull);
+    final config = AppConfig(systems: [
+      for (final id in ['gba', 'gb'])
+        SystemConfig(
+            id: id, name: id, targetFolder: '/ROMs/$id', providers: const []),
+    ]);
+    final sync = _RecordingSync();
+    await tester.pumpWidget(ProviderScope(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      bootstrappedConfigProvider.overrideWith((_) async => config),
+      librarySyncServiceProvider.overrideWith((_) => sync),
+      raEnabledProvider.overrideWithValue(false),
+    ], child: createTestApp(const Stack(children: [SyncBadge()]))));
+    await tester.pump();
+    final notice = find.byKey(const ValueKey('collection-refresh-notice'));
+    expect(notice, findsOneWidget);
+    expect(find.textContaining('Oct 1, 2026'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 4999));
+    expect(notice, findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(notice, findsNothing);
+    expect(sync.smartRequests, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('opening a saved collection does not refresh its catalogue',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    final storage = StorageService();
+    await storage.init();
+    final gba = SystemModel.supportedSystems.firstWhere((s) => s.id == 'gba');
+    final config = AppConfig(systems: [
+      SystemConfig(
+          id: 'gba',
+          name: gba.name,
+          targetFolder: '/ROMs/gba',
+          providers: const [])
+    ]);
+    final sync = _RecordingSync();
+    await tester.pumpWidget(ProviderScope(overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      visibleSystemsProvider.overrideWith((_) async => [gba]),
+      bootstrappedConfigProvider.overrideWith((_) async => config),
+      librarySyncServiceProvider.overrideWith((_) => sync),
+      systemSourceCountsProvider.overrideWith((_) async => {}),
+      hasQueueItemsProvider.overrideWithValue(false),
+      audioManagerProvider.overrideWithValue(_SilentAudio()),
+    ], child: createTestApp(const HomeView())));
+    await tester.pumpAndSettle();
+    expect(sync.smartRequests, 0);
+    expect(sync.received, isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   for (final size in [const Size(1920, 1080), const Size(640, 360)]) {
     testWidgets('home type filters retain valid selection and hybrid at $size',
         (tester) async {

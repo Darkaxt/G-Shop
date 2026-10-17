@@ -31,22 +31,14 @@ void main() {
       expect(cover.height, lessThanOrEqualTo(270));
       expect(400 * initial, lessThanOrEqualTo(cover.width * .8 + .001));
       expect(300 * initial, lessThanOrEqualTo(cover.height * .8 + .001));
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(
-          tester
-              .widget<Transform>(
-                  find.byKey(const ValueKey('cover-reveal-media')))
-              .transform
-              .storage[0],
-          initial);
-      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pump(const Duration(milliseconds: 750));
       final middle = tester
           .widget<Transform>(find.byKey(const ValueKey('cover-reveal-media')))
           .transform
           .storage[0];
       expect(middle, greaterThan(initial));
       expect(middle, lessThan(1));
-      await tester.pump(const Duration(milliseconds: 899));
+      await tester.pump(const Duration(milliseconds: 749));
       expect(
           tester
               .getRect(find.byKey(const ValueKey('cover-reveal-cover')))
@@ -66,13 +58,16 @@ void main() {
   });
 
   testWidgets(
-      'absent, cold or reduced-motion artwork never reveals a placeholder',
+      'cold cover holds until media is ready, then slides once in 1.5 seconds',
       (tester) async {
     final cold =
         FileImage(File('assets/media_fallbacks/systematic/gba.png').absolute);
     await cold.evict();
     Widget view(
-            {String id = 'same', bool reduce = false, ImageProvider? art}) =>
+            {String id = 'same',
+            bool reduce = false,
+            bool ready = false,
+            ImageProvider? art}) =>
         MaterialApp(
             home: SizedBox(
                 width: 400,
@@ -81,14 +76,33 @@ void main() {
                     identity: id,
                     boxArt: art,
                     reducedMotion: reduce,
+                    mediaReady: ready,
                     media: const Text('Media'))));
+    await tester.runAsync(() async {
+      await tester.pumpWidget(view(art: cold));
+      expect(find.byKey(const ValueKey('cover-reveal-cover')), findsNothing);
+      await precacheImage(cold, tester.element(find.text('Media')));
+    });
     await tester.pumpWidget(view(art: cold));
-    expect(find.byKey(const ValueKey('cover-reveal-cover')), findsNothing);
-    await tester.runAsync(
-        () => precacheImage(cold, tester.element(find.text('Media'))));
-    await tester
-        .pumpWidget(view(art: cold)); // Later resolution is not a new focus.
-    expect(find.byKey(const ValueKey('cover-reveal-cover')), findsNothing);
+    final cover = find.byKey(const ValueKey('cover-reveal-cover'));
+    expect(cover, findsOneWidget);
+    final held = tester.getRect(cover);
+    await tester.pump(const Duration(seconds: 5));
+    expect(tester.getRect(cover), held,
+        reason: 'Readiness, not elapsed time, starts the animation');
+    await tester.pumpWidget(view(art: cold, ready: true));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    expect(tester.getRect(cover).left, lessThan(held.left));
+    await tester.pumpWidget(view(art: cold, ready: true));
+    expect(tester.getRect(cover).left, lessThan(held.left),
+        reason: 'An unchanged ready snapshot preserves the reveal');
+    // Flush the end frame past the floating-point ticker boundary.
+    await tester.pump(const Duration(milliseconds: 751));
+    expect(CoverReveal.duration, const Duration(milliseconds: 1500));
+    expect(cover, findsNothing);
+    await tester.pumpWidget(view(art: cold, ready: true));
+    expect(cover, findsNothing);
     await tester.pumpWidget(view(id: 'new', reduce: true, art: cold));
     expect(find.byKey(const ValueKey('cover-reveal-cover')), findsNothing);
     expect(

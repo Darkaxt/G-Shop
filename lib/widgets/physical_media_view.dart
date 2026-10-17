@@ -11,6 +11,8 @@ export '../models/socket_media_model.dart' show PhysicalMediaFormat;
 class PhysicalMediaView extends StatefulWidget {
   final String identity, title;
   final Widget label;
+  final Object? labelIdentity;
+  final VoidCallback? onReady;
   final bool reducedMotion;
   final PhysicalMediaFormat format;
   const PhysicalMediaView(
@@ -18,6 +20,8 @@ class PhysicalMediaView extends StatefulWidget {
       required this.identity,
       required this.title,
       required this.label,
+      this.labelIdentity,
+      this.onReady,
       this.reducedMotion = false,
       this.format = PhysicalMediaFormat.gameBoy});
   @override
@@ -176,7 +180,9 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                             pose: pose,
                             identity: widget.identity,
                             title: widget.title,
-                            label: widget.label)),
+                            label: widget.label,
+                            labelIdentity: widget.labelIdentity,
+                            onReady: widget.onReady)),
                     if (_completion != null)
                       Positioned(
                           right: 8,

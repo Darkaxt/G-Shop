@@ -41,9 +41,7 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
   int _lastStablePage = _initialPage;
   bool _showExitDialog = false;
   bool _wasGrid = false;
-  bool _resumeAutoSyncAfterManual = false;
   ProviderSubscription? _visibleSystemsSub;
-  ProviderSubscription? _syncStateSub;
 
   final ScrollController _gridScrollController = ScrollController();
   final Map<int, GlobalKey> _gridItemKeys = {};
@@ -172,8 +170,6 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
           ref.read(audioManagerProvider).startBgm();
         }
       });
-      // Trigger background library sync
-      _triggerLibrarySync();
     });
     _visibleSystemsSub = ref.listenManual(visibleSystemsProvider, (prev, next) {
       if (next case AsyncData<List<SystemModel>>(value: final filtered)) {
@@ -185,32 +181,21 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
         _replaceSystems(filtered, keepLibrary: true);
       }
     }, fireImmediately: true);
-
-    // Resume auto-sync after a manual single-system sync completes
-    _syncStateSub = ref.listenManual(
-      librarySyncServiceProvider.select((s) => s.isSyncing),
-      (prev, isSyncing) {
-        if (prev == true && !isSyncing && _resumeAutoSyncAfterManual) {
-          _resumeAutoSyncAfterManual = false;
-          _triggerLibrarySync();
-        }
-      },
-    );
   }
 
   Future<void> _triggerLibrarySync(
       {Set<String> forceSystemIds = const {}}) async {
+    if (forceSystemIds.isEmpty) return;
     final config = await ref.read(bootstrappedConfigProvider.future);
     if (!mounted) return;
     if (config.systems.isNotEmpty) {
       final timeout = Duration(seconds: ref.read(syncTimeoutProvider));
-      final cooldownMinutes = ref.read(syncCooldownProvider);
       final storage = ref.read(storageServiceProvider);
-      ref.read(librarySyncServiceProvider.notifier).syncSmart(config,
-          syncTimeout: timeout,
-          cooldown: Duration(minutes: cooldownMinutes),
-          forceSystemIds: forceSystemIds,
-          storageService: storage);
+      final service = ref.read(librarySyncServiceProvider.notifier);
+      for (final id in forceSystemIds) {
+        await service.syncSystem(id, config,
+            syncTimeout: timeout, storageService: storage);
+      }
     }
   }
 
@@ -219,7 +204,6 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
     _manufacturerFocus.dispose();
     _typeFocus.dispose();
     _visibleSystemsSub?.close();
-    _syncStateSub?.close();
     _debouncer.stopHold();
     _gridScrollController.dispose();
     _pageController.removeListener(_onPageScroll);
@@ -644,7 +628,6 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
     }
     // If a queue sync is running, syncSystem will enqueue; if idle, it starts
     final timeout = Duration(seconds: ref.read(syncTimeoutProvider));
-    _resumeAutoSyncAfterManual = true;
     syncService.syncSystem(
       system.id,
       config,
@@ -661,7 +644,6 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
         : ConfigBootstrap.forManufacturer(all, manufacturer);
     if (config.systems.isEmpty) return;
     // A scoped manual action must not later auto-resume unrelated consoles.
-    _resumeAutoSyncAfterManual = false;
     final syncService = ref.read(librarySyncServiceProvider.notifier);
     if (ref.read(librarySyncServiceProvider).isSyncing) {
       syncService.cancel();

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
@@ -12,6 +13,7 @@ import '../models/game_metadata_info.dart';
 import '../models/system_model.dart';
 import '../services/config_parser.dart';
 import '../services/database_service.dart';
+import '../services/drive/drive_runtime.dart';
 import '../services/unified_game_service.dart';
 import 'app_providers.dart';
 import 'installed_files_provider.dart';
@@ -30,6 +32,25 @@ final bootstrappedConfigProvider = FutureProvider<AppConfig>((ref) async {
   }
   if (result.config != null) return result.config!;
   return AppConfig.empty;
+});
+
+/// Advisory only. Never blocks cached browsing or starts a library refresh.
+final collectionDriveChangesProvider =
+    FutureProvider.autoDispose<bool>((ref) async {
+  final cancellation = CancelToken();
+  ref.onDispose(cancellation.cancel);
+  final config = await ref.watch(bootstrappedConfigProvider.future);
+  final checked = <String>{};
+  for (final source in config.sources) {
+    if (cancellation.isCancelled) return false;
+    final drive = source.drive;
+    if (drive == null ||
+        !source.enabled ||
+        !checked.add('${drive.accountId}/${drive.rootFolderId}')) continue;
+    if (await DriveRuntime.instance
+        .sourceFolderChanged(source, cancelToken: cancellation)) return true;
+  }
+  return false;
 });
 
 final unifiedGameServiceProvider = Provider<UnifiedGameService>((ref) {

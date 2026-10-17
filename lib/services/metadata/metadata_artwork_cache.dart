@@ -505,11 +505,9 @@ class MetadataArtworkCache {
     }
     final labels =
         record.media.where((m) => m.type == 'support-texture').toList();
-    final preferred = explicit.length == 1
-        ? [explicit.single, 'wor', '']
-        : explicit.isNotEmpty
-            ? ['wor', '']
-            : ['wor', '', 'us', 'eu', 'jp'];
+    final preferred = explicit.isNotEmpty
+        ? [...explicit, 'wor', '']
+        : ['wor', '', 'us', 'eu', 'jp'];
     List<MetadataMedia> selected = [];
     for (final region in preferred) {
       selected =

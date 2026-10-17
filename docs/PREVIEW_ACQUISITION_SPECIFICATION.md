@@ -159,6 +159,13 @@ reorganization or unrelated desktop tooling port counts as completion.
 
 ## METADATA-CLOUD-01 — Drive-backed metadata and local cache (S24)
 
+Acceptance correction, 2026-10-17: S24 is ACTIVE again. The mandatory actual
+GBA Top 25 workflow is not passed by download/receipt counts or selected-game
+previews. Each ranked game's chosen release must resolve its correct box, actual
+cartridge label on the model and trailer/audio through installed Thor browsing.
+Do not choose a smaller sample solely from already collected media. The prior
+completion text is superseded where it asserts this gate has passed.
+
 Acceptance sample added by the owner, 2026-10-17: GBA Top 25 distinct games must
 have real box artwork, their actual cartridge-label artwork in the physical-media
 renderer, and playable gameplay trailers using the existing volume/music policy.
@@ -227,9 +234,12 @@ lookups. It has the existing durable pause/resume/saved-job controls. Newly
 collected visible-game resources can be published ahead of the unrelated bulk
 migration; repeated focus on an already mapped resource remains local-only.
 
-Owner-requested rendering corrections, 2026-10-16: the cover-to-media reveal must
-be a slow visible leftward slide (2.4 seconds total: 600 ms hold, 1.8 seconds
-sliding/growing), not the prior 600 ms flash. All cartridge housings and UMD shells
+Owner-requested rendering corrections, updated 2026-10-17: the decoded cover
+stays stationary until the selected image/label/model and enabled trailer are
+ready. It then slides left/grows the cartridge over 1.5 seconds, replacing the
+earlier fixed 600 ms hold and 1.8 second slide. Cold decoded resources participate
+in this same readiness gate; a warm cache is not a prerequisite for animation.
+All cartridge housings and UMD shells
 must read as molded plastic, with no metallic response and a .75 roughness floor.
 Preserve actual optical-disc parts, exposed contacts/boards/screws and game labels,
 as well as source geometry. This owner extension supersedes the initial GB-only

@@ -11,7 +11,8 @@ import '../helpers/pump_helpers.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 
 EffectiveOverallRating score(
-    {bool stale = false,
+    {double value = 90,
+    bool stale = false,
     bool original = false,
     String sourceId = 'igdb',
     String sourceLabel = 'IGDB users',
@@ -50,7 +51,7 @@ EffectiveOverallRating score(
                   sourceId: sourceId,
                   sourceLabel: sourceLabel,
                   providerGameId: '123',
-                  rawValue: 90,
+                  rawValue: value,
                   scaleMinimum: 0,
                   scaleMaximum: 100,
                   voteCount: 100,
@@ -99,7 +100,7 @@ void main() {
       'source-labelled score is optional; stale and original are explicit',
       (tester) async {
     await tester.pumpWidget(card(score()));
-    expect(find.text('90/100'), findsOneWidget);
+    expect(find.text('9.0'), findsOneWidget);
     expect(find.byKey(const ValueKey('rating-source-igdb')), findsOneWidget);
     final semantics = tester.ensureSemantics();
     expect(
@@ -108,11 +109,12 @@ void main() {
         findsOneWidget);
     semantics.dispose();
     await tester.pumpWidget(card(score(stale: true, original: true)));
-    final explanation = tester.widget<Tooltip>(find.byType(Tooltip).first).message!;
+    final explanation =
+        tester.widget<Tooltip>(find.byType(Tooltip).first).message!;
     expect(explanation, contains('Needs a fresh rating'));
     expect(explanation, contains('Original game'));
     await tester.pumpWidget(card(score(), enabled: false));
-    expect(find.text('90/100'), findsNothing);
+    expect(find.text('9.0'), findsNothing);
     expect(find.byKey(const ValueKey('rating-source-igdb')), findsNothing);
     await tester.pumpWidget(card(null));
     expect(find.textContaining('/100'), findsNothing);
@@ -125,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SvgPicture), findsOneWidget);
     expect(find.byKey(const ValueKey('rating-source-igdb')), findsOneWidget);
-    expect(find.text('90/100'), findsOneWidget);
+    expect(find.text('9.0'), findsOneWidget);
     expect(find.textContaining('IGDB'), findsNothing);
     expect(find.bySemanticsLabel(RegExp(r'IGDB users.*100 ratings')),
         findsOneWidget);
@@ -144,6 +146,22 @@ void main() {
   });
 
   for (final compact in [true, false]) {
+    testWidgets('score shares top edge and height with availability ($compact)',
+        (tester) async {
+      await tester.pumpWidget(card(score(value: 84),
+          crowded: true,
+          width: compact ? 100 : 240,
+          screen: compact ? const Size(640, 360) : const Size(1280, 720)));
+      final rating = tester.getRect(find.byKey(const ValueKey('cover-rating')));
+      final availability =
+          tester.getRect(find.byKey(const ValueKey('cover-availability')));
+      expect(rating.top, closeTo(availability.top, .01));
+      expect(rating.height, closeTo(availability.height, .01));
+      expect(rating.right, lessThanOrEqualTo(availability.left));
+      expect(find.text('8.4'), findsOneWidget);
+      expect(find.textContaining('/100'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
     testWidgets(
         'rating leaves title, selection and existing badges visible (${compact ? 'compact' : 'large'})',
         (tester) async {
@@ -158,7 +176,8 @@ void main() {
       expect(find.text('PSX'), findsOneWidget);
       expect(find.byIcon(Icons.favorite), findsOneWidget);
       expect(find.text('99'), findsOneWidget);
-      final title = tester.getRect(find.textContaining('A long game title').last);
+      final title =
+          tester.getRect(find.textContaining('A long game title').last);
       final badge = tester.getRect(find.byKey(const ValueKey('cover-rating')));
       expect(badge.bottom, lessThanOrEqualTo(title.top));
       final trophy =

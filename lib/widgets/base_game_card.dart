@@ -181,54 +181,65 @@ class BaseGameCard extends StatelessWidget {
                     Padding(
                       padding:
                           EdgeInsets.fromLTRB(padding, padding, padding, 0),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (systemLabel != null)
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: rs.isSmall ? 4.0 : 5.0,
-                                      vertical: rs.isSmall ? 1.5 : 2.0,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: accentColor.forText
-                                          .withValues(alpha: 0.85),
-                                      borderRadius: BorderRadius.circular(3),
-                                    ),
-                                    child: Text(
-                                      systemLabel!.toUpperCase(),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: rs.isSmall ? 5.0 : 6.0,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                if (raAchievementCount != null &&
-                                    raAchievementCount! > 0 &&
-                                    raMatchType != RaMatchType.none) ...[
-                                  if (systemLabel != null)
-                                    SizedBox(height: rs.isSmall ? 2.0 : 3.0),
-                                  _RaBadge(
-                                    count: raAchievementCount!,
-                                    matchType: raMatchType,
-                                    isMastered: isMastered,
-                                    isSmall: rs.isSmall,
-                                  ),
-                                ],
-                              ],
+                          Row(children: [
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.topLeft,
+                                child: showRating && overallRating != null
+                                    ? _CoverRating(
+                                        rating: overallRating!,
+                                        isSmall: rs.isSmall)
+                                    : const SizedBox.shrink(),
+                              ),
                             ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
+                            if (isInstalled || isRemoteAvailable)
+                              _AvailabilityBadge(
+                                  installed: isInstalled, isSmall: rs.isSmall),
+                          ]),
+                          if (systemLabel != null ||
+                              raAchievementCount != null ||
+                              isFavorite) ...[
+                            SizedBox(height: rs.isSmall ? 2 : 3),
+                            Row(children: [
+                              if (systemLabel != null)
+                                Flexible(
+                                    child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: rs.isSmall ? 2.0 : 5.0,
+                                    vertical: rs.isSmall ? 1.5 : 2.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: accentColor.forText
+                                        .withValues(alpha: 0.85),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: Text(
+                                    systemLabel!.toUpperCase(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: rs.isSmall ? 5.0 : 6.0,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                )),
+                              if (raAchievementCount != null &&
+                                  raAchievementCount! > 0 &&
+                                  raMatchType != RaMatchType.none) ...[
+                                if (systemLabel != null)
+                                  SizedBox(width: rs.isSmall ? 2.0 : 3.0),
+                                _RaBadge(
+                                  count: raAchievementCount!,
+                                  matchType: raMatchType,
+                                  isMastered: isMastered,
+                                  isSmall: rs.isSmall,
+                                ),
+                              ],
                               if (isFavorite)
                                 Container(
                                   padding: EdgeInsets.all(favoritePadding),
@@ -236,20 +247,12 @@ class BaseGameCard extends StatelessWidget {
                                     color: Colors.black.withValues(alpha: 0.6),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
-                                    Icons.favorite,
-                                    size: favoriteIconSize,
-                                    color: Colors.redAccent,
-                                  ),
+                                  child: Icon(Icons.favorite,
+                                      size: favoriteIconSize,
+                                      color: Colors.redAccent),
                                 ),
-                              if (isInstalled || isRemoteAvailable) ...[
-                                SizedBox(width: rs.isSmall ? 2.0 : 3.0),
-                                _AvailabilityBadge(
-                                    installed: isInstalled,
-                                    isSmall: rs.isSmall),
-                              ],
-                            ],
-                          ),
+                            ]),
+                          ],
                         ],
                       ),
                     ),
@@ -282,12 +285,6 @@ class BaseGameCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (showRating && overallRating != null) ...[
-                                _CoverRating(
-                                    rating: overallRating!,
-                                    isSmall: rs.isSmall),
-                                SizedBox(height: rs.isSmall ? 3 : 4),
-                              ],
                               Flexible(
                                 child: LayoutBuilder(
                                     builder: (context, constraints) {
@@ -484,54 +481,51 @@ class _CoverRating extends StatelessWidget {
         message: details,
         child: Container(
           key: const ValueKey('cover-rating'),
-          padding: EdgeInsets.symmetric(
-              horizontal: isSmall ? 4 : 5, vertical: isSmall ? 0 : 3),
+          height: isSmall ? 20 : 26,
+          padding: EdgeInsets.symmetric(horizontal: isSmall ? 3 : 5),
           decoration: BoxDecoration(
               color: const Color(0xED171717),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(color: color.withValues(alpha: 0.6))),
-          child: Column(
+          child: Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  if (source.sourceId == 'igdb') ...[
-                    // The upstream square canvas contains a wide wordmark.
-                    // Crop only its transparent vertical margin in layout so
-                    // the icon does not increase the caption's line height.
-                    ClipRect(
-                        child: Align(
-                            widthFactor: 1,
-                            heightFactor: 0.5,
-                            child: SvgPicture.asset(
-                                'assets/rating_sources/igdb.svg',
-                                key: const ValueKey('rating-source-igdb'),
-                                width: isSmall ? 14 : 18,
-                                height: isSmall ? 14 : 18,
-                                excludeFromSemantics: true,
-                                colorFilter:
-                                    ColorFilter.mode(color, BlendMode.srcIn)))),
-                    const SizedBox(width: 3),
-                  ],
-                  Flexible(
-                      child: Text(
-                          '${source.sourceId == 'igdb' ? '' : '${source.sourceLabel} '}${_number(source.normalizedValue)}/100',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: isSmall ? 7 : 9,
-                              height: isSmall ? 1 : null,
-                              fontWeight: FontWeight.w700,
-                              color: color))),
-                ]),
+                if (source.sourceId == 'igdb') ...[
+                  // The upstream square canvas contains a wide wordmark.
+                  // Crop only its transparent vertical margin in layout so
+                  // the icon does not increase the caption's line height.
+                  ClipRect(
+                      child: Align(
+                          widthFactor: 1,
+                          heightFactor: 0.5,
+                          child: SvgPicture.asset(
+                              'assets/rating_sources/igdb.svg',
+                              key: const ValueKey('rating-source-igdb'),
+                              width: isSmall ? 18 : 24,
+                              height: isSmall ? 18 : 24,
+                              excludeFromSemantics: true,
+                              colorFilter:
+                                  ColorFilter.mode(color, BlendMode.srcIn)))),
+                  const SizedBox(width: 3),
+                ],
+                Flexible(
+                    child: Text(
+                        source.sourceId == 'igdb'
+                            ? (source.normalizedValue / 10).toStringAsFixed(1)
+                            : '${source.sourceLabel} ${_number(source.normalizedValue)}/100',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: isSmall ? 11 : 15,
+                            height: 1,
+                            fontWeight: FontWeight.w700,
+                            color: color))),
                 if (states.isNotEmpty)
-                  Text(states.join(' · '),
-                      maxLines: isSmall ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: isSmall ? 6 : 7,
-                          color: color,
-                          height: isSmall ? 1 : 1.2)),
+                  Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: Icon(Icons.info_outline,
+                          size: isSmall ? 10 : 13, color: color)),
               ]),
         ),
       )),

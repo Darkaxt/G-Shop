@@ -1,0 +1,9 @@
+// Invocation-local hosted Linux profile; Windows builds use gradle-build-gate.
+allprojects {
+    tasks.withType(Test).configureEach {
+        maxParallelForks = 1
+        maxHeapSize = '512m'
+        failFast = true
+        ignoreFailures = false
+    }
+}

@@ -68,6 +68,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   MetadataMedia? _videoMedia;
   String? _video, _notice, _sent;
   bool _details = false, _visible = true, _working = false;
+  bool _clipLoading = false;
+  int _clipRequest = 0;
   int _generation = 0;
   bool? _clipPreference;
   String? _bindingSignature;
@@ -241,6 +243,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _findClip(GameMetadataInfo? metadata) async {
     final generation = _generation;
+    final request = ++_clipRequest;
+    if (mounted) setState(() => _clipLoading = true);
     try {
       final edition = metadata?.editionId;
       if (edition == null) return;
@@ -275,6 +279,10 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
       });
     } catch (_) {
       /* Cached media unavailable: the red/screenshot fallback remains usable. */
+    } finally {
+      if (mounted && request == _clipRequest && generation == _generation) {
+        setState(() => _clipLoading = false);
+      }
     }
   }
 
@@ -381,23 +389,24 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (enabled && selection != null && _visible) {
       _bind(selection);
       final controller = _controller!;
-      ref.watch(cloudSelectionMediaProvider((
+      final cloudMedia = ref.watch(cloudSelectionMediaProvider((
         platform: selection.system.id,
         selection: controller.selectedVariant.selectionKey,
         details: true
       )));
-      final metadata = ref
-          .watch(gameMetadataProvider((
-            filename: controller.selectedVariant.selectionKey,
-            systemSlug: selection.system.id
-          )))
-          .valueOrNull;
+      final metadataState = ref.watch(gameMetadataProvider((
+        filename: controller.selectedVariant.selectionKey,
+        systemSlug: selection.system.id
+      )));
+      final metadata = metadataState.valueOrNull;
       final prefs = ref.watch(previewSettingsProvider);
       final audio = ref.watch(soundSettingsProvider);
       final media = ref.watch(mediaPresentationProvider);
       ref.listen(romChangeSignalProvider,
           (previous, next) => controller.checkInstallationStatus());
-      if (_metadata != metadata || _clipPreference != prefs.normalized) {
+      final clipChanged =
+          _metadata != metadata || _clipPreference != prefs.normalized;
+      if (clipChanged) {
         _metadata = metadata;
         _clipPreference = prefs.normalized;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -446,6 +455,10 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'notice': _notice ?? state.error,
         'mediaBusy': _working,
         'settings': prefs.toJson(),
+        'mediaLoading': cloudMedia.isLoading ||
+            metadataState.isLoading ||
+            _clipLoading ||
+            clipChanged,
       };
       final encoded = jsonEncode(payload);
       if (encoded != _sent) {

@@ -1,0 +1,90 @@
+name: Signed Android build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', 'README.md']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+      - name: Prepare production plugins
+        run: flutter build apk --release --config-only --target-platform android-arm64
+      - name: Reject private bundled resources and development plugins
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          assert 'assets/socket_media/' not in Path('pubspec.yaml').read_text()
+          registrant = Path('android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java').read_text()
+          assert 'IntegrationTestPlugin' not in registrant
+          assert 'FlutterNativeSplashPlugin' not in registrant
+          PY
+      - name: Test and sign with the existing production identity
+        env:
+          RSHOP_KEY_BASE64: ${{ secrets.RSHOP_RELEASE_STORE_BASE64 }}
+          RSHOP_RELEASE_STORE_PASSWORD: ${{ secrets.RSHOP_RELEASE_STORE_PASSWORD }}
+          RSHOP_RELEASE_KEY_PASSWORD: ${{ secrets.RSHOP_RELEASE_STORE_PASSWORD }}
+          RSHOP_RELEASE_KEY_ALIAS: rshop-release
+          CMAKE_BUILD_PARALLEL_LEVEL: '2'
+        run: |
+          export RSHOP_RELEASE_STORE_FILE="$RUNNER_TEMP/rshop-release.p12"
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          key = Path(os.environ['RSHOP_RELEASE_STORE_FILE'])
+          key.write_bytes(base64.b64decode(os.environ['RSHOP_KEY_BASE64'], validate=True))
+          key.chmod(0o600)
+          PY
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:testReleaseUnitTest :app:assembleRelease \
+            --no-daemon --max-workers=2 --no-parallel \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            -Ptarget-platform=android-arm64 -I ../.github/ci-profile.gradle
+      - name: Verify signature and public payload
+        run: |
+          APK=build/app/outputs/apk/release/app-release.apk
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/signature.txt"
+          grep -F '075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c' "$RUNNER_TEMP/signature.txt"
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('build/app/outputs/apk/release/app-release.apk') as apk:
+              assert not any('/assets/socket_media/' in name for name in apk.namelist())
+          PY
+          cd build/app/outputs/apk/release
+          sha256sum app-release.apk > SHA256SUMS
+          printf 'source=%s\nrun=%s/%s/actions/runs/%s\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > BUILDINFO
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: signed-android
+          path: |
+            build/app/outputs/apk/release/app-release.apk
+            build/app/outputs/apk/release/SHA256SUMS
+            build/app/outputs/apk/release/BUILDINFO
+          if-no-files-found: error
+      - name: Remove ephemeral signing copy
+        if: always()
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          Path(os.environ['RUNNER_TEMP'], 'rshop-release.p12').unlink(missing_ok=True)

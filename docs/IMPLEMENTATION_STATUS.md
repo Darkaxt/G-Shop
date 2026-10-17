@@ -5,6 +5,42 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### Current correction, 2026-10-17 — S24 ACTIVE
+
+The owner reports missing cartridge images and other GBA resources in installed
+1.9.16. The earlier S24 COMPLETE claim below is withdrawn. File/receipt checks
+for 24 eligible records and visual checks of selected games were incorrectly
+treated as passing the mandatory actual GBA Top 25 workflow.
+
+- Acceptance blocker (internal): the complete ranked sample's selected editions
+  have not each been demonstrated with their actual cartridge label, correct
+  box and playable trailer/audio in the installed browsing path. Resolve by
+  tracing the missing media, fixing the underlying cause and verifying the whole
+  sample. S24 and integrated delivery cannot be accepted until this passes.
+- Current diagnostics: production logs contain repeated database-lock waits;
+  `model=true` reports a rendered model, not proof of an actual provider label.
+  Readiness evidence must include the decoded physical label and enabled trailer,
+  not a fallback model frame alone.
+- Confirmed reproductions: multi-region physical-label selection rejects a valid
+  US label for an AU/SA/US release; the focused regression fails with no label or
+  derived box selected. The reveal decides permanently before a cold image can
+  decode, and renderer updates clear the texture based on widget-instance rather
+  than label-content changes. Implementation is addressing these causes with
+  decode/model/trailer readiness and the owner's 1.5-second slide. Opening Home
+  and returning from single-system sync also implicitly start a bulk refresh;
+  that behavior is being removed. IGDB badge changes belong to this same requested
+  preview correction. None of these changes is yet accepted or deployed.
+- Focused host verification now passes the oldest-refresh/five-second advisory,
+  no-startup-sync path, read-only Drive root timestamp hint (no traversal or
+  publication), decoded-cover/media gate, one-shot 1.5-second reveal, preview
+  audio/lifecycle, and compact/localized card geometry with the 0–10 IGDB badge.
+  The refreshed intentional card reference was visually inspected. These results
+  do not replace the mandatory native actual Top 25 GBA acceptance below.
+- S24 is the only ACTIVE stage. No new feature stage or tracked deferral is
+  opened. Earlier S25/S26 results are not proof that the reported issues pass.
+
+### Superseded completion checkpoint (retained as evidence history)
+
 Current checkpoint, 2026-10-17: S24-S26 are COMPLETE; no implementation stage is
 ACTIVE. Specification revision 65 adds actual GBA Top 25 distinct-game
 box/cartridge/trailer/audio evidence; regional releases count once in Tops.

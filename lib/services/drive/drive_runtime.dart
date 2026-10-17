@@ -1355,6 +1355,35 @@ class DriveRuntime {
         config.accountId, () => _createApi(authorization, config.accountId));
   }
 
+  /// Positive-only startup hint: one exact root metadata request, no traversal,
+  /// publication, downloads or interactive sign-in. An unchanged folder does not
+  /// prove its descendants unchanged; false means no confirmed update hint.
+  Future<bool> sourceFolderChanged(Source source, {CancelToken? cancelToken}) async {
+    final drive = source.drive;
+    if (!source.enabled || source.type != SourceType.drive ||
+        drive == null || !drive.isConfigured || source.id.isEmpty) return false;
+    try {
+      _requireConnectedLane();
+      final generation = await catalogue.activeGeneration(sourceId: source.id,
+          accountId: drive.accountId, rootFolderId: drive.rootFolderId);
+      if (generation == null || cancelToken?.isCancelled == true) return false;
+      final saved = await catalogue.requireFolder(sourceId: source.id,
+          accountId: drive.accountId, rootFolderId: drive.rootFolderId,
+          folderId: drive.rootFolderId, generation: generation);
+      final live = await apiFor(drive).getFile(drive.rootFolderId, cancelToken: cancelToken);
+      if (live.id != saved.id || !live.isFolder) return false;
+      return (saved.version != null && live.version != null && saved.version != live.version) ||
+          (saved.modifiedAt != null && live.modifiedAt != null &&
+              live.modifiedAt!.isAfter(saved.modifiedAt!));
+    } on DriveApiException {
+      return false;
+    } on DriveAuthorizationException {
+      return false;
+    } on DriveCatalogueException {
+      return false;
+    }
+  }
+
   Future<void> refreshSource(Source source, {CancelToken? cancelToken}) {
     if (source.type != SourceType.drive || source.drive == null) {
       throw const DriveAuthorizationException(

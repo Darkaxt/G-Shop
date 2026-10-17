@@ -314,6 +314,18 @@ class StorageService {
     return DateTime.tryParse(iso);
   }
 
+  /// The whole collection is only as current as its oldest configured console.
+  /// A never-refreshed console prevents claiming a complete collection refresh.
+  DateTime? getOldestCollectionSync(Iterable<String> systemIds) {
+    DateTime? oldest;
+    for (final id in systemIds.toSet()) {
+      final refreshed = getLastSyncTime(id);
+      if (refreshed == null) return null;
+      if (oldest == null || refreshed.isBefore(oldest)) oldest = refreshed;
+    }
+    return oldest;
+  }
+
   Future<void> setLastSyncTime(String systemId, DateTime time) async {
     _ensureInitialized();
     await _prefs!

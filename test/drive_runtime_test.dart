@@ -666,6 +666,32 @@ Future<({DriveRuntime runtime, TransferRecord record})> _pendingStage(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test('startup Drive hint reads one root without refreshing the catalogue', () async {
+    final fixture = await _TransferFixture.create(reserve: false);
+    final root = {
+      'id': 'folder', 'name': 'Library', 'mimeType': DriveFile.folderMime,
+      'parents': <String>[], 'version': '1',
+      'modifiedTime': '2026-10-01T12:00:00Z',
+    };
+    await fixture.db.update('drive_catalogue_entries', {'record_json': jsonEncode(root)},
+        where: 'file_id=?', whereArgs: ['folder']);
+    final runtime = fixture.runtime();
+    final source = Source(id: 'source', name: 'Library', type: SourceType.drive,
+        drive: _transferConfig.drive);
+    fixture.metadata.extraFolders['folder'] = root;
+    expect(await runtime.sourceFolderChanged(source), isFalse);
+    fixture.metadata.extraFolders['folder'] = {...root,
+        'modifiedTime': '2026-10-17T12:00:00Z'};
+    expect(await runtime.sourceFolderChanged(source), isTrue);
+    fixture.metadata.offline = true;
+    expect(await runtime.sourceFolderChanged(source), isFalse);
+    expect(fixture.metadata.requests, hasLength(3));
+    expect(fixture.metadata.requests.every((r) =>
+        r.method == 'GET' && r.path == 'files/folder'), isTrue);
+    expect(fixture.media.requests, isEmpty);
+    expect((await fixture.db.query('drive_catalogue_state')).single['active'], 1);
+    expect((await fixture.db.query('drive_catalogue_state')).single['pending'], isNull);
+  });
   test('cache rotation proves current cloud bytes then uses durable owned removal', () async {
     final fixture = await _TransferFixture.create();
     final drive = fixture.runtime();

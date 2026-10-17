@@ -19,6 +19,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
+import java.security.MessageDigest
 
 /** Owns only the R-Shop non-focusable window. Never manipulates another task. */
 class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger) :
@@ -209,7 +210,10 @@ class PreviewChannel(private val activity: Activity, messenger: BinaryMessenger)
                         "rendered" -> {
                             @Suppress("UNCHECKED_CAST")
                             rendered = call.arguments as? Map<String, Any?>
-                            Log.i("RShopPreview", "rendered selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} video=${rendered?.get("videoReady")}")
+                            val selection = (rendered?.get("identity") as? String)?.let {
+                                MessageDigest.getInstance("SHA-256").digest(it.toByteArray()).joinToString("") { byte -> "%02x".format(byte) }
+                            }
+                            Log.i("RShopPreview", "rendered selection=$selection selectionUs=${(SystemClock.elapsedRealtimeNanos()-selectionAt)/1000} model=${(rendered?.get("model") as? Map<*, *>)?.get("frameRendered")} label=${(rendered?.get("media") as? Map<*, *>)?.get("labelDecoded")} resources=${(rendered?.get("media") as? Map<*, *>)?.get("resourcesReady")} video=${rendered?.get("videoReady")} reveal=${rendered?.get("revealStarted")}")
                             val completed = waiters.filter { matches(it) }
                             waiters.removeAll(completed.toSet())
                             completed.forEach { it.result.success(rendered) }

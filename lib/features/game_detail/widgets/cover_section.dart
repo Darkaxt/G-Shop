@@ -26,6 +26,8 @@ class CoverSection extends StatefulWidget {
   final GlobalKey<PhysicalMediaViewState>? physicalMediaKey;
   final bool physicalMediaEnabled, reducedMotion;
   final bool showPresentationControls;
+  final bool resourcesReady;
+  final VoidCallback? onReady;
   const CoverSection({
     super.key,
     required this.game,
@@ -43,6 +45,8 @@ class CoverSection extends StatefulWidget {
     this.physicalMediaEnabled = false,
     this.reducedMotion = false,
     this.showPresentationControls = true,
+    this.resourcesReady = true,
+    this.onReady,
   });
 
   @override
@@ -51,6 +55,89 @@ class CoverSection extends StatefulWidget {
 
 class CoverSectionState extends State<CoverSection> {
   bool _physical = true, _reducedMotion = false;
+  bool _modelReady = false;
+  ImageInfo? _label;
+  ImageStream? _labelStream;
+  ImageStreamListener? _labelListener;
+  int _labelGeneration = 0;
+  String? _labelUrl;
+  Map<String, Object?> get renderSnapshot => {
+        'labelExpected': widget.physicalLabelUrl != null,
+        'labelDecoded': widget.physicalLabelUrl != null && _label != null,
+        'resourcesReady': widget.resourcesReady,
+        'modelReady': _modelReady,
+      };
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadLabel();
+  }
+
+  @override
+  void didUpdateWidget(CoverSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.game.selectionKey != widget.game.selectionKey ||
+        oldWidget.system.id != widget.system.id ||
+        oldWidget.physicalMediaEnabled != widget.physicalMediaEnabled) {
+      _modelReady = false;
+    }
+    _loadLabel();
+  }
+
+  void _detachLabel() {
+    _labelGeneration++;
+    final listener = _labelListener;
+    if (listener != null) _labelStream?.removeListener(listener);
+    _labelStream = null;
+    _labelListener = null;
+  }
+
+  void _loadLabel() {
+    final url = widget.physicalLabelUrl;
+    if (url == _labelUrl) return;
+    _detachLabel();
+    _labelUrl = url;
+    _label?.dispose();
+    _label = null;
+    _modelReady = false;
+    if (url == null) return;
+    final ImageProvider provider;
+    if (url.startsWith('file://')) {
+      provider = FileImage(File.fromUri(Uri.parse(url)));
+    } else {
+      provider = CachedNetworkImageProvider(url,
+          cacheManager: GameCoverCacheManager.instance);
+    }
+    final generation = _labelGeneration;
+    _labelStream = ResizeImage.resizeIfNeeded(640, null, provider)
+        .resolve(createLocalImageConfiguration(context));
+    _labelListener = ImageStreamListener((image, synchronous) {
+      if (!mounted || generation != _labelGeneration) return;
+      void resolved() {
+        _label = image.clone();
+        _modelReady = false;
+        _detachLabel();
+      }
+
+      if (synchronous) {
+        resolved();
+      } else {
+        setState(resolved);
+      }
+    }, onError: (_, __) {
+      if (generation == _labelGeneration) _detachLabel();
+    });
+    _labelStream!.addListener(_labelListener!);
+  }
+
+  @override
+  void dispose() {
+    _detachLabel();
+    _label?.dispose();
+    super.dispose();
+  }
+
   bool get physical => _physical;
   void toggleView() => setState(() => _physical = !_physical);
   void toggleMotion() => setState(() => _reducedMotion = !_reducedMotion);
@@ -81,6 +168,12 @@ class CoverSectionState extends State<CoverSection> {
         title: game.displayName,
         disc: format == PhysicalMediaFormat.disc ||
             format == PhysicalMediaFormat.psp);
+    final label = _label?.image;
+    final labelWidget =
+        label == null ? sticker : RawImage(image: label, fit: BoxFit.fill);
+    final mediaReady = widget.resourcesReady &&
+        (widget.physicalLabelUrl == null || label != null) &&
+        (!threeD || _modelReady);
     return Column(
       children: [
         Expanded(
@@ -91,6 +184,8 @@ class CoverSectionState extends State<CoverSection> {
                     ? CoverReveal(
                         identity: '${system.id}:${game.selectionKey}',
                         boxArt: boxArt,
+                        mediaReady: mediaReady,
+                        onReady: widget.onReady,
                         reducedMotion: _reducedMotion || widget.reducedMotion,
                         media: threeD
                             ? PhysicalMediaView(
@@ -100,28 +195,23 @@ class CoverSectionState extends State<CoverSection> {
                                 format: format,
                                 reducedMotion:
                                     _reducedMotion || widget.reducedMotion,
-                                label: SmartCoverImage(
-                                    systemId: system.id,
-                                    urls: const [],
-                                    cachedUrl: widget.physicalLabelUrl,
-                                    placeholder: sticker,
-                                    errorWidget: sticker,
-                                    fit: BoxFit.fill,
-                                    memCacheWidth: 640))
+                                label: labelWidget,
+                                labelIdentity: label ??
+                                    '${game.selectionKey}:${widget.physicalLabelUrl ?? game.displayName}',
+                                onReady: () {
+                                  if (mounted &&
+                                      !_modelReady &&
+                                      identical(label, _label?.image)) {
+                                    setState(() => _modelReady = true);
+                                  }
+                                })
                             : MediaCoverFallback(
                                 systemId: system.id,
                                 title: game.displayName,
                                 identity: game.selectionKey,
                                 physicalLabel: widget.physicalLabelUrl == null
                                     ? null
-                                    : SmartCoverImage(
-                                        systemId: system.id,
-                                        urls: const [],
-                                        cachedUrl: widget.physicalLabelUrl,
-                                        placeholder: sticker,
-                                        errorWidget: sticker,
-                                        fit: BoxFit.fill,
-                                        memCacheWidth: 640),
+                                    : labelWidget,
                                 backgroundColor: Colors.transparent))
                     : Hero(
                         tag: game.filename,

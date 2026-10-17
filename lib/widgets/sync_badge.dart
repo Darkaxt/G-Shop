@@ -2,17 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../core/responsive/responsive.dart';
 import '../core/util/color_contrast.dart';
 import '../l10n/app_localizations.dart';
+import '../models/config/app_config.dart';
 import '../providers/app_providers.dart';
+import '../providers/game_providers.dart';
 import '../providers/library_providers.dart';
 import '../providers/ra_providers.dart';
 import '../services/library_sync_service.dart';
 import '../services/ra_sync_service.dart';
 
-/// Top-left sync status container showing ROM library and RA sync pills.
+/// Progress area showing collection freshness, ROM library and RA sync pills.
 class SyncBadge extends ConsumerWidget {
   const SyncBadge({super.key});
 
@@ -29,6 +32,7 @@ class SyncBadge extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: const [
+            _CollectionRefreshNotice(),
             _LibrarySyncPill(),
             _ConsoleGameProgress(),
             _RaSyncPill(),
@@ -36,6 +40,79 @@ class SyncBadge extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Read saved freshness once; startup is not a request to refresh the catalogue.
+/// The five-second timer only dismisses this informational presentation.
+class _CollectionRefreshNotice extends ConsumerStatefulWidget {
+  const _CollectionRefreshNotice();
+  @override
+  ConsumerState<_CollectionRefreshNotice> createState() =>
+      _CollectionRefreshNoticeState();
+}
+
+class _CollectionRefreshNoticeState
+    extends ConsumerState<_CollectionRefreshNotice> {
+  ProviderSubscription<AsyncValue<AppConfig>>? _config;
+  ProviderSubscription<AsyncValue<bool>>? _changes;
+  Timer? _dismiss;
+  bool _shown = false;
+  String? _message;
+  String? _age;
+  void _show(String message) {
+    _dismiss?.cancel();
+    setState(() => _message = message);
+    _dismiss = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _message = null);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _config = ref.listenManual<AsyncValue<AppConfig>>(
+        bootstrappedConfigProvider, (_, next) {
+      final config = next.valueOrNull;
+      if (_shown || config == null || config.systems.isEmpty) return;
+      _shown = true;
+      final oldest = ref
+          .read(storageServiceProvider)
+          .getOldestCollectionSync(config.systems.map((system) => system.id));
+      _age = oldest == null
+          ? 'Some consoles have not been refreshed yet'
+          : 'Collection last refreshed: ${DateFormat.yMMMd().add_Hm().format(oldest.toLocal())}';
+      _show(_age!);
+    }, fireImmediately: true);
+    _changes = ref.listenManual<AsyncValue<bool>>(
+        collectionDriveChangesProvider, (_, next) {
+      if (next.valueOrNull == true && mounted) {
+        _show(
+            'Drive folder updated · ${_age ?? 'Saved collection'}. Sync when ready.');
+      }
+    }, fireImmediately: true);
+  }
+
+  @override
+  void dispose() {
+    _config?.close();
+    _changes?.close();
+    _dismiss?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final message = _message;
+    if (message == null || ref.watch(librarySyncServiceProvider).isSyncing) {
+      return const SizedBox.shrink();
+    }
+    return _SyncPillContent(
+        key: const ValueKey('collection-refresh-notice'),
+        accentColor: Colors.white70,
+        leadingIcon: Icon(Icons.history_rounded,
+            size: context.rs.isSmall ? 14 : 16, color: Colors.white70),
+        label: message);
   }
 }
 

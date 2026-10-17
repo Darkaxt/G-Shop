@@ -152,7 +152,9 @@ void defineCoverCardLayoutChecks({
             .didExceedMaxLines,
         isFalse,
         reason:
-            'Availability and favorite icons must leave the platform legible');
+            'Availability and favorite icons must leave the platform legible: '
+            '${tester.getRect(find.text('N64'))}, trophy=$trophy, '
+            'favorite=${tester.getRect(find.byIcon(Icons.favorite))}');
     expect(find.text('99'), findsOneWidget);
   }
 
@@ -233,8 +235,11 @@ void defineCoverCardLayoutChecks({
         checkGeometry(tester, footer: true);
         final l = L.of(tester.element(find.byType(BaseGameCard)));
         expect(find.byIcon(Icons.sd_card), findsOneWidget);
-        expect(find.textContaining(l.metadata_staleScore), findsOneWidget);
-        expect(find.textContaining(l.metadata_originalGame), findsOneWidget);
+        expect(find.byTooltip(RegExp(RegExp.escape(l.metadata_staleScore))),
+            findsOneWidget);
+        expect(find.byTooltip(RegExp(RegExp.escape(l.metadata_originalGame))),
+            findsOneWidget);
+        expect(find.byIcon(Icons.info_outline), findsOneWidget);
       }
     }
     await checkpoint?.call('cover-localized-badges', tester);
@@ -279,10 +284,9 @@ void defineCoverCardLayoutChecks({
           isFalse,
           reason: '$status progress must not be covered by title');
       expect(
-          progress.bottom,
-          lessThanOrEqualTo(
-              tester.getRect(find.byKey(const ValueKey('cover-rating'))).top +
-                  precisionErrorTolerance),
+          progress.overlaps(
+              tester.getRect(find.byKey(const ValueKey('cover-rating')))),
+          isFalse,
           reason: '$status progress must not be covered by rating: '
               '$progress ${tester.getRect(find.byKey(const ValueKey('cover-rating')))}');
     }

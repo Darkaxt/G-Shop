@@ -16,13 +16,17 @@ class SocketMediaRenderer extends StatefulWidget {
   final SocketMediaPose pose;
   final String identity, title;
   final Widget label;
+  final Object? labelIdentity;
+  final VoidCallback? onReady;
   const SocketMediaRenderer(
       {super.key,
       required this.format,
       required this.pose,
       required this.identity,
       required this.title,
-      required this.label});
+      required this.label,
+      this.labelIdentity,
+      this.onReady});
   @override
   State<SocketMediaRenderer> createState() => SocketMediaRendererState();
 }
@@ -36,6 +40,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   Object? _error;
   int _generation = 0;
   int _labelRevision = 0;
+  int _textureRevision = -1;
   bool _captureQueued = false, _captureDirty = false;
   bool frameRendered = false;
   Completer<Map<String, Object?>> _ready = Completer();
@@ -80,14 +85,14 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         oldWidget.identity != widget.identity ||
         _resources != SocketMediaModel.importedBundle) {
       _load();
-    } else if (oldWidget.label != widget.label) {
+    } else if (oldWidget.labelIdentity != widget.labelIdentity ||
+        (widget.labelIdentity == null && oldWidget.label != widget.label)) {
       if (!_ready.isCompleted) {
         _ready.complete(
             {...snapshot, 'error': 'Label replaced before readiness'});
       }
       _ready = Completer();
       _labelRevision++;
-      _labelTexture = null;
       _labelUs = _gpuUs = null;
       frameRendered = false;
       _error = null;
@@ -152,6 +157,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         setState(() {
           _labelImage = image;
           _labelTexture = texture;
+          _textureRevision = labelRevision;
           _labelUs ??= _clock.elapsedMicroseconds;
         });
         old?.dispose();
@@ -169,13 +175,17 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     });
   }
 
-  void _rendered(SocketMediaGpu submitted) {
-    if (!mounted || frameRendered || _renderer != submitted) return;
+  void _rendered(SocketMediaGpu submitted, int labelRevision) {
+    if (!mounted ||
+        frameRendered ||
+        _renderer != submitted ||
+        labelRevision != _labelRevision) return;
     setState(() {
       frameRendered = true;
       _gpuUs = _clock.elapsedMicroseconds;
     });
     if (!_ready.isCompleted) _ready.complete(snapshot);
+    widget.onReady?.call();
   }
 
   void _failed(Object error) {
@@ -207,6 +217,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   @override
   Widget build(BuildContext context) {
     final renderer = _renderer;
+    final labelRevision = _textureRevision;
     return Stack(fit: StackFit.expand, children: [
       // The zero-area ancestor clip hides the producer in the composed screen,
       // but does not suppress its paint/layer. toImage captures that boundary
@@ -236,7 +247,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 widget.pose,
                 _labelTexture!,
                 MediaQuery.devicePixelRatioOf(context),
-                () => _rendered(renderer),
+                () => _rendered(renderer, labelRevision),
                 (error) => _paintFailed(renderer, error)))
       else
         widget.label,

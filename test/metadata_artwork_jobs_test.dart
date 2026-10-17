@@ -182,6 +182,32 @@ void main() {
         isFalse);
   });
 
+  test('multi-region cartridge keeps a label belonging to that release',
+      () async {
+    final original = (await LibraryStore(Future.value(db))
+        .metadata('a', provider.providerId))!;
+    MetadataMedia label(String region) => MetadataMedia(
+        type: 'support-texture',
+        region: region,
+        providerReference: ScreenScraperMediaReference(
+            providerGameId: '42',
+            providerPlatformId: 4,
+            mediaType: 'support-texture',
+            region: region));
+    final record = MetadataRecord.fromJson({
+      ...original.toJson(),
+      'media': [label('jp').toJson(), label('us').toJson()]
+    });
+    final selected = MetadataArtworkCache.displayMedia(record,
+        regions: ['au', 'sa', 'us'], includePhysicalLabel: true);
+    expect(selected.map((item) => item.type), ['box-2D', 'support-texture']);
+    expect(selected.every((item) => item.region == 'us'), isTrue,
+        reason: 'The US label is valid for this multi-region release; '
+            'the Japanese label is not.');
+    expect(MetadataArtworkCache.physicalLabels(record, regions: ['Europe']),
+        isEmpty);
+  });
+
   test(
       'legacy world media requests the missing typed front box without rematching',
       () async {

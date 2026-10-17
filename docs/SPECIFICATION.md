@@ -1,10 +1,46 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 65, 2026-10-17.
+Authoritative specification, revision 67, 2026-10-17.
 
-Current execution checkpoint: S24-S26 feature acceptance are COMPLETE;
-no implementation stage is ACTIVE. The owner-requested wider Nintendo background collection
-was triggered and resumed as the same saved job; it is not claimed fully downloaded.
+Current execution checkpoint: S24 is ACTIVE again following the owner's report
+that cartridge images and other GBA media do not work. The earlier completion
+claim is withdrawn: collected files, cloud receipts and a few selected previews
+do not prove the mandatory GBA Top 25 rendering workflow. S25/S26 retain their
+recorded evidence, not proof that this reported media regression is resolved.
+The wider Nintendo collection remains unfinished; it is not acceptance evidence.
+
+Owner acceptance reaffirmation, 2026-10-17: do not replace the GBA Top 25 gate
+with a subset chosen because its resources already resolve. Verify the actual
+ranked distinct games, selected release, correct box, real cartridge label on the
+model, trailer and audio through the installed Thor browsing path. Inventory or
+decoder success alone is not rendered-label evidence. Required missing resources
+and failures keep S24 open; no invented entry or borrowed score fills a position.
+
+Owner rendering correction, 2026-10-17: hold the decoded cover stationary until
+the selected game's image resources, actual label/model frame and enabled trailer
+are ready. Then slide the cover fully left over 1.5 seconds while restoring normal
+cartridge zoom. This replaces the earlier 600 ms hold / 1.8 second slide and the
+cache-hit-only reveal rule; readiness is event-driven, not a fixed wait. Ordinary
+unchanged snapshots must not discard decoded labels or GPU textures. Existing
+collections open from saved data without a startup bulk catalogue refresh; manual
+Sync remains scoped. In this same preview correction, show the existing IGDB mark
+and a one-decimal 0–10 score at the card's top-left, with the same vertical extent
+as the top-right availability icon. Keep full provenance in semantics/tooltip and
+leave stored scores and ranking eligibility unchanged.
+
+Owner startup clarification, 2026-10-17: replace automatic bulk sync with a
+five-second informational message in the existing progress area. Collection age
+uses the oldest successful console refresh; any never-refreshed console makes
+whole-collection age unknown. A noninteractive read-only root timestamp/version
+check may show an updates-available hint for five seconds, never trigger sync or
+block browsing. Unchanged root metadata is not proof of unchanged nested files;
+offline/authentication failure must preserve cached browsing without a prompt.
+
+Owner publication correction, 2026-10-17: use GitHub to build and sign the public
+update with the existing production identity. Preserve the local imported media,
+accounts and settings. A signed CI artifact is not a release: publish only after
+the required real-device acceptance checks, then verify the released artifact and
+the installed Thor package. No automatic release on intermediate source pushes.
 
 Owner acceptance clarification, 2026-10-17: finish S24, then implement and
 validate S25 and S26. The real integrated acceptance sample is GBA's Top 25
