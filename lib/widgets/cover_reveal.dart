@@ -25,9 +25,12 @@ class CoverReveal extends StatefulWidget {
 }
 
 class _CoverRevealState extends State<CoverReveal>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final _animation =
       AnimationController(vsync: this, duration: CoverReveal.duration);
+  late final _wobble =
+      AnimationController(vsync: this, duration: const Duration(seconds: 5));
+  late final _motion = Listenable.merge([_animation, _wobble]);
   ImageInfo? _cover;
   bool _decided = false;
   bool _revealing = false;
@@ -44,6 +47,7 @@ class _CoverRevealState extends State<CoverReveal>
     _animation.addStatusListener((status) {
       if (status != AnimationStatus.completed || !_revealing) return;
       _revealing = false;
+      _wobble.stop();
       final generation = _generation;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && generation == _generation) widget.onRevealed?.call();
@@ -64,6 +68,8 @@ class _CoverRevealState extends State<CoverReveal>
       _revealing = false;
       _animation.stop();
       _animation.reset();
+      _wobble.stop();
+      _wobble.reset();
       _cover?.dispose();
       _cover = null;
       _decided = false;
@@ -76,6 +82,7 @@ class _CoverRevealState extends State<CoverReveal>
   void _choose() {
     if (_reduce || !TickerMode.valuesOf(context).enabled) {
       _revealing = false;
+      _wobble.stop();
       _cancelImage();
       _animation.value = 1;
       _decided = true;
@@ -88,6 +95,7 @@ class _CoverRevealState extends State<CoverReveal>
       return;
     }
     if (_cover != null && _stream == null) {
+      if (!_wobble.isAnimating) _wobble.repeat();
       if (widget.mediaReady) {
         _decided = true;
         _revealing = true;
@@ -138,6 +146,7 @@ class _CoverRevealState extends State<CoverReveal>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
       _revealing = false;
+      _wobble.stop();
       _decided = true;
       _cancelImage();
       _animation.value = 1;
@@ -148,6 +157,7 @@ class _CoverRevealState extends State<CoverReveal>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _animation.dispose();
+    _wobble.dispose();
     _cancelImage();
     _cover?.dispose();
     super.dispose();
@@ -165,39 +175,68 @@ class _CoverRevealState extends State<CoverReveal>
             1.0,
             math.min(coverWidth * .8 / bounds.maxWidth,
                 coverHeight * .8 / bounds.maxHeight));
-        return ClipRect(
-            child: AnimatedBuilder(
-                animation: _animation,
-                builder: (context, _) {
-                  final reveal =
-                      image != null && !_reduce && !_animation.isCompleted;
-                  final t = Curves.easeInOut.transform(_animation.value);
-                  final scale = reveal ? initial + (1 - initial) * t : 1.0;
-                  final left = (bounds.maxWidth - coverWidth) / 2;
-                  final waiting = image == null &&
-                      (_stream != null || !widget.mediaReady);
-                  return Stack(fit: StackFit.expand, children: [
-                    Transform.scale(
-                        key: const ValueKey('cover-reveal-media'),
-                        scale: scale,
-                        child: widget.media),
-                    if (waiting)
-                      ColoredBox(
-                          key: const ValueKey('cover-reveal-loading'),
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          child: const Center(
-                              child: CircularProgressIndicator())),
-                    if (reveal)
-                      Positioned(
-                          left: left - (left + coverWidth + 1) * t,
-                          top: (bounds.maxHeight - coverHeight) / 2,
-                          width: coverWidth,
-                          height: coverHeight,
-                          child: RawImage(
-                              key: const ValueKey('cover-reveal-cover'),
-                              image: image,
-                              fit: BoxFit.contain)),
-                  ]);
-                }));
+        return AnimatedBuilder(
+            animation: _motion,
+            builder: (context, _) {
+              final reveal =
+                  image != null && !_reduce && !_animation.isCompleted;
+              final t = Curves.easeInOut.transform(_animation.value);
+              final scale = reveal ? initial + (1 - initial) * t : 1.0;
+              final left = (bounds.maxWidth - coverWidth) / 2;
+              final waiting =
+                  image == null && (_stream != null || !widget.mediaReady);
+              final phase = _wobble.value * 2 * math.pi;
+              final depth = (coverWidth * .016).clamp(3.0, 10.0);
+              return Stack(fit: StackFit.expand, children: [
+                Transform.scale(
+                    key: const ValueKey('cover-reveal-media'),
+                    scale: scale,
+                    child: widget.media),
+                if (waiting)
+                  ColoredBox(
+                      key: const ValueKey('cover-reveal-loading'),
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: const Center(child: CircularProgressIndicator())),
+                if (reveal)
+                  Positioned(
+                      left: left - (left + coverWidth + 1) * t,
+                      top: (bounds.maxHeight - coverHeight) / 2,
+                      width: coverWidth,
+                      height: coverHeight,
+                      child: Transform(
+                          key: const ValueKey('cover-reveal-cover'),
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, .0008)
+                            ..rotateX(math.sin(phase) * .012)
+                            ..rotateY(-.085 + math.cos(phase) * .025)
+                            ..rotateZ(math.sin(phase) * .006),
+                          child: Stack(fit: StackFit.expand, children: [
+                            Positioned.fill(
+                                left: depth,
+                                top: depth * .25,
+                                child: DecoratedBox(
+                                    key:
+                                        const ValueKey('cover-reveal-box-edge'),
+                                    decoration: BoxDecoration(
+                                        gradient: const LinearGradient(colors: [
+                                          Color(0xff5c5c5c),
+                                          Color(0xff242424)
+                                        ]),
+                                        boxShadow: [
+                                          BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: .3),
+                                              blurRadius: 12,
+                                              offset: const Offset(5, 5))
+                                        ]))),
+                            Positioned.fill(
+                                right: depth,
+                                bottom: depth * .25,
+                                child:
+                                    RawImage(image: image, fit: BoxFit.fill)),
+                          ]))),
+              ]);
+            });
       });
 }

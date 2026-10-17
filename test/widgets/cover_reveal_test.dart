@@ -4,6 +4,42 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/widgets/cover_reveal.dart';
 
 void main() {
+  testWidgets('held cover has gentle perspective motion and box depth',
+      (tester) async {
+    final art = FileImage(File('assets/icon.png').absolute);
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(
+        () => precacheImage(art, tester.element(find.byType(SizedBox).first)));
+    Widget view({bool ready = false, bool reduce = false}) => MaterialApp(
+        home: SizedBox(
+            width: 400,
+            height: 300,
+            child: CoverReveal(
+                identity: reduce ? 'reduced' : 'box',
+                boxArt: art,
+                mediaReady: ready,
+                reducedMotion: reduce,
+                media: const Text('Media'))));
+    await tester.pumpWidget(view());
+    final cover = find.byKey(const ValueKey('cover-reveal-cover'));
+    expect(find.byKey(const ValueKey('cover-reveal-box-edge')), findsOneWidget);
+    final held = tester.getRect(cover);
+    final first =
+        List<double>.from(tester.widget<Transform>(cover).transform.storage);
+    expect(first[11], isNot(0));
+    await tester.pump(const Duration(milliseconds: 1250));
+    expect(tester.getRect(cover).left, held.left,
+        reason: 'Wobble does not start the slide before media readiness');
+    expect(tester.widget<Transform>(cover).transform.storage, isNot(first));
+    await tester.pumpWidget(view(ready: true));
+    await tester.pumpAndSettle();
+    expect(cover, findsNothing);
+    expect(tester.binding.transientCallbackCount, 0);
+    await tester.pumpWidget(view(reduce: true, ready: true));
+    expect(find.byKey(const ValueKey('cover-reveal-box-edge')), findsNothing);
+    expect(tester.binding.transientCallbackCount, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
       'resolved cover exits left as both media modes grow to normal size',
       (tester) async {

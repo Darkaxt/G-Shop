@@ -5,6 +5,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+S24 is the only ACTIVE stage. The owner has now requested an S25 interactive
+media-gallery plan: remove per-entry media downloading; offer Box, Cartridge and
+Media modes, rotation/zoom, screenshots/trailers and touch/controller navigation.
+Expanded S25 is NOT STARTED. Its prior startup warm-up criteria remain verified;
+that historical completion does not satisfy the new gallery criteria. Current
+S24 publication remains scoped to its complete correction, not this future viewer.
+
 ### Current correction, 2026-10-17 — S24 ACTIVE
 
 The owner reports missing cartridge images and other GBA resources in installed
@@ -67,6 +74,32 @@ cover hold and 1.5-second completion event. The retained second native build is
 FIFO ticket 1402 and remains queued; no duplicate build is launched. Screens are
 off while waiting. Native acceptance and public GitHub-signed delivery remain
 required before closing S24.
+
+Native code 32 checkpoint: ticket 1402 completed with build/helper exit 0 and
+post-build daemon exit verified. Two workers/no parallel, 3 GiB Gradle with
+in-process Kotlin, one 512 MiB test fork; no memory failure or budget increase.
+The installed APK SHA-256 is
+`5bcdda3d5945c198c13096971b9bcf527545076970956f5ff451df84f68f0590`,
+with the existing production certificate and unchanged ordinary/secure preferences
+before launch. Cold hidden renderer/resources readiness is 1.254/1.853 seconds;
+fresh-process logs contain no startup ROM bulk sync or remote metadata pull.
+The actual filtered GBA gallery contains 24 distinct ranked games. Every entry
+was visited through that gallery and reached model-frame, decoded-label, cover,
+resource, initialized/playing-video and reveal-completion evidence. All 24 final
+cartridge captures were visually reviewed against their titles. Measured slide
+intervals are 1,500,603–1,513,454 microseconds. The diagnostic's initial fixed
+volume expectation of .3 was incorrect: saved sound settings specify
+.22485692962990014, and every actual player reports exactly that volume. Raw
+diagnostic results are retained; this correction does not alter the app settings
+or hide a resource failure. The owner confirms the presentation is much improved.
+
+New S24 refinement: the owner reports a visible left margin and requests gentle
+box wobble/depth. The edge regression reproduces a 24-logical-pixel inset. A
+full-width secondary media canvas and bounded perspective/depth animation now
+pass focused reveal/readiness/lifecycle/audio checks, with Reduced Motion and
+stopped hidden/finished tickers. Candidate code 33 is pending GitHub build/signing
+and native visual verification. The requested real-box texture investigation
+and public release/installed-byte verification remain open. S24 stays ACTIVE.
 
 ### Superseded completion checkpoint (retained as evidence history)
 

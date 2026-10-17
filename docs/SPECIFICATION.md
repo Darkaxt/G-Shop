@@ -1,6 +1,6 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 67, 2026-10-17.
+Authoritative specification, revision 69, 2026-10-17.
 
 Current execution checkpoint: S24 is ACTIVE again following the owner's report
 that cartridge images and other GBA media do not work. The earlier completion
@@ -40,6 +40,31 @@ Local backup publication/recovery remains automatic and does not traverse the
 remote collection or re-project unchanged local facts. Explicit metadata Sync
 still pulls remote updates. While selected media loads, reuse its mounted cover;
 if no cover is resolved yet, show loading instead of an unfinished cartridge.
+
+Owner visual refinement, 2026-10-17: add a restrained cover wobble and shallow
+box-depth/perspective effect to the existing hold/reveal, preserving readable
+artwork, readiness-driven start, the 1.5-second slide and Reduced Motion behavior.
+The secondary preview's sliding cover must reach the display edge rather than
+being clipped at its horizontal content padding. This is part of the current S24
+correction, not a new viewer or stage. After that fix, investigate ScreenScraper's
+actual front/back/spine/full-box texture fields and availability in retained
+records for reconstructing a genuine textured box. A pre-rendered box image is
+not a rotatable model; absent artwork must not be fabricated. This investigation
+does not by itself authorize replacing the renderer with a new 3D-box pipeline.
+
+Owner S25 planning extension, 2026-10-17: expand the next preview stage to an
+interactive media gallery. Remove the per-game media-download button, preserving
+central collection/scraping and automatic selected-resource caching. Replace the
+single preview-model presentation with compact Box, Cartridge and Media modes.
+Box and Cartridge expose touch/controller rotation and zoom; Media presents
+available screenshots and trailers with the existing audio behavior. Use real
+same-edition box faces/textures when available; a static box-3D image does not
+provide unseen faces. Keep manufacturer/library browsing focus, companion/display
+ownership, the red theme, icon/section navigation and L1/R1 mode switching.
+The previous PREVIEW-START-01 startup behavior remains a satisfied requirement;
+these new S25 criteria are NOT STARTED while S24 alone remains ACTIVE. Record this
+requested plan now; do not fold an unfinished interactive viewer into the current
+S24 correction/publication scope or claim the expanded S25 is COMPLETE.
 
 Owner publication correction, 2026-10-17: use GitHub to build and sign the public
 update with the existing production identity. Preserve the local imported media,

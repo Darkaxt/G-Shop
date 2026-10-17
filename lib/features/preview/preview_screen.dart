@@ -351,19 +351,25 @@ class _PreviewScreenState extends State<PreviewScreen>
                                     : Icons.play_arrow)))),
               SafeArea(
                   child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Column(children: [
-                        Text(game.displayName,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontSize: 26, fontWeight: FontWeight.w600)),
+                        Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Text(game.displayName,
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w600))),
                         Text(system.name,
                             style: const TextStyle(color: Colors.white70)),
                         const SizedBox(height: 12),
                         Expanded(
                             child: details
-                                ? _details(snapshot)
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24),
+                                    child: _details(snapshot))
                                 : GestureDetector(
                                     onTap: () => _action('details'),
                                     child: prefs.modelVisible &&
@@ -394,8 +400,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                                     snapshot['reducedMotion'] ==
                                                         true,
                                                 resourcesReady:
-                                                    snapshot['mediaLoading'] !=
-                                                            true &&
+                                                    snapshot['mediaLoading'] != true &&
                                                         (_videoPath == null ||
                                                             _video?.value.isInitialized ==
                                                                 true),

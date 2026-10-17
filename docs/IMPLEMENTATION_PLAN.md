@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 67, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 69, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 ## Current extension — already authorized, 2026-10-16
@@ -12,6 +12,11 @@ The current S24 correction also replaces startup bulk sync with a five-second
 oldest-refresh/update hint, gates the 1.5-second reveal on decoded media readiness,
 and delivers the verified update through GitHub signing/publication with the
 existing production certificate. No intermediate push publishes a release.
+The same S24 correction now includes subtle box wobble/perspective, Reduced Motion
+preservation and a full-width secondary reveal canvas; verify the padded-edge
+regression and the finished effect on Thor. Then inspect the provider's actual
+box-face/full-texture support and retained-record availability, without inventing
+missing faces or opening a separate 3D renderer implementation.
 
 Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md).
 
@@ -21,11 +26,13 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | R22 Thor preview delivery | COMPLETE | PREVIEW-DELIVERY: signed 1.9.2/code 16 installed in place with settings/data preserved | Gated signed packaging 1308, installed APK hash/identity, unchanged prelaunch settings/database/import hashes, real production secondary rendering after AOT entrypoint fix, reviewed intermediate cleanup; both screens OFF |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
 | S24 Drive-backed metadata cache | ACTIVE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default; mandatory actual GBA Top 25 box/cartridge/trailer integration | Earlier file/receipt checks and selected previews are insufficient. Reproduce the installed missing-label/media path, fix its cause, and verify every actual ranked sample entry through the same gallery-to-renderer path. Wider Nintendo job completion is not claimed. |
-| S25 Secondary preview startup | COMPLETE | PREVIEW-START-01: initialize the secondary renderer at APK startup without taking over a companion or delaying main browsing | Native 1.9.15 cold renderer/resources ready in 1.01/1.66 seconds, first GBA model in 0.47 seconds; hide/return reuses the engine and removes audio; power-off releases and wake recreates it; disabled fallback keeps browsing and Cocoon. Host late-frame regression passes. |
+| S25 Interactive media gallery and preserved startup | NOT STARTED | Preserve verified PREVIEW-START-01; remove the per-game media-download button; provide compact Box / Cartridge / Media modes, real textured box and cartridge rotation/zoom, screenshots/trailers, touch/controller and L1/R1 navigation, retained library focus and companion ownership | Reuse startup evidence where unchanged. Verify actual edition-bound faces/textures, both interactive models, missing-media states, photo/video playback/audio and touch/controller operation on Thor after S24 closes. The earlier startup-only S25 COMPLETE result does not satisfy this newly requested gallery. |
 | S26 Commercial release preferences | COMPLETE | REGION-01: ordered EUR/USA/JPN collection preference, one preferred commercial release per canonical game and Show all versions; Hacks/Patches unaffected | Native touch/controller/restart/reset, a real regional pair with one game/two retained versions, JPN/EUR selection and exact EUR archive download/RetroArch launch pass. Shared query/rank/bundle/unknown/modification and encrypted migration checks pass. Final GBA model/trailer/audio rendering passes in 1.9.16. |
 
 S24 alone is ACTIVE again; its earlier completion claim is withdrawn. S22, R22,
 S25 and S26 retain their recorded results, subject to affected revalidation.
+S25's newly requested interactive-gallery scope is NOT STARTED; its earlier
+startup-only evidence remains valid, but the expanded stage is not COMPLETE.
 S23 website acquisition remains NOT STARTED. Signed 1.9.16/code 30 is installed
 in place, and native cache/media/preservation acceptance is recorded in the status
 ledger. The requested wider Nintendo resource collection was triggered after the

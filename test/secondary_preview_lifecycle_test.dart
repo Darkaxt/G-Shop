@@ -39,6 +39,34 @@ class _Player extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('preview media canvas reaches both display edges',
+      (tester) async {
+    const channel = MethodChannel('com.retro.rshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    await messenger.handlePlatformMessage(
+        channel.name,
+        const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+          'revision': 1,
+          'identity': 'edge-fixture',
+          'actionEpoch': 1,
+          'system': 'gba',
+          'filename': 'Fixture.gba',
+          'title': 'Fixture',
+          'mediaLoading': false,
+          'threeD': false,
+          'settings': const PreviewSettings().toJson(),
+        })),
+        (_) {});
+    await tester.pump();
+    final media = tester.getRect(find.byType(CoverSection));
+    final display = tester.getRect(find.byType(Scaffold));
+    expect(media.left, display.left);
+    expect(media.right, display.right);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('pending cover never exposes an unfinished cartridge',
       (tester) async {
     const channel = MethodChannel('com.retro.rshop/preview_view');
