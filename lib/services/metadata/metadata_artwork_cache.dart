@@ -573,6 +573,50 @@ class MetadataArtworkCache {
     );
   }
 
+  /// Edition-owned cached gallery images only. No catalogue scan or provider
+  /// lookup is triggered by opening the explorer. Missing faces remain missing.
+  Future<Map<String, List<String>>> galleryForEdition(String editionId) async {
+    await _requireAccess();
+    final result = <String, List<String>>{};
+    final store = LibraryStore(_database);
+    final regions =
+        (await store.edition(editionId))?.regions ?? const <String>[];
+    const types = {
+      'box-2D',
+      'box-3D',
+      'box-2D-back',
+      'box-2D-side',
+      'cover',
+      'support-texture',
+      'ss',
+      'screenshot',
+      'fanart',
+      'manual-page'
+    };
+    String region(String value) => switch (value.toLowerCase()) {
+          'europe' => 'eu',
+          'usa' => 'us',
+          'japan' => 'jp',
+          _ => value.toLowerCase()
+        };
+    for (final provider in ['launchbox', 'screenscraper', 'romm']) {
+      final record = await store.metadata(editionId, provider);
+      if (record == null) continue;
+      for (final media in record.media.where((m) => types.contains(m.type))) {
+        if (media.region != null &&
+            regions.isNotEmpty &&
+            !regions.any((r) => region(r) == region(media.region!))) continue;
+        final file = await _fileFor(editionId, provider, media);
+        if (file != null) {
+          final paths = result.putIfAbsent(media.type, () => []);
+          if (!paths.contains(file.uri.toString()))
+            paths.add(file.uri.toString());
+        }
+      }
+    }
+    return result;
+  }
+
   /// Exact currently owned cover only, with the same bounded PNG policy.
   /// A changed or unreadable file produces the normal fallback, not a lookup.
   Future<Uint8List?> previewForEdition(String editionId) async {

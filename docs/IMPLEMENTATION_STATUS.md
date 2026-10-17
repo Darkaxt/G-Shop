@@ -5,17 +5,66 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-S24 is COMPLETE and public 1.9.17/code 33 is installed on Thor. No implementation
-stage is ACTIVE at this checkpoint. Expanded S25 is NOT STARTED: its plan now
+Current owner revision, 2026-10-17: **S25 ACTIVE** for the generic packaging/resource
+explorer and final-model validation. Stop at that checkpoint before implementing
+the full cinematic transition. Existing NOT STARTED statements below describe the
+preceding planning checkpoint, not current execution. The native inventory now
+records 20 imported-3D routes, 46 flat fallbacks, generic case/box/booklet actions
+and three regional/compatibility variants; the final title-layout pass is pending;
+see [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md). Required full transitions remain
+pending; no overall S25 completion or production release is claimed.
+
+S24 is COMPLETE and public 1.9.17/code 33 is installed on Thor. S25 alone is ACTIVE
+at this checkpoint. Its plan
 covers Box/Cartridge/Media modes, LaunchBox-first box faces with ScreenScraper
 fallback, adapted plastic display cases with a seam/hinge, best-effort missing
 faces, full rotation/zoom and touch/controller navigation. Its earlier startup-only
 verification does not satisfy this new gallery. S23 acquisition remains NOT STARTED.
 The owner's latest instruction is S24 closure first, then S25 source evaluation.
 The existing [packaging coverage review](S25_PACKAGING_COVERAGE.md) is retained;
-no S25 renderer/provider implementation has begun. Future S26 is the requested
+generic explorer/owned packaging implementation is now undergoing verification.
+No new provider/complete cinematic pipeline is verified. Future S26 is the requested
 G-Shop rebranding/source-scope evaluation, NOT STARTED. Historical REGION-01
 (formerly S26) remains COMPLETE; it is not completion evidence for the rebrand.
+
+### S25 independent resource inspection — ACTIVE, 2026-10-17
+
+Implemented the shared edition-bound Box / Case / Cartridge / Manual / Gallery
+explorer in game details and the secondary preview. L1/R1, directional rotation,
+zoom/reset, explicit case/booklet open/close, manual-page reading and existing
+cached clip playback are wired without implementing the movie. Entry Download
+Media buttons are replaced by Resources; central collection remains. Typed front,
+back, side and cartridge roles stay separate; unclassified legacy covers and
+static box-3D images remain gallery-only. Single-screen playback now receives the
+saved sound/volume settings as the secondary view does.
+
+Completed native isolated-widget inventory: all 66 routes, including SNES PAL,
+GBC compatibility and Mega Drive variants. Painted pose/label/frame evidence is
+recorded, not inferred from tests. Owned generic cases have empty interiors and
+an operable hinge/divider, not fabricated original holders. Manual reading used a
+synthetic page, not an actual game manual. This is not the real ranked GBA sample,
+final face acquisition or a full app/production acceptance claim.
+
+Focused host checks cover geometry bounds/digests/matte semantics, hinge/spine
+placement, section/controller and missing-media contracts, typed cached artwork
+ownership/no provider requests, existing startup/audio/lifecycle and real decoded
+label separation. Updated legacy widget assertions to inspect the already-used
+decoded RawImage/fallback path, rather than the removed SmartCoverImage label.
+The host GPU/source-oracle skips remain explicit; native manifest-validated
+renderer inspection supplies separate actual GPU evidence.
+
+The handwritten fallback correction now follows upper circular arcs around optical
+hubs (including UMD's large badge), uses additional arcs for long titles,
+fills narrow label areas without the old footer, and leaves real
+art untouched. Its final focused native recheck is queued once through the shared
+Gradle gate. The existing completed native inventory remains valid for unchanged
+geometry/bindings; it does not validate this latest label revision.
+
+Full S25 advancement blockers and their resolution conditions are recorded in
+[S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md). They are implementable work or the
+owner-requested stop before the cinematic, not an excuse to mark the stage BLOCKED
+or COMPLETE. No S25 requirement is deferred into S26 and no public S25 release is
+created at this partial checkpoint.
 
 ### S25 pre-plan/source acquisition — 2026-10-17
 
@@ -49,7 +98,10 @@ any upload. Its partial archive/control file are moved to the exact reference
 folder E:/R-Shop Reference Assets/NintAndBox/2026-03, preserving resume progress.
 The replacement acquisition has no archive-upload step. Drive connector/rclone
 root identity was checked, but no cloud archive or active-metadata write occurred.
-Acquisition remains in progress; no verified archive or classified upload is claimed.
+Acquisition subsequently completed: supervised aria2/checksum and exact-size checks
+exit 0, with 42,436,388,695 bytes and SHA-1
+`1830d151c710090b75c73a758aa99cf161eff4dd`. The archive and SOURCE.md remain on E:.
+No image extraction, archive upload or classified-resource upload is claimed.
 
 ### S24 correction closure — COMPLETE, 2026-10-17
 

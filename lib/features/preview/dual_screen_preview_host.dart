@@ -68,6 +68,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   MetadataMedia? _videoMedia;
   String? _video, _notice, _sent;
   bool _details = false, _visible = true, _working = false;
+  bool _gallery = false;
   bool _clipLoading = false;
   int _clipRequest = 0;
   int _generation = 0;
@@ -149,6 +150,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     _bindingSignature = signature;
     _generation++;
     _details = false;
+    _gallery = false;
     _video = null;
     _videoMedia = null;
     _metadata = null;
@@ -226,9 +228,9 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
                         onSelect: () => _action('variant', i)),
                 ]),
           QuickMenuItem(
-              label: 'Download media',
-              icon: Icons.movie_outlined,
-              onSelect: downloadMedia),
+              label: 'Resources',
+              icon: Icons.view_in_ar,
+              onSelect: () => _action('gallery', null)),
           if (_video != null &&
               ref.read(previewSettingsProvider).background ==
                   PreviewBackground.video)
@@ -288,6 +290,13 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
+    if (action == 'gallery' || action == 'preview') {
+      setState(() {
+        _gallery = action == 'gallery';
+        _details = false;
+      });
+      return;
+    }
     if (action == 'details') {
       setState(() => _details = true);
       return;
@@ -404,6 +413,12 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         systemSlug: selection.system.id
       )));
       final metadata = metadataState.valueOrNull;
+      final galleryMedia = metadata?.editionId == null
+          ? <String, List<String>>{}
+          : ref
+                  .watch(editionGalleryMediaProvider(metadata!.editionId!))
+                  .valueOrNull ??
+              <String, List<String>>{};
       final prefs = ref.watch(previewSettingsProvider);
       final audio = ref.watch(soundSettingsProvider);
       final media = ref.watch(mediaPresentationProvider);
@@ -449,6 +464,8 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'threeD': media.enabled,
         'reducedMotion': media.reducedMotion,
         'details': _details,
+        'gallery': _gallery,
+        'galleryResources': galleryMedia,
         'variant': controller.selectedIndex,
         'variants': selection.variants.map((v) => v.filename).toList(),
         'canLaunch': !_working && controller.canOpenSelected,

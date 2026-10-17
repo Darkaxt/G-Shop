@@ -83,6 +83,15 @@ class SocketMediaModel {
   final ByteData mesh;
   SocketMediaModel._(this.data, this.mesh);
 
+  /// App-owned geometry has an explicit, independent identity. Imported APK
+  /// receipts/checksums remain enforced only by the original import path.
+  factory SocketMediaModel.owned(Map<String, dynamic> data, ByteData mesh) {
+    if (data['ownedGeometry'] != true || data.containsKey('apkSha256')) {
+      throw const FormatException('Invalid owned geometry identity');
+    }
+    return SocketMediaModel._(data, mesh);
+  }
+
   String get name => data['name'] as String;
   String get motionKind => data['motionKind'] as String;
   double get height => (data['bounds'][1] as num).toDouble();
@@ -183,7 +192,7 @@ class SocketMediaModel {
 /// Source tween phases in a fitted main-screen coordinate system. Geometry is
 /// not reshaped; source translation units are scaled to fit this frontend.
 class SocketMediaPose {
-  final double rx, ry, rz, y, z, scaleX, scaleY, scaleZ, labelSpin;
+  final double rx, ry, rz, y, z, scaleX, scaleY, scaleZ, labelSpin, opening;
   const SocketMediaPose(
       {this.rx = 0,
       this.ry = 0,
@@ -193,7 +202,8 @@ class SocketMediaPose {
       this.scaleX = 1,
       this.scaleY = 1,
       this.scaleZ = 1,
-      this.labelSpin = 0});
+      this.labelSpin = 0,
+      this.opening = 0});
 
   static double _phase(double t, double start, double duration) =>
       ((t - start) / duration).clamp(0.0, 1.0);

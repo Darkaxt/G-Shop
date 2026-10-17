@@ -10,6 +10,7 @@ import '../../../widgets/physical_media_view.dart';
 import '../../../widgets/media_cover_fallback.dart';
 import '../../../widgets/cover_reveal.dart';
 import '../../../services/image_cache_service.dart';
+import '../../preview/resource_gallery.dart';
 
 class CoverSection extends StatefulWidget {
   final GameItem game;
@@ -29,6 +30,9 @@ class CoverSection extends StatefulWidget {
   final bool resourcesReady;
   final VoidCallback? onReady;
   final VoidCallback? onRevealed;
+  final Future<Map<String, List<String>>> Function()? galleryResources;
+  final ValueChanged<bool>? onGalleryPlaying;
+  final double galleryVolume;
   const CoverSection({
     super.key,
     required this.game,
@@ -49,6 +53,9 @@ class CoverSection extends StatefulWidget {
     this.resourcesReady = true,
     this.onReady,
     this.onRevealed,
+    this.galleryResources,
+    this.onGalleryPlaying,
+    this.galleryVolume = .3,
   });
 
   @override
@@ -64,7 +71,8 @@ class CoverSectionState extends State<CoverSection> {
   int _labelGeneration = 0;
   String? _labelUrl;
   Map<String, Object?> get renderSnapshot => {
-        'coverExpected': widget.cachedUrl != null || widget.coverUrls.isNotEmpty,
+        'coverExpected':
+            widget.cachedUrl != null || widget.coverUrls.isNotEmpty,
         'labelExpected': widget.physicalLabelUrl != null,
         'labelDecoded': widget.physicalLabelUrl != null && _label != null,
         'resourcesReady': widget.resourcesReady,
@@ -144,6 +152,34 @@ class CoverSectionState extends State<CoverSection> {
   bool get physical => _physical;
   void toggleView() => setState(() => _physical = !_physical);
   void toggleMotion() => setState(() => _reducedMotion = !_reducedMotion);
+  Future<void> openGallery() async {
+    final identity = widget.game.selectionKey;
+    final resources =
+        await widget.galleryResources?.call() ?? <String, List<String>>{};
+    if (!mounted || identity != widget.game.selectionKey) return;
+    final cover = widget.cachedUrl ?? widget.coverUrls.firstOrNull;
+    // The legacy card projection has no face-role proof. Keep it browsable,
+    // but never relabel it as a front texture for reconstructed geometry.
+    if (cover != null) resources.putIfAbsent('cover-preview', () => [cover]);
+    if (widget.physicalLabelUrl != null) {
+      resources.putIfAbsent(
+          'support-texture', () => [widget.physicalLabelUrl!]);
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+            appBar: AppBar(title: Text(widget.game.displayName)),
+            body: ResourceGallery(
+                identity: identity,
+                title: widget.game.displayName,
+                systemId: widget.system.id,
+                region: widget.metadata.region.name,
+                dualMode: widget.gbcDualMode,
+                importedModels: widget.physicalMediaEnabled,
+                resources: resources,
+                volume: widget.galleryVolume,
+                onPlayingChanged: widget.onGalleryPlaying,
+                onClose: () => Navigator.of(context).pop()))));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,7 +206,8 @@ class CoverSectionState extends State<CoverSection> {
         identity: game.selectionKey,
         title: game.displayName,
         disc: format == PhysicalMediaFormat.disc ||
-            format == PhysicalMediaFormat.psp);
+            format == PhysicalMediaFormat.psp,
+        umd: format == PhysicalMediaFormat.psp);
     final label = _label?.image;
     final labelWidget =
         label == null ? sticker : RawImage(image: label, fit: BoxFit.fill);
@@ -265,6 +302,10 @@ class CoverSectionState extends State<CoverSection> {
                     top: 4,
                     right: 4,
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      IconButton(
+                          tooltip: 'Resources',
+                          onPressed: openGallery,
+                          icon: const Icon(Icons.view_in_ar)),
                       IconButton(
                           tooltip: physical ? 'Cover view' : 'Media preview',
                           onPressed: toggleView,

@@ -277,6 +277,11 @@ void main() {
     expect(offline.supportTexture, local.supportTexture);
     expect(provider.calls, calls,
         reason: 'Browsing reads only the durable cache');
+    final gallery = await cache.galleryForEdition('a');
+    expect(gallery['box-2D'], [local.cover]);
+    expect(gallery['support-texture'], [local.supportTexture]);
+    expect((await cache.galleryForEdition('b'))['support-texture'], isNull);
+    expect(provider.calls, calls, reason: 'Opening the explorer cannot scrape');
     expect((await cache.artworkForEdition('b')).supportTexture, isNull,
         reason: 'A different edition with box art cannot borrow this label');
   });

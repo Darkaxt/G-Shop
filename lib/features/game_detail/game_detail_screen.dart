@@ -24,9 +24,14 @@ import '../../providers/ra_providers.dart';
 import '../../providers/rom_status_providers.dart';
 import '../../providers/game_providers.dart';
 import '../../providers/metadata_cloud_providers.dart';
+import '../../providers/preview_providers.dart';
 import '../../providers/shelf_providers.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/input_debouncer.dart';
+import '../../services/library_store.dart';
+import '../../providers/metadata_providers.dart';
+import '../../providers/library_providers.dart';
+import '../../services/metadata/metadata_artwork_cache.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../utils/game_metadata.dart';
 import '../../utils/rom_share_helper.dart';
@@ -83,6 +88,13 @@ class GameDetailScreen extends ConsumerStatefulWidget {
 
 class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     with ConsoleScreenMixin {
+  double get _galleryVolume {
+    final audio = ref.watch(soundSettingsProvider);
+    return audio.enabled && ref.watch(previewSettingsProvider).sound
+        ? audio.bgmVolume.clamp(0.0, 1.0)
+        : 0.0;
+  }
+
   GameDetailController? _controller;
   late InputDebouncer _debouncer;
   final _emulatorLauncher = OwnedEmulatorLauncher();
@@ -603,6 +615,27 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     if (mounted) setState(() {});
   }
 
+  Future<Map<String, List<String>>> _galleryResources(
+      GameMetadataInfo? info) async {
+    final edition = info?.editionId;
+    if (edition == null) return {};
+    final resources = Map<String, List<String>>.from(
+        await ref.read(editionGalleryMediaProvider(edition).future));
+    final record = await LibraryStore(ref.read(libraryDbProvider).database)
+        .metadata(edition, 'screenscraper');
+    if (record != null) {
+      for (final media
+          in MetadataArtworkCache.displayMedia(record, includeVideo: true)
+              .where((m) => {'video', 'video-normalized'}.contains(m.type))) {
+        final path = await ref
+            .read(metadataControlsProvider.notifier)
+            .cachedPreviewVideo(media);
+        if (path != null) resources[media.type] = [Uri.file(path).toString()];
+      }
+    }
+    return resources;
+  }
+
   List<QuickMenuItem?> _buildQuickMenuItems() {
     final controller = _controller;
     if (controller == null) return [];
@@ -627,6 +660,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
     final raMatch = raMatches[variant.raMatchKey];
     return [
       QuickMenuItem(label: 'Display', icon: Icons.album_outlined, children: [
+        QuickMenuItem(
+            label: 'Resources',
+            icon: Icons.view_in_ar,
+            onSelect: () => _coverSectionKey.currentState?.openGallery()),
         QuickMenuItem(
             label: _coverSectionKey.currentState?.physical == true
                 ? 'Cover view'
@@ -1164,6 +1201,12 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                           aspectRatio: 0.75,
                           child: CoverSection(
                             key: _coverSectionKey,
+                            galleryVolume: _galleryVolume,
+                            galleryResources: () =>
+                                _galleryResources(richMetadata),
+                            onGalleryPlaying: ref
+                                .read(audioManagerProvider)
+                                .setPreviewPlaying,
                             game: selectedVariant,
                             physicalMediaKey: _physicalMediaKey,
                             physicalMediaEnabled:
@@ -1258,6 +1301,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
             aspectRatio: hasCardContent ? 0.85 : 0.75,
             child: CoverSection(
               key: _coverSectionKey,
+              galleryVolume: _galleryVolume,
+              galleryResources: () => _galleryResources(richMetadata),
+              onGalleryPlaying:
+                  ref.read(audioManagerProvider).setPreviewPlaying,
               game: selectedVariant,
               physicalMediaKey: _physicalMediaKey,
               physicalMediaEnabled:

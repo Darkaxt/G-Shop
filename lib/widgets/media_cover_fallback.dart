@@ -166,6 +166,14 @@ class MediaCoverFallback extends StatelessWidget {
       _ when disc => const Rect.fromLTWH(.043, .043, .914, .914),
       _ => const Rect.fromLTWH(.175, .355, .65, .34),
     };
+    final resolvedLabel = physicalLabel ??
+        ((disc || systemId == 'psp') && title?.trim().isNotEmpty == true
+            ? HandwrittenMediaSticker(
+                identity: identity ?? '$systemId:$title',
+                title: title!,
+                disc: true,
+                umd: systemId == 'psp')
+            : null);
     return SizedBox(
       width: width,
       height: height,
@@ -183,16 +191,16 @@ class MediaCoverFallback extends StatelessWidget {
                   cacheWidth: 256,
                   excludeFromSemantics: true,
                 ),
-                if (physicalLabel != null)
+                if (resolvedLabel != null)
                   Positioned.fill(child: LayoutBuilder(builder: (_, bounds) {
                     final label = disc || systemId == 'psp'
                         ? ClipPath(
                             clipper:
                                 _DiscLabelClipper(systemId == 'psp' ? .4 : .1),
-                            child: physicalLabel!)
+                            child: resolvedLabel)
                         : ClipRRect(
                             borderRadius: BorderRadius.circular(6),
-                            child: physicalLabel!);
+                            child: resolvedLabel);
                     return Stack(children: [
                       Positioned(
                         left: slot.left * bounds.maxWidth,
@@ -205,10 +213,12 @@ class MediaCoverFallback extends StatelessWidget {
                   }))
                 else if (title != null && title!.trim().isNotEmpty)
                   Align(
-                    alignment: const Alignment(0, 0.05),
+                    alignment: disc
+                        ? const Alignment(0, -.52)
+                        : const Alignment(0, 0.05),
                     child: FractionallySizedBox(
                       widthFactor: 0.65,
-                      heightFactor: 0.34,
+                      heightFactor: disc ? .22 : 0.34,
                       child: Transform.rotate(
                         angle: -0.055,
                         child: FittedBox(

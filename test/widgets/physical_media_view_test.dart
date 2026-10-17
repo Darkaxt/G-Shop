@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show instantiateImageCodec;
 import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,6 +41,12 @@ void main() {
                 find.byType(HandwrittenMediaSticker))
             .disc,
         isTrue);
+    expect(
+        tester
+            .widget<HandwrittenMediaSticker>(
+                find.byType(HandwrittenMediaSticker))
+            .umd,
+        true);
     await tester.pumpWidget(const SizedBox());
   });
   test('source materials retain normal depth and scalar texture channels', () {
@@ -164,9 +171,14 @@ void main() {
     expect(
         tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).format,
         PhysicalMediaFormat.gba);
-    final label = tester.widget<SmartCoverImage>(find.byType(SmartCoverImage));
-    expect(label.cachedUrl, isNull);
-    expect(label.urls, isEmpty);
+    final media =
+        tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView));
+    expect(media.label, isA<HandwrittenMediaSticker>());
+    expect(
+        tester
+            .state<CoverSectionState>(find.byType(CoverSection))
+            .renderSnapshot['labelExpected'],
+        false);
     await tester.tap(find.byTooltip('Cover view'));
     await tester.pump();
     expect(
@@ -189,7 +201,8 @@ void main() {
     final context = tester.element(find.byType(SizedBox));
     await tester.runAsync(() async {
       await precacheImage(
-          ResizeImage(FileImage(File.fromUri(Uri.parse(label))), width: 640),
+          ResizeImage.resizeIfNeeded(
+              640, null, FileImage(File.fromUri(Uri.parse(label)))),
           context);
       await precacheImage(FileImage(File.fromUri(Uri.parse(box))), context);
     });
@@ -207,12 +220,28 @@ void main() {
               physicalLabelUrl: label,
               reducedMotion: true,
               metadata: GameMetadata.parse(game.filename))));
-      final image = tester.widget<SmartCoverImage>(find.descendant(
-          of: find.byType(MediaCoverFallback),
-          matching: find.byType(SmartCoverImage)));
-      expect(image.cachedUrl, label,
-          reason: '$id flat media must use the label');
-      expect(image.urls, isEmpty);
+      final image = tester
+          .widget<MediaCoverFallback>(find.byType(MediaCoverFallback))
+          .physicalLabel! as RawImage;
+      final decoded = await tester.runAsync(() async {
+        final codec = await instantiateImageCodec(
+            await File.fromUri(Uri.parse(label)).readAsBytes());
+        final frame = await codec.getNextFrame();
+        final size =
+            Size(frame.image.width.toDouble(), frame.image.height.toDouble());
+        frame.image.dispose();
+        codec.dispose();
+        return size;
+      });
+      expect(image.image, isNotNull,
+          reason: '$id flat media must use the decoded label');
+      expect(image.image!.width / image.image!.height, decoded!.aspectRatio);
+      expect(image.fit, BoxFit.fill);
+      expect(
+          tester
+              .state<CoverSectionState>(find.byType(CoverSection))
+              .renderSnapshot['labelDecoded'],
+          true);
       expect(find.byType(PhysicalMediaView), findsNothing);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
@@ -239,9 +268,13 @@ void main() {
     expect(
         tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).format,
         PhysicalMediaFormat.gameBoyColorDual);
+    final section = tester.state<CoverSectionState>(find.byType(CoverSection));
+    expect(section.widget.physicalLabelUrl, 'file:///label.png');
+    expect(section.renderSnapshot['labelExpected'], true);
+    expect(section.renderSnapshot['labelDecoded'], false);
     expect(
-        tester.widget<SmartCoverImage>(find.byType(SmartCoverImage)).cachedUrl,
-        'file:///label.png');
+        tester.widget<PhysicalMediaView>(find.byType(PhysicalMediaView)).label,
+        isA<HandwrittenMediaSticker>());
     expect(
         PhysicalMediaFormat.forSystem('gbc', region: 'Japan', dualMode: 'no'),
         PhysicalMediaFormat.gameBoyColor);
@@ -271,14 +304,20 @@ void main() {
     expect(find.byType(HandwrittenMediaSticker), findsOneWidget);
     final file = File('assets/media_fallbacks/systematic/gba.png').absolute;
     await tester.runAsync(() => precacheImage(
-        ResizeImage(FileImage(File.fromUri(file.uri)), width: 640),
+        ResizeImage.resizeIfNeeded(
+            640, null, FileImage(File.fromUri(file.uri))),
         tester.element(find.byType(CoverSection))));
     await tester.pumpWidget(view(file.uri.toString()));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(key.currentState, same(original));
+    expect(
+        tester
+            .state<CoverSectionState>(find.byType(CoverSection))
+            .renderSnapshot['labelDecoded'],
+        true);
     expect(find.byType(HandwrittenMediaSticker), findsNothing);
     await tester.pumpWidget(view(null));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(key.currentState, same(original));
     expect(find.byType(HandwrittenMediaSticker), findsOneWidget);
     expect(tester.takeException(), isNull);

@@ -1,8 +1,12 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-17. Authority: SPECIFICATION.md revision 75.
-This is the requested pre-implementation review, not a new implementation stage.
-S24 is released; expanded S25 remains NOT STARTED. One small public CC0 model pack
+Review date: 2026-10-17. Authority: SPECIFICATION.md revision 77.
+Current implementation checkpoint: S25 is ACTIVE for the generic resource
+explorer and individual model verification. The automatic cinematic transition
+is expressly not being implemented yet. See [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md)
+for final-asset evidence; the source review below remains candidate research.
+This source review was prepared before implementation, not as another stage.
+S24 is released. One small public CC0 model pack
 has been byte-inspected in memory; no new model has been installed, converted,
 purchased or accepted on Android during this review. The owner has
 separately authorized downloading the full NintAndBox archive. The latest storage
@@ -383,7 +387,8 @@ The reference transfer continues independently on E:; it is not a planning gate.
 - [x] Inspect one actual small CC0 outer-box model pack and identify its UV/material
   adaptation requirement; preserve other candidates as listing/API evidence.
 - [x] Identify manuals/labels/maps/flyers/trays separately from box coverage.
-- [ ] Complete and hash-verify the owner-authorized full archive download on E:.
+- [x] Complete and hash-verify the owner-authorized full archive download on E:
+  (2026-10-17, exact 42,436,388,695 bytes and required SHA-1; supervised exit 0).
   Only classified final resources go to Drive; source preservation is not ingestion.
 - [ ] Inspect actual selected mesh files/UVs/materials/pivots and settle one base
   per required family; listing/API metadata is not file acceptance.
@@ -426,7 +431,8 @@ unbounded download or that S24's already verified release failed.
 
 ## Full S25 capability contract and execution plan
 
-Planning checkpoint: 2026-10-17. S25 implementation is **NOT STARTED**. These are
+Planning checkpoint: 2026-10-17; subsequently S25 became **ACTIVE** under the
+owner's explorer/model-validation-first instruction. These are
 ordered work packages inside the existing S25 stage, not additional stages or
 parallel fronts. No archive, model purchase, second account or complete six-face
 collection is a prerequisite for defining the plan. When implementation resumes,

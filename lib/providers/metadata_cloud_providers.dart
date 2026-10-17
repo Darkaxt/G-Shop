@@ -22,6 +22,12 @@ import 'preview_providers.dart';
 import 'metadata_providers.dart';
 
 const metadataCloudSettingsKey = 'metadata_cloud_v1';
+final editionGalleryMediaProvider = FutureProvider.autoDispose
+    .family<Map<String, List<String>>, String>((ref, edition) async {
+  ref.watch(metadataMediaRevisionProvider);
+  return (await ref.read(cachedMetadataArtworkProvider))
+      .galleryForEdition(edition);
+});
 final metadataMediaRevisionProvider = StateProvider<int>((ref) => 0);
 
 class MetadataCloudState {

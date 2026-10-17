@@ -195,7 +195,11 @@ void main() {
             .widget<MediaCoverFallback>(find.byType(MediaCoverFallback))
             .systemId,
         'psp');
-    expect(find.text('Patapon'), findsOneWidget);
+    final sticker = tester
+        .widget<HandwrittenMediaSticker>(find.byType(HandwrittenMediaSticker));
+    expect(sticker.title, 'Patapon');
+    expect(sticker.disc && sticker.umd, true);
+    expect(find.byType(CustomPaint), findsWidgets);
     expect(
         tester
             .widget<HandwrittenMediaSticker>(
@@ -211,7 +215,12 @@ void main() {
             .widget<MediaCoverFallback>(find.byType(MediaCoverFallback))
             .systemId,
         'psp');
-    expect(find.text('Patapon'), findsOneWidget);
+    expect(
+        tester
+            .widget<HandwrittenMediaSticker>(
+                find.byType(HandwrittenMediaSticker))
+            .title,
+        'Patapon');
     expect(find.byIcon(Icons.broken_image), findsNothing);
     final image = tester.widget<Image>(find.byType(Image));
     expect((image.image as ResizeImage).width, 256,

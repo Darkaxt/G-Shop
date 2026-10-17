@@ -1,13 +1,40 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 75, 2026-10-17.
+Authoritative specification, revision 77, 2026-10-17.
+
+Owner inspection correction, 2026-10-17: handwritten missing-art disc titles follow
+upper circular arcs around the CD hole or UMD badge (not a rectangular paragraph),
+with additional arcs for long titles, and use the cartridge label area readably,
+including narrow/tall labels. Do not move or modify real cartridge artwork to
+achieve this. Verify representative disc and cartridge layouts on Thor as part
+of the current S25 individual-resource checkpoint.
+
+Owner S25 implementation/checkpoint revision, 2026-10-17: implement the generic
+edition-bound packaging/resource explorer first and verify each console's final
+model path, not just candidate listings. Stop before implementing the full
+cinematic transition. Maintain [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md)
+with exact final assets, orientation, material/reflections, fit, rotation/zoom,
+opening/hinge support and actual renderer evidence. Unverified rows remain so.
+S25 is ACTIVE; this checkpoint does not make the entire stage COMPLETE.
+
+The eventual sequence is outer box sliding left, an internal case fitted inside
+following out, rotation into the artwork orientation only once clear, natural
+opening revealing instruction/medium positions, medium popping into focus, then
+protector dissolving while zooming away and yielding to the background trailer.
+Skip inapplicable physical layers; no fake opening of closed geometry. This
+supersedes the earlier no-opening requirement for suitable opening-capable cases.
+Implement and inspect explicit layer/pose/hinge controls now, not that automatic
+timeline. Retain S24's current reveal until the cinematic work is resumed.
+The independent explorer provides box, case/cover, cartridge/disc, manual/booklet
+(3D plus read mode) and artwork/trailer gallery. Full animation acceptance stays
+pending after the requested stop, with per-console verification required.
 
 Current execution checkpoint: S24 is COMPLETE after the corrected GitHub-built
 1.9.17/code 33 passed the actual Thor gallery for all 24 eligible ranked GBA games,
 including rendered labels/covers, playing trailers at saved volume and the
 readiness-gated reveal. Native motion/edge inspection and public-release versus
 installed-byte verification also pass. Earlier receipt-only completion claims
-remain superseded, not reused as this proof. Expanded S25 remains NOT STARTED;
+remain superseded, not reused as this proof. Expanded S25 is now ACTIVE;
 the unchanged regional-filter evidence (historically numbered S26) remains
 applicable. The wider Nintendo
 collection is an ongoing durable product job, not completed-scrape evidence.
@@ -187,8 +214,8 @@ defines S22 dual-screen browsing/gameplay media and the following S23 general
 website acquisition integration based on LolSuite Manager. The owner subsequently
 requested the R22 Thor production update and approved S24's separate Drive-backed
 metadata library with a configurable 2 GiB local media-cache default. S22 and R22
-are COMPLETE; S23 is NOT STARTED and S24 is COMPLETE. Expanded S25 and the new
-G-Shop S26 are NOT STARTED; historical startup/filter acceptance is preserved.
+are COMPLETE; S23 is NOT STARTED and S24 is COMPLETE. Expanded S25 is ACTIVE;
+the new G-Shop S26 is NOT STARTED. Historical startup/filter acceptance is preserved.
 Preserve all prior
 data/authentication/launch/companion contracts.
 Implementation and scoped native verification are authorized; a new public

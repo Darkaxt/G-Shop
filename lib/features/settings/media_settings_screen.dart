@@ -330,7 +330,7 @@ class _MediaSettingsState extends ConsumerState<MediaSettingsScreen>
                               const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 16),
                                   child: Text(
-                                      'Use Download media on a game preview. Changing these settings never scrapes your collection.')),
+                                      'Open Resources on a game to explore collected media. Use Scrape to collect more. Changing these settings does not start scraping.')),
                             ],
                             if ((_notice ?? importer.message).isNotEmpty) ...[
                               const SizedBox(height: 20),
