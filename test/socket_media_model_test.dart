@@ -10,6 +10,26 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  test('transmitting plastic preserves IOR and does not become alpha blending',
+      () {
+    final material = <String, dynamic>{
+      'color': [1, .2, .1, 1],
+      'sourceProperties': {
+        'transmission': .94,
+        'ior': 1.49,
+        'thickness': .012,
+        'roughness': .18,
+        'metallic': 0
+      }
+    };
+    final values = SocketMediaGpu.materialUniforms(material);
+    expect(values.length, 28);
+    expect(values[3], 1);
+    expect(values[5], 0);
+    expect(values[24], closeTo(.94, 1e-6));
+    expect(values[25], closeTo(1.49, 1e-6));
+    expect(values[26], closeTo(.012, 1e-6));
+  });
   test('hardware screens preserve their albedo emission without changing media',
       () {
     final screen = SocketMediaGpu.materialUniforms({
@@ -18,12 +38,12 @@ void main() {
         'emission': [1, 1, 1]
       },
     });
-    expect(screen.length, 24);
-    expect(screen.sublist(20), [1, 1, 1, 0]);
+    expect(screen.length, 28);
+    expect(screen.sublist(20, 24), [1, 1, 1, 0]);
     expect(
         SocketMediaGpu.materialUniforms({
           'color': [1, 1, 1, 1]
-        }).sublist(20),
+        }).sublist(20, 24),
         [0, 0, 0, 0]);
     expect(
         SocketMediaGpu.plasticHousing('console-gba', {

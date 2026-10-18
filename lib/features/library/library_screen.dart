@@ -2630,6 +2630,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       ImageHelper.getCoverUrlsForSingle(system, entry.filename),
                   physicalLabelUrl: physicalMetadata?.cachedSupportTexture,
                   gbcDualMode: physicalMetadata?.gbcDualMode,
+                  contentTags: physicalMetadata?.contentTags ?? const [],
                   boxArtDecodeWidth: coverDecodeWidth,
                   cachedUrl: _metadataCovers[coverRatingKey(
                           entry.systemSlug, entry.selectionKey)] ??

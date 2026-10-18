@@ -482,6 +482,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
             selection.variants[controller.selectedIndex].cachedCoverUrl),
         'label': local(metadata?.cachedSupportTexture),
         'gbcDualMode': metadata?.gbcDualMode,
+        'contentTags': metadata?.contentTags.toList() ?? const <String>[],
         'screenshots': metadata?.cachedScreenshots
                 .where((s) => s.startsWith('file://'))
                 .toList() ??

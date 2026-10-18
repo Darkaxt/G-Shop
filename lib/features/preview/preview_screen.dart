@@ -416,6 +416,8 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             snapshot['identity'] as String,
                                         title: game.displayName,
                                         systemId: system.id,
+                                        filename: game.filename,
+                                        contentTags: (snapshot['contentTags'] as List? ?? const []).cast<String>(),
                                         region:
                                             GameMetadata.parse(game.filename)
                                                 .region
@@ -473,7 +475,7 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             ? const Center(
                                                 child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
                                             : prefs.modelVisible
-                                                ? CoverSection(key: _coverKey, game: game, system: system, coverUrls: const [], cachedUrl: snapshot['cover'] as String?, physicalLabelUrl: snapshot['label'] as String?, gbcDualMode: snapshot['gbcDualMode'] as String?, metadata: GameMetadata.parse(game.filename), physicalMediaEnabled: snapshot['threeD'] == true, physicalMediaKey: _physicalKey, reducedMotion: snapshot['reducedMotion'] == true, resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true), onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)), onRevealed: () => unawaited(_rendered(snapshot['revision'] as int, revealCompleted: true)), showPresentationControls: false)
+                                                ? CoverSection(key: _coverKey, game: game, system: system, coverUrls: const [], cachedUrl: snapshot['cover'] as String?, physicalLabelUrl: snapshot['label'] as String?, gbcDualMode: snapshot['gbcDualMode'] as String?, contentTags: (snapshot['contentTags'] as List? ?? const []).cast<String>(), metadata: GameMetadata.parse(game.filename), physicalMediaEnabled: snapshot['threeD'] == true, physicalMediaKey: _physicalKey, reducedMotion: snapshot['reducedMotion'] == true, resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true), onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)), onRevealed: () => unawaited(_rendered(snapshot['revision'] as int, revealCompleted: true)), showPresentationControls: false)
                                                 : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
                         if (!details)
                           const Text('Select for details',

@@ -15,6 +15,7 @@ class PhysicalMediaView extends StatefulWidget {
   final VoidCallback? onReady;
   final bool reducedMotion;
   final PhysicalMediaFormat format;
+  final String? cartridgeStyle;
   const PhysicalMediaView(
       {super.key,
       required this.identity,
@@ -22,6 +23,7 @@ class PhysicalMediaView extends StatefulWidget {
       required this.label,
       this.labelIdentity,
       this.onReady,
+      this.cartridgeStyle,
       this.reducedMotion = false,
       this.format = PhysicalMediaFormat.gameBoy});
   @override
@@ -177,6 +179,7 @@ class PhysicalMediaViewState extends State<PhysicalMediaView>
                         child: SocketMediaRenderer(
                             key: _rendererKey,
                             format: widget.format,
+                            cartridgeStyle: widget.cartridgeStyle,
                             pose: pose,
                             identity: widget.identity,
                             title: widget.title,

@@ -131,6 +131,18 @@ class SocketMediaModel {
         textureBundle: textureBundle);
   }
 
+  factory SocketMediaModel.privateCartridge(
+      Map<String, dynamic> data, ByteData mesh,
+      {AssetBundle? textureBundle}) {
+    if (data['cartridgeGeometry'] != true ||
+        data['hardwareGeometry'] == true ||
+        data['packagingGeometry'] == true) {
+      throw const FormatException('Invalid local cartridge identity');
+    }
+    return SocketMediaModel._privateGeometry(data, mesh,
+        textureBundle: textureBundle);
+  }
+
   factory SocketMediaModel._privateGeometry(
       Map<String, dynamic> data, ByteData mesh,
       {AssetBundle? textureBundle}) {

@@ -12,11 +12,13 @@ import 'package:vector_math/vector_math_64.dart' as vm;
 import '../models/socket_media_model.dart';
 import '../models/packaging_model.dart';
 import '../models/console_model.dart';
+import '../models/gba_cartridge_model.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
   final PackagingModel? packaging;
   final ConsoleModel? console;
+  final String? cartridgeStyle;
   final SocketMediaPose pose;
   final String identity, title;
   final Widget label;
@@ -30,6 +32,7 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.title,
       required this.label,
       this.labelIdentity,
+      this.cartridgeStyle,
       this.onReady})
       : packaging = null,
         console = null;
@@ -44,6 +47,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.onReady})
       : packaging = model,
         console = null,
+        cartridgeStyle = null,
         format = PhysicalMediaFormat.gameBoy;
   const SocketMediaRenderer.console(
       {super.key,
@@ -54,6 +58,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.onReady})
       : console = model,
         packaging = null,
+        cartridgeStyle = null,
         format = PhysicalMediaFormat.gameBoy,
         label = const ColoredBox(color: Colors.white),
         labelIdentity = 'console';
@@ -119,7 +124,13 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'labelReady': _labelTexture != null,
         'frameRendered': frameRendered,
         'error': _error?.toString(),
-        'sourceApkSha256': widget.packaging == null && widget.console == null
+        'cartridgeStyle': _renderer?.model.data['cartridgeStyle'],
+        'transmission': _renderer?.hasTransmission == true
+            ? 'thin-shell-opaque-scene'
+            : null,
+        'sourceApkSha256': widget.packaging == null &&
+                widget.console == null &&
+                _renderer?.model.data['cartridgeGeometry'] != true
             ? SocketMediaModel.apkSha256
             : null,
         'elapsedMilestonesUs': {
@@ -145,6 +156,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         oldWidget.packaging?.aspect != widget.packaging?.aspect ||
         oldWidget.packaging?.depth != widget.packaging?.depth ||
         oldWidget.console?.generation != widget.console?.generation ||
+        oldWidget.cartridgeStyle != widget.cartridgeStyle ||
         oldWidget.identity != widget.identity ||
         _resources != SocketMediaModel.importedBundle) {
       _load();
@@ -186,7 +198,10 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       final renderer = await SocketMediaGpu.load(widget.format,
           owned: widget.console != null
               ? await widget.console!.load()
-              : await widget.packaging?.load());
+              : widget.cartridgeStyle != null &&
+                      widget.format == PhysicalMediaFormat.gba
+                  ? await GbaCartridgeModel.load(widget.cartridgeStyle!)
+                  : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -331,7 +346,9 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 () => _rendered(renderer, labelRevision, pose),
                 (error) => _paintFailed(renderer, error)))
       else
-        widget.packaging != null || widget.console != null
+        widget.packaging != null ||
+                widget.console != null ||
+                widget.cartridgeStyle != null
             ? Center(
                 child: _error == null
                     ? const CircularProgressIndicator()
@@ -378,6 +395,7 @@ class SocketMediaGpu {
   static gpu.WindingOrder windingOrder(SocketMediaModel model) =>
       model.data['packagingGeometry'] == true ||
               model.data['hardwareGeometry'] == true ||
+              model.data['cartridgeGeometry'] == true ||
               model.data['ownedGeometry'] == true
           ? gpu.WindingOrder.counterClockwise
           : gpu.WindingOrder.clockwise;
@@ -427,11 +445,13 @@ class SocketMediaGpu {
         ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
     }
     if (model.data['ownedGeometry'] == true ||
+        model.data['cartridgeGeometry'] == true ||
         model.data['packagingGeometry'] == true) {
       return vm.Matrix4.identity()
         ..translateByDouble(0, pose.y, pose.z, 1)
         ..rotateY(pose.ry)
-        ..rotateX(pose.rx)
+        ..rotateX(pose.rx +
+            (model.data['cartridgeGeometry'] == true ? math.pi / 2 : 0))
         ..rotateZ(pose.rz)
         ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
     }
@@ -481,6 +501,11 @@ class SocketMediaGpu {
   static const environmentPrefixMipLevels = 9;
   gpu.GpuImageSurface? _surface;
   gpu.Texture? _depth;
+  gpu.Texture? _opaqueScene, _opaqueDepth;
+  bool get hasTransmission =>
+      model.surfaces.any((s) => transmitting(s['material']));
+  static bool transmitting(Map material) =>
+      ((material['sourceProperties']?['transmission'] as num?) ?? 0) > 0;
   SocketMediaGpu._(
       this.model,
       this.pipeline,
@@ -545,6 +570,10 @@ class SocketMediaGpu {
       ...((props['emission'] as List?) ?? const [0, 0, 0])
           .cast<num>()
           .map((v) => v.toDouble()),
+      0,
+      number('transmission', 0),
+      number('ior', 1.5),
+      number('thickness', 0),
       0,
     ]);
   }
@@ -687,145 +716,183 @@ class SocketMediaGpu {
           gpu.StorageMode.devicePrivate, width, height,
           format: context.defaultDepthStencilFormat,
           enableShaderReadUsage: false);
+      if (hasTransmission) {
+        _opaqueScene =
+            context.createTexture(gpu.StorageMode.devicePrivate, width, height);
+        _opaqueDepth = context.createTexture(
+            gpu.StorageMode.devicePrivate, width, height,
+            format: context.defaultDepthStencilFormat,
+            enableShaderReadUsage: false);
+      }
     }
     final frame = _surface!.acquireNextFrame();
     final commands = context.createCommandBuffer();
     try {
-      final pass = commands.createRenderPass(gpu.RenderTarget.singleColor(
-          gpu.ColorAttachment(texture: frame.colorTexture),
-          depthStencilAttachment: gpu.DepthStencilAttachment(
-              texture: _depth!, depthClearValue: 1)));
-      pass.bindPipeline(pipeline);
-      pass.setDepthCompareOperation(gpu.CompareFunction.lessEqual);
-      pass.setCullMode(gpu.CullMode.none);
-      pass.setWindingOrder(windingOrder(model));
-      pass.setColorBlendEnable(true);
-      pass.setColorBlendEquation(gpu.ColorBlendEquation());
-      final units = model.data['hardwareGeometry'] == true
-          ? math.min(size.width * .72 / model.sourceWidth,
-              size.height * .68 / model.height)
-          : math.min(size.width * .72, size.height * .68 / model.height);
-      final projection = cameraProjection(size.width, size.height, units);
-      final base = modelTransform(model, pose);
-      final uniforms = context.createHostBuffer(blockLengthInBytes: 16 * 1024);
-      final direction = (environmentData['lightDirection'] as List).cast<num>();
-      pass.bindUniform(
-          pipeline.fragmentShader.getUniformSlot('EnvironmentInfo'),
-          uniforms.emplace(Float32List.fromList([
-            ...direction.map((v) => v.toDouble()),
-            (environmentData['lightEnergy'] as num).toDouble(),
-            ((environmentData['mips'] as List).length - 1).toDouble(),
-            (environmentData['ambientEnergy'] as num).toDouble(),
-            (environmentData['reflectionEnergy'] as num).toDouble(),
-            (environmentData['exposure'] as num).toDouble(),
-            (environment.mipLevelCount - 1).toDouble(),
-            0,
-            0,
-            0,
-          ]).buffer.asByteData()));
-      pass.bindTexture(
-          pipeline.fragmentShader.getUniformSlot('environment_map'),
-          environment,
-          sampler: gpu.SamplerOptions(
-              minFilter: gpu.MinMagFilter.linear,
-              magFilter: gpu.MinMagFilter.linear,
-              mipFilter: gpu.MipFilter.linear,
-              widthAddressMode: gpu.SamplerAddressMode.repeat,
-              heightAddressMode: gpu.SamplerAddressMode.clampToEdge));
-      for (var i = 0; i < environmentTail.length; i++) {
-        pass.bindTexture(
-            pipeline.fragmentShader.getUniformSlot('environment_tail_$i'),
-            environmentTail[i],
+      void draw(gpu.Texture target, gpu.Texture depthTarget,
+          {bool opaqueOnly = false}) {
+        final pass = commands.createRenderPass(gpu.RenderTarget.singleColor(
+            gpu.ColorAttachment(texture: target),
+            depthStencilAttachment: gpu.DepthStencilAttachment(
+                texture: depthTarget, depthClearValue: 1)));
+        pass.bindPipeline(pipeline);
+        pass.setDepthCompareOperation(gpu.CompareFunction.lessEqual);
+        pass.setCullMode(gpu.CullMode.none);
+        pass.setWindingOrder(windingOrder(model));
+        pass.setColorBlendEnable(true);
+        pass.setColorBlendEquation(gpu.ColorBlendEquation());
+        final units = model.data['hardwareGeometry'] == true
+            ? math.min(size.width * .72 / model.sourceWidth,
+                size.height * .68 / model.height)
+            : math.min(size.width * .72, size.height * .68 / model.height);
+        final projection = cameraProjection(size.width, size.height, units);
+        final base = modelTransform(model, pose);
+        final uniforms =
+            context.createHostBuffer(blockLengthInBytes: 16 * 1024);
+        final direction =
+            (environmentData['lightDirection'] as List).cast<num>();
+        pass.bindUniform(
+            pipeline.fragmentShader.getUniformSlot('EnvironmentInfo'),
+            uniforms.emplace(Float32List.fromList([
+              ...direction.map((v) => v.toDouble()),
+              (environmentData['lightEnergy'] as num).toDouble(),
+              ((environmentData['mips'] as List).length - 1).toDouble(),
+              (environmentData['ambientEnergy'] as num).toDouble(),
+              (environmentData['reflectionEnergy'] as num).toDouble(),
+              (environmentData['exposure'] as num).toDouble(),
+              (environment.mipLevelCount - 1).toDouble(),
+              0,
+              0,
+              0,
+              width.toDouble(),
+              height.toDouble(),
+              projection.entry(0, 0),
+              projection.entry(1, 1),
+            ]).buffer.asByteData()));
+        pass.bindTexture(pipeline.fragmentShader.getUniformSlot('opaque_scene'),
+            opaqueOnly ? white : _opaqueScene ?? white,
             sampler: gpu.SamplerOptions(
-                minFilter: gpu.MinMagFilter.nearest,
-                magFilter: gpu.MinMagFilter.nearest));
-      }
-      final ordered = [...model.surfaces]..sort((a, b) =>
-          ((a['material']['color'][3] as num) < 1 ? 1 : 0)
-              .compareTo((b['material']['color'][3] as num) < 1 ? 1 : 0));
-      for (final surface in ordered) {
-        pass.setCullMode(surface['singleSided'] == true
-            ? gpu.CullMode.backFace
-            : gpu.CullMode.none);
-        final isLabel = surface['role'] == 'label';
-        final transform = base.clone();
-        if (surface['openingHinges'] is List) {
-          transform.multiply(openingTransform(surface, pose.opening));
-        } else if (surface['hinged'] == true && pose.opening != 0) {
-          final pivot = (surface['pivot'] as List).cast<num>();
-          transform
-            ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
-            ..rotateY(-pose.opening.clamp(0, 1) *
-                (model.data['maxOpenRadians'] as num).toDouble())
-            ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
-        }
-        if (pose.labelSpin != 0 && (isLabel || model.motionKind == 'disc')) {
-          final pivot = (surface['pivot'] as List).cast<num>();
-          final axis = (surface['spinAxis'] as List).cast<num>();
-          transform
-            ..translateByDouble(pivot[0].toDouble(), pivot[1].toDouble(),
-                pivot[2].toDouble(), 1)
-            ..rotate(
-                vm.Vector3(
-                    axis[0].toDouble(), axis[1].toDouble(), axis[2].toDouble()),
-                pose.labelSpin)
-            ..translateByDouble(-pivot[0].toDouble(), -pivot[1].toDouble(),
-                -pivot[2].toDouble(), 1);
-        }
-        final normal = vm.Matrix4.copy(transform)
-          ..invert()
-          ..transpose();
-        final mvp = projection * transform;
-        pass.bindUniform(
-            pipeline.vertexShader.getUniformSlot('VertInfo'),
-            uniforms.emplace(Float32List.fromList(
-                    [...mvp.storage, ...transform.storage, ...normal.storage])
-                .buffer
-                .asByteData()));
-        final material = surface['material'] as Map<String, dynamic>;
-        pass.setDepthWriteEnable((material['color'][3] as num) >= 1);
-        pass.bindUniform(
-            pipeline.fragmentShader.getUniformSlot('FragInfo'),
-            uniforms.emplace(materialUniforms(material,
-                    isLabel: isLabel,
-                    isDisc: model.motionKind == 'disc',
-                    plasticHousing:
-                        SocketMediaGpu.plasticHousing(model.name, surface))
-                .buffer
-                .asByteData()));
-        final maps = (material['textures'] as Map?) ?? const {};
-        for (final role in [
-          'albedo',
-          'roughness',
-          'metallic',
-          'normal',
-          'ao'
-        ]) {
-          final texture = role == 'albedo' && isLabel
-              ? label
-              : textures[maps[role]] ?? (role == 'normal' ? flatNormal : white);
+                minFilter: gpu.MinMagFilter.linear,
+                magFilter: gpu.MinMagFilter.linear,
+                widthAddressMode: gpu.SamplerAddressMode.clampToEdge,
+                heightAddressMode: gpu.SamplerAddressMode.clampToEdge));
+        pass.bindTexture(
+            pipeline.fragmentShader.getUniformSlot('environment_map'),
+            environment,
+            sampler: gpu.SamplerOptions(
+                minFilter: gpu.MinMagFilter.linear,
+                magFilter: gpu.MinMagFilter.linear,
+                mipFilter: gpu.MipFilter.linear,
+                widthAddressMode: gpu.SamplerAddressMode.repeat,
+                heightAddressMode: gpu.SamplerAddressMode.clampToEdge));
+        for (var i = 0; i < environmentTail.length; i++) {
           pass.bindTexture(
-              pipeline.fragmentShader.getUniformSlot('${role}_map'), texture,
+              pipeline.fragmentShader.getUniformSlot('environment_tail_$i'),
+              environmentTail[i],
               sampler: gpu.SamplerOptions(
-                  minFilter: gpu.MinMagFilter.linear,
-                  magFilter: gpu.MinMagFilter.linear,
-                  widthAddressMode: isLabel
-                      ? gpu.SamplerAddressMode.clampToEdge
-                      : gpu.SamplerAddressMode.repeat,
-                  heightAddressMode: isLabel
-                      ? gpu.SamplerAddressMode.clampToEdge
-                      : gpu.SamplerAddressMode.repeat));
+                  minFilter: gpu.MinMagFilter.nearest,
+                  magFilter: gpu.MinMagFilter.nearest));
         }
-        pass.bindVertexBuffer(gpu.BufferView(mesh,
-            offsetInBytes: surface['vertexOffset'] as int,
-            lengthInBytes: (surface['vertexCount'] as int) * 32));
-        pass.bindIndexBuffer(
-            gpu.BufferView(mesh,
-                offsetInBytes: surface['indexOffset'] as int,
-                lengthInBytes: (surface['indexCount'] as int) * 4),
-            gpu.IndexType.int32);
-        pass.drawIndexed(surface['indexCount'] as int);
+        final ordered = [...model.surfaces]..sort((a, b) =>
+            (transmitting(a['material']) ||
+                        (a['material']['color'][3] as num) < 1
+                    ? 1
+                    : 0)
+                .compareTo(transmitting(b['material']) ||
+                        (b['material']['color'][3] as num) < 1
+                    ? 1
+                    : 0));
+        for (final surface in ordered) {
+          if (opaqueOnly && transmitting(surface['material'])) continue;
+          pass.setCullMode(surface['singleSided'] == true
+              ? gpu.CullMode.backFace
+              : gpu.CullMode.none);
+          final isLabel = surface['role'] == 'label';
+          final transform = base.clone();
+          if (surface['openingHinges'] is List) {
+            transform.multiply(openingTransform(surface, pose.opening));
+          } else if (surface['hinged'] == true && pose.opening != 0) {
+            final pivot = (surface['pivot'] as List).cast<num>();
+            transform
+              ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
+              ..rotateY(-pose.opening.clamp(0, 1) *
+                  (model.data['maxOpenRadians'] as num).toDouble())
+              ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
+          }
+          if (pose.labelSpin != 0 && (isLabel || model.motionKind == 'disc')) {
+            final pivot = (surface['pivot'] as List).cast<num>();
+            final axis = (surface['spinAxis'] as List).cast<num>();
+            transform
+              ..translateByDouble(pivot[0].toDouble(), pivot[1].toDouble(),
+                  pivot[2].toDouble(), 1)
+              ..rotate(
+                  vm.Vector3(axis[0].toDouble(), axis[1].toDouble(),
+                      axis[2].toDouble()),
+                  pose.labelSpin)
+              ..translateByDouble(-pivot[0].toDouble(), -pivot[1].toDouble(),
+                  -pivot[2].toDouble(), 1);
+          }
+          final normal = vm.Matrix4.copy(transform)
+            ..invert()
+            ..transpose();
+          final mvp = projection * transform;
+          pass.bindUniform(
+              pipeline.vertexShader.getUniformSlot('VertInfo'),
+              uniforms.emplace(Float32List.fromList(
+                      [...mvp.storage, ...transform.storage, ...normal.storage])
+                  .buffer
+                  .asByteData()));
+          final material = surface['material'] as Map<String, dynamic>;
+          // Transmission already includes the opaque background sample. Replace
+          // its pixel rather than compositing that background for a second time.
+          pass.setColorBlendEnable(!transmitting(material));
+          pass.setDepthWriteEnable((material['color'][3] as num) >= 1);
+          pass.bindUniform(
+              pipeline.fragmentShader.getUniformSlot('FragInfo'),
+              uniforms.emplace(materialUniforms(material,
+                      isLabel: isLabel,
+                      isDisc: model.motionKind == 'disc',
+                      plasticHousing:
+                          SocketMediaGpu.plasticHousing(model.name, surface))
+                  .buffer
+                  .asByteData()));
+          final maps = (material['textures'] as Map?) ?? const {};
+          for (final role in [
+            'albedo',
+            'roughness',
+            'metallic',
+            'normal',
+            'ao'
+          ]) {
+            final texture = role == 'albedo' && isLabel
+                ? label
+                : textures[maps[role]] ??
+                    (role == 'normal' ? flatNormal : white);
+            pass.bindTexture(
+                pipeline.fragmentShader.getUniformSlot('${role}_map'), texture,
+                sampler: gpu.SamplerOptions(
+                    minFilter: gpu.MinMagFilter.linear,
+                    magFilter: gpu.MinMagFilter.linear,
+                    widthAddressMode: isLabel
+                        ? gpu.SamplerAddressMode.clampToEdge
+                        : gpu.SamplerAddressMode.repeat,
+                    heightAddressMode: isLabel
+                        ? gpu.SamplerAddressMode.clampToEdge
+                        : gpu.SamplerAddressMode.repeat));
+          }
+          pass.bindVertexBuffer(gpu.BufferView(mesh,
+              offsetInBytes: surface['vertexOffset'] as int,
+              lengthInBytes: (surface['vertexCount'] as int) * 32));
+          pass.bindIndexBuffer(
+              gpu.BufferView(mesh,
+                  offsetInBytes: surface['indexOffset'] as int,
+                  lengthInBytes: (surface['indexCount'] as int) * 4),
+              gpu.IndexType.int32);
+          pass.drawIndexed(surface['indexCount'] as int);
+        }
       }
+
+      if (hasTransmission) draw(_opaqueScene!, _opaqueDepth!, opaqueOnly: true);
+      draw(frame.colorTexture, _depth!);
       frame.present(commands);
       commands.submit(completionCallback: (success) {
         if (success) {

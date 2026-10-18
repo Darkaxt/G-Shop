@@ -1219,6 +1219,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                             physicalLabelUrl:
                                 richMetadata?.cachedSupportTexture,
                             gbcDualMode: richMetadata?.gbcDualMode,
+                            contentTags: richMetadata?.contentTags ?? const [],
                             cachedUrl: richMetadata?.cachedCover ??
                                 selectedVariant.cachedCoverUrl,
                             metadata: fileMetadata,
@@ -1314,6 +1315,7 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
               coverUrls: coverUrls,
               physicalLabelUrl: richMetadata?.cachedSupportTexture,
               gbcDualMode: richMetadata?.gbcDualMode,
+              contentTags: richMetadata?.contentTags ?? const [],
               cachedUrl:
                   richMetadata?.cachedCover ?? selectedVariant.cachedCoverUrl,
               metadata: fileMetadata,

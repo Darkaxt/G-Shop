@@ -1,6 +1,16 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 89, 2026-10-18.
+Authoritative specification, revision 90, 2026-10-18.
+
+Owner-supplied GBA cartridge sources, 2026-10-18: evaluate the colored hollow
+cartridge/PCB assembly in `Gameboy_Advance_Cartridge.zip` against the alternative
+Super Mario World GLB. Preserve the originals and local-import provenance.
+Use the separate shell/label/board assembly for the standard-shape clear/cloudy
+variants when its native material/rendering checks pass. Keep the label opaque
+and replace it with the selected game's artwork. Transmission/IOR must not be
+silently discarded or called equivalent to ordinary alpha blending. The shared
+approximate AGB-E05-01 board is illustrative, not exact per-title electronics.
+This extends the existing S25 GBA work; it neither opens S27 nor the cinematic.
 
 Owner GBA physical-variant extension, 2026-10-18: within S25's GBA pass, identify
 commercial cartridges by game + region + edition, preserving standard dark-gray

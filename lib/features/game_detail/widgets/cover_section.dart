@@ -9,6 +9,7 @@ import '../../../widgets/smart_cover_image.dart';
 import '../../../widgets/physical_media_view.dart';
 import '../../../widgets/media_cover_fallback.dart';
 import '../../../widgets/cover_reveal.dart';
+import '../../../models/gba_cartridge_model.dart';
 import '../../../services/image_cache_service.dart';
 import '../../preview/resource_gallery.dart';
 
@@ -19,6 +20,7 @@ class CoverSection extends StatefulWidget {
   final String? cachedUrl;
   final String? physicalLabelUrl;
   final String? gbcDualMode;
+  final Iterable<String> contentTags;
   final int? boxArtDecodeWidth;
   final GameMetadataFull metadata;
   final bool isFavorite;
@@ -41,6 +43,7 @@ class CoverSection extends StatefulWidget {
     this.cachedUrl,
     this.physicalLabelUrl,
     this.gbcDualMode,
+    this.contentTags = const [],
     this.boxArtDecodeWidth,
     required this.metadata,
     this.isFavorite = false,
@@ -191,6 +194,8 @@ class CoverSectionState extends State<CoverSection> {
                       systemId: widget.system.id,
                       region: widget.metadata.region.name,
                       dualMode: widget.gbcDualMode,
+                      filename: widget.game.filename,
+                      contentTags: widget.contentTags,
                       importedModels: widget.physicalMediaEnabled,
                       resources: resources,
                       volume: widget.galleryVolume,
@@ -252,6 +257,10 @@ class CoverSectionState extends State<CoverSection> {
                                 identity: game.selectionKey,
                                 title: game.displayName,
                                 format: format,
+                                cartridgeStyle: system.id == 'gba'
+                                    ? GbaCartridgeModel.styleFor(
+                                        game.filename, widget.contentTags)
+                                    : null,
                                 reducedMotion:
                                     _reducedMotion || widget.reducedMotion,
                                 label: labelWidget,

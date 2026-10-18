@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/packaging_model.dart';
 import '../../models/socket_media_model.dart';
+import '../../models/gba_cartridge_model.dart';
 import '../../widgets/socket_media_renderer.dart';
 import '../../widgets/handwritten_media_sticker.dart';
 import '../../widgets/media_cover_fallback.dart';
@@ -20,6 +21,8 @@ enum ResourceView { box, cover, cartridge, manual, gallery }
 class ResourceGallery extends StatefulWidget {
   final String identity, title, systemId;
   final String? region, dualMode;
+  final String? filename;
+  final Iterable<String> contentTags;
   final Map<String, List<String>> resources;
   final bool importedModels;
   final double volume;
@@ -32,6 +35,8 @@ class ResourceGallery extends StatefulWidget {
       required this.systemId,
       this.region,
       this.dualMode,
+      this.filename,
+      this.contentTags = const [],
       this.resources = const {},
       this.importedModels = false,
       this.volume = .3,
@@ -621,6 +626,11 @@ class ResourceGalleryState extends State<ResourceGallery>
                         ? SocketMediaRenderer(
                             key: rendererKey,
                             format: format!,
+                            cartridgeStyle: widget.systemId == 'gba'
+                                ? GbaCartridgeModel.styleFor(
+                                    widget.filename ?? widget.title,
+                                    widget.contentTags)
+                                : null,
                             pose: SocketMediaPose(
                                 rx: -math.pi / 2 + pitch,
                                 ry: yaw,

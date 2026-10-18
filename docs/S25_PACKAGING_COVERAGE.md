@@ -1,6 +1,16 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 89.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 90.
+
+Owner GBA cartridge sources (desktop-inspected, not native-integrated):
+
+| Source | Verified structure | Decision |
+| --- | --- | --- |
+| `Gameboy_Advance_Cartridge.zip`, SHA-256 `e311f75fa8eaf0041765806c8a282d674cd94e3b6ac64356fa30dbcb3fff36b3` | Five clear/cloudy colors; separate hollow front/back, opaque label, approximate AGB-E05-01 PCB/components. glTF transmission/IOR; no animation. Original scripts were read as data, not run. | Selected standard-shape source. Own importer/material adaptation and native checks remain required. Its shared reconstructed PCB is illustrative, not exact Ruby/Sapphire/Emerald electronics. |
+| `GBA_SP_Cartridge_SuperMarioWorld.glb`, SHA-256 `34f07450306506b2ece30e70b97285e08e677030dd056fe64bbd51a56c631e5f` | 1,070 triangles, one combined mesh/material, four maps; opaque. Desktop front/rear have convincing molded lettering. | Retained alternative/reference. No separately selectable PCB or label material is exposed; cannot directly transplant a board or recolor just its shell without classifying its faces/atlas. |
+
+Neutral-light desktop front/rear evidence is retained in the current task's
+`cartridge-inspection/` folder. Source rendering is not R-Shop GPU acceptance.
 
 GBA hardware pilot: the owner's `GameBoy_Advance-87e049f9 (1).glb` (Unconid,
 source UID `87e049f9c6944166a03a3fc551876545`) contains an authored GBA/SP/cartridge
@@ -10,8 +20,11 @@ display scene, not one isolated GBA. Preserve that scene. Actual export:
 `scripts/prepare_console_model.py` preserves uniform dimensions, original UV/PBR
 maps and albedo-linked screen emission, creating an independent private import at
 `/storage/emulated/0/RShop/models/consoles/gba/`. Desktop front/rear inspected;
-checksum-bound transfer verified all files. Native rendering/gesture/lifecycle
-acceptance remains pending. No source textures/geometry are publicly bundled.
+checksum-bound transfer verified all files. Signed source `301859c` renders the
+complete scene on Thor; native drag pause/resume, grid handover and app hiding
+were inspected. Exact five-second idle behavior/pinch/Reduced Motion are covered
+by host widget tests; native pinch is not claimed. No source textures/geometry
+are publicly bundled. Delivery identity is in IMPLEMENTATION_STATUS.md.
 The supplied creator and collection pages are reference inventories, not a claim
 that other models are acquired or integrated; broader coverage stays in S27.
 
@@ -53,10 +66,12 @@ Castlevania net aligned to the carton faces/flaps. Open lifts the top lid/tuck t
 and dust flaps without unfolding the whole box. This is the appropriate candidate
 for the owner's box-opening -> cartridge-lifting sequence; it contains no cartridge.
 Evidence: `D:/Temp/rshop-s25-booklet-20261018/carton-updated/`.
-This is byte/desktop inspection, not an R-Shop integration or native-verified row.
-Generic NintAndBox panel remapping, dimensions, hierarchical motion conversion,
-cartridge extraction placement/clearance and native inspection remain required;
-one embedded Castlevania texture does not prove every scan layout is compatible.
+Generic six-panel remapping, dimension fitting and hierarchical motion conversion
+are now integrated. Signed `a9b1d25` rendered the 2,316-triangle/38-surface carton
+closed/open on Thor with classified per-game panels. Owner feedback supersedes
+the inspector's opening control: signed `301859c` shows the closed carton with
+rotation/zoom only. Cartridge extraction placement/clearance remains cinematic
+work; one selected-game check does not establish every scan layout's acceptance.
 The cinematic still waits for the individual model review checkpoint.
 
 New Nintendo case candidates (public v3 API inspected 2026-10-18):

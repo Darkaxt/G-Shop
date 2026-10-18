@@ -7,7 +7,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Owner feedback resumes the same stage under specification revision 89. Required:
+Owner feedback resumes the same stage under specification revision 90. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded
 box panels through the existing collector/import/Drive/viewer lane, retained
 composite provenance, adapted Diskette cardboard, supplied booklet geometry and
@@ -20,14 +20,45 @@ correct per-game artwork and paper interior (`a9b1d25`, signed run 39144006525,
 APK SHA-256 `b0866a8488f33d029b310f2720de93a3bbdca544af7d7ec8a7a9abb93d82bbf5`).
 The owner then required a closed Box inspector: rotation/zoom only; the opening
 capability is reserved for the later cinematic. This UI correction and the new
-GBA rotating console pilot still require their integrated native check.
+GBA rotating console pilot received their integrated native check on signed
+source `301859c`, run 39147315756. Downloaded and installed APK SHA-256 both equal
+`000d9f7eb0834c69240354a0c8185d0d7f5b96891d760bc33524b485efa9a0d4`;
+package/version/signer are unchanged. The GBA/SP scene renders all ten parts,
+6,621 triangles and 17 textures on the lower display. A native drag changes the
+pose and pauses/resumes the turntable; the bounded clip has estimated timestamps,
+so the exact five-second interval is established by the host virtual-clock test,
+not a physical timing claim. Native pinch and a new emulator-launch pass are not
+claimed. Entering the GBA grid hands over to the ordinary game preview; opening
+Castlevania Resources shows the closed carton and no Open button. Home hides the
+presentation. Both displays were verified committed OFF and Thor Asleep.
 The pilot now includes gesture-only drag/pinch, a five-second idle resume and
 Reduced Motion. Its independent source conversion retains the authored GBA/SP
 scene, all ten mesh parts and 17 unchanged material textures, including screen
-emission. Verified local transfer placed the 19-file import on Thor; this is not
-yet native rendering proof. The GBA commercial shell/region/edition and special
+emission. Verified local transfer placed the 19-file import on Thor; the native
+rendering evidence above now supersedes the former pending-render status.
+The GBA commercial shell/region/edition and special
 sensor/rumble mould extension follows this pilot within the same ACTIVE stage.
 Broad S27 hardware coverage is still NOT STARTED.
+
+New cartridge inputs: the owner's `Gameboy_Advance_Cartridge.zip` has five
+clear/cloudy colored, hollow, separately meshed shell/PCB variants. They use
+glTF transmission/IOR, not alpha transparency. Current renderer lacks that path;
+source qualification and explicit material adaptation remain internal S25 work,
+not native-verified support. Its AGB-E05-01 board is an illustrative reconstruction
+shared by all variants, not a claim of exact per-game electronics. The separate
+`GBA_SP_Cartridge_SuperMarioWorld.glb` has one combined mesh/material (1,070
+triangles); its PCB and label require visual/UV inspection before reuse. Original
+ZIP/GLBs are preserved; supplied scripts have not been executed.
+The selected ZIP now converts through the owned adapter into 32,170 triangles,
+35 surfaces and six checksum-bound textures, excluding original label printing.
+Its private import and five commercial Pokémon material selections are wired
+through library/detail/secondary preview and Resources. Clear/cloudy materials
+use an explicit opaque-scene transmission/IOR thin-shell approximation, not alpha
+blending; it does not claim path-traced internal reflections. Focused loading,
+material, classification, Gallery and secondary lifecycle/audio checks pass;
+host Flutter cannot verify Impeller appearance. Native rendering is still required.
+Verified transfer placed all eight files (7,807,745 bytes) under the new cartridge
+model folder; both staging roots were removed. No ROM/save/settings were changed.
 
 Current host evidence: six compatible GBA unfolded sets have been classified
 from the preserved dump. Inspected six-face sheets now retain the complete fronts,

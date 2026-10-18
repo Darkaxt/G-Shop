@@ -5,11 +5,13 @@ uniform FragInfo {
   vec4 flags; // casing shader, label, disc metal, AO strength
   vec4 channels; // source roughness, metallic, AO selectors; housing roughness floor
   vec4 emission; // albedo-linked emissive RGB, reserved
+  vec4 transmission; // weight, IOR, normalized wall thickness, reserved
 } material;
 uniform EnvironmentInfo {
   vec4 light; // camera-relative direction xyz, source energy
   vec4 sky; // last mip, ambient energy, reflection energy, exposure
   vec4 levels; // main-texture last mip; final two source mips are separate
+  vec4 viewport; // physical target width/height, projection X/Y scale
 } environment;
 uniform sampler2D environment_map;
 uniform sampler2D environment_tail_0;
@@ -19,6 +21,7 @@ uniform sampler2D roughness_map;
 uniform sampler2D metallic_map;
 uniform sampler2D normal_map;
 uniform sampler2D ao_map;
+uniform sampler2D opaque_scene;
 in vec3 v_position;
 in vec3 v_normal;
 in vec2 v_uv;
@@ -99,7 +102,10 @@ void main() {
   rough = max(rough, material.channels.w);
   float metal = clamp(source_channel(texture(metallic_map, uv), material.channels.y) * material.pbr.y, 0.0, 1.0);
   float ao = mix(1.0, source_channel(texture(ao_map, uv), material.channels.z), material.flags.w);
-  vec3 f0 = mix(vec3(0.04), base, metal);
+  float transmission = material.transmission.x;
+  float ior = max(material.transmission.y, 1.0);
+  float dielectric = transmission > 0.0 ? pow((ior-1.0)/(ior+1.0), 2.0) : 0.04;
+  vec3 f0 = mix(vec3(dielectric), base, metal);
   vec3 fresnel = f0 + (1.0 - f0) * pow(1.0 - vdh, 5.0);
   float a2 = pow(rough, 4.0);
   float denom = ndh * ndh * (a2 - 1.0) + 1.0;
@@ -122,5 +128,29 @@ void main() {
     lit += rainbow * pow(1.0 - ndv, 2.0) * 0.2;
   }
   lit += base * material.emission.rgb;
+  if (transmission > 0.0) {
+    // Thin closed-shell approximation of glTF optical transmission. Sample the
+    // independently rendered opaque PCB/label, not the framebuffer being written.
+    // IOR bends that sample; roughness scatters it. This is not alpha-blended glass
+    // and not a path-traced reconstruction of every internal reflection.
+    vec3 ray = refract(-view, n, 1.0/ior);
+    vec2 offset = (ray.xy/max(abs(ray.z), .1) + view.xy/max(view.z, .1)) *
+        material.transmission.z * environment.viewport.zw * .5;
+    vec2 screen = gl_FragCoord.xy/environment.viewport.xy + offset;
+    vec2 radius = vec2(rough*4.0)/environment.viewport.xy;
+    vec4 behind = texture(opaque_scene, screen)*.4;
+    behind += texture(opaque_scene, screen+vec2(radius.x,0.0))*.15;
+    behind += texture(opaque_scene, screen-vec2(radius.x,0.0))*.15;
+    behind += texture(opaque_scene, screen+vec2(0.0,radius.y))*.15;
+    behind += texture(opaque_scene, screen-vec2(0.0,radius.y))*.15;
+    vec3 transmitted = from_srgb(behind.rgb/max(behind.a,.00001))*base;
+    float weight = transmission*(1.0-ambientFresnel.r);
+    float resultAlpha = alpha*((1.0-weight)+weight*behind.a);
+    vec3 result = (lit*(1.0-transmission) +
+        (specular*ndl*environment.light.w + reflectedSky)*transmission) *
+        environment.sky.w + transmitted*weight*behind.a;
+    frag_color = vec4(to_srgb(result/max(resultAlpha,.00001))*resultAlpha, resultAlpha);
+    return;
+  }
   frag_color = vec4(to_srgb(lit * environment.sky.w) * alpha, alpha);
 }
