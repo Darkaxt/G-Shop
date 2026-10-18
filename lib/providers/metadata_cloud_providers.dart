@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../services/drive/drive_authorization.dart';
 import '../models/config/source.dart';
 import '../models/preview_settings.dart';
+import '../models/scraped_metadata.dart';
 import '../services/secondary_preview.dart';
 import '../services/drive/drive_runtime.dart';
 import '../services/library_query.dart';
@@ -479,6 +480,7 @@ final cloudSelectionMediaProvider = FutureProvider.autoDispose
       .editionForSelection(selection.platform, selection.selection);
   if (edition == null || !active) return null;
   final keys = <String>{};
+  final images = <String, ({String provider, MetadataMedia media})>{};
   final regions = (await LibraryStore(database).edition(edition))?.regions ??
       const <String>[];
   for (final provider in ['screenscraper', 'romm']) {
@@ -486,40 +488,45 @@ final cloudSelectionMediaProvider = FutureProvider.autoDispose
     if (record == null) continue;
     final media = MetadataArtworkCache.displayMedia(record,
         regions: regions, includePhysicalLabel: selection.details);
-    keys.addAll(media
-        .where((m) =>
-            selection.details || {'box-2D', 'box-3D', 'cover'}.contains(m.type))
-        .map(MetadataArtworkCache.key));
+    for (final item in media.where((m) =>
+        selection.details || {'box-2D', 'box-3D', 'cover'}.contains(m.type))) {
+      final key = MetadataArtworkCache.key(item);
+      keys.add(key);
+      images[key] = (provider: provider, media: item);
+    }
     if (selection.details)
       keys.addAll(MetadataArtworkCache.displayMedia(record, includeVideo: true)
           .where((m) => {'video', 'video-normalized'}.contains(m.type))
           .map(PreviewVideoCache.key));
   }
   await cloud.leaseMedia(owner, keys);
-  await cloud.publishSelection(edition, keys);
-  await cloud.leaseMedia(owner, keys);
-  if (!active) {
-    cloud.release(owner);
-    return null;
-  }
   try {
-    for (final key in keys) {
-      if (!active) break;
-      // Video leases protect playback, but only the preview owner downloads it.
-      if (selection.details) {
-        final rows = await cloud.store.cloudIndex.query('metadata_cloud_media',
-            columns: ['path'],
-            where: 'account=? AND media_key=?',
-            whereArgs: [cloud.accountId, key]);
-        if (rows.any((r) => (r['path'] as String).endsWith('.mp4'))) continue;
+    final cache = await ref.read(cachedMetadataArtworkProvider);
+    final missing = <String>{};
+    for (final entry in images.entries) {
+      if (!active) return null;
+      if (await cache.fileFor(
+              edition, entry.value.provider, entry.value.media) ==
+          null) {
+        missing.add(entry.key);
       }
+    }
+    // Locally verified images are ready independently of backup publication.
+    // Only actual misses join the cloud owner; video downloads remain owned by
+    // playback, while the existing leases protect all selected media.
+    if (missing.isNotEmpty) {
+      await cloud.publishSelection(edition, missing);
+      await cloud.leaseMedia(owner, keys);
+    }
+    if (!active) {
+      cloud.release(owner);
+      return null;
+    }
+    for (final key in missing) {
+      if (!active) break;
       await cloud.ensureMedia(key);
     }
-    return active
-        ? (await (await ref.read(cachedMetadataArtworkProvider))
-                .artworkForEdition(edition))
-            .cover
-        : null;
+    return active ? (await cache.artworkForEdition(edition)).cover : null;
   } catch (_) {
     return null;
   } // Cache miss/offline keeps the existing fallback.

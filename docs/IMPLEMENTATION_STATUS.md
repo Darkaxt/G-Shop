@@ -5,11 +5,41 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 native cached-preview admission — 2026-10-18, ACTIVE
+
+GitHub run 39081143567 at source `67d714b` passed release unit tests, assembly,
+signature and private-asset exclusion. Its installed Thor APK independently
+matches SHA-256 `309733a0302c104ec64f2dfcf829e03367af66298785aa39bdca54bd11366da3`
+and the existing production certificate. This is signed test delivery, not a new
+public release or GBA acceptance. Both screens were confirmed OFF during the CI
+wait, then woken for the authorized native checks. No Windows Gradle was run.
+
+The native audit confirms the existing pack has 24 GBA records, 24 each of front,
+back and spine, and 789 manual pages. Startup reached 1,300/1,402 edition checks
+in about 80 seconds rather than repeating the former network walk; changed GBA
+manual resources are still being published. One read-only audit collided with
+an actual SQLite writer (`SQLITE_BUSY`), not a product crash or memory failure;
+a later observation succeeded after that transaction finished.
+
+Native rendering exposed an advancement blocker: the foreground cloud-selection
+provider joined background publication even when the selected cover/label/images
+were already valid local cache hits. The model, label and trailer could be ready
+while resource readiness stayed false behind unrelated manual uploads. The host
+regression reproduced that incorrect publication dependency. The provider now
+leases selected media, verifies local images through the existing edition-bound
+cache reader, and joins publication/recovery only for actual missing images.
+Playback still owns video downloads. The mounted-reader test verifies immediate
+local readiness during a pending backup and rejects a subsequently corrupted
+body; affected cache/publication/packaging workflows pass. Actual native rerender,
+remaining Drive publication/recovery, the whole 24-game explorer check and public
+signed delivery remain required. S25 alone remains ACTIVE; no next-console native
+implementation or automatic cinematic is authorized at this checkpoint.
+
 ### S25 unchanged-publication regression — 2026-10-18, ACTIVE
 
-The installed app reached 1,402/1,402 edition publications but continues its
-historical-media preservation pass; that existing operation is retained and
-observed, not interrupted. Inspection also reproduced why restarting would
+The previous app reached 1,402/1,402 edition publications; later observation
+below identifies its stale paused busy-state, not an endless active transfer.
+Inspection also reproduced why restarting would
 repeat the wait: backup-only startup unconditionally contacted Drive and
 re-published unchanged packets. The complete packaging workflow regression
 failed offline at the unconditional root request before the correction.

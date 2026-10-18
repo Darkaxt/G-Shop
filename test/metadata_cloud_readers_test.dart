@@ -11,7 +11,21 @@ import 'package:retro_eshop/services/database_service.dart';
 import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_cloud_library.dart';
 import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
+import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'metadata_cloud_library_test.dart' show MemoryMetadataDrive;
+import 'metadata_controls_test.dart'
+    show controlsDatabase, ControlsArtworkProvider, MemorySecrets;
+
+class _CachedFocusPublication extends _JoinedPublication {
+  int foregroundPublications = 0;
+  _CachedFocusPublication(super.store);
+  @override
+  Future<void> publishSelection(String edition, Set<String> requested) async {
+    foregroundPublications++;
+    throw StateError('Cached foreground joined background publication');
+  }
+}
 
 class _JoinedPublication extends MetadataCloudLibrary {
   final started = Completer<void>(), finish = Completer<void>();
@@ -38,6 +52,75 @@ class _JoinedPublication extends MetadataCloudLibrary {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('cached foreground images stay ready during background publication',
+      () async {
+    sqfliteFfiInit();
+    SharedPreferences.setMockInitialValues({});
+    final root = await Directory.systemTemp.createTemp('rshop-cached-focus-');
+    final db = await controlsDatabase();
+    final store = await SharedMetadataStore.open(root,
+        factory: databaseFactoryFfiNoIsolate);
+    final cache = MetadataArtworkCache(Future.value(db), store.artworkRoot,
+        sharedStore: store);
+    final provider = ControlsArtworkProvider(includeScreenshot: true);
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(cache),
+        sharedStore: Future.value(store),
+        catalogueChanged: () {});
+    await controls.load();
+    await controls.refresh(systemSlug: 'psx');
+    final cached =
+        await cache.artworkForEdition(provider.calls.single.editionId);
+    expect(cached.cover, isNotNull,
+        reason: 'Fixture has a real verified local cover');
+    expect(cached.screenshots, hasLength(1));
+    final cloud = _CachedFocusPublication(store);
+    await cloud.open();
+    final publication = cloud.sync(Future.value(db), pull: false);
+    await cloud.started.future;
+    DatabaseService.testDatabase = db;
+    final container = ProviderContainer(overrides: [
+      metadataCloudProvider
+          .overrideWith((ref) => MetadataCloudController(ref)..library = cloud),
+      cachedMetadataArtworkProvider.overrideWith((ref) => Future.value(cache)),
+      cachedMetadataReadinessProvider
+          .overrideWith((ref) async => const AsyncData(0)),
+    ]);
+    final selected = cloudSelectionMediaProvider(
+        (platform: 'psx', selection: 'Game 1.chd', details: true));
+    final mounted = container.listen(selected, (_, __) {});
+    try {
+      final result = await container.read(selected.future);
+      expect(result, isNotNull);
+      expect(await File.fromUri(Uri.parse(result!)).exists(), isTrue);
+      expect(cloud.finish.isCompleted, isFalse,
+          reason: 'Local readiness must not wait for the unrelated backup');
+      expect(cloud.foregroundPublications, 0);
+      // Corruption is not treated as a cache hit; the ordinary cloud-miss path
+      // is still used rather than exposing unchecked local bytes.
+      await File.fromUri(Uri.parse(result)).writeAsBytes([0]);
+      container.invalidate(selected);
+      expect(await container.read(selected.future), isNull);
+      expect(cloud.foregroundPublications, 1);
+    } finally {
+      mounted.close();
+      cloud.finish.complete();
+      await publication;
+      await container.read(metadataCloudProvider.notifier).pause();
+      container.dispose();
+      DatabaseService.resetForTesting();
+      await controls.close();
+      controls.dispose();
+      await store.close();
+      await db.close();
+      // Retained task-owned scratch is removed through transactional cleanup.
+    }
+  });
   test('packaging pause joins publication and resume admits the next backup',
       () async {
     sqfliteFfiInit();
