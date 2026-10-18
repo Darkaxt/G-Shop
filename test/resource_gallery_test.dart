@@ -43,6 +43,31 @@ class _GalleryPlayer extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('box inspector stays closed while manual remains openable',
+      (tester) async {
+    final key = GlobalKey<ResourceGalleryState>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ResourceGallery(
+      key: key,
+      identity: 'closed-box',
+      title: 'Review',
+      systemId: 'gba',
+      resources: const {
+        'box-2D': ['file:///front.png'],
+        'manual-page': ['file:///page.png', 'file:///last.png']
+      },
+    ))));
+    expect(key.currentState!.canOpen, false);
+    expect(find.byTooltip('Open'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.pump();
+    expect(key.currentState!.opening, 0);
+    await tester.tap(find.byKey(const ValueKey('resource-mode-manual')));
+    await tester.pump();
+    expect(key.currentState!.canOpen, true);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
       'unified media navigation releases playback and music suppression',
       (tester) async {

@@ -4,6 +4,7 @@ uniform FragInfo {
   vec4 uv_info; // scale, offset xy, albedo impact
   vec4 flags; // casing shader, label, disc metal, AO strength
   vec4 channels; // source roughness, metallic, AO selectors; housing roughness floor
+  vec4 emission; // albedo-linked emissive RGB, reserved
 } material;
 uniform EnvironmentInfo {
   vec4 light; // camera-relative direction xyz, source energy
@@ -120,5 +121,6 @@ void main() {
     vec3 rainbow = 0.5 + 0.5 * cos(angle + vec3(0.0, 2.094, 4.188));
     lit += rainbow * pow(1.0 - ndv, 2.0) * 0.2;
   }
+  lit += base * material.emission.rgb;
   frag_color = vec4(to_srgb(lit * environment.sky.w) * alpha, alpha);
 }

@@ -26,6 +26,7 @@ import '../game_list/game_list_screen.dart';
 import 'widgets/hero_carousel_item.dart';
 import 'widgets/home_grid_view.dart';
 import 'widgets/manufacturer_filter.dart';
+import '../preview/console_preview_host.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -782,86 +783,88 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
     }
     _wasGrid = isGrid;
 
-    return buildWithActions(
-      PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) {
-            if (_showExitDialog) {
-              _hideExitDialog();
-            } else if (_debouncer.canPerformAction()) {
-              _showExitDialogOverlay();
-            }
-          }
-        },
-        child: ScreenLayout(
-          backgroundColor: Colors.black,
-          accentColor: accentColor,
-          useSafeArea: false,
-          padding: EdgeInsets.zero,
-          body: Stack(children: [
-            Column(children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  top: rs.safeAreaTop +
-                      (syncVisible && rs.screenWidth < 650 ? 140 : 8),
-                  right: syncVisible && rs.screenWidth >= 650 ? 370 : 0,
-                ),
-                child: FocusScope(
-                    node: _manufacturerFocus,
-                    child: ManufacturerFilter(
-                        systems: _allSystems,
-                        selected: _manufacturer,
-                        onSelected: _selectManufacturer)),
-              ),
-              if (_hasTypes)
-                FocusScope(
-                    node: _typeFocus,
-                    child: SystemTypeFilter(
-                        systems: _allSystems,
-                        manufacturer: _manufacturer,
-                        selected: _systemType,
-                        onSelected: _selectType)),
-              Expanded(
-                  child: Stack(
-                children: [
-                  if (isGrid)
-                    HomeGridView(
-                      systems: _configuredSystems,
-                      selectedIndex: _currentIndex,
-                      columns: _columns,
-                      scrollController: _gridScrollController,
-                      itemKeys: _gridItemKeys,
-                      onSelect: (idx) {
-                        setState(() => _currentIndex = idx);
-                        ref.read(feedbackServiceProvider).tick();
-                      },
-                      onConfirm: _navigateToCurrentSystem,
-                      rs: rs,
-                    )
-                  else if (rs.isPortrait)
-                    _buildPortraitLayout(rs, currentSystem, isLibrary)
-                  else
-                    _buildLandscapeLayout(rs, currentSystem, isLibrary),
-                  if (isGrid) _buildControls(rs),
-                ],
-              )),
-            ]),
-            if (showQuickMenu)
-              QuickMenuOverlay(
-                items: _buildQuickMenuItems(),
-                onClose: closeQuickMenu,
-              ),
-            if (_showExitDialog)
-              ExitConfirmationOverlay(
-                onConfirm: _exitApp,
-                onCancel: _hideExitDialog,
-              ),
-          ]),
-        ),
-      ),
-      onKeyEvent: _handleKeyEvent,
-    );
+    return ConsolePreviewHost(
+        system: currentSystem,
+        child: buildWithActions(
+          PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) {
+                if (_showExitDialog) {
+                  _hideExitDialog();
+                } else if (_debouncer.canPerformAction()) {
+                  _showExitDialogOverlay();
+                }
+              }
+            },
+            child: ScreenLayout(
+              backgroundColor: Colors.black,
+              accentColor: accentColor,
+              useSafeArea: false,
+              padding: EdgeInsets.zero,
+              body: Stack(children: [
+                Column(children: [
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: rs.safeAreaTop +
+                          (syncVisible && rs.screenWidth < 650 ? 140 : 8),
+                      right: syncVisible && rs.screenWidth >= 650 ? 370 : 0,
+                    ),
+                    child: FocusScope(
+                        node: _manufacturerFocus,
+                        child: ManufacturerFilter(
+                            systems: _allSystems,
+                            selected: _manufacturer,
+                            onSelected: _selectManufacturer)),
+                  ),
+                  if (_hasTypes)
+                    FocusScope(
+                        node: _typeFocus,
+                        child: SystemTypeFilter(
+                            systems: _allSystems,
+                            manufacturer: _manufacturer,
+                            selected: _systemType,
+                            onSelected: _selectType)),
+                  Expanded(
+                      child: Stack(
+                    children: [
+                      if (isGrid)
+                        HomeGridView(
+                          systems: _configuredSystems,
+                          selectedIndex: _currentIndex,
+                          columns: _columns,
+                          scrollController: _gridScrollController,
+                          itemKeys: _gridItemKeys,
+                          onSelect: (idx) {
+                            setState(() => _currentIndex = idx);
+                            ref.read(feedbackServiceProvider).tick();
+                          },
+                          onConfirm: _navigateToCurrentSystem,
+                          rs: rs,
+                        )
+                      else if (rs.isPortrait)
+                        _buildPortraitLayout(rs, currentSystem, isLibrary)
+                      else
+                        _buildLandscapeLayout(rs, currentSystem, isLibrary),
+                      if (isGrid) _buildControls(rs),
+                    ],
+                  )),
+                ]),
+                if (showQuickMenu)
+                  QuickMenuOverlay(
+                    items: _buildQuickMenuItems(),
+                    onClose: closeQuickMenu,
+                  ),
+                if (_showExitDialog)
+                  ExitConfirmationOverlay(
+                    onConfirm: _exitApp,
+                    onCancel: _hideExitDialog,
+                  ),
+              ]),
+            ),
+          ),
+          onKeyEvent: _handleKeyEvent,
+        ));
   }
 
   Widget _buildLandscapeLayout(

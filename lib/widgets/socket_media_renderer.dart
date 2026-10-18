@@ -11,10 +11,12 @@ import 'package:vector_math/vector_math_64.dart' as vm;
 
 import '../models/socket_media_model.dart';
 import '../models/packaging_model.dart';
+import '../models/console_model.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
   final PackagingModel? packaging;
+  final ConsoleModel? console;
   final SocketMediaPose pose;
   final String identity, title;
   final Widget label;
@@ -29,7 +31,8 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.label,
       this.labelIdentity,
       this.onReady})
-      : packaging = null;
+      : packaging = null,
+        console = null;
   const SocketMediaRenderer.packaging(
       {super.key,
       required PackagingModel model,
@@ -40,7 +43,20 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : packaging = model,
+        console = null,
         format = PhysicalMediaFormat.gameBoy;
+  const SocketMediaRenderer.console(
+      {super.key,
+      required ConsoleModel model,
+      required this.pose,
+      required this.identity,
+      required this.title,
+      this.onReady})
+      : console = model,
+        packaging = null,
+        format = PhysicalMediaFormat.gameBoy,
+        label = const ColoredBox(color: Colors.white),
+        labelIdentity = 'console';
   @override
   State<SocketMediaRenderer> createState() => SocketMediaRendererState();
 }
@@ -73,6 +89,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   Map<String, Object?> get snapshot => {
         'model': _renderer?.model.name ??
             widget.packaging?.id ??
+            widget.console?.systemId ??
             widget.format.assetName,
         'geometrySha256': _renderer?.model.data['geometrySha256'] ??
             _renderer?.model.data['meshSha256'],
@@ -93,7 +110,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'materialTextures': _renderer?.textures.length,
         'environmentMipLevels': _renderer == null
             ? null
-            : widget.packaging != null
+            : widget.packaging != null || widget.console != null
                 ? 1
                 : _renderer!.environment.mipLevelCount +
                     _renderer!.environmentTail.length,
@@ -102,8 +119,9 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'labelReady': _labelTexture != null,
         'frameRendered': frameRendered,
         'error': _error?.toString(),
-        'sourceApkSha256':
-            widget.packaging == null ? SocketMediaModel.apkSha256 : null,
+        'sourceApkSha256': widget.packaging == null && widget.console == null
+            ? SocketMediaModel.apkSha256
+            : null,
         'elapsedMilestonesUs': {
           'modelLoaded': _modelUs,
           'labelCaptured': _labelUs,
@@ -126,6 +144,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         oldWidget.packaging?.id != widget.packaging?.id ||
         oldWidget.packaging?.aspect != widget.packaging?.aspect ||
         oldWidget.packaging?.depth != widget.packaging?.depth ||
+        oldWidget.console?.generation != widget.console?.generation ||
         oldWidget.identity != widget.identity ||
         _resources != SocketMediaModel.importedBundle) {
       _load();
@@ -165,7 +184,9 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: await widget.packaging?.load());
+          owned: widget.console != null
+              ? await widget.console!.load()
+              : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -310,7 +331,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 () => _rendered(renderer, labelRevision, pose),
                 (error) => _paintFailed(renderer, error)))
       else
-        widget.packaging != null
+        widget.packaging != null || widget.console != null
             ? Center(
                 child: _error == null
                     ? const CircularProgressIndicator()
@@ -356,6 +377,7 @@ class SocketMediaGpu {
   // Socket's model transform reflects Y, reversing its imported winding.
   static gpu.WindingOrder windingOrder(SocketMediaModel model) =>
       model.data['packagingGeometry'] == true ||
+              model.data['hardwareGeometry'] == true ||
               model.data['ownedGeometry'] == true
           ? gpu.WindingOrder.counterClockwise
           : gpu.WindingOrder.clockwise;
@@ -396,6 +418,14 @@ class SocketMediaGpu {
   /// Undo the converter's Y reflection and baked rest basis exactly once.
   static vm.Matrix4 modelTransform(
       SocketMediaModel model, SocketMediaPose pose) {
+    // Turn around the console's original upright axis; pitch is the fixed
+    // inspection-camera angle, not an axis tilted by every yaw increment.
+    if (model.data['hardwareGeometry'] == true) {
+      return vm.Matrix4.identity()
+        ..rotateX(pose.rx)
+        ..rotateY(pose.ry)
+        ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
+    }
     if (model.data['ownedGeometry'] == true ||
         model.data['packagingGeometry'] == true) {
       return vm.Matrix4.identity()
@@ -463,6 +493,7 @@ class SocketMediaGpu {
       this.environmentData);
 
   static bool plasticHousing(String model, Map<String, dynamic> surface) {
+    if ({'glass', 'source'}.contains(surface['physicalMaterial'])) return false;
     if (model == 'disc' || surface['role'] == 'label') return false;
     final node = surface['node'] as String;
     final name = (surface['name'] as String).toLowerCase();
@@ -511,6 +542,10 @@ class SocketMediaGpu {
       // imported studio sky. Matte molded housings use the fully rough lobe;
       // labels, optical media and exposed hardware retain their source finish.
       plastic ? 1 : 0,
+      ...((props['emission'] as List?) ?? const [0, 0, 0])
+          .cast<num>()
+          .map((v) => v.toDouble()),
+      0,
     ]);
   }
 
@@ -602,8 +637,9 @@ class SocketMediaGpu {
       final maps = (surface['material']['textures'] as Map?) ?? const {};
       for (final file in maps.values.cast<String>()) {
         if (textures.containsKey(file)) continue;
-        final data = await SocketMediaModel.importedBundle!
-            .load('${SocketMediaModel.assetRoot}$file');
+        final data =
+            await (model.textureBundle ?? SocketMediaModel.importedBundle)!
+                .load('${SocketMediaModel.assetRoot}$file');
         final codec = await ui.instantiateImageCodec(
             data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
         final image = (await codec.getNextFrame()).image;
@@ -665,8 +701,10 @@ class SocketMediaGpu {
       pass.setWindingOrder(windingOrder(model));
       pass.setColorBlendEnable(true);
       pass.setColorBlendEquation(gpu.ColorBlendEquation());
-      final units =
-          math.min(size.width * .72, size.height * .68 / model.height);
+      final units = model.data['hardwareGeometry'] == true
+          ? math.min(size.width * .72 / model.sourceWidth,
+              size.height * .68 / model.height)
+          : math.min(size.width * .72, size.height * .68 / model.height);
       final projection = cameraProjection(size.width, size.height, units);
       final base = modelTransform(model, pose);
       final uniforms = context.createHostBuffer(blockLengthInBytes: 16 * 1024);

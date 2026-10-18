@@ -7,7 +7,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Owner feedback resumes the same stage under specification revision 86. Required:
+Owner feedback resumes the same stage under specification revision 89. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded
 box panels through the existing collector/import/Drive/viewer lane, retained
 composite provenance, adapted Diskette cardboard, supplied booklet geometry and
@@ -15,8 +15,19 @@ era-appropriate Nintendo cases. Acceptance remains pending; no cinematic is open
 is the real example, not a game-specific implementation.
 New ordered scope: the supplied rigged carton is the current integration task;
 the GBA rotating console-selection preview follows it within the same S25 stage.
-Both are internal advancement blockers until their real imported-model workflows
-pass on Thor. Broad S27 hardware coverage is still NOT STARTED.
+The rigged carton rendered on Thor with the expected 2,316 triangles/38 surfaces,
+correct per-game artwork and paper interior (`a9b1d25`, signed run 39144006525,
+APK SHA-256 `b0866a8488f33d029b310f2720de93a3bbdca544af7d7ec8a7a9abb93d82bbf5`).
+The owner then required a closed Box inspector: rotation/zoom only; the opening
+capability is reserved for the later cinematic. This UI correction and the new
+GBA rotating console pilot still require their integrated native check.
+The pilot now includes gesture-only drag/pinch, a five-second idle resume and
+Reduced Motion. Its independent source conversion retains the authored GBA/SP
+scene, all ten mesh parts and 17 unchanged material textures, including screen
+emission. Verified local transfer placed the 19-file import on Thor; this is not
+yet native rendering proof. The GBA commercial shell/region/edition and special
+sensor/rumble mould extension follows this pilot within the same ACTIVE stage.
+Broad S27 hardware coverage is still NOT STARTED.
 
 Current host evidence: six compatible GBA unfolded sets have been classified
 from the preserved dump. Inspected six-face sheets now retain the complete fronts,

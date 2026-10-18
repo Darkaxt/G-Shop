@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 86, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 89, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-18: **S25 ACTIVE**. Complete the shared trailer-first
@@ -10,12 +10,17 @@ release/volume, distinct panels and reconstruction provenance with focused check
 and a real GBA example. No game-name branches or cinematic implementation.
 Existing S25 model/controller/source acceptance remains recorded, not excused.
 Current ordered work: finish the updated rigged-carton import, per-game panel fit
-and real Open/Close explorer workflow first. Then implement the owner-requested
+and real closed-box explorer workflow first (Open is reserved for the cinematic).
+Then implement the owner-requested
 single GBA console-selection secondary model pilot with a slow 40-second yaw turn,
-Reduced Motion, focus and existing preview/companion lifecycle preserved.
+Reduced Motion, gesture-only drag/pinch inspection, five-second idle rotation
+resumption, focus and existing preview/companion lifecycle preserved.
 This pilot is moved from S27 into S25 by the owner's latest instruction; general
 hardware coverage remains S27 NOT STARTED. Verify both full workflows on Thor;
 neither asset inspection nor a desktop render is integrated acceptance.
+Then cover the authorized GBA commercial shell/region/edition variants and
+distinct sensor/rumble geometry, recording verified versus unresolved rows in
+the existing coverage ledger. These remain S25 acceptance work, not S27 scope.
 
 Previous checkpoint, 2026-10-18: **S25 BLOCKED** at the corrected GBA owner-review
 stop. Public signed 1.9.19 is installed; Castlevania's six-face box, repeated edges,

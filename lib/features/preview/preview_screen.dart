@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/game_item.dart';
+import '../../models/console_model.dart';
 import '../../models/preview_settings.dart';
 import '../../models/system_model.dart';
 import '../../services/socket_media_import.dart';
@@ -13,6 +14,7 @@ import '../../utils/game_metadata.dart';
 import '../game_detail/widgets/cover_section.dart';
 import '../../widgets/physical_media_view.dart';
 import 'resource_gallery.dart';
+import 'console_hardware_view.dart';
 
 /// Dedicated rendering isolate. It receives local media and public facts only.
 @pragma('vm:entry-point')
@@ -46,6 +48,8 @@ class _PreviewScreenState extends State<PreviewScreen>
   final _physicalKey = GlobalKey<PhysicalMediaViewState>();
   final _coverKey = GlobalKey<CoverSectionState>();
   final _galleryKey = GlobalKey<ResourceGalleryState>();
+  final _consoleKey = GlobalKey<ConsoleHardwareViewState>();
+  ConsoleModel? _consoleModel;
   String? _resourceGeneration;
   Future<void>? _resourceLoad;
   int _incomingRevision = 0;
@@ -87,6 +91,14 @@ class _PreviewScreenState extends State<PreviewScreen>
         final incoming = snapshot['revision'] as int;
         _incomingRevision = incoming;
         await _prepareResources(snapshot);
+        ConsoleModel? console;
+        if (snapshot['mode'] == 'console') {
+          try {
+            console = await ConsoleModel.find(snapshot['system'] as String);
+          } catch (error) {
+            debugPrint('RShopConsolePreview import unavailable: $error');
+          }
+        }
         if (!mounted || incoming != _incomingRevision) return;
         final changed = snapshot['identity'] != _snapshot?['identity'] ||
             snapshot['actionEpoch'] != _snapshot?['actionEpoch'];
@@ -95,6 +107,9 @@ class _PreviewScreenState extends State<PreviewScreen>
           _manualPlayback = null;
         setState(() {
           _snapshot = snapshot;
+          _consoleModel = console?.generation == snapshot['consoleGeneration']
+              ? console
+              : null;
           if (changed) _slide = 0;
         });
         _updatePlayback(changed);
@@ -150,6 +165,7 @@ class _PreviewScreenState extends State<PreviewScreen>
       {bool revealStarted = false, bool revealCompleted = false}) async {
     if (!mounted || _snapshot?['revision'] != revision) return;
     final physical = _physicalKey.currentState;
+    await _consoleKey.currentState?.renderReady;
     if (physical != null) {
       try {
         await physical.renderReady;
@@ -164,7 +180,8 @@ class _PreviewScreenState extends State<PreviewScreen>
       'details': _snapshot?['details'],
       'viewportWidth': MediaQuery.sizeOf(context).width,
       'viewportHeight': MediaQuery.sizeOf(context).height,
-      'model': _physicalKey.currentState?.renderSnapshot,
+      'model': _consoleKey.currentState?.snapshot ??
+          _physicalKey.currentState?.renderSnapshot,
       'resourceGallery': _galleryKey.currentState?.snapshot,
       'media': _coverKey.currentState?.renderSnapshot,
       'revealStarted': revealStarted,
@@ -294,6 +311,19 @@ class _PreviewScreenState extends State<PreviewScreen>
         .where((s) => s.id == snapshot['system'])
         .firstOrNull;
     if (system == null) return const SizedBox.shrink();
+    if (snapshot['mode'] == 'console') {
+      final model = _consoleModel;
+      if (model == null)
+        return const Scaffold(
+            body: Center(child: Text('Console model unavailable')));
+      return Scaffold(
+          body: ConsoleHardwareView(
+              key: _consoleKey,
+              model: model,
+              title: snapshot['title'] as String,
+              onReady: () => unawaited(_rendered(snapshot['revision'] as int)),
+              reducedMotion: snapshot['reducedMotion'] == true));
+    }
     final game = GameItem(
         filename: snapshot['filename'] as String,
         displayName: snapshot['title'] as String,

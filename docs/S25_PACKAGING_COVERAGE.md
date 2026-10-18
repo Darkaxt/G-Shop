@@ -1,6 +1,30 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 85.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 89.
+
+GBA hardware pilot: the owner's `GameBoy_Advance-87e049f9 (1).glb` (Unconid,
+source UID `87e049f9c6944166a03a3fc551876545`) contains an authored GBA/SP/cartridge
+display scene, not one isolated GBA. Preserve that scene. Actual export:
+6,621 triangles, ten parts, 17 embedded textures, no animation. Source SHA-256
+`2b38e6bd383ec258b757092e6cbde486d034c2c4c47686989d31522f48e8af16`.
+`scripts/prepare_console_model.py` preserves uniform dimensions, original UV/PBR
+maps and albedo-linked screen emission, creating an independent private import at
+`/storage/emulated/0/RShop/models/consoles/gba/`. Desktop front/rear inspected;
+checksum-bound transfer verified all files. Native rendering/gesture/lifecycle
+acceptance remains pending. No source textures/geometry are publicly bundled.
+The supplied creator and collection pages are reference inventories, not a claim
+that other models are acquired or integrated; broader coverage stays in S27.
+
+GBA physical-variant extension: the [casing photographs](https://gameverifying.com/wiki/cart-based-systems/gameboy/casing)
+and [depository](https://www.gameverifying.com/wiki/depository/gba) confirm both
+standard-shape colour variants and distinct sensor/rumble moulds. Region alone
+does not disambiguate Rockman EXE 4's colored versus gray cartridges. The seven
+bit Generations titles are independently listed by [Nintendo](https://www.nintendo.com/en-gb/Iwata-Asks/Iwata-Asks-Wii-Play-Motion/Iwata-Asks-Wii-Play-Motion/1-A-New-Way-to-Make-Games/1-A-New-Way-to-Make-Games-234741.html).
+Record commercial game/region/edition evidence; do not infer a mould from color.
+Mapping/material/geometry/native integration is required after the current
+console pilot, not verified by these reference pages. Further modern editions
+need publisher evidence before being called matched. No claim of exhaustive
+physical-variant coverage is made.
 
 Owner-supplied booklet exports are now acquired locally. Brochure book 01 is
 selected: its staples/curved cover/paper block fit an instruction booklet better

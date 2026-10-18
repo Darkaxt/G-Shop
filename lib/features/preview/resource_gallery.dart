@@ -42,9 +42,7 @@ class ResourceGallery extends StatefulWidget {
 }
 
 class ResourceGalleryState extends State<ResourceGallery>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  late final AnimationController _flaps;
-  bool _openingTarget = false;
+    with WidgetsBindingObserver {
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   final _readingTransform = TransformationController();
   final _galleryScroll = ScrollController();
@@ -96,11 +94,9 @@ class ResourceGalleryState extends State<ResourceGallery>
       PhysicalMediaFormat.forSystem(widget.systemId,
           region: widget.region, dualMode: widget.dualMode);
   bool get canOpen =>
-      (view == ResourceView.box &&
-          rendererKey.currentState?.snapshot['canOpen'] == true) ||
       (view == ResourceView.cover ||
-              view == ResourceView.manual && pages.isNotEmpty) &&
-          kind != PackagingKind.box;
+          view == ResourceView.manual && pages.isNotEmpty) &&
+      kind != PackagingKind.box;
   List<ResourceView> get availableViews {
     final physical = !{'arcade', 'tic80', 'pico8'}.contains(widget.systemId);
     final caseOnly = {
@@ -177,10 +173,6 @@ class ResourceGalleryState extends State<ResourceGallery>
   @override
   void initState() {
     super.initState();
-    _flaps = AnimationController(vsync: this)
-      ..addListener(() {
-        if (mounted) setState(() => opening = _flaps.value);
-      });
     view = availableViews.first;
     WidgetsBinding.instance.addObserver(this);
   }
@@ -320,9 +312,6 @@ class ResourceGalleryState extends State<ResourceGallery>
                   disc: disc,
                   umd: umd));
   void reset() {
-    _flaps.stop();
-    _flaps.value = 0;
-    _openingTarget = false;
     yaw = -.2;
     pitch = .06;
     zoom = .75;
@@ -451,19 +440,7 @@ class ResourceGalleryState extends State<ResourceGallery>
   }
 
   void _toggleOpening() {
-    final milliseconds =
-        rendererKey.currentState?.snapshot['openingDurationMs'];
-    if (view == ResourceView.box && milliseconds is int && milliseconds > 0) {
-      _flaps.duration = Duration(milliseconds: milliseconds);
-      _openingTarget = !_openingTarget;
-      if (_openingTarget) {
-        _flaps.forward();
-      } else {
-        _flaps.reverse();
-      }
-    } else {
-      setState(() => opening = opening == 0 ? 1 : 0);
-    }
+    if (canOpen) setState(() => opening = opening == 0 ? 1 : 0);
   }
 
   @override
@@ -473,7 +450,6 @@ class ResourceGalleryState extends State<ResourceGallery>
 
   @override
   void dispose() {
-    _flaps.dispose();
     _detachSpine();
     WidgetsBinding.instance.removeObserver(this);
     _detachCover();

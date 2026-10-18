@@ -10,6 +10,30 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(useSocketOracle);
   tearDownAll(() => SocketMediaModel.importedBundle = null);
+  test('hardware screens preserve their albedo emission without changing media',
+      () {
+    final screen = SocketMediaGpu.materialUniforms({
+      'color': [1, 1, 1, 1],
+      'sourceProperties': {
+        'emission': [1, 1, 1]
+      },
+    });
+    expect(screen.length, 24);
+    expect(screen.sublist(20), [1, 1, 1, 0]);
+    expect(
+        SocketMediaGpu.materialUniforms({
+          'color': [1, 1, 1, 1]
+        }).sublist(20),
+        [0, 0, 0, 0]);
+    expect(
+        SocketMediaGpu.plasticHousing('console-gba', {
+          'role': 'shell',
+          'node': 'screen',
+          'name': 'screen',
+          'physicalMaterial': 'glass',
+        }),
+        false);
+  });
   test('plastic housings retain distinct label, disc and hardware materials',
       () {
     final source = <String, dynamic>{

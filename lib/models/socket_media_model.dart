@@ -81,7 +81,8 @@ class SocketMediaModel {
       'bccf6bf5beccf5155645638e52a20f6e6e6deed902bd23b6b69ae7060c04bd70';
   final Map<String, dynamic> data;
   final ByteData mesh;
-  SocketMediaModel._(this.data, this.mesh);
+  final AssetBundle? textureBundle;
+  SocketMediaModel._(this.data, this.mesh, {this.textureBundle});
 
   /// App-owned geometry has an explicit, independent identity. Imported APK
   /// receipts/checksums remain enforced only by the original import path.
@@ -114,9 +115,27 @@ class SocketMediaModel {
   /// User-imported packaging is not bundled artwork or a redistribution grant.
   factory SocketMediaModel.privatePackaging(
       Map<String, dynamic> data, ByteData mesh) {
+    if (data['packagingGeometry'] != true || data['hardwareGeometry'] == true) {
+      throw const FormatException('Invalid local packaging identity');
+    }
+    return SocketMediaModel._privateGeometry(data, mesh);
+  }
+
+  factory SocketMediaModel.privateHardware(
+      Map<String, dynamic> data, ByteData mesh,
+      {required AssetBundle textureBundle}) {
+    if (data['hardwareGeometry'] != true || data['packagingGeometry'] == true) {
+      throw const FormatException('Invalid local console identity');
+    }
+    return SocketMediaModel._privateGeometry(data, mesh,
+        textureBundle: textureBundle);
+  }
+
+  factory SocketMediaModel._privateGeometry(
+      Map<String, dynamic> data, ByteData mesh,
+      {AssetBundle? textureBundle}) {
     final source = data['sourceReference'];
-    if (data['packagingGeometry'] != true ||
-        data['privateImport'] != true ||
+    if (data['privateImport'] != true ||
         data.containsKey('apkSha256') ||
         data.containsKey('ownedGeometry') ||
         source is! Map ||
@@ -191,7 +210,7 @@ class SocketMediaModel {
         }
       }
     }
-    return SocketMediaModel._(data, mesh);
+    return SocketMediaModel._(data, mesh, textureBundle: textureBundle);
   }
 
   String get name => data['name'] as String;

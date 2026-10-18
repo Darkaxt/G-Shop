@@ -1,6 +1,28 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 86, 2026-10-18.
+Authoritative specification, revision 89, 2026-10-18.
+
+Owner GBA physical-variant extension, 2026-10-18: within S25's GBA pass, identify
+commercial cartridges by game + region + edition, preserving standard dark-gray
+shells and documented colors, clear versus cloudy plastic, two-tone front/back
+and regional variants. Do not apply a base game's shell to a hack by title
+substring. Different sensor/rumble moulds (Boktai, Twisted, Yoshi, Drill Dozer)
+require actual matching geometry, not a standard cartridge recolor presented as
+accurate. Track evidence, ambiguous editions, acquired models and native checks
+in the existing verified-model ledger. Finish the current console-preview pilot
+before its next integrated cartridge-variant workflow; S25 alone remains ACTIVE.
+
+Owner console-preview interaction, 2026-10-18: slow rotation is the default,
+with drag rotation and pinch zoom on the secondary-screen model, no control
+buttons. Suspend automatic rotation on touch and resume from the inspected pose
+after five seconds with no touch. This is an explicit presentation idle interval,
+not an operation-completion timeout. Reduced Motion disables automatic rotation
+but retains gesture inspection. Hide/background/disposal cancels idle work.
+
+Owner viewer clarification, 2026-10-18: the Box resource inspector always shows
+the closed carton, with rotation and zoom but no Open control. Retain the source
+hinges for the later cinematic only; do not expose an open-box resting view.
+This supersedes the preceding manual Open/Close explorer acceptance requirement.
 
 Owner ordered extension, 2026-10-18: integrate the supplied updated rigged carton
 first, then the supplied GBA hardware model on the secondary display while GBA
@@ -9,10 +31,10 @@ into ACTIVE S25; broader console-hardware coverage remains S27 NOT STARTED.
 The preceding S27-only acquisition restriction is superseded for this pilot only.
 Use `castlevania-carton-rigged (1).glb` as reusable game-independent cardboard
 geometry, retaining real top-flap Open/Close motion and fitted per-game panels.
-Verify its individual model controls before the deliberately held cinematic;
+Verify its closed-model rotation and zoom before the deliberately held cinematic;
 cartridge extraction remains part of that later box/medium sequence.
-For the hardware pilot use `GameBoy_Advance-87e049f9 (1).glb`, isolate the actual
-classic GBA (not its co-exported SP/loose cartridges), preserve source materials
+For the hardware pilot use `GameBoy_Advance-87e049f9 (1).glb`, retain its authored
+GBA-family scene (including GBA SP and cartridge parts), preserve source materials
 and orientation, and rotate slowly about its upright axis. Use one revolution
 per 40 seconds; Reduced Motion holds a readable stationary pose. Render from
 the existing secondary engine without stealing primary touch/controller focus.
