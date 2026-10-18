@@ -61,6 +61,16 @@ public final class RShopS25ResourceAudit {
         }
       }
       report.put("packagingGames", games).put("packagingResources", imported);
+      SQLiteDatabase shared = SQLiteDatabase.openDatabase(
+          "/storage/emulated/0/ES-DE/RShopMetadata/metadata.sqlite", null,
+          SQLiteDatabase.OPEN_READONLY | SQLiteDatabase.NO_LOCALIZED_COLLATORS);
+      try (Cursor rows = shared.rawQuery("SELECT COUNT(*),SUM(verified),"
+          + "SUM(CASE WHEN verified=0 THEN bytes ELSE 0 END) "
+          + "FROM metadata_cloud_files", null)) {
+        if (rows.moveToFirst()) report.put("publication", new JSONObject()
+            .put("receipts", rows.getLong(0)).put("verified", rows.getLong(1))
+            .put("unverifiedBytes", rows.getLong(2)));
+      } finally { shared.close(); }
       System.out.println(report.toString());
     } finally { db.close(); }
   }

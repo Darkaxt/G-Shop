@@ -414,6 +414,9 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
     _paused = true;
     await _operation;
     await closeLibrary();
+    // A joined sync can return early while paused. Release its UI admission
+    // state only after the owner is closed, so resume can publish imported work.
+    _state(busy: false);
   }
 
   void resume() {

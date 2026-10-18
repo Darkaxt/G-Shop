@@ -29,6 +29,21 @@ The owner-supplied GB box archive is hash-inventoried in the coverage review.
 Its ASCII FBX needs conversion before Blender inspection; this is acquisition
 evidence only and does not start a second console's native implementation.
 
+Later read-only native observation resolves the apparent endless publication:
+the first import did finish, with 24 GBA packaging records, 24 each of the three
+box faces and 789 manual pages. The existing pause joined the prior publication,
+but its paused early-return retained `busy=true`, so resume rejected the next
+backup and left the old 1,402/1,402 message visible. This is a controller lifecycle
+defect, not an ongoing transfer or permission to reimport the pack. The focused
+pause/join/resume regression reproduces that exact busy-state failure. Release
+the busy admission only after the prior operation and library close both join;
+verify the resumed publication before accepting the native workflow.
+The corrected controller now passes that joined pause/resume check and the
+complete classified-pack/Drive/cache host workflow. The fixed read-only audit
+also reports aggregate publication receipts without exposing game identities,
+URLs or credentials. Its Android execution is observed evidence, not a mock
+substitute for the still-required resumed native Drive publication/rendering.
+
 ### S25 GBA import admission and Nintendo-portable priority — 2026-10-18, ACTIVE
 
 Specification revision 80 records Nintendo-portable acquisition priority while
