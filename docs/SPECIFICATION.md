@@ -1,6 +1,12 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 95, 2026-10-19.
+Authoritative specification, revision 96, 2026-10-19.
+
+Owner extraction clarification, 2026-10-19: do not withdraw the booklet and
+cartridge simultaneously. Extract and settle the cartridge first, then withdraw
+the booklet through the same right-hand opening. Keep the carton open until the
+booklet clears it, then close it into the retained semicircle. A missing booklet
+does not add an empty second extraction phase.
 
 Owner resting-layout clarification, 2026-10-19: arrange the three objects in a
 shallow semicircle, with the upright box at the rear centre and the cartridge

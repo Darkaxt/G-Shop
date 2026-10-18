@@ -10,6 +10,8 @@ Thor evidence on signed `37a137d` (run 39165962524). Its resting lean was reject
 by the owner. The corrected shallow semicircle with horizontal contents and an
 elevated camera is host-checked but still needs native acceptance. Pinch return,
 reader-back restoration and remaining combined media criteria remain to verify.
+The owner also requires sequential extraction: cartridge settles first, booklet
+follows, then the box closes. This timing passes host geometry checks, not yet Thor.
 Earlier top-opening or closed-inspector evidence does not verify that correction.
 This ledger does not declare the full S25 stage complete.
 

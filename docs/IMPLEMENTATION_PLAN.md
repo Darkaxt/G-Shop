@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 95, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 96, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**. The owner now requires a retained
@@ -8,6 +8,8 @@ three-object GBA endpoint (box centre, cartridge left, booklet right), tap-to-fo
 pinch-out return and double-tap booklet reading. The resting arrangement is a
 shallow semicircle: upright box at the rear centre, cartridge/booklet horizontal
 at the front-left/right on one supporting plane, with an elevated overview camera.
+Extract the cartridge first and settle it before withdrawing the booklet; leave
+the carton open until both have cleared the right-hand opening.
 This supersedes the lone-medium
 endpoint; verify GBA and pause for owner review before another console. Current
 corrective priority is the

@@ -513,8 +513,7 @@ class SocketMediaGpu {
       // Reveal the horizontal resting faces by looking down on the whole
       // arrangement. Inspection returns to the ordinary front-facing camera.
       final overviewPitch = model.data['unboxingGeometry'] == true
-          ? .55 *
-              UnboxingScene.phase(pose.unboxing, 5.65 / 6.5, 1) *
+          ? UnboxingScene.overviewElevation(model, pose.unboxing) *
               (1 - pose.inspection)
           : 0.0;
       return vm.Matrix4.identity()

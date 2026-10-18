@@ -28,12 +28,19 @@ void main() {
     expect(center.y, greaterThan(0));
     final bottom = start.transform3(vm.Vector3(-.5, 0, 0));
     expect(bottom.x, greaterThan(-.05));
-    expect(UnboxingScene.opening(3 / 6.5), 1);
+    expect(UnboxingScene.opening(3 / 10, hasBooklet: true), 1);
     final extracted =
-        UnboxingScene.partTransform(model, 'cartridge', 4.2 / 6.5, 6);
+        UnboxingScene.partTransform(model, 'cartridge', 4.2 / 10, 6);
     expect(extracted.transform3(vm.Vector3(-.5, 0, 0)).x, greaterThan(1.05));
+    final bookWaiting =
+        UnboxingScene.partTransform(model, 'booklet', 6.5 / 10, 6);
+    expect(bookWaiting.transform3(vm.Vector3.zero()).x, closeTo(0, .00001),
+        reason: 'Booklet waits until the cartridge has settled on the left');
+    final cartSettled =
+        UnboxingScene.partTransform(model, 'cartridge', 6.5 / 10, 6);
+    expect(cartSettled.transform3(vm.Vector3.zero()).x, lessThan(-1.5));
     final bookExtracted =
-        UnboxingScene.partTransform(model, 'booklet', 4.2 / 6.5, 6);
+        UnboxingScene.partTransform(model, 'booklet', 7.7 / 10, 6);
     expect(bookExtracted.transform3(vm.Vector3(0, -1, 0)).x, greaterThan(1.05));
     final finalPose = UnboxingScene.partTransform(model, 'cartridge', 1, 6);
     expect(finalPose.transform3(vm.Vector3.zero()).x, lessThan(-1.5));
@@ -47,7 +54,7 @@ void main() {
             .transform3(vm.Vector3.zero())
             .x,
         closeTo(0, .00001));
-    expect(UnboxingScene.opening(1), 0);
+    expect(UnboxingScene.opening(1, hasBooklet: true), 0);
     // Resting objects lie on the same tabletop, not merely lean towards it.
     // The upright box is at the rear centre of a shallow semicircle.
     final boxPose = UnboxingScene.partTransform(model, 'box', 1, 6);

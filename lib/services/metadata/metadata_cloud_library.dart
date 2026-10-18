@@ -329,9 +329,24 @@ class MetadataCloudLibrary {
         'folder_path': folderPath,
         'replaces_digest': current?.digest,
       });
-    final replaces = rows.isEmpty
+    var replaces = rows.isEmpty
         ? current?.digest
         : rows.single['replaces_digest'] as String?;
+    if (rows.isNotEmpty) {
+      // A content-addressed body can be selected again after this same named
+      // object was updated to another body. Its old receipt is not the current
+      // predecessor. Use only our verified receipt for this exact destination;
+      // upload still rejects an unseen remote digest and uses its live ETag.
+      final latest = await _db.query('metadata_cloud_files',
+          columns: ['digest'],
+          where: 'account=? AND file_id=? AND verified=1 AND remote_name=? '
+              'AND folder_path=? AND path<>?',
+          whereArgs: [accountId, id, name, folderPath, path]);
+      if (latest.length > 1) {
+        throw const FormatException('Ambiguous game resource');
+      }
+      if (latest.isNotEmpty) replaces = latest.single['digest'] as String;
+    }
     await remote.upload(id, parent, name, kind, file, digest, bytes,
         replacesDigest: replaces);
     final uploaded = await remote.get(id);

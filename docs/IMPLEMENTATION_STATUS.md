@@ -7,6 +7,13 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 semicircle correction — 2026-10-19, ACTIVE
 
+Current candidate incorporates revision 96: the cartridge clears the opening and
+settles before the booklet starts its own extraction. The box stays open until
+the second object clears it. A cartridge-only scene keeps its 6.5-second timeline;
+a collected booklet uses a 10-second explicit sequence. Horizontal faces, shared
+resting plane, shallow semicircle and elevated overview pass the focused scene,
+gesture and projected-fit checks. Native acceptance of these new poses is pending.
+
 Signed `37a137d` is installed on Thor, independently matched to GitHub run
 39165962524 and APK SHA-256
 `c91fc7ec8f49bf9e5c2ec388326b37012fc7894ec331449e2c030dbe02f2abfe`.
@@ -21,11 +28,19 @@ Evidence: `D:/Temp/rshop-s25-correction-20261018/sapphire-right-tableau-analysis
 (104 exported frames, no evidence truncation; raw-video timeline is estimated),
 and `native/tableau-booklet-focus-down.png` / `tableau-booklet-reader-down.png`.
 
-Drive publication remains an internal acceptance blocker, not successful backup:
+Drive publication remains a native acceptance blocker, not successful backup:
 the real failure is `Metadata publication changed remotely` in
 `DriveMetadataApi.upload:306`, called by `_publishGame`'s resource publication.
 Keep remote-conflict protection intact; identify the conflicting receipt/object
-before changing publication behavior. GBA review and remaining S25 criteria are
+before changing publication behavior. The read-only receipt/body comparison found
+reintroduced historical media paths whose old predecessor differs from our newer
+verified receipt for the same Drive object; sampled Drive bytes match that newer
+receipt. The candidate now uses only that exact account/object/name/folder-bound
+verified predecessor. Live digest/ETag conflict rejection is unchanged. A regression
+reproduces the failure before the fix and now passes A -> B -> A republication,
+while rejecting a foreign remote edit. Affected cloud publication/recovery/cache
+and scene/gesture checks pass; live publication completion still needs evidence.
+GBA review and remaining S25 criteria are
 not declared COMPLETE. Both device displays are off during host work.
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE

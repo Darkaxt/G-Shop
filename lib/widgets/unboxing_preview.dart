@@ -153,6 +153,8 @@ class UnboxingPreviewState extends State<UnboxingPreview>
   }
 
   Future<void> _prepare() async {
+    _timeline.duration = UnboxingScene.durationFor(
+        bookletPanelPath(widget.resources, 0) != null);
     final paths = [
       for (var i = 0; i < 6; i++) boxPanelPath(widget.resources, i),
       for (var i = 0; i < 4; i++) bookletPanelPath(widget.resources, i),
@@ -334,7 +336,9 @@ class UnboxingPreviewState extends State<UnboxingPreview>
                       scaleZ: _returning
                           ? 1 + (_zoom - 1) * _inspection.value
                           : _zoom,
-                      opening: UnboxingScene.opening(_timeline.value),
+                      opening: UnboxingScene.opening(_timeline.value,
+                          hasBooklet:
+                              bookletPanelPath(widget.resources, 0) != null),
                       unboxing: _timeline.value,
                       inspectedPart: _focusedPart,
                       inspection:

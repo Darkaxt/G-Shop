@@ -177,6 +177,72 @@ Map<String, dynamic> mutationView(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
+  test(
+      'reintroduced artwork uses the latest owned receipt and rejects foreign changes',
+      () async {
+    final root = await Directory.systemTemp.createTemp('rshop-reintroduced-');
+    final db = await controlsDatabase(path: '${root.path}/projection.sqlite');
+    final store = await SharedMetadataStore.open(
+        Directory('${root.path}/shared'),
+        factory: databaseFactoryFfiNoIsolate);
+    final provider = ControlsArtworkProvider();
+    final controls = MetadataControlsController(
+        database: Future.value(db),
+        providers: {'screenscraper': provider},
+        screenScraperCredentials:
+            ScreenScraperCredentialStore(storage: MemorySecrets()),
+        igdbCredentials: IgdbCredentialStore(storage: MemorySecrets()),
+        artworkCache: Future.value(MetadataArtworkCache(
+            Future.value(db), store.artworkRoot,
+            sharedStore: store)),
+        sharedStore: Future.value(store),
+        catalogueChanged: () {});
+    final remote = MemoryMetadataDrive();
+    await remote.folder('root', null, 'R-Shop Metadata');
+    final cloud = MetadataCloudLibrary(
+        store: store, remote: remote, accountId: 'account', rootId: 'root');
+    addTearDown(() async {
+      await controls.close();
+      controls.dispose();
+      await cloud.close();
+      await store.close();
+      await db.close();
+      // Exact task-owned scratch is reviewed by transactional cleanup.
+    });
+    await controls.load();
+    await controls.refresh(systemSlug: 'psx');
+    await cloud.open();
+    await cloud.sync(Future.value(db), pull: false);
+    final key = MetadataArtworkCache.key(provider.media);
+    final original = (await store.cloudIndex.query('metadata_artwork_cache',
+            where: 'media_key=?', whereArgs: [key]))
+        .single;
+    final first = File('${store.artworkRoot.path}/${original['filename']}');
+    final changed = Uint8List.fromList([...await first.readAsBytes(), 0]);
+    final changedName = '${sha256.convert(changed)}.png';
+    await File('${store.artworkRoot.path}/$changedName').writeAsBytes(changed);
+    final replacement = MetadataArtworkBlob(key, changedName, changed.length);
+    final originalBlob = MetadataArtworkBlob(
+        key, original['filename'] as String, original['byte_length'] as int);
+    await store.preserveBlob(replacement, DateTime.now().toUtc());
+    await cloud.sync(Future.value(db), pull: false);
+    await store.preserveBlob(originalBlob, DateTime.now().toUtc());
+    await cloud.sync(Future.value(db), pull: false);
+    final box = remote.files.values.singleWhere((f) => f.name == 'box.png');
+    expect(box.digest, originalBlob.filename.substring(0, 64));
+    await store.preserveBlob(replacement, DateTime.now().toUtc());
+    // A real external edit must still fail closed, even with an owned predecessor.
+    remote.files[box.id] = MetadataCloudFile(
+        id: box.id,
+        parent: box.parent,
+        name: box.name,
+        kind: box.kind,
+        digest: 'f' * 64,
+        bytes: box.bytes);
+    await expectLater(
+        cloud.sync(Future.value(db), pull: false), throwsFormatException);
+    expect(remote.files[box.id]!.digest, 'f' * 64);
+  });
   test('backup-only sync does not traverse the remote collection', () async {
     final root = await Directory.systemTemp.createTemp('rshop-local-backup-');
     final store = await SharedMetadataStore.open(root,

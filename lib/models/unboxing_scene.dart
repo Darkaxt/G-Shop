@@ -11,7 +11,9 @@ import 'socket_media_model.dart';
 /// A single depth-tested scene: the selected cartridge is physically seated in
 /// the imported holder, rather than composited over a flat cover photograph.
 class UnboxingScene {
-  static const duration = Duration(milliseconds: 6500);
+  static const duration = Duration(seconds: 10);
+  static Duration durationFor(bool hasBooklet) =>
+      hasBooklet ? duration : const Duration(milliseconds: 6500);
   final String style;
   final bool hasBooklet;
   final double bookletAspect;
@@ -132,21 +134,39 @@ class UnboxingScene {
     return p * p * (3 - 2 * p);
   }
 
-  static double opening(double t) =>
-      phase(t, 0, 3 / 6.5) * (1 - phase(t, 4.65 / 6.5, 5.65 / 6.5));
+  static double opening(double t, {bool hasBooklet = false}) {
+    final seconds = t * durationFor(hasBooklet).inMilliseconds / 1000;
+    final delay = hasBooklet ? 3.5 : 0.0;
+    return phase(seconds, 0, 3) *
+        (1 - phase(seconds, 4.65 + delay, 5.65 + delay));
+  }
+
+  static double overviewElevation(SocketMediaModel model, double t) =>
+      .55 *
+      phase(
+          t *
+              durationFor(model.data['hasBooklet'] == true).inMilliseconds /
+              1000,
+          5.65,
+          6.5);
 
   static vm.Matrix4 partTransform(
       SocketMediaModel model, String part, double t, double worldWidth,
       {String? inspectedPart, double inspection = 0}) {
     final seat = (model.data['seatCenter'] as List).cast<num>();
     final scale = (model.data['seatScale'] as num).toDouble();
-    final extract = phase(t, 3 / 6.5, 4.2 / 6.5);
-    final forward = phase(t, 4.2 / 6.5, 4.65 / 6.5);
-    final spread = phase(t, 4.65 / 6.5, 5.65 / 6.5);
-    final lower = phase(t, 5.65 / 6.5, 1);
+    final book = part == 'booklet', box = part == 'box';
+    final hasBooklet = model.data['hasBooklet'] == true;
+    final seconds = t * durationFor(hasBooklet).inMilliseconds / 1000;
+    // One object at a time through the opening. The booklet waits until the
+    // cartridge rests on the left; the carton stays open for the second exit.
+    final localSeconds = seconds - ((book || box && hasBooklet) ? 3.5 : 0);
+    final extract = phase(localSeconds, 3, 4.2);
+    final forward = phase(localSeconds, 4.2, 4.65);
+    final spread = phase(localSeconds, 4.65, 5.65);
+    final lower = phase(localSeconds, 5.65, 6.5);
     // Clear the right-hand opening first. Pass in front of the retained carton
     // before crossing to the display positions, then settle back alongside it.
-    final book = part == 'booklet', box = part == 'box';
     final separation = math.min(1.72, worldWidth * .32);
     var x = box
         ? 0.0
