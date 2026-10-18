@@ -2,6 +2,14 @@
 
 Authoritative specification, revision 80, 2026-10-18.
 
+Execution checkpoint, 2026-10-18: S25 is **BLOCKED** at the owner's expressly
+requested first-console review stop. GitHub-signed public 1.9.18 is installed on
+Thor; the 24-game GBA explorer and classified Drive publication have passed their
+recorded checks. The owner must inspect GBA before another console's native
+implementation or the cinematic proceeds. This is not overall S25 acceptance;
+the remaining criteria are retained in S25_VERIFIED_MODELS.md. No later stage is
+ACTIVE. Earlier ACTIVE statements below describe the preceding execution state.
+
 Owner model-acquisition priority, 2026-10-18: work through Nintendo portables
 first: GBA, GB/GBC, DS/DSi, 3DS, Switch and Game & Watch. Game & Watch uses
 the handheld device, not an invented removable cartridge. Browser acquisition is authorized

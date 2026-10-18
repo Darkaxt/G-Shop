@@ -5,12 +5,49 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### S25 native cached-preview admission — 2026-10-18, ACTIVE
+### S25 GBA owner-review checkpoint — 2026-10-18, BLOCKED
+
+The expressly requested first-console review stop has been reached. Public
+[1.9.18/code 34](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.18) is the
+same GitHub-signed APK installed on Thor. GitHub's released asset digest matches
+the installed-byte digest below; the release targets source `e657210`. The source,
+verification record and model ledger are pushed to the fork. Overall S25 is not
+COMPLETE: the owner must inspect GBA before another native console or cinematic
+implementation; remaining controller/source/model criteria stay recorded. No
+later stage is ACTIVE and no required item is moved to an unnamed deferral.
+
+The resumed original publication reached 1,402/1,402 and then emitted its terminal
+`Metadata cloud sync completed: cachedBytes=2142746041` result (below the configured
+2 GiB budget). All 24 Drive edition packets were independently read and compared
+with the imported pack: 24 front/back/spine sets and all 789 available manual
+pages have matching published digests and expected files. A LeafGreen manual
+page recovered through the mounted Drive matches its source and packet SHA-256
+`7290030d6a41bf552b294ca9f33b0dba79bc3f2493a33fbe32ec71a96ef74107`.
+Evidence: `native-cohort-e657210/drive-packets.json` in the same task folder.
+This proves current classified publication and a real remote body read, not a
+new native cold-cache-miss test. The unchanged S24 native recovery evidence and
+current affected host workflows remain applicable; the distinction is explicit.
+The earlier 403 publication impediment is resolved, without a quota change,
+duplicate import, scrape or retry burst.
+
+Reviewed cleanup removed 497,133,218 bytes of the exact native input ZIP/audit
+fixtures (transaction `95fa1a7d57a05e363eb8ac181ad197b3`) and 383,420,870 bytes of
+obsolete temporary signed-build downloads. Intentional 1.9.18 and 1.9.17 rollback
+copies remain under `D:/Releases/R-Shop`; the source pack, private assets and
+review evidence are preserved. Native normalized metadata, cache, ROMs, saves,
+settings and installed release were outside cleanup. Both physical panels were
+confirmed committed OFF with the device asleep after publication finished.
 
 Current signed source is `e657210`, GitHub run 39088025287. Release tests,
 assembly, certificate and private-asset checks passed; the in-place Thor APK
 independently matches SHA-256
 `1f06f000b40ff00a5bf6324f64fc40cbe67607ec6bfd35e954f9136ee4f72f14`.
+Hosted Linux used two Gradle workers, no parallel projects and in-process Kotlin;
+the configured Gradle heap is 3 GiB, tests use one 512 MiB fork and native build
+concurrency is configured to two. No memory failure/increase was reported. No
+Windows Gradle command ran and no Windows build mutex was acquired. Hosted
+daemon process exit was not independently probed; configured heap is not a
+measured process-wide memory cap.
 The actual offline 24-game ranked explorer pass completed with distinct identities
 and ranks 1–24: 24 box, 24 case, 24 cartridge and 19 available manual model frames.
 All 48 box/cartridge captures were visually inspected in the three contact sheets
@@ -26,9 +63,10 @@ does not assert trailer/audio or cinematic acceptance. Existing S24 preview/audi
 evidence remains applicable where unchanged.
 
 After this cache-only pass, the same durable Drive publication was resumed once
-with Wi-Fi restored. No duplicate import or scrape was started. Its terminal
-publication/recovery result and the public signed handoff remain acceptance
-blockers; native model coverage alone does not close this checkpoint.
+with Wi-Fi restored. It subsequently completed and the signed public handoff was
+verified, as recorded above. Native model coverage alone was not used to claim
+Drive completion or overall S25 completion. The following entries retain the
+earlier investigation chronology, including now-resolved acceptance blockers.
 
 GitHub run 39081143567 at source `67d714b` passed release unit tests, assembly,
 signature and private-asset exclusion. Its installed Thor APK independently

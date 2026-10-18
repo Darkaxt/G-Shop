@@ -1,13 +1,22 @@
 # S25 verified console model and motion ledger
 
 Updated 2026-10-18. This records actual inspected assets, not candidate listings.
-S25 remains **ACTIVE**. The owner-requested checkpoint is the independent resource
+S25 is **BLOCKED** at the owner's explicit GBA device-review stop. The checkpoint is the independent resource
 explorer and individual model inspection. The automatic cinematic is deliberately
 not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
 ### Current GBA collection checkpoint
+
+Public 1.9.18 is installed with the same signed artifact bytes. Original Drive
+publication completed after its retained-receipt resume; all 24 edition packets
+and 24 each of front/back/spine plus 789 manual-page digests/files were verified
+against the pack in the mounted Drive. One remotely read LeafGreen manual page's
+bytes match its source SHA-256. Evidence: `native-cohort-e657210/drive-packets.json`.
+This is not a new native cold-cache-miss test; unchanged S24 native recovery and
+the affected current host workflows retain their stated verification boundaries.
+The owner now reviews GBA before another console or the cinematic proceeds.
 
 The production-signed `e657210` build (GitHub run 39088025287) completed the real
 offline ranked cohort on Thor: all 24 distinct GBA selections rendered Box, Case
@@ -165,7 +174,7 @@ and cinematic acceptance remain separate required work.
 | `switch` | `switch` (A09) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `gb` | `gb` (A10) | Box A02; Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `gbc` | `gbc` (A11) / `gbc_dual_mode` (A12) | Box A02; Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
-| `gba` | `gba` (A13) | Box A02; Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
+| `gba` | `gba` (A13) | Box A02; fitted generic GBA Case A03 | Actual ranked 24-game frames/labels, generic case opening and touch rotation/zoom; medium does not open | Real GBA artwork and 19 booklets verified; final acquired protector/composition and full controller workflow remain pending |
 | `nds` | `nds` (A14) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `virtualboy` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 | `fds` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
@@ -260,13 +269,13 @@ The console-review stop and subsequent cinematic work remain explicitly pending.
 
 | Criterion | Verified at this checkpoint | Remaining acceptance |
 | --- | --- | --- |
-| P25-01 primary/fallback pipeline | LaunchBox-first/ScreenScraper-fallback desktop acquisition and same-US-edition pack are integrated with actual ranked GBA explorer faces | Complete Drive publication/recovery and the supplied non-ranked GBA 007 example's native source/fallback check |
+| P25-01 primary/fallback pipeline | LaunchBox-first/ScreenScraper-fallback desktop acquisition, same-US-edition pack, real classified Drive publication and ranked explorer faces | Supplied non-ranked GBA 007 example's native source/fallback check; new native cold-cache check is not claimed |
 | P25-02 final packaging/fit | GBA generic case proportions, holder rails and manual clips are integrated; actual opening/rotation/zoom inspected on Mega Man Zero 3 | Final acquired protector adaptation and complete applicable layer fit, then other consoles after owner review |
 | P25-03 full interactive integration | Signed ordinary-app secondary touch entry and 24-game explorer pass; primary grid navigation retained | Full ordinary-app controller workflow remains unverified; isolated controller evidence is not a substitute |
 | P25-04 cinematic/lifecycle | Owner explicitly requested stopping before the new full transition; S24 reveal remains unchanged | Resume only after this individual review; verify complete box-exit/case-align/open/medium-pop/dissolve/trailer per applicable console |
 | P25-05 real documents/media | Nineteen actual manual booklets render; LeafGreen's real page reader/Next and cached gallery trailer were inspected | Exact interactive-gallery volume/music restoration and remaining applicable per-console documents/media checks |
 | P25-06 ranked GBA | All 24 actual distinct ranked games passed current signed native box/case/cartridge checks; all 48 box/cartridge captures inspected | No missing 25th is invented; S24's unchanged ranked trailer/audio proof is retained, not replaced by this model pass |
-| P25-07 classified ingestion | E: sources are classified into edition-bound front/back/spine/manual pages and imported with integrity/provenance; partial Drive publication verified | Finish existing durable publication and real remote recovery; incompatible NintAndBox regions remain excluded |
-| P25-08 production delivery | GitHub-signed e657210 is installed in place and installed bytes/certificate match | Public release remains pending required checkpoint acceptance and private publication/recovery, then owner device review |
+| P25-07 classified ingestion | E: sources classified/imported; all 24 Drive packets and 789 page digests/files match; real remotely read manual bytes match | Other-console classified ingestion waits for owner review; incompatible NintAndBox regions remain excluded |
+| P25-08 production delivery | Public 1.9.18 is GitHub-signed e657210; installed bytes/certificate and released asset digest match | Owner GBA review is the current external stop, not overall S25 acceptance |
 
 No S25 requirement is moved into S26. The rebrand remains NOT STARTED.
