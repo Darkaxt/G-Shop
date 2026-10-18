@@ -728,12 +728,13 @@ class SocketMediaGpu {
     final frame = _surface!.acquireNextFrame();
     final commands = context.createCommandBuffer();
     try {
-      void draw(gpu.Texture target, gpu.Texture depthTarget,
+      void draw(gpu.CommandBuffer commandBuffer, gpu.Texture target,
+          gpu.Texture depthTarget,
           {bool opaqueOnly = false}) {
-        final pass = commands.createRenderPass(gpu.RenderTarget.singleColor(
-            gpu.ColorAttachment(texture: target),
-            depthStencilAttachment: gpu.DepthStencilAttachment(
-                texture: depthTarget, depthClearValue: 1)));
+        final pass = commandBuffer.createRenderPass(
+            gpu.RenderTarget.singleColor(gpu.ColorAttachment(texture: target),
+                depthStencilAttachment: gpu.DepthStencilAttachment(
+                    texture: depthTarget, depthClearValue: 1)));
         pass.bindPipeline(pipeline);
         pass.setDepthCompareOperation(gpu.CompareFunction.lessEqual);
         pass.setCullMode(gpu.CullMode.none);
@@ -891,8 +892,16 @@ class SocketMediaGpu {
         }
       }
 
-      if (hasTransmission) draw(_opaqueScene!, _opaqueDepth!, opaqueOnly: true);
-      draw(frame.colorTexture, _depth!);
+      if (hasTransmission) {
+        // RenderPassVK begins in its constructor and ends when submit encodes
+        // it. Two Dart passes on one live buffer would nest native passes.
+        // Submit the opaque producer before opening the composite consumer;
+        // the graphics queue orders GPU work without a timer or CPU wait.
+        final opaqueCommands = context.createCommandBuffer();
+        draw(opaqueCommands, _opaqueScene!, _opaqueDepth!, opaqueOnly: true);
+        opaqueCommands.submit();
+      }
+      draw(commands, frame.colorTexture, _depth!);
       frame.present(commands);
       commands.submit(completionCallback: (success) {
         if (success) {

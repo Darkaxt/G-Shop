@@ -59,6 +59,16 @@ material, classification, Gallery and secondary lifecycle/audio checks pass;
 host Flutter cannot verify Impeller appearance. Native rendering is still required.
 Verified transfer placed all eight files (7,807,745 bytes) under the new cartridge
 model folder; both staging roots were removed. No ROM/save/settings were changed.
+First signed native candidate `70975e6` (run 39153704738, APK SHA-256
+`5373bfb62efcea88cf5f97a4fa274c469bcb75a0edbc217da4c011f243e3c066`)
+passed the hosted build/signature check but failed native cartridge acceptance:
+SIGSEGV in Adreno `vkCmdEndRenderPass` on the first transmission frame. The
+matching Flutter engine's RenderPassVK begins in its constructor and ends during
+CommandBuffer.submit; our two passes on one unsubmitted buffer were nested.
+Correction submits the opaque producer before opening the composite consumer,
+using actual command/queue ordering, not a delay. The failed candidate is not
+acceptance evidence; corrected native verification remains required. Both screens
+were verified OFF/Asleep after diagnosis.
 
 Current host evidence: six compatible GBA unfolded sets have been classified
 from the preserved dump. Inspected six-face sheets now retain the complete fronts,
