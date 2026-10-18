@@ -94,13 +94,16 @@ def main():
                         target = wait_for(lambda line: re.search(
                             r'selection=([a-f0-9]{64}).*model=true.*label=true', line))
                         identity = target[1]
-                key(108)
-                # Root menu height changes when Downloads becomes visible.
-                # Use its actual controller focus, never absolute row taps.
-                key(66)  # Game actions (first focused root entry).
-                key(20)  # Play or Download.
-                key(20)  # Resources; this cohort has one preferred variant.
-                key(66)
+                # The secondary presentation retains primary controller focus.
+                # Enter through its real touch actions, waiting for the details
+                # frame rather than racing the primary quick-menu focus handoff.
+                tap(620, 600, lower=True)
+                details = wait_for(lambda line: re.search(
+                    r'rendered selection=([a-f0-9]{64}).*model=null', line))
+                if identity is not None and details[1] != identity:
+                    raise RuntimeError('Details frame belongs to another selection')
+                identity = details[1]
+                tap(620, 970, lower=True)
                 manual_pages = 0
                 for view, point in [('box', None), ('cover', (310, 278)),
                                     ('cartridge', (559, 278)), ('manual', (830, 278))]:

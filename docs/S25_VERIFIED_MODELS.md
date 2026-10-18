@@ -9,6 +9,21 @@ not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ### Current GBA collection checkpoint
 
+The production-signed `e657210` build (GitHub run 39088025287) completed the real
+offline ranked cohort on Thor: all 24 distinct GBA selections rendered Box, Case
+and Cartridge; all 19 available manuals rendered their booklet. Exact frame roles
+match the reviewed import pack, including all 789 manual pages across the cohort.
+All 48 box/cartridge captures were visually inspected: correct game art, upright
+labels, fitted surfaces and matte housing. Evidence is
+`D:/Temp/rshop-s25-gba-collector-20261017/native-cohort-e657210/frames.jsonl`,
+its individual PNGs and three inspection-only contact sheets. The installed APK
+hash matches the signed artifact:
+`1f06f000b40ff00a5bf6324f64fc40cbe67607ec6bfd35e954f9136ee4f72f14`.
+The pass uses normal secondary-screen touch controls, preserves primary browsing
+focus and reports `cinematicVerified=false`, `videoAcceptance=false` explicitly.
+It verifies the mapped generic explorer, not the newly downloaded protector,
+full publication/recovery, exact gallery audio gain or every manual page's reading.
+
 The first real-console checkpoint uses the actual 24 eligible distinct ranked
 GBA games, not 25 manufactured slots or a replacement sample. Desktop collection
 has prepared same-US-edition front/back/spine faces for all 24, plus 19 available
@@ -55,6 +70,15 @@ managed Top-25 cache; it was not launched or deleted. No save-sync action was
 performed. An earlier display-targeted key reached Cocoon and opened DualSouls;
 R-Shop was brought back without using that unrelated launch as acceptance
 evidence. Subsequent lower-display controls use touch, not global key injection.
+
+Before the next signed update, the unchanged `2de0ce0` manual/gallery paths were
+also exercised offline on LeafGreen: its real instruction-booklet cover renders
+on the 3D booklet, Read opens the actual scanned pages, and Next advances to the
+health/safety page. The Gallery plays its cached gameplay trailer; Android reports
+the same app PID's movie AudioTrack started. This is not a measurement of the
+gallery player's exact gain or a claim that every game's manual was read.
+Evidence under `native/`: `manual-leafgreen-closed-down.png`,
+`manual-leafgreen-read-page2-down.png` and `leafgreen-gallery-video-down.png`.
 
 The completed native inventory exercised all 66 supported console routes on
 AYN Thor (serial `bfa98654`), using the actual ResourceGallery widget in the
@@ -229,20 +253,20 @@ bound by the import manifest or selected edition.
 | A19 | `genesis` | `e46d8f63c9452ce4bda3c168d494e057c93538a92910e7c057743608757e2dfe` |
 | A20 | `megadrive` | `e46d8f63c9452ce4bda3c168d494e057c93538a92910e7c057743608757e2dfe` |
 
-## Required S25 work not passed by inspection
+## Current S25 reconciliation
 
-These are current-stage advancement blockers, not unnamed deferrals and not
-evidence that S25 should be parked as BLOCKED:
+Unfinished criteria are current-stage advancement blockers, not unnamed deferrals.
+The console-review stop and subsequent cinematic work remain explicitly pending.
 
-| Criterion | Reason still unsatisfied | Resolution / dependent acceptance |
+| Criterion | Verified at this checkpoint | Remaining acceptance |
 | --- | --- | --- |
-| P25-01 primary/fallback pipeline | No new LaunchBox acquisition and selected-edition box-face workflow is implemented in this checkpoint | Real supplied GBA 007 -> typed provenance -> Drive/cache -> visible coherent faces, including compatible fallback |
-| P25-02 final packaging/fit | Generic empty display housings are inspected, not fitted console-specific holders or the complete layer composition | Select/adapt applicable final cases and verify actual box/case/medium fit; update each affected ledger row |
-| P25-03 full interactive integration | Isolated production widget/actions are native-inspected; full app entry/secondary/controller/touch flow is not freshly native-verified | Verify the integrated signed app after resource/source work; missing media must remain honest |
+| P25-01 primary/fallback pipeline | LaunchBox-first/ScreenScraper-fallback desktop acquisition and same-US-edition pack are integrated with actual ranked GBA explorer faces | Complete Drive publication/recovery and the supplied non-ranked GBA 007 example's native source/fallback check |
+| P25-02 final packaging/fit | GBA generic case proportions, holder rails and manual clips are integrated; actual opening/rotation/zoom inspected on Mega Man Zero 3 | Final acquired protector adaptation and complete applicable layer fit, then other consoles after owner review |
+| P25-03 full interactive integration | Signed ordinary-app secondary touch entry and 24-game explorer pass; primary grid navigation retained | Full ordinary-app controller workflow remains unverified; isolated controller evidence is not a substitute |
 | P25-04 cinematic/lifecycle | Owner explicitly requested stopping before the new full transition; S24 reveal remains unchanged | Resume only after this individual review; verify complete box-exit/case-align/open/medium-pop/dissolve/trailer per applicable console |
-| P25-05 real documents/media | Synthetic reader page and existing audio contracts do not prove an actual game's manual/trailer/gallery workflow | Collect compatible real documents/media, verify reader/playback and saved volume/music restoration |
-| P25-06 ranked GBA | Model fixtures are not the actual distinct eligible Top 25 collection | Verify every currently eligible distinct ranked GBA game; never fabricate a 25th or count regional duplicates |
-| P25-07 classified ingestion | Reference archive is verified on E: but no classified extraction/publication has occurred | Inspect/match/classify final resource roles and edition digests before private Drive publication |
-| P25-08 production delivery | No S25 release/deployment at this partial owner checkpoint | Finish required integrated acceptance, then existing GitHub signing/release path and installed-byte verification |
+| P25-05 real documents/media | Nineteen actual manual booklets render; LeafGreen's real page reader/Next and cached gallery trailer were inspected | Exact interactive-gallery volume/music restoration and remaining applicable per-console documents/media checks |
+| P25-06 ranked GBA | All 24 actual distinct ranked games passed current signed native box/case/cartridge checks; all 48 box/cartridge captures inspected | No missing 25th is invented; S24's unchanged ranked trailer/audio proof is retained, not replaced by this model pass |
+| P25-07 classified ingestion | E: sources are classified into edition-bound front/back/spine/manual pages and imported with integrity/provenance; partial Drive publication verified | Finish existing durable publication and real remote recovery; incompatible NintAndBox regions remain excluded |
+| P25-08 production delivery | GitHub-signed e657210 is installed in place and installed bytes/certificate match | Public release remains pending required checkpoint acceptance and private publication/recovery, then owner device review |
 
 No S25 requirement is moved into S26. The rebrand remains NOT STARTED.

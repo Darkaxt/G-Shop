@@ -7,6 +7,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 native cached-preview admission — 2026-10-18, ACTIVE
 
+Current signed source is `e657210`, GitHub run 39088025287. Release tests,
+assembly, certificate and private-asset checks passed; the in-place Thor APK
+independently matches SHA-256
+`1f06f000b40ff00a5bf6324f64fc40cbe67607ec6bfd35e954f9136ee4f72f14`.
+The actual offline 24-game ranked explorer pass completed with distinct identities
+and ranks 1–24: 24 box, 24 case, 24 cartridge and 19 available manual model frames.
+All 48 box/cartridge captures were visually inspected in the three contact sheets
+under `D:/Temp/rshop-s25-gba-collector-20261017/native-cohort-e657210`.
+Faces/labels are upright, game-specific and fitted; the housing is matte, not
+metallic. This verifies the gallery-admission correction, including LeafGreen,
+without replacing the ranked cohort or claiming an authentic acquired protector.
+The real LeafGreen manual reader and cached gallery trailer also passed on the
+unchanged preceding build. The diagnostic driver now uses ordinary secondary
+touch actions and the actual details-frame event, avoiding the primary quick-menu
+focus race; this is not controller acceptance. The current full pass explicitly
+does not assert trailer/audio or cinematic acceptance. Existing S24 preview/audio
+evidence remains applicable where unchanged.
+
+After this cache-only pass, the same durable Drive publication was resumed once
+with Wi-Fi restored. No duplicate import or scrape was started. Its terminal
+publication/recovery result and the public signed handoff remain acceptance
+blockers; native model coverage alone does not close this checkpoint.
+
 GitHub run 39081143567 at source `67d714b` passed release unit tests, assembly,
 signature and private-asset exclusion. Its installed Thor APK independently
 matches SHA-256 `309733a0302c104ec64f2dfcf829e03367af66298785aa39bdca54bd11366da3`
