@@ -13,6 +13,9 @@ the second object clears it. A cartridge-only scene keeps its 6.5-second timelin
 a collected booklet uses a 10-second explicit sequence. Horizontal faces, shared
 resting plane, shallow semicircle and elevated overview pass the focused scene,
 gesture and projected-fit checks. Native acceptance of these new poses is pending.
+The holder scene also retains the front cover while image/model preparation is
+pending, restoring the existing readiness contract instead of a blank spinner.
+Its regression uses the same canonical file-image key as the actual URI loader.
 
 Signed `37a137d` is installed on Thor, independently matched to GitHub run
 39165962524 and APK SHA-256

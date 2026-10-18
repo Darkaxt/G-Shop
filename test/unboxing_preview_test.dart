@@ -4,6 +4,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/widgets/unboxing_preview.dart';
 
 void main() {
+  testWidgets('the cover stays visible while the scene is preparing',
+      (tester) async {
+    final key = GlobalKey<UnboxingPreviewState>();
+    final front = File.fromUri(File('assets/icon.png').absolute.uri);
+    // Resolve file IO outside FakeAsync before the first Image creates a cached
+    // stream; a pending stream must not leak into the next widget test's zone.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(() => precacheImage(
+        FileImage(front), tester.element(find.byType(SizedBox).first)));
+    await tester.pumpWidget(MaterialApp(
+        home: UnboxingPreview(
+            key: key,
+            identity: 'preparing',
+            title: 'Fixture',
+            style: 'blue',
+            resources: {
+              'box-2D': [front.uri.toString()]
+            },
+            resourcesReady: false,
+            cartridgeLabel: const ColoredBox(color: Colors.white),
+            labelIdentity: 'fixture')));
+    await tester.pump();
+    expect(key.currentState!.snapshot['imagesReady'], true);
+    expect(key.currentState!.snapshot['started'], false);
+    expect(find.byKey(const ValueKey('unboxing-preparation-cover')),
+        findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('double-tapping the inspected booklet requests the reader',
       (tester) async {
     final key = GlobalKey<UnboxingPreviewState>();

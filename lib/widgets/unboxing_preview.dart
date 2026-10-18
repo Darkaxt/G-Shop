@@ -282,11 +282,21 @@ class UnboxingPreviewState extends State<UnboxingPreview>
     }
   }
 
+  Widget _preparationCover() {
+    final path = boxPanelPath(widget.resources, 0);
+    return path == null
+        ? const Center(child: CircularProgressIndicator())
+        : Image(
+            key: const ValueKey('unboxing-preparation-cover'),
+            image: _provider(path),
+            fit: BoxFit.contain);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null)
       return const Center(child: Text('Box resources unavailable'));
-    if (!_imagesReady) return const Center(child: CircularProgressIndicator());
+    if (!_imagesReady) return _preparationCover();
     return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapUp: (event) {
@@ -313,62 +323,67 @@ class UnboxingPreviewState extends State<UnboxingPreview>
         },
         child: AnimatedBuilder(
             animation: Listenable.merge([_timeline, _inspection]),
-            builder: (context, _) => SocketMediaRenderer.unboxing(
-                  key: _renderer,
-                  scene: UnboxingScene(widget.style,
-                      hasBooklet: bookletPanelPath(widget.resources, 0) != null,
-                      bookletAspect: _bookletAspect),
-                  identity: widget.identity,
-                  title: widget.title,
-                  pose: SocketMediaPose(
-                      rx: _returning
-                          ? .06 + (_pitch - .06) * _inspection.value
-                          : _pitch,
-                      ry: _returning
-                          ? -.2 + (_yaw + .2) * _inspection.value
-                          : _yaw,
-                      scaleX: _returning
-                          ? 1 + (_zoom - 1) * _inspection.value
-                          : _zoom,
-                      scaleY: _returning
-                          ? 1 + (_zoom - 1) * _inspection.value
-                          : _zoom,
-                      scaleZ: _returning
-                          ? 1 + (_zoom - 1) * _inspection.value
-                          : _zoom,
-                      opening: UnboxingScene.opening(_timeline.value,
-                          hasBooklet:
-                              bookletPanelPath(widget.resources, 0) != null),
-                      unboxing: _timeline.value,
-                      inspectedPart: _focusedPart,
-                      inspection:
-                          Curves.easeInOut.transform(_inspection.value)),
-                  labelIdentity: '${widget.labelIdentity}:${widget.resources}',
-                  onReady: () {
-                    _gpuReady = true;
-                    _start();
-                  },
-                  label: Column(children: [
-                    for (var row = 0; row < 4; row++)
-                      Expanded(
-                          child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                            for (var col = 0; col < 3; col++)
-                              Expanded(
-                                  child: row < 2
-                                      ? _face(boxPanelPath(
-                                          widget.resources, row * 3 + col))
-                                      : row == 2 && col == 0
-                                          ? widget.cartridgeLabel
-                                          : row * 3 + col < 11
-                                              ? _face(bookletPanelPath(
-                                                  widget.resources,
-                                                  row * 3 + col - 7))
-                                              : const SizedBox())
-                          ]))
-                  ]),
-                )));
+            builder: (context, _) => Stack(fit: StackFit.expand, children: [
+                  SocketMediaRenderer.unboxing(
+                    key: _renderer,
+                    scene: UnboxingScene(widget.style,
+                        hasBooklet:
+                            bookletPanelPath(widget.resources, 0) != null,
+                        bookletAspect: _bookletAspect),
+                    identity: widget.identity,
+                    title: widget.title,
+                    pose: SocketMediaPose(
+                        rx: _returning
+                            ? .06 + (_pitch - .06) * _inspection.value
+                            : _pitch,
+                        ry: _returning
+                            ? -.2 + (_yaw + .2) * _inspection.value
+                            : _yaw,
+                        scaleX: _returning
+                            ? 1 + (_zoom - 1) * _inspection.value
+                            : _zoom,
+                        scaleY: _returning
+                            ? 1 + (_zoom - 1) * _inspection.value
+                            : _zoom,
+                        scaleZ: _returning
+                            ? 1 + (_zoom - 1) * _inspection.value
+                            : _zoom,
+                        opening: UnboxingScene.opening(_timeline.value,
+                            hasBooklet:
+                                bookletPanelPath(widget.resources, 0) != null),
+                        unboxing: _timeline.value,
+                        inspectedPart: _focusedPart,
+                        inspection:
+                            Curves.easeInOut.transform(_inspection.value)),
+                    labelIdentity:
+                        '${widget.labelIdentity}:${widget.resources}',
+                    onReady: () {
+                      _gpuReady = true;
+                      _start();
+                    },
+                    label: Column(children: [
+                      for (var row = 0; row < 4; row++)
+                        Expanded(
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                              for (var col = 0; col < 3; col++)
+                                Expanded(
+                                    child: row < 2
+                                        ? _face(boxPanelPath(
+                                            widget.resources, row * 3 + col))
+                                        : row == 2 && col == 0
+                                            ? widget.cartridgeLabel
+                                            : row * 3 + col < 11
+                                                ? _face(bookletPanelPath(
+                                                    widget.resources,
+                                                    row * 3 + col - 7))
+                                                : const SizedBox())
+                            ]))
+                    ]),
+                  ),
+                  if (!_started) IgnorePointer(child: _preparationCover()),
+                ])));
   }
 
   @override
