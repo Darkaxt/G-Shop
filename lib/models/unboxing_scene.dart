@@ -157,7 +157,9 @@ class UnboxingScene {
         ? .1 * spread
         : (book ? 0.0 : seat[1].toDouble()) * (1 - spread) - .55 * spread;
     final seatedZ = book ? -.11 : seat[2].toDouble();
-    var z = box ? 0.0 : (seatedZ + (.60 - seatedZ) * forward) * (1 - lower);
+    var z = box
+        ? -.28 * spread
+        : (seatedZ + (.60 - seatedZ) * forward) * (1 - lower) + .65 * lower;
     var size = box
         ? 1 - .28 * spread
         : book
@@ -165,8 +167,22 @@ class UnboxingScene {
                     (1 - spread) +
                 .5 * spread
             : scale + (1.45 - scale) * spread;
-    var rz = book ? -math.pi / 2 * (1 - spread) : 0.0;
-    var rx = box ? 0.0 : -.62 * lower;
+    var rz = (book ? -math.pi / 2 * (1 - spread) : 0.0) +
+        (box
+                ? 0.0
+                : book
+                    ? .22
+                    : -.22) *
+            lower;
+    var rx = box ? 0.0 : -math.pi / 2 * lower;
+    if (!box) {
+      // Rotate the face onto the tabletop, then seat the physical underside on
+      // the same plane as the standing carton. Different mesh thicknesses must
+      // not make the manual float or the cartridge sink into that plane.
+      final bounds = (model.data['partBounds'] as Map)[part] as List;
+      final restingY = -.62 - (bounds[0][2] as num).toDouble() * size;
+      y += (restingY - y) * lower;
+    }
     if (inspectedPart != null && inspection > 0) {
       final selected = inspectedPart == part;
       final targetX = selected ? 0.0 : (x < 0 ? -1 : 1) * (worldWidth / 2 + 4);

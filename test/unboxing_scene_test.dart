@@ -48,15 +48,48 @@ void main() {
             .x,
         closeTo(0, .00001));
     expect(UnboxingScene.opening(1), 0);
+    // Resting objects lie on the same tabletop, not merely lean towards it.
+    // The upright box is at the rear centre of a shallow semicircle.
+    final boxPose = UnboxingScene.partTransform(model, 'box', 1, 6);
+    final boxBottom = boxPose.transform3(vm.Vector3(0, -1, 0)).y;
+    for (final part in ['cartridge', 'booklet']) {
+      final pose = UnboxingScene.partTransform(model, part, 1, 6);
+      final normal = pose.getRotation().transform(vm.Vector3(0, 0, 1))
+        ..normalize();
+      expect(normal.y, closeTo(1, .00001), reason: '$part must lie flat');
+      expect(normal.z, closeTo(0, .00001));
+      final bounds = (model.data['partBounds'] as Map)[part] as List;
+      var lowest = double.infinity;
+      for (var x = 0; x < 2; x++) {
+        for (var y = 0; y < 2; y++) {
+          for (var z = 0; z < 2; z++) {
+            final point = pose.transform3(vm.Vector3(
+                (bounds[x][0] as num).toDouble(),
+                (bounds[y][1] as num).toDouble(),
+                (bounds[z][2] as num).toDouble()));
+            if (point.y < lowest) lowest = point.y;
+          }
+        }
+      }
+      expect(lowest, closeTo(boxBottom, .00001),
+          reason: '$part and box must share a supporting plane');
+      expect(pose.transform3(vm.Vector3.zero()).z,
+          greaterThan(boxPose.transform3(vm.Vector3.zero()).z + .5));
+    }
     for (final viewport in [const Size(620, 403), const Size(960, 540)]) {
+      final overview = SocketMediaGpu.modelTransform(
+          model, const SocketMediaPose(unboxing: 1));
+      final upward = overview.getRotation().transform(vm.Vector3(0, 1, 0));
+      expect(upward.z, greaterThan(.5),
+          reason: 'The overview must look down onto the horizontal faces');
       final rects = SocketMediaGpu.inspectionBounds(model,
           const SocketMediaPose(unboxing: 1, rx: .06, ry: -.2), viewport);
       expect(rects.keys, containsAll(['box', 'cartridge', 'booklet']));
       expect(rects['cartridge']!.right, lessThan(rects['box']!.left));
       expect(rects['booklet']!.left, greaterThan(rects['box']!.right));
       for (final rect in rects.values) {
-        expect(rect.left, greaterThanOrEqualTo(0));
-        expect(rect.right, lessThanOrEqualTo(viewport.width));
+        expect(rect.left, greaterThanOrEqualTo(8));
+        expect(rect.right, lessThanOrEqualTo(viewport.width - 8));
         expect(rect.top, greaterThanOrEqualTo(0));
         expect(rect.bottom, lessThanOrEqualTo(viewport.height));
       }

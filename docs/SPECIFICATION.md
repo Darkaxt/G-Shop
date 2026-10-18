@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 94, 2026-10-18.
+Authoritative specification, revision 95, 2026-10-19.
+
+Owner resting-layout clarification, 2026-10-19: arrange the three objects in a
+shallow semicircle, with the upright box at the rear centre and the cartridge
+and booklet lying horizontally toward the front-left and front-right, angled
+inward. They share a supporting plane; a slight lean is not lying down. Elevate
+the overview camera so their printed faces remain visible. Preserve the right-hand
+opening, upright box artwork, tap inspection and booklet-reader return.
 
 Owner three-object GBA acceptance, 2026-10-18: supersede the departing-box / lone
 focused-cartridge endpoint below. Extract both the cartridge and collected

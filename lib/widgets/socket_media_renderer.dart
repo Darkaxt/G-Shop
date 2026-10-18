@@ -510,10 +510,18 @@ class SocketMediaGpu {
     if (model.data['ownedGeometry'] == true ||
         model.data['cartridgeGeometry'] == true ||
         model.data['packagingGeometry'] == true) {
+      // Reveal the horizontal resting faces by looking down on the whole
+      // arrangement. Inspection returns to the ordinary front-facing camera.
+      final overviewPitch = model.data['unboxingGeometry'] == true
+          ? .55 *
+              UnboxingScene.phase(pose.unboxing, 5.65 / 6.5, 1) *
+              (1 - pose.inspection)
+          : 0.0;
       return vm.Matrix4.identity()
         ..translateByDouble(0, pose.y, pose.z, 1)
         ..rotateY(pose.ry)
         ..rotateX(pose.rx +
+            overviewPitch +
             (model.data['cartridgeGeometry'] == true ? math.pi / 2 : 0))
         ..rotateZ(pose.rz)
         ..scaleByDouble(pose.scaleX, pose.scaleY, pose.scaleZ, 1);
@@ -552,7 +560,7 @@ class SocketMediaGpu {
 
   static double fittedUnits(SocketMediaModel model, Size size) =>
       model.data['unboxingGeometry'] == true
-          ? math.min(size.width / 5.8, size.height * .68 / model.height)
+          ? math.min(size.width / 6.4, size.height * .68 / model.height)
           : model.data['hardwareGeometry'] == true
               ? math.min(size.width * .72 / model.sourceWidth,
                   size.height * .68 / model.height)

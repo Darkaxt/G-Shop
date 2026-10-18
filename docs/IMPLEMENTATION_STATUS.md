@@ -5,6 +5,29 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 semicircle correction — 2026-10-19, ACTIVE
+
+Signed `37a137d` is installed on Thor, independently matched to GitHub run
+39165962524 and APK SHA-256
+`c91fc7ec8f49bf9e5c2ec388326b37012fc7894ec331449e2c030dbe02f2abfe`.
+Sapphire native recording verifies upright box printing, the right-hand opening,
+both contents exiting right and the retained three-object endpoint. Tap booklet
+focus and double-tap into the full-screen reader at page 2/64 also pass.
+The owner correctly rejected the endpoint's 35-degree lean as not lying flat.
+Revision 95 now requires a shallow semicircle, shared horizontal resting plane,
+inward angles and elevated overview. This correction passes focused geometry,
+projected-fit, gesture and analyzer checks; native verification remains pending.
+Evidence: `D:/Temp/rshop-s25-correction-20261018/sapphire-right-tableau-analysis`
+(104 exported frames, no evidence truncation; raw-video timeline is estimated),
+and `native/tableau-booklet-focus-down.png` / `tableau-booklet-reader-down.png`.
+
+Drive publication remains an internal acceptance blocker, not successful backup:
+the real failure is `Metadata publication changed remotely` in
+`DriveMetadataApi.upload:306`, called by `_publishGame`'s resource publication.
+Keep remote-conflict protection intact; identify the conflicting receipt/object
+before changing publication behavior. GBA review and remaining S25 criteria are
+not declared COMPLETE. Both device displays are off during host work.
+
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
 Current owner extension, revision 94: the GBA carton must open on its right,

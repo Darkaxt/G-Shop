@@ -1,11 +1,15 @@
 # S25 verified console model and motion ledger
 
-Updated 2026-10-18. This records actual inspected assets, not candidate listings.
+Updated 2026-10-19. This records actual inspected assets, not candidate listings.
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
 The owner's current target is a right-opening GBA carton with upright artwork,
 extracting both contents into a retained three-object arrangement. The assembly
 is derived from the actual holder, hollow cartridge and supplied booklet; its
-new orientation/selection/reader workflow still needs integrated native acceptance.
+right-opening/upright-print sequence and booklet focus/full-screen read now have
+Thor evidence on signed `37a137d` (run 39165962524). Its resting lean was rejected
+by the owner. The corrected shallow semicircle with horizontal contents and an
+elevated camera is host-checked but still needs native acceptance. Pinch return,
+reader-back restoration and remaining combined media criteria remain to verify.
 Earlier top-opening or closed-inspector evidence does not verify that correction.
 This ledger does not declare the full S25 stage complete.
 

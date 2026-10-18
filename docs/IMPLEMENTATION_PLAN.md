@@ -1,11 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 94, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 95, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-Current execution, 2026-10-18: **S25 ACTIVE**. The owner now requires a retained
+Current execution, 2026-10-19: **S25 ACTIVE**. The owner now requires a retained
 three-object GBA endpoint (box centre, cartridge left, booklet right), tap-to-focus,
-pinch-out return and double-tap booklet reading. This supersedes the lone-medium
+pinch-out return and double-tap booklet reading. The resting arrangement is a
+shallow semicircle: upright box at the rear centre, cartridge/booklet horizontal
+at the front-left/right on one supporting plane, with an elevated overview camera.
+This supersedes the lone-medium
 endpoint; verify GBA and pause for owner review before another console. Current
 corrective priority is the
 real rigged-box opening/extraction preview, less-transparent Sapphire housing,
