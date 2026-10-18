@@ -151,6 +151,45 @@ class SocketMediaModel {
           throw const FormatException('Invalid local packaging index');
         }
       }
+      final hinges = s['openingHinges'];
+      if (hinges != null) {
+        if (hinges is! List || hinges.length > 16) {
+          throw const FormatException('Invalid local opening hierarchy');
+        }
+        for (final hinge in hinges) {
+          for (final name in ['pivot', 'axis']) {
+            final vector = hinge[name];
+            if (vector is! List ||
+                vector.length != 3 ||
+                vector.any((v) => v is! num || !v.isFinite)) {
+              throw const FormatException('Invalid opening vector');
+            }
+          }
+          final axis = (hinge['axis'] as List).cast<num>();
+          if (axis.fold<double>(0, (sum, v) => sum + v * v) < .000001) {
+            throw const FormatException('Empty opening axis');
+          }
+          final keys = hinge['keys'];
+          if (keys is! List || keys.length < 2 || keys.length > 256) {
+            throw const FormatException('Invalid opening keyframes');
+          }
+          var previous = -1.0;
+          for (final key in keys) {
+            if (key is! List ||
+                key.length != 2 ||
+                key.any((v) => v is! num || !v.isFinite) ||
+                key[0] <= previous ||
+                key[0] < 0 ||
+                key[0] > 1) {
+              throw const FormatException('Unordered opening keyframes');
+            }
+            previous = (key[0] as num).toDouble();
+          }
+          if (keys.first[0] != 0 || keys.last[0] != 1) {
+            throw const FormatException('Incomplete opening keyframes');
+          }
+        }
+      }
     }
     return SocketMediaModel._(data, mesh);
   }

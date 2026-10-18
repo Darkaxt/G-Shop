@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 85, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 86, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-18: **S25 ACTIVE**. Complete the shared trailer-first
@@ -9,6 +9,13 @@ supplied booklet geometry. Verify combined touch/controller media navigation, pl
 release/volume, distinct panels and reconstruction provenance with focused checks
 and a real GBA example. No game-name branches or cinematic implementation.
 Existing S25 model/controller/source acceptance remains recorded, not excused.
+Current ordered work: finish the updated rigged-carton import, per-game panel fit
+and real Open/Close explorer workflow first. Then implement the owner-requested
+single GBA console-selection secondary model pilot with a slow 40-second yaw turn,
+Reduced Motion, focus and existing preview/companion lifecycle preserved.
+This pilot is moved from S27 into S25 by the owner's latest instruction; general
+hardware coverage remains S27 NOT STARTED. Verify both full workflows on Thor;
+neither asset inspection nor a desktop render is integrated acceptance.
 
 Previous checkpoint, 2026-10-18: **S25 BLOCKED** at the corrected GBA owner-review
 stop. Public signed 1.9.19 is installed; Castlevania's six-face box, repeated edges,

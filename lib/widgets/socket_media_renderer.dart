@@ -77,6 +77,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'geometrySha256': _renderer?.model.data['geometrySha256'] ??
             _renderer?.model.data['meshSha256'],
         'canOpen': _renderer?.model.data['canOpen'] == true,
+        'openingDurationMs': _renderer?.model.data['openingDurationMs'],
         'opening': widget.pose.opening,
         'paintedPose': _paintedPose == null
             ? null
@@ -309,7 +310,12 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 () => _rendered(renderer, labelRevision, pose),
                 (error) => _paintFailed(renderer, error)))
       else
-        widget.label,
+        widget.packaging != null
+            ? Center(
+                child: _error == null
+                    ? const CircularProgressIndicator()
+                    : const Text('Model unavailable'))
+            : widget.label,
     ]);
   }
 }
@@ -353,6 +359,37 @@ class SocketMediaGpu {
               model.data['ownedGeometry'] == true
           ? gpu.WindingOrder.counterClockwise
           : gpu.WindingOrder.clockwise;
+
+  static vm.Matrix4 openingTransform(
+      Map<String, dynamic> surface, double opening) {
+    final transform = vm.Matrix4.identity();
+    for (final raw in surface['openingHinges'] as List? ?? const []) {
+      final hinge = raw as Map;
+      final keys = (hinge['keys'] as List).cast<List>();
+      final t = opening.clamp(0.0, 1.0);
+      var angle = (keys.last[1] as num).toDouble();
+      for (var i = 1; i < keys.length; i++) {
+        final a = keys[i - 1], b = keys[i];
+        if (t <= (b[0] as num)) {
+          final f = ((t - (a[0] as num)) / ((b[0] as num) - (a[0] as num)))
+              .clamp(0.0, 1.0);
+          angle =
+              (a[1] as num).toDouble() + ((b[1] as num) - (a[1] as num)) * f;
+          break;
+        }
+      }
+      final p = (hinge['pivot'] as List).cast<num>();
+      final a = (hinge['axis'] as List).cast<num>();
+      transform
+        ..translateByDouble(
+            p[0].toDouble(), p[1].toDouble(), p[2].toDouble(), 1)
+        ..rotate(vm.Vector3(a[0].toDouble(), a[1].toDouble(), a[2].toDouble()),
+            angle)
+        ..translateByDouble(
+            -p[0].toDouble(), -p[1].toDouble(), -p[2].toDouble(), 1);
+    }
+    return transform;
+  }
 
   /// Godot's source camera looks from -Z with a 180-degree Y basis. A selected
   /// Node3D replaces its root rotation (intrinsic YXZ), rather than adding to it.
@@ -674,7 +711,9 @@ class SocketMediaGpu {
             : gpu.CullMode.none);
         final isLabel = surface['role'] == 'label';
         final transform = base.clone();
-        if (surface['hinged'] == true && pose.opening != 0) {
+        if (surface['openingHinges'] is List) {
+          transform.multiply(openingTransform(surface, pose.opening));
+        } else if (surface['hinged'] == true && pose.opening != 0) {
           final pivot = (surface['pivot'] as List).cast<num>();
           transform
             ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)

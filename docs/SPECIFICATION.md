@@ -1,6 +1,30 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 85, 2026-10-18.
+Authoritative specification, revision 86, 2026-10-18.
+
+Owner ordered extension, 2026-10-18: integrate the supplied updated rigged carton
+first, then the supplied GBA hardware model on the secondary display while GBA
+is selected on the main console-selection page. This moves the single GBA pilot
+into ACTIVE S25; broader console-hardware coverage remains S27 NOT STARTED.
+The preceding S27-only acquisition restriction is superseded for this pilot only.
+Use `castlevania-carton-rigged (1).glb` as reusable game-independent cardboard
+geometry, retaining real top-flap Open/Close motion and fitted per-game panels.
+Verify its individual model controls before the deliberately held cinematic;
+cartridge extraction remains part of that later box/medium sequence.
+For the hardware pilot use `GameBoy_Advance-87e049f9 (1).glb`, isolate the actual
+classic GBA (not its co-exported SP/loose cartridges), preserve source materials
+and orientation, and rotate slowly about its upright axis. Use one revolution
+per 40 seconds; Reduced Motion holds a readable stationary pose. Render from
+the existing secondary engine without stealing primary touch/controller focus.
+Leaving console selection restores ordinary ROM preview ownership; hiding or
+launching R-Shop suspends rotation and leaves the emulator/companion untouched.
+Missing hardware imports retain the existing presentation, not a fake model.
+Private source exports without a reuse grant remain local imports, not public
+APK assets. Console asset replacement must not require an application rebuild.
+Acceptance is the real GBA select -> visible correctly fitted textured hardware
+-> slow rotation -> ROM browsing -> launch/hide lifecycle on Thor, plus affected
+selection/focus/reduced-motion and source-integrity checks. It follows the real
+rigged-carton resource workflow; do not start another ACTIVE implementation stage.
 
 Owner booklet clarification, 2026-10-18: use the PDF's last collected page on
 the booklet's outside back cover. Keep inside page artwork distinct from the

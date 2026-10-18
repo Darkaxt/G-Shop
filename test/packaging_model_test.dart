@@ -10,7 +10,76 @@ import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('GBA box uses its local opening carton rather than the static fallback',
+      () async {
+    final root = Directory('D:/Temp/rshop-s25-hardware-20261018/test-carton');
+    final folder = Directory('${root.path}/cartons/gba');
+    await folder.create(recursive: true);
+    final original = PackagingModel(PackagingKind.box).build();
+    final data = Map<String, dynamic>.from(original.data)
+      ..remove('ownedGeometry')
+      ..addAll({
+        'name': 'gba-rigged-carton-v1',
+        'packagingGeometry': true,
+        'privateImport': true,
+        'canOpen': true,
+        'sourceReference': {
+          'author': 'Owner fixture',
+          'url': 'local:fixture',
+          'licence': 'local-import-only',
+          'sha256': 'b' * 64
+        }
+      });
+    await File('${folder.path}/model.json').writeAsString(jsonEncode(data));
+    await File('${folder.path}/model.mesh')
+        .writeAsBytes(original.mesh.buffer.asUint8List());
+    final loaded = await PackagingModel(PackagingKind.box,
+            systemId: 'gba', modelsDirectory: root)
+        .load();
+    expect(loaded.name, 'gba-rigged-carton-v1');
+    expect(loaded.data['canOpen'], true);
+  });
   final actualBooklet = Platform.environment['RSHOP_BOOKLET_MODEL_DIR'];
+  final actualCarton = Platform.environment['RSHOP_CARTON_MODEL_DIR'];
+  test('owner carton retains fitted faces and its hierarchical top opening',
+      () async {
+    final model = await PackagingModel(PackagingKind.box,
+            systemId: 'gba',
+            aspect: .8,
+            depth: .32,
+            modelsDirectory: Directory(actualCarton!))
+        .load();
+    expect(model.name, 'gba-rigged-carton-v1');
+    expect(model.triangles, 2316);
+    expect(model.data['canOpen'], true);
+    final top = model.surfaces.firstWhere((s) => s['node'] == 'Top_lid');
+    final bottom = model.surfaces.firstWhere((s) => s['node'] == 'Bottom_lid');
+    expect(top['openingHinges'], isNotEmpty);
+    expect(bottom['openingHinges'], isEmpty);
+    final closed = SocketMediaGpu.openingTransform(top, 0);
+    final opened = SocketMediaGpu.openingTransform(top, 1);
+    for (var r = 0; r < 4; r++) {
+      for (var c = 0; c < 4; c++) {
+        expect(closed.entry(r, c), closeTo(r == c ? 1 : 0, .00001));
+      }
+    }
+    expect(opened.storage, isNot(orderedEquals(closed.storage)));
+    for (final s in model.surfaces) {
+      for (var i = 0; i < s['vertexCount']; i++) {
+        final n = (s['vertexOffset'] as int) + i * 32;
+        expect(model.mesh.getFloat32(n, Endian.little).abs(),
+            lessThanOrEqualTo(.80001));
+        expect(model.mesh.getFloat32(n + 4, Endian.little).abs(),
+            lessThanOrEqualTo(1.00001));
+        expect(model.mesh.getFloat32(n + 8, Endian.little).abs(),
+            lessThanOrEqualTo(.16001));
+        for (final a in [24, 28]) {
+          expect(model.mesh.getFloat32(n + a, Endian.little),
+              inInclusiveRange(0, 1));
+        }
+      }
+    }
+  }, skip: actualCarton == null ? 'Requires owner carton conversion' : false);
   test('owner-exported booklet fits each page aspect without corrupting UVs',
       () async {
     for (final aspect in [.75, 1.0, 4 / 3]) {

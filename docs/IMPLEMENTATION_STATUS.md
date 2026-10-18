@@ -7,12 +7,16 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Owner feedback resumes the same stage under specification revision 85. Required:
+Owner feedback resumes the same stage under specification revision 86. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded
 box panels through the existing collector/import/Drive/viewer lane, retained
 composite provenance, adapted Diskette cardboard, supplied booklet geometry and
 era-appropriate Nintendo cases. Acceptance remains pending; no cinematic is opened. Castlevania
 is the real example, not a game-specific implementation.
+New ordered scope: the supplied rigged carton is the current integration task;
+the GBA rotating console-selection preview follows it within the same S25 stage.
+Both are internal advancement blockers until their real imported-model workflows
+pass on Thor. Broad S27 hardware coverage is still NOT STARTED.
 
 Current host evidence: six compatible GBA unfolded sets have been classified
 from the preserved dump. Inspected six-face sheets now retain the complete fronts,

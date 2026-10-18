@@ -42,7 +42,9 @@ class ResourceGallery extends StatefulWidget {
 }
 
 class ResourceGalleryState extends State<ResourceGallery>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  late final AnimationController _flaps;
+  bool _openingTarget = false;
   final rendererKey = GlobalKey<SocketMediaRendererState>();
   final _readingTransform = TransformationController();
   final _galleryScroll = ScrollController();
@@ -94,9 +96,11 @@ class ResourceGalleryState extends State<ResourceGallery>
       PhysicalMediaFormat.forSystem(widget.systemId,
           region: widget.region, dualMode: widget.dualMode);
   bool get canOpen =>
+      (view == ResourceView.box &&
+          rendererKey.currentState?.snapshot['canOpen'] == true) ||
       (view == ResourceView.cover ||
-          view == ResourceView.manual && pages.isNotEmpty) &&
-      kind != PackagingKind.box;
+              view == ResourceView.manual && pages.isNotEmpty) &&
+          kind != PackagingKind.box;
   List<ResourceView> get availableViews {
     final physical = !{'arcade', 'tic80', 'pico8'}.contains(widget.systemId);
     final caseOnly = {
@@ -173,6 +177,10 @@ class ResourceGalleryState extends State<ResourceGallery>
   @override
   void initState() {
     super.initState();
+    _flaps = AnimationController(vsync: this)
+      ..addListener(() {
+        if (mounted) setState(() => opening = _flaps.value);
+      });
     view = availableViews.first;
     WidgetsBinding.instance.addObserver(this);
   }
@@ -312,6 +320,9 @@ class ResourceGalleryState extends State<ResourceGallery>
                   disc: disc,
                   umd: umd));
   void reset() {
+    _flaps.stop();
+    _flaps.value = 0;
+    _openingTarget = false;
     yaw = -.2;
     pitch = .06;
     zoom = .75;
@@ -439,6 +450,22 @@ class ResourceGalleryState extends State<ResourceGallery>
     }
   }
 
+  void _toggleOpening() {
+    final milliseconds =
+        rendererKey.currentState?.snapshot['openingDurationMs'];
+    if (view == ResourceView.box && milliseconds is int && milliseconds > 0) {
+      _flaps.duration = Duration(milliseconds: milliseconds);
+      _openingTarget = !_openingTarget;
+      if (_openingTarget) {
+        _flaps.forward();
+      } else {
+        _flaps.reverse();
+      }
+    } else {
+      setState(() => opening = opening == 0 ? 1 : 0);
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) unawaited(_stopVideo());
@@ -446,6 +473,7 @@ class ResourceGalleryState extends State<ResourceGallery>
 
   @override
   void dispose() {
+    _flaps.dispose();
     _detachSpine();
     WidgetsBinding.instance.removeObserver(this);
     _detachCover();
@@ -473,7 +501,7 @@ class ResourceGalleryState extends State<ResourceGallery>
                 ? video.pause()
                 : video.play());
       } else if (canOpen) {
-        setState(() => opening = opening == 0 ? 1 : 0);
+        _toggleOpening();
       }
     } else if (key == LogicalKeyboardKey.gameButtonY &&
         view == ResourceView.manual) {
@@ -558,6 +586,7 @@ class ResourceGalleryState extends State<ResourceGallery>
               ]))
       ]);
   void _rendered() {
+    if (mounted) setState(() {});
     // Bounded transition evidence, not a frame-by-frame UI stream. No URLs,
     // titles, account data or tokens are logged.
     debugPrint('RShopResources ${jsonEncode({
@@ -787,8 +816,7 @@ class ResourceGalleryState extends State<ResourceGallery>
                 if (canOpen)
                   IconButton(
                       tooltip: opening == 0 ? 'Open' : 'Close case',
-                      onPressed: () =>
-                          setState(() => opening = opening == 0 ? 1 : 0),
+                      onPressed: _toggleOpening,
                       icon: const Icon(Icons.open_in_full)),
                 if (view == ResourceView.manual && pages.isNotEmpty)
                   IconButton(

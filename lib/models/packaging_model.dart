@@ -37,14 +37,18 @@ class PackagingModel {
         (Platform.isAndroid
             ? Directory('/storage/emulated/0/RShop/models')
             : null);
-    final manifest = local == null ? null : File('${local.path}/booklet.json');
-    if (kind == PackagingKind.booklet &&
+    final name = kind == PackagingKind.box && systemId != null
+        ? 'cartons/$systemId/model'
+        : 'booklet';
+    final manifest = local == null ? null : File('${local.path}/$name.json');
+    if ((kind == PackagingKind.booklet ||
+            kind == PackagingKind.box && systemId != null) &&
         manifest != null &&
         await manifest.exists()) {
-      final mesh = File('${local!.path}/booklet.mesh');
-      if (await manifest.length() > 128 * 1024 ||
+      final mesh = File('${local!.path}/$name.mesh');
+      if (await manifest.length() > 1024 * 1024 ||
           await mesh.length() > 20 * 1024 * 1024) {
-        throw const FormatException('Local booklet exceeds import size');
+        throw const FormatException('Local model exceeds import size');
       }
       data = jsonDecode(await manifest.readAsString()) as Map<String, dynamic>;
       source = ByteData.sublistView(await mesh.readAsBytes());
@@ -63,6 +67,10 @@ class PackagingModel {
         source.buffer.asUint8List(source.offsetInBytes, source.lengthInBytes)));
     for (final raw in data['surfaces'] as List) {
       final surface = raw as Map;
+      for (final hinge in surface['openingHinges'] as List? ?? const []) {
+        final pivot = (hinge['pivot'] as List).cast<num>();
+        hinge['pivot'] = [pivot[0] * aspect, pivot[1], pivot[2] * depth / 2];
+      }
       if (surface['pivot'] is List) {
         final pivot = (surface['pivot'] as List).cast<num>();
         surface['pivot'] = [pivot[0] * aspect, pivot[1], pivot[2] * depth / 2];
