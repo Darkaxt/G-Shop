@@ -26,8 +26,10 @@ warnings. The two newly introduced one-line guards were braced; existing style
 findings outside the change are retained. No Windows Gradle command was run.
 
 The owner-supplied GB box archive is hash-inventoried in the coverage review.
-Its ASCII FBX needs conversion before Blender inspection; this is acquisition
-evidence only and does not start a second console's native implementation.
+Blender's native FBX importer (not its ASCII-rejecting legacy importer) now
+successfully imports it. Actual front/back renders and the closed single-mesh
+inventory are inspected; no converter/add-on was needed. This is private source
+inspection, not a second console's native implementation or opening acceptance.
 
 Later read-only native observation resolves the apparent endless publication:
 the first import did finish, with 24 GBA packaging records, 24 each of the three

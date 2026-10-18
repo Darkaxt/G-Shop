@@ -74,7 +74,7 @@ native-verified asset; existing Socket cartridge routes remain available.
 | Platform | Medium / outer packaging source | Case / protector | Remaining source integration |
 | --- | --- | --- | --- |
 | GBA | Owner GLB `25bd1b56` has cartridge + screw, inspected in Blender; owned parameterized outer box | Same GLB has separate protector base/lid | Fit/recenter, define hinge, map actual game label, matte housing and native proof; no source animation clip exists |
-| GB | [Bob's low-poly cartridge](https://sketchfab.com/3d-models/gameboy-cartridge-lowpoly-8b9728eab16c4056ac2636ae7f0f038f), 510 faces, CC BY, downloadable; [Frank Rennau's box](https://sketchfab.com/3d-models/game-boy-super-mario-land-box-b4515d780a3b4b02a50d20bdec70a5a0), 102 faces, CC BY, original archive acquired | Owned generic protector remains the fallback; no fitted third-party protector verified | Convert the acquired ASCII FBX for inspection (Blender's built-in importer rejects it), inspect UVs/folds and replace title-specific textures, then native review; cartridge file still pending |
+| GB | [Bob's low-poly cartridge](https://sketchfab.com/3d-models/gameboy-cartridge-lowpoly-8b9728eab16c4056ac2636ae7f0f038f), 510 faces, CC BY, downloadable; [Frank Rennau's box](https://sketchfab.com/3d-models/game-boy-super-mario-land-box-b4515d780a3b4b02a50d20bdec70a5a0), 102 faces, CC BY, original archive acquired and desktop-rendered | Owned generic protector remains the fallback; no fitted third-party protector verified | Replace title-specific atlas and inspect generic panel adaptation/native rendering; cartridge download still blocked by Helium's official-host block |
 | GBC | [Pryzm cartridge](https://sketchfab.com/3d-models/gameboy-color-cartridge-453fff7dfa414838a28261851e4917ce), 400 faces, viewer-only; retain distinct existing compatibility shapes | Generic protector fallback, not an original-case claim | Browser acquisition and separate compatible/exclusive housing/material verification |
 | DS / DSi | [littlengvfx preset](https://sketchfab.com/3d-models/nintendo-ds-cartridge-preset-01e161c3e7c24b40888fdf94ad003501), 1,361 faces, CC BY, downloadable; author explicitly describes replaceable image. [Pcwer alternative](https://sketchfab.com/3d-models/nintendo-ds-cartridge-364e487e31fd4135b6c6941a0ffaba82), 977 faces, CC BY | Owned parameterized keep-case remains the actual available fallback | Acquire and inspect label UVs; a source search has not established a specific opening DS case |
 | 3DS | [SGLilac cartridge](https://sketchfab.com/3d-models/3ds-cartridge-e075af04a56f4d31bbd7d92365f1d8fc), 210 faces, CC BY, downloadable; [JodieWebster alternative](https://sketchfab.com/3d-models/3ds-game-cartridge-950a6bf7c4094a84af0d7409d0e76c16), 3,933 faces, CC BY | Owned parameterized keep-case fallback | Inspect card notch, front orientation and label mapping; source descriptions do not verify these |
@@ -97,10 +97,17 @@ The block was not bypassed. The owner subsequently supplied the original
 `a6fd3d101679d430365f002a8e7a16c84333dc0f6ae9d9ca74f10717578661a8`.
 Its four entries are `source/SUPER MARIO LAND.fbx` and three textures
 (`gb4_msk.png`, `internal_ground_ao_texture.jpeg`, `gb4.jpeg`). The original
-is preserved, with a private source projection on E:. Blender 5.2.2's built-in
-FBX importer explicitly rejects this ASCII FBX; no geometry, UV, opening or
-native-render acceptance is claimed. Conversion remains source-preparation work,
-not a blocker to the current GBA workflow. Earlier CDP focus/navigation errors were a separate control
+is preserved, with a private source projection on E:. Blender 5.2.2's legacy
+`import_scene.fbx` rejects ASCII, but its installed native `wm.fbx_import`
+successfully reads the source without a converter or add-on. Actual inspection
+reports one mesh, 104 vertices, 102 polygons, one UV layer and an embedded
+2480x3508 texture; no animation actions. The retained front/back CPU renders
+show upright artwork and a closed box. This is not opening, replaceable-panel
+or native-render acceptance. The reproducible inspection is
+`scripts/fixtures/s25_gb_box_blender_inspection.py`; original FBX SHA-256 is
+`3e9ed69346a3f6ca6e43e974a4f5ed1f3fb6fafb5ab2c7d36cc7a0c4b6de004e`.
+The subsequent official GB cartridge GLB download reaches the same blocked host;
+it was not downloaded or bypassed. Earlier CDP focus/navigation errors were a separate control
 problem, not proof that the model was unavailable. Public API/source inspection
 continued without changing likes, accounts or browser profiles, and without
 parallel ScreenScraper collection. Blendkit's normal Switch acquisition route
