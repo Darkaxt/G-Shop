@@ -1,20 +1,23 @@
 # S25 verified console model and motion ledger
 
 Updated 2026-10-18. This records actual inspected assets, not candidate listings.
-S25 is **ACTIVE** for the owner's GBA corrections following device review. The checkpoint is the independent resource
+S25 is **BLOCKED** at the corrected GBA owner-review stop. The checkpoint is the independent resource
 explorer and individual model inspection. The automatic cinematic is deliberately
 not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
-Owner review invalidates the former frontal-only interpretation of fitted box
-faces: it did not establish connected opaque artwork over all six faces or
-margin-free manual textures. Current corrections must verify rotated front,
-back and four narrow faces, repeated spine fallback, absent GBA Case, fitted
-manual and packaging-free Gallery with a selectable trailer. Previous publication,
-identity and cartridge evidence remain bounded to what was actually inspected.
+The owner's review invalidated the earlier frontal-only interpretation of fitted
+box faces. Corrected public 1.9.19 now passes Castlevania on Thor: six connected
+opaque textured faces / 12 triangles, repeated edge textures (top/bottom rotated),
+front/back and tilted edge captures, no GBA Case tab, fitted 4:3 booklet, screenshot
+only in Images and a selectable playing trailer. Switching to Cartridge releases
+the player and passes model/label readiness. Evidence is in
+`D:/Temp/rshop-s25-castlevania-20261018/`. This is not a new full-cohort/cold-recovery
+pass or verification of the still-unintegrated downloaded protector. The owner
+review gate remains before another console or the automatic cinematic.
 
-### Current GBA collection checkpoint
+### Previous GBA collection checkpoint (1.9.18)
 
 Public 1.9.18 is installed with the same signed artifact bytes. Original Drive
 publication completed after its retained-receipt resume; all 24 edition packets

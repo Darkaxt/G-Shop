@@ -62,12 +62,13 @@ class _Config extends ConfigStorageService {
 
 class _GalleryCache extends MetadataArtworkCache {
   final Future<Map<String, List<String>>> gallery;
+  Object? error;
   _GalleryCache(Database db, this.gallery)
       : super(Future.value(db), Directory.systemTemp);
   @override
   Future<Map<String, List<String>>> galleryForEdition(String editionId,
           {bool hydrate = false}) =>
-      gallery;
+      error == null ? gallery : Future.error(error!);
 }
 
 class _MetadataScopeObserver extends ProviderObserver {
@@ -125,6 +126,7 @@ void main() {
     final secondary = SecondaryPreview()..available = true;
     final snapshots = <Map<String, dynamic>>[];
     final gallery = Completer<Map<String, List<String>>>();
+    final galleryCache = _GalleryCache(db, gallery.future);
     addTearDown(() {
       if (!gallery.isCompleted) gallery.complete({});
     });
@@ -156,8 +158,7 @@ void main() {
       cloudSelectionMediaProvider.overrideWith((ref, selection) async => null),
       editionGalleryMediaProvider
           .overrideWith((ref, edition) => gallery.future),
-      cachedMetadataArtworkProvider
-          .overrideWith((ref) async => _GalleryCache(db, gallery.future)),
+      cachedMetadataArtworkProvider.overrideWith((ref) async => galleryCache),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -208,6 +209,17 @@ void main() {
     expect(snapshots.last['galleryResources'], {
       'box-2D': ['file:///fixture/front.png']
     });
+    galleryCache.error = StateError('Offline fixture');
+    preview.actionsMenu!.children!
+        .whereType<QuickMenuItem>()
+        .firstWhere((item) => item.label == 'Resources')
+        .onSelect!();
+    await tester.pumpAndSettle();
+    expect(snapshots.last['gallery'], isFalse);
+    expect(snapshots.last['galleryLoading'], isFalse);
+    expect(snapshots.last['details'], isTrue);
+    expect(snapshots.last['notice'], contains('Resources could not load'));
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

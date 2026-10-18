@@ -2,7 +2,12 @@
 
 Authoritative specification, revision 81, 2026-10-18.
 
-Current owner feedback, 2026-10-18: S25 is ACTIVE again, limited to the GBA
+Current checkpoint, 2026-10-18: S25 is BLOCKED at the corrected GBA owner-review
+stop. Public GitHub-signed 1.9.19/code 35 is installed and Castlevania's closed
+six-face box, manual fit, gallery and trailer have been checked on Thor. No next
+console or cinematic begins before owner review. This is not full S25 completion.
+
+Owner feedback that resumed this stage, 2026-10-18, limited work to the GBA
 resource explorer corrections. The box must be one closed six-face object;
 reuse the available spine for all four narrow faces when distinct panels are
 absent. Remove the GBA Case tab until a real distinct case is integrated. Fit

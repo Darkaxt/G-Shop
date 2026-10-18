@@ -3,12 +3,12 @@
 Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 81, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-Current checkpoint, 2026-10-18: **S25 ACTIVE** following the GBA owner review.
-Fix the connected six-face box and repeated edge textures, remove the duplicate
-GBA Case, fit the manual, exclude packaging from Gallery, expose trailers and
-acknowledge Resources loading immediately with contained errors. Verify the
-complete corrected GBA explorer on Thor before the next owner review stop.
-No other implementation stage is ACTIVE; no cinematic or next console begins.
+Current checkpoint, 2026-10-18: **S25 BLOCKED** at the corrected GBA owner-review
+stop. Public signed 1.9.19 is installed; Castlevania's six-face box, repeated edges,
+manual fit, absent duplicate Case, gallery and trailer pass native review. Focused
+checks cover immediate loading feedback, failure containment, focus and audio.
+The owner's requested review is the remaining external checkpoint before another
+console or cinematic; no implementation stage is ACTIVE and full S25 is not complete.
 
 ## Current extension — already authorized, 2026-10-16
 
@@ -50,7 +50,7 @@ Authority: [preview/acquisition extension](PREVIEW_ACQUISITION_SPECIFICATION.md)
 | R22 Thor preview delivery | COMPLETE | PREVIEW-DELIVERY: signed 1.9.2/code 16 installed in place with settings/data preserved | Gated signed packaging 1308, installed APK hash/identity, unchanged prelaunch settings/database/import hashes, real production secondary rendering after AOT entrypoint fix, reviewed intermediate cleanup; both screens OFF |
 | S23 Website acquisition add-ons | NOT STARTED | ACQUIRE-01: inventory/port LolSuite providers behind configurable website add-ons in the existing R-Shop queue/installation infrastructure; independent canonical console/category mappings and provider capacity | Narrow real mapped-site acquisition/install/launch first, then required inventory/provider/mapping/isolation/resume/processing contracts and documentation |
 | S24 Drive-backed metadata cache | COMPLETE | METADATA-CLOUD-01: normalized console/game/typed-resource Drive tree; local searchable facts and background media cache with configurable 2 GiB default; mandatory actual GBA Top 25 box/cartridge/trailer integration | GitHub run 39039861817 builds/signs code 33; every one of 24 actual eligible ranked GBA entries passes the installed gallery-to-renderer path and visual label inspection. Native motion/left-edge review, startup preservation and public/installed SHA-256 equality pass. Earlier cloud/cache acceptance remains applicable where unchanged. Wider Nintendo job completion is not claimed. |
-| S25 Interactive media gallery and preserved startup | ACTIVE | Preserve verified PREVIEW-START-01; remove the per-game media-download button; provide compact Box / Cartridge / Media modes, LaunchBox-first/ScreenScraper-fallback textured cases where applicable, cartridge rotation/zoom, screenshots/trailers, touch/controller and L1/R1 navigation, retained library focus and companion ownership. Apply revision 81 GBA review corrections; no fabricated GBA Case | Reuse startup evidence where unchanged. Prove current LaunchBox access and the supplied GBA 007 example, then the ranked GBA sample; verify edition-bound real/generic faces, case aspect and seam/hinge where applicable, full rotation/zoom, both interactive models, missing-media states, offline reuse, photo/video playback/audio and touch/controller operation on Thor after S24 closes. The earlier startup-only S25 COMPLETE result does not satisfy this newly requested gallery. |
+| S25 Interactive media gallery and preserved startup | BLOCKED | Preserve verified PREVIEW-START-01; remove the per-game media-download button; provide compact Box / Cartridge / Media modes, LaunchBox-first/ScreenScraper-fallback textured cases where applicable, cartridge rotation/zoom, screenshots/trailers, touch/controller and L1/R1 navigation, retained library focus and companion ownership. Revision 81 GBA corrections verified; no fabricated GBA Case | Corrected GBA owner-review stop after signed 1.9.19 delivery. Wider source/controller/model and cinematic criteria remain in S25_VERIFIED_MODELS.md; no full S25 completion is claimed. |
 | Historical REGION-01 (formerly S26) | COMPLETE | Ordered EUR/USA/JPN collection preference, one preferred commercial release per canonical game and Show all versions; Hacks/Patches unaffected | Native touch/controller/restart/reset, a real regional pair with one game/two retained versions, JPN/EUR selection and exact EUR archive download/RetroArch launch pass. Shared query/rank/bundle/unknown/modification and encrypted migration checks pass. Final GBA model/trailer/audio rendering passes in 1.9.16. |
 | S26 G-Shop rebranding and supported-source scope | NOT STARTED | Owner-requested evaluation: G-Shop naming; remove original remote server and standalone local-only collection modes, retaining the Drive-backed library and our on-device functionality | Evaluate migration/update/OAuth/configuration and remaining integrations after S25 planning. No rename, integration removal or live configuration change has been implemented. Preserve historical REGION-01 acceptance. |
 

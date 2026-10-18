@@ -5,29 +5,52 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### S25 GBA review corrections — 2026-10-18, ACTIVE
+### S25 corrected GBA owner-review checkpoint — 2026-10-18, BLOCKED
 
-Owner review resumes this stage. Current internal acceptance blockers: incomplete
-box-face artwork/layout, duplicate GBA Case, manual margins, packaging leaked into
-Gallery, trailer discoverability and silent eager Resources loading. Resolve and
-verify the complete corrected explorer on Thor; previous frontal captures do not
-prove six-face closure. Crash investigation has not identified a new process exit:
-the current production PID remained alive and exit-info reports the previous
-install force-stop. Do not claim the apparent crash fixed without evidence.
-No later stage is ACTIVE and these gaps are not deferred.
+Public [1.9.19/code 35](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.19)
+is installed on Thor from GitHub-signed source `713c8c0`, run 39117405760.
+Released asset and installed APK both have SHA-256
+`4585a97a46315d13c35e7a1a023fcb59f6eadd5ed3e48c1d08d099daad0814c2`;
+the existing production certificate is unchanged. Live checking preceded final
+publication, using the same signed artifact. No local Windows Gradle ran or gate
+was acquired: hosted Linux used `--no-daemon --max-workers=2 --no-parallel`,
+in-process Kotlin, configured 3 GiB Gradle heap, one 512 MiB test fork and native
+concurrency hint 2. Build passed without a memory-budget increase. Analyzer had
+no errors/warnings, only style information.
 
-Current candidate corrects the atlas's loose-height image layout and opaque cell
-coverage, maps six connected box faces without an offset spine plane, repeats
-the edge texture and rotates top/bottom repeats into their long axis. The same
-filled atlas removes artificial manual bands; booklet depth follows paper rather
-than case depth. GBA Case is absent. Gallery excludes packaging/labels and exposes
-Trailer alongside Images. Resources shows loading immediately and catches load
-errors; it consumes the hydrated map instead of discarding it and hashing every
-page again. Focused box/gallery, preview loading/focus, audio and lifecycle checks
-pass on the host; GPU appearance still requires Thor. The wider discovery fixture
-fails at PS2 console selection in `pumpAndSettle`, before the resource explorer;
-do not report its whole file/suite as passing. No native correction pass or crash
-fix is claimed at this checkpoint.
+Castlevania now renders 12 triangles / six joined textured box faces. Inspected
+front/back and both tilted edge views show an opaque connected body, with the
+spine reused on the four narrow faces and top/bottom repeats rotated. GBA has no
+duplicate Case tab. Its 28-page manual renders at aspect 4:3 and depth .025,
+without added gray bands. Gallery contains one screenshot plus a selectable,
+playing trailer; two different decoded gameplay frames were inspected. Selecting
+Cartridge released that player and rendered the fitted imported GBA model with
+`labelReady=true`, `frameRendered=true`, `error=null`.
+
+Evidence is retained in `D:/Temp/rshop-s25-castlevania-20261018/`: front/back/edge
+box captures, manual, gallery and trailer frames. This is the corrected selected
+game and shared mapping verification, not a new full-cohort or cold-recovery pass.
+The fix fills atlas cells instead of leaving untextured faces zero-height, and
+removes the detached box spine overlay. Resources acknowledges loading at once,
+consumes the hydrated map once and contains failures; its focused host check
+verifies pending, successful and failed loading while retaining library focus.
+Focused box/gallery, audio and lifecycle checks pass. The broader discovery
+fixture still fails at PS2 selection in `pumpAndSettle` before explorer entry;
+its whole file/suite is not reported as passing.
+
+The reproduced startup stopping dialog names microG Services, not R-Shop.
+R-Shop stayed alive throughout the explorer/trailer check. No microG settings
+were changed and an unidentified earlier R-Shop crash is not claimed fixed.
+Both screens were verified committed OFF with the Thor asleep after checking.
+No source scans, ROMs, saves, accounts or imported models were removed. The full
+archive remains on E:; current rendering uses the existing English typed panels,
+not a newly purchased site preview or an already-finished NintAndBox composite.
+
+The remaining external gate is the owner's expressly requested GBA inspection;
+feedback resolves that gate. Another console/cinematic remains dependent on it.
+No later stage is ACTIVE, no current correction is hidden as a deferral and full
+S25 remains incomplete. Closure assessment found no new abstraction or required
+consolidation: corrections stay in the existing geometry, atlas and view owners.
 
 ### Previous S25 GBA owner-review checkpoint — 2026-10-18, BLOCKED
 
