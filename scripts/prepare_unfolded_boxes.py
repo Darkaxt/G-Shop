@@ -173,8 +173,6 @@ def classify(args):
                         str(Path(__file__).with_name('read_packaging_text.ps1')),
                         '-ImagePath', str(back)], encoding='utf-8')
                     languages, counts = language_evidence(json.loads(raw_text)['text'])
-                    if language_priority(languages) == 99:
-                        continue
                     candidates.append((language_priority(languages), str(front),
                         front, back, rect, confidence, size, languages, counts))
             if not candidates:

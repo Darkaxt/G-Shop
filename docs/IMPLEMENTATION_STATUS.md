@@ -7,11 +7,37 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Owner feedback resumes the same stage under specification revision 91. Required:
+Current correction is integrated for native verification: the GBA preview uses
+one depth-tested holder/carton/cartridge scene, with real flap hinges and staged
+extraction rather than the old flat-cover reveal. Gallery is one trailer-first
+thumbnail sequence with automatic playback and tap-to-pause; visible model control
+rows are removed in favor of gestures. Separate PCB material is retained with a
+less transmissive dyed housing. Focused host checks cover the actual private
+geometry, gallery/manual actions, audio release, lifecycle, and classified-pack
+import/publication/reload; all pass. Host Impeller appearance is not claimed.
+The collector now retains foreign/unknown-language donor layouts, substitutes
+English LaunchBox/ScreenScraper front/back art, fits it to the donor dimensions
+without stretching, and preserves other panels plus per-panel provenance.
+Actual reviewed output contains ten six-face GBA sets, including Sapphire;
+the remaining ranked games have no classified local unfolded set in this pass.
+No new provider requests were made. Pack SHA-256
+`f12adf7489fa4a58690cd9d7f0e6759c47bfbeccd0da9b3ce36d707d736ab1ef`
+was transferred and verified on Thor, but not yet imported or native-accepted.
+Required next: signed candidate, normal production import/Drive publication,
+ordinary preview/extraction/material/gallery/manual verification on Thor.
+
+Owner feedback resumes the same stage under specification revision 92. Current
+internal acceptance blockers: the preview still uses flat cover/cartridge reveal,
+Sapphire housing is too transparent, Spanish donor layouts are rejected before
+English face substitution, and Gallery/manual controls require the gesture-first
+carousel/autoplay correction. Resolve through the real GBA preview/Resources path;
+the owner has now lifted the cinematic hold. Earlier evidence below describes
+the previous narrower acceptance, not satisfaction of this correction. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded
 box panels through the existing collector/import/Drive/viewer lane, retained
 composite provenance, adapted Diskette cardboard, supplied booklet geometry and
-era-appropriate Nintendo cases. Acceptance remains pending; no cinematic is opened. Castlevania
+era-appropriate Nintendo cases. The owner has explicitly authorized the real GBA
+unboxing cinematic in this correction; acceptance remains pending. Castlevania
 is the real example, not a game-specific implementation.
 New ordered scope: the supplied rigged carton is the current integration task;
 the GBA rotating console-selection preview follows it within the same S25 stage.

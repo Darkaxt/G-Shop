@@ -2623,6 +2623,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             child: HeroMode(
                 enabled: false,
                 child: CoverSection(
+                  packagingResources: physicalMetadata?.editionId == null ? const {} :
+                      ref.watch(editionGalleryMediaProvider(physicalMetadata!.editionId!)).valueOrNull ?? const {},
                   key: ValueKey(entry.selectionKey),
                   game: game,
                   system: system,

@@ -13,12 +13,14 @@ import '../models/socket_media_model.dart';
 import '../models/packaging_model.dart';
 import '../models/console_model.dart';
 import '../models/gba_cartridge_model.dart';
+import '../models/unboxing_scene.dart';
 
 class SocketMediaRenderer extends StatefulWidget {
   final PhysicalMediaFormat format;
   final PackagingModel? packaging;
   final ConsoleModel? console;
   final String? cartridgeStyle;
+  final UnboxingScene? unboxingScene;
   final SocketMediaPose pose;
   final String identity, title;
   final Widget label;
@@ -35,7 +37,8 @@ class SocketMediaRenderer extends StatefulWidget {
       this.cartridgeStyle,
       this.onReady})
       : packaging = null,
-        console = null;
+        console = null,
+        unboxingScene = null;
   const SocketMediaRenderer.packaging(
       {super.key,
       required PackagingModel model,
@@ -46,6 +49,7 @@ class SocketMediaRenderer extends StatefulWidget {
       this.labelIdentity,
       this.onReady})
       : packaging = model,
+        unboxingScene = null,
         console = null,
         cartridgeStyle = null,
         format = PhysicalMediaFormat.gameBoy;
@@ -57,11 +61,26 @@ class SocketMediaRenderer extends StatefulWidget {
       required this.title,
       this.onReady})
       : console = model,
+        unboxingScene = null,
         packaging = null,
         cartridgeStyle = null,
         format = PhysicalMediaFormat.gameBoy,
         label = const ColoredBox(color: Colors.white),
         labelIdentity = 'console';
+  const SocketMediaRenderer.unboxing(
+      {super.key,
+      required UnboxingScene scene,
+      required this.pose,
+      required this.identity,
+      required this.title,
+      required this.label,
+      this.labelIdentity,
+      this.onReady})
+      : unboxingScene = scene,
+        packaging = null,
+        console = null,
+        cartridgeStyle = null,
+        format = PhysicalMediaFormat.gba;
   @override
   State<SocketMediaRenderer> createState() => SocketMediaRendererState();
 }
@@ -101,13 +120,15 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'canOpen': _renderer?.model.data['canOpen'] == true,
         'openingDurationMs': _renderer?.model.data['openingDurationMs'],
         'opening': widget.pose.opening,
+        'unboxing': widget.pose.unboxing,
         'paintedPose': _paintedPose == null
             ? null
             : {
                 'rx': _paintedPose!.rx,
                 'ry': _paintedPose!.ry,
                 'scale': _paintedPose!.scaleX,
-                'opening': _paintedPose!.opening
+                'opening': _paintedPose!.opening,
+                'unboxing': _paintedPose!.unboxing
               },
         'identity': widget.identity,
         'triangles': _renderer?.model.triangles,
@@ -115,7 +136,9 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'materialTextures': _renderer?.textures.length,
         'environmentMipLevels': _renderer == null
             ? null
-            : widget.packaging != null || widget.console != null
+            : widget.packaging != null ||
+                    widget.console != null ||
+                    widget.unboxingScene != null
                 ? 1
                 : _renderer!.environment.mipLevelCount +
                     _renderer!.environmentTail.length,
@@ -130,6 +153,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
             : null,
         'sourceApkSha256': widget.packaging == null &&
                 widget.console == null &&
+                widget.unboxingScene == null &&
                 _renderer?.model.data['cartridgeGeometry'] != true
             ? SocketMediaModel.apkSha256
             : null,
@@ -152,6 +176,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   void didUpdateWidget(SocketMediaRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.format != widget.format ||
+        oldWidget.unboxingScene?.style != widget.unboxingScene?.style ||
         oldWidget.packaging?.id != widget.packaging?.id ||
         oldWidget.packaging?.aspect != widget.packaging?.aspect ||
         oldWidget.packaging?.depth != widget.packaging?.depth ||
@@ -196,12 +221,16 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: widget.console != null
-              ? await widget.console!.load()
-              : widget.cartridgeStyle != null &&
-                      widget.format == PhysicalMediaFormat.gba
-                  ? await GbaCartridgeModel.load(widget.cartridgeStyle!)
-                  : await widget.packaging?.load());
+          owned: widget.unboxingScene != null
+              ? await widget.unboxingScene!.load() ??
+                  (throw StateError(
+                      'Import the holder-enabled box and cartridge'))
+              : widget.console != null
+                  ? await widget.console!.load()
+                  : widget.cartridgeStyle != null &&
+                          widget.format == PhysicalMediaFormat.gba
+                      ? await GbaCartridgeModel.load(widget.cartridgeStyle!)
+                      : await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -313,7 +342,9 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     final pose = widget.pose;
     // Keep 384 logical pixels per face; six faces in a single-label viewport
     // clipped the fallback lettering during the native inspection.
-    final labelWidth = widget.packaging == null ? 384.0 : 1152.0;
+    final labelWidth = widget.packaging == null && widget.unboxingScene == null
+        ? 384.0
+        : 1152.0;
     return Stack(fit: StackFit.expand, children: [
       // The zero-area ancestor clip hides the producer in the composed screen,
       // but does not suppress its paint/layer. toImage captures that boundary
@@ -347,6 +378,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
                 (error) => _paintFailed(renderer, error)))
       else
         widget.packaging != null ||
+                widget.unboxingScene != null ||
                 widget.console != null ||
                 widget.cartridgeStyle != null
             ? Center(
@@ -809,6 +841,13 @@ class SocketMediaGpu {
               : gpu.CullMode.none);
           final isLabel = surface['role'] == 'label';
           final transform = base.clone();
+          if (model.data['unboxingGeometry'] == true) {
+            transform.multiply(UnboxingScene.partTransform(
+                model,
+                surface['unboxingPart'] as String,
+                pose.unboxing,
+                size.width / units));
+          }
           if (surface['openingHinges'] is List) {
             transform.multiply(openingTransform(surface, pose.opening));
           } else if (surface['hinged'] == true && pose.opening != 0) {

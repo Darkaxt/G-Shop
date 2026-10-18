@@ -66,6 +66,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('resource-mode-manual')));
     await tester.pump();
     expect(key.currentState!.canOpen, true);
+    expect(find.byTooltip('Zoom in'), findsNothing);
+    expect(find.byTooltip('Read manual'), findsNothing);
+    final surface = find.byKey(const ValueKey('resource-inspection-surface'));
+    await tester.tap(surface);
+    await tester.pump(const Duration(milliseconds: 70));
+    await tester.tap(surface);
+    await tester.pump();
+    expect(key.currentState!.opening, 1);
+    await tester.longPress(surface);
+    await tester.pump();
+    expect(key.currentState!.reading, true);
+    expect(key.currentState!.page, 1);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
@@ -94,8 +106,6 @@ void main() {
     ))));
     await tester.tap(find.byKey(const ValueKey('resource-mode-gallery')));
     await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
-    await tester.pump();
     player.events.add(VideoEvent(
         eventType: VideoEventType.initialized,
         duration: const Duration(seconds: 30),
@@ -104,6 +114,14 @@ void main() {
     expect(key.currentState!.snapshot['videoReady'], true);
     expect(player.volumes.last, .17);
     expect(playing.last, true);
+    expect(find.byTooltip('Zoom in'), findsNothing);
+    expect(find.byTooltip('Play trailer'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('gallery-video-surface')));
+    await tester.pump();
+    expect(key.currentState!.snapshot['videoPlaying'], false);
+    await tester.tap(find.byKey(const ValueKey('gallery-video-surface')));
+    await tester.pump();
+    expect(key.currentState!.snapshot['videoPlaying'], true);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
     expect(key.currentState!.snapshot['videoReady'], false);

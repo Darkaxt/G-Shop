@@ -52,7 +52,17 @@ final editionGalleryMediaProvider = FutureProvider.autoDispose
     if (!active) cloud.release(owner);
   }
   return (await ref.read(cachedMetadataArtworkProvider))
-      .galleryForEdition(edition);
+      .galleryForEdition(edition, hydrateTypes: const {
+    'outer-box-front',
+    'outer-box-back',
+    'outer-box-left',
+    'outer-box-right',
+    'outer-box-top',
+    'outer-box-bottom',
+    'box-2D',
+    'box-2D-back',
+    'box-2D-side'
+  });
 });
 final metadataMediaRevisionProvider = StateProvider<int>((ref) => 0);
 

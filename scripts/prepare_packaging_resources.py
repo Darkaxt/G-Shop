@@ -51,6 +51,48 @@ def language_priority(languages):
     return 0 if languages == {'en'} else 1 if 'en' in languages else 2 if len(languages) > 1 or 'mul' in languages else 99
 
 
+def compose_english_faces(game, english_resources, *, bodies=None, read=None):
+    """Keep a donor's geometry/panels, substitute only its non-English faces.
+
+    The English resources are already matched to this game/edition by the
+    collector. No title inference, ROM identity change or unbound image search.
+    """
+    for face, role in [('front', 'box-2D'), ('back', 'box-2D-back')]:
+        donor = next((r for r in game['resources'] if r['type'] == 'outer-box-' + face), None)
+        if donor is None:
+            continue
+        languages = donor['importReference'].get('sourceLanguages', [])
+        if 'en' in languages or 'mul' in languages:
+            continue
+        candidates = [r for r in english_resources if r['type'] == role and
+            (r['importReference'].get('sourceLanguages') == ['en'] or r.get('region') == 'us')]
+        candidates.sort(key=lambda r: (r['importReference']['sourceId'] != 'launchbox',
+                                        r['importReference']['sha256']))
+        game['resources'].remove(donor)
+        if candidates:
+            english = candidates[0]
+            reference = {**english['importReference'], 'sourceLanguages': ['en'],
+                         'reconstruction': 'composite'}
+            if bodies is not None:
+                def body(resource):
+                    digest = resource['importReference']['sha256']
+                    return bodies[digest] if digest in bodies else read('images/' + digest + '.png')
+                with Image.open(io.BytesIO(body(donor))) as panel, Image.open(io.BytesIO(body(english))) as art:
+                    fitted = fit_panel(art, panel.width / panel.height)
+                    output = io.BytesIO()
+                    fitted.save(output, format='PNG')
+                data = png(output.getvalue())
+                reference.setdefault('sourceSha256', reference['sha256'])
+                reference['sha256'] = hashlib.sha256(data).hexdigest()
+                bodies[reference['sha256']] = data
+            game['resources'].append({**english, 'type': 'outer-box-' + face,
+                                      'region': donor.get('region'), 'importReference': reference})
+            for resource in game['resources']:
+                if resource['type'].startswith('outer-box-'):
+                    resource['importReference'] = {**resource['importReference'],
+                                                   'reconstruction': 'composite'}
+
+
 def website_box(row, system, session):
     """Use the public low-resolution unfolded preview, never paid originals."""
     from bs4 import BeautifulSoup
@@ -72,9 +114,7 @@ def website_box(row, system, session):
     if heading is None or normalized(heading.get_text()) not in aliases:
         return []
     text = soup.get_text(' ', strip=True).lower()
-    languages = ['mul'] if 'multi idioma' in text or 'multiidioma' in text else ['en'] if 'inglés' in text or 'ingles' in text else []
-    if language_priority(languages) == 99:
-        return []
+    languages = ['mul'] if 'multi idioma' in text or 'multiidioma' in text else ['en'] if 'inglés' in text or 'ingles' in text else ['es']
     urls = {urllib.parse.urljoin(page_url, a['href']) for a in soup.select('a[href]')
         if '/styles/ficha_open/public/' in a['href']}
     if len(urls) != 1:
@@ -149,8 +189,6 @@ def apply_panel_layouts(manifest, bodies, recipe_file):
         if not candidates:
             continue
         recipe = candidates[0]
-        if language_priority(recipe.get('languages', ['en'])) == 99:
-            continue
         regions = set(game.get('regions', [])) or ({r.get('region') for r in game['resources']} - {None})
         targets = set(recipe['targetRegions']) & regions
         if len(targets) != 1:
@@ -217,6 +255,7 @@ def augment_panels(source, target, recipes, *, panels_only=False, website_fallba
     HTTP_CACHE = source.parent / 'resource-bodies'
     with zipfile.ZipFile(source) as original:
         manifest = json.loads(original.read('packaging.json'))
+        english_resources = {g['gameId']: list(g['resources']) for g in manifest['games']}
         bodies = {}
         count = apply_panel_layouts(manifest, bodies, recipes)
         if website_fallback:
@@ -233,6 +272,8 @@ def augment_panels(source, target, recipes, *, panels_only=False, website_fallba
                     bodies[resource['importReference']['sha256']] = resource.pop('_body')
                 game['resources'] += resources
                 print(json.dumps({'rank': row['rank'], 'websitePanels': len(resources)}), flush=True)
+        for game in manifest['games']:
+            compose_english_faces(game, english_resources[game['gameId']], bodies=bodies, read=original.read)
         if panels_only:
             for game in manifest['games']:
                 game['resources'] = [r for r in game['resources'] if r['type'].startswith('outer-box-')]
@@ -503,15 +544,19 @@ def collect(args):
         if args.panel_layouts:
             apply_panel_layouts(local, bodies, args.panel_layouts)
             resources = local['games'][0]['resources']
-        full_box = all(any(r['type'] == 'outer-box-' + face for r in resources) for face in BOX_FACES)
-        if not full_box:
+        complete_layout = all(any(r['type'] == 'outer-box-' + face for r in resources) for face in BOX_FACES)
+        if not complete_layout:
             web = website_box(row, args.system, session)
             if web:
                 resources = [r for r in resources if not r['type'].startswith('outer-box-')]
                 for resource in web:
                     bodies[resource['importReference']['sha256']] = resource.pop('_body')
                     resources.append(resource)
-                full_box = True
+                complete_layout = True
+        full_box = complete_layout and all(
+            'en' in r['importReference'].get('sourceLanguages', ['en']) or
+            'mul' in r['importReference'].get('sourceLanguages', [])
+            for r in resources if r['type'] in {'outer-box-front', 'outer-box-back'})
         if full_box:
             for face, role in [('front', 'box-2D'), ('back', 'box-2D-back'), ('right', 'box-2D-side')]:
                 panel = next(r for r in resources if r['type'] == 'outer-box-' + face)
@@ -584,6 +629,9 @@ def collect(args):
             else:
                 add(resources, role, region, body, source='screenscraper',
                     asset=f'{provider_id}/{role}({region})', url=source_url)
+        composed = {'resources': resources}
+        compose_english_faces(composed, resources.copy(), bodies=bodies)
+        resources = composed['resources']
         report.append({'rank': row['rank'], 'title': row['title'],
             'regions': sorted(regions), 'launchboxIds': sorted(ids),
             'roles': {role: sum(x['type'] == role for x in resources)
@@ -593,8 +641,6 @@ def collect(args):
                 'identityKey': owner_key(row['game'], edition), 'resources': resources})
         print(json.dumps(report[-1]), flush=True)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    if args.panel_layouts:
-        apply_panel_layouts(manifest, bodies, args.panel_layouts)
     with zipfile.ZipFile(args.output, 'x', compression=zipfile.ZIP_STORED) as archive:
         archive.writestr('packaging.json', json.dumps(manifest, separators=(',', ':')))
         for digest, data in bodies.items():

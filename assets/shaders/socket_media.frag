@@ -143,7 +143,9 @@ void main() {
     behind += texture(opaque_scene, screen-vec2(radius.x,0.0))*.15;
     behind += texture(opaque_scene, screen+vec2(0.0,radius.y))*.15;
     behind += texture(opaque_scene, screen-vec2(0.0,radius.y))*.15;
-    vec3 transmitted = from_srgb(behind.rgb/max(behind.a,.00001))*base;
+    // Dye attenuates the transmitted view; it does not repaint every PCB,
+    // component and contact with the housing's fully saturated diffuse colour.
+    vec3 transmitted = from_srgb(behind.rgb/max(behind.a,.00001))*mix(vec3(1.0), base, .28);
     float weight = transmission*(1.0-ambientFresnel.r);
     float resultAlpha = alpha*((1.0-weight)+weight*behind.a);
     vec3 result = (lit*(1.0-transmission) +

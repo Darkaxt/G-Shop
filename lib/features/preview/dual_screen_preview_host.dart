@@ -516,6 +516,12 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'mediaBusy': _working,
         'settings': prefs.toJson(),
         'mediaLoading': cloudMedia.isLoading ||
+            (media.enabled &&
+                selection.system.id == 'gba' &&
+                metadata?.editionId != null &&
+                ref
+                    .watch(editionGalleryMediaProvider(metadata!.editionId!))
+                    .isLoading) ||
             metadataState.isLoading ||
             _clipLoading ||
             clipChanged,

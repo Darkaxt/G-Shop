@@ -2,9 +2,10 @@
 
 Updated 2026-10-18. This records actual inspected assets, not candidate listings.
 S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
-The checkpoint is the independent resource
-explorer and individual model inspection. The automatic cinematic is deliberately
-not implemented yet; this ledger does not declare the full S25 stage complete.
+The owner has now lifted the GBA cinematic hold. Its real holder-extraction scene
+is integrated and host-checked using the actual imported geometry; native
+acceptance is pending. Earlier closed-inspector evidence below does not verify
+that new sequence. This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 

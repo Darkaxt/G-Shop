@@ -9,6 +9,7 @@ import '../../../widgets/smart_cover_image.dart';
 import '../../../widgets/physical_media_view.dart';
 import '../../../widgets/media_cover_fallback.dart';
 import '../../../widgets/cover_reveal.dart';
+import '../../../widgets/unboxing_preview.dart';
 import '../../../models/gba_cartridge_model.dart';
 import '../../../services/image_cache_service.dart';
 import '../../preview/resource_gallery.dart';
@@ -35,6 +36,7 @@ class CoverSection extends StatefulWidget {
   final Future<Map<String, List<String>>> Function()? galleryResources;
   final ValueChanged<bool>? onGalleryPlaying;
   final double galleryVolume;
+  final Map<String, List<String>> packagingResources;
   const CoverSection({
     super.key,
     required this.game,
@@ -59,6 +61,7 @@ class CoverSection extends StatefulWidget {
     this.galleryResources,
     this.onGalleryPlaying,
     this.galleryVolume = .3,
+    this.packagingResources = const {},
   });
 
   @override
@@ -68,6 +71,7 @@ class CoverSection extends StatefulWidget {
 class CoverSectionState extends State<CoverSection> {
   bool _physical = true, _reducedMotion = false;
   bool _modelReady = false;
+  final _unboxingKey = GlobalKey<UnboxingPreviewState>();
   ImageInfo? _label;
   ImageStream? _labelStream;
   ImageStreamListener? _labelListener;
@@ -80,6 +84,7 @@ class CoverSectionState extends State<CoverSection> {
         'labelDecoded': widget.physicalLabelUrl != null && _label != null,
         'resourcesReady': widget.resourcesReady,
         'modelReady': _modelReady,
+        'unboxing': _unboxingKey.currentState?.snapshot,
       };
 
   @override
@@ -237,6 +242,12 @@ class CoverSectionState extends State<CoverSection> {
     final mediaReady = widget.resourcesReady &&
         (widget.physicalLabelUrl == null || label != null) &&
         (!threeD || _modelReady);
+    final cartridgeStyle = system.id == 'gba'
+        ? GbaCartridgeModel.styleFor(game.filename, widget.contentTags)
+        : null;
+    final unboxing = threeD &&
+        cartridgeStyle != null &&
+        widget.packagingResources.isNotEmpty;
     return Column(
       children: [
         Expanded(
@@ -244,43 +255,65 @@ class CoverSectionState extends State<CoverSection> {
             children: [
               Positioned.fill(
                 child: physical
-                    ? CoverReveal(
-                        identity: '${system.id}:${game.selectionKey}',
-                        boxArt: boxArt,
-                        mediaReady: mediaReady,
-                        onReady: widget.onReady,
-                        onRevealed: widget.onRevealed,
-                        reducedMotion: _reducedMotion || widget.reducedMotion,
-                        media: threeD
-                            ? PhysicalMediaView(
-                                key: widget.physicalMediaKey,
-                                identity: game.selectionKey,
-                                title: game.displayName,
-                                format: format,
-                                cartridgeStyle: system.id == 'gba'
-                                    ? GbaCartridgeModel.styleFor(
-                                        game.filename, widget.contentTags)
-                                    : null,
-                                reducedMotion:
-                                    _reducedMotion || widget.reducedMotion,
-                                label: labelWidget,
-                                labelIdentity: label ??
-                                    '${game.selectionKey}:${widget.physicalLabelUrl ?? game.displayName}',
-                                onReady: () {
-                                  if (mounted &&
-                                      !_modelReady &&
-                                      identical(label, _label?.image)) {
-                                    setState(() => _modelReady = true);
-                                  }
-                                })
-                            : MediaCoverFallback(
-                                systemId: system.id,
-                                title: game.displayName,
-                                identity: game.selectionKey,
-                                physicalLabel: widget.physicalLabelUrl == null
-                                    ? null
-                                    : labelWidget,
-                                backgroundColor: Colors.transparent))
+                    ? unboxing
+                        ? UnboxingPreview(
+                            key: _unboxingKey,
+                            identity: '${system.id}:${game.selectionKey}',
+                            title: game.displayName,
+                            style: cartridgeStyle,
+                            resources: widget.packagingResources,
+                            cartridgeLabel: labelWidget,
+                            labelIdentity: label ??
+                                '${game.selectionKey}:${widget.physicalLabelUrl}',
+                            resourcesReady: widget.resourcesReady &&
+                                (widget.physicalLabelUrl == null ||
+                                    label != null),
+                            reducedMotion:
+                                _reducedMotion || widget.reducedMotion,
+                            onReady: () {
+                              if (mounted) setState(() => _modelReady = true);
+                              widget.onReady?.call();
+                            },
+                            onRevealed: widget.onRevealed)
+                        : CoverReveal(
+                            identity: '${system.id}:${game.selectionKey}',
+                            boxArt: boxArt,
+                            mediaReady: mediaReady,
+                            onReady: widget.onReady,
+                            onRevealed: widget.onRevealed,
+                            reducedMotion:
+                                _reducedMotion || widget.reducedMotion,
+                            media: threeD
+                                ? PhysicalMediaView(
+                                    key: widget.physicalMediaKey,
+                                    identity: game.selectionKey,
+                                    title: game.displayName,
+                                    format: format,
+                                    cartridgeStyle: system.id == 'gba'
+                                        ? GbaCartridgeModel.styleFor(
+                                            game.filename, widget.contentTags)
+                                        : null,
+                                    reducedMotion:
+                                        _reducedMotion || widget.reducedMotion,
+                                    label: labelWidget,
+                                    labelIdentity: label ??
+                                        '${game.selectionKey}:${widget.physicalLabelUrl ?? game.displayName}',
+                                    onReady: () {
+                                      if (mounted &&
+                                          !_modelReady &&
+                                          identical(label, _label?.image)) {
+                                        setState(() => _modelReady = true);
+                                      }
+                                    })
+                                : MediaCoverFallback(
+                                    systemId: system.id,
+                                    title: game.displayName,
+                                    identity: game.selectionKey,
+                                    physicalLabel:
+                                        widget.physicalLabelUrl == null
+                                            ? null
+                                            : labelWidget,
+                                    backgroundColor: Colors.transparent))
                     : Hero(
                         tag: game.filename,
                         child: Container(
@@ -333,18 +366,6 @@ class CoverSectionState extends State<CoverSection> {
                           tooltip: 'Resources',
                           onPressed: openGallery,
                           icon: const Icon(Icons.view_in_ar)),
-                      IconButton(
-                          tooltip: physical ? 'Cover view' : 'Media preview',
-                          onPressed: toggleView,
-                          icon: Icon(physical
-                              ? Icons.photo_rounded
-                              : Icons.album_outlined)),
-                      if (physical)
-                        IconButton(
-                            tooltip: 'Reduced motion',
-                            isSelected: _reducedMotion,
-                            onPressed: toggleMotion,
-                            icon: const Icon(Icons.motion_photos_off_rounded)),
                     ])),
               if (widget.isFavorite)
                 Positioned(

@@ -114,11 +114,13 @@ class SocketMediaModel {
 
   /// User-imported packaging is not bundled artwork or a redistribution grant.
   factory SocketMediaModel.privatePackaging(
-      Map<String, dynamic> data, ByteData mesh) {
+      Map<String, dynamic> data, ByteData mesh,
+      {AssetBundle? textureBundle}) {
     if (data['packagingGeometry'] != true || data['hardwareGeometry'] == true) {
       throw const FormatException('Invalid local packaging identity');
     }
-    return SocketMediaModel._privateGeometry(data, mesh);
+    return SocketMediaModel._privateGeometry(data, mesh,
+        textureBundle: textureBundle);
   }
 
   factory SocketMediaModel.privateHardware(
@@ -163,7 +165,10 @@ class SocketMediaModel {
       throw const FormatException('Invalid local packaging import');
     }
     final surfaces = data['surfaces'];
-    if (surfaces is! List || surfaces.isEmpty || surfaces.length > 64) {
+    final surfaceBudget = data['unboxingGeometry'] == true ? 96 : 64;
+    if (surfaces is! List ||
+        surfaces.isEmpty ||
+        surfaces.length > surfaceBudget) {
       throw const FormatException('Invalid local packaging surfaces');
     }
     for (final s in surfaces) {
@@ -325,7 +330,17 @@ class SocketMediaModel {
 /// Source tween phases in a fitted main-screen coordinate system. Geometry is
 /// not reshaped; source translation units are scaled to fit this frontend.
 class SocketMediaPose {
-  final double rx, ry, rz, y, z, scaleX, scaleY, scaleZ, labelSpin, opening;
+  final double rx,
+      ry,
+      rz,
+      y,
+      z,
+      scaleX,
+      scaleY,
+      scaleZ,
+      labelSpin,
+      opening,
+      unboxing;
   const SocketMediaPose(
       {this.rx = 0,
       this.ry = 0,
@@ -336,7 +351,8 @@ class SocketMediaPose {
       this.scaleY = 1,
       this.scaleZ = 1,
       this.labelSpin = 0,
-      this.opening = 0});
+      this.opening = 0,
+      this.unboxing = 0});
 
   static double _phase(double t, double start, double duration) =>
       ((t - start) / duration).clamp(0.0, 1.0);

@@ -22,6 +22,53 @@ spec.loader.exec_module(packaging)
 
 
 class PanelsTest(unittest.TestCase):
+    def test_english_substitution_preserves_donor_dimensions_without_stretching_art(self):
+        def picture(size, color):
+            output = io.BytesIO()
+            Image.new('RGB', size, color).save(output, format='PNG')
+            return output.getvalue()
+        bodies = {'donor': picture((40, 40), 'navy'), 'english': picture((20, 40), 'red')}
+        donor = {'type': 'outer-box-front', 'region': 'us', 'importReference': {
+            'sourceId': 'nintandbox', 'sha256': 'donor', 'sourceLanguages': ['es']}}
+        english = {'type': 'box-2D', 'region': 'us', 'importReference': {
+            'sourceId': 'launchbox', 'sha256': 'english'}}
+        game = {'resources': [donor, english]}
+        packaging.compose_english_faces(game, [english], bodies=bodies)
+        face = next(r for r in game['resources'] if r['type'] == 'outer-box-front')
+        with Image.open(io.BytesIO(bodies[face['importReference']['sha256']])) as image:
+            self.assertEqual(image.size, (40, 40))
+            self.assertEqual(image.getpixel((0, 20)), (255, 0, 0, 255))
+        self.assertEqual(face['importReference']['sourceSha256'], 'english')
+
+    def test_unknown_donor_language_is_not_assumed_english(self):
+        for evidence in [{}, {'sourceLanguages': []}]:
+            donor = {'type': 'outer-box-front', 'region': 'us',
+                'importReference': {'sourceId': 'nintandbox', 'sha256': 'foreign', **evidence}}
+            english = {'type': 'box-2D', 'region': 'us',
+                'importReference': {'sourceId': 'launchbox', 'sha256': 'english'}}
+            game = {'resources': [donor, english]}
+            packaging.compose_english_faces(game, [english])
+            face = next(r for r in game['resources'] if r['type'] == 'outer-box-front')
+            self.assertEqual(face['importReference']['sha256'], 'english')
+
+    def test_foreign_layout_uses_english_faces_without_discarding_its_other_panels(self):
+        donor = [{'type': 'outer-box-' + face, 'region': 'us',
+                  'importReference': {'sourceId': 'nintandbox', 'sha256': face,
+                      'sourceLanguages': ['es'], 'sourceRegion': 'eu'}}
+                 for face in packaging.BOX_FACES]
+        english = [{'type': role, 'region': 'us', 'importReference': {
+                    'sourceId': 'launchbox', 'sha256': role, 'sourceRegion': 'us'}}
+                   for role in ['box-2D', 'box-2D-back']]
+        game = {'resources': donor + english}
+        packaging.compose_english_faces(game, english)
+        for face, role in [('front', 'box-2D'), ('back', 'box-2D-back')]:
+            panel = next(r for r in game['resources'] if r['type'] == 'outer-box-' + face)
+            self.assertEqual(panel['importReference']['sha256'], role)
+            self.assertEqual(panel['importReference']['reconstruction'], 'composite')
+        for face in ['left', 'right', 'top', 'bottom']:
+            panel = next(r for r in game['resources'] if r['type'] == 'outer-box-' + face)
+            self.assertEqual(panel['importReference']['sha256'], face)
+
     def test_pale_print_at_fold_does_not_crop_the_body_to_one_dark_segment(self):
         image = Image.new('RGB', (600, 800), 'white')
         image.paste('navy', (0, 20, 80, 720))

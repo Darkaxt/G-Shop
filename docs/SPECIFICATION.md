@@ -1,6 +1,36 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 91, 2026-10-18.
+Authoritative specification, revision 92, 2026-10-18.
+
+Owner corrective acceptance, 2026-10-18: the prior hold on the GBA cinematic is
+now lifted. The selected-game preview must use the actual holder-enabled carton:
+wait for resources, show it closed, open its flaps, then slide the box left while
+the correctly seated cartridge emerges from its pocket, turns upright and gains
+focus. Do not substitute the flat-cover slide or independent cartridge zoom for
+this sequence. Preserve real depth/occlusion and cancel on selection/lifecycle
+changes; Reduced Motion shows the settled cartridge without the sequence.
+Sapphire must show translucent dyed plastic, not a nearly invisible housing with
+a uniformly blue PCB. Preserve separate shell/board/opaque-label materials.
+
+Non-English unfolded artwork remains usable as structural/side/flap evidence.
+Use a complete suitable English or English-containing multilingual set first;
+otherwise replace non-English front/back panels with matched English LaunchBox
+art (then ScreenScraper) while retaining useful donor sides/flaps. This composite
+policy applies across the collector, not only Sapphire. Never reject a donor
+layout solely because its large panels need English substitution. Prefer the
+local dump, then the public low-resolution .es image; no paid original required.
+Retain per-panel source/language/region and composite provenance.
+
+Resource inspection is gesture-first: no on-screen zoom/reset/rotate/open/play
+button rows. Drag/pinch inspect models, double-tap opens/closes manuals/cases;
+manual reading remains reachable by a hold gesture and controller action. Gallery
+has one compact thumbnail carousel for all trailers and images, trailers first,
+with previous/next buttons at its edges when the items overflow. Selecting a
+trailer starts playback automatically at the saved volume; tapping the video
+toggles play/pause. Selecting an image or leaving Gallery releases the player and
+restores launcher audio ownership. Keep controller actions without visible model
+control clutter. Verify the full ordinary preview -> Resources workflow on Thor.
+These are current S25 acceptance blockers until verified; S25 alone stays ACTIVE.
 
 Owner replacement carton, 2026-10-18: prefer `cardboard-box-prototype (1).zip`
 for the GBA carton. Retain its separate cardboard cartridge holder and divider,

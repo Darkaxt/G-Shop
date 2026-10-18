@@ -1,13 +1,19 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 91, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 92, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-Current execution, 2026-10-18: **S25 ACTIVE**. Complete the shared trailer-first
+Current execution, 2026-10-18: **S25 ACTIVE**. Owner corrective priority is the
+real rigged-box opening/extraction preview, less-transparent Sapphire housing,
+English face substitution over retained unfolded donor panels, and gesture-first
+model/manual inspection plus one autoplay trailer/image thumbnail carousel.
+Implement these as one integrated GBA correction and verify the ordinary Thor
+preview/Resources path before returning to remaining model coverage. The prior
+cinematic hold is explicitly superseded. Complete the shared trailer-first
 gallery, reviewed six-panel collector/import/Drive mapping, adapted cardboard and
 supplied booklet geometry. Verify combined touch/controller media navigation, player
 release/volume, distinct panels and reconstruction provenance with focused checks
-and a real GBA example. No game-name branches or cinematic implementation.
+and a real GBA example. No game-name-specific rendering branches.
 Existing S25 model/controller/source acceptance remains recorded, not excused.
 Current checkpoint: the replacement carton's seven-piece holder is adapted and
 its fitting prop excluded; closed per-game native inspection passes. The GBA

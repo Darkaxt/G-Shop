@@ -1202,6 +1202,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                           child: CoverSection(
                             key: _coverSectionKey,
                             galleryVolume: _galleryVolume,
+                            packagingResources: richMetadata?.editionId == null ? const {} :
+                                ref.watch(editionGalleryMediaProvider(richMetadata!.editionId!)).valueOrNull ?? const {},
                             galleryResources: () =>
                                 _galleryResources(richMetadata),
                             onGalleryPlaying: ref
@@ -1301,6 +1303,8 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           AspectRatio(
             aspectRatio: hasCardContent ? 0.85 : 0.75,
             child: CoverSection(
+              packagingResources: richMetadata?.editionId == null ? const {} :
+                  ref.watch(editionGalleryMediaProvider(richMetadata!.editionId!)).valueOrNull ?? const {},
               key: _coverSectionKey,
               galleryVolume: _galleryVolume,
               galleryResources: () => _galleryResources(richMetadata),

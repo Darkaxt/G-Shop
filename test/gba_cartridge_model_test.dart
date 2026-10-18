@@ -65,6 +65,8 @@ void main() {
     final shell = red.surfaces.firstWhere((s) => s['shellMaterial'] == true);
     expect(shell['material']['color'][3], 1);
     expect(shell['material']['sourceProperties']['transmission'],
+        closeTo(.42, 1e-6));
+    expect(shell['material']['sourceProperties']['sourceTransmission'],
         closeTo(.94, 1e-6));
     final cloudy =
         (await GbaCartridgeModel.load('cloudy-green', modelsDirectory: root))!;
@@ -72,7 +74,7 @@ void main() {
         cloudy.surfaces
                 .firstWhere((s) => s['shellMaterial'] == true)['material']
             ['sourceProperties']['transmission'],
-        lessThan(.9));
+        lessThan(.42));
     final gray = (await GbaCartridgeModel.load('gray', modelsDirectory: root))!;
     expect(
         gray.surfaces.firstWhere((s) => s['shellMaterial'] == true)['material']

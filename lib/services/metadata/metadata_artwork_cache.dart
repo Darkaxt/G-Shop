@@ -619,7 +619,7 @@ class MetadataArtworkCache {
   /// Edition-owned cached gallery images only. No catalogue scan or provider
   /// lookup is triggered by opening the explorer. Missing faces remain missing.
   Future<Map<String, List<String>>> galleryForEdition(String editionId,
-      {bool hydrate = false}) async {
+      {bool hydrate = false, Set<String> hydrateTypes = const {}}) async {
     await _requireAccess();
     final result = <String, List<String>>{};
     final store = LibraryStore(_database);
@@ -663,8 +663,11 @@ class MetadataArtworkCache {
             regions.isNotEmpty &&
             !regions.any((r) => region(r) == region(media.region!))) continue;
         var file = await _fileFor(editionId, provider, media);
-        if (file == null && hydrate && sharedStore?.fetchCloudMedia != null) {
-          await sharedStore!.fetchCloudMedia!(key(media), userRequested: true);
+        if (file == null &&
+            (hydrate || hydrateTypes.contains(media.type)) &&
+            sharedStore?.fetchCloudMedia != null) {
+          await sharedStore!.fetchCloudMedia!(key(media),
+              userRequested: hydrate);
           file = await _fileFor(editionId, provider, media);
         }
         if (file != null) {

@@ -124,8 +124,18 @@ class GbaCartridgeModel {
       }
       if (surface['shellMaterial'] == true) {
         material['color'] = color;
-        (material['sourceProperties'] as Map)
-            .addAll(Map<String, dynamic>.from(profile)..remove('color'));
+        final optical = Map<String, dynamic>.from(profile)..remove('color');
+        optical['sourceTransmission'] = optical['transmission'];
+        // The owner's source is almost optical glass. Retail dyed cartridge
+        // plastic is translucent: retain a solid diffuse housing and its own
+        // colour, with a weaker view of the separately textured green PCB.
+        optical['transmission'] = (optical['transmission'] as num) == 0
+            ? 0.0
+            : style.startsWith('cloudy-')
+                ? .24
+                : .42;
+        optical['roughness'] = (optical['roughness'] as num).clamp(.32, 1.0);
+        (material['sourceProperties'] as Map).addAll(optical);
       }
     }
     data['name'] = 'gba-hollow-pcb-$style';

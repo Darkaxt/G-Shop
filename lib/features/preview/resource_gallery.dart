@@ -339,13 +339,33 @@ class ResourceGalleryState extends State<ResourceGallery>
 
   void select(ResourceView target) {
     if (target == view || !availableViews.contains(target)) return;
-    unawaited(_stopVideo());
+    final released = _stopVideo();
     setState(() {
       view = target;
       reset();
       _resolveAspect();
     });
-    if (target == ResourceView.gallery) _galleryReported();
+    if (target == ResourceView.gallery) {
+      unawaited(_autoplayAfter(released, _generation));
+      _galleryReported();
+    }
+  }
+
+  Future<void> _autoplayAfter(Future<void> released, int generation) async {
+    await released;
+    if (mounted &&
+        generation == _generation &&
+        view == ResourceView.gallery &&
+        galleryItem?.trailer == true) await play();
+  }
+
+  void _toggleVideo() {
+    final video = _video;
+    if (video == null) {
+      unawaited(play());
+    } else if (video.value.isInitialized) {
+      unawaited(video.value.isPlaying ? video.pause() : video.play());
+    }
   }
 
   void _playing() => widget.onPlayingChanged?.call(
@@ -371,14 +391,14 @@ class ResourceGalleryState extends State<ResourceGallery>
     });
     final video = VideoPlayerController.file(File.fromUri(Uri.parse(item.path)),
         videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
+    _video = video;
     try {
       await video.initialize();
       if (!mounted || generation != _generation) {
-        await video.dispose();
         return;
       }
       await video.setVolume(widget.volume.clamp(0, 1));
-      _video = video;
+      if (!mounted || generation != _generation) return;
       video.addListener(_playing);
       await video.play();
       if (mounted && generation == _generation) setState(() {});
@@ -386,12 +406,14 @@ class ResourceGalleryState extends State<ResourceGallery>
     } catch (error) {
       if (identical(_video, video)) {
         _video = null;
+        video.removeListener(_playing);
+        await video.dispose();
       }
-      video.removeListener(_playing);
-      await video.dispose();
       if (mounted && generation == _generation)
         setState(() => _videoError = error);
-      widget.onPlayingChanged?.call(false);
+      if (mounted && generation == _generation) {
+        widget.onPlayingChanged?.call(false);
+      }
     } finally {
       if (mounted && generation == _generation)
         setState(() => _videoLoading = false);
@@ -402,7 +424,7 @@ class ResourceGalleryState extends State<ResourceGallery>
     if (galleryItems.isEmpty) return;
     final target = index % galleryItems.length;
     if (target == page) return;
-    unawaited(_stopVideo());
+    final released = _stopVideo();
     setState(() {
       page = target;
       _videoError = null;
@@ -419,6 +441,7 @@ class ResourceGalleryState extends State<ResourceGallery>
       _galleryScroll.jumpTo(offset.clamp(0, position.maxScrollExtent));
     }
     _galleryReported();
+    unawaited(_autoplayAfter(released, _generation));
   }
 
   void _galleryReported() {
@@ -475,12 +498,7 @@ class ResourceGalleryState extends State<ResourceGallery>
           availableViews.length]);
     } else if (key == LogicalKeyboardKey.gameButtonA) {
       if (view == ResourceView.gallery && galleryItem?.trailer == true) {
-        final video = _video;
-        unawaited(video == null
-            ? play()
-            : video.value.isPlaying
-                ? video.pause()
-                : video.play());
+        _toggleVideo();
       } else if (canOpen) {
         _toggleOpening();
       }
@@ -597,13 +615,17 @@ class ResourceGalleryState extends State<ResourceGallery>
     final content = view == ResourceView.gallery
         ? galleryItem?.trailer == true
             ? player != null && player.value.isInitialized
-                ? AspectRatio(
-                    aspectRatio: player.value.aspectRatio,
-                    child: VideoPlayer(player))
+                ? GestureDetector(
+                    key: const ValueKey('gallery-video-surface'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _toggleVideo,
+                    child: AspectRatio(
+                        aspectRatio: player.value.aspectRatio,
+                        child: VideoPlayer(player)))
                 : Center(
                     child: _videoLoading
                         ? const CircularProgressIndicator()
-                        : const Text('Select Play to watch the trailer'))
+                        : const Text('Loading trailer…'))
             : galleryItem == null
                 ? const Center(child: Text('No media collected yet'))
                 : InteractiveViewer(
@@ -734,43 +756,29 @@ class ResourceGalleryState extends State<ResourceGallery>
                       onPressed: widget.onClose,
                       icon: const Icon(Icons.close))
               ]),
-              if (view == ResourceView.gallery)
-                SizedBox(
-                    height: 52,
-                    child: ListView.separated(
-                        controller: _galleryScroll,
-                        scrollDirection: Axis.horizontal,
-                        itemCount: galleryItems.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, index) {
-                          final item = galleryItems[index];
-                          return SizedBox(
-                              width: 132,
-                              child: ChoiceChip(
-                                  key: ValueKey('gallery-item-$index'),
-                                  showCheckmark: false,
-                                  selected: page == index,
-                                  selectedColor: AppTheme.primaryColor
-                                      .withValues(alpha: .24),
-                                  labelStyle:
-                                      const TextStyle(color: Colors.white),
-                                  label: Text(item.trailer
-                                      ? 'Trailer ${index + 1}'
-                                      : '${index + 1}'),
-                                  avatar: item.trailer
-                                      ? const Icon(Icons.movie_outlined)
-                                      : ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(3),
-                                          child: SizedBox(
-                                              width: 32,
-                                              height: 32,
-                                              child: image(item.path,
-                                                  fit: BoxFit.cover))),
-                                  onSelected: (_) => _galleryPage(index)));
-                        })),
               Expanded(
                   child: GestureDetector(
+                      key: const ValueKey('resource-inspection-surface'),
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: canOpen ? _toggleOpening : null,
+                      onLongPress: view == ResourceView.manual &&
+                              pages.isNotEmpty
+                          ? () => setState(() {
+                                reading = !reading;
+                                page = reading && pages.length > 1 ? 1 : 0;
+                                _readingTransform.value = Matrix4.identity();
+                              })
+                          : null,
+                      onHorizontalDragEnd: reading
+                          ? (event) {
+                              if (_readingTransform.value.getMaxScaleOnAxis() <=
+                                      1.01 &&
+                                  event.primaryVelocity != null &&
+                                  event.primaryVelocity!.abs() > 50) {
+                                _stepPage(event.primaryVelocity! < 0 ? 1 : -1);
+                              }
+                            }
+                          : null,
                       onScaleStart: reading || view == ResourceView.gallery
                           ? null
                           : (_) => _startZoom = zoom,
@@ -783,59 +791,86 @@ class ResourceGalleryState extends State<ResourceGallery>
                                     (_startZoom * event.scale).clamp(.35, 1.5);
                               }),
                       child: content)),
-              Wrap(alignment: WrapAlignment.center, children: [
-                IconButton(
-                    tooltip: 'Zoom out',
-                    onPressed: () => changeZoom(-.1),
-                    icon: const Icon(Icons.zoom_out)),
-                IconButton(
-                    tooltip: 'Reset view',
-                    onPressed: () {
-                      unawaited(_stopVideo());
-                      setState(reset);
-                    },
-                    icon: const Icon(Icons.restart_alt)),
-                IconButton(
-                    tooltip: 'Zoom in',
-                    onPressed: () => changeZoom(.1),
-                    icon: const Icon(Icons.zoom_in)),
-                if (canOpen)
-                  IconButton(
-                      tooltip: opening == 0 ? 'Open' : 'Close case',
-                      onPressed: _toggleOpening,
-                      icon: const Icon(Icons.open_in_full)),
-                if (view == ResourceView.manual && pages.isNotEmpty)
-                  IconButton(
-                      tooltip: reading ? '3D booklet' : 'Read manual',
-                      onPressed: () => setState(() => reading = !reading),
-                      icon: Icon(reading ? Icons.view_in_ar : Icons.menu_book)),
-                if (view == ResourceView.gallery || reading) ...[
-                  IconButton(
-                      tooltip: 'Previous',
-                      onPressed: () => _stepPage(-1),
-                      icon: const Icon(Icons.chevron_left)),
-                  IconButton(
-                      tooltip: 'Next',
-                      onPressed: () => _stepPage(1),
-                      icon: const Icon(Icons.chevron_right))
-                ],
-                if (view == ResourceView.gallery &&
-                    galleryItem?.trailer == true)
-                  IconButton(
-                      tooltip: player?.value.isPlaying == true
-                          ? 'Pause trailer'
-                          : 'Play trailer',
-                      onPressed: () => player == null
-                          ? unawaited(play())
-                          : unawaited(player.value.isPlaying
-                              ? player.pause()
-                              : player.play()),
-                      icon: const Icon(Icons.play_circle_outline)),
-              ]),
+              if (view == ResourceView.gallery) _carousel(),
+              if (view == ResourceView.manual && pages.isNotEmpty)
+                Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                        reading
+                            ? '${page % pages.length + 1} / ${pages.length} · Swipe to turn pages · Hold for 3D'
+                            : 'Double-tap to open · Hold to read',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12))),
               if (_videoError != null) const Text('Trailer unavailable'),
-              const Text(
-                  'L1 / R1: section   •   Arrows: rotate / page   •   L2 / R2: zoom',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
             ])));
   }
+
+  Widget _carousel() => LayoutBuilder(builder: (context, constraints) {
+        final overflow = galleryItems.length * 140 - 8 > constraints.maxWidth;
+        return SizedBox(
+            height: 78,
+            child: Row(children: [
+              if (overflow)
+                IconButton(
+                    key: const ValueKey('gallery-previous'),
+                    tooltip: 'Previous media',
+                    onPressed: () => _galleryPage(page - 1),
+                    icon: const Icon(Icons.chevron_left)),
+              Expanded(
+                  child: ListView.separated(
+                      controller: _galleryScroll,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: galleryItems.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final item = galleryItems[index];
+                        return Semantics(
+                            label: item.trailer
+                                ? 'Trailer ${index + 1}'
+                                : 'Image ${index + 1}',
+                            selected: page == index,
+                            button: true,
+                            child: InkWell(
+                                key: ValueKey('gallery-item-$index'),
+                                onTap: () => _galleryPage(index),
+                                child: Container(
+                                    width: 132,
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 6),
+                                    clipBehavior: Clip.antiAlias,
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        color: const Color(0xff251719),
+                                        border: Border.all(
+                                            width: 2,
+                                            color: page == index
+                                                ? AppTheme.primaryColor
+                                                : Colors.white24)),
+                                    child: item.trailer
+                                        ? Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                                if (images.isNotEmpty)
+                                                  image(images.first,
+                                                      fit: BoxFit.cover),
+                                                const ColoredBox(
+                                                    color: Color(0x55000000)),
+                                                const Center(
+                                                    child: Icon(
+                                                        Icons
+                                                            .play_arrow_rounded,
+                                                        color: Colors.white,
+                                                        size: 30)),
+                                              ])
+                                        : image(item.path,
+                                            fit: BoxFit.cover))));
+                      })),
+              if (overflow)
+                IconButton(
+                    key: const ValueKey('gallery-next'),
+                    tooltip: 'Next media',
+                    onPressed: () => _galleryPage(page + 1),
+                    icon: const Icon(Icons.chevron_right)),
+            ]));
+      });
 }
