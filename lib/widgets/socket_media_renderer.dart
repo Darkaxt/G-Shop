@@ -661,6 +661,9 @@ class SocketMediaGpu {
           ((a['material']['color'][3] as num) < 1 ? 1 : 0)
               .compareTo((b['material']['color'][3] as num) < 1 ? 1 : 0));
       for (final surface in ordered) {
+        pass.setCullMode(surface['singleSided'] == true
+            ? gpu.CullMode.backFace
+            : gpu.CullMode.none);
         final isLabel = surface['role'] == 'label';
         final transform = base.clone();
         if (surface['hinged'] == true && pose.opening != 0) {

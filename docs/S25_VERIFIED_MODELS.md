@@ -28,8 +28,14 @@ volume .22485692962990014 and releases its native player when the image is
 selected during playback. Exact audible music restoration and the full ordinary
 controller path remain unverified. The candidate is installed in place, but no
 new public release exists; existing public 1.9.19 is a different artifact.
-Booklet candidates remain unacquired; the working parametric booklet is not claimed
-to be their geometry. New genuine case geometry is not yet native-verified.
+The owner has supplied both booklet exports. Brochure book 01 is now converted
+for local-only loading from `/storage/emulated/0/RShop/models/`; source digest and
+conversion procedure are in the coverage ledger. Its original 77,756 triangles
+plus the independently textured inside cover total 88,018 triangles, seven
+surfaces and two hinged sides. First/last PDF pages map to outside front/back.
+Host loading/fit checks pass; native booklet appearance/opening is still pending.
+The original parametric booklet remains only the missing-import fallback.
+New genuine case geometry is not yet native-verified.
 
 The owner's review invalidated the earlier frontal-only interpretation of fitted
 box faces. Corrected public 1.9.19 now passes Castlevania on Thor: six connected

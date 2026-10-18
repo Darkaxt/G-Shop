@@ -506,12 +506,15 @@ class ResourceGalleryState extends State<ResourceGallery>
   }
 
   String? _face(int index) {
-    if (view == ResourceView.manual)
-      return index == 0
-          ? pages.firstOrNull
-          : index == 1 && pages.length > 1
-              ? pages.last
-              : null;
+    if (view == ResourceView.manual) {
+      return switch (index) {
+        0 => pages.firstOrNull,
+        1 when pages.length > 1 => pages.last,
+        2 when pages.length > 1 => pages[1],
+        3 when pages.length > 2 => pages[2],
+        _ => null,
+      };
+    }
     if (view == ResourceView.box) {
       final role = ['front', 'back', 'left', 'right', 'top', 'bottom'][index];
       final outer = first('outer-box-$role');
@@ -536,7 +539,8 @@ class ResourceGalleryState extends State<ResourceGallery>
                   Expanded(
                       child: SizedBox.expand(
                           child: ColoredBox(
-                              color: view == ResourceView.box
+                              color: view == ResourceView.box ||
+                                      view == ResourceView.manual
                                   ? _paperColor
                                   : const Color(0xff252525),
                               child: _face(row * 3 + col) != null ||

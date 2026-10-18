@@ -1,4 +1,6 @@
 import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crypto/crypto.dart';
 import 'package:retro_eshop/models/packaging_model.dart';
@@ -7,6 +9,82 @@ import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  final actualBooklet = Platform.environment['RSHOP_BOOKLET_MODEL_DIR'];
+  test('owner-exported booklet fits each page aspect without corrupting UVs',
+      () async {
+    for (final aspect in [.75, 1.0, 4 / 3]) {
+      final model = await PackagingModel(PackagingKind.booklet,
+              aspect: aspect,
+              depth: .025,
+              modelsDirectory: Directory(actualBooklet!))
+          .load();
+      expect(model.name, 'brochure-booklet-v1');
+      expect(model.data['originalTriangles'], 77756);
+      expect(model.triangles, greaterThan(77756));
+      expect(model.data['sourceReference']['sha256'],
+          'e7e86e5833deb8c5b2580166ef5eb7800a52f832078f32027e2eaf402d14808a');
+      expect(model.surfaces.where((s) => s['hinged'] == true), hasLength(2));
+      for (final s in model.surfaces) {
+        if (s['role'] != 'label') continue;
+        final cell = s['atlasCell'] as int;
+        for (var i = 0; i < s['vertexCount']; i++) {
+          final n = (s['vertexOffset'] as int) + i * 32;
+          final x = model.mesh.getFloat32(n, Endian.little);
+          final y = model.mesh.getFloat32(n + 4, Endian.little);
+          final u = model.mesh.getFloat32(n + 24, Endian.little) * 3 - cell % 3;
+          final v =
+              model.mesh.getFloat32(n + 28, Endian.little) * 2 - cell ~/ 3;
+          expect(x.abs(), lessThanOrEqualTo(aspect + .00001));
+          expect(y.abs(), lessThanOrEqualTo(1.00001));
+          expect(u, inInclusiveRange(-.00001, 1.00001));
+          expect(v, inInclusiveRange(-.00001, 1.00001));
+        }
+      }
+    }
+  },
+      skip: actualBooklet == null
+          ? 'Requires the owner-provided local GLB conversion'
+          : false);
+  test('local booklet uses verified source mesh, fitted dimensions and hinge',
+      () async {
+    final directory =
+        Directory('D:/Temp/rshop-s25-booklet-20261018/test-model');
+    await directory.create(recursive: true);
+    final source = PackagingModel(PackagingKind.booklet).build();
+    final payload = source.mesh.buffer.asUint8List();
+    final data = Map<String, dynamic>.from(source.data)
+      ..remove('ownedGeometry')
+      ..addAll({
+        'name': 'brochure-booklet-v1',
+        'packagingGeometry': true,
+        'privateImport': true,
+        'bounds': [2, 2, 2],
+        'sourceWidth': 2,
+        'sourceReference': {
+          'url': 'https://sketchfab.com/3d-models/example',
+          'author': 'Fixture author',
+          'licence': 'local-import-only',
+          'sha256': 'a' * 64
+        },
+      });
+    await File('${directory.path}/booklet.json')
+        .writeAsString(jsonEncode(data));
+    await File('${directory.path}/booklet.mesh').writeAsBytes(payload);
+    final model = await PackagingModel(PackagingKind.booklet,
+            aspect: 1.25, depth: .04, modelsDirectory: directory)
+        .load();
+    expect(model.name, 'brochure-booklet-v1');
+    expect(model.data['privateImport'], true);
+    expect(model.data['ownedGeometry'], isNot(true));
+    expect(model.data['bounds'], [2.5, 2, .04]);
+    expect(model.surfaces.where((s) => s['hinged'] == true), isNotEmpty);
+    expect(model.surfaces.first['pivot'][0], closeTo(-.9, .00001));
+    await File('${directory.path}/booklet.mesh').writeAsBytes([0]);
+    await expectLater(
+        PackagingModel(PackagingKind.booklet, modelsDirectory: directory)
+            .load(),
+        throwsFormatException);
+  });
   test(
       'attributed cardboard preserves mesh detail and parameterized dimensions',
       () async {
@@ -18,11 +96,13 @@ void main() {
     expect(model.data['sourceReference']['licence'], 'CC-BY-4.0');
     expect(model.data['canOpen'], false);
     expect(model.data['bounds'], [2.0, 2, .34]);
-    final transform = SocketMediaGpu.modelTransform(model, const SocketMediaPose());
+    final transform =
+        SocketMediaGpu.modelTransform(model, const SocketMediaPose());
     for (var row = 0; row < 4; row++) {
       for (var column = 0; column < 4; column++) {
         expect(transform.entry(row, column), row == column ? 1 : 0,
-            reason: 'Converted packaging is already Y-up; no Socket reflection');
+            reason:
+                'Converted packaging is already Y-up; no Socket reflection');
       }
     }
     for (final surface in model.surfaces) {

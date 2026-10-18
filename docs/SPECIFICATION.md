@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 84, 2026-10-18.
+Authoritative specification, revision 85, 2026-10-18.
+
+Owner booklet clarification, 2026-10-18: use the PDF's last collected page on
+the booklet's outside back cover. Keep inside page artwork distinct from the
+front cover; opening must not show mirrored outside printing. Both requested
+exports are now locally supplied. Select/adapt the suitable booklet in S25;
+preserve source identity and use a local-only converted import when no public
+redistribution grant is established. The Nintendo DS and 3DS case links are
+candidates for their later console pass, not accepted opening models.
 
 Owner consolidated direction, 2026-10-18, supersedes the earlier S25-only source
 priority: NintAndBox's acquired dump -> lower-resolution public .es resource only

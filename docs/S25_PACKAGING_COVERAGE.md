@@ -1,6 +1,29 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 84.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 85.
+
+Owner-supplied booklet exports are now acquired locally. Brochure book 01 is
+selected: its staples/curved cover/paper block fit an instruction booklet better
+than Manuals & Gum's separate gum, plain manual and punched binder objects.
+Source SHA-256 `e7e86e5833deb8c5b2580166ef5eb7800a52f832078f32027e2eaf402d14808a`.
+The alternative export SHA-256 is
+`2f158b2a5edcdbe9b1da5b96a5ce651fdccf422a5f472a06433e97b3f99cefd4`.
+Neither contains an animation. The selected source has 77,756 triangles; the
+adapter preserves them and adds an independently textured inside cover, with a
+manual hinge. `scripts/prepare_booklet_model.py` emits `booklet.json` and
+`booklet.mesh` for `/storage/emulated/0/RShop/models/`. Missing local files retain
+the owned generic booklet; invalid imports report a rendering failure. Source
+prints are not copied. Original exports and converted meshes are not bundled in
+the public APK/repository; local import is not a redistribution licence.
+First/last PDF pages are outside front/back; the next pages are inside artwork.
+Host and native acceptance of this adaptation are recorded separately below.
+
+New Nintendo case candidates (public v3 API inspected 2026-10-18):
+
+| Candidate | Actual listing evidence | Remaining inspection |
+| --- | --- | --- |
+| [Box Card Game Nintendo DS](https://sketchfab.com/3d-models/box-card-game-nintendo-ds-11d28e7186df4f9e80cc0a1308ab854a) | adb jr (`adbjr`), 22,776 faces / 11,350 vertices, zero animation clips; official download disabled, no licence returned | Acquire locally; inspect hinge/lid, cartridge holder, replaceable sleeve, correct era and native fit during the NDS pass |
+| [Nintendo 3DS Game Box / Box Art template](https://sketchfab.com/3d-models/nintendo-3ds-game-box-box-art-template-de7f23e32f78404c8ec9ad6e4bafde7f) | 15,006 faces / 7,421 vertices, zero animation clips; official download disabled, no licence returned; author describes a box-art template | Acquire locally; verify actual parts/opening and UV replacement during the 3DS pass; listing text alone is not acceptance |
 
 Latest supplied candidates (public v3 model API inspected 2026-10-18):
 

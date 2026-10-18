@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'socket_media_model.dart';
@@ -13,7 +14,9 @@ class PackagingModel {
   final PackagingKind kind;
   final double aspect, depth;
   final String? systemId;
-  PackagingModel(this.kind, {this.aspect = .72, double? depth, this.systemId})
+  final Directory? modelsDirectory;
+  PackagingModel(this.kind,
+      {this.aspect = .72, double? depth, this.systemId, this.modelsDirectory})
       : depth = depth ?? (kind == PackagingKind.booklet ? .025 : .14) {
     if (!aspect.isFinite ||
         aspect < .25 ||
@@ -28,17 +31,42 @@ class PackagingModel {
   String get id => 'rshop-${kind.name}-v1';
 
   Future<SocketMediaModel> load() async {
-    if (kind != PackagingKind.box) return build();
-    final data = jsonDecode(
-            await rootBundle.loadString('assets/packaging/cardboard.json'))
-        as Map<String, dynamic>;
-    final source = await rootBundle.load('assets/packaging/cardboard.mesh');
-    // Verify the unmodified conversion before deriving the selected dimensions.
-    SocketMediaModel.packaging(data, source);
+    Map<String, dynamic> data;
+    ByteData source;
+    final local = modelsDirectory ??
+        (Platform.isAndroid
+            ? Directory('/storage/emulated/0/RShop/models')
+            : null);
+    final manifest = local == null ? null : File('${local.path}/booklet.json');
+    if (kind == PackagingKind.booklet &&
+        manifest != null &&
+        await manifest.exists()) {
+      final mesh = File('${local!.path}/booklet.mesh');
+      if (await manifest.length() > 128 * 1024 ||
+          await mesh.length() > 20 * 1024 * 1024) {
+        throw const FormatException('Local booklet exceeds import size');
+      }
+      data = jsonDecode(await manifest.readAsString()) as Map<String, dynamic>;
+      source = ByteData.sublistView(await mesh.readAsBytes());
+      SocketMediaModel.privatePackaging(data, source);
+    } else if (kind == PackagingKind.box) {
+      data = jsonDecode(
+              await rootBundle.loadString('assets/packaging/cardboard.json'))
+          as Map<String, dynamic>;
+      source = await rootBundle.load('assets/packaging/cardboard.mesh');
+      SocketMediaModel.packaging(data, source);
+    } else {
+      return build();
+    }
+    // Verify the conversion before deriving selected dimensions/normal matrices.
     final bytes = ByteData.sublistView(Uint8List.fromList(
         source.buffer.asUint8List(source.offsetInBytes, source.lengthInBytes)));
     for (final raw in data['surfaces'] as List) {
       final surface = raw as Map;
+      if (surface['pivot'] is List) {
+        final pivot = (surface['pivot'] as List).cast<num>();
+        surface['pivot'] = [pivot[0] * aspect, pivot[1], pivot[2] * depth / 2];
+      }
       for (var i = 0; i < surface['vertexCount']; i++) {
         final offset = (surface['vertexOffset'] as int) + i * 32;
         final scales = [aspect, 1.0, depth / 2];
@@ -61,12 +89,13 @@ class PackagingModel {
         }
       }
     }
-    data['name'] = 'cardboard-scan-v1';
     data['bounds'] = [aspect * 2, 2, depth];
     data['sourceWidth'] = aspect * 2;
     data['geometrySha256'] =
         sha256.convert(bytes.buffer.asUint8List()).toString();
-    return SocketMediaModel.packaging(data, bytes);
+    return data['privateImport'] == true
+        ? SocketMediaModel.privatePackaging(data, bytes)
+        : SocketMediaModel.packaging(data, bytes);
   }
 
   SocketMediaModel build() {

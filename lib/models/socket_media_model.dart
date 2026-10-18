@@ -111,6 +111,50 @@ class SocketMediaModel {
     return SocketMediaModel._(data, mesh);
   }
 
+  /// User-imported packaging is not bundled artwork or a redistribution grant.
+  factory SocketMediaModel.privatePackaging(
+      Map<String, dynamic> data, ByteData mesh) {
+    final source = data['sourceReference'];
+    if (data['packagingGeometry'] != true ||
+        data['privateImport'] != true ||
+        data.containsKey('apkSha256') ||
+        data.containsKey('ownedGeometry') ||
+        source is! Map ||
+        source['licence'] != 'local-import-only' ||
+        source['author'] is! String ||
+        source['url'] is! String ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch('${source['sha256']}') ||
+        sha256
+                .convert(mesh.buffer
+                    .asUint8List(mesh.offsetInBytes, mesh.lengthInBytes))
+                .toString() !=
+            data['geometrySha256']) {
+      throw const FormatException('Invalid local packaging import');
+    }
+    final surfaces = data['surfaces'];
+    if (surfaces is! List || surfaces.isEmpty || surfaces.length > 64) {
+      throw const FormatException('Invalid local packaging surfaces');
+    }
+    for (final s in surfaces) {
+      final vo = s['vertexOffset'] as int, vc = s['vertexCount'] as int;
+      final io = s['indexOffset'] as int, ic = s['indexCount'] as int;
+      if (vo < 0 ||
+          vc <= 0 ||
+          io < vo + vc * 32 ||
+          ic <= 0 ||
+          ic % 3 != 0 ||
+          io + ic * 4 > mesh.lengthInBytes) {
+        throw const FormatException('Invalid local packaging range');
+      }
+      for (var i = 0; i < ic; i++) {
+        if (mesh.getUint32(io + i * 4, Endian.little) >= vc) {
+          throw const FormatException('Invalid local packaging index');
+        }
+      }
+    }
+    return SocketMediaModel._(data, mesh);
+  }
+
   String get name => data['name'] as String;
   String get motionKind => data['motionKind'] as String;
   double get height => (data['bounds'][1] as num).toDouble();

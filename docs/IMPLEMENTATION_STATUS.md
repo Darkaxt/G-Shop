@@ -7,7 +7,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Owner feedback resumes the same stage under specification revision 84. Required:
+Owner feedback resumes the same stage under specification revision 85. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded
 box panels through the existing collector/import/Drive/viewer lane, retained
 composite provenance, adapted Diskette cardboard, supplied booklet geometry and
@@ -22,16 +22,29 @@ existing fallback resources; the public low-resolution website checks made no
 full-size downloads. The 12,000-triangle CC BY cardboard mesh is acquired, adapted
 and wired into the renderer, with bundled attribution. The signed candidate now
 passes the selected-game native box/Gallery workflow described below. The booklet
-source still needs acquisition/adaptation, and applicable era-specific cases still
+source is now acquired and adapted for local import; native booklet acceptance and applicable era-specific cases still
 need adaptation/native acceptance; these are not excused by the GBA box result.
 
 Advancement blockers: (internal) cold-recovery acceptance for the new panels,
 full ordinary-app controller workflow, exact Gallery music restoration and
 remaining per-console geometry remain; resolve with their complete real workflows.
-(External acquisition boundary) neither supplied booklet listing
-offers an official download; a local export has been requested while other S25
-work continues. Resolve with a usable source and its verified reuse/import path.
+The previous booklet acquisition impediment is resolved: both owner exports are
+present, Brochure book 01 was selected, and the adapter/verified local-file loader
+are implemented. No source geometry is bundled publicly. The new signed native
+booklet check remains internal acceptance work, not an external blocker.
 No required work is deferred to another stage; S25 remains ACTIVE.
+
+Booklet implementation, 2026-10-18: selected source retains its original staples,
+cover and pages, removes original printing, and adds a separately textured inside
+cover with manual opening. Physical paper normals are classified before depth
+normalization; this avoids curved printing turning into blank edge bands.
+Local manifest/mesh checksums and triangle ranges are checked before GPU upload.
+All manual sources use first/last pages as outside covers and following pages
+as inside artwork. Existing Read mode remains available. Missing local geometry
+uses the owned generic booklet. Host loading/fit, rejection of corrupted input,
+actual owner-conversion UV bounds across portrait/square/landscape pages and
+the affected Gallery checks passed; GPU rendering remains a native acceptance
+requirement. Signed build/deployment evidence will be recorded after it exists.
 
 Verification for the current source checkpoint: focused Gallery, packaging
 import/Drive-adapter/recovery, model, attribution and secondary lifecycle/audio

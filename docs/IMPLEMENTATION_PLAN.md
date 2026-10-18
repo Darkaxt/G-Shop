@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 84, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 85, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-18: **S25 ACTIVE**. Complete the shared trailer-first
