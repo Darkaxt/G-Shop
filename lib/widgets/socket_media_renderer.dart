@@ -568,6 +568,7 @@ class SocketMediaGpu {
       final frontZ = (model.data['bounds'][2] as num).toDouble() / 2;
       final front =
           math.min(size.width / model.sourceWidth, size.height / model.height) *
+              .9 *
               (1 - .25 * frontZ);
       final framing = UnboxingScene.framing(model, pose?.unboxing ?? 1);
       return front + (overview - front) * framing;

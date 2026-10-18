@@ -30,6 +30,45 @@ void main() {
     expect(key.currentState!.snapshot['started'], false);
     expect(find.byKey(const ValueKey('unboxing-preparation-cover')),
         findsOneWidget);
+    final canvas = tester.getSize(find.byType(UnboxingPreview));
+    final cover = tester
+        .getRect(find.byKey(const ValueKey('unboxing-preparation-cover')));
+    expect(cover.width, closeTo(canvas.shortestSide * .9, .001));
+    expect(cover.height, closeTo(canvas.shortestSide * .9, .001));
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('classified artwork arrival does not replace the waiting cover',
+      (tester) async {
+    final key = GlobalKey<UnboxingPreviewState>();
+    final front = File.fromUri(File('assets/icon.png').absolute.uri);
+    final waiting = FileImage(front);
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.runAsync(() =>
+        precacheImage(waiting, tester.element(find.byType(SizedBox).first)));
+    Widget preview(Map<String, List<String>> resources) => MaterialApp(
+        home: UnboxingPreview(
+            key: key,
+            identity: 'handoff',
+            title: 'Fixture',
+            style: 'blue',
+            resources: resources,
+            waitingCover: waiting,
+            resourcesReady: false,
+            cartridgeLabel: const ColoredBox(color: Colors.white),
+            labelIdentity: 'fixture'));
+    await tester.pumpWidget(preview(const {}));
+    await tester.pump();
+    final before = tester.widget<Image>(
+        find.byKey(const ValueKey('unboxing-preparation-cover')));
+    await tester.pumpWidget(preview({
+      'outer-box-front': [front.uri.toString()]
+    }));
+    await tester.pump();
+    final after = tester.widget<Image>(
+        find.byKey(const ValueKey('unboxing-preparation-cover')));
+    expect(identical(before.image, waiting), true);
+    expect(identical(after.image, waiting), true);
+    expect(key.currentState!.snapshot['started'], false);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('double-tapping the inspected booklet requests the reader',

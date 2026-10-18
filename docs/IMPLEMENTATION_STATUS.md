@@ -25,7 +25,25 @@ requesting the two refinements above. The earlier receipt conflict is no longer
 the observed failure: publication reached 1402/1402, then terminated with
 `FileSystemException`. This is not successful Drive completion; its remaining
 failure is retained as an acceptance blocker rather than concealed by the count.
-Original observer 63524 has exited on that real terminal event.
+Original observer 63524 has exited on that real terminal event. On signed
+`8f003e3`, the next normal launch completed publication (`cachedBytes=2142474049`,
+below the 2 GiB cap). All six Sapphire Drive panel bodies match the reviewed
+import pack by SHA-256. The native repeat verifies the continuous booklet sweep,
+but caught a second handoff boundary: ordinary cover art was replaced by the
+classified front before the GPU handoff, at a different size. The correction now
+keeps the original cover through preparation, matches its 90% canvas fit, then
+blends to the classified 3D front; new panels invalidate old GPU readiness.
+Native acceptance of that corrected integrated handoff remains required.
+
+At the owner's direction, microG Services was updated in place on Thor from
+0.3.15.250932 to official stable 0.3.17.252432 (code 252432034). Installed and
+downloaded APK SHA-256 both equal
+`e5e6cba078bdec812b5450599350e5c1a12c8b7438da5bf77123af170f8c1a35`;
+signer matches the predecessor (`9bd06727e62796c0130eb6dab39b73157451582cbd138e86c468acc395d14165`),
+UID 10143 is unchanged, and no data clear/uninstall was used. No new microG crash
+was observed in the post-update check; this is bounded observation, not a promise
+that all microG behavior is correct. Official source:
+https://github.com/microg/GmsCore/releases/tag/v0.3.17.252432 .
 
 ### S25 semicircle correction — 2026-10-19, ACTIVE
 

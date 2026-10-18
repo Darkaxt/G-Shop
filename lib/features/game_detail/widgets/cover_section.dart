@@ -273,6 +273,7 @@ class CoverSectionState extends State<CoverSection> {
                             title: game.displayName,
                             style: cartridgeStyle,
                             resources: widget.packagingResources,
+                            waitingCover: boxArt,
                             initiallySettled: widget.initiallySettled,
                             initialInspectionPart: widget.initialInspectionPart,
                             onInspectionChanged: widget.onInspectionChanged,

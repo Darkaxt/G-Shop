@@ -58,7 +58,7 @@ void main() {
         if (y < top) top = y;
         if (y > bottom) bottom = y;
       }
-      final side = viewport.shortestSide;
+      final side = viewport.shortestSide * .9;
       expect(right - left, closeTo(side, 2));
       expect(bottom - top, closeTo(side, 2));
       expect((left + right) / 2, closeTo(viewport.width / 2, 1));

@@ -41,6 +41,7 @@ class UnboxingPreview extends StatefulWidget {
   final Map<String, List<String>> resources;
   final Widget cartridgeLabel;
   final Object labelIdentity;
+  final ImageProvider? waitingCover;
   final bool resourcesReady, reducedMotion;
   final VoidCallback? onReady, onRevealed;
   final VoidCallback? onReadManual;
@@ -55,6 +56,7 @@ class UnboxingPreview extends StatefulWidget {
       required this.resources,
       required this.cartridgeLabel,
       required this.labelIdentity,
+      this.waitingCover,
       this.resourcesReady = true,
       this.reducedMotion = false,
       this.onReady,
@@ -164,6 +166,9 @@ class UnboxingPreviewState extends State<UnboxingPreview>
     _prepared = key;
     final generation = ++_generation;
     _imagesReady = false;
+    // A new panel set recaptures the GPU atlas (and may add the booklet mesh).
+    // An earlier atlas's ready event cannot admit this scene's handoff.
+    if (!_started) _gpuReady = false;
     _error = null;
     try {
       for (final path in paths.whereType<String>().toSet()) {
@@ -284,16 +289,18 @@ class UnboxingPreviewState extends State<UnboxingPreview>
 
   Widget _preparationCover() {
     final path = boxPanelPath(widget.resources, 0);
-    return path == null
+    final image =
+        widget.waitingCover ?? (path == null ? null : _provider(path));
+    return image == null
         ? const Center(child: CircularProgressIndicator())
         : LayoutBuilder(builder: (context, constraints) {
-            final side = constraints.biggest.shortestSide;
+            final side = constraints.biggest.shortestSide * .9;
             return Center(
                 child: SizedBox.square(
                     dimension: side,
                     child: Image(
                         key: const ValueKey('unboxing-preparation-cover'),
-                        image: _provider(path),
+                        image: image,
                         fit: BoxFit.fill)));
           });
   }
