@@ -33,9 +33,22 @@ for local-only loading from `/storage/emulated/0/RShop/models/`; source digest a
 conversion procedure are in the coverage ledger. Its original 77,756 triangles
 plus the independently textured inside cover total 88,018 triangles, seven
 surfaces and two hinged sides. First/last PDF pages map to outside front/back.
-Host loading/fit checks pass; native booklet appearance/opening is still pending.
+Host loading/fit checks pass. Signed source `a3100b4` (GitHub run 39137853481)
+passes the selected Castlevania manual on Thor: upright outside front and last-page
+back, distinct upright inside pages, touch open/close and rotation, plus flat Read
+mode page-2 paging/zoom. Runtime reports `brochure-booklet-v1`, 88,018 triangles,
+seven surfaces, fitted geometry SHA-256
+`dad3ec093c21eae29da3479f3e4b67d0e4345b105b31607344f998d917758566`,
+label/frame ready and no renderer error. Evidence is
+`D:/Temp/rshop-s25-booklet-20261018/native/fixed-booklet-*.png` and
+`fixed-read-page2-down.png`. Native inspection caught and corrected the initial
+candidate's CW/CCW culling mismatch; its reversed-cover captures are not acceptance.
+This is a selected-game booklet check, not every manual's pages, controller
+acceptance, loading-presentation acceptance or the automatic cinematic.
 The original parametric booklet remains only the missing-import fallback.
 New genuine case geometry is not yet native-verified.
+The owner's updated rigged carton has closed/open/unfolded desktop evidence in
+the coverage ledger; it is not yet an integrated/native-verified replacement.
 
 The owner's review invalidated the earlier frontal-only interpretation of fitted
 box faces. Corrected public 1.9.19 now passes Castlevania on Thor: six connected

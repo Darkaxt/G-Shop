@@ -22,16 +22,17 @@ existing fallback resources; the public low-resolution website checks made no
 full-size downloads. The 12,000-triangle CC BY cardboard mesh is acquired, adapted
 and wired into the renderer, with bundled attribution. The signed candidate now
 passes the selected-game native box/Gallery workflow described below. The booklet
-source is now acquired and adapted for local import; native booklet acceptance and applicable era-specific cases still
-need adaptation/native acceptance; these are not excused by the GBA box result.
+source is now acquired, adapted for local import and selected-game native-verified.
+Applicable era-specific cases and the wider per-console checks still need
+adaptation/native acceptance; these are not excused by the GBA box/booklet result.
 
 Advancement blockers: (internal) cold-recovery acceptance for the new panels,
 full ordinary-app controller workflow, exact Gallery music restoration and
 remaining per-console geometry remain; resolve with their complete real workflows.
 The previous booklet acquisition impediment is resolved: both owner exports are
 present, Brochure book 01 was selected, and the adapter/verified local-file loader
-are implemented. No source geometry is bundled publicly. The new signed native
-booklet check remains internal acceptance work, not an external blocker.
+are implemented. No source geometry is bundled publicly. The selected Castlevania
+native booklet check now passes; wider S25 acceptance remains internal work.
 No required work is deferred to another stage; S25 remains ACTIVE.
 
 Booklet implementation, 2026-10-18: selected source retains its original staples,
@@ -43,8 +44,31 @@ All manual sources use first/last pages as outside covers and following pages
 as inside artwork. Existing Read mode remains available. Missing local geometry
 uses the owned generic booklet. Host loading/fit, rejection of corrupted input,
 actual owner-conversion UV bounds across portrait/square/landscape pages and
-the affected Gallery checks passed; GPU rendering remains a native acceptance
-requirement. Signed build/deployment evidence will be recorded after it exists.
+the affected Gallery checks passed. Native Read mode passes cover/page-2 paging
+and touch zoom on Thor. The first signed booklet candidate (`088e789`, GitHub
+run 39135842753) exposed reversed cover-side culling: outward Blender CCW faces
+were interpreted as reflected Socket CW faces. Correction `a3100b4` preserves
+the appropriate winding per geometry path; its focused model checks and scoped
+analysis pass. Corrected GitHub run 39137853481 passed and its downloaded and
+installed APKs both hash to
+`d766f8b6dc626bdfbc5cfa072a5e2c754e9309d250b7dfe5b7ecc97509fc4a8a`.
+Package `com.darkaxt.rshop`, version 1.9.19/code 35, retains the production signer
+`075031272c9ccfa3229cdfe5266e0e50e85e4bd841111f320d83910290b55f1c`.
+The local model import's manifest/mesh digests match the reviewed conversion.
+Selected Castlevania front/back/inside opening/closing and rotation, and Read mode
+page-2 paging/touch zoom pass on that artifact. No new public release was created.
+The failed candidate is not reused as booklet visual acceptance. The loading
+fallback still exposes the raw atlas before the first GPU frame; this is retained
+as a same-stage presentation defect, not silently accepted or moved to another stage.
+The wider controller/cold-cache/audio and console requirements above remain.
+Both Thor displays were verified OFF afterwards, preserving ROMs, settings and accounts.
+
+Hosted Linux build used `--no-daemon --max-workers=2 --no-parallel` and Kotlin
+in-process compilation. Project configuration requests a 3 GiB Gradle heap; the
+invocation-local test profile sets one fork/512 MiB, and native concurrency hint
+is two. The inspected run reports BUILD SUCCESSFUL and stop-at-end daemon policy,
+with no memory failure or budget increase. No Windows Gradle ran, no local mutex
+was acquired, and independent remote daemon PID-exit proof is not claimed.
 
 Verification for the current source checkpoint: focused Gallery, packaging
 import/Drive-adapter/recovery, model, attribution and secondary lifecycle/audio

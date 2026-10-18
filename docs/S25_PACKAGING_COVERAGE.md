@@ -18,6 +18,23 @@ the public APK/repository; local import is not a redistribution licence.
 First/last PDF pages are outside front/back; the next pages are inside artwork.
 Host and native acceptance of this adaptation are recorded separately below.
 
+Owner-generated rigged carton candidate (updated file, 2026-10-18):
+`castlevania-carton-rigged (1).glb`, SHA-256
+`aa9ecd5493a47b23d19679cba11bec090a2d07077a54594512befc46ecb08122`.
+The superseded unnumbered export is not the inspected source. Blender inspection
+finds 13 separate printed/interior/edge parts, 2,316 triangles, actual cardboard
+thickness, hierarchical hinges and three three-second clips: Open, Close, Unfold.
+Closed, intermediate, fully opened and unfolded desktop renders show the embedded
+Castlevania net aligned to the carton faces/flaps. Open lifts the top lid/tuck tab
+and dust flaps without unfolding the whole box. This is the appropriate candidate
+for the owner's box-opening -> cartridge-lifting sequence; it contains no cartridge.
+Evidence: `D:/Temp/rshop-s25-booklet-20261018/carton-updated/`.
+This is byte/desktop inspection, not an R-Shop integration or native-verified row.
+Generic NintAndBox panel remapping, dimensions, hierarchical motion conversion,
+cartridge extraction placement/clearance and native inspection remain required;
+one embedded Castlevania texture does not prove every scan layout is compatible.
+The cinematic still waits for the individual model review checkpoint.
+
 New Nintendo case candidates (public v3 API inspected 2026-10-18):
 
 | Candidate | Actual listing evidence | Remaining inspection |
@@ -29,8 +46,8 @@ Latest supplied candidates (public v3 model API inspected 2026-10-18):
 
 | Candidate | Actual listing evidence | Suitability limit |
 | --- | --- | --- |
-| [Brochure book 01](https://sketchfab.com/3d-models/brochure-book-01-be822ca5f3d4461c8f5d8c02b7bcbaa8) | 39,226 vertices / 77,756 triangles; no listed animation; official download disabled; Standard licence listing | Page replacement, opening parts and usable acquisition not established. Not a verified animated booklet replacement. |
-| [Manuals & Gum](https://sketchfab.com/3d-models/manuals-gum-e4566daa94204a1ca8dbe18b91819157) | 1,153 vertices / 2,318 triangles; no listed animation; official download disabled; no licence returned | Separate booklet geometry/page UVs and reusable rights unverified. Keep working parametric booklet. |
+| [Brochure book 01](https://sketchfab.com/3d-models/brochure-book-01-be822ca5f3d4461c8f5d8c02b7bcbaa8) | Owner export acquired; 39,226 vertices / 77,756 source triangles, no animation; Standard licence metadata | Selected and adapted for local import with replaceable first/last/inside pages and a manual hinge. Native inspection is recorded in the verified-model ledger; no public redistribution grant is inferred. |
+| [Manuals & Gum](https://sketchfab.com/3d-models/manuals-gum-e4566daa94204a1ca8dbe18b91819157) | Owner export acquired; 1,153 vertices / 2,318 triangles; no animation; no licence returned | Inspected gum/plain-manual/punched-binder parts. Not selected: Brochure is the closer booklet geometry. Not native-verified or publicly bundled. |
 | [Extreme G N64 Box](https://sketchfab.com/3d-models/extreme-g-nintendo-n64-box-2f8be7a260754d82bcb4c966e04f7797) | 8 vertices / 12 triangles; no listed animation; official download disabled; no licence returned | Closed cuboid, not geometrically creased cardboard. Visible wear is inferred to be texture/material detail; must inspect before claiming transferable wear with new game art. |
 | [Diskette box](https://sketchfab.com/3d-models/diskette-box-c179241faa984442a9a802d867bc60f5) | Official 1K GLB acquired; CC BY 4.0, matousekfoto; 6,002 source vertices / 12,000 triangles; no animation | Adapted six-region matte mesh passes selected Mega Man/Castlevania front/back/side and touch rotation/zoom on Thor in signed 30853c9. Per-console fit remains; no opening support is claimed. |
 
