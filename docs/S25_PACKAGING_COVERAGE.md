@@ -375,6 +375,12 @@ presentation. Proposed behavior is an optional manual/booklet prop revealed
 between case and medium when the correct language/edition manual exists, plus a
 separate page/PDF viewer with touch/controller page navigation and zoom. This
 does not require modelling every page or implementing a page-turning physics rig.
+Owner consideration for the end-of-S25 transition pass (2026-10-18): zoom into
+the opened booklet's left page, then crossfade to the flat manual reader at PDF
+page 2 (zero-based index 1), skipping the outside front cover. Evaluate the visual
+continuity, readiness and Reduced Motion behavior with the other model transitions.
+This is a recorded design consideration, not newly mandatory behavior or part of
+the current individual-model verification; it is not being implemented now.
 Missing manuals skip that layer; they must not block launch or box/cartridge
 acceptance. Maps/flyers can live in the Media/Documents gallery without being
 mistaken for covers. A scanned inner tray is reference imagery, not a 3D mesh.
