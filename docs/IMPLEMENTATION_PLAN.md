@@ -1,9 +1,13 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 92, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 94, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
-Current execution, 2026-10-18: **S25 ACTIVE**. Owner corrective priority is the
+Current execution, 2026-10-18: **S25 ACTIVE**. The owner now requires a retained
+three-object GBA endpoint (box centre, cartridge left, booklet right), tap-to-focus,
+pinch-out return and double-tap booklet reading. This supersedes the lone-medium
+endpoint; verify GBA and pause for owner review before another console. Current
+corrective priority is the
 real rigged-box opening/extraction preview, less-transparent Sapphire housing,
 English face substitution over retained unfolded donor panels, and gesture-first
 model/manual inspection plus one autoplay trailer/image thumbnail carousel.
@@ -19,7 +23,10 @@ Current checkpoint: the replacement carton's seven-piece holder is adapted and
 its fitting prop excluded; closed per-game native inspection passes. The GBA
 console-selection pilot and gray/blue cartridge checks have native evidence in
 the status/model ledgers, with their explicit limits. The full extraction
-cinematic remains held. Continue the remaining GBA commercial shell/region/edition
+cinematic is now included in the corrective acceptance. Resource reading/gallery
+must use the full display without preview header/footer chrome, with compact
+overlay navigation; verify both entry routes and retained controller/gesture
+behavior. Continue the remaining GBA commercial shell/region/edition
 and sensor/rumble geometry acceptance, controller/cold-recovery and media-lifecycle
 criteria without reopening verified components. General hardware coverage remains
 S27 NOT STARTED; these GBA criteria remain within the single ACTIVE S25 stage.

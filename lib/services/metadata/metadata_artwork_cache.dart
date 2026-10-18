@@ -619,7 +619,9 @@ class MetadataArtworkCache {
   /// Edition-owned cached gallery images only. No catalogue scan or provider
   /// lookup is triggered by opening the explorer. Missing faces remain missing.
   Future<Map<String, List<String>>> galleryForEdition(String editionId,
-      {bool hydrate = false, Set<String> hydrateTypes = const {}}) async {
+      {bool hydrate = false,
+      bool hydrateBooklet = false,
+      Set<String> hydrateTypes = const {}}) async {
     await _requireAccess();
     final result = <String, List<String>>{};
     final store = LibraryStore(_database);
@@ -658,19 +660,38 @@ class MetadataArtworkCache {
               !ownedRoles.contains(m.type))
           .toList()
         ..sort((a, b) => (a.memberIndex ?? 0).compareTo(b.memberIndex ?? 0));
+      final manual = selected.where((m) => m.type == 'manual-page').toList();
+      final booklet = [
+        manual.firstOrNull,
+        manual.lastOrNull,
+        manual.length > 1 ? manual[1] : null,
+        manual.length > 2 ? manual[2] : null
+      ];
       for (final media in selected) {
         if (media.region != null &&
             regions.isNotEmpty &&
             !regions.any((r) => region(r) == region(media.region!))) continue;
         var file = await _fileFor(editionId, provider, media);
         if (file == null &&
-            (hydrate || hydrateTypes.contains(media.type)) &&
+            (hydrate ||
+                hydrateTypes.contains(media.type) ||
+                hydrateBooklet && booklet.contains(media)) &&
             sharedStore?.fetchCloudMedia != null) {
           await sharedStore!.fetchCloudMedia!(key(media),
               userRequested: hydrate);
           file = await _fileFor(editionId, provider, media);
         }
         if (file != null) {
+          for (var i = 0; i < booklet.length; i++) {
+            if (identical(booklet[i], media)) {
+              result['booklet-${[
+                'front',
+                'back',
+                'inside-left',
+                'inside-right'
+              ][i]}'] = [file.uri.toString()];
+            }
+          }
           final paths = result.putIfAbsent(media.type, () => []);
           if (media.type == 'manual-page' ||
               !paths.contains(file.uri.toString()))

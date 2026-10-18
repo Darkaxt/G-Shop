@@ -72,6 +72,7 @@ def compose_english_faces(game, english_resources, *, bodies=None, read=None):
         if candidates:
             english = candidates[0]
             reference = {**english['importReference'], 'sourceLanguages': ['en'],
+                         'sourceRegion': english['importReference'].get('sourceRegion') or english['region'],
                          'reconstruction': 'composite'}
             if bodies is not None:
                 def body(resource):

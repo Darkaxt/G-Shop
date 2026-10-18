@@ -28,6 +28,8 @@ class ResourceGallery extends StatefulWidget {
   final double volume;
   final ValueChanged<bool>? onPlayingChanged;
   final VoidCallback? onClose;
+  final ResourceView? initialView;
+  final bool initiallyReading;
   const ResourceGallery(
       {super.key,
       required this.identity,
@@ -41,6 +43,8 @@ class ResourceGallery extends StatefulWidget {
       this.importedModels = false,
       this.volume = .3,
       this.onPlayingChanged,
+      this.initialView,
+      this.initiallyReading = false,
       this.onClose});
   @override
   State<ResourceGallery> createState() => ResourceGalleryState();
@@ -159,6 +163,7 @@ class ResourceGalleryState extends State<ResourceGallery>
         'zoom': zoom,
         'opening': opening,
         'reading': reading,
+        'fullCanvas': view == ResourceView.gallery || reading,
         'page': page,
         'galleryIndex':
             galleryItems.isEmpty ? null : page % galleryItems.length,
@@ -178,7 +183,13 @@ class ResourceGalleryState extends State<ResourceGallery>
   @override
   void initState() {
     super.initState();
-    view = availableViews.first;
+    view = availableViews.contains(widget.initialView)
+        ? widget.initialView!
+        : availableViews.first;
+    reading = view == ResourceView.manual &&
+        widget.initiallyReading &&
+        pages.isNotEmpty;
+    if (reading && pages.length > 1) page = 1;
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -697,113 +708,143 @@ class ResourceGalleryState extends State<ResourceGallery>
                         label: _atlas(),
                         labelIdentity:
                             '${view.name}:${widget.resources}:${_paperColor.toARGB32()}');
+    final fullCanvas = view == ResourceView.gallery || reading;
+    final navigation = Row(children: [
+      Expanded(
+          child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (final mode in availableViews)
+                  Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: fullCanvas
+                          ? IconButton.filledTonal(
+                              key: ValueKey('resource-mode-${mode.name}'),
+                              tooltip: _viewName(mode),
+                              isSelected: view == mode,
+                              style: ButtonStyle(
+                                  foregroundColor: const WidgetStatePropertyAll(
+                                      Colors.white),
+                                  backgroundColor:
+                                      WidgetStateProperty.resolveWith((states) =>
+                                          states.contains(WidgetState.selected)
+                                              ? AppTheme.primaryColor
+                                                  .withValues(alpha: .4)
+                                              : Colors.black54)),
+                              onPressed: () => select(mode),
+                              icon: Icon(_viewIcon(mode)))
+                          : ChoiceChip(
+                              key: ValueKey('resource-mode-${mode.name}'),
+                              showCheckmark: false,
+                              selectedColor:
+                                  AppTheme.primaryColor.withValues(alpha: .24),
+                              backgroundColor: Colors.black26,
+                              side: BorderSide(
+                                  color: view == mode ? AppTheme.primaryColor : Colors.white24),
+                              labelStyle: const TextStyle(color: Colors.white, fontSize: 14, letterSpacing: .3, fontWeight: FontWeight.w600),
+                              selected: view == mode,
+                              onSelected: (_) => select(mode),
+                              avatar: Icon(_viewIcon(mode)),
+                              label: Text(_viewName(mode), softWrap: false, overflow: TextOverflow.visible)))
+              ]))),
+      if (widget.onClose != null)
+        IconButton(
+            tooltip: 'Close',
+            style: fullCanvas
+                ? IconButton.styleFrom(
+                    backgroundColor: Colors.black54,
+                    foregroundColor: Colors.white)
+                : null,
+            onPressed: widget.onClose,
+            icon: const Icon(Icons.close))
+    ]);
+    final surface = GestureDetector(
+        key: const ValueKey('resource-inspection-surface'),
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: canOpen ? _toggleOpening : null,
+        onLongPress: view == ResourceView.manual && pages.isNotEmpty
+            ? () => setState(() {
+                  reading = !reading;
+                  page = reading && pages.length > 1 ? 1 : 0;
+                  _readingTransform.value = Matrix4.identity();
+                })
+            : null,
+        onHorizontalDragEnd: reading
+            ? (event) {
+                if (_readingTransform.value.getMaxScaleOnAxis() <= 1.01 &&
+                    event.primaryVelocity != null &&
+                    event.primaryVelocity!.abs() > 50) {
+                  _stepPage(event.primaryVelocity! < 0 ? 1 : -1);
+                }
+              }
+            : null,
+        onScaleStart: reading || view == ResourceView.gallery
+            ? null
+            : (_) => _startZoom = zoom,
+        onScaleUpdate: reading || view == ResourceView.gallery
+            ? null
+            : (event) => setState(() {
+                  yaw += event.focalPointDelta.dx * .012;
+                  pitch += event.focalPointDelta.dy * .012;
+                  zoom = (_startZoom * event.scale).clamp(.35, 1.5);
+                }),
+        child: SizedBox.expand(child: content));
+    final manualHint = Padding(
+        padding: const EdgeInsets.all(8),
+        child: Text(
+            reading
+                ? '${page % pages.length + 1} / ${pages.length}'
+                : 'Double-tap to open · Hold to read',
+            style: const TextStyle(color: Colors.white70, fontSize: 12)));
     return Focus(
         autofocus: true,
         onKeyEvent: _key,
         child: Container(
             decoration:
                 const BoxDecoration(gradient: AppTheme.backgroundGradient),
-            child: Column(children: [
-              Row(children: [
-                Expanded(
-                    child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(children: [
-                          for (final mode in availableViews)
-                            Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: ChoiceChip(
-                                    key: ValueKey('resource-mode-${mode.name}'),
-                                    showCheckmark: false,
-                                    selectedColor: AppTheme.primaryColor
-                                        .withValues(alpha: .24),
-                                    backgroundColor: Colors.black26,
-                                    side: BorderSide(
-                                        color: view == mode
-                                            ? AppTheme.primaryColor
-                                            : Colors.white24),
-                                    labelStyle: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        letterSpacing: .3,
-                                        fontWeight: FontWeight.w600),
-                                    selected: view == mode,
-                                    onSelected: (_) => select(mode),
-                                    avatar: Icon(switch (mode) {
-                                      ResourceView.box =>
-                                        Icons.inventory_2_outlined,
-                                      ResourceView.cover =>
-                                        Icons.album_outlined,
-                                      ResourceView.cartridge =>
-                                        Icons.sd_card_outlined,
-                                      ResourceView.manual => Icons.menu_book,
-                                      ResourceView.gallery =>
-                                        Icons.perm_media_outlined
-                                    }),
-                                    label: Text(
-                                        switch (mode) {
-                                          ResourceView.cover => 'Case',
-                                          ResourceView.gallery => 'Gallery',
-                                          _ => mode.name[0].toUpperCase() +
-                                              mode.name.substring(1)
-                                        },
-                                        softWrap: false,
-                                        overflow: TextOverflow.visible)))
-                        ]))),
-                if (widget.onClose != null)
-                  IconButton(
-                      tooltip: 'Close',
-                      onPressed: widget.onClose,
-                      icon: const Icon(Icons.close))
-              ]),
-              Expanded(
-                  child: GestureDetector(
-                      key: const ValueKey('resource-inspection-surface'),
-                      behavior: HitTestBehavior.opaque,
-                      onDoubleTap: canOpen ? _toggleOpening : null,
-                      onLongPress: view == ResourceView.manual &&
-                              pages.isNotEmpty
-                          ? () => setState(() {
-                                reading = !reading;
-                                page = reading && pages.length > 1 ? 1 : 0;
-                                _readingTransform.value = Matrix4.identity();
-                              })
-                          : null,
-                      onHorizontalDragEnd: reading
-                          ? (event) {
-                              if (_readingTransform.value.getMaxScaleOnAxis() <=
-                                      1.01 &&
-                                  event.primaryVelocity != null &&
-                                  event.primaryVelocity!.abs() > 50) {
-                                _stepPage(event.primaryVelocity! < 0 ? 1 : -1);
-                              }
-                            }
-                          : null,
-                      onScaleStart: reading || view == ResourceView.gallery
-                          ? null
-                          : (_) => _startZoom = zoom,
-                      onScaleUpdate: reading || view == ResourceView.gallery
-                          ? null
-                          : (event) => setState(() {
-                                yaw += event.focalPointDelta.dx * .012;
-                                pitch += event.focalPointDelta.dy * .012;
-                                zoom =
-                                    (_startZoom * event.scale).clamp(.35, 1.5);
-                              }),
-                      child: content)),
-              if (view == ResourceView.gallery) _carousel(),
-              if (view == ResourceView.manual && pages.isNotEmpty)
-                Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text(
-                        reading
-                            ? '${page % pages.length + 1} / ${pages.length} · Swipe to turn pages · Hold for 3D'
-                            : 'Double-tap to open · Hold to read',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 12))),
-              if (_videoError != null) const Text('Trailer unavailable'),
-            ])));
+            child: fullCanvas
+                ? Stack(fit: StackFit.expand, children: [
+                    surface,
+                    Positioned(top: 0, left: 0, right: 0, child: navigation),
+                    Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: view == ResourceView.gallery
+                            ? ColoredBox(
+                                color: Colors.black54, child: _carousel())
+                            : Align(
+                                alignment: Alignment.bottomRight,
+                                child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    child: manualHint))),
+                    if (_videoError != null)
+                      const Center(child: Text('Trailer unavailable')),
+                  ])
+                : Column(children: [
+                    navigation,
+                    Expanded(child: surface),
+                    if (view == ResourceView.manual && pages.isNotEmpty)
+                      manualHint,
+                    if (_videoError != null) const Text('Trailer unavailable'),
+                  ])));
   }
+
+  String _viewName(ResourceView mode) => switch (mode) {
+        ResourceView.cover => 'Case',
+        ResourceView.gallery => 'Gallery',
+        _ => mode.name[0].toUpperCase() + mode.name.substring(1),
+      };
+  IconData _viewIcon(ResourceView mode) => switch (mode) {
+        ResourceView.box => Icons.inventory_2_outlined,
+        ResourceView.cover => Icons.album_outlined,
+        ResourceView.cartridge => Icons.sd_card_outlined,
+        ResourceView.manual => Icons.menu_book,
+        ResourceView.gallery => Icons.perm_media_outlined,
+      };
 
   Widget _carousel() => LayoutBuilder(builder: (context, constraints) {
         final overflow = galleryItems.length * 140 - 8 > constraints.maxWidth;

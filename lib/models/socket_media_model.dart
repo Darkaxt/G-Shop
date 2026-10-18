@@ -165,7 +165,7 @@ class SocketMediaModel {
       throw const FormatException('Invalid local packaging import');
     }
     final surfaces = data['surfaces'];
-    final surfaceBudget = data['unboxingGeometry'] == true ? 96 : 64;
+    final surfaceBudget = data['unboxingGeometry'] == true ? 128 : 64;
     if (surfaces is! List ||
         surfaces.isEmpty ||
         surfaces.length > surfaceBudget) {
@@ -340,7 +340,9 @@ class SocketMediaPose {
       scaleZ,
       labelSpin,
       opening,
-      unboxing;
+      unboxing,
+      inspection;
+  final String? inspectedPart;
   const SocketMediaPose(
       {this.rx = 0,
       this.ry = 0,
@@ -352,7 +354,9 @@ class SocketMediaPose {
       this.scaleZ = 1,
       this.labelSpin = 0,
       this.opening = 0,
-      this.unboxing = 0});
+      this.unboxing = 0,
+      this.inspectedPart,
+      this.inspection = 0});
 
   static double _phase(double t, double start, double duration) =>
       ((t - start) / duration).clamp(0.0, 1.0);

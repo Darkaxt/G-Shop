@@ -69,6 +69,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   String? _video, _notice, _sent;
   bool _details = false, _visible = true, _working = false;
   bool _gallery = false;
+  bool _galleryManual = false;
   bool _galleryLoading = false;
   int _galleryRequest = 0;
   Map<String, List<String>>? _openedGallery;
@@ -154,6 +155,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     _generation++;
     _details = false;
     _gallery = false;
+    _galleryManual = false;
     _galleryLoading = false;
     _openedGallery = null;
     _galleryRequest++;
@@ -296,17 +298,18 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
 
   Future<void> _action(String action, int? variant) async {
     if (!mounted || !_visible) return;
-    if (action == 'gallery' || action == 'preview') {
+    if (action == 'gallery' || action == 'manual' || action == 'preview') {
       final edition = _metadata?.editionId;
-      if (action == 'gallery' && _galleryLoading) return;
+      if (action != 'preview' && _galleryLoading) return;
       final request = ++_galleryRequest;
       setState(() {
-        _gallery = action == 'gallery';
+        _gallery = action != 'preview';
+        _galleryManual = action == 'manual';
         _galleryLoading = _gallery && edition != null;
         _details = false;
         _notice = null;
       });
-      if (action == 'gallery' && edition != null) {
+      if (action != 'preview' && edition != null) {
         try {
           final resources =
               await (await ref.read(cachedMetadataArtworkProvider))
@@ -500,6 +503,7 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'reducedMotion': media.reducedMotion,
         'details': _details,
         'gallery': _gallery,
+        'galleryManual': _galleryManual,
         'galleryLoading': _galleryLoading,
         'galleryResources':
             _gallery ? (_openedGallery ?? galleryMedia) : galleryMedia,

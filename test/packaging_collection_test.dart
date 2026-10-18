@@ -19,6 +19,41 @@ import 'metadata_controls_test.dart' show controlsDatabase, MemorySecrets;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  final actualPack = Platform.environment['RSHOP_PACKAGING_PACK'];
+  test(
+      'reviewed desktop pack satisfies production provenance and body contracts',
+      () {
+    final archive =
+        ZipDecoder().decodeBytes(File(actualPack!).readAsBytesSync());
+    final manifest =
+        jsonDecode(utf8.decode(archive.findFile('packaging.json')!.content));
+    for (final game in manifest['games'] as List) {
+      final roles = <String>{};
+      for (final raw in game['resources'] as List) {
+        final media =
+            MetadataMedia.fromJson((raw as Map).cast<String, dynamic>());
+        expect(roles.add(media.type), true);
+        final image =
+            archive.findFile('images/${media.importReference!.sha256}.png')!;
+        expect(image.size, lessThanOrEqualTo(4 * 1024 * 1024));
+        expect(sha256.convert(image.content).toString(),
+            media.importReference!.sha256);
+      }
+      expect(
+          roles,
+          containsAll([
+            for (final face in [
+              'front',
+              'back',
+              'left',
+              'right',
+              'top',
+              'bottom'
+            ])
+              'outer-box-$face'
+          ]));
+    }
+  }, skip: actualPack == null ? 'Requires reviewed local cohort pack' : false);
   test('normal resource collection retains same-edition extra faces and pages',
       () {
     MetadataMedia media(String type, {String region = 'us', int? page}) =>
@@ -121,8 +156,7 @@ void main() {
         ('box-2D-side', null),
         for (final face in ['front', 'back', 'left', 'right', 'top', 'bottom'])
           ('outer-box-$face', null),
-        ('manual-page', 1),
-        ('manual-page', 2)
+        for (var page = 1; page <= 6; page++) ('manual-page', page)
       ])
         MetadataMedia(
             type: pair.$1,
@@ -222,12 +256,27 @@ void main() {
       await cloud.sync(Future.value(db), pull: false);
       expect(remote.reads, greaterThan(reads));
       final gallery = await cache.galleryForEdition('e');
-      expect(gallery['manual-page'], hasLength(2));
+      expect(gallery['manual-page'], hasLength(6));
       await cloud.trim(0);
       expect(await cache.galleryForEdition('e'), isEmpty);
+      final fetch = shared.fetchCloudMedia;
+      final requested = <String>[];
+      shared.fetchCloudMedia = (key, {bool userRequested = false}) async {
+        requested.add(key);
+        return null; // Observe the cold-preview request scope without restoring bodies.
+      };
+      await cache.galleryForEdition('e', hydrateBooklet: true);
+      expect(requested, hasLength(4));
+      expect(requested.toSet(), {
+        for (final page in [1, 2, 3, 6])
+          MetadataArtworkCache.key(media.singleWhere(
+              (m) => m.type == 'manual-page' && m.memberIndex == page)),
+      });
+      shared.fetchCloudMedia = fetch;
       final restored = await cache.galleryForEdition('e', hydrate: true);
       expect(restored['box-2D-back'], hasLength(1));
-      expect(restored['manual-page'], hasLength(2));
+      expect(restored['manual-page'], hasLength(6));
+      expect(restored['booklet-back'], [restored['manual-page']!.last]);
       for (final face in ['front', 'back', 'left', 'right', 'top', 'bottom']) {
         expect(restored['outer-box-$face'], hasLength(1));
       }

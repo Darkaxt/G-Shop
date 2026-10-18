@@ -102,7 +102,25 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
   SocketMediaPose? _paintedPose;
   final _clock = Stopwatch();
   int? _modelUs, _labelUs, _gpuUs;
+  Size _viewport = Size.zero;
   Future<Map<String, Object?>> get ready => _ready.future;
+  Map<String, Rect> get inspectionBounds {
+    final model = _renderer?.model;
+    if (model == null ||
+        model.data['unboxingGeometry'] != true ||
+        _viewport.isEmpty) return const {};
+    return SocketMediaGpu.inspectionBounds(model, widget.pose, _viewport);
+  }
+
+  String? partAt(Offset position) {
+    final candidates = inspectionBounds.entries
+        .where((entry) => entry.value.contains(position))
+        .toList()
+      ..sort((a, b) => (a.value.width * a.value.height)
+          .compareTo(b.value.width * b.value.height));
+    return candidates.firstOrNull?.key;
+  }
+
   Future<Map<String, Object?>> get currentFrameReady {
     if (_error != null || identical(_paintedPose, widget.pose)) {
       return Future.value(snapshot);
@@ -121,6 +139,17 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
         'openingDurationMs': _renderer?.model.data['openingDurationMs'],
         'opening': widget.pose.opening,
         'unboxing': widget.pose.unboxing,
+        'inspectedPart': widget.pose.inspectedPart,
+        'inspection': widget.pose.inspection,
+        'inspectionBounds': {
+          for (final entry in inspectionBounds.entries)
+            entry.key: [
+              entry.value.left,
+              entry.value.top,
+              entry.value.right,
+              entry.value.bottom
+            ]
+        },
         'paintedPose': _paintedPose == null
             ? null
             : {
@@ -177,6 +206,10 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.format != widget.format ||
         oldWidget.unboxingScene?.style != widget.unboxingScene?.style ||
+        oldWidget.unboxingScene?.hasBooklet !=
+            widget.unboxingScene?.hasBooklet ||
+        oldWidget.unboxingScene?.bookletAspect !=
+            widget.unboxingScene?.bookletAspect ||
         oldWidget.packaging?.id != widget.packaging?.id ||
         oldWidget.packaging?.aspect != widget.packaging?.aspect ||
         oldWidget.packaging?.depth != widget.packaging?.depth ||
@@ -369,13 +402,11 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       if (renderer != null && _labelTexture != null && _error == null)
         CustomPaint(
             key: const ValueKey('physical-media-shell'),
-            painter: _SocketMediaPainter(
-                renderer,
-                widget.pose,
-                _labelTexture!,
-                MediaQuery.devicePixelRatioOf(context),
-                () => _rendered(renderer, labelRevision, pose),
-                (error) => _paintFailed(renderer, error)))
+            painter: _SocketMediaPainter(renderer, widget.pose, _labelTexture!,
+                MediaQuery.devicePixelRatioOf(context), (size) {
+              _viewport = size;
+              _rendered(renderer, labelRevision, pose);
+            }, (error) => _paintFailed(renderer, error)))
       else
         widget.packaging != null ||
                 widget.unboxingScene != null ||
@@ -518,6 +549,53 @@ class SocketMediaGpu {
         ..setEntry(2, 2, -.25)
         ..setEntry(2, 3, .5)
         ..setEntry(3, 2, -.25);
+
+  static double fittedUnits(SocketMediaModel model, Size size) =>
+      model.data['unboxingGeometry'] == true
+          ? math.min(size.width / 5.8, size.height * .68 / model.height)
+          : model.data['hardwareGeometry'] == true
+              ? math.min(size.width * .72 / model.sourceWidth,
+                  size.height * .68 / model.height)
+              : math.min(size.width * .72, size.height * .68 / model.height);
+
+  static Map<String, Rect> inspectionBounds(
+      SocketMediaModel model, SocketMediaPose pose, Size size) {
+    final units = fittedUnits(model, size);
+    final projection = cameraProjection(size.width, size.height, units);
+    final base = modelTransform(model, pose);
+    final result = <String, Rect>{};
+    for (final entry in (model.data['partBounds'] as Map).entries) {
+      final bounds = (entry.value as List).cast<List>();
+      final transform = projection.clone()
+        ..multiply(base)
+        ..multiply(UnboxingScene.partTransform(
+            model, entry.key as String, pose.unboxing, size.width / units,
+            inspectedPart: pose.inspectedPart, inspection: pose.inspection));
+      var left = double.infinity,
+          top = double.infinity,
+          right = double.negativeInfinity,
+          bottom = double.negativeInfinity;
+      for (var x = 0; x < 2; x++) {
+        for (var y = 0; y < 2; y++) {
+          for (var z = 0; z < 2; z++) {
+            final v = transform.transform(vm.Vector4(
+                (bounds[x][0] as num).toDouble(),
+                (bounds[y][1] as num).toDouble(),
+                (bounds[z][2] as num).toDouble(),
+                1));
+            final px = (v.x / v.w + 1) * size.width / 2;
+            final py = (1 - v.y / v.w) * size.height / 2;
+            left = math.min(left, px);
+            top = math.min(top, py);
+            right = math.max(right, px);
+            bottom = math.max(bottom, py);
+          }
+        }
+      }
+      result[entry.key as String] = Rect.fromLTRB(left, top, right, bottom);
+    }
+    return result;
+  }
 
   final SocketMediaModel model;
   final gpu.RenderPipeline pipeline;
@@ -773,10 +851,7 @@ class SocketMediaGpu {
         pass.setWindingOrder(windingOrder(model));
         pass.setColorBlendEnable(true);
         pass.setColorBlendEquation(gpu.ColorBlendEquation());
-        final units = model.data['hardwareGeometry'] == true
-            ? math.min(size.width * .72 / model.sourceWidth,
-                size.height * .68 / model.height)
-            : math.min(size.width * .72, size.height * .68 / model.height);
+        final units = fittedUnits(model, size);
         final projection = cameraProjection(size.width, size.height, units);
         final base = modelTransform(model, pose);
         final uniforms =
@@ -846,11 +921,15 @@ class SocketMediaGpu {
                 model,
                 surface['unboxingPart'] as String,
                 pose.unboxing,
-                size.width / units));
+                size.width / units,
+                inspectedPart: pose.inspectedPart,
+                inspection: pose.inspection));
           }
           if (surface['openingHinges'] is List) {
             transform.multiply(openingTransform(surface, pose.opening));
-          } else if (surface['hinged'] == true && pose.opening != 0) {
+          } else if (surface['hinged'] == true &&
+              pose.opening != 0 &&
+              surface['unboxingPart'] != 'booklet') {
             final pivot = (surface['pivot'] as List).cast<num>();
             transform
               ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
@@ -971,13 +1050,13 @@ class _SocketMediaPainter extends CustomPainter {
   final SocketMediaPose pose;
   final gpu.Texture label;
   final double ratio;
-  final VoidCallback rendered;
+  final ValueChanged<Size> rendered;
   final ValueChanged<Object> failed;
   _SocketMediaPainter(this.renderer, this.pose, this.label, this.ratio,
       this.rendered, this.failed);
   @override
-  void paint(Canvas canvas, Size size) =>
-      renderer.paint(canvas, size, ratio, pose, label, rendered, failed);
+  void paint(Canvas canvas, Size size) => renderer.paint(
+      canvas, size, ratio, pose, label, () => rendered(size), failed);
   @override
   bool shouldRepaint(_SocketMediaPainter old) =>
       old.renderer != renderer ||

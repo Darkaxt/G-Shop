@@ -37,6 +37,10 @@ class CoverSection extends StatefulWidget {
   final ValueChanged<bool>? onGalleryPlaying;
   final double galleryVolume;
   final Map<String, List<String>> packagingResources;
+  final VoidCallback? onReadManual;
+  final ValueChanged<String?>? onInspectionChanged;
+  final String? initialInspectionPart;
+  final bool initiallySettled;
   const CoverSection({
     super.key,
     required this.game,
@@ -62,6 +66,10 @@ class CoverSection extends StatefulWidget {
     this.onGalleryPlaying,
     this.galleryVolume = .3,
     this.packagingResources = const {},
+    this.onReadManual,
+    this.onInspectionChanged,
+    this.initialInspectionPart,
+    this.initiallySettled = false,
   });
 
   @override
@@ -160,7 +168,8 @@ class CoverSectionState extends State<CoverSection> {
   bool get physical => _physical;
   void toggleView() => setState(() => _physical = !_physical);
   void toggleMotion() => setState(() => _reducedMotion = !_reducedMotion);
-  Future<void> openGallery() async {
+  Future<void> openGallery(
+      {ResourceView? initialView, bool reading = false}) async {
     final identity = widget.game.selectionKey;
     final resourcesFuture = widget.galleryResources?.call() ??
         Future.value(<String, List<String>>{});
@@ -169,44 +178,46 @@ class CoverSectionState extends State<CoverSection> {
     // but never relabel it as a front texture for reconstructed geometry.
     await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (context) => Scaffold(
-            appBar: AppBar(title: Text(widget.game.displayName)),
-            body: FutureBuilder<Map<String, List<String>>>(
-                future: resourcesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError)
-                    return const Center(
-                        child: Text(
-                            'Resources could not load. Check your connection and try again.'));
-                  if (!snapshot.hasData)
-                    return const Center(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text('Loading resources…')
-                        ]));
-                  final resources =
-                      Map<String, List<String>>.from(snapshot.data!);
-                  if (cover != null)
-                    resources.putIfAbsent('cover-preview', () => [cover]);
-                  if (widget.physicalLabelUrl != null)
-                    resources.putIfAbsent(
-                        'support-texture', () => [widget.physicalLabelUrl!]);
-                  return ResourceGallery(
-                      identity: identity,
-                      title: widget.game.displayName,
-                      systemId: widget.system.id,
-                      region: widget.metadata.region.name,
-                      dualMode: widget.gbcDualMode,
-                      filename: widget.game.filename,
-                      contentTags: widget.contentTags,
-                      importedModels: widget.physicalMediaEnabled,
-                      resources: resources,
-                      volume: widget.galleryVolume,
-                      onPlayingChanged: widget.onGalleryPlaying,
-                      onClose: () => Navigator.of(context).pop());
-                }))));
+            body: SafeArea(
+                child: FutureBuilder<Map<String, List<String>>>(
+                    future: resourcesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError)
+                        return const Center(
+                            child: Text(
+                                'Resources could not load. Check your connection and try again.'));
+                      if (!snapshot.hasData)
+                        return const Center(
+                            child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text('Loading resources…')
+                            ]));
+                      final resources =
+                          Map<String, List<String>>.from(snapshot.data!);
+                      if (cover != null)
+                        resources.putIfAbsent('cover-preview', () => [cover]);
+                      if (widget.physicalLabelUrl != null)
+                        resources.putIfAbsent('support-texture',
+                            () => [widget.physicalLabelUrl!]);
+                      return ResourceGallery(
+                          initialView: initialView,
+                          initiallyReading: reading,
+                          identity: identity,
+                          title: widget.game.displayName,
+                          systemId: widget.system.id,
+                          region: widget.metadata.region.name,
+                          dualMode: widget.gbcDualMode,
+                          filename: widget.game.filename,
+                          contentTags: widget.contentTags,
+                          importedModels: widget.physicalMediaEnabled,
+                          resources: resources,
+                          volume: widget.galleryVolume,
+                          onPlayingChanged: widget.onGalleryPlaying,
+                          onClose: () => Navigator.of(context).pop());
+                    })))));
   }
 
   @override
@@ -262,6 +273,13 @@ class CoverSectionState extends State<CoverSection> {
                             title: game.displayName,
                             style: cartridgeStyle,
                             resources: widget.packagingResources,
+                            initiallySettled: widget.initiallySettled,
+                            initialInspectionPart: widget.initialInspectionPart,
+                            onInspectionChanged: widget.onInspectionChanged,
+                            onReadManual: widget.onReadManual ??
+                                () => openGallery(
+                                    initialView: ResourceView.manual,
+                                    reading: true),
                             cartridgeLabel: labelWidget,
                             labelIdentity: label ??
                                 '${game.selectionKey}:${widget.physicalLabelUrl}',

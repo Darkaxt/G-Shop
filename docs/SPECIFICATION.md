@@ -1,6 +1,26 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 92, 2026-10-18.
+Authoritative specification, revision 94, 2026-10-18.
+
+Owner three-object GBA acceptance, 2026-10-18: supersede the departing-box / lone
+focused-cartridge endpoint below. Extract both the cartridge and collected
+booklet through the actual right-hand opening; arrange the retained carton centrally,
+cartridge lying left and booklet lying right. Tap an object to bring it forward
+for gesture rotation/zoom. Pinching sufficiently back out returns to the arranged
+three-object view. Double-tap the booklet enters the full-screen manual reader;
+Back restores its inspected 3D state. Preserve controller access without adding
+visible model control rows, lifecycle/selection cancellation and Reduced Motion.
+Verify the real GBA workflow, then stop for owner review before other consoles.
+Absent manuals remain honestly unavailable; do not fabricate a booklet's pages.
+
+Owner viewer expansion, 2026-10-18: Resources must fill the available display,
+without the surrounding game title/platform header or preview bottom bar. Keep
+that chrome on the ordinary 3D preview, not the resource reader/gallery. Manual
+Read mode and images/trailers use the whole viewer canvas with compact overlay
+section/close navigation, a small page indicator or the shared media carousel.
+Do not reserve large header/footer bands or cover the page with long gesture
+instructions. Preserve paging, pinch zoom, playback and controller navigation on
+both the secondary display and the single-display Resources route.
 
 Owner corrective acceptance, 2026-10-18: the prior hold on the GBA cinematic is
 now lifted. The selected-game preview must use the actual holder-enabled carton:
@@ -9,6 +29,11 @@ the correctly seated cartridge emerges from its pocket, turns upright and gains
 focus. Do not substitute the flat-cover slide or independent cartridge zoom for
 this sequence. Preserve real depth/occlusion and cancel on selection/lifecycle
 changes; Reduced Motion shows the settled cartridge without the sequence.
+The clarified correction is a right-hand opening: rotate the incorrectly
+oriented carton geometry ninety degrees, including its hinges and holder. Keep
+the front/back artwork upright and route both contents out to the right. The
+earlier assistant interpretation requiring a top opening was incorrect and is
+superseded. Verify hinge, holder and extraction together against the visible front.
 Sapphire must show translucent dyed plastic, not a nearly invisible housing with
 a uniformly blue PCB. Preserve separate shell/board/opaque-label materials.
 

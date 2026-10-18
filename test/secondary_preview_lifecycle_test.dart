@@ -8,6 +8,10 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 import 'package:retro_eshop/features/preview/preview_screen.dart';
 import 'package:retro_eshop/models/preview_settings.dart';
 import 'package:retro_eshop/features/game_detail/widgets/cover_section.dart';
+import 'package:retro_eshop/features/preview/resource_gallery.dart';
+import 'package:retro_eshop/models/game_item.dart';
+import 'package:retro_eshop/models/system_model.dart';
+import 'package:retro_eshop/utils/game_metadata.dart';
 
 class _Player extends VideoPlayerPlatform {
   final events = StreamController<VideoEvent>();
@@ -39,6 +43,104 @@ class _Player extends VideoPlayerPlatform {
 }
 
 void main() {
+  testWidgets('single-display Resources also has no title app bar',
+      (tester) async {
+    final key = GlobalKey<CoverSectionState>();
+    const game =
+        GameItem(filename: 'Fixture.gba', displayName: 'Fixture', url: '');
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: CoverSection(
+                key: key,
+                game: game,
+                system: SystemModel.supportedSystems
+                    .singleWhere((s) => s.id == 'gba'),
+                coverUrls: const [],
+                metadata: GameMetadata.parse(game.filename),
+                galleryResources: () async => {
+                      'manual-page': [
+                        'file:///first.png',
+                        'file:///second.png'
+                      ],
+                    }))));
+    unawaited(key.currentState!.openGallery());
+    await tester.pumpAndSettle();
+    expect(find.byType(AppBar), findsNothing);
+    final viewport = tester.getRect(find.byType(Scaffold).last);
+    expect(tester.getRect(find.byType(ResourceGallery)), viewport);
+    await tester.tap(find.byKey(const ValueKey('resource-mode-manual')));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonY);
+    await tester.pump();
+    expect(
+        tester
+            .getRect(find.byKey(const ValueKey('resource-inspection-surface'))),
+        viewport);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ResourceGallery), findsNothing);
+    expect(find.byType(CoverSection), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('Resources fills the display and restores preview chrome on exit',
+      (tester) async {
+    tester.view.physicalSize = const Size(1240, 1080);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const channel = MethodChannel('com.retro.rshop/preview_view');
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const MaterialApp(home: PreviewScreen()));
+    Future<void> show(bool gallery) async {
+      await messenger.handlePlatformMessage(
+          channel.name,
+          const StandardMethodCodec().encodeMethodCall(MethodCall('snapshot', {
+            'revision': gallery ? 1 : 2,
+            'identity': 'viewer-fixture',
+            'actionEpoch': 1,
+            'system': 'gba',
+            'filename': 'Fixture.gba',
+            'title': 'Fixture title',
+            'gallery': gallery,
+            'galleryResources': {
+              'manual-page': ['file:///first.png', 'file:///second.png'],
+              'ss': ['file:///screen.png'],
+            },
+            'threeD': false,
+            'settings': const PreviewSettings().toJson(),
+          })),
+          (_) {});
+      await tester.pump();
+    }
+
+    await show(true);
+    final display = tester.getRect(find.byType(Scaffold));
+    expect(tester.getRect(find.byType(ResourceGallery)), display);
+    expect(find.text('Fixture title'), findsNothing);
+    expect(find.text('Select for details'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('resource-mode-manual')));
+    await tester.pump();
+    await tester
+        .longPress(find.byKey(const ValueKey('resource-inspection-surface')));
+    await tester.pump();
+    expect(
+        tester
+            .getRect(find.byKey(const ValueKey('resource-inspection-surface'))),
+        display);
+    expect(find.text('2 / 2'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('resource-mode-gallery')));
+    await tester.pump();
+    expect(
+        tester
+            .getRect(find.byKey(const ValueKey('resource-inspection-surface'))),
+        display);
+    await show(false);
+    expect(find.byKey(const ValueKey('preview-game-title')), findsOneWidget);
+    expect(find.text('Select for details'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('preview media canvas reaches both display edges',
       (tester) async {
     const channel = MethodChannel('com.retro.rshop/preview_view');

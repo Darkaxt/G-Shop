@@ -70,6 +70,18 @@ public final class RShopS25ResourceAudit {
         if (rows.moveToFirst()) report.put("publication", new JSONObject()
             .put("receipts", rows.getLong(0)).put("verified", rows.getLong(1))
             .put("unverifiedBytes", rows.getLong(2)));
+      }
+      try (Cursor rows = shared.rawQuery("SELECT path,remote_name,folder_path,digest,"
+          + "replaces_digest,verified FROM metadata_cloud_files WHERE path LIKE 'gba/games/%' AND verified=0 "
+          + "ORDER BY used DESC LIMIT 16", null)) {
+        org.json.JSONArray latest = new org.json.JSONArray();
+        while (rows.moveToNext()) {
+          JSONObject entry = new JSONObject();
+          for (int column = 0; column < rows.getColumnCount(); column++)
+            entry.put(rows.getColumnName(column), rows.isNull(column) ? JSONObject.NULL : rows.getString(column));
+          latest.put(entry);
+        }
+        report.put("pendingGbaReceipts", latest);
       } finally { shared.close(); }
       System.out.println(report.toString());
     } finally { db.close(); }

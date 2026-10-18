@@ -50,6 +50,7 @@ class PanelsTest(unittest.TestCase):
             packaging.compose_english_faces(game, [english])
             face = next(r for r in game['resources'] if r['type'] == 'outer-box-front')
             self.assertEqual(face['importReference']['sha256'], 'english')
+            self.assertEqual(face['importReference']['sourceRegion'], 'us')
 
     def test_foreign_layout_uses_english_faces_without_discarding_its_other_panels(self):
         donor = [{'type': 'outer-box-' + face, 'region': 'us',

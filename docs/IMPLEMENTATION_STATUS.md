@@ -7,7 +7,33 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Current correction is integrated for native verification: the GBA preview uses
+Current owner extension, revision 94: the GBA carton must open on its right,
+with upright printing. The derived model rotates the full body/hinges/holder and
+remaps all six faces. Both contents exit to the right, pass in front of the box,
+then settle into a retained box-centre / cartridge-left / booklet-right display.
+Object hit bounds use the actual projected geometry; tap focuses, drag/pinch
+inspects and pinch-out returns. Double-tap booklet requests the complete reader;
+Back restores the inspected booklet without replaying extraction. Cold browsing
+hydrates only the first/last/two inside manual pages, not the entire manual.
+Reader/gallery now use the full screen with compact icon overlays. Host checks
+pass for the actual three-source geometry, upright front/right hinge, pocket
+clearance before lateral travel, projected arrangement at both viewport sizes,
+booklet double-tap, pinch return, full-screen reader/gallery and four-page cold
+booklet hydration. Analyzer has no errors/warnings (style infos only). Native
+acceptance of the new extension is still required; S25 is ACTIVE.
+The earlier top-opening interpretation was an assistant error, explicitly corrected
+by the owner. It is not the acceptance target.
+
+Previous signed correction `3556c90` is installed, independently hash-matched to
+GitHub run 39160707281 (APK `87f9d23618deaac2ab482d8f8d99aa9f1f11a18604bd3cd731881ccfec834885`).
+Native evidence verifies the English Sapphire closed inspector, improved blue
+housing, trailer autoplay at saved volume, player release, and manual reading.
+Its old top-opening/lone-cartridge sequence does not satisfy the owner's current
+right-opening/three-object requirement. Background Drive publication fails with
+a FormatException; the current candidate adds bounded failure-site diagnostics
+to identify the exact receipt failure rather than silently claiming backup.
+
+The preceding correction uses
 one depth-tested holder/carton/cartridge scene, with real flap hinges and staged
 extraction rather than the old flat-cover reveal. Gallery is one trailer-first
 thumbnail sequence with automatic playback and tap-to-pause; visible model control
@@ -21,16 +47,20 @@ without stretching, and preserves other panels plus per-panel provenance.
 Actual reviewed output contains ten six-face GBA sets, including Sapphire;
 the remaining ranked games have no classified local unfolded set in this pass.
 No new provider requests were made. Pack SHA-256
-`f12adf7489fa4a58690cd9d7f0e6759c47bfbeccd0da9b3ce36d707d736ab1ef`
-was transferred and verified on Thor, but not yet imported or native-accepted.
-Required next: signed candidate, normal production import/Drive publication,
-ordinary preview/extraction/material/gallery/manual verification on Thor.
+`7f63fecb055245d8e47b33e22e0419861534247a2ea7f3d7610643b9c783c43d`
+was transferred, verified and imported normally on Thor (`games=10`). The strict
+importer rejected an earlier pack before applying it because its composite
+reference lacked sourceRegion; the generator and production-parser preflight
+now cover that contract. Required next: signed three-object candidate, exact
+Drive failure resolution/publication, ordinary new preview/inspection/reader
+verification on Thor, then owner review before another console.
 
-Owner feedback resumes the same stage under specification revision 92. Current
-internal acceptance blockers: the preview still uses flat cover/cartridge reveal,
-Sapphire housing is too transparent, Spanish donor layouts are rejected before
-English face substitution, and Gallery/manual controls require the gesture-first
-carousel/autoplay correction. Resolve through the real GBA preview/Resources path;
+Owner feedback resumes the same stage under specification revision 94. Current
+internal acceptance blockers are the new right-opening/three-object workflow's
+native acceptance and the exact Drive receipt failure. Earlier flat-cover,
+transparency, English composite and carousel defects have implementation/evidence
+above; do not report the new workflow verified using those older results.
+Resolve through the real GBA preview/Resources path;
 the owner has now lifted the cinematic hold. Earlier evidence below describes
 the previous narrower acceptance, not satisfaction of this correction. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded

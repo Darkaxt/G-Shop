@@ -52,6 +52,8 @@ class _PreviewScreenState extends State<PreviewScreen>
   ConsoleModel? _consoleModel;
   String? _resourceGeneration;
   Future<void>? _resourceLoad;
+  bool _previewSettled = false;
+  String? _inspectedPart;
   int _incomingRevision = 0;
   @override
   void initState() {
@@ -102,6 +104,10 @@ class _PreviewScreenState extends State<PreviewScreen>
         if (!mounted || incoming != _incomingRevision) return;
         final changed = snapshot['identity'] != _snapshot?['identity'] ||
             snapshot['actionEpoch'] != _snapshot?['actionEpoch'];
+        if (snapshot['identity'] != _snapshot?['identity']) {
+          _previewSettled = false;
+          _inspectedPart = null;
+        }
         if (changed ||
             (snapshot['settings'] as Map)['autoplay'] != settings.autoplay)
           _manualPlayback = null;
@@ -331,6 +337,7 @@ class _PreviewScreenState extends State<PreviewScreen>
         url: '',
         cachedCoverUrl: snapshot['cover'] as String?);
     final details = snapshot['details'] == true;
+    final gallery = snapshot['gallery'] == true;
     final player = _video;
     Widget? background;
     if (prefs.background != PreviewBackground.off && !_paused) {
@@ -387,19 +394,23 @@ class _PreviewScreenState extends State<PreviewScreen>
                                     : Icons.play_arrow)))),
               SafeArea(
                   child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      padding: EdgeInsets.symmetric(vertical: gallery ? 0 : 24),
                       child: Column(children: [
-                        Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Text(game.displayName,
-                                maxLines: 2,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w600))),
-                        Text(system.name,
-                            style: const TextStyle(color: Colors.white70)),
-                        const SizedBox(height: 12),
+                        if (!gallery) ...[
+                          Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(game.displayName,
+                                  key: const ValueKey('preview-game-title'),
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w600))),
+                          Text(system.name,
+                              style: const TextStyle(color: Colors.white70)),
+                          const SizedBox(height: 12),
+                        ],
                         Expanded(
                             child: snapshot['gallery'] == true
                                 ? snapshot['galleryLoading'] == true
@@ -412,6 +423,12 @@ class _PreviewScreenState extends State<PreviewScreen>
                                             Text('Loading resources…')
                                           ]))
                                     : ResourceGallery(
+                                        initialView:
+                                            snapshot['galleryManual'] == true
+                                                ? ResourceView.manual
+                                                : null,
+                                        initiallyReading:
+                                            snapshot['galleryManual'] == true,
                                         key: _galleryKey,
                                         identity:
                                             snapshot['identity'] as String,
@@ -457,24 +474,30 @@ class _PreviewScreenState extends State<PreviewScreen>
                                         },
                                         onClose: () => _action('preview'),
                                         onPlayingChanged: (playing) =>
-                                            unawaited(bridge
-                                                .invokeMethod<void>('playing', {
+                                            unawaited(
+                                                bridge.invokeMethod<void>('playing', {
                                               'actionEpoch':
                                                   snapshot['actionEpoch'],
                                               'video': snapshot['video'],
                                               'playing': playing
                                             })))
                                 : details
-                                    ? Padding(
-                                        padding:
-                                            const EdgeInsets.symmetric(horizontal: 24),
-                                        child: _details(snapshot))
+                                    ? Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: _details(snapshot))
                                     : GestureDetector(
                                         onTap: () => _action('details'),
                                         child: prefs.modelVisible && snapshot['mediaLoading'] == true && snapshot['cover'] == null
                                             ? const Center(child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
                                             : prefs.modelVisible
                                                 ? CoverSection(
+                                                    initiallySettled: _previewSettled,
+                                                    initialInspectionPart: _inspectedPart,
+                                                    onInspectionChanged: (part) => _inspectedPart = part,
+                                                    onReadManual: () {
+                                                      _previewSettled = true;
+                                                      _inspectedPart =
+                                                          'booklet';
+                                                      _action('manual');
+                                                    },
                                                     key: _coverKey,
                                                     game: game,
                                                     system: system,
@@ -500,10 +523,17 @@ class _PreviewScreenState extends State<PreviewScreen>
                                                     reducedMotion: snapshot['reducedMotion'] == true,
                                                     resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true),
                                                     onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)),
-                                                    onRevealed: () => unawaited(_rendered(snapshot['revision'] as int, revealCompleted: true)),
+                                                    onRevealed: () {
+                                                      _previewSettled = true;
+                                                      unawaited(_rendered(
+                                                          snapshot['revision']
+                                                              as int,
+                                                          revealCompleted:
+                                                              true));
+                                                    },
                                                     showPresentationControls: false)
                                                 : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
-                        if (!details)
+                        if (!details && !gallery)
                           const Text('Select for details',
                               style: TextStyle(color: Colors.white70)),
                       ]))),

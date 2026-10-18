@@ -65,6 +65,12 @@ class PackagingModel {
     // Verify the conversion before deriving selected dimensions/normal matrices.
     final bytes = ByteData.sublistView(Uint8List.fromList(
         source.buffer.asUint8List(source.offsetInBytes, source.lengthInBytes)));
+    if (kind == PackagingKind.box &&
+        systemId == 'gba' &&
+        data['cartridgeSlot'] is Map &&
+        data['openingSide'] != 'right') {
+      _rightOpening(data, bytes);
+    }
     for (final raw in data['surfaces'] as List) {
       final surface = raw as Map;
       for (final hinge in surface['openingHinges'] as List? ?? const []) {
@@ -104,6 +110,70 @@ class PackagingModel {
     return data['privateImport'] == true
         ? SocketMediaModel.privatePackaging(data, bytes)
         : SocketMediaModel.packaging(data, bytes);
+  }
+
+  /// The supplied holder carton was authored with its opening at +Y. The
+  /// intended retail orientation has that opening at +X. Rotate the assembly,
+  /// not just its printing: pivots, axes and fitting bounds travel with it.
+  static void _rightOpening(Map<String, dynamic> data, ByteData bytes) {
+    List<double> turn(List p) => [
+          (p[1] as num).toDouble(),
+          -(p[0] as num).toDouble(),
+          (p[2] as num).toDouble()
+        ];
+    for (final surface in (data['surfaces'] as List).cast<Map>()) {
+      for (final hinge in surface['openingHinges'] as List? ?? const []) {
+        hinge['pivot'] = turn(hinge['pivot'] as List);
+        hinge['axis'] = turn(hinge['axis'] as List);
+      }
+      if (surface['pivot'] is List)
+        surface['pivot'] = turn(surface['pivot'] as List);
+      final cell = surface['atlasCell'] as int?;
+      final mapped = cell == null ? null : [0, 1, 5, 4, 3, 2][cell];
+      if (mapped != null) surface['atlasCell'] = mapped;
+      for (var i = 0; i < surface['vertexCount']; i++) {
+        final offset = (surface['vertexOffset'] as int) + i * 32;
+        for (final start in [0, 12]) {
+          final x = bytes.getFloat32(offset + start, Endian.little);
+          final y = bytes.getFloat32(offset + start + 4, Endian.little);
+          bytes.setFloat32(offset + start, y, Endian.little);
+          bytes.setFloat32(offset + start + 4, -x, Endian.little);
+        }
+        if (surface['role'] == 'label' && mapped != null) {
+          final x = bytes.getFloat32(offset, Endian.little),
+              y = bytes.getFloat32(offset + 4, Endian.little),
+              z = bytes.getFloat32(offset + 8, Endian.little);
+          final u = switch (mapped) {
+            0 || 4 || 5 => (x + 1) / 2,
+            1 => (1 - x) / 2,
+            2 => (z + 1) / 2,
+            _ => (1 - z) / 2,
+          };
+          final v = switch (mapped) {
+            4 => (z + 1) / 2,
+            5 => (1 - z) / 2,
+            _ => (1 - y) / 2,
+          };
+          bytes.setFloat32(
+              offset + 24, (mapped % 3 + u.clamp(0, 1)) / 3, Endian.little);
+          bytes.setFloat32(
+              offset + 28, (mapped ~/ 3 + v.clamp(0, 1)) / 2, Endian.little);
+        }
+      }
+    }
+    final slot = data['cartridgeSlot'] as Map;
+    slot['fitCenter'] = turn(slot['fitCenter'] as List);
+    final fit = (slot['fitBounds'] as List).cast<List>();
+    slot['fitBounds'] = [
+      [fit[0][1], -(fit[1][0] as num), fit[0][2]],
+      [fit[1][1], -(fit[0][0] as num), fit[1][2]]
+    ];
+    slot['orientation'] = 'landscape';
+    for (final field in ['fitSizeMm', 'clearPocketMm', 'clearanceMm']) {
+      final p = slot[field] as List?;
+      if (p != null) slot[field] = [p[1], p[0], p[2]];
+    }
+    data['openingSide'] = 'right';
   }
 
   SocketMediaModel build() {

@@ -52,7 +52,7 @@ final editionGalleryMediaProvider = FutureProvider.autoDispose
     if (!active) cloud.release(owner);
   }
   return (await ref.read(cachedMetadataArtworkProvider))
-      .galleryForEdition(edition, hydrateTypes: const {
+      .galleryForEdition(edition, hydrateBooklet: true, hydrateTypes: const {
     'outer-box-front',
     'outer-box-back',
     'outer-box-left',
@@ -106,7 +106,7 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
 
   Future<void> _save() async => (await SharedPreferences.getInstance())
       .setString(metadataCloudSettingsKey, jsonEncode(_settings));
-  void _failure(Object error) {
+  void _failure(Object error, [StackTrace? trace]) {
     debugPrint(
         'Metadata cloud incomplete: ${error is DriveAuthorizationException ? error.issue.name : error.runtimeType}');
     if (error is FormatException &&
@@ -117,8 +117,25 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
           'Not an owned R-Shop metadata object',
           'Metadata rebuild is incomplete',
           'Metadata version changed remotely',
+          'Metadata publication intent changed',
+          'Metadata publication changed remotely',
+          'Game resource role mismatch',
+          'Game resource publication changed',
+          'Ambiguous game resource',
+          'Ambiguous game metadata',
+          'Cloud media ownership changed',
+          'Local metadata bytes changed',
         }.contains(error.message))
       debugPrint('Metadata rebuild: ${error.message}');
+    if (trace != null) {
+      final sites = trace
+          .toString()
+          .split('\n')
+          .where((line) => line.contains('package:retro_eshop/'))
+          .take(4)
+          .join('\n');
+      if (sites.isNotEmpty) debugPrint('Metadata cloud failure sites:\n$sites');
+    }
   }
 
   Future<void> _load() async {
@@ -253,8 +270,8 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
       await refreshUsage();
       _state(busy: false, message: 'Metadata is backed up in Drive');
       if (_dirty) _publishChanged();
-    } catch (error) {
-      _failure(error);
+    } catch (error, trace) {
+      _failure(error, trace);
       _state(
           busy: false,
           message:
@@ -287,8 +304,8 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
           'Metadata cloud sync completed: cachedBytes=${state.cachedBytes}');
       _state(busy: false, message: 'Metadata is backed up in Drive');
       if (_dirty) _publishChanged();
-    } catch (error) {
-      _failure(error);
+    } catch (error, trace) {
+      _failure(error, trace);
       _state(
           busy: false,
           message: 'Waiting for Drive. Local metadata remains available.');
