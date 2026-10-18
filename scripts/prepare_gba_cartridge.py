@@ -83,6 +83,11 @@ def main():
     for obj in objects:
         mesh = obj.data; mesh.calc_loop_triangles()
         uv = mesh.uv_layers.active.data
+        is_label = obj.name == 'Opaque_label'
+        if is_label:
+            label_points = [axis(obj.matrix_world @ v.co) for v in mesh.vertices]
+            label_low = [min(p[a] for p in label_points) for a in range(2)]
+            label_high = [max(p[a] for p in label_points) for a in range(2)]
         normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
         for index, mat in enumerate(mesh.materials):
             triangles = [t for t in mesh.loop_triangles if t.material_index == index]
@@ -93,7 +98,16 @@ def main():
                     p = (axis(obj.matrix_world @ mesh.vertices[vertex].co)-center)*scale
                     n = axis(normal_matrix @ mesh.vertices[vertex].normal).normalized()
                     tex = uv[loop].uv
-                    payload.extend(struct.pack('<8f', *p, *n, tex.x, 1-tex.y)); count += 1
+                    if is_label:
+                        # Source printing has its own orientation/bleed. The
+                        # replacement Flutter image is top-down and must fit the
+                        # whole label independently of that original UV atlas.
+                        source_p = axis(obj.matrix_world @ mesh.vertices[vertex].co)
+                        u = (source_p.x-label_low[0])/(label_high[0]-label_low[0])
+                        v = (label_high[1]-source_p.y)/(label_high[1]-label_low[1])
+                    else:
+                        u, v = tex.x, 1-tex.y
+                    payload.extend(struct.pack('<8f', *p, *n, u, v)); count += 1
             indices = len(payload)
             for i in range(count): payload.extend(struct.pack('<I', i))
             shell = mat.name in ('Dyed_polycarbonate', 'Dyed_polycarbonate_inner')

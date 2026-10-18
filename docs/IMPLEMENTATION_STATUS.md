@@ -7,7 +7,7 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
 
-Owner feedback resumes the same stage under specification revision 90. Required:
+Owner feedback resumes the same stage under specification revision 91. Required:
 one trailer-first media sequence for all games, all reviewed distinct unfolded
 box panels through the existing collector/import/Drive/viewer lane, retained
 composite provenance, adapted Diskette cardboard, supplied booklet geometry and
@@ -40,14 +40,25 @@ The GBA commercial shell/region/edition and special
 sensor/rumble mould extension follows this pilot within the same ACTIVE stage.
 Broad S27 hardware coverage is still NOT STARTED.
 
+Replacement carton ZIP integrated, 2026-10-18: the new source retains thirteen
+outer panels plus the separate seven-piece cardboard holder/divider. The fitting
+cartridge and original printing are excluded; per-game classified faces remain
+replaceable. The inferred 36.5 x 61.5 x 8.8 mm pocket exceeds the fitting prop's
+bounds by 1.81 / 1.50 / 1.36 mm. This is a static size allowance, not swept-motion
+collision acceptance. The converted private import is 4,068 triangles / 59
+surfaces, mesh SHA-256 `681e5e4c60a97b3d06974205b2eb3a8e9d0f2a2bb8adb021b46678060a1e8bfc`.
+Its checksum-bound transfer and closed native front/rotated rear/spine inspection
+pass on the installed signed `92c6386` APK. The existing viewer loads the new
+import without rebuilding the app. Open hinges remain present; no Open control
+or automatic extraction cinematic was introduced. Broader S25 acceptance remains.
+
 New cartridge inputs: the owner's `Gameboy_Advance_Cartridge.zip` has five
 clear/cloudy colored, hollow, separately meshed shell/PCB variants. They use
-glTF transmission/IOR, not alpha transparency. Current renderer lacks that path;
-source qualification and explicit material adaptation remain internal S25 work,
-not native-verified support. Its AGB-E05-01 board is an illustrative reconstruction
+glTF transmission/IOR, not alpha transparency. The selected private import now
+uses the explicit thin-shell path below. Its AGB-E05-01 board is an illustrative reconstruction
 shared by all variants, not a claim of exact per-game electronics. The separate
 `GBA_SP_Cartridge_SuperMarioWorld.glb` has one combined mesh/material (1,070
-triangles); its PCB and label require visual/UV inspection before reuse. Original
+triangles); desktop inspection confirms its PCB/label are combined in one atlas. Original
 ZIP/GLBs are preserved; supplied scripts have not been executed.
 The selected ZIP now converts through the owned adapter into 32,170 triangles,
 35 surfaces and six checksum-bound textures, excluding original label printing.
@@ -56,7 +67,12 @@ through library/detail/secondary preview and Resources. Clear/cloudy materials
 use an explicit opaque-scene transmission/IOR thin-shell approximation, not alpha
 blending; it does not claim path-traced internal reflections. Focused loading,
 material, classification, Gallery and secondary lifecycle/audio checks pass;
-host Flutter cannot verify Impeller appearance. Native rendering is still required.
+host Flutter cannot verify Impeller appearance. Native Sapphire and ordinary gray
+preview/Resources now render without the former crash, with an opaque upright
+game-specific label and visible tinted PCB through the blue shell. Source label
+UVs inverted the replacement image; the converter now fits top-down replacement
+UVs independently. The affected source-conversion regression and native gray/blue
+checks pass. This is not native acceptance of all five colors or special moulds.
 Verified transfer placed all eight files (7,807,745 bytes) under the new cartridge
 model folder; both staging roots were removed. No ROM/save/settings were changed.
 First signed native candidate `70975e6` (run 39153704738, APK SHA-256
@@ -67,8 +83,25 @@ matching Flutter engine's RenderPassVK begins in its constructor and ends during
 CommandBuffer.submit; our two passes on one unsubmitted buffer were nested.
 Correction submits the opaque producer before opening the composite consumer,
 using actual command/queue ordering, not a delay. The failed candidate is not
-acceptance evidence; corrected native verification remains required. Both screens
-were verified OFF/Asleep after diagnosis.
+acceptance evidence. Corrected source `92c6386`, signed run 39155349031, is
+installed with matching downloaded/device APK SHA-256
+`72037610d44f06aee08c764695548fccfafe9c58609fb34cbf0e72552124bf2f`;
+package/version/signer remain unchanged. Its Sapphire/gray native checks above
+verify the pass-order crash correction. Upright-label import mesh SHA-256 is
+`e382a7f0e395f8dc8513b3146b2f06ffe92b1b24d4fc0e4ac4fcdc3d612adf8d`.
+Both displays were confirmed committed OFF and Thor Asleep after the checks.
+No Windows Gradle command/mutex was used: the prior signed build ran on hosted
+Linux with two workers, no parallel tasks, in-process Kotlin and configured 3 GB
+Gradle heap. No memory failure/budget increase occurred; JVM heap/daemon process
+exit were not independently measured. No new public release was created.
+
+Cleanup boundary: transfer staging roots were removed by the transfer helper.
+Superseded private imports remain temporarily at device paths
+`RShop/models/cartons/gba-before-slot` and
+`RShop/models/cartridges/gba-before-upright`: cleanup's Android review rejected
+the first nested user-data path as `protected_android_path`, before inventory or
+deletion. No alternative deletion method was used. They are not active imports;
+exact removal needs a supported cleanup contract or separately scoped exception.
 
 Current host evidence: six compatible GBA unfolded sets have been classified
 from the preserved dump. Inspected six-face sheets now retain the complete fronts,

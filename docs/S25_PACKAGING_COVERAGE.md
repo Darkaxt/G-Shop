@@ -1,12 +1,29 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 90.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 91.
 
-Owner GBA cartridge sources (desktop-inspected, not native-integrated):
+Current owner carton: `cardboard-box-prototype (1).zip`, SHA-256
+`2e4437949578ed90d7e0e6d743ab8e444e09ba94f0b2bbab4299847a482a3a24`.
+Selected GLB SHA-256
+`ff1492d00d9128ec22b4ca3eaa7aa9d4645bc039f47c75f2cc934371125361fb`.
+Actual source contains thirteen carton panels, seven separate holder pieces and
+a removable cartridge fitting prop. Open/Close/Unfold/Inspect_holder are present
+in the source; the adapter retains only the required Open flap hinges, not the
+exploded-holder translation or fitting prop. Source scripts/HTML were not run.
+The holder is reconstructed from a photograph; hidden folds and physical dimensions
+are inferred. Its portrait pocket has positive static size allowance around the
+60 x 34.69 x 7.44 mm prop; swept extraction clearance is not yet accepted.
+The reusable conversion removes printing and prop, retains matte card and divider,
+and loads as `gba-rigged-carton-slot-v2` (4,068 triangles / 59 surfaces).
+Native Mega Man Zero 2 front/rotated back/spine rendering passes on signed
+`92c6386` with no Open control. No rebuild was needed for replacing this import.
+The complete box-to-cartridge cinematic remains explicitly held.
+
+Owner GBA cartridge sources (source and native evidence distinguished):
 
 | Source | Verified structure | Decision |
 | --- | --- | --- |
-| `Gameboy_Advance_Cartridge.zip`, SHA-256 `e311f75fa8eaf0041765806c8a282d674cd94e3b6ac64356fa30dbcb3fff36b3` | Five clear/cloudy colors; separate hollow front/back, opaque label, approximate AGB-E05-01 PCB/components. glTF transmission/IOR; no animation. Original scripts were read as data, not run. | Selected standard-shape source. Own importer/material adaptation and native checks remain required. Its shared reconstructed PCB is illustrative, not exact Ruby/Sapphire/Emerald electronics. |
+| `Gameboy_Advance_Cartridge.zip`, SHA-256 `e311f75fa8eaf0041765806c8a282d674cd94e3b6ac64356fa30dbcb3fff36b3` | Five clear/cloudy colors; separate hollow front/back, opaque label, approximate AGB-E05-01 PCB/components. glTF transmission/IOR; no animation. Original scripts were read as data, not run. | Selected, adapted and privately imported. Signed `92c6386` plus corrected replacement-label UVs renders gray and blue Sapphire paths on Thor; other colors/special moulds remain unverified. Thin-shell approximation, not path tracing. Shared PCB is illustrative, not exact per-title electronics. |
 | `GBA_SP_Cartridge_SuperMarioWorld.glb`, SHA-256 `34f07450306506b2ece30e70b97285e08e677030dd056fe64bbd51a56c631e5f` | 1,070 triangles, one combined mesh/material, four maps; opaque. Desktop front/rear have convincing molded lettering. | Retained alternative/reference. No separately selectable PCB or label material is exposed; cannot directly transplant a board or recolor just its shell without classifying its faces/atlas. |
 
 Neutral-light desktop front/rear evidence is retained in the current task's

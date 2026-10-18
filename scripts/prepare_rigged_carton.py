@@ -39,15 +39,23 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(args.source))
     objects = {o.name:o for o in bpy.data.objects}
-    meshes = [o for o in objects.values() if o.type == 'MESH']
-    if len(meshes) != 13 or 'Top_lid_hinge' not in objects:
-        raise ValueError('Source differs from the inspected thirteen-part carton')
+    # The replacement includes a separate cartridge used only for fitting.
+    # Never bake that game's label, PCB or shell into every game's carton.
+    prop = objects.get('Cartridge_fit_prop')
+    prop_meshes = set(prop.children_recursive) if prop else set()
+    meshes = [o for o in objects.values()
+              if o.type == 'MESH' and o not in prop_meshes]
+    holders = [o for o in meshes if o.name.startswith('Holder_')]
+    expected = 20 if prop else 13
+    if (len(meshes) != expected or len(holders) != (7 if prop else 0)
+            or 'Top_lid_hinge' not in objects):
+        raise ValueError('Source differs from the inspected carton/holder assembly')
     for obj in objects.values():
         if obj.animation_data:
             obj.animation_data.action = None
             for track in obj.animation_data.nla_tracks:
                 track.mute = track.name != 'Open'
-    bpy.context.scene.frame_set(1)
+    bpy.context.scene.frame_set(0)
     bpy.context.view_layer.update()
     def axis(p): return Vector((p.x, p.z, -p.y))
     points = [axis(o.matrix_world @ v.co) for o in meshes for v in o.data.vertices]
@@ -55,6 +63,23 @@ def main():
     high = Vector([max(p[a] for p in points) for a in range(3)])
     center, half = (low+high)/2, (high-low)/2
     def normalized(p): return [(p[a]-center[a])/half[a] for a in range(3)]
+    slot = None
+    if prop:
+        fitted = [axis(o.matrix_world @ v.co) for o in prop_meshes
+                  if o.type == 'MESH' for v in o.data.vertices]
+        fit_low = Vector([min(p[a] for p in fitted) for a in range(3)])
+        fit_high = Vector([max(p[a] for p in fitted) for a in range(3)])
+        fit_size = (fit_high-fit_low)*1000
+        pocket = [36.5, 61.5, 8.8]
+        clearance = [pocket[a]-fit_size[a] for a in range(3)]
+        if any(v <= 0 for v in clearance):
+            raise ValueError('Fitting cartridge size exceeds the inferred clear pocket')
+        slot = {'fitPropExcluded':True, 'orientation':'portrait',
+                'fitCenter':normalized((fit_high+fit_low)/2),
+                'fitBounds':[normalized(fit_low), normalized(fit_high)],
+                'fitSizeMm':list(fit_size), 'clearPocketMm':pocket,
+                'clearanceMm':clearance, 'dimensionsInferred':True,
+                'construction':'Photo-based holder; hidden folds inferred'}
     hinges = {}
     for channel in animation['channels']:
         node = data['nodes'][channel['target']['node']]
@@ -85,15 +110,17 @@ def main():
             if parent.name in hinges: chain.insert(0,hinges[parent.name])
             parent=parent.parent
         mesh=obj.data; mesh.calc_loop_triangles()
-        uv=mesh.uv_layers.active.data
+        uv=mesh.uv_layers.active.data if mesh.uv_layers.active else None
         for material_index, source_material in enumerate(mesh.materials):
             triangles=[t for t in mesh.loop_triangles if t.material_index==material_index]
             if not triangles: continue
             printed = source_material.name.startswith('Printed carton')
             cell=faces.get(obj.name, 4 if 'top' in obj.name.lower() else 5)
-            all_uv=[uv[i].uv for t in triangles for i in t.loops]
-            u0,u1=min(p.x for p in all_uv),max(p.x for p in all_uv)
-            v0,v1=min(p.y for p in all_uv),max(p.y for p in all_uv)
+            if printed and uv is None:
+                raise ValueError('Printed carton face has no UV mapping')
+            all_uv=[uv[i].uv for t in triangles for i in t.loops] if uv else []
+            u0,u1=(min(p.x for p in all_uv),max(p.x for p in all_uv)) if all_uv else (0,1)
+            v0,v1=(min(p.y for p in all_uv),max(p.y for p in all_uv)) if all_uv else (0,1)
             offset=len(payload)
             count=0
             normal_matrix=obj.matrix_world.to_3x3().inverted().transposed()
@@ -102,9 +129,9 @@ def main():
                     p=axis(obj.matrix_world @ mesh.vertices[vertex].co)
                     normal=axis(normal_matrix @ mesh.vertices[vertex].normal)
                     normal=Vector([normal[a]*half[a] for a in range(3)]).normalized()
-                    puv=uv[loop].uv
-                    u=(puv.x-u0)/(u1-u0) if u1>u0 else .5
-                    v=(v1-puv.y)/(v1-v0) if v1>v0 else .5
+                    puv=uv[loop].uv if uv else None
+                    u=(puv.x-u0)/(u1-u0) if puv is not None and u1>u0 else .5
+                    v=(v1-puv.y)/(v1-v0) if puv is not None and v1>v0 else .5
                     # Missing flap printing extends the matching lid's edge
                     # colours; do not fabricate a complete scanned flap.
                     if obj.name not in faces: v=1
@@ -113,18 +140,24 @@ def main():
             index_offset=len(payload)
             for i in range(count): payload.extend(struct.pack('<I',i))
             color=([1,1,1,1] if printed else [.74,.70,.62,1] if material_index==1 else [.57,.49,.36,1])
+            if obj in holders:
+                # The insert is unprinted warm white card, not a seventh atlas
+                # face or the original prop's material/texture.
+                color=list(source_material.diffuse_color)
             surfaces.append({'node':obj.name,'name':source_material.name,'role':'label' if printed else 'shell',
                 'vertexOffset':offset,'vertexCount':count,'indexOffset':index_offset,'indexCount':count,
                 'atlasCell':cell if printed else None,'openingHinges':chain,
                 'material':{'color':color,'textures':{},'sourceProperties':{'roughness':1,'metallic':0}}})
-    result={'name':'gba-rigged-carton-v1','packagingGeometry':True,'privateImport':True,
+    result={'name':'gba-rigged-carton-slot-v2' if prop else 'gba-rigged-carton-v1','packagingGeometry':True,'privateImport':True,
         'motionKind':'packaging','bounds':[2,2,2],'sourceWidth':2,'labelAspect':1.5,
         'frontSign':1,'canOpen':True,'openingDurationMs':round(duration*1000),'maxOpenRadians':0,'sourceRootTransform':[1,0,0,0,1,0,0,0,1],
         'geometrySha256':hashlib.sha256(payload).hexdigest(),
         'sourceReference':{'author':'Darkaxt (owner-generated model)','url':'local:owner-rigged-carton',
             'licence':'local-import-only','sha256':hashlib.sha256(raw).hexdigest(),
-            'adaptation':'Original thirteen-part carton, fitted faces, Open clip hinges, original printing removed; unavailable flap printing uses lid edge colours'},
+            'adaptation':'Original carton and optional seven-piece holder; fitting prop and source printing excluded; fitted faces and Open hinges; missing flap printing uses lid edge colours'},
         'surfaces':surfaces}
+    if slot:
+        result['cartridgeSlot']=slot
     args.output.mkdir(parents=True)
     (args.output/'model.mesh').write_bytes(payload)
     (args.output/'model.json').write_text(json.dumps(result,indent=2),encoding='utf8')

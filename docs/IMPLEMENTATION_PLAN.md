@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 90, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 91, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-18: **S25 ACTIVE**. Complete the shared trailer-first
@@ -9,18 +9,14 @@ supplied booklet geometry. Verify combined touch/controller media navigation, pl
 release/volume, distinct panels and reconstruction provenance with focused checks
 and a real GBA example. No game-name branches or cinematic implementation.
 Existing S25 model/controller/source acceptance remains recorded, not excused.
-Current ordered work: finish the updated rigged-carton import, per-game panel fit
-and real closed-box explorer workflow first (Open is reserved for the cinematic).
-Then implement the owner-requested
-single GBA console-selection secondary model pilot with a slow 40-second yaw turn,
-Reduced Motion, gesture-only drag/pinch inspection, five-second idle rotation
-resumption, focus and existing preview/companion lifecycle preserved.
-This pilot is moved from S27 into S25 by the owner's latest instruction; general
-hardware coverage remains S27 NOT STARTED. Verify both full workflows on Thor;
-neither asset inspection nor a desktop render is integrated acceptance.
-Then cover the authorized GBA commercial shell/region/edition variants and
-distinct sensor/rumble geometry, recording verified versus unresolved rows in
-the existing coverage ledger. These remain S25 acceptance work, not S27 scope.
+Current checkpoint: the replacement carton's seven-piece holder is adapted and
+its fitting prop excluded; closed per-game native inspection passes. The GBA
+console-selection pilot and gray/blue cartridge checks have native evidence in
+the status/model ledgers, with their explicit limits. The full extraction
+cinematic remains held. Continue the remaining GBA commercial shell/region/edition
+and sensor/rumble geometry acceptance, controller/cold-recovery and media-lifecycle
+criteria without reopening verified components. General hardware coverage remains
+S27 NOT STARTED; these GBA criteria remain within the single ACTIVE S25 stage.
 
 Previous checkpoint, 2026-10-18: **S25 BLOCKED** at the corrected GBA owner-review
 stop. Public signed 1.9.19 is installed; Castlevania's six-face box, repeated edges,

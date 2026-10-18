@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:retro_eshop/models/gba_cartridge_model.dart';
 import 'package:retro_eshop/models/socket_media_model.dart';
@@ -46,6 +47,20 @@ void main() {
     expect(red.triangles, 32170);
     expect(red.surfaces, hasLength(35));
     expect(red.surfaces.where((s) => s['role'] == 'label'), hasLength(1));
+    final label = red.surfaces.singleWhere((s) => s['role'] == 'label');
+    final rows = List.generate(label['vertexCount'] as int, (i) {
+      final offset = (label['vertexOffset'] as int) + i * 32;
+      return [
+        for (final n in [0, 4, 24, 28])
+          red.mesh.getFloat32(offset + n, Endian.little)
+      ];
+    });
+    final top = rows.reduce((a, b) => a[1] > b[1] ? a : b);
+    final bottom = rows.reduce((a, b) => a[1] < b[1] ? a : b);
+    expect(top[3], closeTo(0, .00001),
+        reason:
+            'A new top-down game label must not inherit rotated source-print UVs');
+    expect(bottom[3], closeTo(1, .00001));
     expect(red.surfaces.any((s) => s['node'] == 'PCB_AGB_E05_01'), true);
     final shell = red.surfaces.firstWhere((s) => s['shellMaterial'] == true);
     expect(shell['material']['color'][3], 1);

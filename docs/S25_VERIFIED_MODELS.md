@@ -8,6 +8,31 @@ not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+Latest GBA carton replacement, 2026-10-18: the owner's holder-enabled ZIP is
+adapted as `gba-rigged-carton-slot-v2`, retaining the seven-piece cardboard insert,
+divider, actual paper thickness and flap hinges. Original fitting cartridge and
+printing are excluded. Host checks verify seven unprinted holder parts, fitted
+bounds/UVs and opening hinge transforms. Native closed inspection on signed
+`92c6386` renders per-game Mega Man Zero 2 front, rear and spine without errors
+(4,068 triangles / 59 surfaces; runtime fitted digest
+`7bfada3baf94d4ec85ca98b23526152d9d8614c49454923f3a022fa7b4c46721`).
+Evidence: `D:/Temp/rshop-s25-hardware-20261018/native/carton-slot-*-down.png`.
+This verifies closed inspection, not native opening/extraction or a full-cohort pass.
+The source's reconstructed holder dimensions are inferred, not manufacturing data.
+
+The owner hollow cartridge now has a private independent loader and explicit
+transmission/IOR approximation. Corrected signed `92c6386` resolves the first
+candidate's native nested-render-pass crash. Gray Mega Man Zero 2 and blue
+Sapphire preview/Resources render, including visible tinted PCB and opaque game
+label. Native inspection caught rotated source-print UVs; the converter now fits
+replacement labels upright independently. Evidence: `mega-cartridge-upright`,
+`sapphire-upright-preview` and `sapphire-upright-resources` under the same native
+folder. Runtime mesh digest
+`e382a7f0e395f8dc8513b3146b2f06ffe92b1b24d4fc0e4ac4fcdc3d612adf8d`.
+Other material colors, physical editions and special sensor/rumble moulds are
+still acceptance work; the shared AGB-E05-01 board is illustrative. No claim of
+physically exact optics or all-game native verification is made.
+
 Current adaptation (2026-10-18, selected GBA games native-verified): the officially downloaded
 Diskette CC BY 4.0 mesh by matousekfoto is reoriented, parameterized in three axes,
 mapped to six replaceable face regions and assigned a matte non-metallic material.
@@ -47,8 +72,8 @@ This is a selected-game booklet check, not every manual's pages, controller
 acceptance, loading-presentation acceptance or the automatic cinematic.
 The original parametric booklet remains only the missing-import fallback.
 New genuine case geometry is not yet native-verified.
-The owner's updated rigged carton has closed/open/unfolded desktop evidence in
-the coverage ledger; it is not yet an integrated/native-verified replacement.
+The earlier thirteen-part rigged carton had native closed/open evidence; the
+current holder-enabled replacement's narrower native acceptance is stated above.
 
 The owner's review invalidated the earlier frontal-only interpretation of fitted
 box faces. Corrected public 1.9.19 now passes Castlevania on Thor: six connected

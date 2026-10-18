@@ -49,8 +49,19 @@ void main() {
             depth: .32,
             modelsDirectory: Directory(actualCarton!))
         .load();
-    expect(model.name, 'gba-rigged-carton-v1');
-    expect(model.triangles, 2316);
+    expect(model.name, 'gba-rigged-carton-slot-v2');
+    expect(model.triangles, greaterThan(2316));
+    final holders = model.surfaces
+        .where((s) => (s['node'] as String).startsWith('Holder_'))
+        .toList();
+    expect(holders.map((s) => s['node']).toSet(), hasLength(7));
+    expect(holders.every((s) => s['role'] == 'shell'), true);
+    expect(model.surfaces.any((s) => s['node'] == 'Opaque_label'), false,
+        reason: 'The source fitting cartridge must not become part of the box');
+    expect(model.data['cartridgeSlot']['fitPropExcluded'], true);
+    expect(model.data['cartridgeSlot']['orientation'], 'portrait');
+    expect(model.data['cartridgeSlot']['clearanceMm'],
+        everyElement(greaterThan(0)));
     expect(model.data['canOpen'], true);
     final top = model.surfaces.firstWhere((s) => s['node'] == 'Top_lid');
     final bottom = model.surfaces.firstWhere((s) => s['node'] == 'Bottom_lid');

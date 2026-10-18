@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 90, 2026-10-18.
+Authoritative specification, revision 91, 2026-10-18.
+
+Owner replacement carton, 2026-10-18: prefer `cardboard-box-prototype (1).zip`
+for the GBA carton. Retain its separate cardboard cartridge holder and divider,
+real thickness and flap hinges, fit the same per-game classified panels, and
+exclude the embedded fitting cartridge/original printing from the reusable box.
+Record its measured geometry and inferred physical dimensions separately. Keep
+the resource inspector closed; the realistic cartridge extraction remains part
+of the deliberately held cinematic, not an invitation to start that transition.
 
 Owner-supplied GBA cartridge sources, 2026-10-18: evaluate the colored hollow
 cartridge/PCB assembly in `Gameboy_Advance_Cartridge.zip` against the alternative
