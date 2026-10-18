@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_gpu/gpu.dart' as gpu;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crypto/crypto.dart';
 import 'package:retro_eshop/models/packaging_model.dart';
@@ -24,6 +25,9 @@ void main() {
       expect(model.data['sourceReference']['sha256'],
           'e7e86e5833deb8c5b2580166ef5eb7800a52f832078f32027e2eaf402d14808a');
       expect(model.surfaces.where((s) => s['hinged'] == true), hasLength(2));
+      expect(
+          SocketMediaGpu.windingOrder(model), gpu.WindingOrder.counterClockwise,
+          reason: 'Outward cover faces must survive native back-face culling');
       for (final s in model.surfaces) {
         if (s['role'] != 'label') continue;
         final cell = s['atlasCell'] as int;

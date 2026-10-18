@@ -346,6 +346,14 @@ class _LabelLayer extends RenderRepaintBoundary {
 }
 
 class SocketMediaGpu {
+  // Packaging meshes retain Blender's outward counter-clockwise triangles.
+  // Socket's model transform reflects Y, reversing its imported winding.
+  static gpu.WindingOrder windingOrder(SocketMediaModel model) =>
+      model.data['packagingGeometry'] == true ||
+              model.data['ownedGeometry'] == true
+          ? gpu.WindingOrder.counterClockwise
+          : gpu.WindingOrder.clockwise;
+
   /// Godot's source camera looks from -Z with a 180-degree Y basis. A selected
   /// Node3D replaces its root rotation (intrinsic YXZ), rather than adding to it.
   /// Undo the converter's Y reflection and baked rest basis exactly once.
@@ -617,7 +625,7 @@ class SocketMediaGpu {
       pass.bindPipeline(pipeline);
       pass.setDepthCompareOperation(gpu.CompareFunction.lessEqual);
       pass.setCullMode(gpu.CullMode.none);
-      pass.setWindingOrder(gpu.WindingOrder.clockwise);
+      pass.setWindingOrder(windingOrder(model));
       pass.setColorBlendEnable(true);
       pass.setColorBlendEquation(gpu.ColorBlendEquation());
       final units =
