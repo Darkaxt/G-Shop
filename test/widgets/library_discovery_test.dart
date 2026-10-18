@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ import 'package:retro_eshop/models/config/app_config.dart';
 import 'package:retro_eshop/models/config/provider_config.dart';
 import 'package:retro_eshop/models/custom_shelf.dart';
 import 'package:retro_eshop/models/library_identity.dart';
+import 'package:retro_eshop/models/game_metadata_info.dart';
 import 'package:retro_eshop/models/scraped_metadata.dart';
 import 'package:retro_eshop/providers/app_providers.dart';
 import 'package:retro_eshop/providers/game_providers.dart';
@@ -32,11 +34,14 @@ import 'package:retro_eshop/services/metadata/metadata_refresh_jobs.dart';
 import 'package:retro_eshop/services/metadata/metadata_credentials.dart';
 import 'package:retro_eshop/services/metadata/metadata_provider.dart';
 import 'package:retro_eshop/providers/metadata_providers.dart';
+import 'package:retro_eshop/providers/metadata_cloud_providers.dart';
+import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/features/settings/metadata_settings_screen.dart';
 import 'package:retro_eshop/services/storage_service.dart';
 import 'package:retro_eshop/widgets/base_game_card.dart';
 import 'package:retro_eshop/widgets/media_cover_fallback.dart';
 import 'package:retro_eshop/widgets/physical_media_view.dart';
+import 'package:retro_eshop/widgets/quick_menu.dart';
 import 'package:retro_eshop/providers/preview_providers.dart';
 import 'package:retro_eshop/services/secondary_preview.dart';
 import 'package:retro_eshop/features/preview/dual_screen_preview_host.dart';
@@ -53,6 +58,16 @@ class _Database extends DatabaseService {
 class _Config extends ConfigStorageService {
   @override
   Future<AppConfig?> loadConfig() async => AppConfig.empty;
+}
+
+class _GalleryCache extends MetadataArtworkCache {
+  _GalleryCache(Database db) : super(Future.value(db), Directory.systemTemp);
+  @override
+  Future<Map<String, List<String>>> galleryForEdition(String editionId,
+          {bool hydrate = false}) async =>
+      const {
+        'box-2D': ['file:///fixture/front.png']
+      };
 }
 
 class _MetadataScopeObserver extends ProviderObserver {
@@ -109,6 +124,10 @@ void main() {
     await storage.setLibraryConsole('n64');
     final secondary = SecondaryPreview()..available = true;
     final snapshots = <Map<String, dynamic>>[];
+    final gallery = Completer<Map<String, List<String>>>();
+    addTearDown(() {
+      if (!gallery.isCompleted) gallery.complete({});
+    });
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SecondaryPreview.channel, (call) async {
       if (call.method == 'present')
@@ -129,7 +148,16 @@ void main() {
           const DeviceMemoryInfo(totalBytes: 0, tier: MemoryTier.standard)),
       sourcesProvider
           .overrideWith((ref) => SourcesNotifier(_Config(), db: _Database(db))),
-      gameMetadataProvider.overrideWith((ref, params) async => null),
+      gameMetadataProvider.overrideWith((ref, params) async => GameMetadataInfo(
+          filename: params.filename,
+          systemSlug: params.systemSlug,
+          editionId: 'fixture',
+          lastUpdated: 0)),
+      cloudSelectionMediaProvider.overrideWith((ref, selection) async => null),
+      editionGalleryMediaProvider
+          .overrideWith((ref, edition) => gallery.future),
+      cachedMetadataArtworkProvider
+          .overrideWith((ref) async => _GalleryCache(db)),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -161,6 +189,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(snapshots.last['filename'], 'Game 2.z64');
     expect(snapshots.last['details'], isFalse);
+    final preview = tester
+        .state<DualScreenPreviewHostState>(find.byType(DualScreenPreviewHost));
+    preview.actionsMenu!.children!
+        .whereType<QuickMenuItem>()
+        .firstWhere((item) => item.label == 'Resources')
+        .onSelect!();
+    await tester.pumpAndSettle();
+    expect(snapshots.last['gallery'], isFalse,
+        reason: 'Do not expose a fallback model while typed resources resolve');
+    gallery.complete(const {
+      'box-2D': ['file:///fixture/front.png']
+    });
+    await tester.pumpAndSettle();
+    expect(snapshots.last['gallery'], isTrue);
+    expect(snapshots.last['galleryResources'], {
+      'box-2D': ['file:///fixture/front.png']
+    });
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

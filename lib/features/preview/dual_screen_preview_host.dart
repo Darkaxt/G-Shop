@@ -297,6 +297,10 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
             .galleryForEdition(edition, hydrate: true);
         if (!mounted || !_visible || _metadata?.editionId != edition) return;
         ref.invalidate(editionGalleryMediaProvider(edition));
+        // Hydration prepares bytes; the mounted reader still needs to rebuild
+        // its edition-owned map before the secondary viewer can open.
+        await ref.read(editionGalleryMediaProvider(edition).future);
+        if (!mounted || !_visible || _metadata?.editionId != edition) return;
       }
       setState(() {
         _gallery = action == 'gallery';

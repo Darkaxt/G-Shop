@@ -1,6 +1,6 @@
 # S25 verified console model and motion ledger
 
-Updated 2026-10-17. This records actual inspected assets, not candidate listings.
+Updated 2026-10-18. This records actual inspected assets, not candidate listings.
 S25 remains **ACTIVE**. The owner-requested checkpoint is the independent resource
 explorer and individual model inspection. The automatic cinematic is deliberately
 not implemented yet; this ledger does not declare the full S25 stage complete.
@@ -29,6 +29,32 @@ retail protective case. Native acceptance of these new real-resource mappings,
 Drive publication/recovery and signed Thor delivery is still pending. Earlier
 isolated inspection below does not satisfy this new checkpoint. The cinematic
 remains unimplemented, and no second console may begin before owner review.
+
+On 2026-10-18, the ordinary installed signed app (`67d714b`) rendered Mega Man
+Zero 3's same-edition box faces, generic hinged display case and imported GBA
+cartridge with its real cartridge label on the lower display. Touch opening,
+rotation and zoom were exercised. Inspected evidence is under
+`D:/Temp/rshop-s25-gba-collector-20261017/native/`: `gba-resource-lower-down.png`,
+`gba-case-touch-down.png`, `gba-case-open-rotated-down.png` and
+`gba-cartridge-down.png`. Native model events report decoded labels and completed
+GPU commands without renderer errors. This is one-game evidence, not all 24 games,
+not the newly acquired protector model, and not completed Drive publication.
+The cached-preview dependency correction subsequently passed its native check;
+the separate gallery-admission correction below still needs signed delivery.
+
+The subsequent signed `2de0ce0` cache-only pass visually inspected Mega Man Zero 3,
+Kirby & The Amazing Mirror and Pokemon FireRed box/cartridge frames. Native role
+counts match the reviewed pack for these games, including Kirby's 44 and FireRed's
+72 manual pages. Evidence: `native-cohort-2de0ce0/offline/frames.jsonl` and its first
+six PNGs below the same task folder. This is three-game evidence, not a completed
+24-game pass or actual manual-page reading. LeafGreen's initial fallback/map
+handoff race interrupted the pass and remains pending a newly signed correction.
+The earlier coordinate-driven and misaligned-start driver attempts are not full
+acceptance evidence. One such attempt unexpectedly downloaded Kirby into its
+managed Top-25 cache; it was not launched or deleted. No save-sync action was
+performed. An earlier display-targeted key reached Cocoon and opened DualSouls;
+R-Shop was brought back without using that unrelated launch as acceptance
+evidence. Subsequent lower-display controls use touch, not global key injection.
 
 The completed native inventory exercised all 66 supported console routes on
 AYN Thor (serial `bfa98654`), using the actual ResourceGallery widget in the

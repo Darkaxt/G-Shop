@@ -35,6 +35,60 @@ remaining Drive publication/recovery, the whole 24-game explorer check and publi
 signed delivery remain required. S25 alone remains ACTIVE; no next-console native
 implementation or automatic cinematic is authorized at this checkpoint.
 
+The installed app's ordinary GBA Resources menu now has inspected lower-screen
+evidence for Mega Man Zero 3: edition-owned box faces, the generic case's touch
+opening/rotation/zoom, and the imported GBA cartridge with the actual cartridge
+label and matte housing. This is one game's rendering evidence, not the 24-game
+acceptance pass. Android's non-focusable secondary presentation deliberately
+retains primary-gallery controller focus; injecting a key at the other Android
+display is not a valid controller-gallery test. Source/fixture evidence must not
+be substituted for the remaining ordinary-app controller workflow.
+
+Publication returned Drive `internalError` twice (HTTP 500, POST v3 and PUT v2).
+The normal app resume retained prior receipts and continued publication, reaching
+3,080 verified receipts at the last read-only observation. This aggregate includes
+the existing library and replaced rows; it is not a GBA-resource completion count.
+Local imported resources remain present. The required current signed build is
+GitHub run 39083836372 at source `2de0ce0` passed signing, release assembly/tests
+and private-asset exclusion. The in-place installed APK independently matches
+SHA-256 `327a083e399feee666b38495c25d9ded3ea71ae9779d0feff99221afcf5fe742`
+and the existing production certificate. Native `resources=true`, decoded label,
+model frame and playing video now precede the completed reveal while background
+publication is still running (games 800 through 1,100). This verifies the corrected
+dependency, not immediate loading: the observed selected-resource wait was about
+20 seconds under startup work. The later reveal endpoints are about 1.5 seconds
+apart in the same renderer's monotonic diagnostics. Full ranked explorer coverage,
+publication/recovery completion and public delivery remain acceptance blockers.
+The hosted Linux build used two workers, no parallel projects and in-process
+Kotlin. Configured Gradle heap is 3 GiB and tests use one 512 MiB fork; no memory
+failure/budget increase was reported. No Windows Gradle command/mutex was used,
+and hosted daemon process exit was not independently probed.
+
+Later native publication stopped on explicit Drive HTTP 403
+`userRateLimitExceeded`. Read-only inspection of the existing R-Shop Drive Google
+Cloud project showed 87.429 previous-quota requests/minute (0.73% of 12,000) and
+3,135.714 units/minute (0.31% of 1,000,000); the per-user unit limit is 325,000 and
+its current usage was not displayed. This does not establish account-wide spare
+capacity or identify the backend's hidden limit. No quota, billing or security
+configuration was changed. Further live collection was stopped rather than
+retrying the rejected write. The desktop Drive view had 405 GBA manual-page files
+at observation, not all 789. This external publication blocker remains open.
+
+Cache-only inspection matched the reviewed pack's roles/counts and visually
+verified box/cartridge renders for the first three ranked GBA games. It then
+exposed a real gallery-admission race on LeafGreen: an initial fallback frame had
+no typed faces, followed by the complete same-edition map with 72 manual pages.
+The host invalidated the resource reader and exposed the gallery before that
+reader resolved. The ordinary-host widget regression failed at that premature
+opening, then passed after joining the mounted reader before enabling the gallery,
+with the selected-edition guard retained after the wait. The current installed
+`2de0ce0` does not contain this latter correction. Whole-cohort native verification,
+manual reading/gallery playback, publication/recovery and public handoff remain
+unverified. The temporary Wi-Fi change was restored to normal sleep behavior;
+both physical panels were confirmed committed OFF. The disposable 987,627,520-byte
+database expansion was removed through applied cleanup transaction
+`b9a65b7780976237eeac3b4ce084ce90`; the original compressed evidence is preserved.
+
 ### S25 unchanged-publication regression — 2026-10-18, ACTIVE
 
 The previous app reached 1,402/1,402 edition publications; later observation
