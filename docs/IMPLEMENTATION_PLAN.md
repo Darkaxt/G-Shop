@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 96, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 97, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**. The owner now requires a retained
@@ -10,6 +10,8 @@ shallow semicircle: upright box at the rear centre, cartridge/booklet horizontal
 at the front-left/right on one supporting plane, with an elevated overview camera.
 Extract the cartridge first and settle it before withdrawing the booklet; leave
 the carton open until both have cleared the right-hand opening.
+Match the waiting cover to the closed 3D front before framing out, and carry the
+booklet into its resting pose with one continuous post-clear sweep.
 This supersedes the lone-medium
 endpoint; verify GBA and pause for owner review before another console. Current
 corrective priority is the

@@ -286,10 +286,16 @@ class UnboxingPreviewState extends State<UnboxingPreview>
     final path = boxPanelPath(widget.resources, 0);
     return path == null
         ? const Center(child: CircularProgressIndicator())
-        : Image(
-            key: const ValueKey('unboxing-preparation-cover'),
-            image: _provider(path),
-            fit: BoxFit.contain);
+        : LayoutBuilder(builder: (context, constraints) {
+            final side = constraints.biggest.shortestSide;
+            return Center(
+                child: SizedBox.square(
+                    dimension: side,
+                    child: Image(
+                        key: const ValueKey('unboxing-preparation-cover'),
+                        image: _provider(path),
+                        fit: BoxFit.fill)));
+          });
   }
 
   @override
@@ -382,7 +388,20 @@ class UnboxingPreviewState extends State<UnboxingPreview>
                             ]))
                     ]),
                   ),
-                  if (!_started) IgnorePointer(child: _preparationCover()),
+                  if (!_started ||
+                      _timeline.value * _timeline.duration!.inMilliseconds <
+                          180)
+                    IgnorePointer(
+                        child: Opacity(
+                            opacity: _started
+                                ? 1 -
+                                    UnboxingScene.phase(
+                                        _timeline.value *
+                                            _timeline.duration!.inMilliseconds,
+                                        0,
+                                        180)
+                                : 1,
+                            child: _preparationCover())),
                 ])));
   }
 

@@ -516,10 +516,13 @@ class SocketMediaGpu {
           ? UnboxingScene.overviewElevation(model, pose.unboxing) *
               (1 - pose.inspection)
           : 0.0;
+      final framing = model.data['unboxingGeometry'] == true
+          ? UnboxingScene.framing(model, pose.unboxing)
+          : 1.0;
       return vm.Matrix4.identity()
         ..translateByDouble(0, pose.y, pose.z, 1)
-        ..rotateY(pose.ry)
-        ..rotateX(pose.rx +
+        ..rotateY(pose.ry * framing)
+        ..rotateX(pose.rx * framing +
             overviewPitch +
             (model.data['cartridgeGeometry'] == true ? math.pi / 2 : 0))
         ..rotateZ(pose.rz)
@@ -557,17 +560,27 @@ class SocketMediaGpu {
         ..setEntry(2, 3, .5)
         ..setEntry(3, 2, -.25);
 
-  static double fittedUnits(SocketMediaModel model, Size size) =>
-      model.data['unboxingGeometry'] == true
-          ? math.min(size.width / 6.4, size.height * .68 / model.height)
-          : model.data['hardwareGeometry'] == true
-              ? math.min(size.width * .72 / model.sourceWidth,
-                  size.height * .68 / model.height)
-              : math.min(size.width * .72, size.height * .68 / model.height);
+  static double fittedUnits(SocketMediaModel model, Size size,
+      {SocketMediaPose? pose}) {
+    if (model.data['unboxingGeometry'] == true) {
+      final overview =
+          math.min(size.width / 6.4, size.height * .68 / model.height);
+      final frontZ = (model.data['bounds'][2] as num).toDouble() / 2;
+      final front =
+          math.min(size.width / model.sourceWidth, size.height / model.height) *
+              (1 - .25 * frontZ);
+      final framing = UnboxingScene.framing(model, pose?.unboxing ?? 1);
+      return front + (overview - front) * framing;
+    }
+    return model.data['hardwareGeometry'] == true
+        ? math.min(size.width * .72 / model.sourceWidth,
+            size.height * .68 / model.height)
+        : math.min(size.width * .72, size.height * .68 / model.height);
+  }
 
   static Map<String, Rect> inspectionBounds(
       SocketMediaModel model, SocketMediaPose pose, Size size) {
-    final units = fittedUnits(model, size);
+    final units = fittedUnits(model, size, pose: pose);
     final projection = cameraProjection(size.width, size.height, units);
     final base = modelTransform(model, pose);
     final result = <String, Rect>{};
@@ -858,7 +871,7 @@ class SocketMediaGpu {
         pass.setWindingOrder(windingOrder(model));
         pass.setColorBlendEnable(true);
         pass.setColorBlendEquation(gpu.ColorBlendEquation());
-        final units = fittedUnits(model, size);
+        final units = fittedUnits(model, size, pose: pose);
         final projection = cameraProjection(size.width, size.height, units);
         final base = modelTransform(model, pose);
         final uniforms =

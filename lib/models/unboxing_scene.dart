@@ -137,9 +137,16 @@ class UnboxingScene {
   static double opening(double t, {bool hasBooklet = false}) {
     final seconds = t * durationFor(hasBooklet).inMilliseconds / 1000;
     final delay = hasBooklet ? 3.5 : 0.0;
-    return phase(seconds, 0, 3) *
+    return phase(seconds, 1.38, 3) *
         (1 - phase(seconds, 4.65 + delay, 5.65 + delay));
   }
+
+  /// The closed front takes over in place, then the camera frames out before
+  /// the first flap opens. This is presentation motion, not a readiness delay.
+  static double framing(SocketMediaModel model, double t) => phase(
+      t * durationFor(model.data['hasBooklet'] == true).inMilliseconds / 1000,
+      .18,
+      1.38);
 
   static double overviewElevation(SocketMediaModel model, double t) =>
       .55 *
@@ -202,6 +209,21 @@ class UnboxingScene {
       final bounds = (model.data['partBounds'] as Map)[part] as List;
       final restingY = -.62 - (bounds[0][2] as num).toDouble() * size;
       y += (restingY - y) * lower;
+    }
+    if (book) {
+      // Once the book clears the opening, one sweep carries, turns and lays it
+      // down together. Do not stop to move forward, then spread, then lower.
+      final sweep = phase(seconds, 7.7, 10);
+      final arc = math.sin(math.pi * sweep);
+      final seatedScale = (model.data['bookletSeatScale'] as num).toDouble();
+      size = seatedScale + (.5 - seatedScale) * sweep;
+      x = 1.76 * extract * (1 - sweep) + separation * sweep + .28 * arc;
+      z = -.11 + (.65 + .11) * sweep;
+      final bounds = (model.data['partBounds'] as Map)['booklet'] as List;
+      final restingY = -.62 - (bounds[0][2] as num).toDouble() * size;
+      y = restingY * sweep + .12 * arc;
+      rx = -math.pi / 2 * sweep;
+      rz = -math.pi / 2 * (1 - sweep) + .22 * sweep;
     }
     if (inspectedPart != null && inspection > 0) {
       final selected = inspectedPart == part;

@@ -5,6 +5,28 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 handoff/booklet polish — 2026-10-19, ACTIVE
+
+Revision 97 addresses the owner's two motion observations without changing the
+right opening or final semicircle. The closed 3D front takes over at the waiting
+cover's actual size/position and front-on orientation, blends its lighting, then
+frames out before opening. The booklet clears the right opening and follows one
+continuous position/turn/lowering sweep. Focused checks using the real imported
+geometry verify the matched front projection at both viewports, sequential exit,
+continuous placement, final horizontal support plane and inspection fit; gesture,
+readiness and ordinary cover-reveal regressions pass. Native verification of this
+polish remains required. No new provider requests or other-console work.
+
+Signed `343d01c` was installed from GitHub run 39170248475; installed/host APK
+SHA-256 both equal `7c138f3dc5d1c4b81cea6d68a108a012c56b94706fe8f63432334f3ba00ced1a`.
+The native recording demonstrates the staggered right-hand extraction and flat
+endpoint, and the owner's feedback accepts the improved overall motion while
+requesting the two refinements above. The earlier receipt conflict is no longer
+the observed failure: publication reached 1402/1402, then terminated with
+`FileSystemException`. This is not successful Drive completion; its remaining
+failure is retained as an acceptance blocker rather than concealed by the count.
+Original observer 63524 has exited on that real terminal event.
+
 ### S25 semicircle correction — 2026-10-19, ACTIVE
 
 Current candidate incorporates revision 96: the cartridge clears the opening and

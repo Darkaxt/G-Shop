@@ -1,6 +1,13 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 96, 2026-10-19.
+Authoritative specification, revision 97, 2026-10-19.
+
+Owner motion polish, 2026-10-19: the waiting front cover and the initial closed
+3D front must share framing and orientation, then smoothly frame out into the
+unboxing scene, without a size/pose jump. After clearing the right opening, the
+booklet follows one continuous sweep/turn onto its resting plane instead of
+separate forward, spread and lowering transitions. Preserve sequential extraction,
+upright printing, the retained semicircle and gesture inspection.
 
 Owner extraction clarification, 2026-10-19: do not withdraw the booklet and
 cartridge simultaneously. Extract and settle the cartridge first, then withdraw

@@ -29,6 +29,41 @@ void main() {
     final bottom = start.transform3(vm.Vector3(-.5, 0, 0));
     expect(bottom.x, greaterThan(-.05));
     expect(UnboxingScene.opening(3 / 10, hasBooklet: true), 1);
+    expect(UnboxingScene.opening(.6 / 10, hasBooklet: true), 0,
+        reason: 'Frame out the closed front before opening it');
+    for (final viewport in [const Size(620, 403), const Size(960, 540)]) {
+      // Project the actual front print, not the whole mesh bounds (which
+      // include hinges and contents hidden behind the front).
+      final front = model.surfaces
+          .firstWhere((s) => s['node'] == '01_Front' && s['role'] == 'label');
+      final units = SocketMediaGpu.fittedUnits(model, viewport,
+          pose: const SocketMediaPose(unboxing: 0, rx: .06, ry: -.2));
+      final matrix = SocketMediaGpu.cameraProjection(
+          viewport.width, viewport.height, units)
+        ..multiply(SocketMediaGpu.modelTransform(
+            model, const SocketMediaPose(unboxing: 0, rx: .06, ry: -.2)));
+      var left = double.infinity, right = double.negativeInfinity;
+      var top = double.infinity, bottom = double.negativeInfinity;
+      for (var i = 0; i < front['vertexCount']; i++) {
+        final offset = (front['vertexOffset'] as int) + i * 32;
+        final v = matrix.transform(vm.Vector4(
+            model.mesh.getFloat32(offset, Endian.little),
+            model.mesh.getFloat32(offset + 4, Endian.little),
+            model.mesh.getFloat32(offset + 8, Endian.little),
+            1));
+        final x = (1 + v.x / v.w) * viewport.width / 2;
+        final y = (1 - v.y / v.w) * viewport.height / 2;
+        if (x < left) left = x;
+        if (x > right) right = x;
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+      }
+      final side = viewport.shortestSide;
+      expect(right - left, closeTo(side, 2));
+      expect(bottom - top, closeTo(side, 2));
+      expect((left + right) / 2, closeTo(viewport.width / 2, 1));
+      expect((top + bottom) / 2, closeTo(viewport.height / 2, 1));
+    }
     final extracted =
         UnboxingScene.partTransform(model, 'cartridge', 4.2 / 10, 6);
     expect(extracted.transform3(vm.Vector3(-.5, 0, 0)).x, greaterThan(1.05));
@@ -42,6 +77,17 @@ void main() {
     final bookExtracted =
         UnboxingScene.partTransform(model, 'booklet', 7.7 / 10, 6);
     expect(bookExtracted.transform3(vm.Vector3(0, -1, 0)).x, greaterThan(1.05));
+    // Translation, turning and laying down belong to the same post-clear sweep.
+    for (final seconds in [8.0, 8.5, 9.0]) {
+      final sweep =
+          UnboxingScene.partTransform(model, 'booklet', seconds / 10, 6);
+      final normal = sweep.getRotation().transform(vm.Vector3(0, 0, 1))
+        ..normalize();
+      expect(normal.y, greaterThan(.01),
+          reason: 'The booklet must already be laying down at $seconds');
+      expect(sweep.transform3(vm.Vector3.zero()).z, greaterThan(-.11),
+          reason: 'Position and rotation must advance together');
+    }
     final finalPose = UnboxingScene.partTransform(model, 'cartridge', 1, 6);
     expect(finalPose.transform3(vm.Vector3.zero()).x, lessThan(-1.5));
     expect(
