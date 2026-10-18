@@ -1,6 +1,45 @@
 # S25 packaging feasibility and coverage
 
-Review date: 2026-10-18. Authority: SPECIFICATION.md revision 80.
+Review date: 2026-10-18. Authority: SPECIFICATION.md revision 84.
+
+Latest supplied candidates (public v3 model API inspected 2026-10-18):
+
+| Candidate | Actual listing evidence | Suitability limit |
+| --- | --- | --- |
+| [Brochure book 01](https://sketchfab.com/3d-models/brochure-book-01-be822ca5f3d4461c8f5d8c02b7bcbaa8) | 39,226 vertices / 77,756 triangles; no listed animation; official download disabled; Standard licence listing | Page replacement, opening parts and usable acquisition not established. Not a verified animated booklet replacement. |
+| [Manuals & Gum](https://sketchfab.com/3d-models/manuals-gum-e4566daa94204a1ca8dbe18b91819157) | 1,153 vertices / 2,318 triangles; no listed animation; official download disabled; no licence returned | Separate booklet geometry/page UVs and reusable rights unverified. Keep working parametric booklet. |
+| [Extreme G N64 Box](https://sketchfab.com/3d-models/extreme-g-nintendo-n64-box-2f8be7a260754d82bcb4c966e04f7797) | 8 vertices / 12 triangles; no listed animation; official download disabled; no licence returned | Closed cuboid, not geometrically creased cardboard. Visible wear is inferred to be texture/material detail; must inspect before claiming transferable wear with new game art. |
+| [Diskette box](https://sketchfab.com/3d-models/diskette-box-c179241faa984442a9a802d867bc60f5) | Official 1K GLB acquired; CC BY 4.0, matousekfoto; 6,002 source vertices / 12,000 triangles; no animation | Adapted and renderer-wired: normalized orientation/axes, six replaceable UV regions, source artwork removed, matte material and bundled attribution. Native orientation/appearance remains pending; do not claim opening support. |
+
+None of these listing checks is added as final verified geometry in the model
+ledger. Public release must not bundle resources without a verified reuse grant.
+
+Actual acquired DVD-case geometry inspection (Blender 5.2.2, 2026-10-18):
+`dvdps2wii-case.zip` contains one mesh, 2,146 vertices / 2,144 polygons, one UV
+layer, one material, no armature and no animation. Its approximate 135 x 194 x
+14 mm bounds fit a DVD keep-case, but there is no separate lid/hinge object.
+`dvdgame-case.zip` contains five meshes (case, disc and overlay layers), no
+armature or animation; its Case is 238 vertices / 471 polygons with separate
+Plastic/Art materials. Separate disc/transparent layers do not establish an
+opening case. Neither is accepted as a working opening model. Inventory evidence:
+`scripts/fixtures/s25_case_blender_inspection.py`; actual materials/textures,
+geometry adaptation and native inspection remain required.
+
+Current desktop unfolded-source workflow uses the existing edition-bound pack
+and private catalogue projection, not a new ROM download. Run
+`scripts/prepare_unfolded_boxes.py` for the selected console and inspect its
+layout/report and actual six-face contact sheet before import. It requires Pillow,
+OpenCV and Windows OCR; the local OpenCV runtime is in
+`D:/Tools/rshop-packaging-python` (set `PYTHONPATH` for this invocation).
+`prepare_packaging_resources.py --augment-pack ... --panel-layouts ...
+--panels-only --output ...` creates a small classified delta, preserving existing
+manuals/media on device. `--website-fallback --projection ...` checks only the
+public low-resolution .es resource for entries not covered locally. The normal
+collector then retains LaunchBox/ScreenScraper fallbacks and its provider budgets.
+Recipes, catalogue projections and game artwork stay private; only the reusable
+code, public geometry and sanitized aggregate evidence belong in this repository.
+Reviewed multilingual packaging with English is suitable regardless of a site's
+Spanish category; donor-region provenance remains separate from ROM identity.
 Current implementation checkpoint: S25 is ACTIVE for the generic resource
 explorer and individual model verification. The automatic cinematic transition
 is expressly not being implemented yet. See [S25_VERIFIED_MODELS.md](S25_VERIFIED_MODELS.md)

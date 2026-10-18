@@ -267,16 +267,33 @@ class ImportedArtworkReference {
   final String? sourceSha256;
   final List<int>? panel;
   final int rotationDegrees;
+  final String? sourceRegion, reconstruction;
+  final List<String>? sourceLanguages;
   ImportedArtworkReference(
       {required this.sourceId,
       required this.assetId,
       required this.sourceUrl,
       required this.sha256,
       this.sourceSha256,
+      this.sourceRegion,
+      this.reconstruction,
+      List<String>? sourceLanguages,
       List<int>? panel,
       this.rotationDegrees = 0})
-      : panel = panel == null ? null : List.unmodifiable(panel) {
+      : panel = panel == null ? null : List.unmodifiable(panel),
+        sourceLanguages = sourceLanguages == null
+            ? null
+            : List.unmodifiable(sourceLanguages) {
     if (!{0, 90, 180, 270}.contains(rotationDegrees) ||
+        sourceRegion != null &&
+            !RegExp(r'^[a-z]{2,3}$').hasMatch(sourceRegion!) ||
+        sourceLanguages != null &&
+            (sourceLanguages.isEmpty ||
+                sourceLanguages
+                    .any((l) => !RegExp(r'^[a-z]{2,3}$').hasMatch(l))) ||
+        reconstruction != null &&
+            (sourceRegion == null ||
+                !{'regionalPackaging', 'composite'}.contains(reconstruction)) ||
         !{'launchbox', 'nintandbox', 'screenscraper'}.contains(sourceId) ||
         assetId.isEmpty ||
         assetId.length > 1024 ||
@@ -299,7 +316,10 @@ class ImportedArtworkReference {
         'sha256': sha256,
         if (sourceSha256 != null) 'sourceSha256': sourceSha256,
         if (panel != null) 'panel': panel,
-        if (rotationDegrees != 0) 'rotationDegrees': rotationDegrees
+        if (rotationDegrees != 0) 'rotationDegrees': rotationDegrees,
+        if (sourceRegion != null) 'sourceRegion': sourceRegion,
+        if (reconstruction != null) 'reconstruction': reconstruction,
+        if (sourceLanguages != null) 'sourceLanguages': sourceLanguages,
       };
   factory ImportedArtworkReference.fromJson(Map<String, dynamic> json) =>
       ImportedArtworkReference(
@@ -308,6 +328,9 @@ class ImportedArtworkReference {
           sourceUrl: json['sourceUrl'] as String,
           sha256: json['sha256'] as String,
           sourceSha256: json['sourceSha256'] as String?,
+          sourceRegion: json['sourceRegion'] as String?,
+          reconstruction: json['reconstruction'] as String?,
+          sourceLanguages: (json['sourceLanguages'] as List?)?.cast<String>(),
           panel: (json['panel'] as List?)?.cast<int>(),
           rotationDegrees: json['rotationDegrees'] as int? ?? 0);
 }

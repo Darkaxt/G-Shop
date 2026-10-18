@@ -151,7 +151,13 @@ void main() {
       () async {
     final entries = await mediaArtworkLicenses().toList();
     expect(entries,
-        hasLength(8)); // Two artwork/font notices, five codecs, brands.
+        hasLength(9)); // Artwork/font, codecs, brands and adapted cardboard.
+    final cardboard = entries.singleWhere(
+        (e) => e.packages.contains('Adapted cardboard packaging model'));
+    final cardboardText = cardboard.paragraphs.map((p) => p.text).join('\n');
+    expect(cardboardText, contains('matousekfoto'));
+    expect(cardboardText, contains('Creative Commons Attribution 4.0'));
+    expect(cardboardText, contains('original textures removed'));
     final brands = entries
         .singleWhere((e) => e.packages.contains('Manufacturer brand logos'));
     expect(brands.paragraphs.map((p) => p.text).join('\n'),

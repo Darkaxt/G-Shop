@@ -11,19 +11,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--pack', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--roles', nargs='+', default=['box-2D', 'box-2D-back', 'box-2D-side', 'manual-page'])
     args = parser.parse_args()
-    report = json.loads(args.pack.with_suffix('.report.json').read_text())
+    report_file = args.pack.with_suffix('.report.json')
+    report = json.loads(report_file.read_text()) if report_file.exists() else None
     args.output.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.pack) as archive:
         games = json.loads(archive.read('packaging.json'))['games']
         for start in range(0, len(games), 8):
-            sheet = Image.new('RGB', (1360, 8 * 240), '#181818')
+            sheet = Image.new('RGB', (len(args.roles) * 340, min(8, len(games) - start) * 240), '#181818')
             draw = ImageDraw.Draw(sheet)
             for index, game in enumerate(games[start:start + 8]):
                 top = index * 240
-                title = report[start + index]['title']
+                title = report[start + index]['title'] if report else 'Classified edition'
                 draw.text((12, top + 4), f'{start + index + 1}. {title}', fill='white')
-                for col, role in enumerate(['box-2D', 'box-2D-back', 'box-2D-side', 'manual-page']):
+                for col, role in enumerate(args.roles):
                     draw.text((col * 340 + 12, top + 22), role, fill='#aaaaaa')
                     item = next((m for m in game['resources'] if m['type'] == role), None)
                     if item:

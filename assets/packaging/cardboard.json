@@ -1,0 +1,190 @@
+{
+  "name": "cardboard-scan-v1",
+  "packagingGeometry": true,
+  "motionKind": "packaging",
+  "bounds": [
+    2,
+    2,
+    2
+  ],
+  "sourceWidth": 2,
+  "labelAspect": 1.5,
+  "frontSign": 1,
+  "canOpen": false,
+  "sourceRootTransform": [
+    1,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1
+  ],
+  "geometrySha256": "ce69a01fbf55dc5eac2b22cfc1aaad8168dfeb81d3040238b10c68bf30b82509",
+  "sourceReference": {
+    "url": "https://sketchfab.com/3d-models/diskette-box-c179241faa984442a9a802d867bc60f5",
+    "author": "matousekfoto",
+    "licence": "CC-BY-4.0",
+    "sha256": "2da7253ce1c6fd285bb70a703c8d0a97d4a7c86e41e12f209248bd812b621fc7",
+    "adaptation": "axis-normalized original mesh; six planar face UVs; source textures removed"
+  },
+  "sourceBounds": [
+    [
+      -0.07315164059400558,
+      -0.032624922692775726,
+      -0.08148327469825745
+    ],
+    [
+      0.07433687150478363,
+      0.03273773193359375,
+      0.07569687813520432
+    ]
+  ],
+  "axes": [
+    0,
+    2,
+    1
+  ],
+  "surfaces": [
+    {
+      "node": "cardboard",
+      "name": "front",
+      "role": "label",
+      "vertexOffset": 0,
+      "vertexCount": 8439,
+      "indexOffset": 270048,
+      "indexCount": 8439,
+      "hinged": false,
+      "material": {
+        "color": [
+          0.34,
+          0.34,
+          0.34,
+          1
+        ],
+        "sourceProperties": {
+          "roughness": 1,
+          "metallic": 0
+        },
+        "textures": {}
+      }
+    },
+    {
+      "node": "cardboard",
+      "name": "back",
+      "role": "label",
+      "vertexOffset": 303804,
+      "vertexCount": 6852,
+      "indexOffset": 523068,
+      "indexCount": 6852,
+      "hinged": false,
+      "material": {
+        "color": [
+          0.34,
+          0.34,
+          0.34,
+          1
+        ],
+        "sourceProperties": {
+          "roughness": 1,
+          "metallic": 0
+        },
+        "textures": {}
+      }
+    },
+    {
+      "node": "cardboard",
+      "name": "left",
+      "role": "label",
+      "vertexOffset": 550476,
+      "vertexCount": 5898,
+      "indexOffset": 739212,
+      "indexCount": 5898,
+      "hinged": false,
+      "material": {
+        "color": [
+          0.34,
+          0.34,
+          0.34,
+          1
+        ],
+        "sourceProperties": {
+          "roughness": 1,
+          "metallic": 0
+        },
+        "textures": {}
+      }
+    },
+    {
+      "node": "cardboard",
+      "name": "right",
+      "role": "label",
+      "vertexOffset": 762804,
+      "vertexCount": 5421,
+      "indexOffset": 936276,
+      "indexCount": 5421,
+      "hinged": false,
+      "material": {
+        "color": [
+          0.34,
+          0.34,
+          0.34,
+          1
+        ],
+        "sourceProperties": {
+          "roughness": 1,
+          "metallic": 0
+        },
+        "textures": {}
+      }
+    },
+    {
+      "node": "cardboard",
+      "name": "top",
+      "role": "label",
+      "vertexOffset": 957960,
+      "vertexCount": 5202,
+      "indexOffset": 1124424,
+      "indexCount": 5202,
+      "hinged": false,
+      "material": {
+        "color": [
+          0.34,
+          0.34,
+          0.34,
+          1
+        ],
+        "sourceProperties": {
+          "roughness": 1,
+          "metallic": 0
+        },
+        "textures": {}
+      }
+    },
+    {
+      "node": "cardboard",
+      "name": "bottom",
+      "role": "label",
+      "vertexOffset": 1145232,
+      "vertexCount": 4188,
+      "indexOffset": 1279248,
+      "indexCount": 4188,
+      "hinged": false,
+      "material": {
+        "color": [
+          0.34,
+          0.34,
+          0.34,
+          1
+        ],
+        "sourceProperties": {
+          "roughness": 1,
+          "metallic": 0
+        },
+        "textures": {}
+      }
+    }
+  ]
+}

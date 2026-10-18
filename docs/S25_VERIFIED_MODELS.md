@@ -1,11 +1,24 @@
 # S25 verified console model and motion ledger
 
 Updated 2026-10-18. This records actual inspected assets, not candidate listings.
-S25 is **BLOCKED** at the corrected GBA owner-review stop. The checkpoint is the independent resource
+S25 is **ACTIVE** for the owner's shared collector/gallery/model correction.
+The checkpoint is the independent resource
 explorer and individual model inspection. The automatic cinematic is deliberately
 not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
+
+Current adaptation (2026-10-18, not native-verified): the officially downloaded
+Diskette CC BY 4.0 mesh by matousekfoto is reoriented, parameterized in three axes,
+mapped to six replaceable face regions and assigned a matte non-metallic material.
+Source SHA-256: `2da7253ce1c6fd285bb70a703c8d0a97d4a7c86e41e12f209248bd812b621fc7`.
+Adapted geometry SHA-256: `ce69a01fbf55dc5eac2b22cfc1aaad8168dfeb81d3040238b10c68bf30b82509`.
+Its 12,000 triangles preserve the scan geometry, not the original printed artwork.
+The renderer loads this asset for cardboard; actual Android appearance/orientation
+and Drive recovery remain acceptance blockers. Host panel inspection of six GBA
+sets is source-classification evidence, not a new console acceptance pass.
+Booklet candidates remain unacquired; the working parametric booklet is not claimed
+to be their geometry. New genuine case geometry is not yet native-verified.
 
 The owner's review invalidated the earlier frontal-only interpretation of fitted
 box faces. Corrected public 1.9.19 now passes Castlevania on Thor: six connected
@@ -51,9 +64,12 @@ horizontal spines were normalized before import. Source identity, original and
 normalized hashes, and rotations are retained in the pack. Five absent manuals
 remain explicitly absent.
 
-The NintAndBox GBA reference extraction contains 722 JPGs, but none of its US box
+At the earlier 1.9.18 checkpoint, the NintAndBox GBA reference extraction contained
+722 JPGs, but none of its US box
 sets matches this ranked selection. Its European fold/cut sheets are not being
-borrowed for US editions. This checkpoint uses LaunchBox faces with ScreenScraper
+borrowed for US editions at that checkpoint. Revision 84 now authorizes suitable
+multilingual donor packaging, explicitly recording source region/languages. The
+older checkpoint uses LaunchBox faces with ScreenScraper
 fallback/manuals; full NintAndBox panel classification is not claimed.
 
 The integrated explorer now sizes packaging from decoded panel/spine proportions,
@@ -279,13 +295,13 @@ The console-review stop and subsequent cinematic work remain explicitly pending.
 
 | Criterion | Verified at this checkpoint | Remaining acceptance |
 | --- | --- | --- |
-| P25-01 primary/fallback pipeline | LaunchBox-first/ScreenScraper-fallback desktop acquisition, same-US-edition pack, real classified Drive publication and ranked explorer faces | Supplied non-ranked GBA 007 example's native source/fallback check; new native cold-cache check is not claimed |
-| P25-02 final packaging/fit | GBA generic case proportions, holder rails and manual clips are integrated; actual opening/rotation/zoom inspected on Mega Man Zero 3 | Final acquired protector adaptation and complete applicable layer fit, then other consoles after owner review |
+| P25-01 primary/fallback pipeline | Earlier LaunchBox/ScreenScraper GBA publication and ranked explorer proof; current dump classification and source-priority host checks | Revision 84 dump -> public .es -> LaunchBox -> ScreenScraper integration, actual native recovery and supplied 007 fallback example |
+| P25-02 final packaging/fit | Earlier joined cuboid and manual fit verified in 1.9.19; adapted Diskette mesh wired but not native-verified | Native adapted cardboard/texture fit, supplied booklet, authentic era-appropriate cases where applicable, acquired protector integration; no invented GBA Case |
 | P25-03 full interactive integration | Signed ordinary-app secondary touch entry and 24-game explorer pass; primary grid navigation retained | Full ordinary-app controller workflow remains unverified; isolated controller evidence is not a substitute |
 | P25-04 cinematic/lifecycle | Owner explicitly requested stopping before the new full transition; S24 reveal remains unchanged | Resume only after this individual review; verify complete box-exit/case-align/open/medium-pop/dissolve/trailer per applicable console |
 | P25-05 real documents/media | Nineteen actual manual booklets render; LeafGreen's real page reader/Next and cached gallery trailer were inspected | Exact interactive-gallery volume/music restoration and remaining applicable per-console documents/media checks |
 | P25-06 ranked GBA | All 24 actual distinct ranked games passed current signed native box/case/cartridge checks; all 48 box/cartridge captures inspected | No missing 25th is invented; S24's unchanged ranked trailer/audio proof is retained, not replaced by this model pass |
-| P25-07 classified ingestion | E: sources classified/imported; all 24 Drive packets and 789 page digests/files match; real remotely read manual bytes match | Other-console classified ingestion waits for owner review; incompatible NintAndBox regions remain excluded |
-| P25-08 production delivery | Public 1.9.18 is GitHub-signed e657210; installed bytes/certificate and released asset digest match | Owner GBA review is the current external stop, not overall S25 acceptance |
+| P25-07 classified ingestion | Earlier 24 Drive packets/789 page digests match and one remote manual read matches; six new multilingual GBA sets inspected locally | Publish/recover distinct new panels with donor-region/language provenance, then required Nintendo console-by-console ingestion; current host classification is not Drive publication |
+| P25-08 production delivery | Public GitHub-signed 1.9.19 source 713c8c0 has matching installed/released bytes and certificate | Current coherent correction needs verification, GitHub signing and Thor delivery before the requested GBA review; no new release is claimed |
 
 No S25 requirement is moved into S26. The rebrand remains NOT STARTED.

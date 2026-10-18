@@ -92,6 +92,25 @@ class SocketMediaModel {
     return SocketMediaModel._(data, mesh);
   }
 
+  /// Attributed, converted packaging geometry is not an owned Socket resource.
+  factory SocketMediaModel.packaging(Map<String, dynamic> data, ByteData mesh) {
+    final source = data['sourceReference'];
+    if (data['packagingGeometry'] != true ||
+        data.containsKey('apkSha256') ||
+        source is! Map ||
+        source['licence'] != 'CC-BY-4.0' ||
+        source['author'] is! String ||
+        source['url'] is! String ||
+        sha256
+                .convert(mesh.buffer
+                    .asUint8List(mesh.offsetInBytes, mesh.lengthInBytes))
+                .toString() !=
+            data['geometrySha256']) {
+      throw const FormatException('Invalid attributed packaging geometry');
+    }
+    return SocketMediaModel._(data, mesh);
+  }
+
   String get name => data['name'] as String;
   String get motionKind => data['motionKind'] as String;
   double get height => (data['bounds'][1] as num).toDouble();

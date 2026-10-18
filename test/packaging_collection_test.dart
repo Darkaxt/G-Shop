@@ -119,6 +119,8 @@ void main() {
         ('box-2D', null),
         ('box-2D-back', null),
         ('box-2D-side', null),
+        for (final face in ['front', 'back', 'left', 'right', 'top', 'bottom'])
+          ('outer-box-$face', null),
         ('manual-page', 1),
         ('manual-page', 2)
       ])
@@ -127,10 +129,18 @@ void main() {
             region: 'us',
             memberIndex: pair.$2,
             importReference: ImportedArtworkReference(
-                sourceId: 'launchbox',
+                sourceId: pair.$1.startsWith('outer-box-')
+                    ? 'nintandbox'
+                    : 'launchbox',
                 assetId: '42/face',
                 sourceUrl: 'https://images.launchbox-app.com/fixture.png',
-                sha256: digest))
+                sha256: digest,
+                sourceRegion: pair.$1.startsWith('outer-box-') ? 'eu' : null,
+                reconstruction: pair.$1.startsWith('outer-box-')
+                    ? 'regionalPackaging'
+                    : null,
+                sourceLanguages:
+                    pair.$1.startsWith('outer-box-') ? ['en', 'de'] : null))
     ];
     final identity = {
       'game_json': jsonEncode(game.toJson()),
@@ -181,6 +191,15 @@ void main() {
             'box.png',
             'box-back.png',
             'box-spine.png',
+            for (final face in [
+              'front',
+              'back',
+              'left',
+              'right',
+              'top',
+              'bottom'
+            ])
+              'outer-box-$face.png',
             'manual-page-001.png',
             'manual-page-002.png'
           ]));
@@ -209,6 +228,19 @@ void main() {
       final restored = await cache.galleryForEdition('e', hydrate: true);
       expect(restored['box-2D-back'], hasLength(1));
       expect(restored['manual-page'], hasLength(2));
+      for (final face in ['front', 'back', 'left', 'right', 'top', 'bottom']) {
+        expect(restored['outer-box-$face'], hasLength(1));
+      }
+      final packaging = (await library.metadata('e', 'packaging'))!;
+      final panels =
+          packaging.media.where((m) => m.type.startsWith('outer-box-'));
+      expect(panels, hasLength(6));
+      expect(
+          panels.every((m) =>
+              m.importReference!.sourceRegion == 'eu' &&
+              m.importReference!.reconstruction == 'regionalPackaging' &&
+              m.importReference!.sourceLanguages!.contains('en')),
+          isTrue);
       expect(remote.downloads, greaterThan(0));
       expect((await library.metadata('e', 'packaging'))!.ratings, isEmpty);
       expect((await library.edition('e'))!.regions, ['us']);

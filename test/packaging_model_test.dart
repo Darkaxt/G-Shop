@@ -6,6 +6,44 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+      'attributed cardboard preserves mesh detail and parameterized dimensions',
+      () async {
+    final model =
+        await PackagingModel(PackagingKind.box, aspect: 1, depth: .34).load();
+    expect(model.triangles, 12000);
+    expect(model.surfaces, hasLength(6));
+    expect(model.data['ownedGeometry'], isNot(true));
+    expect(model.data['sourceReference']['licence'], 'CC-BY-4.0');
+    expect(model.data['canOpen'], false);
+    expect(model.data['bounds'], [2.0, 2, .34]);
+    final transform = SocketMediaGpu.modelTransform(model, const SocketMediaPose());
+    for (var row = 0; row < 4; row++) {
+      for (var column = 0; column < 4; column++) {
+        expect(transform.entry(row, column), row == column ? 1 : 0,
+            reason: 'Converted packaging is already Y-up; no Socket reflection');
+      }
+    }
+    for (final surface in model.surfaces) {
+      for (var i = 0; i < surface['vertexCount']; i++) {
+        final offset = (surface['vertexOffset'] as int) + i * 32;
+        final x = model.mesh.getFloat32(offset, Endian.little);
+        final y = model.mesh.getFloat32(offset + 4, Endian.little);
+        final z = model.mesh.getFloat32(offset + 8, Endian.little);
+        expect(x.abs(), lessThanOrEqualTo(1.00001));
+        expect(y.abs(), lessThanOrEqualTo(1.00001));
+        expect(z.abs(), lessThanOrEqualTo(.17001));
+        var length = 0.0;
+        for (var axis = 0; axis < 3; axis++) {
+          final n =
+              model.mesh.getFloat32(offset + 12 + axis * 4, Endian.little);
+          length += n * n;
+        }
+        expect(length, closeTo(1, .00001));
+      }
+    }
+  });
   test('box is six joined textured faces with no floating spine overlay', () {
     final model = PackagingModel(PackagingKind.box, aspect: .8).build();
     expect(model.surfaces.length, 6);

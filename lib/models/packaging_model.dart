@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
 import 'socket_media_model.dart';
 
 enum PackagingKind { box, keepCase, jewelCase, booklet }
@@ -24,6 +26,48 @@ class PackagingModel {
   }
   bool get canOpen => kind != PackagingKind.box;
   String get id => 'rshop-${kind.name}-v1';
+
+  Future<SocketMediaModel> load() async {
+    if (kind != PackagingKind.box) return build();
+    final data = jsonDecode(
+            await rootBundle.loadString('assets/packaging/cardboard.json'))
+        as Map<String, dynamic>;
+    final source = await rootBundle.load('assets/packaging/cardboard.mesh');
+    // Verify the unmodified conversion before deriving the selected dimensions.
+    SocketMediaModel.packaging(data, source);
+    final bytes = ByteData.sublistView(Uint8List.fromList(
+        source.buffer.asUint8List(source.offsetInBytes, source.lengthInBytes)));
+    for (final raw in data['surfaces'] as List) {
+      final surface = raw as Map;
+      for (var i = 0; i < surface['vertexCount']; i++) {
+        final offset = (surface['vertexOffset'] as int) + i * 32;
+        final scales = [aspect, 1.0, depth / 2];
+        var length = 0.0;
+        for (var axis = 0; axis < 3; axis++) {
+          bytes.setFloat32(
+              offset + axis * 4,
+              bytes.getFloat32(offset + axis * 4, Endian.little) * scales[axis],
+              Endian.little);
+          final n = bytes.getFloat32(offset + 12 + axis * 4, Endian.little) /
+              scales[axis];
+          bytes.setFloat32(offset + 12 + axis * 4, n, Endian.little);
+          length += n * n;
+        }
+        length = math.sqrt(length);
+        for (var axis = 0; axis < 3; axis++) {
+          final n = offset + 12 + axis * 4;
+          bytes.setFloat32(
+              n, bytes.getFloat32(n, Endian.little) / length, Endian.little);
+        }
+      }
+    }
+    data['name'] = 'cardboard-scan-v1';
+    data['bounds'] = [aspect * 2, 2, depth];
+    data['sourceWidth'] = aspect * 2;
+    data['geometrySha256'] =
+        sha256.convert(bytes.buffer.asUint8List()).toString();
+    return SocketMediaModel.packaging(data, bytes);
+  }
 
   SocketMediaModel build() {
     final bytes = BytesBuilder(copy: false);

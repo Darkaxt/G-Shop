@@ -1,8 +1,56 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 81, 2026-10-18.
+Authoritative specification, revision 84, 2026-10-18.
 
-Current checkpoint, 2026-10-18: S25 is BLOCKED at the corrected GBA owner-review
+Owner consolidated direction, 2026-10-18, supersedes the earlier S25-only source
+priority: NintAndBox's acquired dump -> lower-resolution public .es resource only
+when absent locally -> LaunchBox -> ScreenScraper. Prefer a suitable complete
+English box; other-language originals take priority when multilingual. Actual
+artwork/languages, not a Spanish website label, establish suitability. Apply this
+across Nintendo systems whose real packaging supports it. Disc-era Wii/Wii U,
+GameCube and DS/3DS/Switch normally use their era-appropriate case without an
+invented cardboard outer box. Identify an actual matching case model before
+substituting a generic one, preserving source, region and physical-layer evidence.
+Implement reusable unfolded-panel assembly and tolerant fit; extend panel edge
+colours where texture coverage is short instead of adding gray gaps or stretching
+the whole sheet. Adapt the supplied Diskette box for cardboard and the pamphlet
+model for manuals. The merged trailer-first gallery remains universal. Record
+source acquisition, adaptation and native verification separately. The owner's
+instruction to work through Nintendo applies; no artificial per-game approval
+gate is added. Full cinematic implementation remains held for individual model
+verification. S27 stays NOT STARTED.
+
+Owner future-stage request, 2026-10-18: S27 adds console hardware models to the
+console-selection page, not to individual ROM packaging. Candidate reference:
+https://sketchfab.com/3d-models/game-boy-original-box-packaging-7b800e49474d4da5a43be8f6ed4e02e9.
+S27 is NOT STARTED. Establish console coverage, asset suitability and the existing
+selection layout's touch/controller/performance contract when it becomes active;
+do not replace console navigation or begin acquisition/implementation during S25.
+
+Owner packaging-language clarification: inspect the actual panels, not a site's
+Spanish-language label. Multilingual European packaging containing English is a
+valid reviewed visual source; retain its source region/languages independently of
+the ROM release. Do not require English repainting where the artwork is suitable.
+Also evaluate the Extreme G N64 box and rotated Diskette box as reusable cardboard
+geometry candidates; listing/acquisition is not native model verification.
+
+Current execution: S25 is ACTIVE for the owner's shared gallery and packaging
+correction. Gallery is one ordered media sequence, all trailers first, followed
+by images, with one touch/controller selector and retained volume/music lifecycle.
+This applies to every game and console, not a title-specific branch. Classified
+unfolded scans must feed all available distinct outer-box panels into the existing
+collector/import/Drive/viewer path. Repeat a spine only for genuinely missing
+panels. Reviewed layout recipes bind console, game, source digest, crop, rotation
+and source region; English-edition reconstruction retains the selected front/back
+and records donor-region provenance without claiming an original regional scan.
+Use preserved NintAndBox scans rather than purchasing duplicate full-size art.
+Evaluate Brochure book 01 and Manuals & Gum for replaceable page textures, opening
+geometry, acquisition and reuse suitability; static listings alone do not prove
+an integrated/animated booklet. Castlevania is a verification example, never
+hardcoded application behavior. The full cinematic and next-console native
+implementation remain outside this correction checkpoint.
+
+Previous checkpoint, 2026-10-18: S25 was BLOCKED at the corrected GBA owner-review
 stop. Public GitHub-signed 1.9.19/code 35 is installed and Castlevania's closed
 six-face box, manual fit, gallery and trailer have been checked on Thor. No next
 console or cinematic begins before owner review. This is not full S25 completion.

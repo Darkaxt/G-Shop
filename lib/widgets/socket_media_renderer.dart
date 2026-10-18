@@ -164,7 +164,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
     _labelImage = null;
     try {
       final renderer = await SocketMediaGpu.load(widget.format,
-          owned: widget.packaging?.build());
+          owned: await widget.packaging?.load());
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
@@ -351,7 +351,8 @@ class SocketMediaGpu {
   /// Undo the converter's Y reflection and baked rest basis exactly once.
   static vm.Matrix4 modelTransform(
       SocketMediaModel model, SocketMediaPose pose) {
-    if (model.data['ownedGeometry'] == true) {
+    if (model.data['ownedGeometry'] == true ||
+        model.data['packagingGeometry'] == true) {
       return vm.Matrix4.identity()
         ..translateByDouble(0, pose.y, pose.z, 1)
         ..rotateY(pose.ry)

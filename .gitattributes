@@ -1,0 +1,3 @@
+# Raw converted geometry must not be diffed or normalized as text.
+assets/packaging/*.mesh binary
+assets/packaging/*.json text eol=lf

@@ -5,7 +5,51 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### S25 corrected GBA owner-review checkpoint — 2026-10-18, BLOCKED
+### S25 shared gallery and classified panels — 2026-10-18, ACTIVE
+
+Owner feedback resumes the same stage under specification revision 84. Required:
+one trailer-first media sequence for all games, all reviewed distinct unfolded
+box panels through the existing collector/import/Drive/viewer lane, retained
+composite provenance, adapted Diskette cardboard, supplied booklet geometry and
+era-appropriate Nintendo cases. Acceptance remains pending; no cinematic is opened. Castlevania
+is the real example, not a game-specific implementation.
+
+Current host evidence: six compatible GBA unfolded sets have been classified
+from the preserved dump. Inspected six-face sheets now retain the complete fronts,
+backs and distinct closure panels; pale artwork at a fold no longer truncates a
+face. Regional/language provenance is retained. Other ranked entries retain their
+existing fallback resources; the public low-resolution website checks made no
+full-size downloads. The 12,000-triangle CC BY cardboard mesh is acquired, adapted
+and wired into the renderer, with bundled attribution. This is not native model
+acceptance or a new Drive publication. The single trailer-first Gallery is wired;
+the booklet source still needs acquisition/adaptation, actual case inspections
+remain, and the current changes have not been released or deployed.
+
+Advancement blockers: (internal) current collector -> Drive -> cache -> native
+box/gallery acceptance and per-console geometry remain; resolve with the complete
+real workflows. (External acquisition boundary) neither supplied booklet listing
+offers an official download; a local export has been requested while other S25
+work continues. Resolve with a usable source and its verified reuse/import path.
+No required work is deferred to another stage; S25 remains ACTIVE.
+
+Verification for the current source checkpoint: focused Gallery, packaging
+import/Drive-adapter/recovery, model, attribution and secondary lifecycle/audio
+checks passed. The adapter is an in-memory Drive test, not a live publication.
+Regression reproduction caught and corrected the adapted mesh taking Socket's
+reflected coordinate path; its neutral transform now preserves the converted
+Y-up/front orientation. Existing material/camera/control checks passed; three
+private-APK oracle checks were skipped in that public-only host invocation.
+Scoped analyzer reported no errors or warnings (style information only).
+Python panel/fold/language/source-order and request-budget checks passed. Blender
+front/back/bottom views show the actual Castlevania panels on the converted mesh;
+these remain host evidence, not Android appearance or player-release acceptance.
+No Windows Gradle command ran, no build gate was acquired, and no memory-budget
+increase, publication or device deployment occurred at this source checkpoint.
+
+S27 console-selection hardware models: NOT STARTED. Candidate source recorded
+in the specification and plan; no implementation or native verification claimed.
+
+### Previous S25 corrected GBA owner-review checkpoint — 2026-10-18
 
 Public [1.9.19/code 35](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.19)
 is installed on Thor from GitHub-signed source `713c8c0`, run 39117405760.

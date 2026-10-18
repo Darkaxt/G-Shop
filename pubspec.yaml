@@ -73,6 +73,7 @@ flutter:
       fonts:
         - asset: assets/fonts/Kalam-Regular.ttf
   assets:
+    - assets/packaging/
     - assets/fonts/Kalam-OFL.txt
     - assets/socket_import_recipe.json
     - assets/media_import_licenses/
