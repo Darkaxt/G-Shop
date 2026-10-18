@@ -9,10 +9,12 @@ Latest supplied candidates (public v3 model API inspected 2026-10-18):
 | [Brochure book 01](https://sketchfab.com/3d-models/brochure-book-01-be822ca5f3d4461c8f5d8c02b7bcbaa8) | 39,226 vertices / 77,756 triangles; no listed animation; official download disabled; Standard licence listing | Page replacement, opening parts and usable acquisition not established. Not a verified animated booklet replacement. |
 | [Manuals & Gum](https://sketchfab.com/3d-models/manuals-gum-e4566daa94204a1ca8dbe18b91819157) | 1,153 vertices / 2,318 triangles; no listed animation; official download disabled; no licence returned | Separate booklet geometry/page UVs and reusable rights unverified. Keep working parametric booklet. |
 | [Extreme G N64 Box](https://sketchfab.com/3d-models/extreme-g-nintendo-n64-box-2f8be7a260754d82bcb4c966e04f7797) | 8 vertices / 12 triangles; no listed animation; official download disabled; no licence returned | Closed cuboid, not geometrically creased cardboard. Visible wear is inferred to be texture/material detail; must inspect before claiming transferable wear with new game art. |
-| [Diskette box](https://sketchfab.com/3d-models/diskette-box-c179241faa984442a9a802d867bc60f5) | Official 1K GLB acquired; CC BY 4.0, matousekfoto; 6,002 source vertices / 12,000 triangles; no animation | Adapted and renderer-wired: normalized orientation/axes, six replaceable UV regions, source artwork removed, matte material and bundled attribution. Native orientation/appearance remains pending; do not claim opening support. |
+| [Diskette box](https://sketchfab.com/3d-models/diskette-box-c179241faa984442a9a802d867bc60f5) | Official 1K GLB acquired; CC BY 4.0, matousekfoto; 6,002 source vertices / 12,000 triangles; no animation | Adapted six-region matte mesh passes selected Mega Man/Castlevania front/back/side and touch rotation/zoom on Thor in signed 30853c9. Per-console fit remains; no opening support is claimed. |
 
-None of these listing checks is added as final verified geometry in the model
-ledger. Public release must not bundle resources without a verified reuse grant.
+Listing checks alone are not verified geometry. The acquired/adapted Diskette
+model's actual native GBA evidence is now recorded in S25_VERIFIED_MODELS.md;
+the other candidates remain unverified. Public release must not bundle resources
+without a verified reuse grant.
 
 Actual acquired DVD-case geometry inspection (Blender 5.2.2, 2026-10-18):
 `dvdps2wii-case.zip` contains one mesh, 2,146 vertices / 2,144 polygons, one UV

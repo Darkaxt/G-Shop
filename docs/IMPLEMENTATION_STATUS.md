@@ -20,14 +20,15 @@ backs and distinct closure panels; pale artwork at a fold no longer truncates a
 face. Regional/language provenance is retained. Other ranked entries retain their
 existing fallback resources; the public low-resolution website checks made no
 full-size downloads. The 12,000-triangle CC BY cardboard mesh is acquired, adapted
-and wired into the renderer, with bundled attribution. This is not native model
-acceptance or a new Drive publication. The single trailer-first Gallery is wired;
-the booklet source still needs acquisition/adaptation, actual case inspections
-remain, and the current changes have not been released or deployed.
+and wired into the renderer, with bundled attribution. The signed candidate now
+passes the selected-game native box/Gallery workflow described below. The booklet
+source still needs acquisition/adaptation, and applicable era-specific cases still
+need adaptation/native acceptance; these are not excused by the GBA box result.
 
-Advancement blockers: (internal) current collector -> Drive -> cache -> native
-box/gallery acceptance and per-console geometry remain; resolve with the complete
-real workflows. (External acquisition boundary) neither supplied booklet listing
+Advancement blockers: (internal) cold-recovery acceptance for the new panels,
+full ordinary-app controller workflow, exact Gallery music restoration and
+remaining per-console geometry remain; resolve with their complete real workflows.
+(External acquisition boundary) neither supplied booklet listing
 offers an official download; a local export has been requested while other S25
 work continues. Resolve with a usable source and its verified reuse/import path.
 No required work is deferred to another stage; S25 remains ACTIVE.
@@ -43,8 +44,43 @@ Scoped analyzer reported no errors or warnings (style information only).
 Python panel/fold/language/source-order and request-budget checks passed. Blender
 front/back/bottom views show the actual Castlevania panels on the converted mesh;
 these remain host evidence, not Android appearance or player-release acceptance.
-No Windows Gradle command ran, no build gate was acquired, and no memory-budget
-increase, publication or device deployment occurred at this source checkpoint.
+No Windows Gradle command ran and no local build gate was acquired.
+
+Native candidate verification: source `30853c9ee7cc27220217fe8f44fb23a05b551d8c`,
+[GitHub run 39130119946](https://github.com/Darkaxt/R-Shop/actions/runs/39130119946),
+was production-signed and installed in place on Thor for live verification.
+Downloaded and installed APK SHA-256 both equal
+`6f0016e9d55ec2d99b735cef3d767a4c6bb07dc0b1da4af20ffbd1f1f04f5e32`;
+package `com.darkaxt.rshop` and production certificate are unchanged. Candidate
+version is still 1.9.19/code 35; it is NOT the existing public 1.9.19 asset.
+No new public release was created. Hosted Linux used no-daemon, two workers,
+no parallelism, in-process Kotlin, configured 3 GiB Gradle heap, one 512 MiB test
+fork and native concurrency hint 2. Build succeeded without a memory failure or
+budget increase. Hosted completion/stop-at-end logging is not an independently
+observed remote daemon PID-exit measurement.
+
+The normal Import artwork pack UI admitted the six-game classified delta and
+resumed Drive publication. Independent mounted-Drive reads matched all 36 new
+outer-box file bodies to their expected SHA-256; all six metadata packets retain
+36 donor-language provenance entries. No missing or differing panel was found.
+This verifies actual publication, not a new cold-cache recovery pass. Importing
+this pack made no new metadata-provider requests.
+
+Mega Man Zero 3 and Castlevania now render `cardboard-scan-v1`: 12,000 triangles,
+six surfaces, six distinct typed panels, label/frame ready and no renderer error.
+Inspected front/back/side captures show joined opaque bodies and upright artwork;
+touch rotation/zoom works, and no invented GBA Case tab is shown. The combined
+Gallery presents trailer before screenshot, starts only on Play, and reports the
+saved preview volume .22485692962990014. Switching from a playing trailer to the
+image produced native `playerReleased=true`. Audible music restoration and the
+full controller path are not claimed verified by this touch pass. This is not a
+new full-24-game model pass or acceptance of the unavailable supplied booklet.
+Evidence: `D:/Temp/rshop-s25-gallery-panels-20261018/native/` and the reviewed
+panel pack/recipes in its parent. Source scans and the host pack are preserved.
+Exact reviewed device staging cleanup removed the 38,395,863-byte imported ZIP
+and its empty task folder (transaction `40290dc99d1553f46e437419239a5b5e`, applied).
+Both Thor displays were subsequently verified committed OFF with the device
+Asleep. S25 remains ACTIVE; no later console or cinematic has begun.
 
 S27 console-selection hardware models: NOT STARTED. Candidate source recorded
 in the specification and plan; no implementation or native verification claimed.

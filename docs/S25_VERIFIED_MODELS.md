@@ -8,15 +8,26 @@ not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
-Current adaptation (2026-10-18, not native-verified): the officially downloaded
+Current adaptation (2026-10-18, selected GBA games native-verified): the officially downloaded
 Diskette CC BY 4.0 mesh by matousekfoto is reoriented, parameterized in three axes,
 mapped to six replaceable face regions and assigned a matte non-metallic material.
 Source SHA-256: `2da7253ce1c6fd285bb70a703c8d0a97d4a7c86e41e12f209248bd812b621fc7`.
 Adapted geometry SHA-256: `ce69a01fbf55dc5eac2b22cfc1aaad8168dfeb81d3040238b10c68bf30b82509`.
 Its 12,000 triangles preserve the scan geometry, not the original printed artwork.
-The renderer loads this asset for cardboard; actual Android appearance/orientation
-and Drive recovery remain acceptance blockers. Host panel inspection of six GBA
-sets is source-classification evidence, not a new console acceptance pass.
+Signed source `30853c9` (GitHub run 39130119946) renders this asset on Thor for
+Mega Man Zero 3 and Castlevania: 12,000 triangles, six joined surfaces, six typed
+panels, upright front/back/side art, touch rotation/zoom and no renderer error.
+At fitted aspect 1.0/depth .3671875 the runtime geometry digest is
+`6358ceabeb22efed4a7df2483ef255c5aefa77a1887ba7967a7f52d6377909d6`.
+All 36 new panel bodies and donor-language provenance across six actual Drive
+game folders match the reviewed pack. This is publication proof, not new cold
+recovery or a fresh full-24-game acceptance pass. Native evidence is under
+`D:/Temp/rshop-s25-gallery-panels-20261018/native/`.
+One shared Gallery now places the trailer before the image, plays at saved
+volume .22485692962990014 and releases its native player when the image is
+selected during playback. Exact audible music restoration and the full ordinary
+controller path remain unverified. The candidate is installed in place, but no
+new public release exists; existing public 1.9.19 is a different artifact.
 Booklet candidates remain unacquired; the working parametric booklet is not claimed
 to be their geometry. New genuine case geometry is not yet native-verified.
 
@@ -200,7 +211,7 @@ and cinematic acceptance remain separate required work.
 | `switch` | `switch` (A09) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `gb` | `gb` (A10) | Box A02; Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `gbc` | `gbc` (A11) / `gbc_dual_mode` (A12) | Box A02; Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
-| `gba` | `gba` (A13) | Box A02; fitted generic GBA Case A03 | Actual ranked 24-game frames/labels, generic case opening and touch rotation/zoom; medium does not open | Real GBA artwork and 19 booklets verified; final acquired protector/composition and full controller workflow remain pending |
+| `gba` | `gba` (A13) | `cardboard-scan-v1` (digest above); no Case tab | Earlier ranked 24-game medium/label proof; current Mega Man/Castlevania distinct-panel cardboard and touch rotation/zoom | Supplied booklet, final acquired protector/composition, current full-cohort/cold-recovery and full controller workflow remain pending |
 | `nds` | `nds` (A14) | Case A03 | 3D frame + rotation/zoom; medium does not open | Geometry inspected; game artwork/assembly pending |
 | `virtualboy` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
 | `fds` | Systematic flat fallback | Box A02; Case A03 | Flat only; no console-specific 3D verified | Geometry inspected; game artwork/assembly pending |
@@ -296,12 +307,12 @@ The console-review stop and subsequent cinematic work remain explicitly pending.
 | Criterion | Verified at this checkpoint | Remaining acceptance |
 | --- | --- | --- |
 | P25-01 primary/fallback pipeline | Earlier LaunchBox/ScreenScraper GBA publication and ranked explorer proof; current dump classification and source-priority host checks | Revision 84 dump -> public .es -> LaunchBox -> ScreenScraper integration, actual native recovery and supplied 007 fallback example |
-| P25-02 final packaging/fit | Earlier joined cuboid and manual fit verified in 1.9.19; adapted Diskette mesh wired but not native-verified | Native adapted cardboard/texture fit, supplied booklet, authentic era-appropriate cases where applicable, acquired protector integration; no invented GBA Case |
+| P25-02 final packaging/fit | Adapted Diskette mesh and distinct front/back/side fit verified on Thor for two GBA games; no invented GBA Case | Supplied booklet, remaining applicable era-specific cases, acquired protector integration and per-console fit |
 | P25-03 full interactive integration | Signed ordinary-app secondary touch entry and 24-game explorer pass; primary grid navigation retained | Full ordinary-app controller workflow remains unverified; isolated controller evidence is not a substitute |
 | P25-04 cinematic/lifecycle | Owner explicitly requested stopping before the new full transition; S24 reveal remains unchanged | Resume only after this individual review; verify complete box-exit/case-align/open/medium-pop/dissolve/trailer per applicable console |
-| P25-05 real documents/media | Nineteen actual manual booklets render; LeafGreen's real page reader/Next and cached gallery trailer were inspected | Exact interactive-gallery volume/music restoration and remaining applicable per-console documents/media checks |
-| P25-06 ranked GBA | All 24 actual distinct ranked games passed current signed native box/case/cartridge checks; all 48 box/cartridge captures inspected | No missing 25th is invented; S24's unchanged ranked trailer/audio proof is retained, not replaced by this model pass |
-| P25-07 classified ingestion | Earlier 24 Drive packets/789 page digests match and one remote manual read matches; six new multilingual GBA sets inspected locally | Publish/recover distinct new panels with donor-region/language provenance, then required Nintendo console-by-console ingestion; current host classification is not Drive publication |
-| P25-08 production delivery | Public GitHub-signed 1.9.19 source 713c8c0 has matching installed/released bytes and certificate | Current coherent correction needs verification, GitHub signing and Thor delivery before the requested GBA review; no new release is claimed |
+| P25-05 real documents/media | Earlier nineteen manuals/LeafGreen reader proof; current combined trailer-first Gallery plays at saved gain and releases native player on image selection | Exact audible music restoration and remaining applicable per-console documents/media checks; supplied booklet remains separate |
+| P25-06 ranked GBA | Earlier 1.9.18 pass covered 24 distinct games and 48 box/cartridge captures; current adapted-box pass covers two selected games | No missing 25th is invented; refresh affected cohort evidence for the current model; unchanged S24 ranked trailer/audio proof retains its stated limits |
+| P25-07 classified ingestion | Earlier 24 packets/789 pages; current six-game import and actual Drive publication, 36 matching panel hashes/provenance | New-panel cold recovery and required Nintendo console-by-console ingestion |
+| P25-08 production delivery | GitHub-signed 30853c9 candidate installed in place with matching artifact/device hash and unchanged certificate | Remaining coherent correction/acceptance and public publication; candidate retains code 35 and is not existing public 1.9.19 |
 
 No S25 requirement is moved into S26. The rebrand remains NOT STARTED.
