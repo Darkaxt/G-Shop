@@ -69,6 +69,9 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
   String? _video, _notice, _sent;
   bool _details = false, _visible = true, _working = false;
   bool _gallery = false;
+  bool _galleryLoading = false;
+  int _galleryRequest = 0;
+  Map<String, List<String>>? _openedGallery;
   bool _clipLoading = false;
   int _clipRequest = 0;
   int _generation = 0;
@@ -151,6 +154,9 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     _generation++;
     _details = false;
     _gallery = false;
+    _galleryLoading = false;
+    _openedGallery = null;
+    _galleryRequest++;
     _video = null;
     _videoMedia = null;
     _metadata = null;
@@ -292,20 +298,37 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
     if (!mounted || !_visible) return;
     if (action == 'gallery' || action == 'preview') {
       final edition = _metadata?.editionId;
-      if (action == 'gallery' && edition != null) {
-        await (await ref.read(cachedMetadataArtworkProvider))
-            .galleryForEdition(edition, hydrate: true);
-        if (!mounted || !_visible || _metadata?.editionId != edition) return;
-        ref.invalidate(editionGalleryMediaProvider(edition));
-        // Hydration prepares bytes; the mounted reader still needs to rebuild
-        // its edition-owned map before the secondary viewer can open.
-        await ref.read(editionGalleryMediaProvider(edition).future);
-        if (!mounted || !_visible || _metadata?.editionId != edition) return;
-      }
+      if (action == 'gallery' && _galleryLoading) return;
+      final request = ++_galleryRequest;
       setState(() {
         _gallery = action == 'gallery';
+        _galleryLoading = _gallery && edition != null;
         _details = false;
+        _notice = null;
       });
+      if (action == 'gallery' && edition != null) {
+        try {
+          final resources =
+              await (await ref.read(cachedMetadataArtworkProvider))
+                  .galleryForEdition(edition, hydrate: true);
+          if (!mounted ||
+              !_visible ||
+              request != _galleryRequest ||
+              _metadata?.editionId != edition) return;
+          setState(() => _openedGallery = resources);
+        } catch (_) {
+          if (mounted && request == _galleryRequest)
+            setState(() {
+              _gallery = false;
+              _details = true;
+              _notice =
+                  'Resources could not load. Check your connection and try again.';
+            });
+        } finally {
+          if (mounted && request == _galleryRequest)
+            setState(() => _galleryLoading = false);
+        }
+      }
       return;
     }
     if (action == 'details') {
@@ -476,7 +499,9 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'reducedMotion': media.reducedMotion,
         'details': _details,
         'gallery': _gallery,
-        'galleryResources': galleryMedia,
+        'galleryLoading': _galleryLoading,
+        'galleryResources':
+            _gallery ? (_openedGallery ?? galleryMedia) : galleryMedia,
         'variant': controller.selectedIndex,
         'variants': selection.variants.map((v) => v.filename).toList(),
         'canLaunch': !_working && controller.canOpenSelected,

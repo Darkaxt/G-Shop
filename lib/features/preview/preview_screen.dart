@@ -371,51 +371,64 @@ class _PreviewScreenState extends State<PreviewScreen>
                         const SizedBox(height: 12),
                         Expanded(
                             child: snapshot['gallery'] == true
-                                ? ResourceGallery(
-                                    key: _galleryKey,
-                                    identity: snapshot['identity'] as String,
-                                    title: game.displayName,
-                                    systemId: system.id,
-                                    region: GameMetadata.parse(game.filename)
-                                        .region
-                                        .name,
-                                    dualMode:
-                                        snapshot['gbcDualMode'] as String?,
-                                    importedModels: snapshot['threeD'] == true,
-                                    volume: _volume,
-                                    resources: {
-                                      for (final entry
-                                          in (snapshot['galleryResources']
-                                                      as Map? ??
-                                                  {})
-                                              .entries)
-                                        entry.key as String:
-                                            (entry.value as List)
-                                                .cast<String>(),
-                                      if (snapshot['cover'] != null)
-                                        'cover-preview': [
-                                          snapshot['cover'] as String
-                                        ],
-                                      if (snapshot['label'] != null)
-                                        'support-texture': [
-                                          snapshot['label'] as String
-                                        ],
-                                      'screenshot': screenshots,
-                                      if (snapshot['video'] != null)
-                                        'video': [
-                                          Uri.file(snapshot['video'] as String)
-                                              .toString()
-                                        ],
-                                    },
-                                    onClose: () => _action('preview'),
-                                    onPlayingChanged: (playing) => unawaited(
-                                            bridge
+                                ? snapshot['galleryLoading'] == true
+                                    ? const Center(
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                            CircularProgressIndicator(),
+                                            SizedBox(height: 16),
+                                            Text('Loading resources…')
+                                          ]))
+                                    : ResourceGallery(
+                                        key: _galleryKey,
+                                        identity:
+                                            snapshot['identity'] as String,
+                                        title: game.displayName,
+                                        systemId: system.id,
+                                        region:
+                                            GameMetadata.parse(game.filename)
+                                                .region
+                                                .name,
+                                        dualMode:
+                                            snapshot['gbcDualMode'] as String?,
+                                        importedModels:
+                                            snapshot['threeD'] == true,
+                                        volume: _volume,
+                                        resources: {
+                                          for (final entry
+                                              in (snapshot['galleryResources']
+                                                          as Map? ??
+                                                      {})
+                                                  .entries)
+                                            entry.key as String:
+                                                (entry.value as List)
+                                                    .cast<String>(),
+                                          if (snapshot['cover'] != null)
+                                            'cover-preview': [
+                                              snapshot['cover'] as String
+                                            ],
+                                          if (snapshot['label'] != null)
+                                            'support-texture': [
+                                              snapshot['label'] as String
+                                            ],
+                                          'screenshot': screenshots,
+                                          if (snapshot['video'] != null)
+                                            'video': [
+                                              Uri.file(snapshot['video']
+                                                      as String)
+                                                  .toString()
+                                            ],
+                                        },
+                                        onClose: () => _action('preview'),
+                                        onPlayingChanged: (playing) =>
+                                            unawaited(bridge
                                                 .invokeMethod<void>('playing', {
-                                          'actionEpoch':
-                                              snapshot['actionEpoch'],
-                                          'video': snapshot['video'],
-                                          'playing': playing
-                                        })))
+                                              'actionEpoch':
+                                                  snapshot['actionEpoch'],
+                                              'video': snapshot['video'],
+                                              'playing': playing
+                                            })))
                                 : details
                                     ? Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -428,32 +441,9 @@ class _PreviewScreenState extends State<PreviewScreen>
                                                     true &&
                                                 snapshot['cover'] == null
                                             ? const Center(
-                                                child: CircularProgressIndicator(
-                                                    key: ValueKey(
-                                                        'preview-loading-cover')))
+                                                child: CircularProgressIndicator(key: ValueKey('preview-loading-cover')))
                                             : prefs.modelVisible
-                                                ? CoverSection(
-                                                    key: _coverKey,
-                                                    game: game,
-                                                    system: system,
-                                                    coverUrls: const [],
-                                                    cachedUrl: snapshot['cover']
-                                                        as String?,
-                                                    physicalLabelUrl:
-                                                        snapshot['label']
-                                                            as String?,
-                                                    gbcDualMode:
-                                                        snapshot['gbcDualMode']
-                                                            as String?,
-                                                    metadata:
-                                                        GameMetadata.parse(game.filename),
-                                                    physicalMediaEnabled: snapshot['threeD'] == true,
-                                                    physicalMediaKey: _physicalKey,
-                                                    reducedMotion: snapshot['reducedMotion'] == true,
-                                                    resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true),
-                                                    onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)),
-                                                    onRevealed: () => unawaited(_rendered(snapshot['revision'] as int, revealCompleted: true)),
-                                                    showPresentationControls: false)
+                                                ? CoverSection(key: _coverKey, game: game, system: system, coverUrls: const [], cachedUrl: snapshot['cover'] as String?, physicalLabelUrl: snapshot['label'] as String?, gbcDualMode: snapshot['gbcDualMode'] as String?, metadata: GameMetadata.parse(game.filename), physicalMediaEnabled: snapshot['threeD'] == true, physicalMediaKey: _physicalKey, reducedMotion: snapshot['reducedMotion'] == true, resourcesReady: snapshot['mediaLoading'] != true && (_videoPath == null || _video?.value.isInitialized == true), onReady: () => unawaited(_rendered(snapshot['revision'] as int, revealStarted: true)), onRevealed: () => unawaited(_rendered(snapshot['revision'] as int, revealCompleted: true)), showPresentationControls: false)
                                                 : const Center(child: Icon(Icons.touch_app_outlined, size: 48)))),
                         if (!details)
                           const Text('Select for details',

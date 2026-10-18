@@ -5,7 +5,31 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
-### S25 GBA owner-review checkpoint — 2026-10-18, BLOCKED
+### S25 GBA review corrections — 2026-10-18, ACTIVE
+
+Owner review resumes this stage. Current internal acceptance blockers: incomplete
+box-face artwork/layout, duplicate GBA Case, manual margins, packaging leaked into
+Gallery, trailer discoverability and silent eager Resources loading. Resolve and
+verify the complete corrected explorer on Thor; previous frontal captures do not
+prove six-face closure. Crash investigation has not identified a new process exit:
+the current production PID remained alive and exit-info reports the previous
+install force-stop. Do not claim the apparent crash fixed without evidence.
+No later stage is ACTIVE and these gaps are not deferred.
+
+Current candidate corrects the atlas's loose-height image layout and opaque cell
+coverage, maps six connected box faces without an offset spine plane, repeats
+the edge texture and rotates top/bottom repeats into their long axis. The same
+filled atlas removes artificial manual bands; booklet depth follows paper rather
+than case depth. GBA Case is absent. Gallery excludes packaging/labels and exposes
+Trailer alongside Images. Resources shows loading immediately and catches load
+errors; it consumes the hydrated map instead of discarding it and hashing every
+page again. Focused box/gallery, preview loading/focus, audio and lifecycle checks
+pass on the host; GPU appearance still requires Thor. The wider discovery fixture
+fails at PS2 console selection in `pumpAndSettle`, before the resource explorer;
+do not report its whole file/suite as passing. No native correction pass or crash
+fix is claimed at this checkpoint.
+
+### Previous S25 GBA owner-review checkpoint — 2026-10-18, BLOCKED
 
 The expressly requested first-console review stop has been reached. Public
 [1.9.18/code 34](https://github.com/Darkaxt/R-Shop/releases/tag/v1.9.18) is the

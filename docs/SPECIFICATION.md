@@ -1,8 +1,22 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 80, 2026-10-18.
+Authoritative specification, revision 81, 2026-10-18.
 
-Execution checkpoint, 2026-10-18: S25 is **BLOCKED** at the owner's expressly
+Current owner feedback, 2026-10-18: S25 is ACTIVE again, limited to the GBA
+resource explorer corrections. The box must be one closed six-face object;
+reuse the available spine for all four narrow faces when distinct panels are
+absent. Remove the GBA Case tab until a real distinct case is integrated. Fit
+manual artwork to its booklet without added gray bands. Gallery contains only
+screenshots/art and selectable trailers, not packaging or cartridge labels.
+Resources must acknowledge opening immediately and contain loading failures.
+Investigate the reported crash without claiming an unidentified crash fixed.
+The owner permits reconstructed packaging using the acquired NintAndBox layout
+and existing English panels; retain source/projection provenance rather than
+calling a composite an original regional scan. No paid site downloads are needed
+for resources already in the preserved archive. No next console or cinematic is
+authorized before the corrected GBA review checkpoint.
+
+Previous execution checkpoint, 2026-10-18: S25 was **BLOCKED** at the owner's expressly
 requested first-console review stop. GitHub-signed public 1.9.18 is installed on
 Thor; the 24-game GBA explorer and classified Drive publication have passed their
 recorded checks. The owner must inspect GBA before another console's native

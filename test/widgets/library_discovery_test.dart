@@ -61,13 +61,13 @@ class _Config extends ConfigStorageService {
 }
 
 class _GalleryCache extends MetadataArtworkCache {
-  _GalleryCache(Database db) : super(Future.value(db), Directory.systemTemp);
+  final Future<Map<String, List<String>>> gallery;
+  _GalleryCache(Database db, this.gallery)
+      : super(Future.value(db), Directory.systemTemp);
   @override
   Future<Map<String, List<String>>> galleryForEdition(String editionId,
-          {bool hydrate = false}) async =>
-      const {
-        'box-2D': ['file:///fixture/front.png']
-      };
+          {bool hydrate = false}) =>
+      gallery;
 }
 
 class _MetadataScopeObserver extends ProviderObserver {
@@ -157,7 +157,7 @@ void main() {
       editionGalleryMediaProvider
           .overrideWith((ref, edition) => gallery.future),
       cachedMetadataArtworkProvider
-          .overrideWith((ref) async => _GalleryCache(db)),
+          .overrideWith((ref) async => _GalleryCache(db, gallery.future)),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -196,13 +196,15 @@ void main() {
         .firstWhere((item) => item.label == 'Resources')
         .onSelect!();
     await tester.pumpAndSettle();
-    expect(snapshots.last['gallery'], isFalse,
-        reason: 'Do not expose a fallback model while typed resources resolve');
+    expect(snapshots.last['gallery'], isTrue);
+    expect(snapshots.last['galleryLoading'], isTrue,
+        reason: 'Acknowledge opening without exposing a fallback model');
     gallery.complete(const {
       'box-2D': ['file:///fixture/front.png']
     });
     await tester.pumpAndSettle();
     expect(snapshots.last['gallery'], isTrue);
+    expect(snapshots.last['galleryLoading'], isFalse);
     expect(snapshots.last['galleryResources'], {
       'box-2D': ['file:///fixture/front.png']
     });

@@ -84,6 +84,7 @@ class PackagingModel {
         {bool hinged = false,
         int? front,
         int? back,
+        int? left,
         int? right,
         int? top,
         int? bottom}) {
@@ -118,6 +119,7 @@ class PackagingModel {
             [x0, y1, z0]
           ],
           [-1, 0, 0],
+          art: left,
           hinged: hinged);
       face(
           '$name/right',
@@ -156,7 +158,7 @@ class PackagingModel {
 
     if (kind == PackagingKind.box) {
       slab('outer', -w, w, -h, h, -d, d,
-          front: 0, back: 1, right: 3, top: 4, bottom: 5);
+          front: 0, back: 1, left: 2, right: 3, top: 4, bottom: 5);
     } else {
       // Separate lid/tray and hinge: opening exposes real empty internal space,
       // not a rotated solid block. It makes no original-platform holder claim.
@@ -199,17 +201,19 @@ class PackagingModel {
       }
     }
     // Actual side artwork is a separate surface, never stretched front art.
-    final spineX = -w - (kind == PackagingKind.box ? .001 : .019);
-    face(
-        'spine',
-        [
-          [spineX, -h, -d],
-          [spineX, -h, d],
-          [spineX, h, d],
-          [spineX, h, -d]
-        ],
-        [-1, 0, 0],
-        art: 2);
+    if (kind != PackagingKind.box) {
+      final spineX = -w - .019;
+      face(
+          'spine',
+          [
+            [spineX, -h, -d],
+            [spineX, -h, d],
+            [spineX, h, d],
+            [spineX, h, -d]
+          ],
+          [-1, 0, 0],
+          art: 2);
+    }
     final payload = bytes.takeBytes();
     return SocketMediaModel.owned({
       'name': id,

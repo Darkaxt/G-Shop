@@ -154,31 +154,49 @@ class CoverSectionState extends State<CoverSection> {
   void toggleMotion() => setState(() => _reducedMotion = !_reducedMotion);
   Future<void> openGallery() async {
     final identity = widget.game.selectionKey;
-    final resources =
-        await widget.galleryResources?.call() ?? <String, List<String>>{};
-    if (!mounted || identity != widget.game.selectionKey) return;
+    final resourcesFuture = widget.galleryResources?.call() ??
+        Future.value(<String, List<String>>{});
     final cover = widget.cachedUrl ?? widget.coverUrls.firstOrNull;
     // The legacy card projection has no face-role proof. Keep it browsable,
     // but never relabel it as a front texture for reconstructed geometry.
-    if (cover != null) resources.putIfAbsent('cover-preview', () => [cover]);
-    if (widget.physicalLabelUrl != null) {
-      resources.putIfAbsent(
-          'support-texture', () => [widget.physicalLabelUrl!]);
-    }
     await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (context) => Scaffold(
             appBar: AppBar(title: Text(widget.game.displayName)),
-            body: ResourceGallery(
-                identity: identity,
-                title: widget.game.displayName,
-                systemId: widget.system.id,
-                region: widget.metadata.region.name,
-                dualMode: widget.gbcDualMode,
-                importedModels: widget.physicalMediaEnabled,
-                resources: resources,
-                volume: widget.galleryVolume,
-                onPlayingChanged: widget.onGalleryPlaying,
-                onClose: () => Navigator.of(context).pop()))));
+            body: FutureBuilder<Map<String, List<String>>>(
+                future: resourcesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError)
+                    return const Center(
+                        child: Text(
+                            'Resources could not load. Check your connection and try again.'));
+                  if (!snapshot.hasData)
+                    return const Center(
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('Loading resources…')
+                        ]));
+                  final resources =
+                      Map<String, List<String>>.from(snapshot.data!);
+                  if (cover != null)
+                    resources.putIfAbsent('cover-preview', () => [cover]);
+                  if (widget.physicalLabelUrl != null)
+                    resources.putIfAbsent(
+                        'support-texture', () => [widget.physicalLabelUrl!]);
+                  return ResourceGallery(
+                      identity: identity,
+                      title: widget.game.displayName,
+                      systemId: widget.system.id,
+                      region: widget.metadata.region.name,
+                      dualMode: widget.gbcDualMode,
+                      importedModels: widget.physicalMediaEnabled,
+                      resources: resources,
+                      volume: widget.galleryVolume,
+                      onPlayingChanged: widget.onGalleryPlaying,
+                      onClose: () => Navigator.of(context).pop());
+                }))));
   }
 
   @override

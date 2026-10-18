@@ -1,11 +1,18 @@
 # S25 verified console model and motion ledger
 
 Updated 2026-10-18. This records actual inspected assets, not candidate listings.
-S25 is **BLOCKED** at the owner's explicit GBA device-review stop. The checkpoint is the independent resource
+S25 is **ACTIVE** for the owner's GBA corrections following device review. The checkpoint is the independent resource
 explorer and individual model inspection. The automatic cinematic is deliberately
 not implemented yet; this ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
+
+Owner review invalidates the former frontal-only interpretation of fitted box
+faces: it did not establish connected opaque artwork over all six faces or
+margin-free manual textures. Current corrections must verify rotated front,
+back and four narrow faces, repeated spine fallback, absent GBA Case, fitted
+manual and packaging-free Gallery with a selectable trailer. Previous publication,
+identity and cartridge evidence remain bounded to what was actually inspected.
 
 ### Current GBA collection checkpoint
 

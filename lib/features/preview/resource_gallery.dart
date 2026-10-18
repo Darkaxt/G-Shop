@@ -54,7 +54,7 @@ class ResourceGalleryState extends State<ResourceGallery>
       depth = .14;
   double _startZoom = .75;
   int page = 0, _generation = 0;
-  bool reading = false;
+  bool reading = false, _trailerSelected = false, _videoLoading = false;
   VideoPlayerController? _video;
   ImageStream? _coverStream;
   ImageStreamListener? _coverListener;
@@ -64,16 +64,12 @@ class ResourceGalleryState extends State<ResourceGallery>
   Object? _videoError;
   String? first(String type) => widget.resources[type]?.firstOrNull;
   List<String> get images => [
-        ...?widget.resources['cover-preview'],
-        ...?widget.resources['box-3D'],
-        ...?widget.resources['box-2D'],
-        ...?widget.resources['box-2D-back'],
-        ...?widget.resources['box-2D-side'],
-        ...?widget.resources['support-texture'],
         ...?widget.resources['ss'],
         ...?widget.resources['screenshot'],
-        ...?widget.resources['fanart']
-      ];
+        ...?widget.resources['fanart'],
+        ...?widget.resources['flyer'],
+        ...?widget.resources['maps'],
+      ].toSet().toList();
   List<String> get pages => widget.resources['manual-page'] ?? const [];
   PackagingKind get kind => view == ResourceView.box
       ? PackagingKind.box
@@ -116,7 +112,8 @@ class ResourceGalleryState extends State<ResourceGallery>
     }.contains(widget.systemId);
     return [
       if (physical && !caseOnly) ResourceView.box,
-      if (physical && widget.systemId != 'gameandwatch') ResourceView.cover,
+      if (physical && !{'gameandwatch', 'gba'}.contains(widget.systemId))
+        ResourceView.cover,
       ResourceView.cartridge,
       ResourceView.manual,
       ResourceView.gallery
@@ -185,10 +182,12 @@ class ResourceGalleryState extends State<ResourceGallery>
     _detachSpine();
     _aspectUrl = key;
     aspect = .72;
-    depth = view == ResourceView.box &&
-            {'gba', 'gb', 'gbc'}.contains(widget.systemId)
-        ? .34
-        : .14;
+    depth = view == ResourceView.manual
+        ? .025
+        : view == ResourceView.box &&
+                {'gba', 'gb', 'gbc'}.contains(widget.systemId)
+            ? .34
+            : .14;
     if (url == null) return;
     final provider = _provider(url);
     _coverStream = provider.resolve(createLocalImageConfiguration(context));
@@ -291,6 +290,7 @@ class ResourceGalleryState extends State<ResourceGallery>
     opening = 0;
     page = 0;
     reading = false;
+    _trailerSelected = false;
     _videoError = null;
     _readingTransform.value = Matrix4.identity();
   }
@@ -319,6 +319,7 @@ class ResourceGalleryState extends State<ResourceGallery>
       _video?.value.isPlaying == true && _video?.value.isBuffering != true);
   Future<void> _stopVideo() async {
     _generation++;
+    _videoLoading = false;
     final old = _video;
     _video = null;
     old?.removeListener(_playing);
@@ -328,8 +329,12 @@ class ResourceGalleryState extends State<ResourceGallery>
 
   Future<void> play() async {
     final path = first('video') ?? first('video-normalized');
-    if (path == null || _video != null) return;
+    if (path == null || _video != null || _videoLoading) return;
     final generation = ++_generation;
+    setState(() {
+      _trailerSelected = true;
+      _videoLoading = true;
+    });
     final video = VideoPlayerController.file(File.fromUri(Uri.parse(path)),
         videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
     try {
@@ -352,6 +357,9 @@ class ResourceGalleryState extends State<ResourceGallery>
       if (mounted && generation == _generation)
         setState(() => _videoError = error);
       widget.onPlayingChanged?.call(false);
+    } finally {
+      if (mounted && generation == _generation)
+        setState(() => _videoLoading = false);
     }
   }
 
@@ -394,6 +402,7 @@ class ResourceGalleryState extends State<ResourceGallery>
         view == ResourceView.manual) {
       setState(() => reading = !reading);
     } else if (key == LogicalKeyboardKey.gameButtonX) {
+      unawaited(_stopVideo());
       setState(reset);
     } else if (key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.gameButtonB) {
@@ -432,6 +441,7 @@ class ResourceGalleryState extends State<ResourceGallery>
       final role = ['front', 'back', 'left', 'right', 'top', 'bottom'][index];
       final outer = first('outer-box-$role');
       if (outer != null) return outer;
+      if (index >= 2) return first('box-2D-side');
     }
     return switch (index) {
       0 => first('box-2D'),
@@ -444,16 +454,29 @@ class ResourceGalleryState extends State<ResourceGallery>
   Widget _atlas() => Column(children: [
         for (var row = 0; row < 2; row++)
           Expanded(
-              child: Row(children: [
-            for (var col = 0; col < 3; col++)
-              Expanded(
-                  child: _face(row * 3 + col) != null || row == 0 && col == 0
-                      ? image(_face(row * 3 + col), fit: BoxFit.fill)
-                      : ColoredBox(
-                          color: view == ResourceView.box
-                              ? _paperColor
-                              : const Color(0xff252525)))
-          ]))
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                for (var col = 0; col < 3; col++)
+                  Expanded(
+                      child: SizedBox.expand(
+                          child: ColoredBox(
+                              color: view == ResourceView.box
+                                  ? _paperColor
+                                  : const Color(0xff252525),
+                              child: _face(row * 3 + col) != null ||
+                                      row == 0 && col == 0
+                                  ? RotatedBox(
+                                      quarterTurns: view == ResourceView.box &&
+                                              row * 3 + col >= 4 &&
+                                              first('outer-box-${row * 3 + col == 4 ? 'top' : 'bottom'}') ==
+                                                  null
+                                          ? 1
+                                          : 0,
+                                      child: image(_face(row * 3 + col),
+                                          fit: BoxFit.fill))
+                                  : const SizedBox.expand())))
+              ]))
       ]);
   void _rendered() {
     // Bounded transition evidence, not a frame-by-frame UI stream. No URLs,
@@ -483,10 +506,15 @@ class ResourceGalleryState extends State<ResourceGallery>
         opening: opening);
     final player = _video;
     final content = view == ResourceView.gallery
-        ? player != null && player.value.isInitialized
-            ? AspectRatio(
-                aspectRatio: player.value.aspectRatio,
-                child: VideoPlayer(player))
+        ? _trailerSelected
+            ? player != null && player.value.isInitialized
+                ? AspectRatio(
+                    aspectRatio: player.value.aspectRatio,
+                    child: VideoPlayer(player))
+                : Center(
+                    child: _videoLoading
+                        ? const CircularProgressIndicator()
+                        : const Text('Select Play to watch the trailer'))
             : images.isEmpty
                 ? const Center(child: Text('No images collected yet'))
                 : InteractiveViewer(
@@ -612,6 +640,24 @@ class ResourceGalleryState extends State<ResourceGallery>
                       onPressed: widget.onClose,
                       icon: const Icon(Icons.close))
               ]),
+              if (view == ResourceView.gallery)
+                Wrap(spacing: 8, children: [
+                  ChoiceChip(
+                      label: Text('Images (${images.length})'),
+                      avatar: const Icon(Icons.photo_library_outlined),
+                      selected: !_trailerSelected,
+                      onSelected: (_) {
+                        unawaited(_stopVideo());
+                        setState(() => _trailerSelected = false);
+                      }),
+                  if ((first('video') ?? first('video-normalized')) != null)
+                    ChoiceChip(
+                        key: const ValueKey('gallery-trailer'),
+                        label: const Text('Trailer'),
+                        avatar: const Icon(Icons.movie_outlined),
+                        selected: _trailerSelected,
+                        onSelected: (_) => unawaited(play())),
+                ]),
               Expanded(
                   child: GestureDetector(
                       onScaleStart: reading || view == ResourceView.gallery
@@ -633,7 +679,10 @@ class ResourceGalleryState extends State<ResourceGallery>
                     icon: const Icon(Icons.zoom_out)),
                 IconButton(
                     tooltip: 'Reset view',
-                    onPressed: () => setState(reset),
+                    onPressed: () {
+                      unawaited(_stopVideo());
+                      setState(reset);
+                    },
                     icon: const Icon(Icons.restart_alt)),
                 IconButton(
                     tooltip: 'Zoom in',

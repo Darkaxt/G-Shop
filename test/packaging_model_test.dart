@@ -6,6 +6,29 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
+  test('box is six joined textured faces with no floating spine overlay', () {
+    final model = PackagingModel(PackagingKind.box, aspect: .8).build();
+    expect(model.surfaces.length, 6);
+    final edges = <String, int>{};
+    for (final face in model.surfaces) {
+      expect(face['role'], 'label');
+      final offset = face['vertexOffset'] as int;
+      final points = List.generate(
+          4,
+          (i) => List.generate(
+              3,
+              (n) => model.mesh
+                  .getFloat32(offset + i * 32 + n * 4, Endian.little)));
+      for (var i = 0; i < 4; i++) {
+        final ends = [points[i].toString(), points[(i + 1) % 4].toString()]
+          ..sort();
+        final key = ends.join('|');
+        edges.update(key, (count) => count + 1, ifAbsent: () => 1);
+      }
+    }
+    expect(edges.length, 12);
+    expect(edges.values, everyElement(2), reason: 'Each edge joins two faces');
+  });
   test(
       'owned packaging has stable geometry identity and bounded named surfaces',
       () {
