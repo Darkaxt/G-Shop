@@ -10,7 +10,6 @@ import '../../../models/commercial_release_preference.dart';
 import '../../../models/system_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/installation_index.dart';
-import '../../../services/library_sync_service.dart';
 import '../../../services/library_query.dart';
 import '../../../services/rom_manager.dart';
 import '../../../services/storage_service.dart';
@@ -238,8 +237,8 @@ class GameListController extends ChangeNotifier {
           _groupGames();
           _restoreFilters();
           _resolveInstalledStatus();
-          // Refresh from source in background
-          _backgroundRefresh();
+          // Browsing a cached console is not a sync request. The existing
+          // explicit Sync action owns remote catalogue refresh/publication.
           return;
         }
       }
@@ -268,60 +267,6 @@ class GameListController extends ChangeNotifier {
             UnifiedGameService.configuredDriveSourceIds(systemConfig));
     onGamesSaved?.call();
     refreshDiscovery();
-  }
-
-  Future<void> _backgroundRefresh() async {
-    if (LibrarySyncService.isSyncingSystem(system.id)) return;
-    // Skip if recently synced — unless the system has no games yet
-    // (newly discovered systems should always sync on first visit).
-    final hasGames = _state.allGames.isNotEmpty;
-    if (hasGames) {
-      if (LibrarySyncService.isFresh(system.id)) return;
-      final lastPersistent = _storage?.getLastSyncTime(system.id);
-      if (lastPersistent != null &&
-          DateTime.now().difference(lastPersistent).inMinutes < 5) {
-        return;
-      }
-    }
-    try {
-      final remoteGames =
-          await _unifiedService.fetchGamesForSystem(systemConfig);
-      final localGames = await RomManager.scanLocalGames(system, targetFolder);
-      if (_disposed) return;
-      final games = GameMergeHelper.merge(remoteGames, localGames, system);
-
-      // Keep queued selections aligned with the current exact artifact version,
-      // including size/checksum changes when its provider ID and name persist.
-      // Legacy games retain their existing identity/name comparison semantics.
-      String comparisonKey(GameItem game) => game.remoteArtifact == null
-          ? '${game.identityKey}:${game.filename}'
-          : jsonEncode(
-              [game.identityKey, game.filename, game.remoteArtifact!.toJson()]);
-      final oldFilenames = _state.allGames.map(comparisonKey).toSet();
-      final newFilenames = games.map(comparisonKey).toSet();
-      if (oldFilenames.length != newFilenames.length ||
-          !oldFilenames.containsAll(newFilenames)) {
-        _state = _state.copyWith(allGames: games, isLocalOnly: false);
-        _groupGames();
-        _restoreFilters();
-        _resolveInstalledStatus();
-      }
-      await _databaseService.saveGames(system.id, games,
-          deleteOrphans: true,
-          authoritativeDriveSourceIds:
-              UnifiedGameService.configuredDriveSourceIds(systemConfig));
-      _storage?.setLastSyncTime(system.id, DateTime.now());
-      onGamesSaved?.call();
-      refreshDiscovery();
-      if (_state.isOffline) {
-        _state = _state.copyWith(isOffline: false);
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Background refresh failed for ${system.id}: $e');
-      _state = _state.copyWith(isOffline: true);
-      notifyListeners();
-    }
   }
 
   void _groupGames() {
@@ -479,10 +424,10 @@ class GameListController extends ChangeNotifier {
   /// A committed catalogue/score publication re-evaluates cached membership;
   /// this is not a source refresh or a metadata request.
   void refreshDiscovery() {
-    if (!_disposed && _needsDiscovery) _applyFilters();
+    if (!_disposed && _needsDiscovery) _applyFilters(retainVisible: true);
   }
 
-  void _applyFilters() {
+  void _applyFilters({bool retainVisible = false}) {
     _discoveryGeneration++;
     var groups = List<String>.from(_state.allGroups);
 
@@ -514,8 +459,9 @@ class GameListController extends ChangeNotifier {
               coverRatingKey(system.id, game.selectionKey)
         ];
         _state = _state.copyWith(
-            filteredGroups: const [],
-            filteredGroupedGames: const {},
+            filteredGroups: retainVisible ? _state.filteredGroups : const [],
+            filteredGroupedGames:
+                retainVisible ? _state.filteredGroupedGames : const {},
             queryingDiscovery: true,
             clearDiscovery: true);
         _discoveryWork ??= _runDiscovery();
@@ -542,8 +488,11 @@ class GameListController extends ChangeNotifier {
         final generation = _discoveryGeneration;
         final filters = _state.activeFilters;
         final keys = _discoveryKeys;
+        final readinessWatch = Stopwatch()..start();
         try {
           await _prepareMetadata?.call();
+          debugPrint('RShopDiscovery scope=${system.id} '
+              'metadataReadyMs=${readinessWatch.elapsedMilliseconds} candidates=${keys.length}');
           if (_disposed) return;
           final result = await LibraryQuery(_databaseService.database).discover(
               filter: LibraryQueryFilter(
@@ -561,6 +510,8 @@ class GameListController extends ChangeNotifier {
           if (_disposed) return;
           if (generation != _discoveryGeneration) continue;
           if (result == null) return;
+          debugPrint('RShopDiscovery scope=${system.id} '
+              'discoveredMs=${readinessWatch.elapsedMilliseconds} matches=${result.totalMatches}');
           final files = {
             for (final g in _state.allGames)
               coverRatingKey(system.id, g.selectionKey): g

@@ -63,6 +63,7 @@ class MetadataCloudLibrary {
   final MetadataCloudRemote remote;
   final String accountId, rootId;
   final void Function()? changed;
+  final void Function(String mediaKey)? mediaChanged;
   final void Function(int completed, int total)? progress;
   final Future<bool> Function(String path)? allowBackgroundDownload;
   int budgetBytes;
@@ -82,9 +83,18 @@ class MetadataCloudLibrary {
       required this.rootId,
       this.budgetBytes = defaultBudgetBytes,
       this.changed,
+      this.mediaChanged,
       this.progress,
       this.allowBackgroundDownload});
   Database get _db => store.cloudIndex;
+  void _notifyMedia(String? key) {
+    if (key != null && mediaChanged != null) {
+      mediaChanged!(key);
+    } else {
+      changed?.call();
+    }
+  }
+
   Future<T> _lane<T>(Future<T> Function() work) {
     if (_closed) return Future.error(StateError('Metadata cache is closed'));
     final result = _tail.then((_) => work());
@@ -405,7 +415,7 @@ class MetadataCloudLibrary {
         await File(p.join(file.parent.path, '$key.json'))
             .writeAsString(jsonEncode(receipt), flush: true);
       }
-      changed?.call();
+      _notifyMedia(row['media_key'] as String?);
     }
     await _db.update('metadata_cloud_files', {'used': ++_clock},
         where: 'account = ? AND path = ?', whereArgs: [accountId, path]);
@@ -572,7 +582,7 @@ class MetadataCloudLibrary {
       } // Offline: retain the last verified local copy.
       await file.delete();
       total -= row['bytes'] as int;
-      changed?.call();
+      _notifyMedia(row['media_key'] as String?);
     }
   }
 

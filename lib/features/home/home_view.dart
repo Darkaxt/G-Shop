@@ -27,6 +27,7 @@ import 'widgets/hero_carousel_item.dart';
 import 'widgets/home_grid_view.dart';
 import 'widgets/manufacturer_filter.dart';
 import '../preview/console_preview_host.dart';
+import '../../providers/preview_providers.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -330,12 +331,15 @@ class _HomeViewState extends ConsumerState<HomeView> with ConsoleScreenMixin {
         ? ConfigBootstrap.configForSystem(appConfig, system)
         : null;
     final targetFolder = systemConfig?.targetFolder ?? '';
+    final previewOwner = Object();
+    ref.read(secondaryPreviewProvider).retainFor(previewOwner);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GameListScreen(
           system: system,
           targetFolder: targetFolder,
+          retainedPreviewOwner: previewOwner,
         ),
       ),
     );

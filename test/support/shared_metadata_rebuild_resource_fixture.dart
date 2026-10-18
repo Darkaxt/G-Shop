@@ -103,6 +103,7 @@ Map<String, Object?> _record(int n) {
     'edition_json': jsonEncode(edition.toJson())
   };
   return {
+    'platform_id': game.platformId,
     'edition_id': edition.id,
     'provider_id': 'igdb',
     'generation': 1,

@@ -4,6 +4,34 @@ import 'package:retro_eshop/services/secondary_preview.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('explicit route handoff retains window and rejects outgoing hide',
+      () async {
+    final bridge = SecondaryPreview()..available = true;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final calls = <String>[];
+    messenger.setMockMethodCallHandler(SecondaryPreview.channel, (call) async {
+      calls.add(call.method);
+      return null;
+    });
+    final home = Object(), loadingRoute = Object(), game = Object();
+    try {
+      await bridge.present(
+          home, {'actionIdentity': 'console:gba'}, (_, __) async {});
+      bridge.retainFor(loadingRoute);
+      await bridge.hide(home);
+      expect(calls, ['present']);
+      await bridge.present(
+          game, {'actionIdentity': 'gba:game'}, (_, __) async {});
+      await bridge.hide(loadingRoute);
+      expect(calls, ['present', 'present']);
+      await bridge.hide(game);
+      expect(calls.last, 'hide');
+    } finally {
+      bridge.dispose();
+      messenger.setMockMethodCallHandler(SecondaryPreview.channel, null);
+    }
+  });
   test('startup preparation does not present a window or select a game',
       () async {
     final messenger =

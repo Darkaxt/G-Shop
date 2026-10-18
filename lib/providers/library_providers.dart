@@ -152,14 +152,18 @@ final sharedMetadataStoreProvider =
 /// Catalogue publication can happen after the durable store was opened. Join
 /// its projection before normal discovery/ratings/detail reads; don't dispose
 /// the store or interrupt its worker just because a catalogue changed.
-final sharedMetadataProjectionProvider = FutureProvider<int>((ref) async {
+final scopedMetadataProjectionProvider =
+    FutureProvider.family<int, String>((ref, scope) async {
   ref.watch(gameDbChangedProvider);
   ref.watch(librarySyncServiceProvider.select((s) => s.completedSystems));
   final database = ref.watch(libraryDbProvider).database;
   final shared = await ref.watch(sharedMetadataStoreProvider);
   if (shared == null) return 0;
-  return shared.restore(await database);
+  return shared.restore(await database,
+      platformId: scope.isEmpty ? null : scope);
 });
+final sharedMetadataProjectionProvider = FutureProvider<int>(
+    (ref) => ref.watch(scopedMetadataProjectionProvider('').future));
 
 /// Join recovery when it is available, without making an unavailable metadata
 /// store a prerequisite for reading the last usable private projection. Keep the
@@ -169,6 +173,15 @@ final cachedMetadataReadinessProvider =
     FutureProvider<AsyncValue<int>>((ref) async {
   try {
     return AsyncData(await ref.watch(sharedMetadataProjectionProvider.future));
+  } catch (error, stack) {
+    return AsyncError(error, stack);
+  }
+});
+final scopedMetadataReadinessProvider =
+    FutureProvider.family<AsyncValue<int>, String>((ref, scope) async {
+  try {
+    return AsyncData(
+        await ref.watch(scopedMetadataProjectionProvider(scope).future));
   } catch (error, stack) {
     return AsyncError(error, stack);
   }
@@ -195,8 +208,12 @@ final cachedMetadataArtworkProvider =
     Provider<Future<MetadataArtworkCache>>((ref) {
   final database = ref.watch(libraryDbProvider).database;
   return () async {
-    final readiness = await ref.watch(cachedMetadataReadinessProvider.future);
-    if (!readiness.hasError) return ref.watch(metadataArtworkCacheProvider);
+    try {
+      return await ref.watch(metadataArtworkCacheProvider);
+    } catch (_) {
+      // Readers join their console's projection separately. Opening the file
+      // reader must not silently start whole-library recovery.
+    }
     final prefs = await SharedPreferences.getInstance();
     final selected = prefs.getString(sharedMetadataDirectoryKey);
     return selected == null
@@ -216,7 +233,7 @@ final cachedMetadataCoversProvider = FutureProvider.autoDispose
   ref.watch(gameDbChangedProvider);
   ref.watch(librarySyncServiceProvider.select((s) => s.completedSystems));
   final db = await ref.watch(libraryDbProvider).database;
-  await ref.watch(cachedMetadataReadinessProvider.future);
+  await ref.watch(scopedMetadataReadinessProvider(scope).future);
   final query = LibraryQuery(Future.value(db));
   var cursor = 0;
   final result = <String, String?>{};
@@ -255,7 +272,7 @@ final cachedCoverRatingsProvider = FutureProvider.autoDispose
   var active = true;
   ref.onDispose(() => active = false);
   final db = await ref.watch(libraryDbProvider).database;
-  await ref.watch(cachedMetadataReadinessProvider.future);
+  await ref.watch(scopedMetadataReadinessProvider(scope).future);
   final query = LibraryQuery(Future.value(db));
   var cursor = 0;
   final result = <String, EffectiveOverallRating?>{};

@@ -34,6 +34,36 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  test('console-scoped recovery does not validate another console record',
+      () async {
+    sqfliteFfiInit();
+    final db = await controlsDatabase();
+    final root =
+        await Directory.systemTemp.createTemp('rshop-scoped-recovery-');
+    final shared = await SharedMetadataStore.open(root,
+        factory: databaseFactoryFfiNoIsolate);
+    final cloud = shared.cloudIndex;
+    await cloud.insert('records', {
+      'edition_id': 'other-console',
+      'provider_id': 'screenscraper',
+      'identity_key': 'foreign',
+      'generation': 1,
+      'platform_id': 'ps2',
+      'game_json': '{}',
+      'edition_json': '{}',
+      'artifacts_json': '[]',
+      'record_json': 'invalid unvisited record',
+    });
+    try {
+      expect(await shared.restore(db, platformId: 'gba'), 0);
+      expect(await db.query('library_metadata'), isEmpty);
+      await expectLater(shared.restore(db), throwsA(isA<FormatException>()));
+    } finally {
+      await shared.close();
+      await db.close();
+    }
+  });
+
   test('normal settings joins library recovery until catalogue invalidation',
       () async {
     sqfliteFfiInit();
@@ -272,7 +302,7 @@ void main() {
                 .single
                 .values
                 .single,
-            7);
+            8);
       } finally {
         await upgraded.close();
         await root.delete(recursive: true);
@@ -490,7 +520,7 @@ void main() {
               .single
               .values
               .single,
-          7);
+          8);
     } finally {
       await inspected.close();
     }

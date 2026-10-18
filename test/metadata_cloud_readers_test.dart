@@ -8,6 +8,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:retro_eshop/providers/library_providers.dart';
 import 'package:retro_eshop/providers/metadata_cloud_providers.dart';
 import 'package:retro_eshop/services/database_service.dart';
+import 'package:retro_eshop/services/library_store.dart';
 import 'package:retro_eshop/services/metadata/metadata_artwork_cache.dart';
 import 'package:retro_eshop/services/metadata/metadata_cloud_library.dart';
 import 'package:retro_eshop/services/metadata/shared_metadata_store.dart';
@@ -101,6 +102,20 @@ void main() {
       expect(cloud.finish.isCompleted, isFalse,
           reason: 'Local readiness must not wait for the unrelated backup');
       expect(cloud.foregroundPublications, 0);
+      final readyFuture = container.read(selected.future);
+      container
+          .read(metadataMediaKeyRevisionProvider('unrelated-media').notifier)
+          .state++;
+      expect(identical(container.read(selected.future), readyFuture), true,
+          reason: 'An unrelated download must not restart a cached selection');
+      final record = (await LibraryStore(Future.value(db))
+          .metadata(provider.calls.single.editionId, 'screenscraper'))!;
+      container
+          .read(metadataMediaKeyRevisionProvider(
+                  MetadataArtworkCache.key(record.media.first))
+              .notifier)
+          .state++;
+      expect(await container.read(selected.future), result);
       // Corruption is not treated as a cache hit; the ordinary cloud-miss path
       // is still used rather than exposing unchecked local bytes.
       await File.fromUri(Uri.parse(result)).writeAsBytes([0]);

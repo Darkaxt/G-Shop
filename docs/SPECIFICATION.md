@@ -1,6 +1,31 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 97, 2026-10-19.
+Authoritative specification, revision 98, 2026-10-19.
+
+Owner GBA cache/presentation correction, 2026-10-19 (already authorized): keep
+S25 ACTIVE. Cached console browsing must not await recovery of unrelated consoles
+or refetch an unchanged catalogue on entry. Scope recovery to the requested
+console while retaining exact binding/integrity checks; unchanged publication
+must not clear a usable grid. Cover-only consumers must not load screenshots,
+labels or manuals, and the unboxing gate resolves only its required panels/pages.
+Retain the secondary presentation during the explicit console-selection -> ROM
+grid handoff, replacing its payload without exposing Cocoon. Preserve dismissal
+for unrelated navigation, application backgrounding and emulator/companion launch.
+
+For the GBA grid replace square cover/overlay tiles with static, closed textured
+3D cartons, retaining the 4x2 layout on Thor and the existing title underneath.
+Remove the duplicate white title and square card chrome. Place the score at the
+box's upper-right and cloud/local status at its lower-right, in the box's front
+artwork coordinates. Keep badges readable and the selected box clearly focused.
+During the lower-screen animation show score bottom-left and availability
+bottom-right, anchored to that display; do not put these badges over Resources.
+Use the current red theme, real per-game panels and controller selection. Do not
+start a cinematic on every grid tile or fetch the full gallery for each box.
+Other consoles retain their current tiles until their own validated adaptations.
+Verify cold/warm GBA entry, unchanged-refresh stability, continuous secondary
+ownership, box/badge layout and selected unboxing together on Thor using the
+GitHub-signed candidate. No cache clearing, collection restart or other-console
+work is implied. Pause for owner GBA review after the integrated correction.
 
 Owner motion polish, 2026-10-19: the waiting front cover and the initial closed
 3D front must share framing and orientation, then smoothly frame out into the

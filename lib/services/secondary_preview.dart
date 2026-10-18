@@ -101,7 +101,17 @@ class SecondaryPreview extends ChangeNotifier {
     _action = null;
     _revision++;
     _actionEpoch++;
-    if (Platform.isAndroid) await channel.invokeMethod<void>('hide');
+    await channel.invokeMethod<void>('hide');
+  }
+
+  /// The destination route owns the existing window while it prepares a real
+  /// selected-game payload. No timer, engine restart or native dismissal.
+  void retainFor(Object destination) {
+    if (_disposed || !available || _owner == null) return;
+    _owner = destination;
+    _action = null;
+    _actionIdentity = null;
+    _actionEpoch++;
   }
 
   Future<void> togglePlayback(Object owner) async {

@@ -38,11 +38,13 @@ import 'widgets/filter_overlay.dart';
 class GameListScreen extends ConsumerStatefulWidget {
   final SystemModel system;
   final String targetFolder;
+  final Object? retainedPreviewOwner;
 
   const GameListScreen({
     super.key,
     required this.system,
     required this.targetFolder,
+    this.retainedPreviewOwner,
   });
 
   @override
@@ -212,7 +214,8 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       releasePreference: ref.read(collectionPreferencesProvider),
       prepareMetadata: () async {
         if (!mounted) return;
-        await ref.read(cachedMetadataReadinessProvider.future);
+        await ref
+            .read(scopedMetadataReadinessProvider(widget.system.id).future);
       },
     )..addListener(_onControllerChanged);
 
@@ -294,6 +297,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   @override
   void dispose() {
+    final retained = widget.retainedPreviewOwner;
+    if (retained != null)
+      unawaited(ref.read(secondaryPreviewProvider).hide(retained));
     // Capture before dispose, defer save to avoid provider modification during finalization
     final selectedIndex = _focusManager.selectedIndex;
     Future.microtask(() {
@@ -325,6 +331,14 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
       _focusedGroupKey = _visibleGroupKeys[oldIndex];
     }
     final state = _controller.state;
+    if (!state.isLoading &&
+        !state.queryingDiscovery &&
+        state.filteredGroups.isEmpty &&
+        widget.retainedPreviewOwner != null) {
+      unawaited(ref
+          .read(secondaryPreviewProvider)
+          .hide(widget.retainedPreviewOwner!));
+    }
     if (!state.queryingDiscovery) {
       final visible = [
         for (final group in state.filteredGroups)
@@ -769,7 +783,7 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
   }
 
   Widget _buildGridOrStatus(GameListState state, bool syncActive) {
-    if (state.queryingDiscovery) {
+    if (state.queryingDiscovery && state.filteredGroups.isEmpty) {
       return GameGridLoading(
           accentColor: widget.system.accentColor, crossAxisCount: _columns);
     }

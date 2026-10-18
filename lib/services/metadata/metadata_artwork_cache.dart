@@ -569,7 +569,7 @@ class MetadataArtworkCache {
   }
 
   Future<({String? cover, String? supportTexture, List<String> screenshots})>
-      artworkForEdition(String editionId) async {
+      artworkForEdition(String editionId, {bool coverOnly = false}) async {
     try {
       await _requireAccess();
     } on FileSystemException {
@@ -592,6 +592,7 @@ class MetadataArtworkCache {
           .toList();
       for (final item in selectedMedia) {
         final isCover = {'box-2D', 'box-3D', 'cover'}.contains(item.type);
+        if (coverOnly && !isCover) continue;
         final isScreenshot = {'ss', 'screenshot'}.contains(item.type);
         final isLabel = item.type == 'support-texture' &&
             labels.length == 1 &&
@@ -668,6 +669,12 @@ class MetadataArtworkCache {
         manual.length > 2 ? manual[2] : null
       ];
       for (final media in selected) {
+        // The cinematic needs four booklet surfaces, not every cached PDF page
+        // or gallery image. The explicit Resources route keeps the full gallery.
+        if (!hydrate &&
+            (hydrateBooklet || hydrateTypes.isNotEmpty) &&
+            !hydrateTypes.contains(media.type) &&
+            !(hydrateBooklet && booklet.contains(media))) continue;
         if (media.region != null &&
             regions.isNotEmpty &&
             !regions.any((r) => region(r) == region(media.region!))) continue;

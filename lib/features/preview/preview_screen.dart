@@ -537,8 +537,47 @@ class _PreviewScreenState extends State<PreviewScreen>
                           const Text('Select for details',
                               style: TextStyle(color: Colors.white70)),
                       ]))),
+              if (!gallery && !details && system.id == 'gba') ...[
+                if (snapshot['scoreLabel'] is String)
+                  Positioned(
+                      left: 20,
+                      bottom: 20,
+                      child: _cornerBadge(
+                          key: const ValueKey('preview-score'),
+                          text: snapshot['scoreLabel'] as String)),
+                Positioned(
+                    right: 20,
+                    bottom: 20,
+                    child: _cornerBadge(
+                        key: const ValueKey('preview-availability'),
+                        icon: snapshot['installed'] == true
+                            ? Icons.sd_card
+                            : Icons.cloud_download_outlined,
+                        text: snapshot['installed'] == true
+                            ? 'On device'
+                            : 'In Drive')),
+              ],
             ])));
   }
+
+  Widget _cornerBadge(
+          {required Key key, required String text, IconData? icon}) =>
+      Container(
+          key: key,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+              color: const Color(0xed171717),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white24)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (icon != null) ...[
+              Icon(icon, size: 22),
+              const SizedBox(width: 7)
+            ],
+            Text(text,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          ]));
 
   Widget _details(Map<String, dynamic> snapshot) => Column(children: [
         Expanded(

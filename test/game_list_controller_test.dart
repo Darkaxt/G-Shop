@@ -36,7 +36,11 @@ class FakeDatabaseService extends DatabaseService {
   Future<List<GameItem>> getGames(String systemSlug) async => cachedGames;
 
   @override
-  Future<void> saveGames(String systemSlug, List<GameItem> games, {bool deleteOrphans = false, bool forceDeleteOrphans = false, Set<String> authoritativeDriveSourceIds = const {}, void Function(int processed, int total)? onProgress}) async {
+  Future<void> saveGames(String systemSlug, List<GameItem> games,
+      {bool deleteOrphans = false,
+      bool forceDeleteOrphans = false,
+      Set<String> authoritativeDriveSourceIds = const {},
+      void Function(int processed, int total)? onProgress}) async {
     savedSystemSlug = systemSlug;
     savedGames = games;
     lastDeleteOrphans = deleteOrphans || forceDeleteOrphans;
@@ -78,7 +82,9 @@ class ControlledCommitDatabaseService extends FakeDatabaseService {
   bool committed = false;
 
   @override
-  Future<void> saveGames(String systemSlug, List<GameItem> games, {
+  Future<void> saveGames(
+    String systemSlug,
+    List<GameItem> games, {
     bool deleteOrphans = false,
     bool forceDeleteOrphans = false,
     Set<String> authoritativeDriveSourceIds = const {},
@@ -87,7 +93,8 @@ class ControlledCommitDatabaseService extends FakeDatabaseService {
     entered.complete();
     await allowCommit.future;
     await super.saveGames(systemSlug, games,
-        deleteOrphans: deleteOrphans, forceDeleteOrphans: forceDeleteOrphans,
+        deleteOrphans: deleteOrphans,
+        forceDeleteOrphans: forceDeleteOrphans,
         authoritativeDriveSourceIds: authoritativeDriveSourceIds);
     committed = true;
     onProgress?.call(games.length, games.length);
@@ -99,7 +106,8 @@ class ControlledBackgroundGameService extends UnifiedGameService {
   final response = Completer<List<GameItem>>();
 
   @override
-  Future<List<GameItem>> fetchGamesForSystem(SystemConfig system, {bool? merge}) {
+  Future<List<GameItem>> fetchGamesForSystem(SystemConfig system,
+      {bool? merge}) {
     requested.complete();
     return response.future;
   }
@@ -186,12 +194,13 @@ Future<void> waitUntilLoaded(GameListController controller) {
 
 /// Creates a controller that has already loaded the given [games].
 /// Uses a FakeUnifiedGameService that returns [games] and waits for loadGames.
-Future<({
-  GameListController controller,
-  FakeDatabaseService db,
-  FakeStorageService storage,
-  FakeUnifiedGameService service,
-})> createController({
+Future<
+    ({
+      GameListController controller,
+      FakeDatabaseService db,
+      FakeStorageService storage,
+      FakeUnifiedGameService service,
+    })> createController({
   List<GameItem> games = const [],
   Set<String>? installedFilenames,
   List<RemoteArtifact> installedArtifacts = const [],
@@ -222,6 +231,35 @@ Future<({
 // ---------------------------------------------------------------------------
 
 void main() {
+  test('cached console entry neither fetches nor republishes the catalogue',
+      () async {
+    LibrarySyncService.clearFreshness();
+    final game = exactGame('unchanged-file');
+    final db = FakeDatabaseService()
+      ..hasCacheResult = true
+      ..cachedGames = [game];
+    final service = ControlledBackgroundGameService();
+    final controller = GameListController(
+        system: _nes,
+        targetFolder: '/nonexistent/nes',
+        systemConfig: _config(providers: const [
+          ProviderConfig(
+              type: ProviderType.drive, priority: 0, sourceId: 'source')
+        ]),
+        unifiedService: service,
+        databaseService: db);
+    var publications = 0;
+    controller.onGamesSaved = () => publications++;
+    try {
+      await waitUntilLoaded(controller);
+      expect(service.requested.isCompleted, false);
+      expect(publications, 0);
+      expect(db.savedGames, isNull);
+      expect(controller.state.allGames.single, game);
+    } finally {
+      controller.dispose();
+    }
+  });
   test(
       'verified local/cloud projection is one console selection and reverses for changed bytes',
       () async {
@@ -257,14 +295,24 @@ void main() {
       final service = FakeUnifiedGameService();
       final notified = Completer<void>();
       var committedAtNotification = false;
-      final controller = GameListController(system: _nes, targetFolder: '/nonexistent/nes',
-        systemConfig: _config(providers: const [ProviderConfig(type: ProviderType.drive, priority: 0, sourceId: 'source')]),
-        unifiedService: service, databaseService: db)
+      final controller = GameListController(
+          system: _nes,
+          targetFolder: '/nonexistent/nes',
+          systemConfig: _config(providers: const [
+            ProviderConfig(
+                type: ProviderType.drive, priority: 0, sourceId: 'source')
+          ]),
+          unifiedService: service,
+          databaseService: db)
         ..onGamesSaved = () {
           committedAtNotification = db.committed;
           notified.complete();
         };
       try {
+        if (useCache) {
+          await waitUntilLoaded(controller);
+          unawaited(controller.loadGames(forceRefresh: true));
+        }
         await db.entered.future;
         expect(notified.isCompleted, isFalse);
         expect(db.savedGames, isNull);
@@ -278,8 +326,11 @@ void main() {
       }
     });
   }
-  test('successful empty Drive fetch forwards explicit source authority to cache', () async {
-    final r = await createController(config: _config(providers: const [
+  test(
+      'successful empty Drive fetch forwards explicit source authority to cache',
+      () async {
+    final r = await createController(
+        config: _config(providers: const [
       ProviderConfig(type: ProviderType.drive, priority: 0, sourceId: 'source'),
     ]));
     expect(r.db.savedGames, isEmpty);
@@ -287,21 +338,36 @@ void main() {
     r.controller.dispose();
   });
 
-  test('failed Drive background refresh preserves large cached snapshot without saving', () async {
+  test(
+      'failed Drive background refresh preserves large cached snapshot without saving',
+      () async {
     LibrarySyncService.clearFreshness();
     final cached = List.generate(100, (i) => exactGame('file-$i'));
-    final db = FakeDatabaseService()..hasCacheResult = true..cachedGames = cached;
-    final service = UnifiedGameService(fetchProviderGames: (_, system) async => throw StateError('Drive refresh failed'));
-    final controller = GameListController(system: _nes, targetFolder: '/nonexistent/nes',
-      systemConfig: _config(providers: const [ProviderConfig(type: ProviderType.drive, priority: 0, sourceId: 'source')]),
-      unifiedService: service, databaseService: db);
+    final db = FakeDatabaseService()
+      ..hasCacheResult = true
+      ..cachedGames = cached;
+    final service = UnifiedGameService(
+        fetchProviderGames: (_, system) async =>
+            throw StateError('Drive refresh failed'));
+    final controller = GameListController(
+        system: _nes,
+        targetFolder: '/nonexistent/nes',
+        systemConfig: _config(providers: const [
+          ProviderConfig(
+              type: ProviderType.drive, priority: 0, sourceId: 'source')
+        ]),
+        unifiedService: service,
+        databaseService: db);
     final failed = Completer<void>();
     void onStateChanged() {
       if (controller.state.isOffline && !failed.isCompleted) failed.complete();
     }
+
     controller.addListener(onStateChanged);
     onStateChanged();
     try {
+      await waitUntilLoaded(controller);
+      unawaited(controller.loadGames(forceRefresh: true));
       await failed.future;
       expect(controller.state.allGames, hasLength(100));
       expect(db.savedGames, isNull);
@@ -316,7 +382,9 @@ void main() {
     'sizeBytes': 43,
     'providerChecksums': {'md5': 'changed-checksum'},
   }.entries) {
-    test('background refresh publishes changed ${change.key} for the same artifact', () async {
+    test(
+        'background refresh publishes changed ${change.key} for the same artifact',
+        () async {
       LibrarySyncService.clearFreshness();
       final oldGame = exactGame('same-file');
       final changedArtifact = RemoteArtifact.fromJson({
@@ -337,15 +405,29 @@ void main() {
         databaseService: db,
       )..onGamesSaved = saved.complete;
       try {
+        await waitUntilLoaded(controller);
+        final refresh = controller.loadGames(forceRefresh: true);
         await service.requested.future;
-        expect(controller.state.allGames.single.remoteArtifact!.toJson(), oldGame.remoteArtifact!.toJson());
+        expect(controller.state.allGames.single.remoteArtifact!.toJson(),
+            oldGame.remoteArtifact!.toJson());
         service.response.complete([changedGame]);
+        await refresh;
         await saved.future;
-        expect(db.savedGames!.single.remoteArtifact!.toJson(), changedArtifact.toJson());
-        expect(controller.state.allGames.single.remoteArtifact!.toJson(), changedArtifact.toJson());
-        expect(controller.state.groupedGames.values.single.single.remoteArtifact!.toJson(), changedArtifact.toJson());
-        expect(controller.state.filteredGroupedGames.values.single.single.remoteArtifact!.toJson(), changedArtifact.toJson());
-        expect(controller.state.allGames.single.identityKey, oldGame.identityKey);
+        expect(db.savedGames!.single.remoteArtifact!.toJson(),
+            changedArtifact.toJson());
+        expect(controller.state.allGames.single.remoteArtifact!.toJson(),
+            changedArtifact.toJson());
+        expect(
+            controller.state.groupedGames.values.single.single.remoteArtifact!
+                .toJson(),
+            changedArtifact.toJson());
+        expect(
+            controller
+                .state.filteredGroupedGames.values.single.single.remoteArtifact!
+                .toJson(),
+            changedArtifact.toJson());
+        expect(
+            controller.state.allGames.single.identityKey, oldGame.identityKey);
       } finally {
         controller.dispose();
       }
@@ -377,15 +459,21 @@ void main() {
   });
 
   group('Grouping', () {
-    test('verified exact install does not mark a local or remote namesake installed', () async {
+    test(
+        'verified exact install does not mark a local or remote namesake installed',
+        () async {
       final installed = exactGame('installed');
       final remoteNamesake = exactGame('other');
       final localNamesake = _game('Game.nes');
-      final r = await createController(games: [installed, remoteNamesake, localNamesake],
-          installedFilenames: {}, installedArtifacts: [installed.remoteArtifact!]);
+      final r = await createController(
+          games: [installed, remoteNamesake, localNamesake],
+          installedFilenames: {},
+          installedArtifacts: [installed.remoteArtifact!]);
       expect(r.controller.state.installedCache[installed.groupKey], isTrue);
-      expect(r.controller.state.installedCache[remoteNamesake.groupKey], isFalse);
-      expect(r.controller.state.installedCache[localNamesake.groupKey], isFalse);
+      expect(
+          r.controller.state.installedCache[remoteNamesake.groupKey], isFalse);
+      expect(
+          r.controller.state.installedCache[localNamesake.groupKey], isFalse);
       r.controller.dispose();
     });
 
@@ -396,20 +484,28 @@ void main() {
     }.entries) {
       test('verified install rejects changed ${change.key}', () async {
         final installed = exactGame('installed');
-        final changed = installed.copyWith(remoteArtifact: RemoteArtifact.fromJson({
-          ...installed.remoteArtifact!.toJson(), change.key: change.value,
+        final changed = installed.copyWith(
+            remoteArtifact: RemoteArtifact.fromJson({
+          ...installed.remoteArtifact!.toJson(),
+          change.key: change.value,
         }));
-        final r = await createController(games: [changed], installedFilenames: {},
+        final r = await createController(
+            games: [changed],
+            installedFilenames: {},
             installedArtifacts: [installed.remoteArtifact!]);
         expect(r.controller.state.installedCache[changed.groupKey], isFalse);
         r.controller.dispose();
       });
     }
 
-    test('exact install survives rename and withdrawal refreshes installed-only filter', () async {
+    test(
+        'exact install survives rename and withdrawal refreshes installed-only filter',
+        () async {
       final installed = exactGame('installed');
       final renamed = exactGame('installed', name: 'Renamed.nes');
-      final r = await createController(games: [renamed], installedFilenames: {},
+      final r = await createController(
+          games: [renamed],
+          installedFilenames: {},
           installedArtifacts: [installed.remoteArtifact!]);
       expect(r.controller.state.installedCache[renamed.groupKey], isTrue);
       r.controller.toggleLocalFilter();
@@ -420,11 +516,25 @@ void main() {
       r.controller.dispose();
     });
 
-    test('exact objects remain independent and local namesakes are not installed proof', () async {
-      final r = await createController(games: [exactGame('a'), exactGame('b'), exactGame('a', account: 'account-b')], installedFilenames: {'Game.nes'});
+    test(
+        'exact objects remain independent and local namesakes are not installed proof',
+        () async {
+      final r = await createController(games: [
+        exactGame('a'),
+        exactGame('b'),
+        exactGame('a', account: 'account-b')
+      ], installedFilenames: {
+        'Game.nes'
+      });
       expect(r.controller.state.groupedGames, hasLength(3));
-      expect(r.controller.state.groupedGames.values.every((games) => games.length == 1), isTrue);
-      expect(r.controller.state.installedCache.values.every((installed) => !installed), isTrue);
+      expect(
+          r.controller.state.groupedGames.values
+              .every((games) => games.length == 1),
+          isTrue);
+      expect(
+          r.controller.state.installedCache.values
+              .every((installed) => !installed),
+          isTrue);
       r.controller.dispose();
     });
     test('games with same displayName land in same group', () async {
@@ -454,8 +564,7 @@ void main() {
         _game('Mario (USA).zip', url: 'http://r/m.zip'),
       ]);
       expect(r.controller.state.regionCache, isNotEmpty);
-      expect(
-          r.controller.state.regionCache['Mario (USA).zip']?.name, 'USA');
+      expect(r.controller.state.regionCache['Mario (USA).zip']?.name, 'USA');
       r.controller.dispose();
     });
 
@@ -763,8 +872,7 @@ void main() {
       expect(
           r.controller.state.allGames.first.cachedCoverUrl, 'http://cover.png');
       final groupName = r.controller.state.allGroups.first;
-      expect(
-          r.controller.state.groupedGames[groupName]!.first.cachedCoverUrl,
+      expect(r.controller.state.groupedGames[groupName]!.first.cachedCoverUrl,
           'http://cover.png');
       expect(
           r.controller.state.filteredGroupedGames[groupName]!.first
@@ -809,10 +917,8 @@ void main() {
       final baseline = notifyCount;
 
       // Rapid-fire thumbnail updates
-      await r.controller
-          .updateThumbnailData([r.controller.state.allGames[0]]);
-      await r.controller
-          .updateThumbnailData([r.controller.state.allGames[1]]);
+      await r.controller.updateThumbnailData([r.controller.state.allGames[0]]);
+      await r.controller.updateThumbnailData([r.controller.state.allGames[1]]);
 
       // Timer hasn't fired yet — should batch
       expect(notifyCount, baseline);
@@ -839,12 +945,14 @@ void main() {
 
     test('restoreFilters applies saved filters', () async {
       final storage = FakeStorageService();
-      await storage.setFilters('nes', jsonEncode({
-        'regions': ['USA'],
-        'languages': [],
-        'favoritesOnly': false,
-        'localOnly': false,
-      }));
+      await storage.setFilters(
+          'nes',
+          jsonEncode({
+            'regions': ['USA'],
+            'languages': [],
+            'favoritesOnly': false,
+            'localOnly': false,
+          }));
       final service = FakeUnifiedGameService()
         ..result = [
           _game('Mario (USA).zip', url: 'http://r/m.zip'),

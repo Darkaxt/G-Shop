@@ -13,6 +13,8 @@ import '../models/game_metadata_info.dart';
 import '../models/system_model.dart';
 import '../services/config_parser.dart';
 import '../services/database_service.dart';
+import '../services/library_store.dart';
+import '../services/metadata/metadata_artwork_cache.dart';
 import '../services/drive/drive_runtime.dart';
 import '../services/unified_game_service.dart';
 import 'app_providers.dart';
@@ -166,11 +168,28 @@ final gameMetadataProvider = FutureProvider.autoDispose
     ref.watch(gameDbChangedProvider);
     ref.watch(metadataMediaRevisionProvider);
     final language = ref.watch(localeProvider)?.languageCode ?? 'en';
-    await ref.watch(cachedMetadataReadinessProvider.future);
-    return ref.watch(libraryDbProvider).getGameMetadata(
+    await ref.watch(scopedMetadataReadinessProvider(params.systemSlug).future);
+    final database = ref.watch(libraryDbProvider);
+    final metadata = await database.getGameMetadata(
         params.filename, params.systemSlug,
-        language: language,
-        artworkCache: await ref.watch(cachedMetadataArtworkProvider));
+        language: language);
+    if (metadata?.editionId == null) return metadata;
+    for (final provider in ['screenscraper', 'romm']) {
+      final record = await LibraryStore(database.database)
+          .metadata(metadata!.editionId!, provider);
+      if (record == null) continue;
+      for (final media in [
+        ...record.media,
+        ...MetadataArtworkCache.displayMedia(record, includePhysicalLabel: true)
+      ]) {
+        ref.watch(
+            metadataMediaKeyRevisionProvider(MetadataArtworkCache.key(media)));
+      }
+    }
+    final artwork = await (await ref.watch(cachedMetadataArtworkProvider))
+        .artworkForEdition(metadata!.editionId!);
+    return metadata.withArtwork(artwork.cover, artwork.screenshots,
+        supportTexture: artwork.supportTexture);
   },
 );
 

@@ -5,6 +5,47 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Scope state
 
+### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
+
+Revision 98 records the owner's authorized correction. Internal acceptance
+blockers: initial GBA discovery waits for global recovery and can restart on an
+unchanged background refresh; cover-only reads validate unrelated images; gallery
+preparation scans all cached manual pages; Home dismisses the native secondary
+window before the grid can take ownership; GBA grid still uses square cards.
+Resolve in the existing recovery/readers/renderer/owner paths, verify the combined
+cold/warm GBA workflow and badge layout, commit/push, then use the established
+GitHub signing path for Thor verification. No later console/stage is opened.
+The QA handoff audit confirms explicit native dismissal, not engine destruction.
+Prior 5aa7701 warm Sapphire milestones were media-ready 1.819s, reveal-start
+2.897s and completion 12.909s; they do not measure initial grid readiness or prove
+absence of resource downloads. No current-cache reset is authorized or needed.
+
+Current correction is implemented and integrated in source: an indexed v8
+console column bounds recovery without weakening binding or media hash checks;
+the local-only column is excluded from cloud packets so upgrading does not
+republish unchanged metadata. Cached console entry no longer requests a remote
+catalogue refresh. Existing explicit sync remains. Media downloads/evictions
+notify their exact keys; read-only trailer playback no longer constructs the
+scraping/settings worker and its whole-library recovery. The preview resolves
+four booklet pages and required panels, not all PDF/gallery images. Static GBA
+boxes paint score/status into their front texture; captions remain underneath.
+The explicit Home -> grid owner retains the console window during loading and
+rejects the outgoing owner's hide; empty/error/disposal and external lifecycle
+retain release paths. Lower GBA preview badges use display corners, not Resources.
+
+Focused host verification covers scoped/whole recovery and legacy upgrades,
+exact corruption rejection, cached foreground reads during pending publication,
+unrelated-media invalidation, real publication/owned eviction/lazy recovery,
+bounded multi-page recovery, cached entry without network, explicit sync identity
+changes, handoff/late hide, booklet/readiness and box/front-badge geometry. Native
+GPU/UI acceptance remains required; the host renderer cannot prove Impeller output.
+Analyzer reports no errors/warnings, retaining existing style infos. Three PSX
+cover-rating checks fail identically with the unmodified HEAD card restored for
+comparison (two stale duplicate-title expectations and the 24.36% golden mismatch).
+No golden or unrelated PSX behavior was changed to hide those baseline failures.
+GBA cold/warm timings, window continuity and visible rendering are still current
+acceptance blockers until the signed candidate is checked on Thor.
+
 ### S25 handoff/booklet polish — 2026-10-19, ACTIVE
 
 Revision 97 addresses the owner's two motion observations without changing the

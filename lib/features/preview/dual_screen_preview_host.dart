@@ -20,6 +20,7 @@ import '../../services/library_store.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../services/secondary_preview.dart';
 import '../../services/metadata/metadata_artwork_cache.dart';
+import '../../services/metadata/preview_video_cache.dart';
 import '../game_detail/game_detail_controller.dart';
 import '../game_detail/open_managed_game.dart';
 import '../../widgets/quick_menu.dart';
@@ -274,11 +275,13 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
                   (m) => m.type == (normalized ? 'video-normalized' : 'video'))
               .firstOrNull ??
           videos.firstOrNull;
-      final path = media == null
+      // Playing a cached trailer must not construct the scraping/settings
+      // worker: its load() deliberately restores the whole metadata library.
+      await ref.read(metadataCloudProvider.notifier).ready;
+      final store = await ref.read(sharedMetadataStoreProvider);
+      final path = media == null || store == null
           ? null
-          : await ref
-              .read(metadataControlsProvider.notifier)
-              .cachedPreviewVideo(media);
+          : await PreviewVideoCache(store).find(media);
       if (!mounted ||
           generation != _generation ||
           _metadata != metadata ||
@@ -495,6 +498,12 @@ class DualScreenPreviewHostState extends ConsumerState<DualScreenPreviewHost>
         'genres': metadata?.genres,
         'rating':
             metadata?.overallRating?.rating.normalizedValue ?? metadata?.rating,
+        'scoreLabel': metadata?.overallRating == null
+            ? null
+            : metadata!.overallRating!.rating.sourceId == 'igdb'
+                ? 'IGDB ${(metadata.overallRating!.rating.normalizedValue / 10).toStringAsFixed(1)}'
+                : '${metadata.overallRating!.rating.sourceLabel} ${metadata.overallRating!.rating.normalizedValue.toStringAsFixed(1)}/100',
+        'installed': state.isVariantInstalled,
         'video': _video,
         'audioVolume': audio.enabled ? audio.bgmVolume.clamp(0.0, 1.0) : 0.0,
         'resourceGeneration': ref.watch(socketMediaImportProvider).generation,

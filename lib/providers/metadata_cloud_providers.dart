@@ -23,21 +23,38 @@ import 'preview_providers.dart';
 import 'metadata_providers.dart';
 
 const metadataCloudSettingsKey = 'metadata_cloud_v1';
+final metadataMediaKeyRevisionProvider =
+    StateProvider.autoDispose.family<int, String>((ref, key) => 0);
 final editionGalleryMediaProvider = FutureProvider.autoDispose
     .family<Map<String, List<String>>, String>((ref, edition) async {
+  return _editionPanels(ref, edition, booklet: true);
+});
+final boxCardMediaProvider = FutureProvider.autoDispose
+    .family<Map<String, List<String>>, ({String platform, String selection})>(
+        (ref, selection) async {
+  ref.watch(gameDbChangedProvider);
+  await ref.watch(scopedMetadataReadinessProvider(selection.platform).future);
+  final edition = await LibraryQuery(ref.read(libraryDbProvider).database)
+      .editionForSelection(selection.platform, selection.selection);
+  if (edition == null) return const {};
+  return _editionPanels(ref, edition, booklet: false);
+});
+
+Future<Map<String, List<String>>> _editionPanels(Ref ref, String edition,
+    {required bool booklet}) async {
   ref.watch(metadataMediaRevisionProvider);
   final controller = ref.read(metadataCloudProvider.notifier);
   await controller.ready;
   final cloud = controller.library;
   final owner = Object();
   var active = true;
+  final keys = <String>{};
   ref.onDispose(() {
     active = false;
     cloud?.release(owner);
   });
   if (cloud != null) {
     final database = ref.read(libraryDbProvider).database;
-    final keys = <String>{};
     for (final provider in [
       'packaging',
       'launchbox',
@@ -45,14 +62,30 @@ final editionGalleryMediaProvider = FutureProvider.autoDispose
       'romm'
     ]) {
       final record = await LibraryStore(database).metadata(edition, provider);
-      if (record != null)
-        keys.addAll(record.media.map(MetadataArtworkCache.key));
+      if (record != null) {
+        final pages = record.media
+            .where((m) => m.type == 'manual-page')
+            .toList()
+          ..sort((a, b) => (a.memberIndex ?? 0).compareTo(b.memberIndex ?? 0));
+        final requiredPages = {
+          pages.firstOrNull,
+          pages.lastOrNull,
+          pages.length > 1 ? pages[1] : null,
+          pages.length > 2 ? pages[2] : null
+        };
+        keys.addAll(record.media
+            .where((m) =>
+                m.type.startsWith('outer-box-') ||
+                {'box-2D', 'box-2D-back', 'box-2D-side'}.contains(m.type) ||
+                booklet && requiredPages.contains(m))
+            .map(MetadataArtworkCache.key));
+      }
     }
     if (active) await cloud.leaseMedia(owner, keys);
     if (!active) cloud.release(owner);
   }
-  return (await ref.read(cachedMetadataArtworkProvider))
-      .galleryForEdition(edition, hydrateBooklet: true, hydrateTypes: const {
+  final resources = await (await ref.read(cachedMetadataArtworkProvider))
+      .galleryForEdition(edition, hydrateBooklet: booklet, hydrateTypes: const {
     'outer-box-front',
     'outer-box-back',
     'outer-box-left',
@@ -63,7 +96,14 @@ final editionGalleryMediaProvider = FutureProvider.autoDispose
     'box-2D-back',
     'box-2D-side'
   });
-});
+  if (active) {
+    for (final key in keys) {
+      ref.watch(metadataMediaKeyRevisionProvider(key));
+    }
+  }
+  return resources;
+}
+
 final metadataMediaRevisionProvider = StateProvider<int>((ref) => 0);
 
 class MetadataCloudState {
@@ -204,6 +244,10 @@ class MetadataCloudController extends StateNotifier<MetadataCloudState> {
         changed: () {
           if (!_disposed)
             ref.read(metadataMediaRevisionProvider.notifier).state++;
+        },
+        mediaChanged: (key) {
+          if (!_disposed)
+            ref.read(metadataMediaKeyRevisionProvider(key).notifier).state++;
         });
     await opened.open();
     if (_disposed || _paused) {
@@ -502,7 +546,7 @@ final cloudSelectionMediaProvider = FutureProvider.autoDispose
     cloud.release(owner);
   });
   final database = ref.read(libraryDbProvider).database;
-  await ref.read(cachedMetadataReadinessProvider.future);
+  await ref.read(scopedMetadataReadinessProvider(selection.platform).future);
   final edition = await LibraryQuery(database)
       .editionForSelection(selection.platform, selection.selection);
   if (edition == null || !active) return null;
@@ -553,8 +597,18 @@ final cloudSelectionMediaProvider = FutureProvider.autoDispose
       if (!active) break;
       await cloud.ensureMedia(key);
     }
-    return active ? (await cache.artworkForEdition(edition)).cover : null;
+    return active
+        ? (await cache.artworkForEdition(edition,
+                coverOnly: !selection.details))
+            .cover
+        : null;
   } catch (_) {
     return null;
+  } finally {
+    if (active) {
+      for (final key in keys) {
+        ref.watch(metadataMediaKeyRevisionProvider(key));
+      }
+    }
   } // Cache miss/offline keeps the existing fallback.
 });

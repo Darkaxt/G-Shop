@@ -29,9 +29,9 @@ import '../../providers/shelf_providers.dart';
 import '../../services/download_queue_manager.dart';
 import '../../services/input_debouncer.dart';
 import '../../services/library_store.dart';
-import '../../providers/metadata_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../services/metadata/metadata_artwork_cache.dart';
+import '../../services/metadata/preview_video_cache.dart';
 import '../../services/owned_emulator_launcher.dart';
 import '../../utils/game_metadata.dart';
 import '../../utils/rom_share_helper.dart';
@@ -627,9 +627,10 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
       for (final media
           in MetadataArtworkCache.displayMedia(record, includeVideo: true)
               .where((m) => {'video', 'video-normalized'}.contains(m.type))) {
-        final path = await ref
-            .read(metadataControlsProvider.notifier)
-            .cachedPreviewVideo(media);
+        await ref.read(metadataCloudProvider.notifier).ready;
+        final store = await ref.read(sharedMetadataStoreProvider);
+        final path =
+            store == null ? null : await PreviewVideoCache(store).find(media);
         if (path != null) resources[media.type] = [Uri.file(path).toString()];
       }
     }
@@ -1202,8 +1203,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
                           child: CoverSection(
                             key: _coverSectionKey,
                             galleryVolume: _galleryVolume,
-                            packagingResources: richMetadata?.editionId == null ? const {} :
-                                ref.watch(editionGalleryMediaProvider(richMetadata!.editionId!)).valueOrNull ?? const {},
+                            packagingResources: richMetadata?.editionId == null
+                                ? const {}
+                                : ref
+                                        .watch(editionGalleryMediaProvider(
+                                            richMetadata!.editionId!))
+                                        .valueOrNull ??
+                                    const {},
                             galleryResources: () =>
                                 _galleryResources(richMetadata),
                             onGalleryPlaying: ref
@@ -1303,8 +1309,13 @@ class _GameDetailScreenState extends ConsumerState<GameDetailScreen>
           AspectRatio(
             aspectRatio: hasCardContent ? 0.85 : 0.75,
             child: CoverSection(
-              packagingResources: richMetadata?.editionId == null ? const {} :
-                  ref.watch(editionGalleryMediaProvider(richMetadata!.editionId!)).valueOrNull ?? const {},
+              packagingResources: richMetadata?.editionId == null
+                  ? const {}
+                  : ref
+                          .watch(editionGalleryMediaProvider(
+                              richMetadata!.editionId!))
+                          .valueOrNull ??
+                      const {},
               key: _coverSectionKey,
               galleryVolume: _galleryVolume,
               galleryResources: () => _galleryResources(richMetadata),

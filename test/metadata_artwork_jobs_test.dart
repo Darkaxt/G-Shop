@@ -129,6 +129,30 @@ void main() {
     expect(provider.calls, 1);
   });
 
+  test('booklet preparation returns only its four required cached pages',
+      () async {
+    final store = LibraryStore(Future.value(db));
+    final original = (await store.metadata('a', provider.providerId))!;
+    final pages = List.generate(
+        6,
+        (i) => MetadataMedia(
+            type: 'manual-page',
+            memberIndex: i,
+            url: 'https://example.com/manual-$i.png'));
+    await store.putMetadata(MetadataRecord.fromJson({
+      ...original.toJson(),
+      'media': pages.map((m) => m.toJson()).toList(),
+    }));
+    final job = await jobs.createArtwork(
+        providerId: provider.providerId,
+        collectionGeneration: 'booklet-pages',
+        editionIds: ['a']);
+    await jobs.run(job.id, provider, artworkCache: cache);
+    final preview = await cache.galleryForEdition('a', hydrateBooklet: true);
+    expect(preview['manual-page'], hasLength(4));
+    expect((await cache.galleryForEdition('a'))['manual-page'], hasLength(6));
+  });
+
   test('legacy regional labels resolve against the current edition', () async {
     final store = LibraryStore(Future.value(db));
     await store.putEdition(EditionIdentity(

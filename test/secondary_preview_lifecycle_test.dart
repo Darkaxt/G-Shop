@@ -103,6 +103,8 @@ void main() {
             'system': 'gba',
             'filename': 'Fixture.gba',
             'title': 'Fixture title',
+            'scoreLabel': 'IGDB 8.4',
+            'installed': true,
             'gallery': gallery,
             'galleryResources': {
               'manual-page': ['file:///first.png', 'file:///second.png'],
@@ -116,6 +118,8 @@ void main() {
     }
 
     await show(true);
+    expect(find.byKey(const ValueKey('preview-score')), findsNothing);
+    expect(find.byKey(const ValueKey('preview-availability')), findsNothing);
     final display = tester.getRect(find.byType(Scaffold));
     expect(tester.getRect(find.byType(ResourceGallery)), display);
     expect(find.text('Fixture title'), findsNothing);
@@ -137,6 +141,13 @@ void main() {
             .getRect(find.byKey(const ValueKey('resource-inspection-surface'))),
         display);
     await show(false);
+    final score = tester.getRect(find.byKey(const ValueKey('preview-score')));
+    final available =
+        tester.getRect(find.byKey(const ValueKey('preview-availability')));
+    expect(score.left, lessThan(display.width / 2));
+    expect(available.right, greaterThan(display.width / 2));
+    expect(score.bottom, greaterThan(display.height * .85));
+    expect(available.bottom, greaterThan(display.height * .85));
     expect(find.byKey(const ValueKey('preview-game-title')), findsOneWidget);
     expect(find.text('Select for details'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());

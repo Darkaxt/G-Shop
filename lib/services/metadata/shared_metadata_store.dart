@@ -77,7 +77,7 @@ class SharedMetadataStore {
     final db = await (factory ?? databaseFactory).openDatabase(
         p.join(root.path, 'metadata.sqlite'),
         options: OpenDatabaseOptions(
-            version: 7,
+            version: 8,
             onConfigure: (db) async {
               final applicationId = (await db.rawQuery('PRAGMA application_id'))
                   .single
@@ -104,6 +104,7 @@ class SharedMetadataStore {
                 game_json TEXT NOT NULL, edition_json TEXT NOT NULL,
                 artifacts_json TEXT NOT NULL, record_json TEXT NOT NULL,
                 PRIMARY KEY (edition_id, provider_id))''');
+              await _installPlatformIndex(db);
               await MetadataArtworkCache.install(db);
               await _installArtworkResponses(db);
               await _installIdentityBindings(db);
@@ -146,6 +147,7 @@ class SharedMetadataStore {
                     'ALTER TABLE es_de_mappings ADD COLUMN installation_layout TEXT');
               }
               if (old < 7) await _installPatchRecipes(db);
+              if (old < 8) await _installPlatformIndex(db);
             }));
     return SharedMetadataStore._(root, db, access);
   }
@@ -153,6 +155,33 @@ class SharedMetadataStore {
   Future<void> close() async {
     await joinCloudOwner?.call();
     await _db.close();
+  }
+
+  // An indexed console scope keeps foreground recovery independent of the
+  // size of other console collections. Derive it from the verified game, never
+  // trust a caller-supplied scope in an imported packet.
+  static Future<void> _installPlatformIndex(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(records)');
+    if (!columns.any((row) => row['name'] == 'platform_id'))
+      await db.execute('ALTER TABLE records ADD COLUMN platform_id TEXT');
+    var cursor = 0;
+    while (true) {
+      final rows = await db.rawQuery(
+          'SELECT rowid AS cursor,game_json FROM records WHERE rowid>? ORDER BY rowid LIMIT 128',
+          [cursor]);
+      final batch = db.batch();
+      for (final row in rows) {
+        final game =
+            GameIdentity.fromJson(jsonDecode(row['game_json'] as String));
+        batch.update('records', {'platform_id': game.platformId},
+            where: 'rowid=?', whereArgs: [row['cursor']]);
+      }
+      if (rows.isNotEmpty) await batch.commit(noResult: true);
+      if (rows.length < 128) break;
+      cursor = rows.last['cursor'] as int;
+    }
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS shared_records_platform ON records(platform_id,edition_id,generation DESC,provider_id)');
   }
 
   /// Bounded, credential-free packets; no ES-DE local paths or operational jobs.
@@ -185,7 +214,9 @@ class SharedMetadataStore {
                     'artwork': <Map<String, Object?>>[],
                     'responses': <Map<String, Object?>>[],
                   });
-          (packet['records'] as List).add({...row}..remove('cursor'));
+          (packet['records'] as List).add({...row}
+            ..remove('cursor')
+            ..remove('platform_id')); // Local lookup index is not cloud content.
           (packet['bindings'] as List).addAll(await txn.query(
               'identity_bindings',
               where: 'game_id = ? OR game_id = ?',
@@ -278,6 +309,7 @@ class SharedMetadataStore {
         await txn.insert(
             'records',
             {
+              'platform_id': game.platformId,
               for (final key in [
                 'edition_id',
                 'provider_id',
@@ -1193,6 +1225,7 @@ class SharedMetadataStore {
       await txn.insert(
           'records',
           {
+            'platform_id': game.platformId,
             'edition_id': record.editionId,
             'provider_id': record.providerId,
             'identity_key': LibraryStore.metadataIdentity(identity,
@@ -1560,7 +1593,7 @@ class SharedMetadataStore {
 
   /// Rebuild projections against the already published catalogue. No catalogue
   /// membership, provider match or installation is invented from cached names.
-  Future<int> restore(Database destination) async {
+  Future<int> restore(Database destination, {String? platformId}) async {
     await requireAccess();
     final watch = Stopwatch()..start();
     assert(() {
@@ -1571,6 +1604,7 @@ class SharedMetadataStore {
     int? generationCursor;
     var restored = 0;
     var catalogueRows = 0, recordRows = 0;
+    final scopedMedia = <String>{};
     await destination.transaction((txn) async {
       // Android's system SQLite need not include JSON1. Decode bounded pages
       // with the existing artifact model, then index the same pinned catalogue
@@ -1584,8 +1618,9 @@ class SharedMetadataStore {
           final rows = await txn.rawQuery(
               '''SELECT id, systemSlug, artifact_key,
             remote_artifact FROM games WHERE id > ? AND is_folder = 0
-            AND remote_artifact IS NOT NULL ORDER BY id LIMIT 128''',
-              [cacheCursor]);
+            AND remote_artifact IS NOT NULL
+            ${platformId == null ? '' : 'AND systemSlug = ?'} ORDER BY id LIMIT 128''',
+              [cacheCursor, if (platformId != null) platformId]);
           final batch = txn.batch();
           catalogueRows += rows.length;
           for (final row in rows) {
@@ -1617,11 +1652,13 @@ class SharedMetadataStore {
           await requireAccess();
           final page = await _db.rawQuery(
               '''SELECT * FROM records
-                ${editionCursor == null ? '' : '''WHERE edition_id > ? OR
+                WHERE ${platformId == null ? '1=1' : 'platform_id = ?'}
+                ${editionCursor == null ? '' : '''AND (edition_id > ? OR
                   (edition_id = ? AND (generation < ? OR
-                    (generation = ? AND provider_id > ?)))'''}
+                    (generation = ? AND provider_id > ?))))'''}
                 ORDER BY edition_id, generation DESC, provider_id LIMIT 128''',
               [
+                if (platformId != null) platformId,
                 if (editionCursor != null) ...[
                   editionCursor,
                   editionCursor,
@@ -1636,6 +1673,17 @@ class SharedMetadataStore {
             recordRows++;
             var record = MetadataRecord.fromJson(
                 jsonDecode(row['record_json'] as String));
+            if (platformId != null && record.platformId != platformId)
+              throw const FormatException('Shared metadata console mismatch');
+            if (platformId != null) {
+              final edition = EditionIdentity.fromJson(
+                  jsonDecode(row['edition_json'] as String));
+              scopedMedia.addAll([
+                ...record.media,
+                ...MetadataArtworkCache.displayMedia(record,
+                    regions: edition.regions, includePhysicalLabel: true),
+              ].map(MetadataArtworkCache.key));
+            }
             if (!LibraryStore.hasConsistentProvenance(record) ||
                 record.editionId != row['edition_id'] ||
                 record.providerId != row['provider_id'] ||
@@ -1730,6 +1778,8 @@ class SharedMetadataStore {
       await destination.transaction((txn) async {
         final batch = txn.batch();
         for (final row in page) {
+          if (platformId != null && !scopedMedia.contains(row['media_key']))
+            continue;
           artworkRows++;
           final filename = row['filename'] as String;
           final length = row['byte_length'] as int;
@@ -1761,6 +1811,9 @@ class SharedMetadataStore {
           'artworkRows=$artworkRows');
       return true;
     }());
+    debugPrint('RShopMetadataRecovery scope=${platformId ?? 'all'} '
+        'elapsedMs=${watch.elapsedMilliseconds} catalogue=$catalogueRows '
+        'records=$recordRows receipts=$artworkRows restored=$restored');
     return restored;
   }
 

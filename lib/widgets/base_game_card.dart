@@ -10,6 +10,8 @@ import '../models/ra_models.dart';
 import '../services/metadata/effective_overall_rating.dart';
 import 'installed_indicator.dart';
 import 'smart_cover_image.dart';
+import 'gba_box_tile.dart';
+import 'handwritten_media_sticker.dart';
 
 class BaseGameCard extends StatelessWidget {
   // Core
@@ -120,6 +122,88 @@ class BaseGameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rs = context.rs;
+    if (systemId == 'gba' && gameIdentity != null) {
+      Widget boxCard = GestureDetector(
+          onTapDown: (_) => onTapSelect?.call(),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Column(children: [
+            Expanded(child: Consumer(builder: (context, ref, _) {
+              final panels = ref
+                      .watch(boxCardMediaProvider(
+                          (platform: systemId!, selection: gameIdentity!)))
+                      .valueOrNull ??
+                  const <String, List<String>>{};
+              final cover = ref
+                      .watch(cloudSelectionMediaProvider((
+                        platform: systemId!,
+                        selection: gameIdentity!,
+                        details: false
+                      )))
+                      .valueOrNull ??
+                  cachedUrl;
+              return GbaBoxTile(
+                  identity: gameIdentity!,
+                  title: displayName,
+                  resources: panels,
+                  selected: isSelected,
+                  frontFallback: cover == null && coverUrls.isEmpty
+                      ? HandwrittenMediaSticker(
+                          identity: gameIdentity!, title: displayName)
+                      : SmartCoverImage(
+                          urls: coverUrls,
+                          cachedUrl: cover,
+                          fit: BoxFit.fill,
+                          memCacheWidth: memCacheWidth,
+                          placeholder: HandwrittenMediaSticker(
+                              identity: gameIdentity!, title: displayName),
+                          errorWidget: HandwrittenMediaSticker(
+                              identity: gameIdentity!, title: displayName)),
+                  score: showRating && overallRating != null
+                      ? _CoverRating(
+                          key: ValueKey(
+                              'score-${overallRating!.rating.normalizedValue}-${overallRating!.fresh}-${overallRating!.rankingEligible}'),
+                          rating: overallRating!,
+                          isSmall: false)
+                      : null,
+                  availability: isInstalled || isRemoteAvailable
+                      ? _AvailabilityBadge(
+                          key: ValueKey('available-$isInstalled'),
+                          installed: isInstalled,
+                          isSmall: false)
+                      : null);
+            })),
+            Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 3),
+                child: Text(displayName,
+                    key: const ValueKey('game-card-caption'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: rs.isSmall ? 12 : 15,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected
+                            ? accentColor.forText
+                            : Colors.white70))),
+            if (downloadStatus != null && !downloadStatus!.isTerminal)
+              LinearProgressIndicator(
+                  value: downloadStatus == DownloadStatus.downloading
+                      ? downloadProgress.clamp(0, 1)
+                      : null,
+                  minHeight: 3,
+                  color: accentColor),
+          ]));
+      if (focusNode != null) {
+        boxCard = Focus(
+            focusNode: focusNode,
+            canRequestFocus: false,
+            descendantsAreFocusable: false,
+            child: boxCard);
+      }
+      return boxCard;
+    }
     final selectedScale = rs.isSmall ? 1.08 : 1.1;
     final borderSelected = rs.isSmall ? 2.0 : 3.0;
     final titleFontSize = rs.isSmall ? 12.0 : 14.0;
@@ -440,7 +524,7 @@ class BaseGameCard extends StatelessWidget {
 class _CoverRating extends StatelessWidget {
   final EffectiveOverallRating rating;
   final bool isSmall;
-  const _CoverRating({required this.rating, required this.isSmall});
+  const _CoverRating({super.key, required this.rating, required this.isSmall});
 
   String _number(double value) => value == value.roundToDouble()
       ? value.toStringAsFixed(0)
@@ -536,7 +620,8 @@ class _CoverRating extends StatelessWidget {
 class _AvailabilityBadge extends StatelessWidget {
   final bool installed;
   final bool isSmall;
-  const _AvailabilityBadge({required this.installed, required this.isSmall});
+  const _AvailabilityBadge(
+      {super.key, required this.installed, required this.isSmall});
 
   @override
   Widget build(BuildContext context) {
