@@ -214,8 +214,8 @@ class ResourceGalleryState extends State<ResourceGallery>
         ? widget.initialView!
         : availableViews.first;
     // Preserve the visibly ajar focused booklet on the reader-route handoff.
-    // A quarter turn is 32-38 degrees on the generic/imported booklet hinges.
-    if (view == ResourceView.manual && widget.initiallyOpening) opening = .25;
+    // One eighth of the generic/imported hinge range keeps a small 16-19° glimpse.
+    if (view == ResourceView.manual && widget.initiallyOpening) opening = .125;
     reading = view == ResourceView.manual &&
         widget.initiallyReading &&
         pages.isNotEmpty;

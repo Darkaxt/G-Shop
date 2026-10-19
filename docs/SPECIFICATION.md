@@ -1,10 +1,12 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 106, 2026-10-19.
+Authoritative specification, revision 107, 2026-10-19.
 
 Owner booklet focus correction, 2026-10-19: when the booklet zooms into
-inspection, progressively open its real hinge to about 40 degrees (30-45 degrees
-acceptable), making its depth distinct from a flat cover/unfinished box reveal.
+inspection, progressively open its real hinge to a small 18-degree glimpse.
+The owner rejected the earlier 40-degree opening: the two-page construction
+looks unnatural that far open. This supersedes the former 30-45-degree target;
+do not add artificial page layers to retain that rejected angle.
 Keep it closed during extraction and the resting tableau; close it on returning
 to overview. Do not open the carton while inspecting the booklet. Double-tap
 still opens the full spread and enters the reader; avoid snapping the ajar

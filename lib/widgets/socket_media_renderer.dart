@@ -460,7 +460,7 @@ class SocketMediaGpu {
     if (model.data['unboxingGeometry'] == true &&
         surface['unboxingPart'] == 'booklet') {
       if (pose.inspectedPart != 'booklet') return 0;
-      return (40 * math.pi / 180 /
+      return (18 * math.pi / 180 /
               (model.data['maxOpenRadians'] as num).toDouble()) *
           pose.inspection;
     }

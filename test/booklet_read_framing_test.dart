@@ -8,7 +8,7 @@ import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
-  test('focused scene booklet opens forty degrees without opening the carton', () {
+  test('focused scene booklet opens eighteen degrees without opening the carton', () {
     final model = PackagingModel(PackagingKind.booklet).build();
     model.data['unboxingGeometry'] = true;
     final maximum = (model.data['maxOpenRadians'] as num).toDouble();
@@ -16,7 +16,7 @@ void main() {
       final pose = SocketMediaPose(inspectedPart: 'booklet', inspection: progress);
       expect(SocketMediaGpu.surfaceOpening(model,
               {'unboxingPart': 'booklet'}, pose) * maximum,
-          closeTo(40 * math.pi / 180 * progress, .00001));
+          closeTo(18 * math.pi / 180 * progress, .00001));
       expect(SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'box'}, pose), 0);
     }
     expect(SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'booklet'},

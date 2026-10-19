@@ -7,7 +7,14 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Current owner readability correction (revision 106), ACTIVE: remove the shelf
+Current owner small-glimpse correction (revision 107), ACTIVE: the owner rejected
+the 40-degree focused booklet gap because its two-page construction looks unnatural.
+Reduce the actual hinge to 18 degrees and the reader-route entry to 16-19 degrees;
+retain closed extraction/tableau, concurrent focus zoom and full opening for reading.
+The new angle and route-entry regressions fail on the old implementation.
+Signed native verification of this reduction remains required.
+
+Preceding readability correction (revision 106): remove the shelf
 cartons' forward pitch and roll, retaining the verified selected yaw/halo. The
 upright-pose regression fails on the old .14-radian pitch. Focused host checks
 now pass for upright selected/static/Reduced Motion poses, both yaw extremes,
@@ -16,8 +23,15 @@ its actual hinge ~40 degrees, without opening the carton or altering extraction.
 The closed-booklet reproduction failed before correction. Preserve the ajar pose
 at reader-route entry, then open fully as before. Integrated focused checks now
 pass for per-part opening, unchanged carton/extraction behavior, reader handoff,
-swipes/return, upright selected/static poses and yaw extremes. Final signed Thor
-verification remains required; no second ACTIVE stage.
+swipes/return, upright selected/static poses and yaw extremes. Signed Thor source
+`29342de`, run 39273207957, verified upright shelf motion, ajar booklet focus and
+reader page 2. Installed/downloaded APK SHA-256 both equal
+`7419e4f0d843a3fdbdef9fd08730da3daaeb3677bbd84470d82f0322520fef7d`.
+Both `upright-shelf-ready` sheets and all five `booklet-ajar-focus` sheets were
+inspected, together with the full-size `final106-focus` and reader screenshots.
+Native opening 17:17:09.384 -> reader 17:17:11.709, page 2; the 40-degree glimpse
+is now superseded by revision 107. Unchanged shelf evidence remains applicable;
+no second ACTIVE stage or full-cohort completion claim.
 
 Preceding owner refinement (revision 104): red library backdrop,
 selected-only -30/front/+30 degree carton sweep/halo, animated booklet-to-reader

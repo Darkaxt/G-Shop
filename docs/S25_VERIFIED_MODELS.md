@@ -18,9 +18,17 @@ This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
-Owner revision 105 removes the forward shelf pitch/roll for readability.
-Host pose/yaw/badge checks pass; signed Thor verification is pending. The
-following `3373325` evidence records the preceding tilted shelf, not this change.
+Owner revision 107 reduces the focused booklet to an 18-degree glimpse after
+the 40-degree gap exposed its two-page construction. Native verification of
+that reduction is pending. No new model or fabricated page layers are required.
+
+Signed source `29342de`, run 39273207957, verifies the upright shelf correction:
+both `upright-shelf-ready` contact sheets and full-size final106 shelf evidence
+were inspected. Its five `booklet-ajar-focus` sheets verify the earlier 40-degree
+opening, not the owner's smaller replacement. Reader reaches page 2 at
+17:17:11.709 from opening at 17:17:09.384. Installed/downloaded APK SHA-256:
+`7419e4f0d843a3fdbdef9fd08730da3daaeb3677bbd84470d82f0322520fef7d`.
+The following `3373325` shelf evidence predates the upright correction.
 
 Owner focus/reader/camera refinement, 2026-10-19: signed source `3373325`,
 GitHub run 39266909295, installed SHA-256
