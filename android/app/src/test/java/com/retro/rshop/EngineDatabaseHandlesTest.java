@@ -46,6 +46,23 @@ public class EngineDatabaseHandlesTest {
     }
     private static final Map<String, Object> OPEN = Collections.singletonMap("path", "/fixture.db");
 
+    @Test public void newActivityClaimsOwnershipBeforeOldActivityIsDestroyed() {
+        Native backend = new Native();
+        EngineDatabaseHandles old = new EngineDatabaseHandles(backend);
+        old.claimForeground(); old.call("openDatabase", OPEN, new Reply());
+        EngineDatabaseHandles next = new EngineDatabaseHandles(backend);
+        next.claimForeground();
+        next.call("openDatabase", OPEN, new Reply());
+        assertEquals(Arrays.asList("open", "close:1"), backend.events);
+        backend.finishClose();
+        old.close(); // Android finally destroys the old Activity: must not affect next.
+        assertEquals(Arrays.asList("open", "close:1", "open"), backend.events);
+        EngineDatabaseHandles third = new EngineDatabaseHandles(backend);
+        third.claimForeground();
+        assertEquals("close:2", backend.events.get(3));
+        backend.finishClose(); third.close();
+    }
+
     @Test public void newEngineWaitsForActualOldHandleClosureAndRejectsOldQueuedSql() {
         Native backend = new Native();
         EngineDatabaseHandles old = new EngineDatabaseHandles(backend);

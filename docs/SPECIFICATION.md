@@ -17,6 +17,9 @@ not resume its abandoned queue on the next engine. Serialize native open/close
 acknowledgements so a new open cannot enter a retiring sqflite worker pool.
 End an acquired transaction on its owning SQL worker before closing its native
 handle; Android pool close alone need not release an in-use connection.
+Claim foreground database ownership during new Activity setup, not only old
+Activity destruction: Android can resume the replacement before destroying the
+previous Activity. Late destruction must not clear the replacement's ownership.
 Headless save/cache passes
 must own separate connections and close them after joined completion/cancellation,
 before their engines are destroyed. Foreground recovery must never roll back or

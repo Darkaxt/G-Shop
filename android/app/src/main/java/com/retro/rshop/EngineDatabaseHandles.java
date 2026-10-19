@@ -7,9 +7,11 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Engine-local handles; native open/close boundaries finish before handoff. */
 public final class EngineDatabaseHandles {
+    private static final AtomicReference<EngineDatabaseHandles> foreground = new AtomicReference<>();
     public interface Reply {
         void success(Object value);
         void error(String code, String message, Object details);
@@ -41,6 +43,13 @@ public final class EngineDatabaseHandles {
     private final LinkedHashSet<Integer> handles = new LinkedHashSet<>();
     private boolean closed;
     public EngineDatabaseHandles(NativeCall nativeCall) { this.nativeCall = nativeCall; }
+
+    /** Called on Activity setup, before its Dart entrypoint can open databases.
+     * Android may not destroy the previous Activity until after the new one resumes. */
+    public void claimForeground() {
+        EngineDatabaseHandles previous = foreground.getAndSet(this);
+        if (previous != null && previous != this) previous.close();
+    }
 
     private static Reply completed(Reply reply, Runnable done, Consumer<Object> success) {
         return new Reply() {
@@ -95,6 +104,7 @@ public final class EngineDatabaseHandles {
             if (closed) return;
             closed = true;
         }
+        foreground.compareAndSet(this, null);
         boundary(done -> {
             ArrayDeque<Integer> remaining;
             synchronized (this) { remaining = new ArrayDeque<>(new ArrayList<>(handles)); handles.clear(); }

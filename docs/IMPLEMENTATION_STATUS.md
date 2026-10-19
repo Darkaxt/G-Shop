@@ -7,6 +7,17 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Native `8e3f55b`, run 39242419446, installed hash
+`a0fce8eda2a7cd1169b5cc5bfdbccd27e4ef89dcdfbf0ad091e5200868a57880`,
+reveals the remaining ordering defect: after the 13:26:39 projection interruption,
+owner 2 opens at 13:26:41.410, before owner 1 closes at 13:26:43.962. Android delays
+old Activity destruction until after replacement setup. Shared-store opening fails
+with a SQLite exception, so this candidate does not pass. The integrated correction
+now claims foreground ownership during replacement setup, retires the previous
+owner before new native opens, and makes late old destruction identity-safe.
+Headless owners are not superseded by a foreground claim. Native verification of
+that exact ordering is still required; S25 stays ACTIVE.
+
 Rollback-only candidate `b771486` failed the same native interruption at 12:26:41,
 PID 2428, signed run 39235365447, installed APK SHA-256
 `b155aa12ecd70cda08697a560c3c7593f83825d443517d26d91561e86dde1148`.

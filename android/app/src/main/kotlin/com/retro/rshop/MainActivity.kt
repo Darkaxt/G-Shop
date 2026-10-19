@@ -77,7 +77,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        EngineOwnedSqflitePlugin.install(flutterEngine)
+        EngineOwnedSqflitePlugin.install(flutterEngine, foreground = true)
         preview = PreviewChannel(this, flutterEngine.dartExecutor.binaryMessenger)
         MigrationChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
         socketImport = SocketImportChannel(this, flutterEngine.dartExecutor.binaryMessenger)

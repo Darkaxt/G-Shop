@@ -36,10 +36,11 @@ class EngineOwnedSqflitePlugin : SqflitePlugin() {
     }
     companion object {
         private val nextOwner = AtomicInteger()
-        fun install(engine: FlutterEngine) {
+        fun install(engine: FlutterEngine, foreground: Boolean = false) {
             engine.plugins.remove(SqflitePlugin::class.java)
-            if (!engine.plugins.has(EngineOwnedSqflitePlugin::class.java))
-                engine.plugins.add(EngineOwnedSqflitePlugin())
+            val owner = engine.plugins.get(EngineOwnedSqflitePlugin::class.java) as? EngineOwnedSqflitePlugin
+                ?: EngineOwnedSqflitePlugin().also { engine.plugins.add(it) }
+            if (foreground) owner.handles.claimForeground()
         }
     }
 }
