@@ -18,6 +18,19 @@ This ledger does not declare the full S25 stage complete.
 
 ## Evidence and limits
 
+Retained-process GBA reopening correction, 2026-10-19: signed `f17888a`, run
+39245008357, installed APK SHA-256
+`6c32ab7607ba37db7f1c86a1f8a7f4bd11d4de38fd744260b27a18f367436c07`.
+Interrupted projection/Activity replacement and ordinary Exit/reopen both load
+the same 24 cached games in PID 3550, without force-stop, cache reset or catalogue
+refresh. Native logs prove old connection closure before replacement opens.
+The four-column solid carton grid and settled Mega Man/Sapphire previews are
+visually inspected in `D:/Temp/rshop-s25-entry-20261019/f178-*.png`; Sapphire
+retains its box, horizontal blue cartridge and booklet. Warm required resources
+resolve in 1.145s. This closes the reopening regression, not the full GBA cohort,
+physical-edition, audio lifecycle or wider S25 criteria. See the current receipt
+in IMPLEMENTATION_STATUS.md for exact connection/discovery timings and limits.
+
 Current GBA cache/grid correction, 2026-10-19: source `1cc768d`, signed APK/installed
 SHA-256 `271a9a0110f038e5c99810a1d9338d78788defa5b292dba3a9b5c43f5f2c3984`.
 The visible grid cartons now expose real side/top depth instead of the rejected

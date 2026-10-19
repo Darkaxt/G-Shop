@@ -7,6 +7,53 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+Current reopening correction: VERIFIED on Thor `bfa98654`, signed source
+`f17888ae29857442068ac87b84ce401562f5fa31`, [GitHub run 39245008357](https://github.com/Darkaxt/R-Shop/actions/runs/39245008357).
+Downloaded and installed APK SHA-256 both equal
+`6c32ab7607ba37db7f1c86a1f8a7f4bd11d4de38fd744260b27a18f367436c07`;
+the existing production certificate is unchanged. The native owner now retires
+the old foreground connections during replacement Activity setup, before the new
+engine opens. It ends its own transactions, rejects old queued requests and waits
+for close acknowledgements; active headless owners remain independent.
+
+Acceptance evidence, same retained PID 3550 throughout, no force-stop or data reset:
+
+- Interrupted real GBA projection at `reading-facts`: owner 1 closes at
+  13:46:40.173/.174, owner 2 opens at 13:46:41.082/.115, and the shared store opens
+  at 13:46:41.138. Old interrupted work reports cancellation through its revoked
+  connection; the replacement completes normally. GBA cached rows take 354ms,
+  metadata readiness 3.233s and discovery .527s for 24 eligible unique games.
+- Ordinary Back -> Exit -> launch: owner 2 closes at 13:50:46.883/.884; owner 3
+  opens at 13:50:56.382/.413 and the shared store opens at 13:50:56.519. Cached
+  rows take 377ms, metadata readiness 5.993s and discovery .533s for the same 24.
+- Actual upper display shows four-column solid 3D cartons with front-bound badges,
+  not flat art or the old three-column loader. The unchanged placeholder correction
+  also has native evidence in `b771-loading-up.png` and its red/green widget check.
+- Lower display renders Mega Man Zero 3 and Sapphire to their settled endpoints.
+  Warm Sapphire resources resolve in 1.145s, reveal starts at 2.601s and completes
+  at 12.617s. It shows the retained carton, horizontal blue cartridge and booklet.
+  Trailer playback reports saved volume .2248569; audible output was not verified.
+
+Evidence: `D:/Temp/rshop-s25-entry-20261019/owner-native.log`,
+`f178-recovered-grid-{up,down}.png`, and `f178-normal-reopen-sapphire-{up,down}.png`.
+Both returned display pairs were inspected. Existing ROMs, saves, credentials,
+cache and catalogue were preserved; no collection refresh was triggered. Startup
+metadata publication runs independently; the final reopen pass completed at
+13:52:53 with 2,142,474,049 cached bytes, without invalidating the finished scene.
+The forced Activity overlap still logs the pre-existing SoLoud initialization error;
+this correction does not claim that separate audio lifecycle issue is resolved.
+Focused host lifecycle/ownership/discovery checks and signed native CI pass for
+this source. No Windows Gradle build was launched. Reviewed cleanup removed only
+three superseded host APK copies (232,215,010 bytes), recoverable from their
+recorded runs; current APK and verification evidence remain.
+
+The reopening and four-column acceptance blockers are resolved. S25 remains
+ACTIVE for the broader recorded model/edition/cohort requirements; this is the
+requested GBA owner-review checkpoint, not whole-stage completion or a new public
+release. No other console, S26 or S27 work has started.
+
+#### Earlier diagnostic attempts (superseded by the verified receipt above)
+
 Native `8e3f55b`, run 39242419446, installed hash
 `a0fce8eda2a7cd1169b5cc5bfdbccd27e4ef89dcdfbf0ad091e5200868a57880`,
 reveals the remaining ordering defect: after the 13:26:39 projection interruption,
