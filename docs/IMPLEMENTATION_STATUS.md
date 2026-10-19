@@ -19,6 +19,16 @@ were not logged at their shared error boundary; bounded error logging is being
 added to identify the actual cause. This internal acceptance blocker keeps S25
 ACTIVE. No flat-art substitution or next-console work is authorized by this gap.
 
+The release-contract reproduction now establishes a concrete failure: a cached
+off-screen tile has layout but no repaint-boundary layer. Flutter's
+`debugNeedsPaint` always returns false outside debug mode, so the old guard admits
+`toImage` and throws a null-check error. The regression fails against that exact
+guard. Capture now follows the existing real paint callback, not model-load or
+widget-update completion, and checks actual attached/layer state. Focused host
+checks now pass for cached-before-paint, scrolled-visible and detached producers,
+plus unchanged shelf geometry/badges, score rounding and reader/gallery routes.
+Signed native scrolling verification remains required; no device-fix claim yet.
+
 Current owner closure request (revision 109), ACTIVE: verify the current signed
 GBA workflow across all 24 actual ranked games, including real cartridge labels,
 typed box resources, available manuals and trailer-first gallery. The old ranked

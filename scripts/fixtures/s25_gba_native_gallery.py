@@ -82,6 +82,8 @@ def main():
     try:
         def wait_for(predicate):
             for line in log.stdout:
+                if 'Physical-media renderer ' in line:
+                    raise RuntimeError('Native model renderer failed; inspect its exact logged error')
                 result = predicate(line)
                 if result:
                     return result

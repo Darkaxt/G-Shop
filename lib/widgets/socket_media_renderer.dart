@@ -86,6 +86,10 @@ class SocketMediaRenderer extends StatefulWidget {
 }
 
 class SocketMediaRendererState extends State<SocketMediaRenderer> {
+  // Cached viewport children can have layout before a capture layer exists.
+  // debugNeedsPaint is always false in release; it is not runtime readiness.
+  static bool labelCaptureReady(RenderRepaintBoundary boundary) =>
+      boundary.attached && boundary.hasSize && boundary.layer != null;
   final _labelKey = GlobalKey();
   SocketMediaGpu? _renderer;
   AssetBundle? _resources;
@@ -231,7 +235,6 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       _labelUs = _gpuUs = null;
       frameRendered = false;
       _error = null;
-      _labelPainted();
     }
   }
 
@@ -269,7 +272,6 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       if (!mounted || generation != _generation) return;
       _modelUs = _clock.elapsedMicroseconds;
       setState(() => _renderer = renderer);
-      _labelPainted();
     } catch (error) {
       if (!mounted || generation != _generation) return;
       _failed(error);
@@ -289,7 +291,7 @@ class SocketMediaRendererState extends State<SocketMediaRenderer> {
       final boundary = _labelKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
       try {
-        if (boundary == null || boundary.debugNeedsPaint) return;
+        if (boundary == null || !labelCaptureReady(boundary)) return;
         final image = await boundary.toImage(pixelRatio: 1.5);
         if (!mounted ||
             generation != _generation ||
