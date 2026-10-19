@@ -20,6 +20,26 @@ import 'metadata_controls_test.dart' show controlsDatabase, MemorySecrets;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final actualPack = Platform.environment['RSHOP_PACKAGING_PACK'];
+  final colourPack = Platform.environment['RSHOP_COLOUR_PACK'];
+  test('derived front pack keeps matching flat and 3D bytes with provenance',
+      () {
+    final archive =
+        ZipDecoder().decodeBytes(File(colourPack!).readAsBytesSync());
+    final manifest =
+        jsonDecode(utf8.decode(archive.findFile('packaging.json')!.content));
+    final resources = (manifest['games'] as List).single['resources'] as List;
+    final media = resources
+        .map((r) => MetadataMedia.fromJson((r as Map).cast<String, dynamic>()))
+        .toList();
+    expect(media.map((m) => m.type).toSet(), {'box-2D', 'outer-box-front'});
+    final front = media.first.importReference!;
+    expect(media.last.importReference!.sha256, front.sha256);
+    expect(front.sourceId, 'launchbox');
+    expect(front.sourceSha256, isNot(front.sha256));
+    expect(front.colourCorrection!['referenceSourceId'], 'screenscraper');
+    final image = archive.findFile('images/${front.sha256}.png')!;
+    expect(sha256.convert(image.content).toString(), front.sha256);
+  }, skip: colourPack == null ? 'Requires local derived colour pack' : false);
   test(
       'reviewed desktop pack satisfies production provenance and body contracts',
       () {
@@ -169,6 +189,22 @@ void main() {
                 assetId: '42/face',
                 sourceUrl: 'https://images.launchbox-app.com/fixture.png',
                 sha256: digest,
+                colourCorrection:
+                    pair.$1 == 'outer-box-front' || pair.$1 == 'box-2D'
+                        ? {
+                            'method': 'rgb-affine-v1',
+                            'referenceSha256': List.filled(64, 'c').join(),
+                            'referenceSourceId': 'screenscraper',
+                            'matrix': [
+                              [1, 0, 0],
+                              [0, 1.2, 0],
+                              [0, 0, 1],
+                              [0, -.05, 0]
+                            ],
+                            'errorBefore': .2,
+                            'errorAfter': .08,
+                          }
+                        : null,
                 sourceRegion: pair.$1.startsWith('outer-box-') ? 'eu' : null,
                 reconstruction: pair.$1.startsWith('outer-box-')
                     ? 'regionalPackaging'
@@ -281,6 +317,12 @@ void main() {
         expect(restored['outer-box-$face'], hasLength(1));
       }
       final packaging = (await library.metadata('e', 'packaging'))!;
+      expect(
+          packaging.media
+              .singleWhere((m) => m.type == 'outer-box-front')
+              .importReference!
+              .colourCorrection!['referenceSourceId'],
+          'screenscraper');
       final panels =
           packaging.media.where((m) => m.type.startsWith('outer-box-'));
       expect(panels, hasLength(6));

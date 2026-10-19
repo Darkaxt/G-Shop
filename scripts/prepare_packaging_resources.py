@@ -20,6 +20,7 @@ import zipfile
 
 import requests
 from PIL import Image, ImageOps
+from artwork_colour_cast import match_colour_cast
 
 PLATFORMS = {
     'nes': ('Nintendo Entertainment System', 'NES'),
@@ -80,12 +81,31 @@ def compose_english_faces(game, english_resources, *, bodies=None, read=None):
                     return bodies[digest] if digest in bodies else read('images/' + digest + '.png')
                 with Image.open(io.BytesIO(body(donor))) as panel, Image.open(io.BytesIO(body(english))) as art:
                     fitted = fit_panel(art, panel.width / panel.height)
+                    colour_reference = donor['importReference'].get('colourReference')
+                    if colour_reference:
+                        reference_body = bodies[colour_reference['sha256']]
+                        with Image.open(io.BytesIO(reference_body)) as original:
+                            fitted, correction = match_colour_cast(fitted, original)
+                    else:
+                        colour_reference = {'sha256': donor['importReference']['sha256'],
+                            'sourceId': donor['importReference']['sourceId']}
+                        fitted, correction = match_colour_cast(fitted, panel)
+                    if correction['applied']:
+                        reference['colourCorrection'] = {
+                            **{k: v for k, v in correction.items() if k != 'applied'},
+                            'referenceSha256': colour_reference['sha256'],
+                            'referenceSourceId': colour_reference['sourceId']}
+                    game.setdefault('colourReviews', []).append({'face': face, **correction})
                     output = io.BytesIO()
                     fitted.save(output, format='PNG')
                 data = png(output.getvalue())
                 reference.setdefault('sourceSha256', reference['sha256'])
                 reference['sha256'] = hashlib.sha256(data).hexdigest()
                 bodies[reference['sha256']] = data
+                # The flat/preparation front and the carton must bind the same
+                # derived image, rather than returning to the original scan.
+                game['resources'] = [r for r in game['resources'] if r['type'] != role]
+                game['resources'].append({**english, 'importReference': reference})
             game['resources'].append({**english, 'type': 'outer-box-' + face,
                                       'region': donor.get('region'), 'importReference': reference})
             for resource in game['resources']:
@@ -240,6 +260,17 @@ def apply_panel_layouts(manifest, bodies, recipe_file):
                 reference['sourceLanguages'] = recipe['languages']
             if reconstruction:
                 reference['reconstruction'] = reconstruction
+            colour = panel.get('colourReference')
+            if colour is not None:
+                colour_file = recipe_file.parent / colour['file']
+                if (colour_file.stat().st_size > 4 * 1024 * 1024 or
+                        colour['sourceId'] not in {'screenscraper', 'nintandbox', 'launchbox'}):
+                    raise ValueError('Invalid colour reference')
+                colour_body = colour_file.read_bytes()
+                if hashlib.sha256(colour_body).hexdigest() != colour['sha256']:
+                    raise ValueError('Colour reference digest changed')
+                bodies[colour['sha256']] = colour_body
+                reference['colourReference'] = {k: colour[k] for k in ['sha256', 'sourceId']}
             resources.append({'type': 'outer-box-' + role, 'region': region,
                 'importReference': reference})
         if resources:

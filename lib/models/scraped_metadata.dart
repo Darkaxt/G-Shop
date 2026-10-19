@@ -269,6 +269,7 @@ class ImportedArtworkReference {
   final int rotationDegrees;
   final String? sourceRegion, reconstruction;
   final List<String>? sourceLanguages;
+  final Map<String, dynamic>? colourCorrection;
   ImportedArtworkReference(
       {required this.sourceId,
       required this.assetId,
@@ -277,14 +278,19 @@ class ImportedArtworkReference {
       this.sourceSha256,
       this.sourceRegion,
       this.reconstruction,
+      Map<String, dynamic>? colourCorrection,
       List<String>? sourceLanguages,
       List<int>? panel,
       this.rotationDegrees = 0})
-      : panel = panel == null ? null : List.unmodifiable(panel),
+      : colourCorrection = colourCorrection == null
+            ? null
+            : Map.unmodifiable(colourCorrection),
+        panel = panel == null ? null : List.unmodifiable(panel),
         sourceLanguages = sourceLanguages == null
             ? null
             : List.unmodifiable(sourceLanguages) {
-    if (!{0, 90, 180, 270}.contains(rotationDegrees) ||
+    if (!_validColourCorrection(colourCorrection) ||
+        !{0, 90, 180, 270}.contains(rotationDegrees) ||
         sourceRegion != null &&
             !RegExp(r'^[a-z]{2,3}$').hasMatch(sourceRegion!) ||
         sourceLanguages != null &&
@@ -309,6 +315,30 @@ class ImportedArtworkReference {
       throw const FormatException('Invalid imported artwork provenance');
     }
   }
+  static bool _validColourCorrection(Map<String, dynamic>? value) {
+    if (value == null) return true;
+    final matrix = value['matrix'];
+    final before = value['errorBefore'], after = value['errorAfter'];
+    return value['method'] == 'rgb-affine-v1' &&
+        RegExp(r'^[a-f0-9]{64}$').hasMatch('${value['referenceSha256']}') &&
+        {'screenscraper', 'nintandbox', 'launchbox'}
+            .contains(value['referenceSourceId']) &&
+        matrix is List &&
+        matrix.length == 4 &&
+        matrix.every((row) =>
+            row is List &&
+            row.length == 3 &&
+            row.every((n) => n is num && n.isFinite && n.abs() <= 8)) &&
+        before is num &&
+        before.isFinite &&
+        before > 0 &&
+        before <= 2 &&
+        after is num &&
+        after.isFinite &&
+        after >= 0 &&
+        after <= before * .8;
+  }
+
   Map<String, dynamic> toJson() => {
         'sourceId': sourceId,
         'assetId': assetId,
@@ -320,6 +350,7 @@ class ImportedArtworkReference {
         if (sourceRegion != null) 'sourceRegion': sourceRegion,
         if (reconstruction != null) 'reconstruction': reconstruction,
         if (sourceLanguages != null) 'sourceLanguages': sourceLanguages,
+        if (colourCorrection != null) 'colourCorrection': colourCorrection,
       };
   factory ImportedArtworkReference.fromJson(Map<String, dynamic> json) =>
       ImportedArtworkReference(
@@ -330,6 +361,8 @@ class ImportedArtworkReference {
           sourceSha256: json['sourceSha256'] as String?,
           sourceRegion: json['sourceRegion'] as String?,
           reconstruction: json['reconstruction'] as String?,
+          colourCorrection:
+              (json['colourCorrection'] as Map?)?.cast<String, dynamic>(),
           sourceLanguages: (json['sourceLanguages'] as List?)?.cast<String>(),
           panel: (json['panel'] as List?)?.cast<int>(),
           rotationDegrees: json['rotationDegrees'] as int? ?? 0);

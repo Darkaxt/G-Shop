@@ -22,6 +22,38 @@ spec.loader.exec_module(packaging)
 
 
 class PanelsTest(unittest.TestCase):
+    def test_composite_keeps_launchbox_detail_but_matches_original_global_cast(self):
+        import numpy as np
+        from test_artwork_colour_cast import palette_image
+        target = np.asarray(palette_image()).copy()
+        tinted = target.copy()
+        tinted[:, :, :3] = np.round(np.clip(target[:, :, :3] * [1.04, .61, 1.08] + [6, 0, 8], 0, 255))
+        def resource(role, pixels, source, language):
+            output = io.BytesIO()
+            Image.fromarray(pixels).save(output, format='PNG')
+            data = output.getvalue()
+            digest = hashlib.sha256(data).hexdigest()
+            bodies[digest] = data
+            return {'type': role, 'region': 'us', 'importReference': {
+                'sourceId': source, 'sha256': digest, 'sourceLanguages': [language]}}
+        bodies = {}
+        donor = resource('outer-box-front', target, 'nintandbox', 'es')
+        english = resource('box-2D', tinted, 'launchbox', 'en')
+        left = {'type': 'outer-box-left', 'importReference': {'sha256': 'unchanged'}}
+        game = {'resources': [donor, english, left]}
+        packaging.compose_english_faces(game, [english], bodies=bodies)
+        face = next(r for r in game['resources'] if r['type'] == 'outer-box-front')
+        ref = face['importReference']
+        self.assertEqual(ref['sourceId'], 'launchbox')
+        self.assertEqual(ref['sourceSha256'], english['importReference']['sha256'])
+        self.assertEqual(ref['colourCorrection']['referenceSha256'], donor['importReference']['sha256'])
+        self.assertEqual(ref['colourCorrection']['method'], 'rgb-affine-v1')
+        flat = next(r for r in game['resources'] if r['type'] == 'box-2D')
+        self.assertEqual(flat['importReference']['sha256'], ref['sha256'])
+        self.assertEqual(left['importReference']['sha256'], 'unchanged')
+        with Image.open(io.BytesIO(bodies[ref['sha256']])) as corrected:
+            self.assertLess(np.mean(np.abs(np.asarray(corrected).astype(float) - target)), 2)
+
     def test_english_substitution_preserves_donor_dimensions_without_stretching_art(self):
         def picture(size, color):
             output = io.BytesIO()

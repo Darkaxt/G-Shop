@@ -1,6 +1,19 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 112, 2026-10-19.
+Authoritative specification, revision 113, 2026-10-20.
+
+Owner colour-cast decision: retain LaunchBox priority for replacement English
+faces, but estimate and reverse their global colour cast against the original
+matching cover. Dominant colour anchors the correction; corroborate it with
+other corresponding colours and apply one consistent transform to the whole
+replacement, not a selective purple-to-blue repaint. Perform this in collection,
+not mesh tinting or per-frame rendering. Preserve both originals and record the
+derived image's source/reference hashes and transform. Do not apply unverified
+corrections to unrelated/different artwork. Sapphire is the targeted acceptance:
+LaunchBox detail/text retained, blue palette matches the existing packaging,
+and the same corrected front is used before and during the 3D animation. No
+repetitive full-ROM sweep or new console is part of this correction. This
+supersedes replacing LaunchBox outright in the following earlier clarification.
 
 Owner clarification: Sapphire's existing blue English front is the desired
 artwork because it matches the remaining blue box faces, cartridge and booklet.

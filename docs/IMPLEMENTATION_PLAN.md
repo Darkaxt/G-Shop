@@ -1,9 +1,14 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 112, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 113, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
+Current bounded work: implement collector colour-cast estimation with test-first
+global-tint and unrelated-artwork contracts; wire it into English composite
+replacement, preserve original/reference/transform receipts, generate Sapphire's
+derived resource through the normal metadata lane, then inspect its signed-device
+handoff. Both originals remain untouched. No extra ACTIVE stage or cohort sweep.
 Owner narrowed verification: stop the repetitive full-cohort sweep and focus on
 the supplied special cartridge/holder and Sapphire's English-front colour seam.
 Ordinary model behavior already inspected is retained evidence, not a claim that

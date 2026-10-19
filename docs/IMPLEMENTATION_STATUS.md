@@ -7,6 +7,19 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
+2026-10-20, revision 113: owner approved retaining LaunchBox priority with an
+estimated global colour-cast correction, superseding the proposed source switch.
+The collector now fits one robust RGB affine transform, using corresponding
+palette anchors and corroborating neutral paper. It preserves pixels/geometry
+and alpha rather than copying reference artwork or recolouring selected areas.
+Unrelated/unsubstantiated matches are rejected. The normal composite path and
+metadata serializer retain source/reference hashes and the actual transform.
+Sapphire's one-edition update contains only `box-2D` and `outer-box-front`, both
+bound to the same derived PNG; other faces, booklet and cartridge are unchanged.
+Both originals are preserved in `D:/Temp/rshop-s25-colour-cast-20261019`.
+Focused collector/model/metadata checks pass; native signed import, Drive receipt
+and actual handoff inspection remain required. No new console or full-ROM sweep.
+
 Latest owner clarification: preserve Sapphire's blue English front, matching its
 remaining packaging, cartridge and booklet. The purple front is a LaunchBox image
 in the imported packaging pack (SHA-256
