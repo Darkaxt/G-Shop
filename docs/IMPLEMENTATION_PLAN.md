@@ -11,12 +11,13 @@ selected-only -30/front/+30 degree carton sweep in this same GBA refinement.
 The owner reduced the focused booklet opening from 40 to a small 18-degree
 glimpse: the two-page construction looks unnatural with the wider gap. Retain
 closed extraction/tableau and full-spread reader gestures; keep reader-route
-entry similarly narrow (16-19 degrees). Verify the smaller glimpse on Thor.
+entry similarly narrow (16-19 degrees). The smaller glimpse and full reader
+handoff are native-verified on signed `16eb4d5`; see the status receipt.
 The owner requests removal of the shelf's forward lean: keep pitch and roll
 zero throughout the selected yaw cycle, retaining halo/badges and Reduced Motion.
 The upright shelf correction is native-verified on signed `29342de`; its unchanged
-evidence remains applicable. The smaller booklet glimpse is the current acceptance
-blocker pending signed native verification.
+evidence remains applicable. These bounded refinements pass; stop at the existing
+GBA owner-review checkpoint, with the broader S25 criteria still ACTIVE.
 The preceding refinement is native-verified on signed `3373325`; see the
 status receipt. Stop at the existing GBA owner-review checkpoint, without
 claiming the wider S25 cohort/edition criteria or opening another console.

@@ -19,8 +19,17 @@ This ledger does not declare the full S25 stage complete.
 ## Evidence and limits
 
 Owner revision 107 reduces the focused booklet to an 18-degree glimpse after
-the 40-degree gap exposed its two-page construction. Native verification of
-that reduction is pending. No new model or fabricated page layers are required.
+the 40-degree gap exposed its two-page construction. VERIFIED on Thor with signed
+`16eb4d5`, run 39277674812, installed/downloaded APK SHA-256
+`5eeb04c5bdea7e85db328d4602c9fa35edcd71f86e5909cf32b11322003d0ad1`.
+All five `booklet-small-glimpse` contact sheets plus the full-size final107 focus
+and reader images were inspected. Resting/extracted booklet stays closed; focus
+shows a small gap, and double-tap reaches full-screen page 2 in 2.332s by native
+logs. Actual reader-route entry is `.125` on the imported booklet. Raw video
+timing remains estimated; the scene-change candidate belongs to the trailer,
+not the model. No new model or fabricated page layers were required. The signed
+job log confirms successful build/upload and final cleanup; terminal API status
+was stale/in-progress, so it is not recorded as API-verified CI completion.
 
 Signed source `29342de`, run 39273207957, verifies the upright shelf correction:
 both `upright-shelf-ready` contact sheets and full-size final106 shelf evidence

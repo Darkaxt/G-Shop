@@ -11,8 +11,26 @@ Current owner small-glimpse correction (revision 107), ACTIVE: the owner rejecte
 the 40-degree focused booklet gap because its two-page construction looks unnatural.
 Reduce the actual hinge to 18 degrees and the reader-route entry to 16-19 degrees;
 retain closed extraction/tableau, concurrent focus zoom and full opening for reading.
-The new angle and route-entry regressions fail on the old implementation.
-Signed native verification of this reduction remains required.
+The new angle and route-entry regressions failed on the old implementation;
+the focused integrated tests now pass. VERIFIED on Thor with signed source
+`16eb4d5233cd14cbab20c4a20ada2215bce8ac3f`,
+[run 39277674812](https://github.com/Darkaxt/R-Shop/actions/runs/39277674812).
+Downloaded and installed APK SHA-256 both equal
+`5eeb04c5bdea7e85db328d4602c9fa35edcd71f86e5909cf32b11322003d0ad1`;
+the production certificate is unchanged. All five `booklet-small-glimpse` contact
+sheets and `final107-focus-down.png` were inspected: the real focus zoom narrows
+to a small glimpse, with the resting booklet/carton unchanged. No model flash;
+the abrupt-change candidate is the background trailer's scene cut. Capture
+timelines are estimated, not wall-clock timings. Native Resources diagnostics
+confirm actual reader-entry `opening=.125` and the imported booklet geometry.
+Double-tap opens at 17:45:02.353 and reaches full-screen page 2 at 17:45:04.685;
+`final107-reader-down.png` was inspected. Device input/logging stopped afterward.
+The signed job log confirms BUILD SUCCESSFUL, artifact upload, ephemeral signing
+copy removal and post-job cleanup at 15:39:21Z. GitHub's status API remained
+stale/in-progress with intermittent HTTP 502 responses; no terminal API-success
+claim is made. This does not replace the independently verified APK/device proof.
+No native Windows Gradle invocation, public partial release or other console.
+Stop at the existing GBA owner-review checkpoint; broader S25 criteria remain ACTIVE.
 
 Preceding readability correction (revision 106): remove the shelf
 cartons' forward pitch and roll, retaining the verified selected yaw/halo. The
