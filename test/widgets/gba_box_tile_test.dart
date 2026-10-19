@@ -1,10 +1,65 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:retro_eshop/models/packaging_model.dart';
+import 'package:retro_eshop/services/metadata/effective_overall_rating.dart';
+import 'package:retro_eshop/providers/library_providers.dart';
+import 'package:retro_eshop/providers/metadata_cloud_providers.dart';
+import 'package:retro_eshop/widgets/base_game_card.dart';
 import 'package:retro_eshop/widgets/gba_box_tile.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
+import '../helpers/pump_helpers.dart';
+import 'cover_rating_test.dart' show score;
 
 void main() {
+  testWidgets('mounted GBA box paints its arriving exact score into the atlas',
+      (tester) async {
+    final rating = Completer<EffectiveOverallRating?>();
+    final selections = <({String platform, String selection})>[];
+    await tester.pumpWidget(ProviderScope(
+        overrides: [
+          boxCardMediaProvider.overrideWith((ref, selection) async => {}),
+          cloudSelectionMediaProvider
+              .overrideWith((ref, selection) async => null),
+          cachedSelectionRatingProvider.overrideWith((ref, selection) {
+            selections.add(selection);
+            return rating.future;
+          }),
+        ],
+        child: createTestApp(Center(
+            child: SizedBox(
+                width: 300,
+                height: 300,
+                child: BaseGameCard(
+                    displayName: 'Fixture',
+                    systemId: 'gba',
+                    gameIdentity: 'Fixture.gba',
+                    coverUrls: const [],
+                    cachedUrl: null,
+                    isInstalled: false,
+                    isSelected: false,
+                    accentColor: Colors.red,
+                    onTap: () {}))))));
+    expect(tester.widget<GbaBoxTile>(find.byType(GbaBoxTile)).score, isNull);
+    rating.complete(score(value: 84));
+    await tester.pump();
+    await tester.pump();
+    expect(selections, [(platform: 'gba', selection: 'Fixture.gba')]);
+    final tile = tester.widget<GbaBoxTile>(find.byType(GbaBoxTile));
+    expect(tile.score, isNotNull);
+    final renderer =
+        tester.widget<SocketMediaRenderer>(find.byType(SocketMediaRenderer));
+    final atlas = renderer.label;
+    await tester.pumpWidget(createTestApp(
+        Center(child: SizedBox(width: 600, height: 400, child: atlas))));
+    await tester.pump();
+    expect(find.text('8.4'), findsOneWidget);
+    final badge = tester.getRect(find.byKey(const ValueKey('cover-rating')));
+    expect(badge.right, lessThanOrEqualTo(400));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('GBA shelf is a closed static box with face-bound corner badges',
       (tester) async {
     const scoreKey = ValueKey('score-fixture'),

@@ -46,6 +46,26 @@ No golden or unrelated PSX behavior was changed to hide those baseline failures.
 GBA cold/warm timings, window continuity and visible rendering are still current
 acceptance blockers until the signed candidate is checked on Thor.
 
+First native correction check: GitHub run 39178763109 passed for `8f222ce`;
+the installed APK SHA-256 matches the independently downloaded artifact,
+`8d76f116841fd17a2538902e488bc75f05d59f812d2eabcea3cf7ec07a6bbd3c`.
+The recorded Home -> GBA transition retains the console model until the game
+payload replaces it, without the previous Cocoon dismissal. Cold recovery is
+GBA-only (233 records, 2.157s; discovery metadata-ready 2.478s and query .543s).
+It exposed a remaining competing whole-console score scan: badge preparation
+walked all 7,675 catalogue rows, delaying their appearance and first-preview
+resources (25.485s). Warm Sapphire resources resolve in .863s, reveal at 2.194s
+and finish at 12.210s, demonstrating usable cached media, not proving zero wire
+requests. The three-object scene, trailer at saved .2248569 volume and lower
+corner badges render. Current follow-on correction makes mounted GBA boxes
+consume only their exact cached rating, in both console/library routes, without
+the competing whole-console score provider. Its native cold rerun remains an
+acceptance blocker; the installed first candidate is not recorded as passing.
+The exact-rating refresh regression and arriving-score atlas/widget checks pass;
+the affected production files pass analysis without issues. This is host evidence,
+not acceptance of the remaining first-entry delay. Raw display recordings use an
+estimated 60-fps remux timeline; only the monotonic app logs above provide timing.
+
 ### S25 handoff/booklet polish — 2026-10-19, ACTIVE
 
 Revision 97 addresses the owner's two motion observations without changing the

@@ -184,7 +184,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
             .asData
             ?.value ??
         const {};
-    final ratings = _showRatings
+    final ratings = _showRatings && widget.system.id != 'gba'
         ? ref.watch(cachedCoverRatingsProvider(widget.system.id))
         : null;
     _ratings = ratings == null || ratings.isLoading || ratings.hasError

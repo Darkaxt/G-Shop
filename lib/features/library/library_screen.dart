@@ -1950,7 +1950,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 .asData
                 ?.value ??
             const {};
-    final ratings = _showRatings && !_isDashboard
+    final ratings = _showRatings && !_isDashboard && metadataScope != 'gba'
         ? ref.watch(cachedCoverRatingsProvider(metadataScope))
         : null;
     _ratings = ratings == null || ratings.isLoading || ratings.hasError

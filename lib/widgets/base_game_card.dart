@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/metadata_cloud_providers.dart';
+import '../providers/library_providers.dart' show cachedSelectionRatingProvider;
 import '../core/responsive/responsive.dart';
 import '../core/util/color_contrast.dart';
 import '../l10n/app_localizations.dart';
@@ -129,6 +130,13 @@ class BaseGameCard extends StatelessWidget {
           onLongPress: onLongPress,
           child: Column(children: [
             Expanded(child: Consumer(builder: (context, ref, _) {
+              final boxRating = overallRating ??
+                  (showRating
+                      ? ref
+                          .watch(cachedSelectionRatingProvider(
+                              (platform: systemId!, selection: gameIdentity!)))
+                          .valueOrNull
+                      : null);
               final panels = ref
                       .watch(boxCardMediaProvider(
                           (platform: systemId!, selection: gameIdentity!)))
@@ -159,11 +167,11 @@ class BaseGameCard extends StatelessWidget {
                               identity: gameIdentity!, title: displayName),
                           errorWidget: HandwrittenMediaSticker(
                               identity: gameIdentity!, title: displayName)),
-                  score: showRating && overallRating != null
+                  score: showRating && boxRating != null
                       ? _CoverRating(
                           key: ValueKey(
-                              'score-${overallRating!.rating.normalizedValue}-${overallRating!.fresh}-${overallRating!.rankingEligible}'),
-                          rating: overallRating!,
+                              'score-${boxRating.rating.normalizedValue}-${boxRating.fresh}-${boxRating.rankingEligible}'),
+                          rating: boxRating,
                           isSmall: false)
                       : null,
                   availability: isInstalled || isRemoteAvailable

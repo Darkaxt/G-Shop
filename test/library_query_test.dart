@@ -1511,6 +1511,40 @@ void main() {
     }
   });
 
+  test('mounted GBA rating resolves only its exact binding and refreshes',
+      () async {
+    final first = await seed(1, score: 91, platform: 'gba');
+    await seed(2, score: 70, platform: 'gba');
+    final observed = _ProjectionDatabase(db);
+    final container = ProviderContainer(overrides: [
+      libraryDbProvider.overrideWithValue(_CacheDatabase(observed)),
+      sharedMetadataStoreProvider.overrideWithValue(Future.value(null)),
+    ]);
+    final selected = cachedSelectionRatingProvider(
+        (platform: 'gba', selection: 'Game 1.7z'));
+    final mounted = container.listen(selected, (_, __) {});
+    try {
+      expect(
+          (await container.read(selected.future))!.rating.normalizedValue, 91);
+      expect(observed.catalogueReads, lessThan(12));
+      expect(observed.catalogueQueries.every((q) => !q.sql.contains('id > ?')),
+          isTrue,
+          reason: 'Mounted badges must not scan the console catalogue');
+      final cached = (await store.metadata(first, 'igdb'))!;
+      await store.putMetadata(MetadataRecord.fromJson({
+        ...cached.toJson(),
+        'ratings':
+            cached.ratings.map((r) => {...r.toJson(), 'rawValue': 88}).toList()
+      }));
+      container.read(gameDbChangedProvider.notifier).state++;
+      expect(
+          (await container.read(selected.future))!.rating.normalizedValue, 88);
+    } finally {
+      mounted.close();
+      container.dispose();
+    }
+  });
+
   test('production display and Top share supported community score, not total',
       () async {
     final supported = await seed(1, score: 70);

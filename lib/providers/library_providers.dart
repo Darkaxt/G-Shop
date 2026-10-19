@@ -262,6 +262,20 @@ final cachedMetadataCoversProvider = FutureProvider.autoDispose
   return Map.unmodifiable(result);
 });
 
+/// Exact mounted GBA box only. Do not serialize thousands of unrelated catalogue
+/// bindings ahead of the selected preview merely to populate eight score badges.
+final cachedSelectionRatingProvider = FutureProvider.autoDispose
+    .family<EffectiveOverallRating?, ({String platform, String selection})>(
+        (ref, selection) async {
+  ref.watch(gameDbChangedProvider);
+  ref.watch(librarySyncServiceProvider.select((s) => s.completedSystems));
+  await ref.watch(scopedMetadataReadinessProvider(selection.platform).future);
+  final database = ref.read(libraryDbProvider).database;
+  return (await LibraryQuery(database)
+          .cachedMetadata(selection.selection, selection.platform))
+      ?.overallRating;
+});
+
 /// One shared, cache-only read per mounted view. Scores are fetched in pages of
 /// 128, not per card/frame; scrolling only reads this immutable in-memory map.
 /// Empty scope is the cross-system library, including its existing shelves.
