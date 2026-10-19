@@ -7,11 +7,17 @@ Execution order: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ### S25 cache, handoff and GBA box grid — 2026-10-19, ACTIVE
 
-Current owner readability correction (revision 105), ACTIVE: remove the shelf
+Current owner readability correction (revision 106), ACTIVE: remove the shelf
 cartons' forward pitch and roll, retaining the verified selected yaw/halo. The
 upright-pose regression fails on the old .14-radian pitch. Focused host checks
 now pass for upright selected/static/Reduced Motion poses, both yaw extremes,
-front crossings and badges. Signed native verification remains required.
+front crossings and badges. The owner also requires the zoomed booklet to open
+its actual hinge ~40 degrees, without opening the carton or altering extraction.
+The closed-booklet reproduction failed before correction. Preserve the ajar pose
+at reader-route entry, then open fully as before. Integrated focused checks now
+pass for per-part opening, unchanged carton/extraction behavior, reader handoff,
+swipes/return, upright selected/static poses and yaw extremes. Final signed Thor
+verification remains required; no second ACTIVE stage.
 
 Preceding owner refinement (revision 104): red library backdrop,
 selected-only -30/front/+30 degree carton sweep/halo, animated booklet-to-reader

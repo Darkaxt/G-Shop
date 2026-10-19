@@ -65,6 +65,8 @@ void main() {
           'manual-page': List.filled(4, file.uri.toString())
         }))));
     await tester.pump();
+    expect(key.currentState!.opening, .25,
+        reason: 'Do not snap the focused ajar booklet shut on reader entry');
     await tester.runAsync(() => precacheImage(
         FileImage(file), tester.element(find.byType(ResourceGallery))));
     await tester.pump();

@@ -4,9 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 import 'package:retro_eshop/models/packaging_model.dart';
+import 'package:retro_eshop/models/socket_media_model.dart';
 import 'package:retro_eshop/widgets/socket_media_renderer.dart';
 
 void main() {
+  test('focused scene booklet opens forty degrees without opening the carton', () {
+    final model = PackagingModel(PackagingKind.booklet).build();
+    model.data['unboxingGeometry'] = true;
+    final maximum = (model.data['maxOpenRadians'] as num).toDouble();
+    for (final progress in [0.0, .5, 1.0]) {
+      final pose = SocketMediaPose(inspectedPart: 'booklet', inspection: progress);
+      expect(SocketMediaGpu.surfaceOpening(model,
+              {'unboxingPart': 'booklet'}, pose) * maximum,
+          closeTo(40 * math.pi / 180 * progress, .00001));
+      expect(SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'box'}, pose), 0);
+    }
+    expect(SocketMediaGpu.surfaceOpening(model, {'unboxingPart': 'booklet'},
+        const SocketMediaPose(opening: 1)), 0,
+        reason: 'The booklet stays closed inside the extraction sequence');
+  });
   for (final size in [const Size(1240, 1080), const Size(1920, 1080)]) {
     for (final aspect in [.7, 1.0, 1.35]) {
       test('inside-left mesh maps upright to reader bounds $size/$aspect', () {

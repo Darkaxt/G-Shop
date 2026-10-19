@@ -455,6 +455,17 @@ class _LabelLayer extends RenderRepaintBoundary {
 }
 
 class SocketMediaGpu {
+  static double surfaceOpening(SocketMediaModel model,
+      Map<String, dynamic> surface, SocketMediaPose pose) {
+    if (model.data['unboxingGeometry'] == true &&
+        surface['unboxingPart'] == 'booklet') {
+      if (pose.inspectedPart != 'booklet') return 0;
+      return (40 * math.pi / 180 /
+              (model.data['maxOpenRadians'] as num).toDouble()) *
+          pose.inspection;
+    }
+    return pose.opening;
+  }
   // Packaging meshes retain Blender's outward counter-clockwise triangles.
   // Socket's model transform reflects Y, reversing its imported winding.
   static gpu.WindingOrder windingOrder(SocketMediaModel model) =>
@@ -998,6 +1009,7 @@ class SocketMediaGpu {
                     ? 1
                     : 0));
         for (final surface in ordered) {
+          final opening = surfaceOpening(model, surface, pose);
           if (opaqueOnly && transmitting(surface['material'])) continue;
           pass.setCullMode(surface['singleSided'] == true
               ? gpu.CullMode.backFace
@@ -1014,14 +1026,13 @@ class SocketMediaGpu {
                 inspection: pose.inspection));
           }
           if (surface['openingHinges'] is List) {
-            transform.multiply(openingTransform(surface, pose.opening));
+            transform.multiply(openingTransform(surface, opening));
           } else if (surface['hinged'] == true &&
-              pose.opening != 0 &&
-              surface['unboxingPart'] != 'booklet') {
+              opening != 0) {
             final pivot = (surface['pivot'] as List).cast<num>();
             transform
               ..translateByDouble(pivot[0].toDouble(), 0, 0, 1)
-              ..rotateY(-pose.opening.clamp(0, 1) *
+              ..rotateY(-opening.clamp(0, 1) *
                   (model.data['maxOpenRadians'] as num).toDouble())
               ..translateByDouble(-pivot[0].toDouble(), 0, 0, 1);
           }

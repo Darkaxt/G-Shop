@@ -1,6 +1,6 @@
 # Staged implementation plan
 
-Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 105, including
+Authority: [SPECIFICATION.md](SPECIFICATION.md), revision 106, including
 [collection/patch extension](COLLECTION_PATCHES_SPECIFICATION.md).
 
 Current execution, 2026-10-19: **S25 ACTIVE**.
@@ -8,7 +8,10 @@ The retained-process reopening correction is native-verified on `f17888a` (see
 status receipt); do not repeat that investigation. Include the owner's near-level
 console hardware camera, preserving upright rotation and gestures, and the
 selected-only -30/front/+30 degree carton sweep in this same GBA refinement.
-The owner now requests removal of the shelf's forward lean: keep pitch and roll
+The owner also requests a visibly ajar (~40-degree) booklet when zoomed into
+inspection, retaining closed extraction/tableau and full-spread reader gestures.
+Verify that together with the upright shelf correction in one final signed build.
+The owner requests removal of the shelf's forward lean: keep pitch and roll
 zero throughout the selected yaw cycle, retaining halo/badges and Reduced Motion.
 This readability correction is the current acceptance blocker pending verification.
 The preceding refinement is native-verified on signed `3373325`; see the

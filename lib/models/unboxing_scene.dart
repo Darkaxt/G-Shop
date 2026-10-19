@@ -110,6 +110,7 @@ class UnboxingScene {
       'frontSign': 1,
       'canOpen': true,
       'openingDurationMs': 3000,
+      'maxOpenRadians': booklet?.data['maxOpenRadians'] ?? math.pi * .85,
       'cartridgeStyle': style,
       'seatCenter': [center[0], center[1], center[2] * .3523316 / 2],
       'seatScale': (fit[1][0] as num) - (fit[0][0] as num),

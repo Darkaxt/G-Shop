@@ -1,6 +1,14 @@
 # Google Drive, metadata expansion, companions, save backups and managed ROM cache
 
-Authoritative specification, revision 105, 2026-10-19.
+Authoritative specification, revision 106, 2026-10-19.
+
+Owner booklet focus correction, 2026-10-19: when the booklet zooms into
+inspection, progressively open its real hinge to about 40 degrees (30-45 degrees
+acceptable), making its depth distinct from a flat cover/unfinished box reveal.
+Keep it closed during extraction and the resting tableau; close it on returning
+to overview. Do not open the carton while inspecting the booklet. Double-tap
+still opens the full spread and enters the reader; avoid snapping the ajar
+booklet closed at that route handoff. Verify the actual model on Thor.
 
 Owner readability correction, 2026-10-19: library cartons must remain upright
 (zero forward pitch and roll), including selected motion and Reduced Motion.
